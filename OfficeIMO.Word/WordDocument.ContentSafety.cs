@@ -45,7 +45,7 @@ public partial class WordDocument {
         IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
         if (selected.Count == 0) return new OfficeContentCleanupResult((byte[])documentBytes.Clone(), before, before, Array.Empty<OfficeContentCleanupChange>());
 
-        byte[] mutableBytes = PrepareContentSafetyMutation(documentBytes, options.SignatureMutationPolicy);
+        byte[] mutableBytes = PrepareContentSafetyMutation(documentBytes, options);
         using var stream = new MemoryStream(mutableBytes.Length + 4096);
         stream.Write(mutableBytes, 0, mutableBytes.Length);
         stream.Position = 0;
@@ -228,8 +228,10 @@ public partial class WordDocument {
         return false;
     }
 
-    private static byte[] PrepareContentSafetyMutation(byte[] data, OfficeSignatureMutationPolicy signaturePolicy) {
-        var provenanceOptions = new OfficeProvenanceRemovalOptions { SignatureMutationPolicy = signaturePolicy };
+    private static byte[] PrepareContentSafetyMutation(byte[] data, OfficeContentCleanupOptions cleanupOptions) {
+        OfficeSignatureMutationPolicy signaturePolicy = cleanupOptions.SignatureMutationPolicy;
+        OfficeProvenanceRemovalOptions provenanceOptions =
+            OfficeContentSafetyProvenanceOptions.CreateSignatureRemovalOptions(cleanupOptions);
         bool hasSignatures = HasPackageSignatures(data, provenanceOptions);
         if (!hasSignatures) return (byte[])data.Clone();
         if (signaturePolicy == OfficeSignatureMutationPolicy.BlockSave) {

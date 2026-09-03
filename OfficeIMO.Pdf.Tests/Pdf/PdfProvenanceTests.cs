@@ -824,16 +824,15 @@ public sealed partial class PdfProvenanceTests {
     }
 
     [Fact]
-    public void RemovalEnforcesExpandedContainerLimitDuringGraphRewrite() {
+    public void RemovalEnforcesIndependentOutputLimitDuringGraphRewrite() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
-        var options = new OfficeProvenanceRemovalOptions();
+        var options = new OfficeProvenanceRemovalOptions { MaxOutputBytes = 300 };
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
         options.Limits.MaxManifestBytes = 512;
-        options.Limits.MaxExpandedContainerBytes = 300;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
 
-        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -847,7 +846,7 @@ public sealed partial class PdfProvenanceTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             PdfPageExtractor.EnsureSerializedObjectWithinLimit(stream, context, 1024 * 1024));
 
-        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

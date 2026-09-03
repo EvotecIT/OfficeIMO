@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading;
 using System.Runtime.InteropServices;
+using OfficeIMO.Html;
 using OfficeIMO.Provenance;
 using Xunit;
 
@@ -160,6 +161,50 @@ public sealed class ProvenanceAssessmentContracts {
             Assert.Equal("replacement", File.ReadAllText(path));
         } finally {
             File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AssessmentInspectFileReportsTheOriginalTextLocation() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".html");
+        File.WriteAllText(path, "<!doctype html><html><body>review\u200Bthis</body></html>", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(path);
+
+            OfficeTextIntegrityFinding finding = Assert.Single(report.TextIntegrity!.Findings);
+            Assert.Equal(Path.GetFullPath(path), finding.Location);
+            Assert.DoesNotContain("officeimo-provenance-", finding.Location, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SnapshotCapturesRelativeExternalManifestDependenciesFromFormatReports() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        string sidecar = Path.Combine(directory, "manifests", "c2pa", "claim.c2pa");
+        Directory.CreateDirectory(Path.GetDirectoryName(sidecar)!);
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"manifests/c2pa/claim.c2pa\"></head><body>body</body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllText(sidecar, "immutable claim", new UTF8Encoding(false));
+        string? snapshotDirectory = null;
+        try {
+            OfficeProvenanceReport report = HtmlProvenance.InspectFile(path);
+            using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096)) {
+                snapshotDirectory = Path.GetDirectoryName(snapshot.FilePath)!;
+                snapshot.CaptureExternalManifestDependencies(path, report, 4096);
+
+                Assert.Equal(
+                    "immutable claim",
+                    File.ReadAllText(Path.Combine(snapshotDirectory, "manifests", "c2pa", "claim.c2pa")));
+            }
+            Assert.False(Directory.Exists(snapshotDirectory));
+        } finally {
+            Directory.Delete(directory, recursive: true);
         }
     }
 

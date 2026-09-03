@@ -52,7 +52,7 @@ public partial class ExcelDocument {
         if (selected.Count == 0) return new OfficeContentCleanupResult((byte[])workbookBytes.Clone(), before, before, Array.Empty<OfficeContentCleanupChange>());
 
         ExcelFileFormat sourceFormat = ExcelDocumentLoadRouting.DetectFormat(workbookBytes, fileName);
-        byte[] mutableBytes = PrepareExcelContentSafetyMutation(workbookBytes, sourceFormat, options.SignatureMutationPolicy);
+        byte[] mutableBytes = PrepareExcelContentSafetyMutation(workbookBytes, sourceFormat, options);
         using ExcelDocument document = LoadContentSafetyWorkbook(mutableBytes, fileName, readOnly: false);
         var targets = new Dictionary<string, ExcelCleanupTarget>(StringComparer.Ordinal);
         OfficeContentSafetyReport current = InspectContentSafetyDocument(document, options.Inspection, targets);
@@ -554,7 +554,8 @@ public partial class ExcelDocument {
     private static byte[] PrepareExcelContentSafetyMutation(
         byte[] data,
         ExcelFileFormat sourceFormat,
-        OfficeSignatureMutationPolicy policy) {
+        OfficeContentCleanupOptions cleanupOptions) {
+        OfficeSignatureMutationPolicy policy = cleanupOptions.SignatureMutationPolicy;
         if (sourceFormat == ExcelFileFormat.Xls) {
             using ExcelDocument document = LoadContentSafetyWorkbook(data, "workbook.xls", readOnly: true);
             if (document.LegacyXlsCompoundFeatures.Any(item => item.Kind == LegacyXlsCompoundFeatureRecordKind.DigitalSignature)) {
@@ -563,7 +564,8 @@ public partial class ExcelDocument {
             return (byte[])data.Clone();
         }
 
-        var provenanceOptions = new OfficeProvenanceRemovalOptions { SignatureMutationPolicy = policy };
+        OfficeProvenanceRemovalOptions provenanceOptions =
+            OfficeContentSafetyProvenanceOptions.CreateSignatureRemovalOptions(cleanupOptions);
         bool hasSignatures = HasPackageSignatures(data, provenanceOptions);
         if (!hasSignatures) return (byte[])data.Clone();
         if (policy == OfficeSignatureMutationPolicy.BlockSave) {

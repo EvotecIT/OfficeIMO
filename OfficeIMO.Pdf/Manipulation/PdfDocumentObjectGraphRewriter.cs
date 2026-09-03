@@ -177,7 +177,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         using var boundedOutput = new PdfBoundedWriteStream(
             output,
             maximumOutputBytes,
-            "The rewritten PDF exceeds the configured expanded container limit.");
+            "The rewritten PDF exceeds the configured output limit.");
         if (permanentFileId == null) {
             PdfFileAssembler.Assemble(
                 boundedOutput,
@@ -233,7 +233,7 @@ internal static class PdfDocumentObjectGraphRewriter {
 
     private static void ThrowIfOutputLimitExceeded(long observedBytes, long? maximumOutputBytes) {
         if (maximumOutputBytes.HasValue && observedBytes > maximumOutputBytes.Value) {
-            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
         }
     }
 

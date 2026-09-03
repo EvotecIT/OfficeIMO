@@ -256,6 +256,164 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AssessmentSnapshot");
     }
 
+    [Fact]
+    public async Task AssessmentReportsTheLogicalSourcePathWhileReadingTheSnapshot() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", "<!doctype html><html><body>review\u200Bthis</body></html>");
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        OfficeTextIntegrityFinding finding = Assert.Single(result.Assessment!.TextIntegrity!.Findings);
+        Assert.Equal(Path.GetFullPath(input), finding.Location);
+        Assert.DoesNotContain("officeimo-provenance-", finding.Location, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AssessmentSnapshotsRelativeExternalManifestDependenciesForProviders() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        scope.Write("claim.c2pa", "immutable claim");
+        var verifier = new RelativeManifestVerifier();
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(OfficeProvenanceVerificationStatus.Valid, result.Assessment!.Verification!.Status);
+        Assert.True(verifier.SawRelativeManifest);
+        Assert.NotEqual(Path.GetDirectoryName(input), verifier.ObservedDirectory);
+        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+    }
+
+    [Fact]
+    public async Task AssessmentFailsClosedWhenAProviderReplacesACapturedExternalManifest() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        scope.Write("claim.c2pa", "immutable claim");
+        var verifier = new ReplacingRelativeManifestVerifier();
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(verifier.Replaced || verifier.MutationBlocked);
+        if (verifier.Replaced) {
+            Assert.False(result.Succeeded);
+            Assert.Contains("external provenance manifest changed", result.Summary, StringComparison.OrdinalIgnoreCase);
+        } else {
+            Assert.True(result.Succeeded, result.Summary);
+        }
+        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+    }
+
+    [Fact]
+    public async Task DiskBackedSnapshotAcceptsWorkflowCeilingsAboveInt32() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input,
+                Limits = new OfficeWorkflowLimits {
+                    MaximumInputBytes = (long)int.MaxValue + 4096L,
+                    MaximumOutputBytes = (long)int.MaxValue + 4096L
+                }
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+    }
+
+    [Fact]
+    public async Task PublicationRejectsAStagedArtifactChangedAfterValidation() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
+        string output = Path.Combine(scope.Path, "cleaned.html");
+        var progress = new ReplacingStagedArtifactProgress(scope.Path, output);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output
+            },
+            progress);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Contains("changed after output validation", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.True(progress.Replaced);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task ReplaceRestoresTheDisplacedDestinationWhenFinalValidationIsCancelled() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
+        string output = scope.Write("cleaned.html", "existing destination");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new CancellingProgress("replace-finalization", cancellation);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Id = "replace-finalization",
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            progress,
+            cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Equal("existing destination", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public async Task ReplaceRestoresTheDisplacedDestinationWhenPublishedArtifactDisappears() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
+        string output = scope.Write("cleaned.html", "existing destination");
+        var progress = new DeletingPublishedArtifactProgress(output);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            progress);
+
+        Assert.False(result.Succeeded);
+        Assert.True(progress.Deleted);
+        Assert.Equal("existing destination", File.ReadAllText(output));
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(UnauthorizedAccessException))]
+    public void InputAccessFailuresUseTheInputFailureContract(Type exceptionType) {
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "input unavailable")!;
+
+        OfficeWorkflowFailureKind kind = OfficeWorkflowRunner.ClassifyFailure(
+            exception,
+            OfficeWorkflowRunner.WorkflowFailureStage.Input);
+
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, kind);
+    }
+
     private static void CreateOpenDocumentPackage(string path, string mediaType) {
         using var stream = File.Create(path);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false);
@@ -293,6 +451,73 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
     }
 
+    private sealed class RelativeManifestVerifier : IOfficeProvenanceVerifier {
+        public string Name => "relative-manifest";
+        internal bool SawRelativeManifest { get; private set; }
+        internal string? ObservedDirectory { get; private set; }
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) {
+            ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            string manifestPath = Path.Combine(ObservedDirectory!, "claim.c2pa");
+            SawRelativeManifest = File.Exists(manifestPath) && File.ReadAllText(manifestPath) == "immutable claim";
+            return new OfficeProvenanceVerificationResult(
+                SawRelativeManifest ? OfficeProvenanceVerificationStatus.Valid : OfficeProvenanceVerificationStatus.Invalid,
+                Name,
+                Array.Empty<string>());
+        }
+    }
+
+    private sealed class ReplacingRelativeManifestVerifier : IOfficeProvenanceVerifier {
+        public string Name => "replacing-relative-manifest";
+        internal bool Replaced { get; private set; }
+        internal bool MutationBlocked { get; private set; }
+        internal string? ObservedDirectory { get; private set; }
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) {
+            ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            string manifestPath = Path.Combine(ObservedDirectory!, "claim.c2pa");
+            string replacementPath = manifestPath + ".replacement";
+            try {
+                File.WriteAllText(replacementPath, "replaced claim");
+                File.Move(replacementPath, manifestPath, overwrite: true);
+                Replaced = true;
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                MutationBlocked = true;
+                if (File.Exists(replacementPath)) File.Delete(replacementPath);
+            }
+            return new OfficeProvenanceVerificationResult(
+                OfficeProvenanceVerificationStatus.Valid,
+                Name,
+                Array.Empty<string>());
+        }
+    }
+
+    private sealed class ReplacingStagedArtifactProgress : IProgress<OfficeWorkflowProgress> {
+        private readonly string _directory;
+        private readonly string _outputPath;
+
+        internal ReplacingStagedArtifactProgress(string directory, string outputPath) {
+            _directory = directory;
+            _outputPath = outputPath;
+        }
+
+        internal bool Replaced { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (Replaced || !string.Equals(value.Stage, "publish", StringComparison.Ordinal)) return;
+            string stagingPath = Directory.GetFiles(
+                    _directory,
+                    "." + Path.GetFileNameWithoutExtension(_outputPath) + ".*" + Path.GetExtension(_outputPath))
+                .Single();
+            File.WriteAllText(stagingPath, "<!doctype html><html><body>replacement</body></html>");
+            Replaced = true;
+        }
+    }
+
     private sealed class ReplacingRemovalProgress : IProgress<OfficeWorkflowProgress> {
         private readonly string _path;
         private readonly string _replacement;
@@ -309,4 +534,19 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             _replaced = true;
         }
     }
+
+    private sealed class DeletingPublishedArtifactProgress : IProgress<OfficeWorkflowProgress> {
+        private readonly string _path;
+
+        internal DeletingPublishedArtifactProgress(string path) => _path = path;
+
+        internal bool Deleted { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (Deleted || !string.Equals(value.Stage, "complete", StringComparison.Ordinal)) return;
+            File.Delete(_path);
+            Deleted = true;
+        }
+    }
+
 }

@@ -1,4 +1,6 @@
 using System.Text.Json;
+using OfficeIMO.Tool.Commands.Provenance;
+using OfficeIMO.Workflows;
 using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
@@ -168,6 +170,51 @@ public sealed class ProvenanceCommandTests {
         Assert.Equal((int)OfficeImoToolExitCode.InputNotFound, result.ExitCode);
         using JsonDocument json = JsonDocument.Parse(result.Output);
         Assert.Equal("InputNotFound", json.RootElement.GetProperty("failureKind").GetString());
+    }
+
+    [Fact]
+    public void CliByteLimitsFlowIntoEveryOwningParserBoundary() {
+        const long inputLimit = 768L * 1024L * 1024L;
+        const long outputLimit = 1024L * 1024L * 1024L;
+        ProvenanceArguments parsed = ProvenanceArguments.Parse([
+            "remove", "input.html", "--max-input-bytes", inputLimit.ToString(),
+            "--max-output-bytes", outputLimit.ToString()
+        ]);
+
+        OfficeProvenanceWorkflowRequest request = ProvenanceCommand.CreateRequest(
+            parsed,
+            "input.html",
+            "output.html");
+
+        Assert.Equal(inputLimit, request.Limits.MaximumInputBytes);
+        Assert.Equal(outputLimit, request.Limits.MaximumOutputBytes);
+        Assert.Equal(inputLimit, request.Inspection.MaxAssetBytes);
+        Assert.Equal(inputLimit, request.Assessment.Structural.MaxAssetBytes);
+        Assert.Equal(inputLimit, request.Assessment.TextIntegrity.MaxEncodedBytes);
+        Assert.Equal(inputLimit, request.Removal.Limits.MaxAssetBytes);
+        Assert.Equal(outputLimit, request.Removal.MaxOutputBytes);
+    }
+
+    [Fact]
+    public void CliLongLimitsClampOnlyMaterializingParserOptions() {
+        long configured = (long)int.MaxValue + 4096L;
+        ProvenanceArguments parsed = ProvenanceArguments.Parse([
+            "remove", "input.html", "--max-input-bytes", configured.ToString(),
+            "--max-output-bytes", configured.ToString()
+        ]);
+
+        OfficeProvenanceWorkflowRequest request = ProvenanceCommand.CreateRequest(
+            parsed,
+            "input.html",
+            "output.html");
+
+        Assert.Equal(configured, request.Limits.MaximumInputBytes);
+        Assert.Equal(configured, request.Limits.MaximumOutputBytes);
+        Assert.Equal(int.MaxValue, request.Inspection.MaxAssetBytes);
+        Assert.Equal(int.MaxValue, request.Assessment.Structural.MaxAssetBytes);
+        Assert.Equal(int.MaxValue, request.Assessment.TextIntegrity.MaxEncodedBytes);
+        Assert.Equal(int.MaxValue, request.Removal.Limits.MaxAssetBytes);
+        Assert.Equal(int.MaxValue, request.Removal.MaxOutputBytes);
     }
 
     private static string HtmlWithManifest(string body) =>

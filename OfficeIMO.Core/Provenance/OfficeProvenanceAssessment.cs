@@ -124,7 +124,19 @@ public static class OfficeProvenanceAssessment {
                    fullPath,
                    options.Structural.MaxAssetBytes)) {
             OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(snapshot.FilePath, options.Structural);
-            return AssessFile(snapshot.FilePath, structural, options, verifier, signalDetectors);
+            snapshot.CaptureExternalManifestDependencies(
+                fullPath,
+                structural,
+                options.Structural.MaxManifestBytes);
+            OfficeProvenanceAssessmentReport assessment = AssessSnapshotFile(
+                snapshot.FilePath,
+                fullPath,
+                structural,
+                options,
+                verifier,
+                signalDetectors);
+            snapshot.VerifyExternalManifestDependencies();
+            return assessment;
         }
     }
 
@@ -140,9 +152,43 @@ public static class OfficeProvenanceAssessment {
         OfficeProvenanceAssessmentOptions? options = null,
         IOfficeProvenanceVerifier? verifier = null,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => AssessFileCore(
+            filePath,
+            filePath,
+            structural,
+            options,
+            verifier,
+            signalDetectors,
+            cancellationToken);
+
+    internal static OfficeProvenanceAssessmentReport AssessSnapshotFile(
+        string snapshotFilePath,
+        string logicalFilePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options = null,
+        IOfficeProvenanceVerifier? verifier = null,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
+        CancellationToken cancellationToken = default) => AssessFileCore(
+            snapshotFilePath,
+            logicalFilePath,
+            structural,
+            options,
+            verifier,
+            signalDetectors,
+            cancellationToken);
+
+    private static OfficeProvenanceAssessmentReport AssessFileCore(
+        string filePath,
+        string logicalFilePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options,
+        IOfficeProvenanceVerifier? verifier,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
+        CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         string fullPath = Path.GetFullPath(filePath);
+        string logicalFullPath = Path.GetFullPath(logicalFilePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
         if (structural == null) throw new ArgumentNullException(nameof(structural));
         options ??= new OfficeProvenanceAssessmentOptions();
@@ -150,7 +196,7 @@ public static class OfficeProvenanceAssessment {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
         if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
-            textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity);
+            textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity, logicalFullPath);
             cancellationToken.ThrowIfCancellationRequested();
         }
         OfficeProvenanceVerificationResult? verification = verifier?.Verify(fullPath, options.Verification);

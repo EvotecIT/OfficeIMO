@@ -180,6 +180,25 @@ public sealed class ContentSafetyContracts {
     }
 
     [Fact]
+    public void SignatureHandlingUsesTheContentCleanupResourcePolicy() {
+        var cleanup = new OfficeContentCleanupOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        cleanup.Inspection.MaxInputBytes = 768L * 1024L * 1024L;
+        cleanup.Inspection.MaxPackageEntries = 1234;
+        cleanup.Inspection.MaxExpandedPackageBytes = 1536L * 1024L * 1024L;
+
+        OfficeProvenanceRemovalOptions provenance =
+            OfficeContentSafetyProvenanceOptions.CreateSignatureRemovalOptions(cleanup);
+
+        Assert.Equal(cleanup.SignatureMutationPolicy, provenance.SignatureMutationPolicy);
+        Assert.Equal(cleanup.Inspection.MaxInputBytes, provenance.Limits.MaxAssetBytes);
+        Assert.Equal(cleanup.Inspection.MaxInputBytes, provenance.MaxOutputBytes);
+        Assert.Equal(cleanup.Inspection.MaxPackageEntries, provenance.Limits.MaxContainerEntries);
+        Assert.Equal(cleanup.Inspection.MaxExpandedPackageBytes, provenance.Limits.MaxExpandedContainerBytes);
+    }
+
+    [Fact]
     public void ZeroWidthCleanupIsSelectiveAndDoesNotTreatJoinersAsAiProof() {
         const string text = "pay\u200Bload and family \U0001F469\u200D\U0001F4BB";
         OfficeTextIntegrityReport report = OfficeTextIntegrityInspector.Inspect(text);

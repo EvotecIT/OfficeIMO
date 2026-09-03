@@ -10,6 +10,9 @@ public sealed partial class OfficeWorkflowRunner {
         if (exception is FileNotFoundException or DirectoryNotFoundException) {
             return OfficeWorkflowFailureKind.InputNotFound;
         }
+        if (stage == WorkflowFailureStage.Input && exception is IOException or UnauthorizedAccessException) {
+            return OfficeWorkflowFailureKind.UnsupportedInput;
+        }
         if (exception is NotSupportedException or InvalidDataException) {
             return OfficeWorkflowFailureKind.UnsupportedInput;
         }

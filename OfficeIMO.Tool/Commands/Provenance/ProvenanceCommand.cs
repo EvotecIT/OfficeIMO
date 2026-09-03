@@ -89,7 +89,7 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
         }
     }
 
-    private static OfficeProvenanceWorkflowRequest CreateRequest(
+    internal static OfficeProvenanceWorkflowRequest CreateRequest(
         ProvenanceArguments parsed,
         string input,
         string? output,
@@ -109,9 +109,16 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
                 MaximumOutputBytes = parsed.MaximumOutputBytes
             }
         };
+        long parserInputBytes = Math.Min(parsed.MaximumInputBytes, int.MaxValue);
+        long parserOutputBytes = Math.Min(parsed.MaximumOutputBytes, int.MaxValue);
+        request.Inspection.MaxAssetBytes = parserInputBytes;
         request.Inspection.ProcessEmbeddedAssets = parsed.ProcessEmbeddedAssets;
+        request.Assessment.Structural.MaxAssetBytes = parserInputBytes;
         request.Assessment.Structural.ProcessEmbeddedAssets = parsed.ProcessEmbeddedAssets;
+        request.Assessment.TextIntegrity.MaxEncodedBytes = parserInputBytes;
         request.Assessment.InspectTextIntegrity = parsed.InspectTextIntegrity;
+        request.Removal.Limits.MaxAssetBytes = parserInputBytes;
+        request.Removal.MaxOutputBytes = parserOutputBytes;
         request.Removal.RemoveC2paManifests = parsed.RemoveC2paManifests;
         request.Removal.RemoveExternalC2paReferences = parsed.RemoveExternalC2paReferences;
         request.Removal.RemoveAiSourceMetadata = parsed.RemoveAiSourceMetadata;

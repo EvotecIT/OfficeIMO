@@ -98,8 +98,7 @@ public sealed partial class OfficeWorkflowRunner {
                 cancellationToken);
             if (selectedPath is null) continue;
             nextSuffixByDestination[requestedIdentity] = nextSuffix;
-            string? selectedIdentity = pathIndex.TryNormalizeCandidate(selectedPath);
-            if (selectedIdentity is null) continue;
+            string selectedIdentity = pathIndex.NormalizeCandidate(selectedPath);
             reservedOutputIdentities.Add(selectedIdentity);
             prepared[index] = CloneBatchRequestForReservedOutput(request, selectedPath);
         }
@@ -132,8 +131,6 @@ public sealed partial class OfficeWorkflowRunner {
         BatchPathIndex pathIndex,
         ref int nextSuffix,
         CancellationToken cancellationToken) {
-        IReadOnlySet<string>? existingEntries = pathIndex.TryGetExistingEntries(requestedPath);
-        if (existingEntries is null) return null;
         for (int attempts = 0; attempts < 10_000; attempts++) {
             if (cancellationToken.IsCancellationRequested) return null;
             int suffix = nextSuffix;
@@ -142,10 +139,9 @@ public sealed partial class OfficeWorkflowRunner {
             }
             nextSuffix++;
             string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
-            string? identity = pathIndex.TryNormalizeCandidate(candidate);
-            if (identity is null) return null;
+            string identity = pathIndex.NormalizeCandidate(candidate);
             if (inputRequestIndexes.ContainsKey(identity) || reservedOutputIdentities.Contains(identity) ||
-                existingEntries.Contains(identity)) continue;
+                pathIndex.CandidateExists(candidate)) continue;
             return candidate;
         }
         throw new IOException("No available numbered provenance output path could be reserved for the batch.");
@@ -182,7 +178,7 @@ public sealed partial class OfficeWorkflowRunner {
 
     private sealed class BatchPathIndex(CancellationToken cancellationToken) {
         private readonly Dictionary<string, string?> _normalizedPaths = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, BatchDirectoryIndex?> _lexicalDirectories = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, BatchDirectoryIndex> _lexicalDirectories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, BatchDirectoryIndex> _physicalDirectories = new(StringComparer.Ordinal);
 
         internal string? TryNormalize(string? path) {
@@ -190,49 +186,58 @@ public sealed partial class OfficeWorkflowRunner {
             string fullPath;
             try {
                 fullPath = Path.GetFullPath(path);
-            } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
+            } catch (Exception exception) when (exception is ArgumentException or NotSupportedException) {
                 return null;
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                throw new IOException($"Unable to resolve provenance batch path '{path}'.", exception);
             }
             if (_normalizedPaths.TryGetValue(fullPath, out string? cached)) return cached;
             try {
                 string identity = OfficeWorkflowPathIdentity.Normalize(fullPath);
                 _normalizedPaths.Add(fullPath, identity);
                 return identity;
-            } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
+            } catch (ArgumentException) {
                 _normalizedPaths.Add(fullPath, null);
                 return null;
+            } catch (Exception exception) when (exception is NotSupportedException or IOException or UnauthorizedAccessException) {
+                throw new IOException($"Unable to resolve provenance batch path identity '{path}'.", exception);
             }
         }
 
-        internal string? TryNormalizeCandidate(string path) {
+        internal string NormalizeCandidate(string path) {
+            string fullPath = Path.GetFullPath(path);
+            if (_normalizedPaths.TryGetValue(fullPath, out string? cached) && cached is not null) return cached;
             try {
-                string fullPath = Path.GetFullPath(path);
-                if (_normalizedPaths.TryGetValue(fullPath, out string? cached)) return cached;
-                BatchDirectoryIndex? directory = TryGetDirectory(fullPath);
-                if (directory is null) return null;
+                BatchDirectoryIndex directory = GetDirectory(fullPath);
                 string identity = directory.NormalizeChild(Path.GetFileName(fullPath));
-                _normalizedPaths.Add(fullPath, identity);
+                _normalizedPaths[fullPath] = identity;
                 return identity;
             } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
-                return null;
+                throw new IOException($"Unable to reserve provenance batch output '{path}'.", exception);
             }
         }
 
-        internal IReadOnlySet<string>? TryGetExistingEntries(string path) {
+        internal bool CandidateExists(string path) {
             try {
                 string fullPath = Path.GetFullPath(path);
-                return TryGetDirectory(fullPath)?.ExistingEntries;
+                _ = GetDirectory(fullPath);
+                _ = File.GetAttributes(fullPath);
+                return true;
+            } catch (FileNotFoundException) {
+                return false;
+            } catch (DirectoryNotFoundException) {
+                return false;
             } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
-                return null;
+                throw new IOException($"Unable to inspect provenance batch output candidate '{path}'.", exception);
             }
         }
 
-        private BatchDirectoryIndex? TryGetDirectory(string fullChildPath) {
+        private BatchDirectoryIndex GetDirectory(string fullChildPath) {
             string? directoryPath = Path.GetDirectoryName(fullChildPath);
-            if (string.IsNullOrEmpty(directoryPath)) return null;
+            if (string.IsNullOrEmpty(directoryPath)) throw new IOException("The provenance batch output has no destination directory.");
             if (_lexicalDirectories.TryGetValue(directoryPath, out BatchDirectoryIndex? cached)) return cached;
             try {
-                if (cancellationToken.IsCancellationRequested) return null;
+                cancellationToken.ThrowIfCancellationRequested();
                 string physicalDirectory = OfficeWorkflowPathIdentity.ResolvePhysicalPath(directoryPath);
                 bool caseInsensitive = OfficeWorkflowPathIdentity.IsCaseInsensitiveFileSystem(physicalDirectory);
                 string physicalIdentity = OfficeWorkflowPathIdentity.Normalize(physicalDirectory, caseInsensitive);
@@ -240,32 +245,19 @@ public sealed partial class OfficeWorkflowRunner {
                     _lexicalDirectories.Add(directoryPath, shared);
                     return shared;
                 }
-                var existingEntries = new HashSet<string>(StringComparer.Ordinal);
-                if (Directory.Exists(directoryPath)) {
-                    foreach (string entry in Directory.EnumerateFileSystemEntries(directoryPath)) {
-                        if (cancellationToken.IsCancellationRequested) return null;
-                        existingEntries.Add(OfficeWorkflowPathIdentity.Normalize(
-                            Path.Combine(physicalDirectory, Path.GetFileName(entry)),
-                            caseInsensitive));
-                    }
-                }
-                var index = new BatchDirectoryIndex(physicalDirectory, caseInsensitive, existingEntries);
+                var index = new BatchDirectoryIndex(physicalDirectory, caseInsensitive);
                 _physicalDirectories.Add(physicalIdentity, index);
                 _lexicalDirectories.Add(directoryPath, index);
                 return index;
             } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
-                _lexicalDirectories.Add(directoryPath, null);
-                return null;
+                throw new IOException($"Unable to index provenance batch destination directory '{directoryPath}'.", exception);
             }
         }
     }
 
     private sealed class BatchDirectoryIndex(
         string physicalDirectory,
-        bool caseInsensitive,
-        IReadOnlySet<string> existingEntries) {
-        internal IReadOnlySet<string> ExistingEntries { get; } = existingEntries;
-
+        bool caseInsensitive) {
         internal string NormalizeChild(string fileName) => OfficeWorkflowPathIdentity.Normalize(
             Path.Combine(physicalDirectory, fileName),
             caseInsensitive);
