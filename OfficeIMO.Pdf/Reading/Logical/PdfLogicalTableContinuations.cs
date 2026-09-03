@@ -241,6 +241,15 @@ public static class PdfLogicalTableContinuations {
 
     private static bool TryGetVisualBounds(PdfLogicalTable table, PdfLogicalPage page, out PdfVisualBounds bounds) {
         if (table.Columns.Count == 0) { bounds = default; return false; }
+        if (table.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft) {
+            PdfLogicalVisualBounds? visual = table.VisualBounds;
+            double visualLeft = visual?.Left ?? table.Columns.Min(static column => Math.Min(column.From, column.To));
+            double visualRight = visual?.Right ?? table.Columns.Max(static column => Math.Max(column.From, column.To));
+            double visualTop = visual?.Top ?? Math.Min(table.YTop, table.YBottom);
+            double visualBottom = visual?.Bottom ?? Math.Max(table.YTop, table.YBottom);
+            bounds = new PdfVisualBounds(visualLeft, visualTop, visualRight, visualBottom);
+            return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+        }
         double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
         double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
         double bottom = Math.Min(table.YBottom, table.YTop);
@@ -286,7 +295,7 @@ public static class PdfLogicalTableContinuations {
         PdfLogicalTable table,
         PdfLogicalPage page,
         CancellationToken cancellationToken) {
-        if (table.SourceKind == PdfLogicalContentSourceKind.Ocr) {
+        if (table.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft) {
             var visualColumns = new VisualColumn[table.Columns.Count];
             for (int index = 0; index < table.Columns.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();

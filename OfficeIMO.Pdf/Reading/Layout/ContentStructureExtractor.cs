@@ -84,6 +84,7 @@ public sealed class StructuredTable {
     public List<StructuredTableColumn> Columns { get; } = new();
     /// <summary>Extracted row values aligned to Columns.</summary>
     public List<string[]> Rows { get; } = new();
+    internal IReadOnlyList<PdfTextSpan> SourceRuns { get; set; } = Array.Empty<PdfTextSpan>();
 }
 
 /// <summary>Column geometry for a detected table.</summary>
@@ -287,7 +288,8 @@ internal static class ContentStructureExtractor {
         TextLayoutEngine.Options opts,
         double? pageHeight,
         Action<long>? consumeWork,
-        Action? cancellationCheck) {
+        Action? cancellationCheck,
+        IReadOnlyList<StructuredTable>? precomputedTables = null) {
         cancellationCheck?.Invoke();
         var page = new StructuredPage();
         var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
@@ -349,11 +351,13 @@ internal static class ContentStructureExtractor {
         }
 
         // Table detection: prefer banded column inference; fallback to per-line
-        var tables = TableDetector.DetectTablesFromBands(
-            bands,
-            pageHeight,
-            consumeWork,
-            cancellationCheck);
+        var tables = precomputedTables is null
+            ? TableDetector.DetectTablesFromBands(
+                bands,
+                pageHeight,
+                consumeWork,
+                cancellationCheck)
+            : precomputedTables.ToList();
         if (tables.Count > 0) {
             // Clean leaders and add
             foreach (var t in tables) {
@@ -385,7 +389,7 @@ internal static class ContentStructureExtractor {
                 page.TablesDetailed.Add(t);
                 page.Tables.AddRange(t.Rows);
             }
-        } else {
+        } else if (precomputedTables is null) {
             // Try a page-level leader-based table (TOC-like)
             var leaderTbl = TableDetector.DetectLeaderTable(
                 nonEmpty,

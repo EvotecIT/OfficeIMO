@@ -37,10 +37,109 @@ public class PdfUnderstandingPipelineTests {
             Assert.All(page.Regions, region => { Assert.InRange(region.Confidence, 0D, 1D); Assert.NotEmpty(region.Evidence); });
             Assert.All(page.ReadingOrderEvidence, order => { Assert.InRange(order.Confidence, 0D, 1D); Assert.NotEmpty(order.Evidence); });
             Assert.All(page.Elements, element => { Assert.InRange(element.Confidence, 0D, 1D); Assert.NotEmpty(element.Evidence); });
-            Assert.Equal(new[] { "glyph-decoding", "word-grouping", "line-grouping", "page-segmentation", "reading-order", "semantic-classification" }, page.Trace.Select(static trace => trace.Stage));
+            Assert.Equal(new[] { "glyph-decoding", "word-grouping", "line-grouping", "table-detection", "page-segmentation", "reading-order", "semantic-classification" }, page.Trace.Select(static trace => trace.Stage));
         });
         Assert.All(pages.SelectMany(static page => page.Trace), trace =>
             Assert.Equal(typeof(PdfAdvancedUnderstandingStages).Assembly, trace.ProviderType.Assembly));
+    }
+
+    [Fact]
+    public void Pipeline_DetectsTablesOnceAndReusesFirstClassCandidatesForLogicalProjection() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var tableDetection = new CountingTableDetectionStage();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Klucz Wartość", "F1", 12D, 40D, 700D, 180D),
+            new PdfTextSpan("Żółć 東京", "F1", 12D, 40D, 680D, 180D)
+        });
+        options.TableDetection = tableDetection;
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+        PdfLogicalTable table = Assert.Single(page.Tables);
+
+        Assert.Equal(1, tableDetection.CallCount);
+        Assert.Equal("test-aligned-geometry", candidate.DetectionKind);
+        Assert.Equal(candidate.DetectionKind, table.DetectionKind);
+        Assert.Equal(PdfLogicalContentSourceKind.Native, table.SourceKind);
+        Assert.Equal(new[] { "Żółć", "東京" }, table.Rows[1]);
+        Assert.Equal(
+            typeof(CountingTableDetectionStage),
+            Assert.Single(page.Analysis.Trace, static trace => trace.Stage == "table-detection").ProviderType);
+    }
+
+    [Fact]
+    public void Pipeline_SegmentsSharedBaselineTableFragmentsIndependently() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Left", "F1", 10D, 40D, 700D, 35D),
+            new PdfTextSpan("L1", "F1", 10D, 140D, 700D, 20D),
+            new PdfTextSpan("Right", "F1", 10D, 320D, 700D, 40D),
+            new PdfTextSpan("R1", "F1", 10D, 430D, 700D, 20D),
+            new PdfTextSpan("Alpha", "F1", 10D, 40D, 680D, 35D),
+            new PdfTextSpan("10", "F1", 10D, 140D, 680D, 20D),
+            new PdfTextSpan("Gamma", "F1", 10D, 320D, 680D, 40D),
+            new PdfTextSpan("30", "F1", 10D, 430D, 680D, 20D),
+            new PdfTextSpan("Beta", "F1", 10D, 40D, 660D, 35D),
+            new PdfTextSpan("20", "F1", 10D, 140D, 660D, 20D),
+            new PdfTextSpan("Delta", "F1", 10D, 320D, 660D, 40D),
+            new PdfTextSpan("40", "F1", 10D, 430D, 660D, 20D)
+        });
+        options.LineGrouping = new BaselineLineGroupingStage();
+        options.TableDetection = new TwoTableFragmentDetectionStage();
+
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+        PdfUnderstandingTableCandidate[] candidates = page.TableCandidates.ToArray();
+        PdfUnderstandingSemanticElement[] regions = page.Elements
+            .Where(static element => element.Kind == PdfUnderstandingSemanticKind.Table)
+            .ToArray();
+
+        Assert.Equal(2, candidates.Length);
+        Assert.Equal(2, regions.Length);
+        Assert.Empty(candidates[0].SourceLines.Intersect(candidates[1].SourceLines));
+        Assert.Contains(regions, region => region.Region.Text.Contains("Alpha", StringComparison.Ordinal) &&
+                                          !region.Region.Text.Contains("Gamma", StringComparison.Ordinal));
+        Assert.Contains(regions, region => region.Region.Text.Contains("Gamma", StringComparison.Ordinal) &&
+                                          !region.Region.Text.Contains("Alpha", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void StructuredPipeline_PromotesTableBeforeGeneralSegmentation() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Year", "Region", "Value" },
+                new[] { "2025", "North", "1250" },
+                new[] { "2024", "West", "980" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 120, 90 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, PdfUnderstandingPipelineOptions.Structured()).Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(
+            page.Analysis.TableCandidates,
+            static table => table.Rows.Count >= 3 && table.Columns.Count >= 3);
+        PdfLogicalTable table = Assert.Single(
+            page.Tables,
+            static table => table.Rows.Count >= 3 && table.Columns.Count >= 3);
+
+        Assert.Equal(PdfTableCoordinateSpace.PdfUserSpace, candidate.CoordinateSpace);
+        Assert.Equal(new[] { "2025", "North", "1250" }, candidate.Rows[1]);
+        Assert.Equal(candidate.Rows.Select(static row => row.ToArray()), table.Rows.Select(static row => row.ToArray()));
+        Assert.Contains(page.Analysis.Regions, region =>
+            region.Evidence.Any(static evidence => evidence.Code == "region.canonical-table"));
     }
 
     [Fact]
@@ -79,6 +178,42 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
         Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void Pipeline_RejectsOversizedCustomTableCandidateSets() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("first", "F1", 12D, 40D, 700D, 80D),
+            new PdfTextSpan("second", "F1", 12D, 40D, 680D, 80D)
+        });
+        options.TableDetection = new CountingTableDetectionStage(candidateCount: 2);
+        options.MaxTableCandidatesPerPage = 1;
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void Pipeline_RejectsOversizedNestedTableCandidateArtifacts() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("first", "F1", 12D, 40D, 700D, 80D),
+            new PdfTextSpan("second", "F1", 12D, 40D, 680D, 80D)
+        });
+        options.TableDetection = new CountingTableDetectionStage();
+        options.MaxWordsPerPage = 3;
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(3, exception.Limit);
+        Assert.Equal(4, exception.Actual);
     }
 
     [Fact]
@@ -996,6 +1131,7 @@ public class PdfUnderstandingPipelineTests {
         options.PageSegmentation = new FirstLineOnlySegmentationStage();
         options.ReadingOrder = new IdentityReadingOrderStage();
         options.SemanticClassification = new ParagraphClassificationStage();
+        options.TableDetection = new CountingTableDetectionStage();
 
         PdfDocumentReadResult result = Read(pdf, options);
         PdfLogicalPage page = Assert.Single(result.Pages);
@@ -1007,6 +1143,46 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains("Retained by segmentation", result.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Excluded", result.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Excluded", result.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LogicalTableProjection_SizesCellsFromSparseAggregateCount() {
+        PdfUnderstandingTableColumn[] columns = Enumerable.Range(0, 50_000)
+            .Select(static index => new PdfUnderstandingTableColumn(index, index + 1D))
+            .ToArray();
+        IReadOnlyList<string>[] rows = Enumerable.Range(0, 50_000)
+            .Select(static index => index == 0
+                ? (IReadOnlyList<string>)new[] { "Only populated cell" }
+                : Array.Empty<string>())
+            .ToArray();
+        var candidate = new PdfUnderstandingTableCandidate(
+            "sparse-capacity-test",
+            700D,
+            680D,
+            columns,
+            rows,
+            Array.Empty<PdfUnderstandingLine>());
+
+        PdfLogicalTable table = PdfLogicalTable.From(1, candidate);
+
+        Assert.Equal(50_000, table.Columns.Count);
+        Assert.Equal(50_000, table.Rows.Count);
+        Assert.Equal("Only populated cell", Assert.Single(table.Cells).Text);
+    }
+
+    [Fact]
+    public void AdvancedTableDetection_PreservesSingleRowLeaderCandidate() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Section").Tab(PdfTabLeaderStyle.Dots).Text("7"))
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, PdfUnderstandingPipelineOptions.Structured()).Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+
+        Assert.Equal("leaders", candidate.DetectionKind);
+        Assert.Single(candidate.Rows);
+        Assert.Equal(new[] { "Section", "7" }, candidate.Rows[0]);
+        Assert.Single(page.Tables);
     }
 
     [Fact]
@@ -1670,15 +1846,6 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void AdvancedPipeline_TableOwnershipRequiresMeaningfulHorizontalOverlap() {
-        PdfUnderstandingLine clipped = CreateUnderstandingLine("Adjacent prose", 249.5D, 339.5D, 475D);
-        PdfUnderstandingLine owned = CreateUnderstandingLine("Table prose", 100D, 190D, 475D);
-
-        Assert.False(PdfAdvancedUnderstandingStages.HasMeaningfulTableOverlap(clipped, 500D, 450D, 50D, 250D));
-        Assert.True(PdfAdvancedUnderstandingStages.HasMeaningfulTableOverlap(owned, 500D, 450D, 50D, 250D));
-    }
-
-    [Fact]
     public void AdvancedReadingOrder_UsesRotatedSourceRunExtents() {
         var sourceRun = new PdfTextSpan("Vertical section label", "Helvetica", 11D, 280D, 200D, 400D, rotationDegrees: 90D);
         var word = new PdfUnderstandingWord(
@@ -2177,6 +2344,82 @@ public class PdfUnderstandingPipelineTests {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(
             PdfUnderstandingPageContext context,
             IReadOnlyList<PdfUnderstandingWord> words) => _lines;
+    }
+
+    private sealed class BaselineLineGroupingStage : IPdfLineGroupingStage {
+        public IReadOnlyList<PdfUnderstandingLine> GroupLines(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingWord> words) =>
+            words.GroupBy(static word => word.BaselineY)
+                .OrderByDescending(static group => group.Key)
+                .Select(group => new PdfUnderstandingLine(group.OrderBy(static word => word.XStart).ToArray()))
+                .ToArray();
+    }
+
+    private sealed class TwoTableFragmentDetectionStage : IPdfTableDetectionStage {
+        public IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines) =>
+            new[] {
+                Create("left-test-table", lines, static word => word.XStart < 250D, 40D, 160D,
+                    new IReadOnlyList<string>[] { new[] { "Left", "L1" }, new[] { "Alpha", "10" }, new[] { "Beta", "20" } }),
+                Create("right-test-table", lines, static word => word.XStart >= 250D, 320D, 450D,
+                    new IReadOnlyList<string>[] { new[] { "Right", "R1" }, new[] { "Gamma", "30" }, new[] { "Delta", "40" } })
+            };
+
+        private static PdfUnderstandingTableCandidate Create(
+            string kind,
+            IReadOnlyList<PdfUnderstandingLine> lines,
+            Func<PdfUnderstandingWord, bool> selector,
+            double from,
+            double to,
+            IReadOnlyList<IReadOnlyList<string>> rows) {
+            PdfUnderstandingLine[] fragments = lines
+                .Select(line => new PdfUnderstandingLine(line.Words.Where(selector).ToArray(), line.Confidence, line.Evidence))
+                .ToArray();
+            return new PdfUnderstandingTableCandidate(
+                kind,
+                700D,
+                660D,
+                new[] { new PdfUnderstandingTableColumn(from, (from + to) / 2D), new PdfUnderstandingTableColumn((from + to) / 2D, to) },
+                rows,
+                fragments,
+                0.9D,
+                new[] { new PdfInferenceEvidence("test.table-fragment", "Independent table fragment.", 1D) });
+        }
+    }
+
+    private sealed class CountingTableDetectionStage : IPdfTableDetectionStage {
+        private readonly int _candidateCount;
+
+        internal CountingTableDetectionStage(int candidateCount = 1) {
+            _candidateCount = candidateCount;
+        }
+
+        internal int CallCount { get; private set; }
+
+        public IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines) {
+            CallCount++;
+            return Enumerable.Range(0, _candidateCount)
+                .Select(_ => new PdfUnderstandingTableCandidate(
+                    "test-aligned-geometry",
+                    700D,
+                    680D,
+                    new[] {
+                        new PdfUnderstandingTableColumn(40D, 120D),
+                        new PdfUnderstandingTableColumn(120D, 220D)
+                    },
+                    new IReadOnlyList<string>[] {
+                        new[] { "Klucz", "Wartość" },
+                        new[] { "Żółć", "東京" }
+                    },
+                    lines,
+                    0.95D,
+                    new[] { new PdfInferenceEvidence("test.table", "Test table candidate.", 1D) }))
+                .ToArray();
+        }
     }
 
     private sealed class CombinedLineGroupingStage : IPdfLineGroupingStage {

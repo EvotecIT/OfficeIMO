@@ -624,6 +624,7 @@
       "task": "verify",
       "id": "verify-site",
       "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page", "verify-website-presentation"],
+      "skipModes": ["ci"],
       "config": "./site.json"
     },
     {
