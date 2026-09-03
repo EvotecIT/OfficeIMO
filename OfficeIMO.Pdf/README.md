@@ -104,6 +104,30 @@ returning it. Per-script, script-count, and aggregate-byte limits come from
 sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed
 inputs rather than weakening their security or revision contracts.
 
+### Preview and select active-content removal
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+var policy = new PdfSanitizationOptions {
+    ActionKindsToRemove = PdfSanitizationActionKind.JavaScript |
+        PdfSanitizationActionKind.Launch |
+        PdfSanitizationActionKind.SubmitForm
+};
+
+PdfSanitizationReport preview = incoming.InspectSanitization(policy);
+Console.WriteLine($"Scripts: {preview.ActionCounts.JavaScript}");
+Console.WriteLine($"Launch actions: {preview.ActionCounts.Launch}");
+
+PdfSanitizationResult result = incoming.Sanitize(policy);
+File.WriteAllBytes("sanitized.pdf", result.ToBytes());
+```
+
+`ActionKindsToRemove` is an exact opt-in selection, so unselected action kinds
+remain. Selecting `Uri` removes every URI action and catalog URI base, including
+ordinary web links. Leave the property null for the established default policy:
+known active-content actions are removed, allowed `http`, `https`, `mailto`, and
+`tel` links remain, and URI schemes outside `AllowedUriSchemes` are removed.
+
 ### Add interactive fields to an existing PDF
 
 ```csharp

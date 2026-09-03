@@ -762,6 +762,11 @@ public sealed partial class PdfDocument {
         return PdfSanitizer.Sanitize(GetBytesForOperation(), options, ReadOptions);
     }
 
+    /// <summary>Inspects what the supplied sanitization policy would remove without modifying the PDF.</summary>
+    public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null) {
+        return PdfSanitizer.Inspect(GetBytesForOperation(), options, ReadOptions);
+    }
+
     /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>

@@ -7,11 +7,23 @@ internal static partial class PdfSanitizer {
 
     private static IReadOnlyList<PdfSanitizationFinding> Scan(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfSanitizationOptions policy) {
+        PdfSanitizationOptions policy,
+        PdfReadLimits readLimits) {
         var findings = new List<PdfSanitizationFinding>();
+        var namedJavaScriptScan = new PdfSanitizerNamedJavaScriptScan(
+            readLimits.MaxNameTreeDepth,
+            readLimits.MaxNameTreeNodes,
+            readLimits.MaxIndirectObjects);
         foreach (KeyValuePair<int, PdfIndirectObject> item in objects.OrderBy(static item => item.Key)) {
             policy.CancellationToken.ThrowIfCancellationRequested();
-            ScanObject(objects, item.Value.Value, policy, item.Key, "Object[" + item.Key + "]", findings);
+            ScanObject(
+                objects,
+                item.Value.Value,
+                policy,
+                item.Key,
+                "Object[" + item.Key + "]",
+                findings,
+                namedJavaScriptScan);
         }
 
         return findings.Count == 0 ? Array.Empty<PdfSanitizationFinding>() : findings.AsReadOnly();
@@ -23,16 +35,17 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int objectNumber,
         string path,
-        List<PdfSanitizationFinding> findings) {
+        List<PdfSanitizationFinding> findings,
+        PdfSanitizerNamedJavaScriptScan namedJavaScriptScan) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) {
-            ScanDictionary(objects, stream.Dictionary, policy, objectNumber, path, findings);
+            ScanDictionary(objects, stream.Dictionary, policy, objectNumber, path, findings, namedJavaScriptScan);
         } else if (value is PdfDictionary dictionary) {
-            ScanDictionary(objects, dictionary, policy, objectNumber, path, findings);
+            ScanDictionary(objects, dictionary, policy, objectNumber, path, findings, namedJavaScriptScan);
         } else if (value is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
                 if (array.Items[i] is not PdfReference) {
-                    ScanObject(objects, array.Items[i], policy, objectNumber, path + "[" + i + "]", findings);
+                    ScanObject(objects, array.Items[i], policy, objectNumber, path + "[" + i + "]", findings, namedJavaScriptScan);
                 }
             }
         }
@@ -44,10 +57,11 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int objectNumber,
         string path,
-        List<PdfSanitizationFinding> findings) {
+        List<PdfSanitizationFinding> findings,
+        PdfSanitizerNamedJavaScriptScan namedJavaScriptScan) {
         policy.CancellationToken.ThrowIfCancellationRequested();
-        if (TryGetForbiddenAction(objects, dictionary, policy, out PdfSanitizationFindingKind actionKind, out string? actionDetail)) {
-            findings.Add(new PdfSanitizationFinding(actionKind, objectNumber, path, actionDetail!));
+        if (TryGetForbiddenAction(objects, dictionary, policy, out PdfSanitizationFindingKind findingKind, out PdfSanitizationActionKind actionKind, out string? actionDetail)) {
+            findings.Add(new PdfSanitizationFinding(findingKind, objectNumber, path, actionDetail!, actionKind));
         }
 
         if (IsRichAnnotation(objects, dictionary, policy, out string? annotationSubtype)) {
@@ -61,13 +75,31 @@ internal static partial class PdfSanitizer {
                 findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.EmbeddedFile, objectNumber, itemPath, item.Key));
             }
 
+            if (item.Key == "JavaScript" &&
+                policy.ShouldRemoveAction("JavaScript") &&
+                !ContainsSelectedJavaScriptAction(
+                    objects,
+                    item.Value,
+                    policy,
+                    namedJavaScriptScan)) {
+                findings.Add(new PdfSanitizationFinding(
+                    PdfSanitizationFindingKind.ActiveAction,
+                    objectNumber,
+                    itemPath,
+                    "JavaScript",
+                    PdfSanitizationActionKind.JavaScript));
+            }
+
             if (item.Key == "URI" && Resolve(objects, item.Value) is PdfDictionary uriDictionary &&
-                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && !policy.IsUriAllowed(baseUri!)) {
-                findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.UnsafeUri, objectNumber, itemPath + "/Base", baseUri!));
+                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && policy.ShouldRemoveCatalogUriBase(baseUri!)) {
+                PdfSanitizationFindingKind uriFindingKind = policy.ActionKindsToRemove.HasValue
+                    ? PdfSanitizationFindingKind.ActiveAction
+                    : PdfSanitizationFindingKind.UnsafeUri;
+                findings.Add(new PdfSanitizationFinding(uriFindingKind, objectNumber, itemPath + "/Base", baseUri!, PdfSanitizationActionKind.Uri));
             }
 
             if (item.Value is not PdfReference) {
-                ScanObject(objects, item.Value, policy, objectNumber, itemPath, findings);
+                ScanObject(objects, item.Value, policy, objectNumber, itemPath, findings, namedJavaScriptScan);
             }
         }
     }
@@ -96,6 +128,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         PdfSanitizerActionBudget actionBudget) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) {
             SanitizeDictionary(objects, stream.Dictionary, policy, maximumActionDepth, actionBudget);
         } else if (value is PdfDictionary dictionary) {
@@ -115,7 +148,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         PdfSanitizerActionBudget actionBudget) {
-        if (!policy.IsActionAllowed("JavaScript")) {
+        if (policy.ShouldRemoveAction("JavaScript")) {
             dictionary.Items.Remove("JavaScript");
         }
 
@@ -138,7 +171,7 @@ internal static partial class PdfSanitizer {
             if (actionTraversalAlreadyNormalized && string.Equals(key, "Next", StringComparison.Ordinal)) continue;
 
             PdfObject? resolved = Resolve(objects, item);
-            if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _)) {
+            if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _, out _)) {
                 List<PdfDictionary> retained = action.Items.TryGetValue("Next", out PdfObject? next)
                     ? CollectRetainedActions(objects, next, policy, maximumActionDepth, 0, new HashSet<(int ObjectNumber, int Generation)>(), actionBudget)
                     : new List<PdfDictionary>();
@@ -159,7 +192,7 @@ internal static partial class PdfSanitizer {
             }
 
             if (key == "URI" && resolved is PdfDictionary uriDictionary &&
-                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && !policy.IsUriAllowed(baseUri!)) {
+                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && policy.ShouldRemoveCatalogUriBase(baseUri!)) {
                 uriDictionary.Items.Remove("Base");
             }
 
@@ -176,6 +209,7 @@ internal static partial class PdfSanitizer {
         int maximumActionDepth,
         PdfSanitizerActionBudget actionBudget) {
         for (int i = 0; i < actions.Items.Count; i++) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             if (actions.Items[i] is PdfDictionary action) {
                 SanitizeNormalizedActionDictionary(objects, action, policy, maximumActionDepth, actionBudget);
             }
@@ -188,6 +222,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         PdfSanitizerActionBudget actionBudget) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         if (action.Items.TryGetValue("Next", out PdfObject? nextObject)) {
             if (nextObject is PdfDictionary nextAction) {
                 SanitizeNormalizedActionDictionary(objects, nextAction, policy, maximumActionDepth, actionBudget);
@@ -210,6 +245,7 @@ internal static partial class PdfSanitizer {
         int depth,
         HashSet<(int ObjectNumber, int Generation)> pathReferences,
         PdfSanitizerActionBudget actionBudget) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         if (depth > maximumDepth) throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, maximumDepth, depth);
 
         if (actionObject is PdfReference reference) {
@@ -235,7 +271,7 @@ internal static partial class PdfSanitizer {
         action.Items.Remove("Next");
         AttachNextActions(action, children);
         actionBudget.MarkNormalized(action);
-        if (TryGetForbiddenAction(objects, action, policy, out _, out _)) return children;
+        if (TryGetForbiddenAction(objects, action, policy, out _, out _, out _)) return children;
 
         var clone = new PdfDictionary();
         foreach (KeyValuePair<string, PdfObject> item in action.Items) {
@@ -376,25 +412,31 @@ internal static partial class PdfSanitizer {
         PdfDictionary dictionary,
         PdfSanitizationOptions policy,
         out PdfSanitizationFindingKind kind,
+        out PdfSanitizationActionKind actionKind,
         out string? detail) {
         kind = PdfSanitizationFindingKind.ActiveAction;
+        actionKind = PdfSanitizationActionKind.None;
         detail = null;
         if (Resolve(objects, dictionary.Get<PdfObject>("S")) is not PdfName actionName) {
             return false;
         }
 
         string actionType = actionName.Name;
+        actionKind = PdfSanitizationOptions.GetActionKind(actionType);
         if (actionType == "URI") {
-            if (TryGetString(objects, dictionary, "URI", out string? uri) && !policy.IsUriAllowed(uri!)) {
-                kind = PdfSanitizationFindingKind.UnsafeUri;
-                detail = uri;
+            bool hasUri = TryGetString(objects, dictionary, "URI", out string? uri);
+            if (policy.ShouldRemoveAction(actionType, hasUri ? uri : null)) {
+                kind = policy.ActionKindsToRemove.HasValue
+                    ? PdfSanitizationFindingKind.ActiveAction
+                    : PdfSanitizationFindingKind.UnsafeUri;
+                detail = hasUri ? uri : actionType;
                 return true;
             }
 
             return false;
         }
 
-        if (!PdfActiveContentPolicy.IsUnsafeActionType(actionType) || policy.IsActionAllowed(actionType)) {
+        if (!policy.ShouldRemoveAction(actionType)) {
             return false;
         }
 
@@ -428,6 +470,110 @@ internal static partial class PdfSanitizer {
 
         value = null;
         return false;
+    }
+
+    private static bool ContainsSelectedJavaScriptAction(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfSanitizationOptions policy,
+        PdfSanitizerNamedJavaScriptScan scan) {
+        if (scan.TryGetCached(value, out bool cached)) return cached;
+
+        var pending = new Stack<(PdfObject Value, int NameTreeDepth, bool CountReferenceAsNameTreeNode, bool ArrayItemsAreNameTreeNodes)>();
+        var visitedObjects = new HashSet<PdfObject>();
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        pending.Push((value, 0, true, false));
+
+        while (pending.Count > 0) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
+            (PdfObject current, int nameTreeDepth, bool countReferenceAsNameTreeNode, bool arrayItemsAreNameTreeNodes) = pending.Pop();
+            scan.EnsureDepth(nameTreeDepth);
+
+            if (current is PdfReference reference) {
+                var key = (reference.ObjectNumber, reference.Generation);
+                if (!visitedReferences.Add(key)) continue;
+                scan.ConsumeWorkNode();
+                if (countReferenceAsNameTreeNode) scan.ConsumeNameTreeNode();
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) continue;
+                pending.Push((indirect.Value, nameTreeDepth, false, arrayItemsAreNameTreeNodes));
+                continue;
+            }
+
+            if (!visitedObjects.Add(current)) continue;
+            if (current is PdfStream stream) {
+                pending.Push((stream.Dictionary, nameTreeDepth, false, false));
+                continue;
+            }
+            if (current is PdfDictionary dictionary) {
+                if (TryGetForbiddenAction(objects, dictionary, policy, out _, out PdfSanitizationActionKind actionKind, out _) &&
+                    actionKind == PdfSanitizationActionKind.JavaScript) {
+                    scan.Cache(value, true);
+                    return true;
+                }
+                foreach (KeyValuePair<string, PdfObject> child in dictionary.Items) {
+                    bool isKids = string.Equals(child.Key, "Kids", StringComparison.Ordinal);
+                    pending.Push((child.Value, isKids ? nameTreeDepth + 1 : nameTreeDepth, false, isKids));
+                }
+                continue;
+            }
+            if (current is PdfArray array) {
+                for (int i = 0; i < array.Items.Count; i++) {
+                    pending.Push((array.Items[i], nameTreeDepth, arrayItemsAreNameTreeNodes, false));
+                }
+            }
+        }
+        scan.Cache(value, false);
+        return false;
+    }
+
+    private sealed class PdfSanitizerNamedJavaScriptScan {
+        private readonly int _maximumDepth;
+        private readonly int _maximumNameTreeNodes;
+        private readonly int _maximumWorkNodes;
+        private readonly Dictionary<(int ObjectNumber, int Generation), bool> _referenceRootResults = new();
+        private readonly Dictionary<PdfObject, bool> _directRootResults = new();
+        private int _traversedNameTreeNodes;
+        private int _traversedWorkNodes;
+
+        internal PdfSanitizerNamedJavaScriptScan(int maximumDepth, int maximumNameTreeNodes, int maximumWorkNodes) {
+            _maximumDepth = maximumDepth;
+            _maximumNameTreeNodes = maximumNameTreeNodes;
+            _maximumWorkNodes = maximumWorkNodes;
+        }
+
+        internal bool TryGetCached(PdfObject root, out bool result) {
+            return root is PdfReference reference
+                ? _referenceRootResults.TryGetValue((reference.ObjectNumber, reference.Generation), out result)
+                : _directRootResults.TryGetValue(root, out result);
+        }
+
+        internal void Cache(PdfObject root, bool result) {
+            if (root is PdfReference reference) {
+                _referenceRootResults[(reference.ObjectNumber, reference.Generation)] = result;
+            } else {
+                _directRootResults[root] = result;
+            }
+        }
+
+        internal void EnsureDepth(int depth) {
+            if (depth > _maximumDepth) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeDepth, _maximumDepth, depth);
+            }
+        }
+
+        internal void ConsumeNameTreeNode() {
+            _traversedNameTreeNodes++;
+            if (_traversedNameTreeNodes > _maximumNameTreeNodes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, _maximumNameTreeNodes, _traversedNameTreeNodes);
+            }
+        }
+
+        internal void ConsumeWorkNode() {
+            _traversedWorkNodes++;
+            if (_traversedWorkNodes > _maximumWorkNodes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, _maximumWorkNodes, _traversedWorkNodes);
+            }
+        }
     }
 
     private static PdfObject? Resolve(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) {
