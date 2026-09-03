@@ -11,6 +11,8 @@ namespace OfficeIMO.Tests;
 
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderPdfModularTests {
+    private static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+
     [Fact]
     public void DocumentReaderPdf_PropagatesCancellationIntoSemanticRead() {
         byte[] pdf = BuildTwoPagePdf();
@@ -2364,21 +2366,21 @@ public sealed class ReaderPdfModularTests {
         var builder = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>(objects.Length);
         for (int index = 0; index < objects.Length; index++) {
-            offsets.Add(Encoding.Latin1.GetByteCount(builder.ToString()));
+            offsets.Add(Latin1.GetByteCount(builder.ToString()));
             builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
         }
-        int xrefOffset = Encoding.Latin1.GetByteCount(builder.ToString());
+        int xrefOffset = Latin1.GetByteCount(builder.ToString());
         builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
         for (int index = 0; index < offsets.Count; index++) {
             builder.Append(offsets[index].ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
         builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Length + 1).Append(" >>\nstartxref\n")
             .Append(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        return Encoding.Latin1.GetBytes(builder.ToString());
+        return Latin1.GetBytes(builder.ToString());
     }
 
     private static string BuildReaderStreamObject(string content) =>
-        "<< /Length " + Encoding.Latin1.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        "<< /Length " + Latin1.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
         " >>\nstream\n" + content + "\nendstream";
 
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
