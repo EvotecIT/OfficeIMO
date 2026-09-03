@@ -215,6 +215,46 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyDoesNotClassifyEquivalentRichFormValueAsHidden() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Tx /Ff 33554432 /T (RichField) /V (Public value) /RV (<body><p>Public value</p></body>) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenRichValue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyTreatsOffPageAnnotationAsConcealed() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /CropBox [10 20 210 140] /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [5 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj\n<< /Type /Annot /Subtype /Text /Rect [220 30 235 45] /Contents (OFF-PAGE-SECRET) /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("OFF-PAGE-SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentSafetySurfacesDistinctStoredDefaultBehindVisibleCurrentValue() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {

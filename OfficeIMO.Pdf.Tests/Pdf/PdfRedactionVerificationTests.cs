@@ -220,6 +220,24 @@ public class PdfRedactionVerificationTests {
             issue.Marker.StartsWith("VectorPath@page:1", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ApplyWithEvidenceRemovesIntersectingDegeneratePageStroke() {
+        byte[] source = BuildDegeneratePageStrokePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, 50D, 30D, 20D, "crossing stroke")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.DoesNotContain("10 60 m 190 60 l S", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("0 J 0 j", "2 J 0 j")]
     [InlineData("0 J 0 j", "0 J 2 j")]
@@ -667,6 +685,19 @@ public class PdfRedactionVerificationTests {
     [Fact]
     public void Verify_CompleteStreamInspectionAcceptsOpaqueImageCodecStreams() {
         byte[] source = BuildJpegImageRedactionSource();
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, report.Summary);
+        Assert.DoesNotContain(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void Verify_CompleteStreamInspectionAcceptsAscii85WrappedJpegStream() {
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(EncodeAscii85(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }));
+        byte[] source = BuildJpegImageRedactionSource("[/ASCII85Decode /DCTDecode]", encodedJpeg);
 
         PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
             source,
@@ -1356,6 +1387,18 @@ public class PdfRedactionVerificationTests {
         }));
     }
 
+    private static byte[] BuildDegeneratePageStrokePdf() {
+        const string content = "2 w 10 60 m 190 60 l S";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
     private static byte[] BuildVectorStyleIdentityPdf(string styleOperators) {
         string content = $"q {styleOperators} 1 0 0 RG 4 w 20 20 80 60 re S Q";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
@@ -1650,9 +1693,9 @@ public class PdfRedactionVerificationTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildJpegImageRedactionSource(string imageFilter = "/DCTDecode") {
+    private static byte[] BuildJpegImageRedactionSource(string imageFilter = "/DCTDecode", byte[]? encodedImageBytes = null) {
         const string pageContent = "q\n20 0 0 20 20 30 cm\n/ImJpeg Do\nQ\nBT /F1 12 Tf 20 90 Td (REMOVE-JPEG-DOC-TEXT) Tj ET\n";
-        byte[] jpegBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
+        byte[] jpegBytes = encodedImageBytes ?? new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
         int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent.TrimEnd('\n'));
         using var output = new MemoryStream();
         void WriteAscii(string text) {
@@ -1684,6 +1727,41 @@ public class PdfRedactionVerificationTests {
         output.Write(jpegBytes, 0, jpegBytes.Length);
         WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static string EncodeAscii85(byte[] input) {
+        var builder = new StringBuilder((input.Length * 5 / 4) + 4);
+        int index = 0;
+        while (index + 4 <= input.Length) {
+            uint value =
+                ((uint)input[index] << 24) |
+                ((uint)input[index + 1] << 16) |
+                ((uint)input[index + 2] << 8) |
+                input[index + 3];
+            if (value == 0) {
+                builder.Append('z');
+            } else {
+                AppendTuple(value, 5);
+            }
+            index += 4;
+        }
+        int remaining = input.Length - index;
+        if (remaining > 0) {
+            uint value = 0;
+            for (int i = 0; i < remaining; i++) value |= (uint)input[index + i] << (24 - (8 * i));
+            AppendTuple(value, remaining + 1);
+        }
+        builder.Append("~>");
+        return builder.ToString();
+
+        void AppendTuple(uint value, int count) {
+            char[] encoded = new char[5];
+            for (int i = 4; i >= 0; i--) {
+                encoded[i] = (char)((value % 85) + '!');
+                value /= 85;
+            }
+            for (int i = 0; i < count; i++) builder.Append(encoded[i]);
+        }
     }
 
     private static byte[] CreateSimpleFlateImagePixels() {

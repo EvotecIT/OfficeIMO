@@ -183,10 +183,13 @@ public sealed partial class PdfDocument {
                 PdfAnnotation annotation = annotations[annotationIndex];
                 bool hiddenByFlags = annotation.IsHidden || annotation.IsInvisible || annotation.IsNoView;
                 bool hiddenByOptionalContent = page.IsHiddenOptionalContent(annotation.SourceDictionary);
-                if (!hiddenByFlags && !hiddenByOptionalContent) continue;
+                bool outsidePage = IsAnnotationOutsidePage(page, annotation);
+                if (!hiddenByFlags && !hiddenByOptionalContent && !outsidePage) continue;
                 if (annotation.ObjectNumber.HasValue) concealedAnnotationObjectNumbers.Add(annotation.ObjectNumber.Value);
                 string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
-                string evidence = hiddenByFlags && hiddenByOptionalContent
+                string evidence = outsidePage
+                    ? "The PDF annotation rectangle is outside the page boundary and has no visible presentation."
+                    : hiddenByFlags && hiddenByOptionalContent
                     ? "The PDF annotation is concealed by its flags and optional-content configuration."
                     : hiddenByOptionalContent
                         ? "The PDF annotation is concealed by the document's default optional-content configuration."
@@ -276,10 +279,11 @@ public sealed partial class PdfDocument {
                     OfficeContentCleanupCapability.ReportOnly);
             }
             string? richValue = field.RichValue;
+            string? richValueText = field.RichValuePlainText;
             int richValueOwnerKey = field.RichValueOwnerKey ?? -(fieldIndex + 1);
             if (field.HasRichValueEntry &&
                 !string.IsNullOrWhiteSpace(richValue) &&
-                !string.Equals(richValue, currentValues, StringComparison.Ordinal) &&
+                !string.Equals(richValueText ?? richValue, currentValues, StringComparison.Ordinal) &&
                 reportedRichValueOwners.Add(richValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
@@ -358,6 +362,16 @@ public sealed partial class PdfDocument {
         double bottom = Math.Min(widget.Y1, widget.Y2);
         double top = Math.Max(widget.Y1, widget.Y2);
         if (right <= left || top <= bottom) return true;
+        return right <= originX || top <= originY || left >= originX + width || bottom >= originY + height;
+    }
+
+    private static bool IsAnnotationOutsidePage(PdfReadPage page, PdfAnnotation annotation) {
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        (double width, double height) = page.GetPageSize();
+        double left = Math.Min(annotation.X1, annotation.X2);
+        double right = Math.Max(annotation.X1, annotation.X2);
+        double bottom = Math.Min(annotation.Y1, annotation.Y2);
+        double top = Math.Max(annotation.Y1, annotation.Y2);
         return right <= originX || top <= originY || left >= originX + width || bottom >= originY + height;
     }
 
