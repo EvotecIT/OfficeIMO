@@ -125,6 +125,28 @@ public sealed class ProvenanceCommandTests {
     }
 
     [Fact]
+    public async Task BatchCancellationTakesExitCodePrecedenceOverAnEarlierFailure() {
+        using var scope = new TestDirectory();
+        string input = scope.Write("input.html", "<html><body>input</body></html>");
+        string missing = Path.Combine(scope.Path, "missing.html");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ProvenanceCommand.RunAsync(
+            ["batch", "inspect", input],
+            output,
+            error,
+            runner: new FailureThenCancellationRunner(missing, input));
+
+        Assert.Equal((int)OfficeImoToolExitCode.Cancelled, exitCode);
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Collection(
+            json.RootElement.GetProperty("results").EnumerateArray(),
+            item => Assert.Equal("Failed", item.GetProperty("status").GetString()),
+            item => Assert.Equal("Cancelled", item.GetProperty("status").GetString()));
+    }
+
+    [Fact]
     public async Task BatchRemoveReturnsStructuredMixedResultsWhenAnInputIsMissing() {
         using var scope = new TestDirectory();
         string input = scope.Write("first.html", HtmlWithManifest("first"));
@@ -228,6 +250,44 @@ public sealed class ProvenanceCommandTests {
     }
 
     private sealed record ToolResult(int ExitCode, string Output, string Error);
+
+    private sealed class FailureThenCancellationRunner : IOfficeProvenanceWorkflowRunner {
+        private readonly string _missingPath;
+        private readonly string _existingPath;
+        private readonly OfficeWorkflowRunner _inner = new OfficeWorkflowRunner();
+
+        internal FailureThenCancellationRunner(string missingPath, string existingPath) {
+            _missingPath = missingPath;
+            _existingPath = existingPath;
+        }
+
+        public Task<OfficeProvenanceWorkflowResult> RunProvenanceAsync(
+            OfficeProvenanceWorkflowRequest request,
+            IProgress<OfficeWorkflowProgress>? progress = null,
+            CancellationToken cancellationToken = default) =>
+            _inner.RunProvenanceAsync(request, progress, cancellationToken);
+
+        public async Task<IReadOnlyList<OfficeProvenanceWorkflowResult>> RunProvenanceBatchAsync(
+            IEnumerable<OfficeProvenanceWorkflowRequest> requests,
+            OfficeProvenanceWorkflowBatchOptions? options = null,
+            IProgress<OfficeWorkflowProgress>? progress = null,
+            CancellationToken cancellationToken = default) {
+            OfficeProvenanceWorkflowResult failure = await _inner.RunProvenanceAsync(
+                new OfficeProvenanceWorkflowRequest {
+                    Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                    InputPath = _missingPath
+                });
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            OfficeProvenanceWorkflowResult cancellation = await _inner.RunProvenanceAsync(
+                new OfficeProvenanceWorkflowRequest {
+                    Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                    InputPath = _existingPath
+                },
+                cancellationToken: cancelled.Token);
+            return [failure, cancellation];
+        }
+    }
 
     private sealed class TestDirectory : IDisposable {
         internal TestDirectory() {

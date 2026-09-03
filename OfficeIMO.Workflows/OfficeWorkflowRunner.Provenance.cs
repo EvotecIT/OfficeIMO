@@ -180,7 +180,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 stagingPath,
                 validated.Limits.MaximumOutputBytes,
                 removal.DataLength,
-                removal.ComputeDataSha256(),
+                removal.ComputeDataSha256(cancellationToken),
                 cancellationToken);
             OfficeProvenanceReport reopened = await Task.Run(
                 () => OfficeProvenanceWorkflowAdapter.Inspect(

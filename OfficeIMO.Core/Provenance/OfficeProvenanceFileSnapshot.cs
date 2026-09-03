@@ -143,7 +143,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string directoryPath = CreatePrivateDirectory();
         string filePath = Path.Combine(directoryPath, Path.GetFileName(fullPath));
         try {
-            long copiedBytes = 0;
+            long copiedBytes;
+            byte[] copiedSha256;
             string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(
                 Path.GetDirectoryName(fullPath)!);
             using (FileStream source = OpenSnapshotSource(fullPath, physicalSourceDirectory))
@@ -154,19 +155,19 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                        FileShare.None,
                        81920,
                        FileOptions.SequentialScan)) {
-                if (source.Length > maximumBytes) {
-                    throw new InvalidDataException("The asset snapshot exceeds the configured input limit.");
-                }
-
-                var buffer = new byte[81920];
-                int read;
-                while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    copiedBytes += read;
-                    if (copiedBytes > maximumBytes) {
-                        throw new InvalidDataException("The asset snapshot exceeds the configured input limit.");
-                    }
-                    destination.Write(buffer, 0, read);
+                copiedSha256 = CopyStableSource(
+                    source,
+                    destination,
+                    maximumBytes,
+                    "The asset snapshot exceeds the configured input limit.",
+                    cancellationToken,
+                    out copiedBytes);
+                if (!OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                        fullPath,
+                        physicalSourceDirectory,
+                        source.SafeFileHandle)) {
+                    throw new InvalidDataException(
+                        "The asset snapshot source changed identity while it was being captured.");
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 destination.Flush(flushToDisk: true);
@@ -183,6 +184,10 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             try {
                 string physicalIdentity = OfficePathIdentity.GetPhysicalIdentityKey(filePath, lease.SafeFileHandle);
                 byte[] sha256 = ComputeHash(lease, cancellationToken);
+                if (lease.Length != copiedBytes || !FixedTimeEquals(sha256, copiedSha256)) {
+                    throw new InvalidDataException(
+                        "The primary provenance snapshot did not match the stable source bytes that were captured.");
+                }
                 lease.Position = 0;
                 return new OfficeProvenanceFileSnapshot(
                     directoryPath,
@@ -248,18 +253,23 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
             }
             using var target = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.SequentialScan);
-            var buffer = new byte[81920];
-            int read;
-            while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
-                cancellationToken.ThrowIfCancellationRequested();
-                copiedBytes += read;
-                if (copiedBytes > maximumDependencyBytes) {
-                    throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
-                }
-                if (copiedBytes > remainingTotalBytes) {
-                    throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
-                }
-                target.Write(buffer, 0, read);
+            long effectiveMaximum = Math.Min(maximumDependencyBytes, remainingTotalBytes);
+            string limitMessage = remainingTotalBytes < maximumDependencyBytes
+                ? "External provenance manifests exceed the configured expanded-data limit."
+                : "An external provenance manifest exceeds the configured manifest limit.";
+            _ = CopyStableSource(
+                source,
+                target,
+                effectiveMaximum,
+                limitMessage,
+                cancellationToken,
+                out copiedBytes);
+            if (!OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                    sourcePath,
+                    physicalSourceDirectory,
+                    source.SafeFileHandle)) {
+                throw new InvalidDataException(
+                    "An external provenance manifest changed identity while it was being captured.");
             }
             target.Flush(flushToDisk: true);
             return copiedBytes;
@@ -459,14 +469,89 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
     }
 
+    internal static byte[] CopyStableSource(
+        Stream source,
+        Stream destination,
+        long maximumBytes,
+        string limitMessage,
+        CancellationToken cancellationToken,
+        out long copiedBytes) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        if (!source.CanRead || !source.CanSeek) {
+            throw new ArgumentException("The snapshot source must be a readable, seekable stream.", nameof(source));
+        }
+        if (!destination.CanWrite) {
+            throw new ArgumentException("The snapshot destination must be writable.", nameof(destination));
+        }
+        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        if (string.IsNullOrWhiteSpace(limitMessage)) throw new ArgumentException("A limit message is required.", nameof(limitMessage));
+
+        source.Position = 0;
+        if (source.Length > maximumBytes) throw new InvalidDataException(limitMessage);
+
+        using IncrementalHash copiedHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[81920];
+        copiedBytes = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = source.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            copiedBytes += read;
+            if (copiedBytes > maximumBytes) throw new InvalidDataException(limitMessage);
+            copiedHash.AppendData(buffer, 0, read);
+            destination.Write(buffer, 0, read);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] sha256 = copiedHash.GetHashAndReset();
+
+        if (source.Length != copiedBytes) {
+            throw new InvalidDataException("The snapshot source changed length while it was being captured.");
+        }
+        source.Position = 0;
+        byte[] verificationHash = ComputeHashBounded(
+            source,
+            maximumBytes,
+            limitMessage,
+            cancellationToken,
+            out long verifiedBytes);
+        if (verifiedBytes != copiedBytes || source.Length != copiedBytes || !FixedTimeEquals(verificationHash, sha256)) {
+            throw new InvalidDataException("The snapshot source changed content while it was being captured.");
+        }
+        return sha256;
+    }
+
+    private static byte[] ComputeHashBounded(
+        Stream stream,
+        long maximumBytes,
+        string limitMessage,
+        CancellationToken cancellationToken,
+        out long hashedBytes) {
+        using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[81920];
+        hashedBytes = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            hashedBytes += read;
+            if (hashedBytes > maximumBytes) throw new InvalidDataException(limitMessage);
+            algorithm.AppendData(buffer, 0, read);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return algorithm.GetHashAndReset();
+    }
+
     private static byte[] ComputeHash(Stream stream, CancellationToken cancellationToken) {
         using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[81920];
-        int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
+        while (true) {
             cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
             algorithm.AppendData(buffer, 0, read);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return algorithm.GetHashAndReset();
     }
 

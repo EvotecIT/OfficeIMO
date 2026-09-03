@@ -130,6 +130,9 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
     }
 
     private static int MapBatch(IReadOnlyList<OfficeProvenanceWorkflowResult> results) {
+        if (results.Any(result => result.Status == OfficeWorkflowStatus.Cancelled)) {
+            return (int)OfficeImoToolExitCode.Cancelled;
+        }
         OfficeProvenanceWorkflowResult? failed = results.FirstOrDefault(result => !result.Succeeded);
         return failed is null
             ? (int)OfficeImoToolExitCode.Success

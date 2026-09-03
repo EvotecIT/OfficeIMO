@@ -1,11 +1,27 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceBinary {
+    internal static byte[] ComputeSha256(byte[] data, CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        const int chunkSize = 81920;
+        int offset = 0;
+        while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, data.Length - offset);
+            algorithm.AppendData(data, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return algorithm.GetHashAndReset();
+    }
+
     internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (maximumBytes <= 0 || maximumBytes > int.MaxValue) {
