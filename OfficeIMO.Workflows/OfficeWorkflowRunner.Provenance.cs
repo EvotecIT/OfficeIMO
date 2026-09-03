@@ -607,9 +607,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceOptions removalInputInspection = CreateInspectionOptions(
             removalSource,
             limits.MaximumInputBytes);
-        OfficeProvenanceOptions removalOutputInspection = CreateInspectionOptions(
-            removalSource,
-            limits.MaximumOutputBytes);
+        OfficeProvenanceOptions removalOutputInspection = CreateOutputInspectionOptions(removal);
         string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : Path.GetFullPath(request.OutputPath);
 
         if (request.Operation == OfficeProvenanceWorkflowOperation.Remove) {
@@ -698,6 +696,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         CopyInspectionOptions(removal.Limits, options, maximumAssetBytes);
         options.ProcessEmbeddedAssets = removal.ProcessEmbeddedAssets && removal.Limits.ProcessEmbeddedAssets;
         options.MaxEmbeddedAssets = Math.Min(removal.MaxEmbeddedAssets, removal.Limits.MaxEmbeddedAssets);
+        return options;
+    }
+
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(
+        OfficeProvenanceRemovalOptions removal) {
+        OfficeProvenanceOptions options = CreateInspectionOptions(
+            removal,
+            removal.EffectiveMaxOutputBytes);
+        options.MaxAssetBytes = removal.EffectiveMaxOutputBytes;
+        options.MaxManifestBytes = Math.Min(removal.Limits.MaxManifestBytes, options.MaxAssetBytes);
         return options;
     }
 

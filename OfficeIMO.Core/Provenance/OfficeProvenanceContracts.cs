@@ -373,8 +373,14 @@ public interface IOfficeProvenanceVerifier {
     /// <summary>Gets the provider name.</summary>
     string Name { get; }
     /// <summary>Verifies provenance carried by an asset file.</summary>
+    OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null);
+}
+
+/// <summary>Optional cancellation-aware extension for cryptographic provenance verification providers.</summary>
+public interface ICancellableOfficeProvenanceVerifier : IOfficeProvenanceVerifier {
+    /// <summary>Verifies provenance carried by an asset file while observing cancellation.</summary>
     OfficeProvenanceVerificationResult Verify(
         string filePath,
-        OfficeProvenanceVerificationOptions? options = null,
-        CancellationToken cancellationToken = default);
+        OfficeProvenanceVerificationOptions? options,
+        CancellationToken cancellationToken);
 }

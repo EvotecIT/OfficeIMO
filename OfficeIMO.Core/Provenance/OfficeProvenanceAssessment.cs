@@ -64,7 +64,13 @@ public interface IOfficeProvenanceSignalDetector {
     /// <summary>Gets the signal kind detected by this provider.</summary>
     OfficeProvenanceSignalKind SignalKind { get; }
     /// <summary>Inspects one asset and returns a normalized provider result.</summary>
-    OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default);
+    OfficeProvenanceSignalResult Detect(string filePath);
+}
+
+/// <summary>Optional cancellation-aware extension for provider-specific signal detectors.</summary>
+public interface ICancellableOfficeProvenanceSignalDetector : IOfficeProvenanceSignalDetector {
+    /// <summary>Inspects one asset while observing cancellation and returns a normalized provider result.</summary>
+    OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken);
 }
 
 /// <summary>Configures a combined provenance assessment.</summary>
@@ -208,10 +214,9 @@ public static class OfficeProvenanceAssessment {
             textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity, logicalFullPath);
             cancellationToken.ThrowIfCancellationRequested();
         }
-        OfficeProvenanceVerificationResult? verification = verifier?.Verify(
-            fullPath,
-            options.Verification,
-            cancellationToken);
+        OfficeProvenanceVerificationResult? verification = verifier == null
+            ? null
+            : Verify(verifier, fullPath, options.Verification, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (verifier != null && verification == null) {
             throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned no result.");
@@ -224,7 +229,7 @@ public static class OfficeProvenanceAssessment {
             foreach (IOfficeProvenanceSignalDetector detector in signalDetectors) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
-                OfficeProvenanceSignalResult result = detector.Detect(fullPath, cancellationToken) ??
+                OfficeProvenanceSignalResult result = Detect(detector, fullPath, cancellationToken) ??
                     throw new InvalidDataException($"The '{detector.Name}' signal detector returned no result.");
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(result.ProviderName, detector.Name, StringComparison.Ordinal) || result.SignalKind != detector.SignalKind) {
@@ -240,4 +245,19 @@ public static class OfficeProvenanceAssessment {
     private static bool IsTextLike(OfficeProvenanceAssetFormat format) =>
         format is OfficeProvenanceAssetFormat.StructuredText or OfficeProvenanceAssetFormat.UnstructuredText or
             OfficeProvenanceAssetFormat.Html or OfficeProvenanceAssetFormat.Svg;
+
+    private static OfficeProvenanceVerificationResult Verify(
+        IOfficeProvenanceVerifier verifier,
+        string filePath,
+        OfficeProvenanceVerificationOptions options,
+        CancellationToken cancellationToken) => verifier is ICancellableOfficeProvenanceVerifier cancellable
+            ? cancellable.Verify(filePath, options, cancellationToken)
+            : verifier.Verify(filePath, options);
+
+    private static OfficeProvenanceSignalResult Detect(
+        IOfficeProvenanceSignalDetector detector,
+        string filePath,
+        CancellationToken cancellationToken) => detector is ICancellableOfficeProvenanceSignalDetector cancellable
+            ? cancellable.Detect(filePath, cancellationToken)
+            : detector.Detect(filePath);
 }

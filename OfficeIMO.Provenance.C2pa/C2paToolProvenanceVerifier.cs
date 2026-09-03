@@ -15,7 +15,7 @@ namespace OfficeIMO.Provenance.C2pa;
 /// Provides optional C2PA content-binding, signature, and trust verification through the official
 /// <c>c2patool</c> command-line application. The executable is supplied by the host and is not bundled.
 /// </summary>
-public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
+public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVerifier {
     private static readonly string[] NonObjectReportFinding = { "c2patool returned a non-object JSON report." };
     private static readonly string[] MalformedActiveManifestFinding = { "c2patool returned malformed active_manifest data." };
     private static readonly string[] DuplicateCriticalReportFieldFinding = { "c2patool returned duplicate security-critical report fields." };
@@ -56,8 +56,16 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     /// <inheritdoc />
     public OfficeProvenanceVerificationResult Verify(
         string filePath,
-        OfficeProvenanceVerificationOptions? options = null,
-        CancellationToken cancellationToken = default) {
+        OfficeProvenanceVerificationOptions? options = null) => Verify(
+            filePath,
+            options,
+            CancellationToken.None);
+
+    /// <inheritdoc />
+    public OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An asset path is required.", nameof(filePath));
         string fullPath = Path.GetFullPath(filePath);

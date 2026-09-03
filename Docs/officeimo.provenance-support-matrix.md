@@ -34,6 +34,8 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 
 `IOfficeProvenanceSignalDetector` is the extension point for vendor-specific watermark and disclosure services. Each result retains the provider name, signal type, and `Detected`, `NotDetected`, `Inconclusive`, `ProviderUnavailable`, or `Error` status. `OfficeProvenanceAssessment` combines those results with structural, verification, and Unicode evidence without producing an `IsAi` property.
 
+Providers can opt into cooperative cancellation through `ICancellableOfficeProvenanceSignalDetector` and `ICancellableOfficeProvenanceVerifier`. The original interfaces remain supported, so existing provider implementations do not need to change.
+
 ## Transformation and authoring
 
 `OfficeProvenanceLifecycle` compares the source and candidate bytes before commit. Its default `PreserveIfUnchanged` policy blocks changed output when the source has an embedded or external Content Credential. `RemoveInvalidated` records before/after evidence; `SignAsDerived` requires an `IOfficeProvenanceSigner`, signs immutable snapshots of the inspected source and candidate, and always passes the source snapshot as the parent ingredient. The lifecycle independently checks provider identity, output location, file existence, and actual committed structural evidence.

@@ -510,8 +510,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         public OfficeProvenanceVerificationResult Verify(
             string filePath,
-            OfficeProvenanceVerificationOptions? options = null,
-            CancellationToken cancellationToken = default) =>
+            OfficeProvenanceVerificationOptions? options = null) =>
             new(OfficeProvenanceVerificationStatus.Valid, Name, ["content binding verified"]);
     }
 
@@ -519,7 +518,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         public string Name => "test-detector";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
 
-        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) =>
+        public OfficeProvenanceSignalResult Detect(string filePath) =>
             new(Name, SignalKind, OfficeProvenanceSignalStatus.Detected, ["test signal"]);
     }
 
@@ -531,7 +530,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         public string Name => "cancelling-detector";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
 
-        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
+        public OfficeProvenanceSignalResult Detect(string filePath) {
             _cancellation.Cancel();
             return new OfficeProvenanceSignalResult(Name, SignalKind, OfficeProvenanceSignalStatus.NotDetected);
         }
