@@ -244,8 +244,8 @@ public sealed class ReaderChunkDiagnostics {
     /// <summary>Number of numeric-looking table columns in the selected scope.</summary>
     public int NumericTableColumnCount { get; set; }
 
-    /// <summary>Number of inferred fallback table column names in the selected scope.</summary>
-    public int FallbackTableColumnNameCount { get; set; }
+    /// <summary>Number of table columns whose names could not be established from source structure.</summary>
+    public int UnnamedTableColumnCount { get; set; }
 
     /// <summary>Number of expected table cells that were empty or unavailable in the selected scope.</summary>
     public int MissingTableCellCount { get; set; }

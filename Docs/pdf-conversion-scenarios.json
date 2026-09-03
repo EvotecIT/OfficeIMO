@@ -1769,7 +1769,7 @@
         "accepted-degradation-summary"
       ],
       "expectedSimplifications": [
-        "headerless table-like bands are exposed with fallback column names and confidence diagnostics",
+        "headerless table-like bands preserve every source row with unnamed columns and confidence diagnostics",
         "jittered column positions are preserved as best-effort logical table geometry rather than editable spreadsheet reconstruction"
       ],
       "expectedWarnings": [],
@@ -1788,7 +1788,7 @@
         "logicalSignals": [
           "page-text",
           "detected-table",
-          "fallback-column-names",
+          "unnamed-columns",
           "numeric-column-kind",
           "table-confidence-diagnostics",
           "reader-chunk-diagnostics",

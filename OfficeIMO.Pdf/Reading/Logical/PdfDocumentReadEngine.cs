@@ -18,6 +18,13 @@ internal static class PdfDocumentReadEngine {
     internal static PdfDocumentReadResult Read(
         PdfReadDocument document,
         PdfReadOptions options,
+        CancellationToken cancellationToken = default) =>
+        Read(document, options, out _, cancellationToken);
+
+    internal static PdfDocumentReadResult Read(
+        PdfReadDocument document,
+        PdfReadOptions options,
+        out IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(options, nameof(options));
@@ -25,10 +32,11 @@ internal static class PdfDocumentReadEngine {
         int[] pageNumbers = options.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(options.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);
-        IReadOnlyList<PdfUnderstandingPageResult> analyses = new PdfUnderstandingPipeline(
+        pageAnalyses = new PdfUnderstandingPipeline(
                 options.LayoutOptions,
                 pipelineOptions)
             .RunPages(document, pageNumbers, cancellationToken);
+        IReadOnlyList<PdfUnderstandingPageResult> analyses = pageAnalyses;
         if (options.Profile == PdfReadProfile.Structured) {
             analyses = PdfDocumentSemanticEnricher.Enrich(
                 document,

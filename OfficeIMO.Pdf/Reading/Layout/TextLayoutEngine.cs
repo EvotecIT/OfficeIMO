@@ -11,12 +11,6 @@ namespace OfficeIMO.Pdf;
 /// Zero-dependency and heuristic by design.
 /// </summary>
 internal static class TextLayoutEngine {
-    private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
-        "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",
-        "ability", "ality", "able", "ible", "ance", "ence", "al", "ally",
-        "er", "ers", "ed", "ly", "ology", "ologies"
-    };
-
     public sealed class Options {
         /// <summary>Assume page margins (points) when inferring columns. Default: 36 pt (0.5").</summary>
         public double MarginLeft { get; set; } = 36;
@@ -31,6 +25,8 @@ internal static class TextLayoutEngine {
         public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; }
+        /// <summary>Horizontal direction for line construction and column emission.</summary>
+        public PdfReadingDirection ReadingDirection { get; set; }
         /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.35.</summary>
         public double GapSpaceThresholdEm { get; set; } = 0.35;
         /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.60.</summary>
@@ -138,6 +134,19 @@ internal static class TextLayoutEngine {
         if (current.Count > 0) AddBuiltLines(lines, current, options);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
         lines = DeduplicateLines(lines, consumeWork, cancellationCheck);
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            options.ReadingDirection,
+            spans.OrderBy(static span => span.ContentOrderKey)
+                .ThenBy(static span => span.PaintOrder)
+                .Select(static span => span.Text));
+        lines.Sort((left, right) => {
+            int baseline = right.Y.CompareTo(left.Y);
+            return baseline != 0
+                ? baseline
+                : direction == PdfReadingDirection.RightToLeft
+                    ? right.XStart.CompareTo(left.XStart)
+                    : left.XStart.CompareTo(right.XStart);
+        });
         cancellationCheck?.Invoke();
         return lines;
     }
@@ -233,12 +242,19 @@ internal static class TextLayoutEngine {
     /// </summary>
     public static string EmitText(List<TextLine> lines, ColumnLayout columns, PdfTextLayoutOptions? options = null) {
         var sb = new StringBuilder();
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            options?.ReadingDirection ?? PdfReadingDirection.Auto,
+            lines.OrderByDescending(static line => line.Y).Select(static line => line.Text));
         if (columns.IsTwoColumns) {
             var left = lines.Where(l => l.XStart >= columns.Left.From && l.XStart <= columns.Left.To).OrderByDescending(l => l.Y);
             var right = lines.Where(l => l.XStart >= columns.Right.From && l.XStart <= columns.Right.To).OrderByDescending(l => l.Y);
             bool first = true;
-            foreach (var ln in left) { AppendLine(sb, ln, ref first); }
-            foreach (var ln in right) { AppendLine(sb, ln, ref first); }
+            IEnumerable<IEnumerable<TextLine>> columnsInReadingOrder = direction == PdfReadingDirection.RightToLeft
+                ? new[] { right, left }
+                : new[] { left, right };
+            foreach (IEnumerable<TextLine> column in columnsInReadingOrder) {
+                foreach (TextLine line in column) AppendLine(sb, line, ref first);
+            }
         } else {
             bool first = true;
             foreach (var ln in lines.OrderByDescending(l => l.Y)) {
@@ -246,7 +262,7 @@ internal static class TextLayoutEngine {
             }
         }
         string text = sb.ToString();
-        if (options?.JoinHyphenationAcrossLines == true) {
+        if (options?.JoinSoftHyphensAcrossLines == true) {
             text = JoinHyphenation(text);
         }
         return text;
@@ -263,9 +279,9 @@ internal static class TextLayoutEngine {
     }
 
     private static string JoinHyphenation(string text) {
-        // Collapse word-hyphen-newline-lowercase into wordlowercase
-        // Also handle soft hyphen (U+00AD) cases just in case
-        return System.Text.RegularExpressions.Regex.Replace(text, "(?<=[A-Za-z])(?:-|\u00AD)\n(?=[a-z])", "");
+        // A soft hyphen is an explicit discretionary-break signal. A visible hyphen is authored
+        // content and cannot be removed safely from PDF geometry or letter case alone.
+        return System.Text.RegularExpressions.Regex.Replace(text, "\u00AD\n", string.Empty);
     }
 
     private static void AddBuiltLines(List<TextLine> lines, List<PdfTextSpan> spans, Options options) {
@@ -306,20 +322,30 @@ internal static class TextLayoutEngine {
     }
 
     private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
-        // X sort within the line
-        spans.Sort((a, b) => a.X.CompareTo(b.X));
+        List<PdfTextSpan> sourceOrder = spans
+            .OrderBy(static span => span.ContentOrderKey)
+            .ThenBy(static span => span.PaintOrder)
+            .ToList();
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            options?.ReadingDirection ?? PdfReadingDirection.Auto,
+            sourceOrder.Select(static span => span.Text));
+        // Keep stored geometry left-to-right for table/cell detection while emitting line text
+        // in the resolved writing direction.
+        spans.Sort(static (left, right) => left.X.CompareTo(right.X));
+        List<PdfTextSpan> textSpans = direction == PdfReadingDirection.RightToLeft
+            ? spans.AsEnumerable().Reverse().ToList()
+            : spans;
         bool hasExplicitWhitespace = spans.Any(span =>
             ContainsWhitespace(span.Text) ||
             span.LogicalLeadingSpace ||
             span.LogicalTrailingSpace);
-        double xs = spans[0].X;
-        var last = spans[spans.Count - 1];
-        double xe = last.X + Math.Max(0, last.Advance);
+        double xs = spans.Min(static span => span.X);
+        double xe = spans.Max(static span => span.X + Math.Max(0D, span.Advance));
         var text = new StringBuilder();
-        for (int i = 0; i < spans.Count; i++) {
-            var s = spans[i];
+        for (int i = 0; i < textSpans.Count; i++) {
+            var s = textSpans[i];
             if (i > 0) {
-                var previous = spans[i - 1];
+                var previous = textSpans[i - 1];
                 bool explicitBoundarySpace = previous.LogicalTrailingSpace || s.LogicalLeadingSpace;
                 if (explicitBoundarySpace && text.Length > 0 && text[text.Length - 1] != ' ') {
                     text.Append(' ');
@@ -327,8 +353,9 @@ internal static class TextLayoutEngine {
 
                 // Add a space heuristically if large X gap between spans
                 var prev = previous;
-                double prevEnd = prev.X + Math.Max(0, prev.Advance);
-                double gap = s.X - prevEnd;
+                double gap = direction == PdfReadingDirection.RightToLeft
+                    ? prev.X - (s.X + Math.Max(0D, s.Advance))
+                    : s.X - (prev.X + Math.Max(0D, prev.Advance));
                 // dynamic threshold based on previous span's average glyph advance
                 double prevAvg = SafeAvgAdvance(prev);
                 double glyphFactor = options?.GapGlyphFactor ?? 0.6;
@@ -344,12 +371,16 @@ internal static class TextLayoutEngine {
                     if (gap > tight) text.Append(' ');
                     else {
                         // Fallback: if both look like full words and there is a visible gap, insert a space
-                        bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
+                        bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) &&
+                            PdfUnicodeScalarAnalysis.CountScalars(prev.Text) >= 2 &&
+                            PdfUnicodeScalarAnalysis.CountScalars(s.Text) >= 2;
                         if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) text.Append(' ');
                     }
                 } else if (!explicitBoundarySpace && !isLeader) {
                     // Guard: if both chunks look like full words (>=2 letters) and there is any visible gap, emit a space
-                    bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
+                    bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) &&
+                        PdfUnicodeScalarAnalysis.CountScalars(prev.Text) >= 2 &&
+                        PdfUnicodeScalarAnalysis.CountScalars(s.Text) >= 2;
                     if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) {
                         text.Append(' ');
                     }
@@ -360,14 +391,14 @@ internal static class TextLayoutEngine {
             }
             // drop duplicate shadows: if same text repeats with almost no gap
             if (text.Length > 0 && IsSameAsTail(text, s.Text) && i > 0) {
-                var prev = spans[i - 1];
+                var prev = textSpans[i - 1];
                 if (IsSubstantiallyOverlapping(prev, s)) {
                     continue;
                 }
             }
             text.Append(s.Text);
             // if leader followed by number, ensure a single space
-            if (IsLeaderRun(s.Text) && i + 1 < spans.Count && ContainsDigit(spans[i + 1].Text)) {
+            if (IsLeaderRun(s.Text) && i + 1 < textSpans.Count && ContainsDigit(textSpans[i + 1].Text)) {
                 if (text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' ');
             }
         }
@@ -440,9 +471,10 @@ internal static class TextLayoutEngine {
     }
     private static bool IsWordJoin(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
-        char a = left[left.Length - 1]; char b = right[0];
-        bool aWord = char.IsLetterOrDigit(a) || a == ')' || a == '"' || a == '\'';
-        bool bWord = char.IsLetterOrDigit(b) || b == '(' || b == '"' || b == '\'';
+        int a = GetLastScalar(left);
+        int b = char.ConvertToUtf32(right, 0);
+        bool aWord = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x29 or 0x22 or 0x27 or 0x2019;
+        bool bWord = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return aWord && bWord;
     }
     private static bool IsSameAsTail(StringBuilder sb, string s) {
@@ -463,66 +495,33 @@ internal static class TextLayoutEngine {
         return overlap > 0 && overlap / narrowerWidth >= 0.6;
     }
     private static bool ContainsDigit(string s) {
-        if (string.IsNullOrEmpty(s)) return false;
-        for (int i = 0; i < s.Length; i++) if (char.IsDigit(s[i])) return true; return false;
+        return !string.IsNullOrEmpty(s) && PdfUnicodeScalarAnalysis.ContainsDecimalDigit(s);
     }
-    private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
-    private static bool AllWordish(string s) { if (string.IsNullOrEmpty(s)) return false; for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return true; }
-    private static bool IsShortAbbrev(string s) { if (string.IsNullOrEmpty(s) || s.Length > 3) return false; for (int i = 0; i < s.Length; i++) if (!char.IsUpper(s[i])) return false; return true; }
+    private static bool AllWordish(string s) => PdfUnicodeScalarAnalysis.IsAllWordish(s);
     private static bool IsVisibleWordGap(double gap, double fontSize) =>
         gap > System.Math.Max(0.8, System.Math.Min(2.0, fontSize * 0.18));
     private static bool ShouldRespectVisibleGap(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
-        char a = left[left.Length - 1];
-        char b = right[0];
-        bool leftBoundary = char.IsLetterOrDigit(a) || a == ':' || a == ';' || a == ',' || a == '.' || a == ')' || a == '"' || a == '\'';
-        bool rightBoundary = char.IsLetterOrDigit(b) || b == '(' || b == '"' || b == '\'';
+        int a = GetLastScalar(left);
+        int b = char.ConvertToUtf32(right, 0);
+        bool leftBoundary = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x3A or 0x3B or 0x2C or 0x2E or 0x29 or 0x22 or 0x27 or 0x2019;
+        bool rightBoundary = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return leftBoundary && rightBoundary;
+    }
+    private static int GetLastScalar(string value) {
+        int index = value.Length - 1;
+        if (index > 0 && char.IsLowSurrogate(value[index]) && char.IsHighSurrogate(value[index - 1])) index--;
+        return char.ConvertToUtf32(value, index);
     }
     private static string NormalizeLineText(string s) {
         if (string.IsNullOrEmpty(s)) return s;
-        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-        var parts = s.Split(' ');
-        if (parts.Length <= 2) {
-            if (parts.Length == 2 && AllWordish(parts[0]) && AllWordish(parts[1])) {
-                // join two fragments when they are clearly word parts
-                if (parts[0].Length == 1 && parts[1].Length >= 3) return parts[0] + parts[1];
-                if (parts[1].Length <= 2 || parts[0].Length <= 2) return parts[0] + parts[1];
-            }
-            return s;
-        }
-        int shortCount = parts.Count(p => p.Length <= 2 && AllWordish(p));
-        if (shortCount < 2) return s;
-        var sb = new System.Text.StringBuilder(s.Length);
-        sb.Append(parts[0]);
-        for (int i = 1; i < parts.Length; i++) {
-            string prev = parts[i - 1]; string cur = parts[i];
-            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
-                                    && (i + 1 < parts.Length && parts[i + 1].Length == 1 && char.IsUpper(parts[i + 1][0]));
-            bool leadingLetterJoin = AllWordish(prev) && AllWordish(cur) && prev.Length == 1 && cur.Length >= 3;
-            bool joinSmall = AllWordish(prev) && AllWordish(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(IsShortAbbrev(prev) && IsShortAbbrev(cur) && !upperSinglesJoin);
-            bool nextShort = (i + 1 < parts.Length) && parts[i + 1].Length <= 2 && AllWordish(parts[i + 1]) && !IsShortAbbrev(parts[i + 1]);
-            if (joinSmall || (AllWordish(cur) && cur.Length <= 2 && nextShort)) sb.Append(cur);
-            else sb.Append(' ').Append(cur);
-        }
-        string joined = sb.ToString().Replace("  ", " ");
-        // Secondary pass: join common suffix fragments
-        var toks = joined.Split(' ');
-        if (toks.Length > 1) {
-            var sb2 = new System.Text.StringBuilder(joined.Length);
-            sb2.Append(toks[0]);
-            for (int i = 1; i < toks.Length; i++) {
-                string prev = toks[i - 1]; string cur = toks[i];
-                if (AllWordish(prev) && AllWordish(cur) && CommonSuffixes.Contains(cur)) sb2.Append(cur);
-                else sb2.Append(' ').Append(cur);
-            }
-            joined = sb2.ToString();
-        }
-        return joined;
+        // Text content cannot prove that whitespace between separately painted glyph runs is an
+        // intra-word fracture. Keep word boundaries here; geometric grouping owns gap decisions.
+        return System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
     }
     private static double SafeAvgAdvance(PdfTextSpan span) {
         if (span.Advance <= 0) return span.FontSize * 0.5;
-        int len = span.Text?.Length ?? 0; if (len <= 0) return span.FontSize * 0.5;
+        int len = PdfUnicodeScalarAnalysis.CountScalars(span.Text ?? string.Empty); if (len <= 0) return span.FontSize * 0.5;
         return span.Advance / len;
     }
 }

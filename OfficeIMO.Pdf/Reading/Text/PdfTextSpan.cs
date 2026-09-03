@@ -89,7 +89,7 @@ public sealed class PdfTextSpan {
         // Extracted spans expose a baseline rather than font ascent/descent metrics. Use the painted
         // glyph box approximation here so tight producer cell clips do not look like partial text.
         const double approximateAscentFactor = 0.8D;
-        double width = Advance > 0D ? Advance : Text.Length * FontSize * 0.55D;
+        double width = Advance > 0D ? Advance : PdfUnicodeScalarAnalysis.CountScalars(Text) * FontSize * 0.55D;
         double height = Math.Max(1D, FontSize);
         double left = X;
         double top = pageHeight.Value - Y - FontSize * approximateAscentFactor;

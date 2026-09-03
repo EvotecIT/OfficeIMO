@@ -527,7 +527,7 @@ internal static partial class PdfReaderAdapter {
         int geometryCount = 0;
         int lowConfidenceCount = 0;
         int numericColumnCount = 0;
-        int fallbackColumnNameCount = 0;
+        int unnamedColumnCount = 0;
         int missingCellCount = 0;
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
             ReaderTable table = tables[tableIndex];
@@ -550,8 +550,8 @@ internal static partial class PdfReaderAdapter {
                     numericColumnCount++;
                 }
 
-                if (IsFallbackColumnName(profile.Name, profile.Index)) {
-                    fallbackColumnNameCount++;
+                if (IsUnnamedColumn(profile.Name)) {
+                    unnamedColumnCount++;
                 }
             }
         }
@@ -560,7 +560,7 @@ internal static partial class PdfReaderAdapter {
         AddCountMetadata(entries, "pdf-table-geometry-count", "pdf.table", "GeometryCount", geometryCount);
         AddCountMetadata(entries, "pdf-table-low-confidence-count", "pdf.table", "LowConfidenceCount", lowConfidenceCount);
         AddCountMetadata(entries, "pdf-table-numeric-column-count", "pdf.table", "NumericColumnCount", numericColumnCount);
-        AddCountMetadata(entries, "pdf-table-fallback-column-name-count", "pdf.table", "FallbackColumnNameCount", fallbackColumnNameCount);
+        AddCountMetadata(entries, "pdf-table-unnamed-column-count", "pdf.table", "UnnamedColumnCount", unnamedColumnCount);
         AddCountMetadata(entries, "pdf-table-missing-cell-count", "pdf.table", "MissingCellCount", missingCellCount);
         if (tables.Count > 0) {
             AddNumberMetadata(entries, "pdf-table-geometry-coverage", "pdf.table", "GeometryCoverage", (double)geometryCount / tables.Count);

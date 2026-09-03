@@ -251,7 +251,7 @@ internal static partial class PdfReaderAdapter {
             AverageTableConfidence = tableSummary.AverageConfidence,
             LowConfidenceTableCount = tableSummary.LowConfidenceCount,
             NumericTableColumnCount = tableSummary.NumericColumnCount,
-            FallbackTableColumnNameCount = tableSummary.FallbackColumnNameCount,
+            UnnamedTableColumnCount = tableSummary.UnnamedColumnCount,
             MissingTableCellCount = tableSummary.MissingCellCount,
             ImageCount = imageCount,
             ImageGeometryCount = imageGeometryCount,
@@ -394,13 +394,13 @@ internal static partial class PdfReaderAdapter {
     }
 
     private readonly struct TableDiagnosticSummary {
-        public TableDiagnosticSummary(int geometryCount, double? minConfidence, double? averageConfidence, int lowConfidenceCount, int numericColumnCount, int fallbackColumnNameCount, int missingCellCount) {
+        public TableDiagnosticSummary(int geometryCount, double? minConfidence, double? averageConfidence, int lowConfidenceCount, int numericColumnCount, int unnamedColumnCount, int missingCellCount) {
             GeometryCount = geometryCount;
             MinConfidence = minConfidence;
             AverageConfidence = averageConfidence;
             LowConfidenceCount = lowConfidenceCount;
             NumericColumnCount = numericColumnCount;
-            FallbackColumnNameCount = fallbackColumnNameCount;
+            UnnamedColumnCount = unnamedColumnCount;
             MissingCellCount = missingCellCount;
         }
 
@@ -414,7 +414,7 @@ internal static partial class PdfReaderAdapter {
 
         public int NumericColumnCount { get; }
 
-        public int FallbackColumnNameCount { get; }
+        public int UnnamedColumnCount { get; }
 
         public int MissingCellCount { get; }
     }
@@ -427,7 +427,7 @@ internal static partial class PdfReaderAdapter {
         int geometryCount = 0;
         int lowConfidenceCount = 0;
         int numericColumnCount = 0;
-        int fallbackColumnNameCount = 0;
+        int unnamedColumnCount = 0;
         int missingCellCount = 0;
         double minConfidence = double.MaxValue;
         double totalConfidence = 0D;
@@ -456,8 +456,8 @@ internal static partial class PdfReaderAdapter {
                     numericColumnCount++;
                 }
 
-                if (IsFallbackColumnName(profile.Name, profile.Index)) {
-                    fallbackColumnNameCount++;
+                if (IsUnnamedColumn(profile.Name)) {
+                    unnamedColumnCount++;
                 }
             }
         }
@@ -468,21 +468,11 @@ internal static partial class PdfReaderAdapter {
             totalConfidence / tables.Count,
             lowConfidenceCount,
             numericColumnCount,
-            fallbackColumnNameCount,
+            unnamedColumnCount,
             missingCellCount);
     }
 
-    private static bool IsFallbackColumnName(string? name, int columnIndex) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            return false;
-        }
-
-        string trimmed = name!.Trim();
-        return string.Equals(
-            trimmed,
-            "Column " + (columnIndex + 1).ToString(CultureInfo.InvariantCulture),
-            StringComparison.Ordinal);
-    }
+    private static bool IsUnnamedColumn(string? name) => string.IsNullOrWhiteSpace(name);
 
     private static double GetCoverage(int countWithSignal, int totalCount) {
         return totalCount == 0 ? 0D : (double)countWithSignal / totalCount;

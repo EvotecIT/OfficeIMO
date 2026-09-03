@@ -606,7 +606,7 @@ public static partial class OfficeDocumentReadResultJson {
             averageTableConfidence = diagnostics.AverageTableConfidence,
             lowConfidenceTableCount = diagnostics.LowConfidenceTableCount,
             numericTableColumnCount = diagnostics.NumericTableColumnCount,
-            fallbackTableColumnNameCount = diagnostics.FallbackTableColumnNameCount,
+            unnamedTableColumnCount = diagnostics.UnnamedTableColumnCount,
             missingTableCellCount = diagnostics.MissingTableCellCount,
             imageCount = diagnostics.ImageCount,
             imageGeometryCount = diagnostics.ImageGeometryCount,

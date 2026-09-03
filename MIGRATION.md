@@ -146,6 +146,115 @@ logical collections remain available. `Analyze()` continues to report PDF
 health, preflight, and rewrite safety; it does not build the semantic document
 model and is not an alternative to `Read()`.
 
+### Language-neutral PDF semantics and OCR hierarchy
+
+OCR reads now expose their canonical parsed result as
+`PdfOcrMergeResult.Document`; replace uses of `EnrichedDocument`. The accepted
+OCR evidence is always projected through the configured understanding stages.
+`PdfOcrMergeOptions.BuildEnrichedLogicalDocument` was removed because it could
+report accepted OCR words while returning a native-only logical model.
+
+OCR-specific structure switches and thresholds were also removed from
+`PdfOcrMergeOptions`: `DetectAlignedTables`, `MinimumAlignedTableRows`,
+`MinimumTableColumnGapPoints`, `TableColumnTolerancePoints`, and
+`MaxInferredTablesPerPage`. OCR now supplies normalized word, hierarchy,
+confidence, and visual-geometry evidence to the same bounded table,
+segmentation, reading-order, and semantic stages used for native PDF text.
+`PdfOcrMergeOptions.Selection` was replaced by
+`PdfOcrMergeOptions.ReadOptions.PageSelection`; configure the shared layout,
+profile, limits, and replaceable stages through this `PdfReadOptions` instance.
+OCR no longer owns a second public structure policy.
+
+`PdfUnderstandingWord` now accepts optional baseline `advance`, direct visual
+bounds, and `sourceSequence` so custom positioned-word stages can preserve
+geometry and provider order used by rotated, bidirectional, and OCR text. The
+source call remains optional-argument compatible, but assemblies compiled
+against the previous constructor must be rebuilt because the constructor
+signature changed.
+
+PDF structure inference no longer joins text fragments, detects captions,
+classifies table columns, or infers cross-page paragraph continuation from
+English word lists or letter casing. Positioned character advances, whitespace,
+alignment, typography, rules, tagged-PDF roles, and Unicode marker categories
+now supply that evidence. The semantic pipeline's regions also own the
+paragraph, heading, and list projection returned by `Read()`; a custom semantic
+stage is no longer reinterpreted by the older structured extractor afterward.
+`PdfLogicalParagraphContinuationEvidence.LowercaseContinuation` was removed
+because case is not continuation evidence. The old visible-hyphen heuristic was
+removed as well: replace `RejoinLineEndingHyphens`, `HyphenatedBreak`, and
+`RejoinedHyphenCount` with `RejoinSoftHyphens`, `SoftHyphenBreak`, and
+`RejoinedSoftHyphenCount`. Only an explicit U+00AD soft hyphen can now be
+removed; an ordinary visible `-` is always preserved.
+
+Visible line-ending hyphens are always preserved. Setting
+`PdfTextLayoutOptions.JoinSoftHyphensAcrossLines = true` rejoins only explicit
+soft hyphens, which are the unambiguous discretionary-break signal. Untagged
+words such as `Table` and `Figure` no longer
+prove that a line is a caption. A compact, typographically distinct line
+immediately adjacent to and aligned with a validated table can still be
+classified from layout evidence, while
+tagged-PDF or caller-supplied semantics remain authoritative.
+
+Table value profiling no longer treats localized yes/no words as Boolean or
+uses English column names to infer dates. `true` and `false` remain Boolean;
+other natural-language values remain text unless the application applies its
+own locale-aware domain mapping. Date inference without an explicit culture is
+limited to unambiguous invariant forms; passing a culture explicitly enables
+localized date parsing for values that contain a four-digit year. Numeric
+fallback parsing now validates the complete cell instead of deleting unrelated
+letters around digits, and normalizes Unicode decimal digits plus equivalent
+decimal, grouping, sign, parenthesis, and percent characters. Period and comma
+roles follow the explicitly supplied culture, or invariant culture when none is
+supplied; digit counts are no longer used to guess which separator is decimal.
+
+`PdfLogicalTableStructure.IsKeyValueTable` and
+`PdfLogicalTableAnalysis.LooksLikeKeyValueTable(...)` were removed. A
+headerless two-column grid cannot be distinguished reliably from a key/value
+record by digit shape alone. Inspect `PdfLogicalTableStructure.SchemaKind`,
+`SchemaConfidence`, and `SchemaEvidence`; ambiguous untagged layouts now report
+`PdfLogicalTableSchemaKind.Unknown`, expose one empty column name per detected
+column, and retain every source row as data. A first row is promoted to
+`HeaderRow` only when tagged-PDF structure or distinct header typography
+supplies evidence. Numeric or otherwise typed body values never establish a
+header. Structurally established headers preserve duplicate, numeric, and empty
+cell text instead of rejecting valid source schemas.
+
+`ReaderChunkDiagnostics.FallbackTableColumnNameCount` was replaced by
+`UnnamedTableColumnCount`. The normalized JSON property is now
+`unnamedTableColumnCount`, and PDF document metadata uses
+`pdf-table-unnamed-column-count` with property name `UnnamedColumnCount`.
+HTML table export omits `<thead>` when schema is unknown; Markdown emits the
+empty header row required by Markdown table syntax without inventing labels.
+
+`OfficeOcrTextSpan`, `PdfOcrWord`, and `PdfRecognizedWord` can now carry optional
+block, paragraph, and line identifiers. OCR adapters should preserve the
+provider's logical sequence and hierarchy, particularly for right-to-left and
+mixed-direction text. Line identifiers are scoped by their block and paragraph
+identifiers when those are supplied; providers do not need to manufacture one
+globally unique line string. Hierarchy identifiers longer than 256 characters
+are ignored rather than truncated or allowed to collide, and Reader execution
+reports `ocr-hierarchy-id-limit`. Geometry is used only when provider hierarchy
+is absent; hierarchy-free words are normalized into continuous visual runs,
+while provider-owned lines stay atomic. Both then pass through the canonical
+table, region, reading-order, and semantic stages.
+`reading-order.geometry-consistent` and `reading-order.geometry-conflict`
+evidence codes were removed because they scored every result against a
+top-to-bottom, left-to-right assumption without having writing-direction data.
+Use `PdfTextLayoutOptions.ReadingDirection` to select `Auto`, `LeftToRight`, or
+`RightToLeft`. `Auto` uses the first strong Unicode directional character and
+falls back to left-to-right geometry. Explicit direction controls native and
+hierarchy-free OCR word order, line order, and recursive column traversal.
+`PdfUnderstandingWord.SourceSequence` preserves source order where geometry is
+not enough. `PdfLogicalPage.Text` and searchable OCR output now use the same
+canonical semantic order as the document result rather than a separate
+left-to-right reconstruction.
+`OfficeOcrEnginePdfProviderOptions.ConfidenceWhenUnavailable` now defaults to
+zero instead of treating missing confidence as certain. Set an explicit
+fallback only when the selected OCR provider's missing-confidence contract is
+known and trusted. Selecting an OCR language or script is still valid recognition
+configuration; it must not be used as a shortcut for table, list, paragraph, or
+caption classification.
+
 ## OfficeIMO 3.2: aggregate Reader legacy-format registrations
 
 `AddAllOfficeIMOHandlers()` now includes safe legacy-word and legacy-spreadsheet handlers. Applications that already register handlers for extensions such as `.wpd`, `.wps`, `.wk1`, or `.wq1` must opt out of the corresponding preset family to avoid an extension conflict, then add their application-owned registration:
@@ -255,7 +364,7 @@ Type 3 glyph programs now enter `MaxContentNestingDepth` one level below the con
 
 `OfficeIMO.Reader.Pdf` document results now include conservative cross-page paragraph continuation evidence by default. This adds `officeimo.pdf.paragraph-continuations` to `CapabilitiesUsed` and may add `pdf.paragraph.continuation` metadata entries. Page-local text, Markdown, chunks, and source pages remain unchanged.
 
-Applications that persist or compare the complete normalized Reader envelope and require the previous metadata shape must set `ReaderPdfOptions.IncludeParagraphContinuationMetadata = false`. Applications that enable the metadata can configure inference through `ReaderPdfOptions.ParagraphContinuationOptions`; likely line-ending hyphens are preserved unless `RejoinLineEndingHyphens` is explicitly enabled.
+Applications that persist or compare the complete normalized Reader envelope and require the previous metadata shape must set `ReaderPdfOptions.IncludeParagraphContinuationMetadata = false`. Applications that enable the metadata can configure inference through `ReaderPdfOptions.ParagraphContinuationOptions`; visible line-ending hyphens are always preserved, while explicit soft hyphens can be removed by enabling `RejoinSoftHyphens`. The corresponding metadata names now use `RejoinedSoftHyphenCount` and `rejoinedSoftHyphenCount`, and the aggregate entry id is `pdf-paragraph-continuation-rejoined-soft-hyphen-count`.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 

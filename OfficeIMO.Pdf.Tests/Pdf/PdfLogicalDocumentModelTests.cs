@@ -819,4 +819,61 @@ public partial class PdfDocumentReadResultTests {
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact ASCII bullet", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact starred bullet", StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData("٣) عنصر", "٣", "عنصر")]
+    [InlineData("(甲) 项目", "(甲)", "项目")]
+    [InlineData("（甲）項目", "（甲）", "項目")]
+    [InlineData("３、項目", "３", "項目")]
+    [InlineData("一、項目", "一", "項目")]
+    [InlineData("◦ punkt", "◦", "punkt")]
+    [InlineData("‣ элемент", "‣", "элемент")]
+    public void ListSyntax_UsesUnicodeMarkersWithoutLanguageVocabulary(string source, string expectedMarker, string expectedBody) {
+        bool parsed = ContentStructureExtractor.TryParseListItemText(
+            source,
+            out string marker,
+            out string body,
+            out int level);
+
+        Assert.True(parsed);
+        Assert.Equal(expectedMarker, marker);
+        Assert.Equal(expectedBody, body);
+        Assert.Equal(1, level);
+    }
+
+    [Theory]
+    [InlineData("(Appendix) text")]
+    [InlineData("(Important) text")]
+    public void ListSyntax_DoesNotTreatParenthesizedWordsAsMarkers(string source) {
+        Assert.False(ContentStructureExtractor.IsListItemText(source));
+    }
+
+    [Fact]
+    public void TextNormalization_DoesNotJoinLexicalFragmentsWithoutGeometry() {
+        Assert.Equal("inform ation", ContentStructureExtractor.NormalizeShattered("inform ation"));
+        Assert.Equal("för säkring", ContentStructureExtractor.NormalizeShattered("för säkring"));
+        Assert.Equal("文 書", ContentStructureExtractor.NormalizeShattered("文 書"));
+    }
+
+    [Fact]
+    public void TextEmission_PreservesVisibleHyphensAndOnlyRejoinsSoftHyphensWhenEnabled() {
+        var visibleLines = new List<TextLayoutEngine.TextLine> {
+            new(700D, 50D, 120D, "multi-", new List<PdfTextSpan>()),
+            new(680D, 50D, 120D, "lingual", new List<PdfTextSpan>())
+        };
+        var softLines = new List<TextLayoutEngine.TextLine> {
+            new(700D, 50D, 120D, "multi\u00AD", new List<PdfTextSpan>()),
+            new(680D, 50D, 120D, "lingual", new List<PdfTextSpan>())
+        };
+        var columns = new TextLayoutEngine.ColumnLayout((0D, 500D), (0D, 0D), false);
+
+        Assert.Equal("multi-\nlingual", TextLayoutEngine.EmitText(visibleLines, columns));
+        Assert.Equal(
+            "multi-\nlingual",
+            TextLayoutEngine.EmitText(visibleLines, columns, new PdfTextLayoutOptions { JoinSoftHyphensAcrossLines = true }));
+        Assert.Equal("multi\u00AD\nlingual", TextLayoutEngine.EmitText(softLines, columns));
+        Assert.Equal(
+            "multilingual",
+            TextLayoutEngine.EmitText(softLines, columns, new PdfTextLayoutOptions { JoinSoftHyphensAcrossLines = true }));
+    }
 }

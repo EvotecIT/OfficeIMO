@@ -86,8 +86,8 @@ public sealed class PdfReverseConversionScorecardTests {
         PdfCore.PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Load(scanned).Reader.OcrAsync(scannedProvider);
         Assert.Empty(scannedResult.NativeDocument.TextBlocks);
         Assert.Equal(2, scannedResult.AcceptedWordCount);
-        Assert.All(scannedResult.EnrichedDocument.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
-        using (OfficeIMO.Word.WordDocument word = scannedResult.EnrichedDocument.ToWordDocument()) {
+        Assert.All(scannedResult.Document.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
+        using (OfficeIMO.Word.WordDocument word = scannedResult.Document.ToWordDocument()) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document.InnerText, StringComparison.Ordinal);
         }
@@ -103,8 +103,8 @@ public sealed class PdfReverseConversionScorecardTests {
         }));
         PdfCore.PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Load(mixed).Reader.OcrAsync(mixedProvider);
         Assert.Equal(1, mixedResult.Pages[0].RejectedNativeOverlapCount);
-        Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Native && block.Text.Contains("Native retained", StringComparison.Ordinal));
-        Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Ocr && block.Text.Contains("OCR-retained", StringComparison.Ordinal));
+        Assert.Contains(mixedResult.Document.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Native && block.Text.Contains("Native retained", StringComparison.Ordinal));
+        Assert.Contains(mixedResult.Document.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Ocr && block.Text.Contains("OCR-retained", StringComparison.Ordinal));
 
         byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Credentialed conversion"))

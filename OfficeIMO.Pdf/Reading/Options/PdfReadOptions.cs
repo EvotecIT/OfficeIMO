@@ -57,6 +57,16 @@ public sealed class PdfReadOptions {
         return effective;
     }
 
+    internal static PdfReadOptions WithPageSelection(PdfReadOptions options, PdfPageSelection? pageSelection) {
+        PdfReadOptions effective = Resolve(options);
+        return new PdfReadOptions {
+            Profile = effective.Profile,
+            PageSelection = pageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline)
+        };
+    }
+
     private static PdfTextLayoutOptions CloneLayoutOptions(PdfTextLayoutOptions options) => new PdfTextLayoutOptions {
         MarginLeft = options.MarginLeft,
         MarginRight = options.MarginRight,
@@ -65,7 +75,8 @@ public sealed class PdfReadOptions {
         LineMergeToleranceEm = options.LineMergeToleranceEm,
         LineMergeMaxPoints = options.LineMergeMaxPoints,
         ForceSingleColumn = options.ForceSingleColumn,
-        JoinHyphenationAcrossLines = options.JoinHyphenationAcrossLines,
+        ReadingDirection = options.ReadingDirection,
+        JoinSoftHyphensAcrossLines = options.JoinSoftHyphensAcrossLines,
         IgnoreHeaderHeight = options.IgnoreHeaderHeight,
         IgnoreFooterHeight = options.IgnoreFooterHeight,
         GapSpaceThresholdEm = options.GapSpaceThresholdEm,

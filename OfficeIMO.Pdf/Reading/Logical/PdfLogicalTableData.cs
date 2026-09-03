@@ -21,13 +21,13 @@ public sealed class PdfLogicalTableData {
         Truncated = truncated;
     }
 
-    /// <summary>Inferred schema and body-row boundaries used to build this table data.</summary>
+    /// <summary>Established schema and body-row boundaries used to build this table data.</summary>
     public PdfLogicalTableStructure Structure { get; }
 
     /// <summary>Confidence and geometry diagnostics for the detected source table.</summary>
     public PdfLogicalTableDiagnostics Diagnostics { get; }
 
-    /// <summary>Inferred column names suitable for structured extraction surfaces.</summary>
+    /// <summary>Structurally established column names, or empty names when the schema is unknown.</summary>
     public IReadOnlyList<string> Columns { get; }
 
     /// <summary>Body rows padded or trimmed to the inferred column count.</summary>

@@ -27,10 +27,10 @@ internal static partial class PdfReaderAdapter {
             groups.Sum(static group => group.Segments.Count));
         AddCountMetadata(
             entries,
-            "pdf-paragraph-continuation-rejoined-hyphen-count",
+            "pdf-paragraph-continuation-rejoined-soft-hyphen-count",
             "pdf.paragraph.continuation",
-            "RejoinedHyphenCount",
-            groups.Sum(static group => group.RejoinedHyphenCount));
+            "RejoinedSoftHyphenCount",
+            groups.Sum(static group => group.RejoinedSoftHyphenCount));
         AddNumberMetadata(
             entries,
             "pdf-paragraph-continuation-minimum-confidence",
@@ -54,7 +54,7 @@ internal static partial class PdfReaderAdapter {
                     ["segmentCount"] = group.Segments.Count.ToString(CultureInfo.InvariantCulture),
                     ["confidence"] = group.Confidence.ToString("R", CultureInfo.InvariantCulture),
                     ["evidence"] = group.Evidence.ToString(),
-                    ["rejoinedHyphenCount"] = group.RejoinedHyphenCount.ToString(CultureInfo.InvariantCulture)
+                    ["rejoinedSoftHyphenCount"] = group.RejoinedSoftHyphenCount.ToString(CultureInfo.InvariantCulture)
                 }
             });
         }

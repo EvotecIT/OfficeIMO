@@ -170,7 +170,7 @@ public partial class PdfDocumentReadResultTests {
         Assert.True(data.Diagnostics.Height > 0);
         Assert.True(data.Diagnostics.Confidence >= 0.95D);
         Assert.NotEmpty(data.Diagnostics.Evidence);
-        Assert.Equal(1D, data.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(0.95D, data.Diagnostics.SchemaConfidence, 3);
         Assert.Equal(1D, data.Diagnostics.CellCompleteness, 3);
         Assert.Equal(1D, data.Diagnostics.ColumnGeometryConfidence, 3);
         Assert.Equal(PdfLogicalTableColumnKind.Numeric, scoreProfile.Kind);
@@ -207,7 +207,9 @@ public partial class PdfDocumentReadResultTests {
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
 
         Assert.True(structure.HasHeaderRow);
-        Assert.False(structure.IsKeyValueTable);
+        Assert.Equal(PdfLogicalTableSchemaKind.HeaderRow, structure.SchemaKind);
+        Assert.InRange(structure.SchemaConfidence, 0.8D, 1D);
+        Assert.NotEmpty(structure.SchemaEvidence);
         Assert.Equal(new[] { "Name", "Age" }, structure.Columns);
         Assert.Equal(1, structure.BodyStartRowIndex);
         Assert.Equal(new[] { "Name", "Age" }, data.Columns);
@@ -232,7 +234,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Product C", "12", "22" }
             }, style: new PdfTableStyle {
                 ColumnWidthPoints = new List<double?> { 150, 70, 70 },
-                HeaderRowCount = 1
+                HeaderRowCount = 0
             })
             .ToBytes();
 
@@ -245,12 +247,105 @@ public partial class PdfDocumentReadResultTests {
 
         Assert.False(structure.HasHeaderRow);
         Assert.Equal(0, structure.BodyStartRowIndex);
-        Assert.Equal(new[] { "Column 1", "Column 2", "Column 3" }, data.Columns);
-        Assert.Equal(new[] { "ProductA", "10", "20" }, data.Rows[0]);
+        Assert.Equal(new[] { "", "", "" }, data.Columns);
+        Assert.Equal(new[] { "Product A", "10", "20" }, data.Rows[0]);
     }
 
     [Fact]
-    public void TableAnalysis_IdentifiesHeaderlessKeyValueTableShape() {
+    public void TableAnalysis_DoesNotPromoteAnAllTextDataRowWithoutStructuralHeaderEvidence() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 460,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Sverige", "Stockholm" },
+                new[] { "Norge", "Oslo" },
+                new[] { "Suomi", "Helsinki" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 0,
+                ColumnWidthPoints = new List<double?> { 150, 150 }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.False(data.Structure.HasHeaderRow);
+        Assert.Equal(0, data.Structure.BodyStartRowIndex);
+        Assert.Equal(new[] { "", "" }, data.Columns);
+        Assert.Equal(new[] { "Sverige", "Stockholm" }, data.Rows[0]);
+    }
+
+    [Fact]
+    public void TableAnalysis_PreservesStructurallyEstablishedNumericDuplicateAndBlankHeaders() {
+        PdfLogicalTable table = PdfLogicalTable.From(
+            1,
+            new PdfUnderstandingTableCandidate(
+                "test-geometry",
+                100D,
+                20D,
+                new[] {
+                    new PdfUnderstandingTableColumn(0D, 100D),
+                    new PdfUnderstandingTableColumn(100D, 200D),
+                    new PdfUnderstandingTableColumn(200D, 300D)
+                },
+                new IReadOnlyList<string>[] {
+                    new[] { "1", "1", "" },
+                    new[] { "A", "B", "C" },
+                    new[] { "D", "E", "F" }
+                },
+                Array.Empty<PdfUnderstandingLine>(),
+                evidence: new[] {
+                    new PdfInferenceEvidence(
+                        "table.header-emphasis",
+                        "The first row has distinct source typography.",
+                        0.9D)
+                }));
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.True(data.Structure.HasHeaderRow);
+        Assert.Equal(PdfLogicalTableSchemaKind.HeaderRow, data.Structure.SchemaKind);
+        Assert.Equal(new[] { "1", "1", "" }, data.Columns);
+        Assert.Equal(new[] { "A", "B", "C" }, data.Rows[0]);
+        Assert.Contains(data.Structure.SchemaEvidence, static evidence => evidence.Code == "table.header-emphasis");
+    }
+
+    [Fact]
+    public void TableAnalysis_UsesDistinctHeaderTypographyWithoutHeaderVocabulary() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 460,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Område", "Ansvarig" },
+                new[] { "Norr", "Linnea" },
+                new[] { "Söder", "Mikael" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 150, 150 }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.True(data.Structure.HasHeaderRow);
+        Assert.Equal(new[] { "Område", "Ansvarig" }, data.Columns);
+        Assert.Equal(new[] { "Norr", "Linnea" }, data.Rows[0]);
+    }
+
+    [Fact]
+    public void TableAnalysis_ReportsHeaderlessTwoColumnShapeAsUnknown() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -279,13 +374,15 @@ public partial class PdfDocumentReadResultTests {
         PdfLogicalTableStructure structure = PdfLogicalTableAnalysis.Analyze(table);
 
         Assert.Equal(2, structure.ColumnCount);
-        Assert.Equal(new[] { "Key", "Value" }, structure.Columns);
+        Assert.Equal(new[] { "", "" }, structure.Columns);
         Assert.Equal(0, structure.BodyStartRowIndex);
         Assert.Equal(3, structure.TotalBodyRowCount);
         Assert.False(structure.HasHeaderRow);
-        Assert.True(structure.IsKeyValueTable);
+        Assert.Equal(PdfLogicalTableSchemaKind.Unknown, structure.SchemaKind);
+        Assert.Equal(0D, structure.SchemaConfidence);
+        Assert.Contains(structure.SchemaEvidence, static evidence => evidence.Code == "table.schema-unknown");
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table, maxRows: 2);
-        Assert.Equal(new[] { "Key", "Value" }, data.Columns);
+        Assert.Equal(new[] { "", "" }, data.Columns);
         Assert.Equal(2, data.Rows.Count);
         Assert.Equal(3, data.TotalRowCount);
         Assert.True(data.Truncated);
@@ -298,7 +395,7 @@ public partial class PdfDocumentReadResultTests {
         Assert.True(extraction.Data.Truncated);
 
         string markdown = logical.ToMarkdown();
-        Assert.Contains("| Key | Value |", markdown, StringComparison.Ordinal);
+        Assert.Contains("|  |  |", markdown, StringComparison.Ordinal);
         Assert.Contains("| InvoiceId | INV-001 |", markdown, StringComparison.Ordinal);
     }
 

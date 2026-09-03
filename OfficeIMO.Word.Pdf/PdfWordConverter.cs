@@ -641,7 +641,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasHeaderRow(PdfCore.PdfLogicalTableData data) {
             return data.Columns.Count > 0
-                && (data.Structure.HasHeaderRow || data.Structure.IsKeyValueTable)
+                && data.Structure.HasHeaderRow
                 && data.Columns.Any(column => !string.IsNullOrWhiteSpace(column));
         }
 

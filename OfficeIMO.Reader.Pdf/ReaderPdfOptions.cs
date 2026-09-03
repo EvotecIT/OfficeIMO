@@ -35,7 +35,7 @@ public sealed class ReaderPdfOptions {
     /// </summary>
     public bool IncludeParagraphContinuationMetadata { get; set; } = true;
 
-    /// <summary>Optional confidence and hyphenation policy for paragraph continuation metadata.</summary>
+    /// <summary>Optional confidence and soft-hyphen policy for paragraph continuation metadata.</summary>
     public PdfLogicalParagraphContinuationOptions? ParagraphContinuationOptions { get; set; }
 
     /// <summary>
@@ -59,7 +59,7 @@ public sealed class ReaderPdfOptions {
 
         return new PdfLogicalParagraphContinuationOptions {
             MergePageContinuations = options.MergePageContinuations,
-            RejoinLineEndingHyphens = options.RejoinLineEndingHyphens,
+            RejoinSoftHyphens = options.RejoinSoftHyphens,
             MaximumSegmentsPerParagraph = options.MaximumSegmentsPerParagraph,
             GeometryTolerancePoints = options.GeometryTolerancePoints,
             MinimumConfidence = options.MinimumConfidence

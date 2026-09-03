@@ -161,8 +161,7 @@ public sealed class ReaderOcrFacadeTests {
     [Fact]
     public async Task Session_SnapshotsPdfPolicyAndUsesEngineNeutralWordGeometry() {
         var policy = new PdfOcrMergeOptions {
-            MinimumConfidence = 0.5D,
-            DetectAlignedTables = false
+            MinimumConfidence = 0.5D
         };
         var engine = new DelegateOfficeOcrEngine(
             "fixture",

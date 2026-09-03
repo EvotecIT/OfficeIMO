@@ -456,21 +456,4 @@ public sealed class PdfLogicalParagraph {
             lines.Min(static line => line.BaselineY));
     }
 
-    internal static PdfLogicalParagraph FromOcr(int pageNumber, PdfLogicalTextBlock line) {
-        Guard.NotNull(line, nameof(line));
-        return FromOcr(pageNumber, new[] { line });
-    }
-
-    internal static PdfLogicalParagraph FromOcr(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
-        Guard.NotNull(lines, nameof(lines));
-        if (lines.Count == 0) throw new ArgumentException("At least one OCR line is required.", nameof(lines));
-        return new PdfLogicalParagraph(
-            pageNumber,
-            string.Join(" ", lines.Select(static line => line.Text)),
-            lines.ToArray(),
-            lines.Min(static line => line.XStart),
-            lines.Max(static line => line.XEnd),
-            lines.Max(static line => line.BaselineY),
-            lines.Min(static line => line.BaselineY));
-    }
 }

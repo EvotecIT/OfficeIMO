@@ -124,7 +124,57 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
-    public void TableDetector_RetainsSparseResponseFormsWithShatteredCompactHeaders() {
+    public void PositionedRecovery_RecognizesSupplementaryPlaneDecimalDigits() {
+        TextLayoutEngine.TextLine[] lines = {
+            CreateLine(520D, ("Code", 50D, 50D, "Helvetica"), ("Value", 220D, 52D, "Helvetica")),
+            CreateLine(500D, ("Alpha", 50D, 42D, "Helvetica"), ("𝟙𝟚", 220D, 24D, "Helvetica")),
+            CreateLine(480D, ("Beta", 50D, 42D, "Helvetica"), ("𝟛𝟜", 220D, 24D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+
+        Assert.Contains("𝟙𝟚", table.Rows.SelectMany(static row => row));
+        Assert.Contains("𝟛𝟜", table.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
+    public void LeaderTables_RecognizeSupplementaryPlaneDecimalDigits() {
+        var lines = new List<TextLayoutEngine.TextLine> {
+            CreateLine(520D, ("Section", 50D, 50D, "Helvetica"), (".....", 140D, 50D, "Helvetica"), ("𝟙𝟚", 240D, 24D, "Helvetica")),
+            CreateLine(500D, ("Appendix", 50D, 56D, "Helvetica"), (".....", 140D, 50D, "Helvetica"), ("𝟛𝟜", 240D, 24D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.IsType<StructuredTable>(TableDetector.DetectLeaderTable(lines));
+
+        Assert.Equal(new[] { "Section", "𝟙𝟚" }, table.Rows[0]);
+        Assert.Equal(new[] { "Appendix", "𝟛𝟜" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void LeaderTables_PreservePunctuationInLabelsAndValues() {
+        var lines = new List<TextLayoutEngine.TextLine> {
+            CreateLine(520D, ("Release 1.2.3.", 50D, 76D, "Helvetica"), (".....", 150D, 50D, "Helvetica"), ("1.2.3.4", 240D, 42D, "Helvetica")),
+            CreateLine(500D, ("Wait... what?", 50D, 76D, "Helvetica"), (".....", 150D, 50D, "Helvetica"), ("0.0.0.1", 240D, 42D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.IsType<StructuredTable>(TableDetector.DetectLeaderTable(lines));
+
+        Assert.Equal(new[] { "Release 1.2.3.", "1.2.3.4" }, table.Rows[0]);
+        Assert.Equal(new[] { "Wait... what?", "0.0.0.1" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void DetectedTableNormalization_DoesNotRewriteCellPunctuation() {
+        var table = new StructuredTable();
+        table.Rows.Add(new[] { " Release  1.2.3.4 ", "Wait... what?", "3 . 14" });
+
+        ContentStructureExtractor.NormalizeDetectedTable(table);
+
+        Assert.Equal(new[] { "Release 1.2.3.4", "Wait... what?", "3 . 14" }, table.Rows[0]);
+    }
+
+    [Fact]
+    public void TableDetector_ReconstructsSparseResponseFormsFromPositionedGaps() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D,
                 ("D", 50D, 8D, "Helvetica"), ("eli", 58D, 16D, "Helvetica"),
@@ -139,7 +189,7 @@ public sealed class PdfTableDetectionValidationTests {
         StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
         Assert.Equal(2, table.Columns.Count);
         Assert.Contains(table.Rows.SelectMany(static row => row),
-            cell => ContentStructureExtractor.NormalizeShattered(cell) == "DeliveryWorksheet");
+            cell => cell == "Delivery Worksheet");
         Assert.Contains(table.Rows.SelectMany(static row => row),
             cell => ContentStructureExtractor.NormalizeShattered(cell) == "Client response");
     }
@@ -465,6 +515,35 @@ public sealed class PdfTableDetectionValidationTests {
             }));
 
         Assert.Equal(10, polls);
+    }
+
+    [Fact]
+    public void SplitBySplits_PreservesExplicitWhitespaceWhenAdvanceConsumesTheGap() {
+        var first = new PdfTextSpan(
+            "North",
+            "Helvetica",
+            11D,
+            50D,
+            500D,
+            30D,
+            null,
+            true,
+            0D,
+            null,
+            null,
+            logicalTrailingSpace: true);
+        var second = new PdfTextSpan("Region", "Helvetica", 11D, 80D, 500D, 36D);
+        var value = new PdfTextSpan("42", "Helvetica", 11D, 250D, 500D, 12D);
+        var line = new TextLayoutEngine.TextLine(
+            500D,
+            50D,
+            262D,
+            "North Region 42",
+            new List<PdfTextSpan> { first, second, value });
+
+        string[] cells = TableDetector.SplitBySplits(line, new List<double> { 200D });
+
+        Assert.Equal(new[] { "North Region", "42" }, cells);
     }
 
     private static TextLayoutEngine.TextLine CreateLine(

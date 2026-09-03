@@ -6,10 +6,11 @@ public sealed class PdfLogicalParagraphContinuationOptions {
     public bool MergePageContinuations { get; init; } = true;
 
     /// <summary>
-    /// Whether a likely discretionary line-ending hyphen may be removed while joining segments.
-    /// Default: false, because PDF layout evidence alone cannot distinguish every authored hyphen.
+    /// Whether an explicit soft hyphen may be removed while joining segments.
+    /// Default: false. Visible hyphens are always preserved because geometry cannot distinguish
+    /// an authored hyphen from a discretionary line break.
     /// </summary>
-    public bool RejoinLineEndingHyphens { get; init; }
+    public bool RejoinSoftHyphens { get; init; }
 
     /// <summary>Maximum adjacent page segments in one recovered paragraph. Default: 16.</summary>
     public int MaximumSegmentsPerParagraph { get; init; } = 16;
@@ -57,10 +58,8 @@ public enum PdfLogicalParagraphContinuationEvidence {
     CompatibleTypography = 16,
     /// <summary>The preceding segment did not end with strong terminal punctuation.</summary>
     IncompleteTerminal = 32,
-    /// <summary>The following segment began with a lower-case letter.</summary>
-    LowercaseContinuation = 64,
-    /// <summary>The preceding segment ended with a likely discretionary hyphen.</summary>
-    HyphenatedBreak = 128
+    /// <summary>The preceding segment ended with an explicit soft hyphen.</summary>
+    SoftHyphenBreak = 64
 }
 
 /// <summary>One logical paragraph reconstructed from one or more page-level paragraph segments.</summary>
@@ -70,12 +69,12 @@ public sealed class PdfLogicalParagraphContinuationGroup {
         string text,
         double confidence,
         PdfLogicalParagraphContinuationEvidence evidence,
-        int rejoinedHyphenCount) {
+        int rejoinedSoftHyphenCount) {
         Segments = segments;
         Text = text;
         Confidence = confidence;
         Evidence = evidence;
-        RejoinedHyphenCount = rejoinedHyphenCount;
+        RejoinedSoftHyphenCount = rejoinedSoftHyphenCount;
     }
 
     /// <summary>Page-level paragraph segments contributing to this logical paragraph.</summary>
@@ -90,8 +89,8 @@ public sealed class PdfLogicalParagraphContinuationGroup {
     /// <summary>Combined evidence supporting the recovered page boundaries.</summary>
     public PdfLogicalParagraphContinuationEvidence Evidence { get; }
 
-    /// <summary>Number of strongly evidenced line-ending hyphens removed while joining segments.</summary>
-    public int RejoinedHyphenCount { get; }
+    /// <summary>Number of explicit soft hyphens removed while joining segments.</summary>
+    public int RejoinedSoftHyphenCount { get; }
 
     /// <summary>True when this logical paragraph combines more than one page-level segment.</summary>
     public bool SpansPages => Segments.Count > 1;
@@ -136,13 +135,13 @@ public static class PdfLogicalParagraphContinuations {
                     continue;
                 }
 
-                if (current.Count > 0) groups.Add(current.Build(effective.RejoinLineEndingHyphens));
+                if (current.Count > 0) groups.Add(current.Build(effective.RejoinSoftHyphens));
                 current = new GroupBuilder();
                 current.Add(paragraph);
             }
         }
 
-        if (current.Count > 0) groups.Add(current.Build(effective.RejoinLineEndingHyphens));
+        if (current.Count > 0) groups.Add(current.Build(effective.RejoinSoftHyphens));
         return groups.AsReadOnly();
     }
 
@@ -187,17 +186,12 @@ public static class PdfLogicalParagraphContinuations {
             PdfLogicalParagraphContinuationEvidence.CompatibleGeometry |
             PdfLogicalParagraphContinuationEvidence.CompatibleTypography |
             PdfLogicalParagraphContinuationEvidence.IncompleteTerminal;
-        double confidence = 0.65D;
-        char first = FirstMeaningfulCharacter(currentText);
-        bool startsLowercase = char.IsLetter(first) && char.IsLower(first);
-        if (startsLowercase) {
-            evidence |= PdfLogicalParagraphContinuationEvidence.LowercaseContinuation;
-            confidence += 0.15D;
-        }
-
-        bool rejoinHyphen = startsLowercase && HasLikelyDiscretionaryHyphen(previousText);
-        if (rejoinHyphen) {
-            evidence |= PdfLogicalParagraphContinuationEvidence.HyphenatedBreak;
+        // The six preceding checks are structural evidence. Letter case is not: scripts without
+        // case and sentence fragments beginning with proper nouns must behave the same way.
+        double confidence = 0.8D;
+        bool rejoinSoftHyphen = previousText[previousText.Length - 1] == '\u00AD';
+        if (rejoinSoftHyphen) {
+            evidence |= PdfLogicalParagraphContinuationEvidence.SoftHyphenBreak;
             confidence += 0.1D;
         }
         if (Math.Abs(previousBounds.Left - currentBounds.Left) <= options.GeometryTolerancePoints * 0.5D) confidence += 0.05D;
@@ -205,7 +199,7 @@ public static class PdfLogicalParagraphContinuations {
         confidence = Math.Min(1D, confidence);
         if (confidence < options.MinimumConfidence) return false;
 
-        boundary = new ContinuationBoundary(confidence, evidence, rejoinHyphen);
+        boundary = new ContinuationBoundary(confidence, evidence, rejoinSoftHyphen);
         return true;
     }
 
@@ -231,40 +225,24 @@ public static class PdfLogicalParagraphContinuations {
             : paragraph.Lines[0].FontSize;
     }
 
-    private static char FirstMeaningfulCharacter(string text) {
-        for (int i = 0; i < text.Length; i++) {
-            char value = text[i];
-            if (char.IsLetterOrDigit(value)) return value;
-        }
-        return '\0';
-    }
-
     private static bool HasStrongTerminal(string text) {
-        int index = text.Length - 1;
-        while (index >= 0 && (char.IsWhiteSpace(text[index]) || text[index] == '"' || text[index] == '\'' || text[index] == ')' || text[index] == ']' || text[index] == '}')) index--;
-        if (index < 0) return true;
-        char value = text[index];
-        return value == '.' || value == '!' || value == '?' || value == ':';
-    }
-
-    private static bool HasLikelyDiscretionaryHyphen(string text) {
-        if (text.Length < 2 || text[text.Length - 1] != '-') return false;
-        return char.IsLetter(text[text.Length - 2]) && (text.Length < 3 || !char.IsWhiteSpace(text[text.Length - 2]));
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        return ContentStructureExtractor.EndsWithSentenceTerminal(text);
     }
 
     private readonly struct ContinuationBoundary {
         internal ContinuationBoundary(
             double confidence,
             PdfLogicalParagraphContinuationEvidence evidence,
-            bool rejoinHyphen) {
+            bool rejoinSoftHyphen) {
             Confidence = confidence;
             Evidence = evidence;
-            RejoinHyphen = rejoinHyphen;
+            RejoinSoftHyphen = rejoinSoftHyphen;
         }
 
         internal double Confidence { get; }
         internal PdfLogicalParagraphContinuationEvidence Evidence { get; }
-        internal bool RejoinHyphen { get; }
+        internal bool RejoinSoftHyphen { get; }
     }
 
     private sealed class GroupBuilder {
@@ -281,7 +259,7 @@ public static class PdfLogicalParagraphContinuations {
             _boundaries.Add(boundary);
         }
 
-        internal PdfLogicalParagraphContinuationGroup Build(bool rejoinLineEndingHyphens) {
+        internal PdfLogicalParagraphContinuationGroup Build(bool rejoinSoftHyphens) {
             var text = new StringBuilder();
             int rejoinedHyphens = 0;
             PdfLogicalParagraphContinuationEvidence evidence = PdfLogicalParagraphContinuationEvidence.None;
@@ -295,7 +273,7 @@ public static class PdfLogicalParagraphContinuations {
                 ContinuationBoundary boundary = _boundaries[index - 1];
                 confidence = Math.Min(confidence, boundary.Confidence);
                 evidence |= boundary.Evidence;
-                if (rejoinLineEndingHyphens && boundary.RejoinHyphen && text.Length > 0 && text[text.Length - 1] == '-') {
+                if (rejoinSoftHyphens && boundary.RejoinSoftHyphen && text.Length > 0 && text[text.Length - 1] == '\u00AD') {
                     text.Length--;
                     rejoinedHyphens++;
                 } else if (text.Length > 0 && segmentText.Length > 0) {

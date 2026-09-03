@@ -1,9 +1,12 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Controls OCR rendering, confidence filtering, and native-text overlap removal.</summary>
+/// <summary>Controls canonical parsing, OCR rendering, confidence filtering, and native-text overlap removal.</summary>
 public sealed class PdfOcrMergeOptions {
-    /// <summary>Pages sent to the OCR provider; null means every page.</summary>
-    public PdfPageSelection? Selection { get; set; }
+    /// <summary>
+    /// Canonical semantic-read settings, including page selection, layout, stage customization,
+    /// and understanding budgets. OCR evidence is processed by this same read pipeline.
+    /// </summary>
+    public PdfReadOptions ReadOptions { get; set; } = PdfReadOptions.Default;
     /// <summary>OCR render DPI.</summary>
     public double Dpi { get; set; } = 150D;
     /// <summary>Minimum accepted provider confidence from 0 through 1.</summary>
@@ -28,43 +31,29 @@ public sealed class PdfOcrMergeOptions {
     public long MaxNativeTextOverlapComparisonsPerPage { get; set; } = 5_000_000L;
     /// <summary>Maximum characters retained in one merged native/OCR text result.</summary>
     public int MaxMergedTextCharactersPerPage { get; set; } = 8 * 1024 * 1024;
-    /// <summary>Builds an enriched logical document that downstream reverse converters can consume.</summary>
-    public bool BuildEnrichedLogicalDocument { get; set; } = true;
-    /// <summary>Infers conservative table regions from repeated OCR word columns.</summary>
-    public bool DetectAlignedTables { get; set; } = true;
-    /// <summary>Minimum aligned OCR rows required before a table is emitted.</summary>
-    public int MinimumAlignedTableRows { get; set; } = 3;
-    /// <summary>Minimum visual gap, in PDF points, separating adjacent inferred OCR cells.</summary>
-    public double MinimumTableColumnGapPoints { get; set; } = 18D;
-    /// <summary>Maximum difference, in PDF points, between matching OCR column anchors.</summary>
-    public double TableColumnTolerancePoints { get; set; } = 12D;
-    /// <summary>Maximum inferred OCR tables retained for one page.</summary>
-    public int MaxInferredTablesPerPage { get; set; } = 32;
-
     /// <summary>Creates an independent option snapshot.</summary>
-    public PdfOcrMergeOptions Clone() => new PdfOcrMergeOptions {
-        Selection = Selection,
-        Dpi = Dpi,
-        MinimumConfidence = MinimumConfidence,
-        NativeTextOverlapThreshold = NativeTextOverlapThreshold,
-        MaxPages = MaxPages,
-        MaxPixelsPerPage = MaxPixelsPerPage,
-        MaxOcrWordsPerPage = MaxOcrWordsPerPage,
-        MaxOcrTextCharactersPerPage = MaxOcrTextCharactersPerPage,
-        MaxDiagnosticsPerPage = MaxDiagnosticsPerPage,
-        MaxDiagnosticCharactersPerPage = MaxDiagnosticCharactersPerPage,
-        MaxNativeTextBlocksPerPage = MaxNativeTextBlocksPerPage,
-        MaxNativeTextOverlapComparisonsPerPage = MaxNativeTextOverlapComparisonsPerPage,
-        MaxMergedTextCharactersPerPage = MaxMergedTextCharactersPerPage,
-        BuildEnrichedLogicalDocument = BuildEnrichedLogicalDocument,
-        DetectAlignedTables = DetectAlignedTables,
-        MinimumAlignedTableRows = MinimumAlignedTableRows,
-        MinimumTableColumnGapPoints = MinimumTableColumnGapPoints,
-        TableColumnTolerancePoints = TableColumnTolerancePoints,
-        MaxInferredTablesPerPage = MaxInferredTablesPerPage
-    };
+    public PdfOcrMergeOptions Clone() {
+        Guard.NotNull(ReadOptions, nameof(ReadOptions));
+        return new PdfOcrMergeOptions {
+            ReadOptions = ReadOptions.Clone(),
+            Dpi = Dpi,
+            MinimumConfidence = MinimumConfidence,
+            NativeTextOverlapThreshold = NativeTextOverlapThreshold,
+            MaxPages = MaxPages,
+            MaxPixelsPerPage = MaxPixelsPerPage,
+            MaxOcrWordsPerPage = MaxOcrWordsPerPage,
+            MaxOcrTextCharactersPerPage = MaxOcrTextCharactersPerPage,
+            MaxDiagnosticsPerPage = MaxDiagnosticsPerPage,
+            MaxDiagnosticCharactersPerPage = MaxDiagnosticCharactersPerPage,
+            MaxNativeTextBlocksPerPage = MaxNativeTextBlocksPerPage,
+            MaxNativeTextOverlapComparisonsPerPage = MaxNativeTextOverlapComparisonsPerPage,
+            MaxMergedTextCharactersPerPage = MaxMergedTextCharactersPerPage
+        };
+    }
 
     internal void Validate() {
+        Guard.NotNull(ReadOptions, nameof(ReadOptions));
+        PdfReadOptions.Resolve(ReadOptions);
         Guard.Positive(Dpi, nameof(Dpi));
         ValidateRatio(MinimumConfidence, nameof(MinimumConfidence));
         ValidateRatio(NativeTextOverlapThreshold, nameof(NativeTextOverlapThreshold));
@@ -77,10 +66,6 @@ public sealed class PdfOcrMergeOptions {
         Guard.PositiveInteger(MaxNativeTextBlocksPerPage, nameof(MaxNativeTextBlocksPerPage));
         if (MaxNativeTextOverlapComparisonsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNativeTextOverlapComparisonsPerPage));
         Guard.PositiveInteger(MaxMergedTextCharactersPerPage, nameof(MaxMergedTextCharactersPerPage));
-        Guard.PositiveInteger(MinimumAlignedTableRows, nameof(MinimumAlignedTableRows));
-        Guard.Positive(MinimumTableColumnGapPoints, nameof(MinimumTableColumnGapPoints));
-        Guard.Positive(TableColumnTolerancePoints, nameof(TableColumnTolerancePoints));
-        Guard.PositiveInteger(MaxInferredTablesPerPage, nameof(MaxInferredTablesPerPage));
     }
 
     private static void ValidateRatio(double value, string name) {

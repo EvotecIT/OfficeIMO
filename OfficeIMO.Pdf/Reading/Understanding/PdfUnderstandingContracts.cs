@@ -57,6 +57,8 @@ public sealed class PdfUnderstandingPageContext {
     public int MaxTextCharactersPerPage { get; }
     /// <summary>Maximum word artifacts accepted for this page.</summary>
     public int MaxWordsPerPage { get; }
+    /// <summary>Maximum table candidates accepted for this page.</summary>
+    public int MaxTableCandidatesPerPage { get; internal set; } = 1_024;
     /// <summary>Cancellation token observed by built-in and cooperative custom stages.</summary>
     public CancellationToken CancellationToken => _workBudget.CancellationToken;
     /// <summary>Maximum comparison and traversal work units available to this page.</summary>
@@ -76,9 +78,9 @@ public sealed class PdfUnderstandingPageContext {
 /// <summary>One decoded word candidate with source-run traceability.</summary>
 public sealed class PdfUnderstandingWord {
     /// <summary>Creates a positioned word artifact for a custom grouping stage.</summary>
-    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null) {
+    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null, double? advance = null, PdfLogicalVisualBounds? visualBounds = null, int? sourceSequence = null) {
         Guard.NotNull(text, nameof(text)); Guard.NotNull(sourceRuns, nameof(sourceRuns));
-        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence);
+        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); Advance = advance; VisualBounds = visualBounds; SourceSequence = sourceSequence;
     }
     /// <summary>Decoded word text.</summary>
     public string Text { get; }
@@ -92,6 +94,12 @@ public sealed class PdfUnderstandingWord {
     public double FontSize { get; }
     /// <summary>Baseline rotation in degrees.</summary>
     public double RotationDegrees { get; }
+    /// <summary>Distance occupied along the baseline, including vertical and rotated baselines, when known.</summary>
+    public double? Advance { get; }
+    /// <summary>Direct top-left visual bounds, when supplied by a positioned source such as OCR.</summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
+    /// <summary>Original zero-based source order, when supplied by the decoder or positioned provider.</summary>
+    public int? SourceSequence { get; }
     /// <summary>Decoded source runs that produced this word.</summary>
     public IReadOnlyList<PdfTextSpan> SourceRuns { get; }
     /// <summary>Normalized grouping confidence from 0 to 1.</summary>
@@ -107,7 +115,17 @@ public sealed class PdfUnderstandingLine {
         : this(words, JoinWords(words), confidence, evidence) {
     }
 
-    internal PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, string text, double? confidence, IEnumerable<PdfInferenceEvidence>? evidence) {
+    internal PdfUnderstandingLine(
+        IReadOnlyList<PdfUnderstandingWord> words,
+        string text,
+        double? confidence,
+        IEnumerable<PdfInferenceEvidence>? evidence,
+        PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
+        int? sourceSequence = null,
+        string? blockId = null,
+        string? paragraphId = null,
+        string? lineId = null,
+        PdfLogicalVisualBounds? visualBounds = null) {
         Guard.NotNull(words, nameof(words));
         Guard.NotNull(text, nameof(text));
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
@@ -120,6 +138,12 @@ public sealed class PdfUnderstandingLine {
         RotationDegrees = words.Average(static word => word.RotationDegrees);
         Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
         Evidence = PdfInference.Snapshot(evidence);
+        SourceKind = sourceKind;
+        SourceSequence = sourceSequence;
+        BlockId = blockId;
+        ParagraphId = paragraphId;
+        LineId = lineId;
+        VisualBounds = visualBounds;
     }
 
     private static string JoinWords(IReadOnlyList<PdfUnderstandingWord> words) {
@@ -144,6 +168,18 @@ public sealed class PdfUnderstandingLine {
     public double Confidence { get; }
     /// <summary>Evidence supporting this line grouping.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    /// <summary>Whether the line came from native PDF text or accepted OCR geometry.</summary>
+    public PdfLogicalContentSourceKind SourceKind { get; }
+    /// <summary>Original source reading position, when supplied.</summary>
+    public int? SourceSequence { get; }
+    /// <summary>Provider block identifier, when supplied.</summary>
+    public string? BlockId { get; }
+    /// <summary>Provider paragraph identifier, when supplied.</summary>
+    public string? ParagraphId { get; }
+    /// <summary>Provider line identifier, when supplied.</summary>
+    public string? LineId { get; }
+    /// <summary>Direct top-left visual bounds, when supplied.</summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
 }
 
 /// <summary>One page-segmentation region containing related lines.</summary>

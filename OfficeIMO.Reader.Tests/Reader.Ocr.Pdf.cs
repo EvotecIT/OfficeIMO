@@ -28,6 +28,9 @@ public sealed class ReaderOcrPdfTests {
                     Level = OfficeOcrTextSpanLevel.Word,
                     Text = "Invoice",
                     Confidence = 0.92D,
+                    BlockId = "page-1:block-2",
+                    ParagraphId = "page-1:block-2:paragraph-3",
+                    LineId = "page-1:block-2:paragraph-3:line-4",
                     Region = coordinateUnit == OfficeOcrCoordinateUnit.Normalized
                         ? new OfficeDocumentRegion { X = 0.1D, Y = 0.1D, Width = 0.2D, Height = 1D / 30D }
                         : new OfficeDocumentRegion { X = 20D, Y = 30D, Width = 40D, Height = 10D },
@@ -49,6 +52,9 @@ public sealed class ReaderOcrPdfTests {
         Assert.Equal(expectedWidth, word.Width, 6);
         Assert.Equal(expectedHeight, word.Height, 6);
         Assert.Equal(0.92D, word.Confidence, 6);
+        Assert.Equal("page-1:block-2", word.BlockId);
+        Assert.Equal("page-1:block-2:paragraph-3", word.ParagraphId);
+        Assert.Equal("page-1:block-2:paragraph-3:line-4", word.LineId);
         Assert.Equal("fixture-provider", response.Provider);
         Assert.Equal("fixture-model", response.Model);
         Assert.Equal("pol", response.Language);
@@ -105,6 +111,8 @@ public sealed class ReaderOcrPdfTests {
         PdfOcrResponse response = await provider.RecognizeAsync(new PdfOcrRequest(1, new byte[] { 1 }, 100, 100, 50, 50, 2D));
 
         Assert.Equal("Line fallback", Assert.Single(response.Words).Text);
+        Assert.Equal(0D, response.Words[0].Confidence);
+        Assert.Contains(response.Diagnostics, diagnostic => diagnostic.StartsWith("ocr-confidence-unavailable:", StringComparison.Ordinal));
         Assert.DoesNotContain(response.Diagnostics, diagnostic => diagnostic.StartsWith("ocr-span-geometry-missing:", StringComparison.Ordinal));
     }
 

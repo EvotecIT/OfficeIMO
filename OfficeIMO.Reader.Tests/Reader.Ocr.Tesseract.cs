@@ -29,6 +29,12 @@ public sealed class ReaderOcrTesseractTests {
         Assert.Equal(10D, firstLine.Region!.X);
         Assert.Equal(75D, firstLine.Region.Width);
         Assert.Equal(OfficeOcrCoordinateUnit.Pixels, firstLine.CoordinateUnit);
+        Assert.Equal("1:1", firstLine.BlockId);
+        Assert.Equal("1:1:1", firstLine.ParagraphId);
+        Assert.Equal("1:1:1:1", firstLine.LineId);
+        Assert.All(
+            result.Spans.Where(span => span.Text == "Invoice" || span.Text == "1042"),
+            span => Assert.Equal(firstLine.LineId, span.LineId));
         Assert.Equal("tesseract-cli", result.Provider);
     }
 

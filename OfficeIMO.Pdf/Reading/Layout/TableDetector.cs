@@ -686,7 +686,7 @@ internal static partial class TableDetector {
         string value = ContentStructureExtractor.NormalizeShattered(
             cells.First(static cell => !string.IsNullOrWhiteSpace(cell))).Trim();
         int words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-        return words is >= 1 and <= 3 && value[value.Length - 1] is not ('.' or '!' or '?');
+        return words is >= 1 and <= 3 && !ContentStructureExtractor.EndsWithSentenceTerminal(value);
     }
 
     private static bool HasMeaningfulHorizontalOverlap(
@@ -851,7 +851,7 @@ internal static partial class TableDetector {
         for (int i = 0; i < cells.Length; i++) {
             string cell = ContentStructureExtractor.NormalizeShattered(cells[i]).Trim();
             if (cell.Length == 0 ||
-                (!cell.Any(char.IsLetter) && !cell.All(char.IsDigit))) {
+                (!PdfUnicodeScalarAnalysis.ContainsLetter(cell) && !PdfUnicodeScalarAnalysis.IsAllDecimalDigits(cell))) {
                 return false;
             }
         }
@@ -943,7 +943,7 @@ internal static partial class TableDetector {
         for (int index = 0; index < cells.Length; index++) {
             string value = ContentStructureExtractor.NormalizeShattered(cells[index]).Trim();
             int cellWords = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-            if (cellWords > 4 || value[value.Length - 1] is '.' or '!' or '?') return false;
+            if (cellWords > 4 || ContentStructureExtractor.EndsWithSentenceTerminal(value)) return false;
             words += cellWords;
         }
         return words <= cells.Length * 3;
@@ -993,7 +993,7 @@ internal static partial class TableDetector {
 
             string label = ContentStructureExtractor.NormalizeShattered(row[populatedColumn]).Trim();
             int words = label.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-            if (words is >= 1 and <= 5 && label[label.Length - 1] is not ('.' or '!' or '?')) {
+            if (words is >= 1 and <= 5 && !ContentStructureExtractor.EndsWithSentenceTerminal(label)) {
                 sparseRowsByColumn[populatedColumn]++;
             }
         }
@@ -1108,6 +1108,29 @@ internal static partial class TableDetector {
             .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
             .ToArray();
         return headerSpans.Length >= 2 && headerSpans.All(static span => IsEmphasizedFont(span.BaseFont));
+    }
+
+    internal static bool HasDistinctEmphasizedHeader(IReadOnlyList<PdfUnderstandingLine> sourceLines) {
+        if (sourceLines.Count < 2) return false;
+        double headerY = sourceLines.Max(static line => line.BaselineY);
+        PdfTextSpan[] headerSpans = sourceLines
+            .Where(line => Math.Abs(line.BaselineY - headerY) <= 2D)
+            .SelectMany(static line => line.Words)
+            .SelectMany(static word => word.SourceRuns)
+            .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
+            .Distinct()
+            .ToArray();
+        PdfTextSpan[] bodySpans = sourceLines
+            .Where(line => line.BaselineY < headerY - 2D)
+            .SelectMany(static line => line.Words)
+            .SelectMany(static word => word.SourceRuns)
+            .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
+            .Distinct()
+            .ToArray();
+        return headerSpans.Length >= 2 &&
+               bodySpans.Length > 0 &&
+               headerSpans.All(static span => IsEmphasizedFont(span.BaseFont)) &&
+               bodySpans.Any(static span => !IsEmphasizedFont(span.BaseFont));
     }
 
     private static bool IsEmphasizedFont(string? baseFont) =>
@@ -1260,17 +1283,24 @@ internal static partial class TableDetector {
         return merged;
     }
 
-    private static string[] SplitBySplits(TextLayoutEngine.TextLine ln, List<double> splits) {
+    internal static string[] SplitBySplits(TextLayoutEngine.TextLine ln, List<double> splits) {
         int cols = splits.Count + 1;
         var cellBuilders = new System.Text.StringBuilder[cols];
+        var previousSpans = new PdfTextSpan?[cols];
         for (int i = 0; i < cols; i++) cellBuilders[i] = new System.Text.StringBuilder();
         int ColIndex(double x) { int idx = 0; while (idx < splits.Count && x >= splits[idx]) idx++; return idx; }
         for (int i = 0; i < ln.Spans.Count; i++) {
             var s = ln.Spans[i];
             int cidx = ColIndex(s.X);
             var sb = cellBuilders[cidx];
-            if (sb.Length > 0 && !char.IsWhiteSpace(sb[sb.Length - 1])) sb.Append(' ');
+            PdfTextSpan? previous = previousSpans[cidx];
+            if (previous is not null && sb.Length > 0 && !char.IsWhiteSpace(sb[sb.Length - 1])) {
+                double gap = s.X - (previous.X + Math.Max(0D, previous.Advance));
+                double threshold = Math.Max(0.8D, Math.Min(2D, Math.Max(previous.FontSize, s.FontSize) * 0.18D));
+                if (HasExplicitBoundarySpace(previous, s) || gap > threshold) sb.Append(' ');
+            }
             sb.Append(s.Text);
+            previousSpans[cidx] = s;
         }
         var cells = new string[cols];
         for (int i = 0; i < cols; i++) cells[i] = cellBuilders[i].ToString().Trim();
@@ -1295,7 +1325,8 @@ internal static partial class TableDetector {
                     // split to a new cell
                     cells.Add(current.ToString().Trim());
                     current.Clear();
-                } else if (gap > 1.0 && (current.Length > 0 && current[current.Length - 1] != ' ')) {
+                } else if ((HasExplicitBoundarySpace(p, s) || gap > 1.0) &&
+                           current.Length > 0 && current[current.Length - 1] != ' ') {
                     // small gap -> ensure single space
                     current.Append(' ');
                 }
@@ -1306,6 +1337,12 @@ internal static partial class TableDetector {
         return cells.ToArray();
     }
 
+    private static bool HasExplicitBoundarySpace(PdfTextSpan previous, PdfTextSpan current) =>
+        previous.LogicalTrailingSpace ||
+        current.LogicalLeadingSpace ||
+        (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
+        (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
+
     private static bool LooksTabular(string[] cells) {
         // Require at least one numeric-ish cell and avoid one-word rows
         bool anyNumeric = cells.Any(c => HasManyDigits(c));
@@ -1314,8 +1351,9 @@ internal static partial class TableDetector {
     }
 
     private static bool HasManyDigits(string s) {
-        int digits = 0; for (int i = 0; i < s.Length; i++) if (char.IsDigit(s[i])) digits++;
-        return digits >= Math.Max(2, s.Length / 4);
+        int digits = PdfUnicodeScalarAnalysis.CountDecimalDigits(s);
+        int scalars = PdfUnicodeScalarAnalysis.CountScalars(s);
+        return digits >= Math.Max(2, scalars / 4);
     }
 
     private static bool IsLeaderSpan(string s) {
@@ -1386,40 +1424,7 @@ internal static partial class TableDetector {
 
     private static string CleanLeftLabel(string s) {
         if (string.IsNullOrEmpty(s)) return s;
-        // Normalize spaces
-        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-        // Remove trailing leader characters on label
-        s = s.Trim('.', '-', '_');
-        // Remove repeated dot groups inside label
-        s = System.Text.RegularExpressions.Regex.Replace(s, "[.]{2,}", ".");
-        // Tidy quotes and parentheses spacing
-        s = s.Replace(" ' ", " '").Replace("( ", "(").Replace(" )", ")");
-        // Re-insert spaces around common glued prepositions if camel-cased inside
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])of([A-Z])", "$1 of $2");
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})of([A-Z])", "$1 of $2");
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])in([A-Z])", "$1 in $2");
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})in([A-Z])", "$1 in $2");
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])and([A-Z])", "$1 and $2");
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})and([A-Z])", "$1 and $2");
-        // generic lower->Upper split (camel-case -> spaced)
-        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z])([A-Z])", "$1 $2");
-        // Collapse micro-token shattering (aggressive but safe-ish for leaders)
-        var parts = s.Split(' ');
-        if (parts.Length <= 2) return s;
-        bool Wordish(string t) { for (int i = 0; i < t.Length; i++) { char c = t[i]; if (!(char.IsLetterOrDigit(c) || c=='\''||c=='-'||c=='/')) return false; } return t.Length>0; }
-        bool ShortAbbrev(string t) { if (t.Length==0 || t.Length>3) return false; for (int i=0;i<t.Length;i++) if(!char.IsUpper(t[i])) return false; return true; }
-        int shortCount = parts.Count(p => p.Length <= 2 && Wordish(p));
-        if (!(shortCount >= 2 || shortCount * 4 >= parts.Length)) return s;
-        var sb = new System.Text.StringBuilder(s.Length);
-        sb.Append(parts[0]);
-        for (int i = 1; i < parts.Length; i++) {
-            string prev = parts[i-1]; string cur = parts[i];
-            bool joinSmall = Wordish(prev) && Wordish(cur) && !ShortAbbrev(prev) && !ShortAbbrev(cur) && (prev.Length<=2 || cur.Length<=2);
-            bool nextShort = (i+1<parts.Length) && parts[i+1].Length<=2 && Wordish(parts[i+1]) && !ShortAbbrev(parts[i+1]);
-            if (joinSmall || (Wordish(cur)&&cur.Length<=2 && nextShort)) sb.Append(cur);
-            else sb.Append(' ').Append(cur);
-        }
-        return sb.ToString().Replace("  ", " ");
+        return System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
     }
 
     private static string NormalizeLeaderValue(string value) {
@@ -1428,18 +1433,7 @@ internal static partial class TableDetector {
         }
 
         string normalized = System.Text.RegularExpressions.Regex.Replace(value.Trim(), "\\s+", " ");
-        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "\\s*([.,])\\s*", "$1");
-        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "([$€£])\\s+", "$1");
-        normalized = normalized.Trim('.');
 
-        bool hasDigit = false;
-        for (int i = 0; i < normalized.Length; i++) {
-            if (char.IsDigit(normalized[i])) {
-                hasDigit = true;
-                break;
-            }
-        }
-
-        return hasDigit ? normalized : string.Empty;
+        return PdfUnicodeScalarAnalysis.ContainsDecimalDigit(normalized) ? normalized : string.Empty;
     }
 }

@@ -1250,7 +1250,7 @@ public sealed class ReaderPdfModularTests {
         Assert.True(table.Diagnostics!.HasGeometry);
         Assert.True(table.Diagnostics.Width > 0);
         Assert.True(table.Diagnostics.Height > 0);
-        Assert.Equal(1D, table.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(0.95D, table.Diagnostics.SchemaConfidence, 3);
         Assert.Equal(1D, table.Diagnostics.CellCompleteness, 3);
         Assert.Equal(1D, table.Diagnostics.ColumnGeometryConfidence, 3);
         Assert.True(table.Diagnostics.Confidence >= 0.95D);
@@ -2098,7 +2098,7 @@ public sealed class ReaderPdfModularTests {
         Assert.NotNull(table.Location);
         Assert.Equal(1, table.Location!.Page);
         Assert.Equal(0, table.Location.TableIndex);
-        Assert.Equal(new[] { "Key", "Value" }, table.Columns);
+        Assert.Equal(new[] { "", "" }, table.Columns);
         Assert.Equal(3, table.TotalRowCount);
         Assert.False(table.Truncated);
         Assert.Equal(new[] { "InvoiceId", "INV-001" }, table.Rows[0]);
@@ -2212,7 +2212,7 @@ public sealed class ReaderPdfModularTests {
         options.MarkdownOptions!.AlignNumericTableColumns = false;
         options.ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
             MinimumConfidence = 0.85,
-            RejoinLineEndingHyphens = false
+            RejoinSoftHyphens = false
         };
 
         var clone = options.Clone();
@@ -2231,7 +2231,7 @@ public sealed class ReaderPdfModularTests {
         Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
         Assert.Equal(options.ReadOptions.PageSelection, clone.ReadOptions.PageSelection);
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
-        Assert.False(clone.ParagraphContinuationOptions.RejoinLineEndingHyphens);
+        Assert.False(clone.ParagraphContinuationOptions.RejoinSoftHyphens);
 
         clone.ReadOptions.LayoutOptions.MarginLeft = 48;
         clone.ReadOptions.Pipeline.MaxPages = 32;
@@ -2254,19 +2254,19 @@ public sealed class ReaderPdfModularTests {
             "continuation.pdf",
             pdfOptions: new ReaderPdfOptions {
                 ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
-                    RejoinLineEndingHyphens = true
+                    RejoinSoftHyphens = true
                 }
             });
 
         Assert.Contains("officeimo.pdf.paragraph-continuations", result.CapabilitiesUsed);
         Assert.Equal("1", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-count").Value);
         Assert.Equal("2", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-segment-count").Value);
-        Assert.Equal("1", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-rejoined-hyphen-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-rejoined-soft-hyphen-count").Value);
         OfficeDocumentMetadataEntry continuation = Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-0000");
         Assert.Equal("1", continuation.Attributes!["firstPageNumber"]);
         Assert.Equal("2", continuation.Attributes["lastPageNumber"]);
-        Assert.Contains("HyphenatedBreak", continuation.Attributes["evidence"], StringComparison.Ordinal);
-        Assert.Contains("discr-", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("SoftHyphenBreak", continuation.Attributes["evidence"], StringComparison.Ordinal);
+        Assert.Contains("discr\u00AD", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("etionary", result.Markdown, StringComparison.Ordinal);
     }
 
@@ -2350,7 +2350,7 @@ public sealed class ReaderPdfModularTests {
     }
 
     private static byte[] BuildParagraphContinuationPdf() {
-        const string firstContent = "BT /F1 12 Tf 40 20 Td (The paragraph ends with a discr-) Tj ET";
+        const string firstContent = "BT /F1 12 Tf 40 20 Td (The paragraph ends with a discr\u00AD) Tj ET";
         const string secondContent = "BT /F1 12 Tf 40 280 Td (etionary break and continues here) Tj ET";
         string[] objects = {
             "<< /Type /Catalog /Pages 2 0 R >>",
@@ -2364,21 +2364,21 @@ public sealed class ReaderPdfModularTests {
         var builder = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>(objects.Length);
         for (int index = 0; index < objects.Length; index++) {
-            offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
+            offsets.Add(Encoding.Latin1.GetByteCount(builder.ToString()));
             builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
         }
-        int xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        int xrefOffset = Encoding.Latin1.GetByteCount(builder.ToString());
         builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
         for (int index = 0; index < offsets.Count; index++) {
             builder.Append(offsets[index].ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
         builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Length + 1).Append(" >>\nstartxref\n")
             .Append(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        return Encoding.ASCII.GetBytes(builder.ToString());
+        return Encoding.Latin1.GetBytes(builder.ToString());
     }
 
     private static string BuildReaderStreamObject(string content) =>
-        "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        "<< /Length " + Encoding.Latin1.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
         " >>\nstream\n" + content + "\nendstream";
 
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);

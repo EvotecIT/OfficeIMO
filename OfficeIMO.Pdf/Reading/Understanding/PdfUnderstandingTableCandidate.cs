@@ -178,7 +178,8 @@ public sealed class PdfUnderstandingTableCandidate {
         IReadOnlyList<(double From, double To)> visualColumnBounds,
         IReadOnlyList<IReadOnlyList<string>> rows,
         double confidence,
-        IEnumerable<PdfInferenceEvidence> evidence) {
+        IEnumerable<PdfInferenceEvidence> evidence,
+        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
         var columns = visualColumnBounds
             .Select(static column => new PdfUnderstandingTableColumn(column.From, column.To))
             .ToArray();
@@ -188,7 +189,7 @@ public sealed class PdfUnderstandingTableCandidate {
             bottom,
             columns,
             rows,
-            Array.Empty<PdfUnderstandingLine>(),
+            sourceLines ?? Array.Empty<PdfUnderstandingLine>(),
             PdfLogicalContentSourceKind.Ocr,
             PdfTableCoordinateSpace.VisualTopLeft,
             visualBounds,
@@ -225,6 +226,27 @@ public sealed class PdfUnderstandingTableCandidate {
             table.Rows.Add(cells);
         }
         return table;
+    }
+
+    internal PdfUnderstandingTableCandidate WithAdditionalEvidence(
+        PdfInferenceEvidence evidence,
+        double minimumConfidence) {
+        Guard.NotNull(evidence, nameof(evidence));
+        if (Evidence.Any(item => string.Equals(item.Code, evidence.Code, StringComparison.Ordinal))) return this;
+        return new PdfUnderstandingTableCandidate(
+            DetectionKind,
+            YTop,
+            YBottom,
+            Columns,
+            Rows,
+            SourceLines,
+            SourceKind,
+            CoordinateSpace,
+            _visualBounds,
+            Math.Max(Confidence, minimumConfidence),
+            Evidence.Concat(new[] { evidence }),
+            null,
+            null);
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

@@ -39,7 +39,7 @@ public class PdfLogicalTableTextExportTests {
             });
 
         Assert.Contains("### PDF page 1, table 1", markdown, StringComparison.Ordinal);
-        Assert.Contains("| Key | Value |", markdown, StringComparison.Ordinal);
+        Assert.Contains("|  |  |", markdown, StringComparison.Ordinal);
         Assert.Contains("| InvoiceId | INV-001 |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Customer | Evotec |", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("2026-06-30", markdown, StringComparison.Ordinal);
@@ -99,6 +99,41 @@ public class PdfLogicalTableTextExportTests {
         Assert.Contains("<td>&lt;Alpha&gt;</td>", html, StringComparison.Ordinal);
         Assert.Contains("<td>B|C</td>", html, StringComparison.Ordinal);
         Assert.Contains("<td class=\"pdf-numeric\" style=\"text-align:right\">125.50</td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTables_ExtractHtmlTables_DoesNotInventAHeaderForUnknownSchema() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .KeyValueTable(new[] {
+                PdfKeyValueRow.Text("Sverige", "Stockholm"),
+                PdfKeyValueRow.Text("Norge", "Oslo"),
+                PdfKeyValueRow.Text("Suomi", "Helsinki")
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 120, 170 },
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        string html = PdfLogicalTableTextExportExtensions.ExtractHtmlTables(
+            pdf,
+            new PdfLogicalTableTextExportOptions {
+                IncludeSourceCaptions = false,
+                EmitHtmlDocumentShell = false
+            });
+
+        Assert.DoesNotContain("<thead>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<th", html, StringComparison.Ordinal);
+        Assert.Contains("<td>Sverige</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>Stockholm</td>", html, StringComparison.Ordinal);
     }
 
     [Fact]

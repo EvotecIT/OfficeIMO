@@ -305,7 +305,9 @@ public static class PdfLogicalTableTextExportExtensions {
         }
 
         builder.AppendLine("<table>");
-        AppendHtmlHeader(builder, data);
+        if (data.Structure.HasHeaderRow) {
+            AppendHtmlHeader(builder, data);
+        }
         AppendHtmlBody(builder, data);
         builder.AppendLine("</table>");
         builder.Append("</figure>");

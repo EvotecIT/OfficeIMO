@@ -134,15 +134,41 @@ internal sealed class PdfUnderstandingPipeline {
         return pages.AsReadOnly();
     }
 
+    internal PdfUnderstandingPageResult RunPositionedPage(
+        PdfReadPage page,
+        int pageNumber,
+        IReadOnlyList<PdfTextSpan> runs,
+        IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines,
+        Type sourceProviderType,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(page, nameof(page));
+        Guard.NotNull(runs, nameof(runs));
+        Guard.NotNull(words, nameof(words));
+        Guard.NotNull(lines, nameof(lines));
+        Guard.NotNull(sourceProviderType, nameof(sourceProviderType));
+#pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
+        if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+#pragma warning restore CA1512
+        var context = CreateContext(page, pageNumber, cancellationToken);
+        EnsureCount(runs.Count, _limits.MaxRunsPerPage);
+        EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        EnsureCount(words.Count, _limits.MaxWordsPerPage);
+        EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
+        EnsureCount(lines.Count, _limits.MaxLinesPerPage);
+        context.DecodedRuns = runs;
+        var trace = new List<PdfUnderstandingStageTrace>(7) {
+            new PdfUnderstandingStageTrace("positioned-word-input", sourceProviderType, runs.Count, words.Count),
+            new PdfUnderstandingStageTrace("positioned-line-input", sourceProviderType, words.Count, lines.Count)
+        };
+        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = NotNull(
+            _tableDetection.DetectTables(context, lines),
+            nameof(IPdfTableDetectionStage));
+        return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+    }
+
     private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
-        var context = new PdfUnderstandingPageContext(
-            page,
-            pageNumber,
-            _layout,
-            _limits.MaxTextCharactersPerPage,
-            _limits.MaxWordsPerPage,
-            _limits.MaxWorkUnitsPerPage,
-            cancellationToken);
+        PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
         var trace = new List<PdfUnderstandingStageTrace>(7);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
         cancellationToken.ThrowIfCancellationRequested();
@@ -171,6 +197,35 @@ internal sealed class PdfUnderstandingPipeline {
         IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = NotNull(
             _tableDetection.DetectTables(context, lines),
             nameof(IPdfTableDetectionStage));
+        return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+    }
+
+    private PdfUnderstandingPageContext CreateContext(
+        PdfReadPage page,
+        int pageNumber,
+        CancellationToken cancellationToken) {
+        var context = new PdfUnderstandingPageContext(
+            page,
+            pageNumber,
+            _layout,
+            _limits.MaxTextCharactersPerPage,
+            _limits.MaxWordsPerPage,
+            _limits.MaxWorkUnitsPerPage,
+            cancellationToken) {
+            MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage
+        };
+        return context;
+    }
+
+    private PdfUnderstandingPageResult RunFromLines(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfTextSpan> runs,
+        IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines,
+        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates,
+        Type tableProviderType,
+        List<PdfUnderstandingStageTrace> trace,
+        CancellationToken cancellationToken) {
         EnsureCount(tableCandidates.Count, _limits.MaxTableCandidatesPerPage);
         EnsureTableCandidateArtifacts(
             context,
@@ -180,7 +235,7 @@ internal sealed class PdfUnderstandingPipeline {
             _limits.MaxTextCharactersPerPage);
         context.TableCandidates = tableCandidates;
         cancellationToken.ThrowIfCancellationRequested();
-        trace.Add(new PdfUnderstandingStageTrace("table-detection", _tableDetection.GetType(), lines.Count, tableCandidates.Count));
+        trace.Add(new PdfUnderstandingStageTrace("table-detection", tableProviderType, lines.Count, tableCandidates.Count));
         IReadOnlyList<PdfUnderstandingRegion> regions = NotNull(_pageSegmentation.Segment(context, lines), nameof(IPdfPageSegmentationStage));
         EnsureCount(regions.Count, _limits.MaxRegionsPerPage);
         cancellationToken.ThrowIfCancellationRequested();
@@ -195,7 +250,7 @@ internal sealed class PdfUnderstandingPipeline {
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("semantic-classification", _semanticClassification.GetType(), ordered.Count, elements.Count));
         return new PdfUnderstandingPageResult(
-            pageNumber,
+            context.PageNumber,
             runs,
             words,
             lines,
@@ -215,13 +270,15 @@ internal sealed class PdfUnderstandingPipeline {
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {
         var result = new PdfReadingOrderEvidence[ordered.Count];
         for (int i = 0; i < ordered.Count; i++) {
-            bool geometryConsistent = i == 0 || ordered[i - 1].YTop >= ordered[i].YTop || ordered[i - 1].XStart <= ordered[i].XStart;
-            double confidence = PdfInference.Clamp((ordered[i].Confidence * 0.8D) + (geometryConsistent ? 0.2D : 0D));
             var evidence = new[] {
-                new PdfInferenceEvidence("reading-order.provider", "Reading order was produced by " + providerType.FullName + ".", 0.5D),
-                new PdfInferenceEvidence(geometryConsistent ? "reading-order.geometry-consistent" : "reading-order.geometry-conflict", geometryConsistent ? "The position is consistent with top-to-bottom, left-to-right geometry." : "The position conflicts with simple top-to-bottom, left-to-right geometry.", geometryConsistent ? 0.5D : -0.5D)
+                new PdfInferenceEvidence(
+                    "reading-order.provider",
+                    "Reading order was produced by " + providerType.FullName + ".",
+                    0.5D)
             };
-            result[i] = new PdfReadingOrderEvidence(i, ordered[i], confidence, evidence);
+            // Direction and bidi metadata are not yet part of positioned-text contracts. Do not
+            // manufacture confidence by comparing a provider result with an LTR-only geometry rule.
+            result[i] = new PdfReadingOrderEvidence(i, ordered[i], ordered[i].Confidence, evidence);
         }
         return Array.AsReadOnly(result);
     }

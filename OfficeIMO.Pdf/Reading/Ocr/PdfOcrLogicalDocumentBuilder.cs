@@ -1,33 +1,78 @@
+using System.Collections.ObjectModel;
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
+/// <summary>
+/// Projects accepted OCR geometry into the canonical PDF understanding pipeline. This type owns
+/// only OCR evidence normalization; table, region, reading-order, and semantic decisions remain
+/// owned by the shared understanding stages.
+/// </summary>
 internal static class PdfOcrLogicalDocumentBuilder {
+    private const double MinimumVisualRunGapPoints = 18D;
+
     internal static IReadOnlyList<PdfRecognizedWord> OrderWordsForLogicalReading(
         IReadOnlyList<PdfRecognizedWord> words,
+        PdfLogicalPage canonicalPage,
+        PdfReadingDirection readingDirection,
+        CancellationToken cancellationToken) =>
+        OrderWordsForLogicalReadingCore(words, canonicalPage, readingDirection, cancellationToken);
+
+    private static ReadOnlyCollection<PdfRecognizedWord> OrderWordsForLogicalReadingCore(
+        IReadOnlyList<PdfRecognizedWord> words,
+        PdfLogicalPage canonicalPage,
+        PdfReadingDirection readingDirection,
         CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfRecognizedWord[] ordered = words
-            .OrderBy(static word => word.ProviderSequence)
-            .ToArray();
-        cancellationToken.ThrowIfCancellationRequested();
-        return ordered;
+        var bySequence = words.ToDictionary(static word => word.ProviderSequence);
+        var emitted = new HashSet<int>();
+        var result = new List<PdfRecognizedWord>(words.Count);
+        for (int lineIndex = 0; lineIndex < canonicalPage.Analysis.LogicalProjectionLines.Count; lineIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfUnderstandingLine line = canonicalPage.Analysis.LogicalProjectionLines[lineIndex];
+            if (line.SourceKind != PdfLogicalContentSourceKind.Ocr) continue;
+            for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                int? sequence = line.Words[wordIndex].SourceSequence;
+                if (!sequence.HasValue || !emitted.Add(sequence.Value) ||
+                    !bySequence.TryGetValue(sequence.Value, out PdfRecognizedWord? word)) continue;
+                result.Add(word);
+            }
+        }
+
+        // Custom structural stages may intentionally omit OCR lines from the logical projection.
+        // The searchable layer must still contain every accepted word, so append only the unmatched
+        // words using the local provider/geometry ordering contract.
+        foreach (PdfRecognizedWord word in BuildLines(words, readingDirection, cancellationToken).SelectMany(static line => line.OrderedWords)) {
+            if (emitted.Add(word.ProviderSequence)) result.Add(word);
+        }
+        return result.AsReadOnly();
     }
 
     internal static IReadOnlyList<PdfOcrLogicalTextLine> BuildTextLines(
         IReadOnlyList<PdfRecognizedWord> words,
         CancellationToken cancellationToken) =>
-        BuildLines(words, cancellationToken)
+        BuildTextLines(words, PdfReadingDirection.Auto, cancellationToken);
+
+    internal static IReadOnlyList<PdfOcrLogicalTextLine> BuildTextLines(
+        IReadOnlyList<PdfRecognizedWord> words,
+        PdfReadingDirection readingDirection,
+        CancellationToken cancellationToken) =>
+        BuildLines(words, readingDirection, cancellationToken)
             .Select(static line => new PdfOcrLogicalTextLine(line.Top, line.Left, line.Text))
             .ToArray();
 
     internal static PdfDocumentReadResult Build(
+        PdfReadDocument sourceDocument,
         PdfDocumentReadResult nativeDocument,
+        IReadOnlyList<PdfUnderstandingPageResult> nativePageAnalyses,
         IReadOnlyList<PdfOcrPageMergeResult> mergePages,
-        PdfOcrMergeOptions options,
+        PdfTextLayoutOptions layoutOptions,
+        PdfUnderstandingPipelineOptions pipelineOptions,
         CancellationToken cancellationToken) {
-        if (!options.BuildEnrichedLogicalDocument || mergePages.All(static page => page.Words.Count == 0)) {
-            return nativeDocument;
+        if (mergePages.All(static page => page.Words.Count == 0)) return nativeDocument;
+        if (nativePageAnalyses.Count != nativeDocument.Pages.Count) {
+            throw new ArgumentException(
+                "Native page-analysis count must match the logical page count.",
+                nameof(nativePageAnalyses));
         }
 
         var mergesByPage = new Dictionary<int, Queue<PdfOcrPageMergeResult>>();
@@ -39,110 +84,201 @@ internal static class PdfOcrLogicalDocumentBuilder {
             }
             pageMerges.Enqueue(mergePage);
         }
-        var pages = new List<PdfLogicalPage>(nativeDocument.Pages.Count);
+
+        var pipeline = new PdfUnderstandingPipeline(layoutOptions, pipelineOptions);
+        var analyses = nativePageAnalyses.ToArray();
         for (int pageIndex = 0; pageIndex < nativeDocument.Pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage nativePage = nativeDocument.Pages[pageIndex];
             if (!mergesByPage.TryGetValue(nativePage.PageNumber, out Queue<PdfOcrPageMergeResult>? pageMerges) ||
-                pageMerges.Count == 0) {
-                pages.Add(nativePage);
+                pageMerges.Count == 0) continue;
+
+            PdfOcrPageMergeResult mergePage = pageMerges.Dequeue();
+            if (mergePage.Words.Count == 0) continue;
+            PdfReadPage sourcePage = sourceDocument.Pages[nativePage.PageNumber - 1];
+            OcrArtifacts ocr = BuildArtifacts(nativePage, mergePage.Words, layoutOptions.ReadingDirection, cancellationToken);
+            PdfUnderstandingPageResult nativeAnalysis = nativePageAnalyses[pageIndex];
+            PdfUnderstandingWord[] combinedWords = nativeAnalysis.Words.Concat(ocr.Words).ToArray();
+            PdfUnderstandingLine[] combinedLines = nativeAnalysis.Lines.Concat(ocr.Lines).ToArray();
+            analyses[pageIndex] = pipeline.RunPositionedPage(
+                sourcePage,
+                nativePage.PageNumber,
+                nativeAnalysis.DecodedRuns,
+                combinedWords,
+                combinedLines,
+                typeof(PdfOcrLogicalDocumentBuilder),
+                cancellationToken);
+        }
+
+        int[] pageNumbers = nativeDocument.Pages.Select(static page => page.PageNumber).ToArray();
+        IReadOnlyList<PdfUnderstandingPageResult> enrichedAnalyses = nativeDocument.Profile == PdfReadProfile.Structured
+            ? PdfDocumentSemanticEnricher.Enrich(
+                sourceDocument,
+                pageNumbers,
+                analyses,
+                pipelineOptions.MaxRegionsPerPage,
+                pipelineOptions.MaxDocumentWorkUnits,
+                cancellationToken)
+            : analyses;
+        PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(
+            sourceDocument,
+            layoutOptions,
+            pageNumbers,
+            enrichedAnalyses,
+            nativeDocument.Profile,
+            cancellationToken);
+        for (int pageIndex = 0; pageIndex < enrichedAnalyses.Count; pageIndex++) {
+            enrichedAnalyses[pageIndex].CompleteOperation();
+        }
+        return result;
+    }
+
+    private static OcrArtifacts BuildArtifacts(
+        PdfLogicalPage page,
+        IReadOnlyList<PdfRecognizedWord> words,
+        PdfReadingDirection readingDirection,
+        CancellationToken cancellationToken) {
+        List<OcrLine> sourceLines = BuildLines(words, readingDirection, cancellationToken);
+        var understandingWords = new List<PdfUnderstandingWord>(words.Count);
+        var projectedBySource = new Dictionary<PdfRecognizedWord, PdfUnderstandingWord>(words.Count);
+        for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfRecognizedWord sourceWord = words[wordIndex];
+            PdfUnderstandingWord projected = ProjectWord(page, sourceWord);
+            understandingWords.Add(projected);
+            projectedBySource.Add(sourceWord, projected);
+        }
+        var baselineLines = new List<PdfUnderstandingLine>(sourceLines.Count);
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OcrLine source = sourceLines[lineIndex];
+            baselineLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection));
+        }
+
+        var understandingLines = new List<PdfUnderstandingLine>(baselineLines.Count);
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OcrLine source = sourceLines[lineIndex];
+            PdfUnderstandingLine baselineLine = baselineLines[lineIndex];
+            if (source.LineId is not null) {
+                understandingLines.Add(baselineLine);
                 continue;
             }
 
-            PdfOcrPageMergeResult mergePage = pageMerges.Dequeue();
-            pages.Add(mergePage.Words.Count == 0
-                ? nativePage
-                : EnrichPage(nativePage, mergePage.Words, options, cancellationToken));
-        }
-        return nativeDocument.WithPages(pages.AsReadOnly());
-    }
-
-    private static PdfLogicalPage EnrichPage(
-        PdfLogicalPage page,
-        IReadOnlyList<PdfRecognizedWord> words,
-        PdfOcrMergeOptions options,
-        CancellationToken cancellationToken) {
-        List<OcrLine> sourceLines = BuildLines(words, cancellationToken);
-        HashSet<int> tableLineIndexes = new HashSet<int>();
-        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = options.DetectAlignedTables
-            ? DetectTables(page, sourceLines, tableLineIndexes, options, cancellationToken)
-            : Array.Empty<PdfUnderstandingTableCandidate>();
-        List<(OcrLine Line, bool IsTableLine)> lines = BuildSemanticLines(
-            sourceLines,
-            tableLineIndexes,
-            options.MinimumTableColumnGapPoints,
-            cancellationToken);
-        double medianHeight = Median(lines.Select(static item => item.Line.Height));
-        var textBlocks = new List<PdfLogicalTextBlock>(lines.Count);
-        var headings = new List<PdfLogicalHeading>();
-        var listItems = new List<PdfLogicalListItem>();
-        var paragraphLines = new List<PdfLogicalTextBlock>();
-        var paragraphs = new List<PdfLogicalParagraph>();
-
-        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
-            if ((lineIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            (OcrLine line, bool isTableLine) = lines[lineIndex];
-            string marker = string.Empty;
-            string listText = line.Text;
-            bool isList = !isTableLine && TryParseList(line.Text, out marker, out listText);
-            bool isHeading = !isTableLine && !isList && line.Height >= medianHeight * 1.35D && line.Text.Length <= 160;
-            PdfLogicalElementKind kind = isHeading
-                ? PdfLogicalElementKind.Heading
-                : isList
-                    ? PdfLogicalElementKind.ListItem
-                    : PdfLogicalElementKind.TextBlock;
-            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(line.Left, line.Top, line.Right, line.Bottom);
-            var visualBounds = new PdfLogicalVisualBounds(line.Left, line.Top, line.Right, line.Bottom);
-            var block = new PdfLogicalTextBlock(
-                page.PageNumber,
-                kind,
-                line.Text,
-                userBounds.Left,
-                userBounds.Right,
-                userBounds.Top,
-                Math.Max(1D, line.Height),
-                Array.Empty<PdfTextSpan>(),
-                PdfLogicalContentSourceKind.Ocr,
-                line.Confidence,
-                visualBounds);
-            textBlocks.Add(block);
-
-            if (isHeading) {
-                FlushParagraph();
-                headings.Add(new PdfLogicalHeading(page.PageNumber, HeadingLevel(line.Height, medianHeight), line.Text, line.Height, block));
-            } else if (isList) {
-                FlushParagraph();
-                listItems.Add(new PdfLogicalListItem(page.PageNumber, 1, marker, listText, block));
-            } else if (!isTableLine) {
-                if (paragraphLines.Count > 0 && !CanContinueParagraph(paragraphLines[paragraphLines.Count - 1], block, medianHeight)) {
-                    FlushParagraph();
-                }
-                paragraphLines.Add(block);
+            IReadOnlyList<OcrVisualRun> visualRuns = SplitVisualRuns(source.Words);
+            if (visualRuns.Count == 1) {
+                understandingLines.Add(baselineLine);
+                continue;
+            }
+            for (int runIndex = 0; runIndex < visualRuns.Count; runIndex++) {
+                understandingLines.Add(CreateUnderstandingLine(source, visualRuns[runIndex].Words, projectedBySource, readingDirection));
             }
         }
-        FlushParagraph();
+        return new OcrArtifacts(
+            understandingWords.AsReadOnly(),
+            understandingLines.AsReadOnly());
+    }
 
-        return page.WithOcrContent(
-            textBlocks.AsReadOnly(),
-            headings.AsReadOnly(),
-            paragraphs.AsReadOnly(),
-            listItems.AsReadOnly(),
-            tableCandidates);
+    private static PdfUnderstandingLine CreateUnderstandingLine(
+        OcrLine source,
+        IReadOnlyList<PdfRecognizedWord> words,
+        Dictionary<PdfRecognizedWord, PdfUnderstandingWord> projectedBySource,
+        PdfReadingDirection readingDirection) {
+        PdfRecognizedWord[] providerOrder = words.OrderBy(static word => word.ProviderSequence).ToArray();
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            readingDirection,
+            providerOrder.Select(static word => word.Text));
+        PdfRecognizedWord[] orderedWords = source.LineId is not null
+            ? providerOrder
+            : direction == PdfReadingDirection.RightToLeft
+                ? words.OrderByDescending(static word => word.X).ThenBy(static word => word.ProviderSequence).ToArray()
+                : words.OrderBy(static word => word.X).ThenBy(static word => word.ProviderSequence).ToArray();
+        PdfUnderstandingWord[] projectedWords = orderedWords.Select(word => projectedBySource[word]).ToArray();
+        double left = orderedWords.Min(static word => word.X);
+        double top = orderedWords.Min(static word => word.Y);
+        double right = orderedWords.Max(static word => word.X + word.Width);
+        double bottom = orderedWords.Max(static word => word.Y + word.Height);
+        double confidence = orderedWords.Average(static word => word.Confidence);
+        return new PdfUnderstandingLine(
+            Array.AsReadOnly(projectedWords),
+            JoinWords(orderedWords),
+            confidence,
+            new[] { new PdfInferenceEvidence(
+                source.LineId is null ? "line.ocr-geometry" : "line.ocr-provider-hierarchy",
+                source.LineId is null
+                    ? "OCR words form a continuous visual run on a shared baseline."
+                    : "OCR words share a provider-supplied block, paragraph, and line hierarchy.",
+                source.LineId is null ? 0.65D : 0.95D) },
+            PdfLogicalContentSourceKind.Ocr,
+            source.LineId is null ? null : orderedWords.Min(static word => word.ProviderSequence),
+            source.BlockId,
+            source.ParagraphId,
+            source.LineId,
+            new PdfLogicalVisualBounds(left, top, right, bottom));
+    }
 
-        void FlushParagraph() {
-            if (paragraphLines.Count == 0) return;
-            paragraphs.Add(PdfLogicalParagraph.FromOcr(page.PageNumber, paragraphLines.ToArray()));
-            paragraphLines.Clear();
-        }
+    private static PdfUnderstandingWord ProjectWord(PdfLogicalPage page, PdfRecognizedWord word) {
+        double visualBaseline = word.Y + word.Height;
+        PdfPagePoint start = page.MapVisualPointToUserSpace(word.X, visualBaseline);
+        PdfPagePoint end = page.MapVisualPointToUserSpace(word.X + word.Width, visualBaseline);
+        PdfPagePoint top = page.MapVisualPointToUserSpace(word.X, word.Y);
+        double advance = Distance(start, end);
+        double fontSize = Math.Max(1D, Distance(start, top));
+        double rotation = Math.Atan2(end.Y - start.Y, end.X - start.X) * 180D / Math.PI;
+        return new PdfUnderstandingWord(
+            word.Text,
+            Math.Min(start.X, end.X),
+            Math.Max(start.X, end.X),
+            start.Y,
+            fontSize,
+            rotation,
+            Array.Empty<PdfTextSpan>(),
+            word.Confidence,
+            new[] { new PdfInferenceEvidence(
+                "word.ocr-bounds",
+                "The word geometry was normalized from rendered-page OCR bounds into PDF user space.",
+                word.Confidence - 0.5D) },
+            advance,
+            new PdfLogicalVisualBounds(word.X, word.Y, word.X + word.Width, word.Y + word.Height),
+            word.ProviderSequence);
+    }
+
+    private static double Distance(PdfPagePoint left, PdfPagePoint right) {
+        double x = right.X - left.X;
+        double y = right.Y - left.Y;
+        return Math.Sqrt((x * x) + (y * y));
     }
 
     private static List<OcrLine> BuildLines(
         IReadOnlyList<PdfRecognizedWord> words,
+        PdfReadingDirection readingDirection,
         CancellationToken cancellationToken) {
         const double centerBucketSize = 4D;
         var lines = new List<OcrLine>();
+        foreach (var group in words
+            .Where(static word => word.LineId is not null)
+            .GroupBy(static word => new { word.BlockId, word.ParagraphId, word.LineId })
+            .OrderBy(static group => group.Min(static word => word.ProviderSequence))) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfRecognizedWord[] lineWords = group.OrderBy(static word => word.ProviderSequence).ToArray();
+            var line = new OcrLine(
+                lineWords[0].ProviderSequence,
+                readingDirection,
+                lineWords[0].BlockId,
+                lineWords[0].ParagraphId,
+                lineWords[0].LineId);
+            for (int wordIndex = 0; wordIndex < lineWords.Length; wordIndex++) line.Add(lineWords[wordIndex]);
+            lines.Add(line);
+        }
+        int nextLineSequence = lines.Count == 0
+            ? 0
+            : lines.Max(static item => item.Sequence) + 1;
         var buckets = new Dictionary<long, List<OcrLine>>();
-        PdfRecognizedWord[] orderedWords = words.OrderBy(static word => word.Y).ThenBy(static word => word.X).ToArray();
+        PdfRecognizedWord[] orderedWords = words
+            .Where(static word => word.LineId is null)
+            .OrderBy(static word => word.Y)
+            .ThenBy(static word => word.X)
+            .ToArray();
         for (int wordIndex = 0; wordIndex < orderedWords.Length; wordIndex++) {
             if ((wordIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             PdfRecognizedWord word = orderedWords[wordIndex];
@@ -162,7 +298,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
                 }
             }
             if (line is null) {
-                line = new OcrLine(lines.Count);
+                line = new OcrLine(nextLineSequence++, readingDirection);
                 line.Add(word);
                 lines.Add(line);
                 AddToBucket(line, buckets, centerBucketSize);
@@ -176,8 +312,21 @@ internal static class PdfOcrLogicalDocumentBuilder {
                 AddToBucket(line, buckets, centerBucketSize);
             }
         }
-        foreach (OcrLine line in lines) line.Words.Sort(static (left, right) => left.X.CompareTo(right.X));
-        return lines.OrderBy(static line => line.Top).ThenBy(static line => line.Left).ToList();
+        List<OcrLine> ordered = lines
+            .OrderBy(static line => line.Top)
+            .ThenBy(static line => line.Left)
+            .ToList();
+        var knownSlots = new List<int>();
+        var knownLines = new List<OcrLine>();
+        for (int index = 0; index < ordered.Count; index++) {
+            OcrLine line = ordered[index];
+            if (line.LineId is null) continue;
+            knownSlots.Add(index);
+            knownLines.Add(line);
+        }
+        knownLines.Sort(static (left, right) => left.Sequence.CompareTo(right.Sequence));
+        for (int index = 0; index < knownSlots.Count; index++) ordered[knownSlots[index]] = knownLines[index];
+        return ordered;
     }
 
     private static long GetCenterBucket(double center, double bucketSize) =>
@@ -195,179 +344,49 @@ internal static class PdfOcrLogicalDocumentBuilder {
         bucketLines.Add(line);
     }
 
-    private static List<(OcrLine Line, bool IsTableLine)> BuildSemanticLines(
-        IReadOnlyList<OcrLine> sourceLines,
-        HashSet<int> tableLineIndexes,
-        double minimumGap,
-        CancellationToken cancellationToken) {
-        var result = new List<(OcrLine Line, bool IsTableLine)>();
-        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
-            if ((lineIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            OcrLine line = sourceLines[lineIndex];
-            bool isTableLine = tableLineIndexes.Contains(lineIndex);
-            IReadOnlyList<OcrCell> cells = isTableLine
-                ? Array.Empty<OcrCell>()
-                : SplitCells(line.Words, minimumGap);
-            if (cells.Count < 2) {
-                result.Add((line, isTableLine));
-                continue;
-            }
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                result.Add((OcrLine.FromWords(cells[cellIndex].Words, result.Count), false));
-            }
-        }
-        return result;
-    }
-
-    private static IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(
-        PdfLogicalPage page,
-        IReadOnlyList<OcrLine> lines,
-        HashSet<int> tableLineIndexes,
-        PdfOcrMergeOptions options,
-        CancellationToken cancellationToken) {
-        var candidates = new List<(int Index, IReadOnlyList<OcrCell> Cells)>();
-        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
-            if ((lineIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            IReadOnlyList<OcrCell> cells = SplitCells(lines[lineIndex].Words, options.MinimumTableColumnGapPoints);
-            if (cells.Count >= 2) candidates.Add((lineIndex, cells));
-        }
-        if (candidates.Count < options.MinimumAlignedTableRows) return Array.Empty<PdfUnderstandingTableCandidate>();
-
-        var groups = new List<List<(int Index, IReadOnlyList<OcrCell> Cells)>>();
-        foreach ((int index, IReadOnlyList<OcrCell> cells) in candidates) {
-            cancellationToken.ThrowIfCancellationRequested();
-            List<(int Index, IReadOnlyList<OcrCell> Cells)>? group = groups.LastOrDefault();
-            if (group is null || index != group[group.Count - 1].Index + 1 || !ColumnsAlign(group[0].Cells, cells, options.TableColumnTolerancePoints)) {
-                group = new List<(int Index, IReadOnlyList<OcrCell> Cells)>();
-                groups.Add(group);
-            }
-            group.Add((index, cells));
-        }
-
-        var result = new List<PdfUnderstandingTableCandidate>();
-        foreach (List<(int Index, IReadOnlyList<OcrCell> Cells)> group in groups.Where(group => group.Count >= options.MinimumAlignedTableRows)) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!HasConservativeTableEvidence(group, lines)) continue;
-            if (result.Count >= options.MaxInferredTablesPerPage) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxInferredTablesPerPage, result.Count + 1L);
-            }
-            int columnCount = group[0].Cells.Count;
-            var visualColumnBounds = new List<(double From, double To)>(columnCount);
-            for (int column = 0; column < columnCount; column++) {
-                visualColumnBounds.Add((group.Min(row => row.Cells[column].Left), group.Max(row => row.Cells[column].Right)));
-            }
-            var rows = group.Select(row => (IReadOnlyList<string>)row.Cells.Select(static cell => cell.Text).ToArray()).ToArray();
-            double top = group.Min(row => lines[row.Index].Top);
-            double bottom = group.Max(row => lines[row.Index].Bottom);
-            double left = visualColumnBounds.Min(static column => column.From);
-            double right = visualColumnBounds.Max(static column => column.To);
-            double confidence = PdfInference.Clamp(group.Average(row => lines[row.Index].Confidence));
-            result.Add(PdfUnderstandingTableCandidate.FromOcr(
-                "OcrAlignedColumns",
-                top,
-                bottom,
-                new PdfLogicalVisualBounds(left, top, right, bottom),
-                visualColumnBounds,
-                rows,
-                confidence,
-                new[] {
-                    new PdfInferenceEvidence(
-                        "table.ocr-aligned-geometry",
-                        "Accepted OCR words form repeated columns with compact row rhythm.",
-                        0.85D)
-                }));
-            foreach ((int index, IReadOnlyList<OcrCell> _) in group) tableLineIndexes.Add(index);
-        }
-        return result.AsReadOnly();
-    }
-
-    private static bool HasConservativeTableEvidence(
-        IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows,
-        IReadOnlyList<OcrLine> lines) {
-        if (rows.Count < 3 || rows[0].Cells.Count < 2) return false;
-        if (!HasCompactCellStructure(rows)) return false;
-        double[] verticalSteps = new double[rows.Count - 1];
-        for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
-            verticalSteps[rowIndex - 1] = lines[rows[rowIndex].Index].CenterY - lines[rows[rowIndex - 1].Index].CenterY;
-            if (verticalSteps[rowIndex - 1] <= 0D) return false;
-        }
-        double medianStep = Median(verticalSteps);
-        double medianHeight = Median(rows.Select(row => lines[row.Index].Height));
-        if (medianHeight <= 0D || medianStep > Math.Max(24D, medianHeight * 3D)) return false;
-        double smallestStep = verticalSteps.Min();
-        double largestStep = verticalSteps.Max();
-        return smallestStep > 0D && largestStep <= smallestStep * 1.75D;
-    }
-
-    private static bool HasCompactCellStructure(
-        IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows) {
-        long cellCount = 0L;
-        long wordCount = 0L;
-        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            IReadOnlyList<OcrCell> cells = rows[rowIndex].Cells;
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                int words = cells[cellIndex].Words.Count;
-                if (words == 0 || words > 4) return false;
-                cellCount++;
-                wordCount += words;
-            }
-        }
-        return cellCount > 0L && wordCount <= cellCount * 2L;
-    }
-
-    private static IReadOnlyList<OcrCell> SplitCells(List<PdfRecognizedWord> words, double minimumGap) {
-        if (words.Count == 0) return Array.Empty<OcrCell>();
-        var cells = new List<OcrCell>();
-        var current = new List<PdfRecognizedWord> { words[0] };
-        for (int index = 1; index < words.Count; index++) {
-            PdfRecognizedWord previous = words[index - 1];
-            PdfRecognizedWord word = words[index];
+    private static IReadOnlyList<OcrVisualRun> SplitVisualRuns(List<PdfRecognizedWord> words) {
+        if (words.Count == 0) return Array.Empty<OcrVisualRun>();
+        PdfRecognizedWord[] positioned = words.OrderBy(static word => word.X).ToArray();
+        var runs = new List<OcrVisualRun>();
+        var current = new List<PdfRecognizedWord> { positioned[0] };
+        for (int index = 1; index < positioned.Length; index++) {
+            PdfRecognizedWord previous = positioned[index - 1];
+            PdfRecognizedWord word = positioned[index];
+            double minimumGap = Math.Max(
+                MinimumVisualRunGapPoints,
+                Math.Min(previous.Height, word.Height) * 1.25D);
             if (word.X - (previous.X + previous.Width) >= minimumGap) {
-                cells.Add(OcrCell.From(current));
+                runs.Add(OcrVisualRun.From(current));
                 current.Clear();
             }
             current.Add(word);
         }
-        cells.Add(OcrCell.From(current));
-        return cells;
-    }
-
-    private static bool ColumnsAlign(IReadOnlyList<OcrCell> expected, IReadOnlyList<OcrCell> actual, double tolerance) {
-        if (expected.Count != actual.Count) return false;
-        for (int index = 0; index < expected.Count; index++) {
-            if (Math.Abs(expected[index].Left - actual[index].Left) > tolerance) return false;
-        }
-        return true;
-    }
-
-    private static bool TryParseList(string text, out string marker, out string body) {
-        return ContentStructureExtractor.TryParseListItemText(text, out marker, out body, out _);
-    }
-
-    private static int HeadingLevel(double height, double medianHeight) =>
-        height >= medianHeight * 1.8D ? 1 : height >= medianHeight * 1.55D ? 2 : 3;
-
-    private static bool CanContinueParagraph(PdfLogicalTextBlock previous, PdfLogicalTextBlock current, double medianHeight) {
-        PdfLogicalVisualBounds? previousBounds = previous.VisualBounds;
-        PdfLogicalVisualBounds? currentBounds = current.VisualBounds;
-        if (previousBounds is null || currentBounds is null) return false;
-        double verticalGap = currentBounds.Top - previousBounds.Bottom;
-        return verticalGap <= Math.Max(4D, medianHeight * 1.1D) &&
-            Math.Abs(currentBounds.Left - previousBounds.Left) <= Math.Max(18D, medianHeight * 2D);
-    }
-
-    private static double Median(IEnumerable<double> values) {
-        double[] ordered = values.OrderBy(static value => value).ToArray();
-        if (ordered.Length == 0) return 1D;
-        int middle = ordered.Length / 2;
-        return ordered.Length % 2 == 0 ? (ordered[middle - 1] + ordered[middle]) / 2D : ordered[middle];
+        runs.Add(OcrVisualRun.From(current));
+        return runs;
     }
 
     private sealed class OcrLine {
         private double _confidenceTotal;
-        internal OcrLine(int sequence) { Sequence = sequence; }
-        internal int Sequence { get; }
-        internal List<PdfRecognizedWord> Words { get; } = new List<PdfRecognizedWord>();
+        private readonly PdfReadingDirection _readingDirection;
+
+        internal OcrLine(
+            int sequence,
+            PdfReadingDirection readingDirection,
+            string? blockId = null,
+            string? paragraphId = null,
+            string? lineId = null) {
+            Sequence = sequence;
+            _readingDirection = readingDirection;
+            BlockId = blockId;
+            ParagraphId = paragraphId;
+            LineId = lineId;
+        }
+
+        internal int Sequence { get; private set; }
+        internal string? BlockId { get; }
+        internal string? ParagraphId { get; }
+        internal string? LineId { get; }
+        internal List<PdfRecognizedWord> Words { get; } = new();
         internal double Left { get; private set; }
         internal double Top { get; private set; }
         internal double Right { get; private set; }
@@ -375,8 +394,21 @@ internal static class PdfOcrLogicalDocumentBuilder {
         internal double CenterY => (Top + Bottom) / 2D;
         internal double Height => Bottom - Top;
         internal double Confidence => Words.Count == 0 ? 0D : _confidenceTotal / Words.Count;
-        internal string Text => JoinWords(Words.OrderBy(static word => word.ProviderSequence));
+        internal IEnumerable<PdfRecognizedWord> OrderedWords {
+            get {
+                if (LineId is not null) return Words.OrderBy(static word => word.ProviderSequence);
+                PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+                    _readingDirection,
+                    Words.OrderBy(static word => word.ProviderSequence).Select(static word => word.Text));
+                return direction == PdfReadingDirection.RightToLeft
+                    ? Words.OrderByDescending(static word => word.X).ThenBy(static word => word.ProviderSequence)
+                    : Words.OrderBy(static word => word.X).ThenBy(static word => word.ProviderSequence);
+            }
+        }
+        internal string Text => JoinWords(OrderedWords);
+
         internal void Add(PdfRecognizedWord word) {
+            Sequence = Math.Min(Sequence, word.ProviderSequence);
             if (Words.Count == 0) {
                 Left = word.X;
                 Top = word.Y;
@@ -391,31 +423,28 @@ internal static class PdfOcrLogicalDocumentBuilder {
             Words.Add(word);
             _confidenceTotal += word.Confidence;
         }
-
-        internal static OcrLine FromWords(IReadOnlyList<PdfRecognizedWord> words, int sequence) {
-            var line = new OcrLine(sequence);
-            for (int index = 0; index < words.Count; index++) line.Add(words[index]);
-            return line;
-        }
     }
 
-    private sealed class OcrCell {
-        private OcrCell(double left, double right, string text, IReadOnlyList<PdfRecognizedWord> words) {
-            Left = left;
-            Right = right;
-            Text = text;
+    private sealed class OcrVisualRun {
+        private OcrVisualRun(IReadOnlyList<PdfRecognizedWord> words) {
             Words = words;
         }
-        internal double Left { get; }
-        internal double Right { get; }
-        internal string Text { get; }
+
         internal IReadOnlyList<PdfRecognizedWord> Words { get; }
-        internal static OcrCell From(IReadOnlyList<PdfRecognizedWord> words) =>
-            new OcrCell(
-                words.Min(static word => word.X),
-                words.Max(static word => word.X + word.Width),
-                JoinWords(words.OrderBy(static word => word.ProviderSequence)),
-                words.ToArray());
+
+        internal static OcrVisualRun From(IReadOnlyList<PdfRecognizedWord> words) => new(words.ToArray());
+    }
+
+    private sealed class OcrArtifacts {
+        internal OcrArtifacts(
+            IReadOnlyList<PdfUnderstandingWord> words,
+            IReadOnlyList<PdfUnderstandingLine> lines) {
+            Words = words;
+            Lines = lines;
+        }
+
+        internal IReadOnlyList<PdfUnderstandingWord> Words { get; }
+        internal IReadOnlyList<PdfUnderstandingLine> Lines { get; }
     }
 
     private static string JoinWords(IEnumerable<PdfRecognizedWord> source) {
@@ -423,16 +452,26 @@ internal static class PdfOcrLogicalDocumentBuilder {
         var builder = new System.Text.StringBuilder();
         for (int index = 0; index < words.Length; index++) {
             string text = words[index].Text;
-            bool attach = index > 0 && text.Length > 0 && IsTrailingPunctuation(text[0]);
-            if (builder.Length > 0 && !attach) builder.Append(' ');
+            bool visuallyAdjacent = index > 0 && AreVisuallyAdjacent(words[index - 1], words[index]);
+            if (builder.Length > 0 && !visuallyAdjacent) builder.Append(' ');
             builder.Append(text);
         }
         return builder.ToString();
     }
 
-    private static bool IsTrailingPunctuation(char character) =>
-        character == ',' || character == '.' || character == ';' || character == ':' ||
-        character == '!' || character == '?' || character == ')' || character == ']' || character == '}';
+    private static bool AreVisuallyAdjacent(PdfRecognizedWord left, PdfRecognizedWord right) {
+        double leftEdge = left.X;
+        double leftEnd = left.X + left.Width;
+        double rightEdge = right.X;
+        double rightEnd = right.X + right.Width;
+        double gap = rightEdge >= leftEnd
+            ? rightEdge - leftEnd
+            : leftEdge >= rightEnd
+                ? leftEdge - rightEnd
+                : 0D;
+        return gap <= Math.Max(0.5D, Math.Min(left.Height, right.Height) * 0.12D);
+    }
+
 }
 
 internal readonly struct PdfOcrLogicalTextLine {
