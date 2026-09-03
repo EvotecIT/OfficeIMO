@@ -209,6 +209,33 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void SnapshotDeduplicatesCaseAliasesOnACaseInsensitiveFileSystem() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        string sidecar = Path.Combine(directory, "Claim.c2pa");
+        File.WriteAllText(path, "<!doctype html><html><body>body</body></html>", new UTF8Encoding(false));
+        File.WriteAllText(sidecar, "immutable claim", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceReport report = CreateExternalManifestReport("Claim.c2pa", "claim.c2pa");
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096);
+            string snapshotDirectory = Path.GetDirectoryName(snapshot.FilePath)!;
+            string differentlyCasedSnapshot = Path.Combine(
+                snapshotDirectory,
+                Path.GetFileName(snapshot.FilePath).ToUpperInvariant());
+            if (!File.Exists(differentlyCasedSnapshot)) return;
+
+            snapshot.CaptureExternalManifestDependencies(path, report, 4096, 4096);
+
+            Assert.Equal(
+                "immutable claim",
+                File.ReadAllText(Path.Combine(snapshotDirectory, "Claim.c2pa")));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SnapshotRejectsAUnixFifoWithoutBlockingForAWriter() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;

@@ -51,7 +51,8 @@ internal static class OfficeProvenanceWorkflowAdapter {
     internal static OfficeProvenanceReport Inspect(
         ProvenanceOwner owner,
         string path,
-        OfficeProvenanceOptions options) => owner switch {
+        OfficeProvenanceOptions options,
+        string? logicalFilePath = null) => owner switch {
             ProvenanceOwner.Word => WordDocument.InspectProvenance(path, options),
             ProvenanceOwner.Excel => ExcelDocument.InspectProvenance(path, options),
             ProvenanceOwner.PowerPoint => PowerPointPresentation.InspectProvenance(path, options),
@@ -59,7 +60,9 @@ internal static class OfficeProvenanceWorkflowAdapter {
             ProvenanceOwner.OpenDocument => OdfDocument.InspectProvenance(path, options),
             ProvenanceOwner.Epub => EpubDocument.InspectProvenance(path, options),
             ProvenanceOwner.Pdf => PdfProvenance.InspectFile(path, options),
-            ProvenanceOwner.Html => HtmlProvenance.InspectFile(path, options),
+            ProvenanceOwner.Html => logicalFilePath == null
+                ? HtmlProvenance.InspectFile(path, options)
+                : HtmlProvenance.InspectFile(path, logicalFilePath, options),
             ProvenanceOwner.Markdown => MarkdownProvenance.InspectFile(path, options),
             _ => OfficeProvenanceInspector.InspectFile(path, options)
         };

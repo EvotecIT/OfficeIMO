@@ -61,9 +61,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
         string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(sourceDirectory);
         long capturedBytes = 0;
-        var capturedTargets = new HashSet<string>(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal);
+        var capturedTargets = new HashSet<string>(OfficePathIdentity.GetComparer(_directoryPath));
         foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
                      item.IsStructurallyValid &&
                      item.Carrier == OfficeProvenanceCarrierKind.C2paExternalManifest &&
@@ -300,18 +298,14 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
 
     private static bool IsWithinDirectory(string path, string directory) {
         string root = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparison comparison = OfficePathIdentity.GetComparison(directory);
         return path.StartsWith(root, comparison);
     }
 
     private static bool PathsEqual(string left, string right) => string.Equals(
         left,
         right,
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal);
+        OfficePathIdentity.GetComparison(left));
 
     private static string CreatePrivateDirectory() {
         string tempPath = Path.GetTempPath();
@@ -362,9 +356,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         foreach (string? directory in dependencies
                      .SelectMany(path => EnumerateDependencyDirectories(path, directoryPath))
                      .Where(path => !string.IsNullOrEmpty(path) && !PathsEqual(path!, directoryPath))
-                     .Distinct(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                         ? StringComparer.OrdinalIgnoreCase
-                         : StringComparer.Ordinal)
+                     .Distinct(OfficePathIdentity.GetComparer(directoryPath))
                      .OrderByDescending(path => path!.Length)) {
             try {
                 if (Directory.Exists(directory)) Directory.Delete(directory!, recursive: false);

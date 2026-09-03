@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace OfficeIMO.Provenance;
@@ -305,6 +306,10 @@ public sealed class OfficeProvenanceRemovalResult {
     /// <summary>Gets whether an owning document API removed signatures that the provenance mutation invalidated.</summary>
     public bool WereInvalidatedSignaturesRemoved { get; }
     internal long DataLength => _data.LongLength;
+    internal byte[] ComputeDataSha256() {
+        using SHA256 algorithm = SHA256.Create();
+        return algorithm.ComputeHash(_data);
+    }
     /// <summary>Returns an owned copy of the resulting asset.</summary>
     public byte[] ToArray() => (byte[])_data.Clone();
 }

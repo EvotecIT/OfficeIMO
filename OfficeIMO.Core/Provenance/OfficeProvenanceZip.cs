@@ -193,9 +193,6 @@ internal static class OfficeProvenanceZip {
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] original = ReadEntry(entry, (int)entry.Length);
                 byte[] replacement = replacePackageMetadata(entryName, original, removable.Count != 0);
-                OfficeProvenanceBinary.EnsureOutputWithinLimit(
-                    replacement.LongLength,
-                    options.EffectiveMaxOutputBytes);
                 if (replacement.LongLength > options.Limits.MaxAssetBytes) {
                     throw OfficeProvenanceLimitException.Create("A rewritten package metadata entry exceeds the configured asset limit.");
                 }
@@ -223,7 +220,6 @@ internal static class OfficeProvenanceZip {
                 entryMetadata,
                 embeddedRewrites,
                 options.Limits,
-                options.EffectiveMaxOutputBytes,
                 ref inspectionBytes);
         }
 
@@ -267,7 +263,6 @@ internal static class OfficeProvenanceZip {
         IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata,
         IDictionary<ZipArchiveEntry, byte[]> replacements,
         OfficeProvenanceOptions limits,
-        long maximumOutputBytes,
         ref long expandedBytes) {
         foreach (ZipArchiveEntry entry in archive.Entries) {
             string entryName = entryMetadata[entry].Name;
@@ -306,8 +301,7 @@ internal static class OfficeProvenanceZip {
                 }
             }
             if (!changed) continue;
-            using var output = new OfficeProvenanceBoundedMemoryStream(
-                Math.Min(limits.MaxAssetBytes, maximumOutputBytes));
+            using var output = new OfficeProvenanceBoundedMemoryStream(limits.MaxAssetBytes);
             using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
                 Encoding = new UTF8Encoding(false),
                 Indent = false,
@@ -417,7 +411,6 @@ internal static class OfficeProvenanceZip {
                     throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
                 }
                 replacement = replace(entryName, ReadEntry(entry, (int)entry.Length));
-                OfficeProvenanceBinary.EnsureOutputWithinLimit(replacement.LongLength, maximumOutputBytes);
                 if (replacement.LongLength > maximumReplacementBytes) {
                     throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
                 }

@@ -43,6 +43,32 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task OutputValidationRejectsAStagingPathReplacedBeforeItsFirstReadback() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("owner output"));
+        string output = Path.Combine(scope.Path, "cleaned.html");
+        var progress = new ReplacingStagedArtifactProgress(
+            scope.Path,
+            output,
+            "validate-output",
+            "<!doctype html><html><body>unrelated clean document</body></html>");
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output
+            },
+            progress);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Contains("did not match the bytes returned", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.True(progress.Replaced);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public async Task RemovalRejectsAnUnchangedArtifactAboveItsIndependentOutputBudget() {
         using var scope = new TempScope();
         string input = scope.Write("unchanged.html", "<!doctype html><html><body>unchanged</body></html>");
@@ -566,6 +592,32 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentResolvesAnAbsoluteFileBaseFromTheLogicalHtmlPath() {
+        using var scope = new TempScope();
+        string assetsDirectory = Path.Combine(scope.Path, "assets");
+        Directory.CreateDirectory(assetsDirectory);
+        File.WriteAllText(Path.Combine(assetsDirectory, "claim.c2pa"), "absolute-base claim");
+        string baseUri = new Uri(assetsDirectory + Path.DirectorySeparatorChar).AbsoluteUri;
+        string input = scope.Write(
+            "page.html",
+            "<!doctype html><html><head><base href=\"" + baseUri +
+            "\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>body</body></html>");
+        var verifier = new NestedRelativeManifestVerifier(
+            Path.Combine("assets", "claim.c2pa"),
+            "absolute-base claim");
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(verifier.SawRelativeManifest);
+        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+    }
+
+    [Fact]
     public async Task AssessmentFailsClosedWhenAProviderReplacesThePrimarySnapshot() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
@@ -876,6 +928,33 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
     }
 
+    private sealed class NestedRelativeManifestVerifier : IOfficeProvenanceVerifier {
+        private readonly string _relativePath;
+        private readonly string _expectedContents;
+
+        internal NestedRelativeManifestVerifier(string relativePath, string expectedContents) {
+            _relativePath = relativePath;
+            _expectedContents = expectedContents;
+        }
+
+        public string Name => "nested-relative-manifest";
+        internal bool SawRelativeManifest { get; private set; }
+        internal string? ObservedDirectory { get; private set; }
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) {
+            ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            string manifestPath = Path.Combine(ObservedDirectory!, _relativePath);
+            SawRelativeManifest = File.Exists(manifestPath) &&
+                                  File.ReadAllText(manifestPath) == _expectedContents;
+            return new OfficeProvenanceVerificationResult(
+                SawRelativeManifest ? OfficeProvenanceVerificationStatus.Valid : OfficeProvenanceVerificationStatus.Invalid,
+                Name,
+                Array.Empty<string>());
+        }
+    }
+
     private sealed class CreatingOutputProgress(string requestId, string outputPath) : IProgress<OfficeWorkflowProgress> {
         internal bool Created { get; private set; }
 
@@ -924,21 +1003,29 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     private sealed class ReplacingStagedArtifactProgress : IProgress<OfficeWorkflowProgress> {
         private readonly string _directory;
         private readonly string _outputPath;
+        private readonly string _stage;
+        private readonly string _replacement;
 
-        internal ReplacingStagedArtifactProgress(string directory, string outputPath) {
+        internal ReplacingStagedArtifactProgress(
+            string directory,
+            string outputPath,
+            string stage = "publish",
+            string replacement = "<!doctype html><html><body>replacement</body></html>") {
             _directory = directory;
             _outputPath = outputPath;
+            _stage = stage;
+            _replacement = replacement;
         }
 
         internal bool Replaced { get; private set; }
 
         public void Report(OfficeWorkflowProgress value) {
-            if (Replaced || !string.Equals(value.Stage, "publish", StringComparison.Ordinal)) return;
+            if (Replaced || !string.Equals(value.Stage, _stage, StringComparison.Ordinal)) return;
             string stagingPath = Directory.GetFiles(
                     _directory,
                     "." + Path.GetFileNameWithoutExtension(_outputPath) + ".*" + Path.GetExtension(_outputPath))
                 .Single();
-            File.WriteAllText(stagingPath, "<!doctype html><html><body>replacement</body></html>");
+            File.WriteAllText(stagingPath, _replacement);
             Replaced = true;
         }
     }

@@ -133,7 +133,15 @@ public static partial class HtmlProvenance {
 
     /// <summary>Inspects a bounded HTML file without resolving external resources.</summary>
     public static OfficeProvenanceReport InspectFile(string filePath, OfficeProvenanceOptions? options = null) {
+        return InspectFile(filePath, filePath, options);
+    }
+
+    internal static OfficeProvenanceReport InspectFile(
+        string filePath,
+        string logicalFilePath,
+        OfficeProvenanceOptions? options) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes);
@@ -141,7 +149,7 @@ public static partial class HtmlProvenance {
             DecodeHtml(data, out _, out _),
             options,
             enforceUtf8Size: false,
-            new Uri(Path.GetFullPath(filePath)));
+            new Uri(Path.GetFullPath(logicalFilePath)));
     }
 
     /// <summary>Removes selected HTML provenance and provenance in supported embedded image data URIs.</summary>
