@@ -183,11 +183,14 @@ public sealed partial class PdfDocument {
                 PdfAnnotation annotation = annotations[annotationIndex];
                 bool hiddenByFlags = annotation.IsHidden || annotation.IsInvisible || annotation.IsNoView;
                 bool hiddenByOptionalContent = page.IsHiddenOptionalContent(annotation.SourceDictionary);
+                bool degenerateRectangle = HasDegenerateAnnotationRectangle(annotation);
                 bool outsidePage = IsAnnotationOutsidePage(page, annotation);
-                if (!hiddenByFlags && !hiddenByOptionalContent && !outsidePage) continue;
+                if (!hiddenByFlags && !hiddenByOptionalContent && !degenerateRectangle && !outsidePage) continue;
                 if (annotation.ObjectNumber.HasValue) concealedAnnotationObjectNumbers.Add(annotation.ObjectNumber.Value);
                 string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
-                string evidence = outsidePage
+                string evidence = degenerateRectangle
+                    ? "The PDF annotation rectangle has zero area and cannot present its stored content."
+                    : outsidePage
                     ? "The PDF annotation rectangle is outside the page boundary and has no visible presentation."
                     : hiddenByFlags && hiddenByOptionalContent
                     ? "The PDF annotation is concealed by its flags and optional-content configuration."
@@ -335,7 +338,14 @@ public sealed partial class PdfDocument {
                     widget.IsInvisible ||
                     widget.IsNoView ||
                     widget.ObjectNumber.HasValue && concealedAnnotationObjectNumbers.Contains(widget.ObjectNumber.Value);
-                if (!concealed) return true;
+                if (concealed) continue;
+                IReadOnlyList<string> presentedValues = defaultValue
+                    ? candidate.DefaultValues
+                    : candidate.Values;
+                if (!candidate.IsButtonField ||
+                    widget.AppearanceState is not null && presentedValues.Contains(widget.AppearanceState, StringComparer.Ordinal)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -373,6 +383,14 @@ public sealed partial class PdfDocument {
         double bottom = Math.Min(annotation.Y1, annotation.Y2);
         double top = Math.Max(annotation.Y1, annotation.Y2);
         return right <= originX || top <= originY || left >= originX + width || bottom >= originY + height;
+    }
+
+    private static bool HasDegenerateAnnotationRectangle(PdfAnnotation annotation) {
+        double left = Math.Min(annotation.X1, annotation.X2);
+        double right = Math.Max(annotation.X1, annotation.X2);
+        double bottom = Math.Min(annotation.Y1, annotation.Y2);
+        double top = Math.Max(annotation.Y1, annotation.Y2);
+        return right <= left || top <= bottom;
     }
 
     private static bool IsPdfSpanOffCanvas(PdfTextSpan span, double pageWidth, double pageHeight) {

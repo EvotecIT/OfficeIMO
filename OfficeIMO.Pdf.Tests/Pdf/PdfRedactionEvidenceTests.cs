@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRedactionEvidenceTests {
     [Fact]
+    public void ApplyWithEvidenceReturnsVerifiedNoOpForSearchWithoutMatches() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Retained ordinary content"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("ABSENT-MARKER"));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.Empty(plan.Areas);
+        Assert.Empty(plan.Matches);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        Assert.Empty(result.Evidence.Items);
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Contains("Retained ordinary content", result.ToDocument().Read().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ApplyWithEvidenceReturnsSourceBoundActualVersusPlannedProof() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Remove evidence marker"))

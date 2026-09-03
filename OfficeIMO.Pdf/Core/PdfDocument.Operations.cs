@@ -312,7 +312,7 @@ public sealed partial class PdfDocument {
             effectiveVerification,
             outputReadOptions,
             appliedImageMatches);
-        IReadOnlyList<PdfRedactionMatch> residualMatches = verification.Issues.Any(static issue =>
+        IReadOnlyList<PdfRedactionMatch> residualMatches = plan.Areas.Count == 0 || verification.Issues.Any(static issue =>
             issue.Feature == "ReviewedRedactionPlanBlocked" ||
             issue.Feature == "RedactionPlanPageCountChanged" ||
             issue.Feature == "RedactionPlanPageIdentityChanged" ||

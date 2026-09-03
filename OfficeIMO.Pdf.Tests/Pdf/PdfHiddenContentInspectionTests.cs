@@ -165,6 +165,29 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyTreatsButtonValueWithoutMatchingAppearanceStateAsConcealed() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Btn /T (MismatchedButton) /V /SECRET /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 80 40] /P 3 0 R /F 4 /AS /Off /AP << /N << /Off 8 0 R /SECRET 9 0 R >> >> >>\nendobj",
+            StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 60 20]", string.Empty),
+            StreamObject(9, "/Type /XObject /Subtype /Form /BBox [0 0 60 20]", string.Empty),
+            "trailer\n<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenWidgetValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentSafetySurfacesChoiceExportValueBehindDisplayText() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
@@ -252,6 +275,26 @@ public sealed class PdfHiddenContentInspectionTests {
         Assert.Contains(report.Findings, finding =>
             finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
             finding.TextPreview.Contains("OFF-PAGE-SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyTreatsZeroAreaAnnotationAsConcealed() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [5 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj\n<< /Type /Annot /Subtype /Text /Rect [20 20 20 40] /Contents (ZERO-AREA-ANNOTATION-SECRET) /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("ZERO-AREA-ANNOTATION-SECRET", StringComparison.Ordinal));
     }
 
     [Fact]

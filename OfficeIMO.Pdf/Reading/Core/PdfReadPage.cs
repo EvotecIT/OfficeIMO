@@ -294,7 +294,7 @@ public sealed partial class PdfReadPage {
             string? subtype = annotation?.Get<PdfName>("Subtype")?.Name;
             if (annotation is null ||
                 string.IsNullOrWhiteSpace(subtype) ||
-                !TryReadRectangle(annotation.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
+                !TryReadAnnotationRectangle(annotation.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
                 continue;
             }
 
@@ -353,6 +353,32 @@ public sealed partial class PdfReadPage {
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
+    }
+
+    private bool TryReadAnnotationRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {
+        rect = default;
+        var array = ResolveArray(obj);
+        if (array is null || array.Items.Count < 4 ||
+            ResolveObject(array.Items[0]) is not PdfNumber x1 ||
+            ResolveObject(array.Items[1]) is not PdfNumber y1 ||
+            ResolveObject(array.Items[2]) is not PdfNumber x2 ||
+            ResolveObject(array.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+
+        double left = Math.Min(x1.Value, x2.Value);
+        double right = Math.Max(x1.Value, x2.Value);
+        double bottom = Math.Min(y1.Value, y2.Value);
+        double top = Math.Max(y1.Value, y2.Value);
+        if (double.IsNaN(left) || double.IsInfinity(left) ||
+            double.IsNaN(right) || double.IsInfinity(right) ||
+            double.IsNaN(bottom) || double.IsInfinity(bottom) ||
+            double.IsNaN(top) || double.IsInfinity(top)) {
+            return false;
+        }
+
+        rect = (left, bottom, right, top);
+        return true;
     }
 
     private PdfAnnotationReviewInfo? ReadAnnotationReviewInfo(PdfDictionary annotation) {
