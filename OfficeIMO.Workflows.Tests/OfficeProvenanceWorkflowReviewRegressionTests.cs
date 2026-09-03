@@ -796,7 +796,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
         string output = scope.Write("cleaned.html", "existing destination");
         using var cancellation = new CancellationTokenSource();
-        var progress = new CancellingProgress("replace-finalization", cancellation);
+        var progress = new CancellingFinalizationProgress("replace-finalization", cancellation);
 
         OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
             new OfficeProvenanceWorkflowRequest {
@@ -812,6 +812,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.True(cancellation.IsCancellationRequested);
         Assert.Equal("existing destination", File.ReadAllText(output));
+        Assert.Contains("finalize", progress.Stages);
+        Assert.DoesNotContain("complete", progress.Stages);
     }
 
     [Fact]
@@ -833,6 +835,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.False(result.Succeeded);
         Assert.True(progress.Deleted);
         Assert.Equal("existing destination", File.ReadAllText(output));
+        Assert.Contains("finalize", progress.Stages);
+        Assert.DoesNotContain("complete", progress.Stages);
     }
 
     [Fact]
@@ -1177,9 +1181,11 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         internal DeletingPublishedArtifactProgress(string path) => _path = path;
 
         internal bool Deleted { get; private set; }
+        internal List<string> Stages { get; } = new();
 
         public void Report(OfficeWorkflowProgress value) {
-            if (Deleted || !string.Equals(value.Stage, "complete", StringComparison.Ordinal)) return;
+            Stages.Add(value.Stage);
+            if (Deleted || !string.Equals(value.Stage, "finalize", StringComparison.Ordinal)) return;
             File.Delete(_path);
             Deleted = true;
         }

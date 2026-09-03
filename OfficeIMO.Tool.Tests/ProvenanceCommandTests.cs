@@ -134,7 +134,7 @@ public sealed class ProvenanceCommandTests {
     [Fact]
     public async Task PreCancelledBatchReturnsCancelledExitCodeAndResult() {
         using var scope = new TestDirectory();
-        string first = scope.Write("first.html", "<html><body>first</body></html>");
+        string first = Path.Combine(scope.Path, "missing.html");
         string second = scope.Write("second.html", "<html><body>second</body></html>");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

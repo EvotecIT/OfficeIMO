@@ -150,8 +150,7 @@ public static class OfficeProvenanceAssessment {
                 structural,
                 options,
                 verifier,
-                detectors,
-                textEncoding: structural.Format == OfficeProvenanceAssetFormat.Html ? Encoding.UTF8 : null);
+                detectors);
             snapshot.VerifyPrimaryFile();
             if (hasExternalProviders) snapshot.VerifyExternalManifestDependencies();
             return assessment;

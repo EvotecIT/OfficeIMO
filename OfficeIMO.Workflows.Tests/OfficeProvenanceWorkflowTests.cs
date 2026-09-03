@@ -570,9 +570,9 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task PreCancelledRemovalPublishesNothing() {
+    public async Task PreCancelledRemovalSkipsInputValidationAndPublishesNothing() {
         using var scope = new TempScope();
-        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        string input = Path.Combine(scope.Path, "missing.html");
         string output = Path.Combine(scope.Path, "cleaned.html");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

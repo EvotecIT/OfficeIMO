@@ -41,6 +41,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             validated = ValidateProvenanceRequest(request);
             string ownerPackage = GetPackage(validated.Owner);
             Report(progress, validated.Id, "validate", "Validating provenance input and limits", 0.05D);
@@ -244,7 +245,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     "Publishing the verified provenance artifact",
                     0.9D),
                 beforeCommitFinalized: path => {
-                    Report(progress, validated.Id, "complete", "Provenance removal completed", 1D);
+                    Report(progress, validated.Id, "finalize", "Finalizing the verified provenance artifact", 0.98D);
                     stagedFingerprint.VerifyPublishedPath(path, validated.Limits.MaximumOutputBytes, cancellationToken);
                 });
             long outputBytes = stagedFingerprint.Length;
@@ -252,6 +253,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 "AtomicPublication",
                 "The verified artifact was staged in the destination directory, identity-pinned, and atomically published.",
                 stage: "publish"));
+            Report(progress, validated.Id, "complete", "Provenance removal completed", 1D);
             return CreateProvenanceResult(
                 validated, OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,
                 ownerPackage, publishedPath, inputBytes, outputBytes, stopwatch.Elapsed,
@@ -276,7 +278,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated?.Operation ?? request.Operation,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
-                GetPackage(validated?.Owner ?? ResolveByPath(request.InputPath)),
+                GetResultPackage(validated, request),
                 null,
                 inputBytes,
                 0,
@@ -299,7 +301,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated?.Operation ?? request.Operation,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(exception, failureStage),
-                GetPackage(validated?.Owner ?? ResolveByPath(request.InputPath)),
+                GetResultPackage(validated, request),
                 null,
                 inputBytes,
                 0,
@@ -314,6 +316,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             } finally {
                 if (stagingPath is not null) TryDelete(stagingPath);
             }
+        }
+    }
+
+    private static string GetResultPackage(
+        ValidatedProvenanceRequest? validated,
+        OfficeProvenanceWorkflowRequest request) {
+        if (validated is not null) return GetPackage(validated.Owner);
+        try {
+            return GetPackage(ResolveByPath(request.InputPath));
+        } catch (Exception exception) when (exception is ArgumentException or NotSupportedException) {
+            return "OfficeIMO.Core";
         }
     }
 
