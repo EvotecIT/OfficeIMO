@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed partial class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
+    private readonly PdfDictionary? _catalog;
     private readonly string _trailerRaw;
     private readonly PdfLoadOptions _options;
     private readonly long _decodedStreamBytes;
@@ -37,6 +38,7 @@ public sealed partial class PdfReadDocument {
     private readonly int? _acroFormSignatureFlags;
     private readonly PdfAcroFormXfaInfo? _acroFormXfa;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
+    private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
@@ -59,13 +61,18 @@ public sealed partial class PdfReadDocument {
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
+        _catalog = PdfSyntax.FindCatalog(_objects, _trailerRaw);
+        _optionalContentVisibilityState = PdfPageOptionalContentVisibility.CreateDocumentState(
+            _catalog,
+            _objects,
+            _options.Limits.MaxContentNestingDepth);
         _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
-            FindCatalog(),
+            _catalog,
             _objects,
             _options.Limits.MaxDecodedStreamBytes,
             _outputIntentMetadataRetentionBudget);
         Pages = CollectPages();
-        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
+        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options));
         _metadata = ExtractMetadata();
         _pageLabels = ExtractPageLabels();
         _namedDestinations = ExtractNamedDestinations();

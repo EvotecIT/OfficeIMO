@@ -14,6 +14,10 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal("#", PdfTextSimilarity.NormalizeSignature("\U0001D7D9"));
         Assert.Equal("\U0001D7D9", PdfTextSimilarity.NormalizeSignaturePreservingDigits("\U0001D7D9"));
         Assert.Equal(2D / 3D, PdfTextSimilarity.NormalizedSimilarity("\U0001D7D9ab", "\U0001D7DAab"), 8);
+        Assert.True(PdfTextSimilarity.TryGetNormalizedSimilarity("abcdefghij", "abcdefghiX", 0.9D, out double accepted));
+        Assert.Equal(0.9D, accepted, 8);
+        Assert.False(PdfTextSimilarity.TryGetNormalizedSimilarity("abcdefghij", "abcdefXXij", 0.9D, out double rejected));
+        Assert.True(rejected < 0.9D);
     }
 
     [Fact]
@@ -2341,6 +2345,53 @@ public class PdfUnderstandingPipelineTests {
         Assert.All(
             result.Pages.SelectMany(static page => page.Footers),
             block => Assert.Equal(PdfLogicalElementKind.Footer, block.Kind));
+    }
+
+    [Fact]
+    public void StructuredRead_DoesNotPromoteMerelySimilarPageEdgeParagraphs() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for northern region"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for southern region"))
+            .ToBytes();
+
+        PdfDocumentReadResult result = Read(pdf, PdfUnderstandingPipelineOptions.Structured());
+
+        Assert.Empty(result.Pages.SelectMany(static page => page.Headers));
+        Assert.Contains(result.Paragraphs, paragraph => paragraph.Text.Contains("northern region", StringComparison.Ordinal));
+        Assert.Contains(result.Paragraphs, paragraph => paragraph.Text.Contains("southern region", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void StructuredRead_BoundsRepeatedPageEdgeMatchingAcrossManyCandidates() {
+        PdfDocument document = PdfDocument.Create();
+        const int pageCount = 30;
+        const int headerCount = 30;
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+            document.Paragraph(paragraph => paragraph.Text("Page placeholder"));
+            if (pageIndex + 1 < pageCount) document.PageBreak();
+        }
+
+        PdfTextSpan[] spans = Enumerable.Range(0, headerCount)
+            .Select(index => new PdfTextSpan(
+                "Repeated edge marker " + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "F1",
+                1D,
+                36D,
+                825D - (index * 3D),
+                160D))
+            .ToArray();
+        PdfUnderstandingPipelineOptions pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.GlyphDecoding = new FixedGlyphStage(spans);
+        pipeline.PageSegmentation = new EachLineRegionStage();
+        pipeline.ReadingOrder = new IdentityReadingOrderStage();
+        pipeline.SemanticClassification = new ParagraphClassificationStage();
+        pipeline.MaxDocumentWorkUnits = 200_000;
+
+        PdfDocumentReadResult result = Read(document.ToBytes(), pipeline);
+
+        Assert.Equal(pageCount, result.Pages.Count);
+        Assert.All(result.Pages, page => Assert.Equal(headerCount, page.Headers.Count));
     }
 
     [Fact]

@@ -6,6 +6,8 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfLogicalParagraphContinuationTests {
+    private static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+
     [Fact]
     public void ParagraphContinuations_MergesPageEdgeSoftHyphenWithStructuralEvidence() {
         PdfDocumentReadResult document = LoadTwoPageDocument(
@@ -189,7 +191,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
         value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
 
     private static string StreamObject(string content) {
-        int length = Encoding.Latin1.GetByteCount(content);
+        int length = Latin1.GetByteCount(content);
         return "<< /Length " + length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream";
     }
 
@@ -197,17 +199,17 @@ public sealed class PdfLogicalParagraphContinuationTests {
         var builder = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>(objects.Length);
         for (int i = 0; i < objects.Length; i++) {
-            offsets.Add(Encoding.Latin1.GetByteCount(builder.ToString()));
+            offsets.Add(Latin1.GetByteCount(builder.ToString()));
             builder.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
         }
 
-        int xrefOffset = Encoding.Latin1.GetByteCount(builder.ToString());
+        int xrefOffset = Latin1.GetByteCount(builder.ToString());
         builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
         for (int i = 0; i < offsets.Count; i++) {
             builder.Append(offsets[i].ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
         builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Length + 1).Append(" >>\nstartxref\n")
             .Append(xrefOffset.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        return Encoding.Latin1.GetBytes(builder.ToString());
+        return Latin1.GetBytes(builder.ToString());
     }
 }

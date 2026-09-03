@@ -192,56 +192,104 @@ internal static partial class PdfDocumentSemanticEnricher {
                     pageNumbers[pageIndex],
                     edge,
                     signature,
-                    requiresExactSignature,
                     visual.Left / width,
                     Math.Max(0D, visual.Width) / width));
             }
         }
         if (candidates.Count < 2) return;
 
-        int[] parent = Enumerable.Range(0, candidates.Count).ToArray();
-        for (int leftIndex = 0; leftIndex < candidates.Count; leftIndex++) {
-            PageEdgeCandidate left = candidates[leftIndex];
-            for (int rightIndex = leftIndex + 1; rightIndex < candidates.Count; rightIndex++) {
-                workBudget.Consume();
-                PageEdgeCandidate right = candidates[rightIndex];
-                if (left.PageNumber == right.PageNumber || left.Edge != right.Edge) continue;
-                if (Math.Abs(left.NormalizedLeft - right.NormalizedLeft) > 0.08D ||
-                    Math.Abs(left.NormalizedWidth - right.NormalizedWidth) > 0.12D) continue;
-                if (left.RequiresExactSignature || right.RequiresExactSignature) {
-                    if (!string.Equals(left.Signature, right.Signature, StringComparison.Ordinal)) continue;
-                } else if (PdfTextSimilarity.NormalizedSimilarity(
-                    left.Signature,
-                    right.Signature,
-                    workBudget.Consume,
-                    workBudget.ThrowIfCancellationRequested) < 0.8D) {
-                    continue;
-                }
-                Union(parent, leftIndex, rightIndex);
-            }
-        }
-
         int uniquePageCount = pageNumbers.Distinct().Count();
         int minimumPages = Math.Max(2, (int)Math.Ceiling(uniquePageCount * 0.5D));
-        foreach (IGrouping<int, int> cluster in Enumerable.Range(0, candidates.Count).GroupBy(index => Find(parent, index))) {
-            int[] indexes = cluster.ToArray();
-            if (indexes.Select(index => candidates[index].PageNumber).Distinct().Count() < minimumPages) continue;
-            foreach (int candidateIndex in indexes) {
-                PageEdgeCandidate candidate = candidates[candidateIndex];
-                PdfUnderstandingSemanticElement current = elements[candidate.PageIndex][candidate.ElementIndex];
-                PdfUnderstandingSemanticKind kind = candidate.Edge == PageEdge.Header
-                    ? PdfUnderstandingSemanticKind.Header
-                    : PdfUnderstandingSemanticKind.Footer;
-                elements[candidate.PageIndex][candidate.ElementIndex] = WithEvidence(
-                    current,
-                    kind,
-                    Math.Max(current.Confidence, 0.94D),
-                    new PdfInferenceEvidence(
-                        candidate.Edge == PageEdge.Header ? "semantic.repeated-header" : "semantic.repeated-footer",
-                        "Normalized geometry and fuzzy text signatures repeat across document pages.",
-                        0.95D));
+        bool[] repeated = FindRepeatedPageEdgeCandidates(candidates, minimumPages, workBudget);
+        for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+            if (!repeated[candidateIndex]) continue;
+            PageEdgeCandidate candidate = candidates[candidateIndex];
+            PdfUnderstandingSemanticElement current = elements[candidate.PageIndex][candidate.ElementIndex];
+            PdfUnderstandingSemanticKind kind = candidate.Edge == PageEdge.Header
+                ? PdfUnderstandingSemanticKind.Header
+                : PdfUnderstandingSemanticKind.Footer;
+            elements[candidate.PageIndex][candidate.ElementIndex] = WithEvidence(
+                current,
+                kind,
+                Math.Max(current.Confidence, 0.94D),
+                new PdfInferenceEvidence(
+                    candidate.Edge == PageEdge.Header ? "semantic.repeated-header" : "semantic.repeated-footer",
+                    "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
+                    0.95D));
+        }
+    }
+
+    private static bool[] FindRepeatedPageEdgeCandidates(
+        IReadOnlyList<PageEdgeCandidate> candidates,
+        int minimumPages,
+        PdfUnderstandingWorkBudget workBudget) {
+        var bySignature = new Dictionary<PageEdgeSignature, List<int>>();
+        for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+            workBudget.Consume();
+            PageEdgeCandidate candidate = candidates[candidateIndex];
+            var key = new PageEdgeSignature(candidate.Edge, candidate.Signature);
+            if (!bySignature.TryGetValue(key, out List<int>? indexes)) {
+                indexes = new List<int>();
+                bySignature.Add(key, indexes);
+            }
+            indexes.Add(candidateIndex);
+        }
+
+        var repeated = new bool[candidates.Count];
+        var pages = new HashSet<int>();
+        var compatible = new List<PageEdgeGeometryGroup>();
+        foreach (List<int> signatureIndexes in bySignature.Values) {
+            workBudget.ThrowIfCancellationRequested();
+            pages.Clear();
+            for (int index = 0; index < signatureIndexes.Count; index++) {
+                pages.Add(candidates[signatureIndexes[index]].PageNumber);
+            }
+            if (pages.Count < minimumPages) continue;
+
+            PageEdgeGeometryGroup[] geometryGroups = GroupPageEdgeGeometry(candidates, signatureIndexes, workBudget);
+            for (int anchorIndex = 0; anchorIndex < geometryGroups.Length; anchorIndex++) {
+                PageEdgeGeometryGroup anchor = geometryGroups[anchorIndex];
+                pages.Clear();
+                compatible.Clear();
+                for (int groupIndex = 0; groupIndex < geometryGroups.Length; groupIndex++) {
+                    workBudget.Consume();
+                    PageEdgeGeometryGroup candidate = geometryGroups[groupIndex];
+                    if (Math.Abs(anchor.NormalizedLeft - candidate.NormalizedLeft) > 0.08D ||
+                        Math.Abs(anchor.NormalizedWidth - candidate.NormalizedWidth) > 0.12D) continue;
+                    compatible.Add(candidate);
+                    pages.UnionWith(candidate.PageNumbers);
+                }
+                if (pages.Count < minimumPages) continue;
+                for (int groupIndex = 0; groupIndex < compatible.Count; groupIndex++) {
+                    List<int> indexes = compatible[groupIndex].CandidateIndexes;
+                    for (int index = 0; index < indexes.Count; index++) repeated[indexes[index]] = true;
+                }
             }
         }
+        return repeated;
+    }
+
+    private static PageEdgeGeometryGroup[] GroupPageEdgeGeometry(
+        IReadOnlyList<PageEdgeCandidate> candidates,
+        List<int> indexes,
+        PdfUnderstandingWorkBudget workBudget) {
+        const double geometryPrecision = 1_000_000D;
+        var groups = new Dictionary<PageEdgeGeometryKey, PageEdgeGeometryGroup>();
+        for (int index = 0; index < indexes.Count; index++) {
+            workBudget.Consume();
+            int candidateIndex = indexes[index];
+            PageEdgeCandidate candidate = candidates[candidateIndex];
+            var key = new PageEdgeGeometryKey(
+                checked((long)Math.Round(candidate.NormalizedLeft * geometryPrecision, MidpointRounding.AwayFromZero)),
+                checked((long)Math.Round(candidate.NormalizedWidth * geometryPrecision, MidpointRounding.AwayFromZero)));
+            if (!groups.TryGetValue(key, out PageEdgeGeometryGroup? group)) {
+                group = new PageEdgeGeometryGroup(candidate.NormalizedLeft, candidate.NormalizedWidth);
+                groups.Add(key, group);
+            }
+            group.CandidateIndexes.Add(candidateIndex);
+            group.PageNumbers.Add(candidate.PageNumber);
+        }
+        return groups.Values.ToArray();
     }
 
     private static void ApplyOutlineEvidence(
@@ -255,35 +303,35 @@ internal static partial class PdfDocumentSemanticEnricher {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             if (!outlinesByPage.TryGetValue(pages[pageIndex].PageNumber, out IReadOnlyList<PdfOutlineItem>? pageOutlines)) continue;
             var usedLines = new HashSet<(long BaselineY, long XStart, string Text)>();
+            var normalizedLineText = new Dictionary<PdfUnderstandingLine, string>();
+            var normalizedTextScalars = new Dictionary<string, int[]>(StringComparer.Ordinal);
             foreach (PdfOutlineItem outline in pageOutlines) {
                 string outlineText = PdfTextSimilarity.NormalizeSignaturePreservingDigits(outline.Title);
                 if (outlineText.Length == 0) continue;
-                OutlineLineCandidate? candidate = null;
-                for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
-                    PdfUnderstandingSemanticElement element = elements[pageIndex][elementIndex];
-                    for (int lineIndex = 0; lineIndex < element.Region.Lines.Count; lineIndex++) {
-                        workBudget.Consume();
-                        PdfUnderstandingLine line = element.Region.Lines[lineIndex];
-                        (long BaselineY, long XStart, string Text) key = CreateLineKey(line);
-                        if (usedLines.Contains(key)) continue;
-                        double score = PdfTextSimilarity.NormalizedSimilarity(
-                            PdfTextSimilarity.NormalizeSignaturePreservingDigits(line.Text),
-                            outlineText,
-                            workBudget.Consume,
-                            workBudget.ThrowIfCancellationRequested);
-                        if (score < 0.9D) continue;
-                        var current = new OutlineLineCandidate(
-                            element,
-                            elementIndex,
-                            line,
-                            key,
-                            score,
-                            outline.DestinationTop.HasValue
-                                ? Math.Abs(line.BaselineY - outline.DestinationTop.Value)
-                                : 0D);
-                        if (candidate is null || IsBetterOutlineCandidate(current, candidate)) candidate = current;
-                    }
+                if (!normalizedTextScalars.TryGetValue(outlineText, out int[]? outlineScalars)) {
+                    outlineScalars = PdfTextSimilarity.GetScalars(outlineText);
+                    normalizedTextScalars.Add(outlineText, outlineScalars);
                 }
+                OutlineLineCandidate? candidate = FindOutlineLineCandidate(
+                    elements[pageIndex],
+                    outline,
+                    outlineText,
+                    outlineScalars,
+                    usedLines,
+                    normalizedLineText,
+                    normalizedTextScalars,
+                    requireExactText: true,
+                    workBudget);
+                candidate ??= FindOutlineLineCandidate(
+                    elements[pageIndex],
+                    outline,
+                    outlineText,
+                    outlineScalars,
+                    usedLines,
+                    normalizedLineText,
+                    normalizedTextScalars,
+                    requireExactText: false,
+                    workBudget);
                 if (candidate is null) continue;
 
                 usedLines.Add(candidate.Key);
@@ -314,6 +362,62 @@ internal static partial class PdfDocumentSemanticEnricher {
                 }
             }
         }
+    }
+
+    private static OutlineLineCandidate? FindOutlineLineCandidate(
+        List<PdfUnderstandingSemanticElement> elements,
+        PdfOutlineItem outline,
+        string outlineText,
+        int[] outlineScalars,
+        HashSet<(long BaselineY, long XStart, string Text)> usedLines,
+        Dictionary<PdfUnderstandingLine, string> normalizedLineText,
+        Dictionary<string, int[]> normalizedTextScalars,
+        bool requireExactText,
+        PdfUnderstandingWorkBudget workBudget) {
+        OutlineLineCandidate? candidate = null;
+        for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+            PdfUnderstandingSemanticElement element = elements[elementIndex];
+            for (int lineIndex = 0; lineIndex < element.Region.Lines.Count; lineIndex++) {
+                workBudget.Consume();
+                PdfUnderstandingLine line = element.Region.Lines[lineIndex];
+                (long BaselineY, long XStart, string Text) key = CreateLineKey(line);
+                if (usedLines.Contains(key)) continue;
+                if (!normalizedLineText.TryGetValue(line, out string? lineText)) {
+                    lineText = PdfTextSimilarity.NormalizeSignaturePreservingDigits(line.Text);
+                    normalizedLineText.Add(line, lineText);
+                }
+                double score;
+                if (requireExactText) {
+                    if (!string.Equals(lineText, outlineText, StringComparison.Ordinal)) continue;
+                    score = 1D;
+                } else {
+                    if (!normalizedTextScalars.TryGetValue(lineText, out int[]? lineScalars)) {
+                        lineScalars = PdfTextSimilarity.GetScalars(lineText);
+                        normalizedTextScalars.Add(lineText, lineScalars);
+                    }
+                    if (!PdfTextSimilarity.TryGetNormalizedSimilarity(
+                        lineScalars,
+                        outlineScalars,
+                        0.9D,
+                        out score,
+                        workBudget.Consume,
+                        workBudget.ThrowIfCancellationRequested)) {
+                        continue;
+                    }
+                }
+                var current = new OutlineLineCandidate(
+                    element,
+                    elementIndex,
+                    line,
+                    key,
+                    score,
+                    outline.DestinationTop.HasValue
+                        ? Math.Abs(line.BaselineY - outline.DestinationTop.Value)
+                        : 0D);
+                if (candidate is null || IsBetterOutlineCandidate(current, candidate)) candidate = current;
+            }
+        }
+        return candidate;
     }
 
     private static (long BaselineY, long XStart, string Text) CreateLineKey(PdfUnderstandingLine line) =>
@@ -759,30 +863,15 @@ internal static partial class PdfDocumentSemanticEnricher {
         return current.Element.Region.Lines.Count < previous.Element.Region.Lines.Count;
     }
 
-    private static int Find(int[] parent, int value) {
-        while (parent[value] != value) {
-            parent[value] = parent[parent[value]];
-            value = parent[value];
-        }
-        return value;
-    }
-
-    private static void Union(int[] parent, int left, int right) {
-        int leftRoot = Find(parent, left);
-        int rightRoot = Find(parent, right);
-        if (leftRoot != rightRoot) parent[rightRoot] = leftRoot;
-    }
-
     private enum PageEdge { None, Header, Footer }
 
     private readonly struct PageEdgeCandidate {
-        internal PageEdgeCandidate(int pageIndex, int elementIndex, int pageNumber, PageEdge edge, string signature, bool requiresExactSignature, double normalizedLeft, double normalizedWidth) {
+        internal PageEdgeCandidate(int pageIndex, int elementIndex, int pageNumber, PageEdge edge, string signature, double normalizedLeft, double normalizedWidth) {
             PageIndex = pageIndex;
             ElementIndex = elementIndex;
             PageNumber = pageNumber;
             Edge = edge;
             Signature = signature;
-            RequiresExactSignature = requiresExactSignature;
             NormalizedLeft = normalizedLeft;
             NormalizedWidth = normalizedWidth;
         }
@@ -791,9 +880,23 @@ internal static partial class PdfDocumentSemanticEnricher {
         internal int PageNumber { get; }
         internal PageEdge Edge { get; }
         internal string Signature { get; }
-        internal bool RequiresExactSignature { get; }
         internal double NormalizedLeft { get; }
         internal double NormalizedWidth { get; }
+    }
+
+    private readonly record struct PageEdgeSignature(PageEdge Edge, string Signature);
+
+    private readonly record struct PageEdgeGeometryKey(long NormalizedLeft, long NormalizedWidth);
+
+    private sealed class PageEdgeGeometryGroup {
+        internal PageEdgeGeometryGroup(double normalizedLeft, double normalizedWidth) {
+            NormalizedLeft = normalizedLeft;
+            NormalizedWidth = normalizedWidth;
+        }
+        internal double NormalizedLeft { get; }
+        internal double NormalizedWidth { get; }
+        internal List<int> CandidateIndexes { get; } = new List<int>();
+        internal HashSet<int> PageNumbers { get; } = new HashSet<int>();
     }
 
     private readonly record struct TaggedRole(

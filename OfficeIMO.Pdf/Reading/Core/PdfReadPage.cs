@@ -17,6 +17,7 @@ public sealed partial class PdfReadPage {
     private readonly Action? _demandTextExtraction;
     private readonly Action<string>? _demandContentExtraction;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
+    private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
     private readonly Lazy<bool>? _hasOutputIntentCompositionInteraction;
 
     internal PdfDictionary PageDictionary => _pageDict;
@@ -33,7 +34,8 @@ public sealed partial class PdfReadPage {
         Action? demandTextExtraction = null,
         Action<string>? demandContentExtraction = null,
         bool includeArtifactText = false,
-        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState = null) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
@@ -44,6 +46,11 @@ public sealed partial class PdfReadPage {
         _demandTextExtraction = demandTextExtraction;
         _demandContentExtraction = demandContentExtraction;
         _outputIntentColorTransform = outputIntentColorTransform;
+        _optionalContentVisibilityState = optionalContentVisibilityState ??
+            PdfPageOptionalContentVisibility.CreateDocumentState(
+                PdfSyntax.FindCatalog(objects),
+                objects,
+                limits.MaxContentNestingDepth);
         _hasOutputIntentCompositionInteraction = outputIntentColorTransform == null
             ? null
             : new Lazy<bool>(
@@ -176,6 +183,7 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         string content = contentSequence.Content;
         if (content.Length > 0) {
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -192,7 +200,8 @@ public sealed partial class PdfReadPage {
                 contentStreamObjectNumberAtOffset: contentSequence.GetObjectNumber,
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
-                    : null);
+                    : null,
+                invokedResourceNames: invokedResources);
         }
 
         return spans;
@@ -551,6 +560,7 @@ public sealed partial class PdfReadPage {
 
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
             CollectImagePlacementsAndForms(
                 content,
                 pageResources,
@@ -561,7 +571,8 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
-                contentOrderPrefix: PdfContentOrderKey.Root);
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                invokedResourceNames: invokedResources);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
@@ -711,7 +722,8 @@ public sealed partial class PdfReadPage {
         bool inheritedArtifactContent = false,
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        PdfPageInvokedResourceNames? invokedResourceNames = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -739,8 +751,10 @@ public sealed partial class PdfReadPage {
         int? ResolveMarkedContentMcid(string propertyName) =>
             GetMarkedContentMcid(resources, propertyName);
 
-        PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
+            ? null
+            : GetOptionalContentVisibility(resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
@@ -934,14 +948,15 @@ public sealed partial class PdfReadPage {
         int? contentStreamObjectNumber = null,
         int? inheritedMarkedContentId = null,
         int? inheritedMarkedContentStreamObjectNumber = null,
-        bool inheritedArtifactContent = false) {
+        bool inheritedArtifactContent = false,
+        PdfPageInvokedResourceNames? invokedResourceNames = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textClippingBudget ??= new PdfTextClippingBudget();
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -1301,7 +1316,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
-        PdfPageOptionalContentVisibility.Create(resources, _objects, _limits.MaxContentNestingDepth);
+        PdfPageOptionalContentVisibility.Create(resources, _optionalContentVisibilityState);
 
     private static Dictionary<string, Func<byte[], int, string>> MergeDecoders(
         Dictionary<string, Func<byte[], int, string>> parent,

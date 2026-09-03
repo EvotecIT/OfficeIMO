@@ -4,6 +4,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private readonly object _rootInvokedResourceNamesSync = new();
+    private PdfPageInvokedResourceNames? _rootInvokedResourceNames;
+    private bool _rootInvokedResourceNamesInitialized;
+
     internal bool WouldAppendingTextChangeVisibleStacking(IReadOnlyList<PdfTextSpan> sourceSpans, IReadOnlyList<PdfAppendedTextBounds>? appendedBounds = null) {
         if (sourceSpans.Count == 0) return false;
         if (HasUnboundedUnsupportedPaint()) return true;
@@ -651,7 +655,8 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
-        PdfStrokeDashPattern? initialStrokeDashPattern = null) {
+        PdfStrokeDashPattern? initialStrokeDashPattern = null,
+        PdfPageInvokedResourceNames? invokedResourceNames = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
@@ -659,7 +664,7 @@ public sealed partial class PdfReadPage {
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
@@ -1957,6 +1962,19 @@ public sealed partial class PdfReadPage {
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name));
         return names;
+    }
+
+    private PdfPageInvokedResourceNames GetRootInvokedResourceNames(
+        string content,
+        PdfDictionary? resources) {
+        lock (_rootInvokedResourceNamesSync) {
+            if (!_rootInvokedResourceNamesInitialized) {
+                _rootInvokedResourceNames = GetInvokedResourceNames(content, resources);
+                _rootInvokedResourceNamesInitialized = true;
+            }
+
+            return _rootInvokedResourceNames!;
+        }
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResourcePlaceholders(PdfDictionary? resources) {

@@ -1,4 +1,7 @@
 using System.Globalization;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Text;
 
 namespace OfficeIMO.Pdf;
@@ -76,8 +79,8 @@ internal static class PdfTextSimilarity {
         cancellationCheck?.Invoke();
         if (string.Equals(left, right, StringComparison.Ordinal)) return 1D;
         if (left.Length == 0 || right.Length == 0) return 0D;
-        int[] leftScalars = ToScalars(left);
-        int[] rightScalars = ToScalars(right);
+        int[] leftScalars = GetScalars(left);
+        int[] rightScalars = GetScalars(right);
         if (leftScalars.Length > rightScalars.Length) (leftScalars, rightScalars) = (rightScalars, leftScalars);
         int[] previous = Enumerable.Range(0, leftScalars.Length + 1).ToArray();
         int[] current = new int[leftScalars.Length + 1];
@@ -95,7 +98,145 @@ internal static class PdfTextSimilarity {
         return 1D - (double)previous[leftScalars.Length] / Math.Max(leftScalars.Length, rightScalars.Length);
     }
 
-    private static int[] ToScalars(string value) {
+    internal static bool TryGetNormalizedSimilarity(
+        string left,
+        string right,
+        double minimumSimilarity,
+        out double similarity,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        if (minimumSimilarity < 0D || minimumSimilarity > 1D) throw new ArgumentOutOfRangeException(nameof(minimumSimilarity));
+        cancellationCheck?.Invoke();
+        if (string.Equals(left, right, StringComparison.Ordinal)) {
+            similarity = 1D;
+            return true;
+        }
+        if (left.Length == 0 || right.Length == 0) {
+            similarity = 0D;
+            return minimumSimilarity <= 0D;
+        }
+
+        return TryGetNormalizedSimilarity(
+            GetScalars(left),
+            GetScalars(right),
+            minimumSimilarity,
+            out similarity,
+            consumeWork,
+            cancellationCheck);
+    }
+
+    internal static bool TryGetNormalizedSimilarity(
+        int[] leftScalars,
+        int[] rightScalars,
+        double minimumSimilarity,
+        out double similarity,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        if (minimumSimilarity < 0D || minimumSimilarity > 1D) throw new ArgumentOutOfRangeException(nameof(minimumSimilarity));
+        cancellationCheck?.Invoke();
+        if (AreEqual(leftScalars, rightScalars)) {
+            similarity = 1D;
+            return true;
+        }
+        if (leftScalars.Length == 0 || rightScalars.Length == 0) {
+            similarity = 0D;
+            return minimumSimilarity <= 0D;
+        }
+        if (leftScalars.Length > rightScalars.Length) (leftScalars, rightScalars) = (rightScalars, leftScalars);
+        int maximumLength = rightScalars.Length;
+        int maximumDistance = (int)Math.Floor(((1D - minimumSimilarity) * maximumLength) + 1e-9D);
+        if (rightScalars.Length - leftScalars.Length > maximumDistance) {
+            similarity = 1D - (double)(rightScalars.Length - leftScalars.Length) / maximumLength;
+            return false;
+        }
+
+        if (!SharesExactPartition(leftScalars, rightScalars, maximumDistance)) {
+            similarity = 0D;
+            return false;
+        }
+
+        int unreachable = maximumDistance + 1;
+        int requiredLength = leftScalars.Length + 1;
+#if NET8_0_OR_GREATER
+        int[] previous = ArrayPool<int>.Shared.Rent(requiredLength);
+        int[] current = ArrayPool<int>.Shared.Rent(requiredLength);
+#else
+        int[] previous = new int[requiredLength];
+        int[] current = new int[requiredLength];
+#endif
+        try {
+            for (int column = 0; column < requiredLength; column++) previous[column] = unreachable;
+            for (int column = 0; column <= Math.Min(leftScalars.Length, maximumDistance); column++) previous[column] = column;
+            for (int row = 1; row <= rightScalars.Length; row++) {
+                cancellationCheck?.Invoke();
+                for (int column = 0; column < requiredLength; column++) current[column] = unreachable;
+                if (row <= maximumDistance) current[0] = row;
+                int firstColumn = Math.Max(1, row - maximumDistance);
+                int lastColumn = Math.Min(leftScalars.Length, row + maximumDistance);
+                if (firstColumn > lastColumn) {
+                    similarity = 0D;
+                    return false;
+                }
+                consumeWork?.Invoke(lastColumn - firstColumn + 1L);
+                int rowMinimum = unreachable;
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    int substitution = previous[column - 1] + (leftScalars[column - 1] == rightScalars[row - 1] ? 0 : 1);
+                    int distance = Math.Min(Math.Min(previous[column] + 1, current[column - 1] + 1), substitution);
+                    current[column] = distance;
+                    rowMinimum = Math.Min(rowMinimum, distance);
+                }
+                if (rowMinimum > maximumDistance) {
+                    similarity = 1D - (double)rowMinimum / maximumLength;
+                    return false;
+                }
+                (previous, current) = (current, previous);
+            }
+
+            int finalDistance = previous[leftScalars.Length];
+            similarity = 1D - (double)finalDistance / maximumLength;
+            return finalDistance <= maximumDistance && similarity + 1e-12D >= minimumSimilarity;
+        } finally {
+#if NET8_0_OR_GREATER
+            ArrayPool<int>.Shared.Return(previous);
+            ArrayPool<int>.Shared.Return(current);
+#endif
+        }
+    }
+
+    private static bool AreEqual(int[] left, int[] right) {
+        if (left.Length != right.Length) return false;
+        for (int index = 0; index < left.Length; index++) {
+            if (left[index] != right[index]) return false;
+        }
+        return true;
+    }
+
+    private static bool SharesExactPartition(int[] candidate, int[] query, int maximumDistance) {
+        int partitionCount = maximumDistance + 1;
+        int baseLength = query.Length / partitionCount;
+        int remainder = query.Length % partitionCount;
+        int offset = 0;
+        for (int partition = 0; partition < partitionCount; partition++) {
+            int length = baseLength + (partition < remainder ? 1 : 0);
+            if (Contains(candidate, query, offset, length)) return true;
+            offset += length;
+        }
+        return false;
+    }
+
+    private static bool Contains(int[] candidate, int[] query, int queryOffset, int length) {
+        if (length == 0) return true;
+        if (candidate.Length < length) return false;
+        int lastStart = candidate.Length - length;
+        for (int start = 0; start <= lastStart; start++) {
+            int index = 0;
+            while (index < length && candidate[start + index] == query[queryOffset + index]) index++;
+            if (index == length) return true;
+        }
+        return false;
+    }
+
+    internal static int[] GetScalars(string value) {
         var result = new List<int>(Math.Min(value.Length, MaximumSignatureLength));
         for (int index = 0; index < value.Length && result.Count < MaximumSignatureLength; index++) {
             if (char.IsSurrogatePair(value, index)) {
