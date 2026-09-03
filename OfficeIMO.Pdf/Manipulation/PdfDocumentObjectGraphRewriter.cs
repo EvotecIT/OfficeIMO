@@ -14,28 +14,70 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => RewriteCore(
+            sourcePdf,
+            sourceDocument: null,
+            sourceReadOptions,
+            outputEncryption,
+            mutateObjectGraph,
+            maximumOutputBytes,
+            cancellationToken);
+
+    internal static byte[] Rewrite(
+        byte[] sourcePdf,
+        PdfReadDocument sourceDocument,
+        PdfLoadOptions? sourceReadOptions,
+        PdfStandardEncryptionOptions? outputEncryption,
+        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
+        long? maximumOutputBytes = null,
+        CancellationToken cancellationToken = default) => RewriteCore(
+            sourcePdf,
+            sourceDocument,
+            sourceReadOptions,
+            outputEncryption,
+            mutateObjectGraph,
+            maximumOutputBytes,
+            cancellationToken);
+
+    private static byte[] RewriteCore(
+        byte[] sourcePdf,
+        PdfReadDocument? sourceDocument,
+        PdfLoadOptions? sourceReadOptions,
+        PdfStandardEncryptionOptions? outputEncryption,
+        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph,
+        long? maximumOutputBytes,
+        CancellationToken cancellationToken) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
-            sourcePdf,
-            sourceReadOptions,
-            includeParsedDetails: false,
-            cancellationToken: cancellationToken);
-        var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out _, out _, cancellationToken);
-        Dictionary<int, PdfIndirectObject> objects = parsed.Map;
-        security = PdfSyntax.ReadDocumentSecurityInfo(
-            sourcePdf,
-            objects,
-            parsed.TrailerRaw,
-            security,
-            sourceReadOptions,
-            cancellationToken);
+        PdfDocumentSecurityInfo security;
+        Dictionary<int, PdfIndirectObject> objects;
+        string trailerRaw;
+        if (sourceDocument is null) {
+            security = PdfSyntax.ReadDocumentSecurityInfo(
+                sourcePdf,
+                sourceReadOptions,
+                includeParsedDetails: false,
+                cancellationToken: cancellationToken);
+            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out _, out _, cancellationToken);
+            objects = parsed.Map;
+            trailerRaw = parsed.TrailerRaw;
+            security = PdfSyntax.ReadDocumentSecurityInfo(
+                sourcePdf,
+                objects,
+                trailerRaw,
+                security,
+                sourceReadOptions,
+                cancellationToken);
+        } else {
+            objects = sourceDocument.Objects;
+            trailerRaw = sourceDocument.TrailerRaw;
+            security = sourceDocument.Security;
+        }
         cancellationToken.ThrowIfCancellationRequested();
         byte[]? permanentFileId = outputEncryption == null
-            ? PdfSyntax.ReadPermanentTrailerIdentifier(parsed.TrailerRaw)
+            ? PdfSyntax.ReadPermanentTrailerIdentifier(trailerRaw)
             : null;
         int rootObjectNumber = RequireRootObjectNumber(security, objects);
         int? infoObjectNumber = mutateObjectGraph is null
@@ -177,7 +219,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         using var boundedOutput = new PdfBoundedWriteStream(
             output,
             maximumOutputBytes,
-            "The rewritten PDF exceeds the configured expanded container limit.");
+            "The rewritten PDF exceeds the configured output limit.");
         if (permanentFileId == null) {
             PdfFileAssembler.Assemble(
                 boundedOutput,
@@ -233,7 +275,7 @@ internal static class PdfDocumentObjectGraphRewriter {
 
     private static void ThrowIfOutputLimitExceeded(long observedBytes, long? maximumOutputBytes) {
         if (maximumOutputBytes.HasValue && observedBytes > maximumOutputBytes.Value) {
-            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
         }
     }
 

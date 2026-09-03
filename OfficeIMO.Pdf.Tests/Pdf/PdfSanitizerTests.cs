@@ -6,6 +6,573 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfSanitizerTests {
     [Fact]
+    public void InspectAndSanitizeBeforeSharingUsesOneTypedPolicyAndVerifiedRewrite() {
+        byte[] source = BuildBeforeSharingPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.All,
+            ActionKindsToRemove = PdfSanitizationActionKind.All
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+
+        Assert.Equal(6, preview.CategoryCounts.UserMetadata);
+        Assert.Equal(1, preview.CategoryCounts.EmbeddedFiles);
+        Assert.Equal(2, preview.CategoryCounts.Actions);
+        Assert.Equal(1, preview.CategoryCounts.CommentsAndMarkup);
+        Assert.Equal(1, preview.CategoryCounts.Bookmarks);
+        Assert.Equal(1, preview.CategoryCounts.OptionalContent);
+        Assert.Equal(preview.Findings.Count, preview.TotalCount);
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(12, result.RemovedCategoryCounts.Total);
+        Assert.Equal(0, result.RemainingCategoryCounts.Total);
+        Assert.Null(info.Metadata.Title);
+        Assert.Null(info.Metadata.Author);
+        Assert.Null(info.Metadata.Subject);
+        Assert.Null(info.Metadata.Keywords);
+        Assert.False(info.HasXmpMetadata);
+        Assert.Empty(info.Attachments);
+        Assert.Empty(info.Outlines);
+        Assert.False(info.HasOptionalContent);
+        Assert.DoesNotContain(info.Annotations, static annotation => annotation.Subtype == "Text" || annotation.Subtype == "FileAttachment");
+        Assert.Contains(info.Annotations, static annotation => annotation.Subtype == "Link");
+        Assert.Contains(info.Annotations, static annotation => annotation.Subtype == "Widget");
+        Assert.Equal("OfficeIMO-Test", ReadInfoString(result.ToBytes(), "Producer"));
+        Assert.Equal(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero), info.Metadata.CreationDate);
+        Assert.Equal(new DateTimeOffset(2026, 2, 3, 4, 5, 6, TimeSpan.Zero), info.Metadata.ModificationDate);
+        Assert.Equal(PdfTrappingStatus.False, info.Metadata.TrappingStatus);
+        Assert.DoesNotContain("PRIVATE-", raw, StringComparison.Ordinal);
+        Assert.Contains("VISIBLE-PAGE-CONTENT", result.ToDocument().Read().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SanitizeBeforeSharingCanRemoveOnlyUserMetadata() {
+        byte[] source = BuildBeforeSharingPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata,
+            ActionKindsToRemove = PdfSanitizationActionKind.All
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(6, result.RemovedCategoryCounts.UserMetadata);
+        Assert.Equal(0, result.RemovedCategoryCounts.Actions);
+        Assert.Single(info.Attachments);
+        Assert.Single(info.Outlines);
+        Assert.True(info.HasOptionalContent);
+        Assert.Contains(info.Annotations, static annotation => annotation.Subtype == "Text");
+        Assert.Contains(PdfSanitizer.Analyze(result.ToBytes()), static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+    }
+
+    [Fact]
+    public void UserMetadataSanitizationNeutralizesAnXmpStreamRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedXmpMetadataPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.UserMetadata);
+        Assert.False(result.ToDocument().Inspect().HasXmpMetadata);
+        Assert.DoesNotContain("PRIVATE-XMP-ALIAS", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedFileSanitizationNeutralizesAPayloadStreamRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedEmbeddedFilePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.Equal(1, preview.CategoryCounts.EmbeddedFiles);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.EmbeddedFiles);
+        Assert.Empty(result.ToDocument().Inspect().Attachments);
+        Assert.DoesNotContain("PRIVATE-ATTACHMENT-ALIAS", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommentSanitizationCountsAndNeutralizesAnUnplacedAnnotationRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedUnplacedCommentPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.CommentsAndMarkup
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.Equal(1, preview.CategoryCounts.CommentsAndMarkup);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.CommentsAndMarkup);
+        Assert.DoesNotContain("PRIVATE-UNPLACED-COMMENT", raw, StringComparison.Ordinal);
+        Assert.Empty(result.ToDocument().Inspect().Annotations);
+    }
+
+    [Fact]
+    public void BookmarkSanitizationCountsTheCompleteOutlineTreeBeyondTheLogicalReaderDepth() {
+        byte[] source = BuildDeepOutlinePdf(depth: 65);
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.Bookmarks
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.Equal(65, preview.CategoryCounts.Bookmarks);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(65, result.RemovedCategoryCounts.Bookmarks);
+        Assert.Empty(result.ToDocument().Inspect().Outlines);
+        Assert.DoesNotContain("PRIVATE-BOOKMARK-", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OptionalContentSanitizationResolvesAnIndirectGroupType() {
+        byte[] source = BuildIndirectOptionalContentTypePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.OptionalContent
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.OptionalContent);
+        Assert.False(result.ToDocument().Inspect().HasOptionalContent);
+        Assert.DoesNotContain("PRIVATE-INDIRECT-LAYER", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UserMetadataSanitizationRemovesCustomInfoFieldsButKeepsTechnicalFields() {
+        byte[] source = BuildCustomInfoMetadataPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.Equal(3, preview.CategoryCounts.UserMetadata);
+        Assert.DoesNotContain("PRIVATE-COMPANY", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE-CUSTOM", raw, StringComparison.Ordinal);
+        Assert.Null(ReadInfoString(result.ToBytes(), "Company"));
+        Assert.Null(ReadInfoString(result.ToBytes(), "CustomField"));
+        Assert.Equal("OfficeIMO-Test", ReadInfoString(result.ToBytes(), "Producer"));
+        Assert.Contains("/CreationDate", raw, StringComparison.Ordinal);
+        Assert.Contains("/ModDate", raw, StringComparison.Ordinal);
+        Assert.Contains("/Trapped /False", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UserMetadataSelectionPreservesComponentLevelXmpOutsideTheCatalogScope() {
+        byte[] source = BuildComponentXmpMetadataPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.Equal(0, preview.CategoryCounts.UserMetadata);
+        Assert.Contains("COMPONENT-XMP", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BookmarkSanitizationClearsReverseLinkedAliasedOutlineItems() {
+        byte[] source = BuildReverseLinkedAliasedOutlinePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.Bookmarks
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.Equal(2, preview.CategoryCounts.Bookmarks);
+        Assert.DoesNotContain("PRIVATE-REVERSE-BOOKMARK", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedFileSanitizationClearsAliasedFileSpecificationMetadata() {
+        byte[] source = BuildAliasedFileSpecificationPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.DoesNotContain("PRIVATE-FILENAME", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE-FILE-DESCRIPTION", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE-FILE-PAYLOAD", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedFileSelectionPreservesExternalFileSpecificationsUsedByActions() {
+        byte[] source = BuildExternalFileSpecificationActionPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        var (objects, _) = PdfSyntax.ParseObjects(result.ToBytes());
+        PdfDictionary fileSpecification = Assert.Single(
+            objects.Values.Select(static item => item.Value as PdfDictionary),
+            static dictionary => dictionary?.Get<PdfName>("Type")?.Name == "Filespec")!;
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[1].Value);
+        PdfReference openActionReference = Assert.IsType<PdfReference>(catalog.Items["OpenAction"]);
+        PdfDictionary openAction = Assert.IsType<PdfDictionary>(objects[openActionReference.ObjectNumber].Value);
+        PdfReference actionFileReference = Assert.IsType<PdfReference>(openAction.Items["F"]);
+
+        Assert.Equal("remote.pdf", fileSpecification.Get<PdfStringObj>("F")?.Value);
+        Assert.Equal("GoToR", openAction.Get<PdfName>("S")?.Name);
+        Assert.Same(fileSpecification, objects[actionFileReference.ObjectNumber].Value);
+    }
+
+    [Fact]
+    public void OptionalContentSanitizationClearsAliasedConfigurationMetadata() {
+        byte[] source = BuildAliasedOptionalContentConfigurationPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.OptionalContent
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.DoesNotContain("PRIVATE-LAYER-CONFIG", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE-LAYER-CREATOR", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE-LAYER-NAME", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LegacyPolicyCanRetainFileAttachmentAnnotationWhileRemovingItsPayload() {
+        byte[] source = BuildBeforeSharingPdf();
+        var policy = new PdfSanitizationOptions { RemoveRichMedia = false };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.Contains(info.Annotations, static annotation => annotation.Subtype == "FileAttachment");
+        Assert.Empty(info.Attachments);
+        Assert.DoesNotContain("PRIVATE-ATTACHMENT-PAYLOAD", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    public void SanitizationResetsPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+        byte[] source = BuildCategoryPageModePdf(kind, pageMode);
+        var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.NotEqual(pageMode, result.ToDocument().Inspect().CatalogPageMode);
+    }
+
+    [Theory]
+    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    [InlineData(PdfSanitizationContentKind.Bookmarks, "UseOutlines")]
+    public void SanitizationResetsIndirectPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+        byte[] source = BuildIndirectCategoryPageModePdf(kind, pageMode);
+        var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.NotEqual(pageMode, result.ToDocument().Inspect().CatalogPageMode);
+    }
+
+    [Fact]
+    public void BookmarkSanitizationCountsAndClearsALastOnlyReverseLinkedTree() {
+        byte[] source = BuildLastOnlyOutlinePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.Bookmarks
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.Equal(2, preview.CategoryCounts.Bookmarks);
+        Assert.DoesNotContain("PRIVATE-LAST-ONLY", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExactActionInspectionDoesNotTraverseAnUnselectedAttachmentNameTree() {
+        byte[] source = BuildDeepAttachmentNameTreeWithActionPdf();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeDepth = 1 }
+        };
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.Actions,
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript
+        };
+
+        PdfSanitizationReport report = PdfDocument.Load(source, readOptions).InspectSanitization(policy);
+
+        Assert.Equal(1, report.ActionCounts.JavaScript);
+        Assert.Equal(0, report.CategoryCounts.EmbeddedFiles);
+    }
+
+    [Fact]
+    public void LegacyRichMediaScanAndRewriteShareTheSameReachableDictionaryScope() {
+        byte[] source = BuildAliasedUntypedRichMediaPdf();
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize();
+
+        Assert.True(result.IsSanitized);
+        Assert.Empty(result.RemainingFindings);
+        Assert.DoesNotContain("PRIVATE-UNTYPED-RICH-MEDIA", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(PdfSanitizationContentKind.UserMetadata)]
+    [InlineData(PdfSanitizationContentKind.EmbeddedFiles)]
+    [InlineData(PdfSanitizationContentKind.Actions)]
+    [InlineData(PdfSanitizationContentKind.CommentsAndMarkup)]
+    [InlineData(PdfSanitizationContentKind.Bookmarks)]
+    [InlineData(PdfSanitizationContentKind.OptionalContent)]
+    public void SanitizeBeforeSharingUsesAnExactContentCategorySelection(PdfSanitizationContentKind selected) {
+        byte[] source = BuildBeforeSharingPdf();
+        var allCategories = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.All,
+            ActionKindsToRemove = PdfSanitizationActionKind.All
+        };
+        var selectedCategory = new PdfSanitizationOptions {
+            ContentKindsToRemove = selected,
+            ActionKindsToRemove = PdfSanitizationActionKind.All
+        };
+
+        PdfSanitizationReport before = PdfDocument.Load(source).InspectSanitization(allCategories);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(selectedCategory);
+        PdfSanitizationReport after = result.ToDocument().InspectSanitization(allCategories);
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(before.CategoryCounts.GetCount(selected), result.RemovedCategoryCounts.GetCount(selected));
+        Assert.Equal(0, after.CategoryCounts.GetCount(selected));
+        foreach (PdfSanitizationContentKind unselected in new[] {
+                     PdfSanitizationContentKind.UserMetadata,
+                     PdfSanitizationContentKind.EmbeddedFiles,
+                     PdfSanitizationContentKind.Actions,
+                     PdfSanitizationContentKind.CommentsAndMarkup,
+                     PdfSanitizationContentKind.Bookmarks,
+                     PdfSanitizationContentKind.OptionalContent
+                 }.Where(kind => kind != selected)) {
+            Assert.Equal(before.CategoryCounts.GetCount(unselected), after.CategoryCounts.GetCount(unselected));
+        }
+    }
+
+    [Fact]
+    public void SanitizationOptionsRejectUnsupportedContentKindBits() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfSanitizationOptions {
+            ContentKindsToRemove = (PdfSanitizationContentKind)(1 << 20)
+        });
+    }
+
+    [Fact]
+    public void InspectSanitization_ReportsTypedActionCountsForTheDefaultPolicy() {
+        PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization();
+
+        Assert.Equal(2, report.ActionCounts.JavaScript);
+        Assert.Equal(1, report.ActionCounts.Uri);
+        Assert.Equal(1, report.ActionCounts.Launch);
+        Assert.Equal(1, report.ActionCounts.SubmitForm);
+        Assert.Equal(1, report.ActionCounts.GoToR);
+        Assert.Equal(1, report.ActionCounts.GoToE);
+        Assert.Equal(1, report.ActionCounts.ImportData);
+        Assert.Equal(8, report.ActionCounts.Total);
+        Assert.Equal(report.Findings.Count, report.TotalCount);
+    }
+
+    [Theory]
+    [InlineData(PdfSanitizationActionKind.JavaScript, 2)]
+    [InlineData(PdfSanitizationActionKind.Launch, 1)]
+    [InlineData(PdfSanitizationActionKind.SubmitForm, 1)]
+    [InlineData(PdfSanitizationActionKind.GoToR, 1)]
+    [InlineData(PdfSanitizationActionKind.GoToE, 1)]
+    [InlineData(PdfSanitizationActionKind.ImportData, 1)]
+    public void InspectSanitization_UsesAnExactActionKindSelection(PdfSanitizationActionKind selected, int expectedCount) {
+        var policy = new PdfSanitizationOptions { ActionKindsToRemove = selected };
+
+        PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);
+
+        Assert.Equal(expectedCount, report.ActionCounts.GetCount(selected));
+        Assert.Equal(expectedCount, report.ActionCounts.Total);
+        Assert.All(report.Findings.Where(static finding => finding.ActionKind.HasValue),
+            finding => Assert.Equal(selected, finding.ActionKind));
+    }
+
+    [Fact]
+    public void Sanitize_CanRemoveJavaScriptWithoutRemovingOtherActionKinds() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript
+        };
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        IReadOnlyList<PdfSanitizationFinding> preservedActions = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(2, result.RemovedActionCounts.JavaScript);
+        Assert.DoesNotContain("JavaScript", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.SubmitForm);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.GoToR);
+    }
+
+    [Fact]
+    public void Sanitize_CanRemoveEveryUriActionWithoutRemovingOtherActionKinds() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.Uri
+        };
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+        IReadOnlyList<PdfSanitizationFinding> preservedActions = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(3, result.RemovedActionCounts.Uri);
+        Assert.Empty(info.LinkAnnotations.Where(static link => link.Uri != null));
+        Assert.DoesNotContain("base.example", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+    }
+
+    [Fact]
+    public void Sanitize_ExplicitAllowListOverridesAnExactActionKindSelection() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript |
+                                  PdfSanitizationActionKind.Launch
+        };
+        policy.AllowedActionTypes.Add("JavaScript");
+
+        PdfSanitizationReport preview = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        IReadOnlyList<PdfSanitizationFinding> defaultPolicyFindings = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.Equal(0, preview.ActionCounts.JavaScript);
+        Assert.Equal(1, preview.ActionCounts.Launch);
+        Assert.Equal(0, result.RemovedActionCounts.JavaScript);
+        Assert.Equal(1, result.RemovedActionCounts.Launch);
+        Assert.Contains(defaultPolicyFindings, static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+        Assert.DoesNotContain(defaultPolicyFindings, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+    }
+
+    [Fact]
+    public void Sanitize_DefaultUriSchemePolicyOverridesTheActionTypeAllowList() {
+        var policy = new PdfSanitizationOptions();
+        policy.AllowedActionTypes.Add("URI");
+
+        PdfSanitizationReport preview = PdfDocument.Load(BuildUnsafeWidgetUriPdf()).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildUnsafeWidgetUriPdf(), policy);
+
+        Assert.Equal(1, preview.ActionCounts.Uri);
+        Assert.Equal(1, result.RemovedActionCounts.Uri);
+        Assert.DoesNotContain("javascript:unsafe", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InspectSanitization_InventoriesMalformedNamedJavaScriptContainer() {
+        byte[] source = BuildMalformedNamedJavaScriptPdf();
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source, policy);
+
+        Assert.Equal(1, preview.ActionCounts.JavaScript);
+        Assert.Equal(1, result.RemovedActionCounts.JavaScript);
+        Assert.True(result.IsSanitized);
+        Assert.DoesNotContain("/JavaScript", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InspectSanitization_BoundsNamedJavaScriptReferenceChains() {
+        byte[] source = BuildNamedJavaScriptReferenceChainPdf(referenceCount: 8);
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeDepth = 4 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source, readOptions).InspectSanitization());
+
+        Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void InspectSanitization_CountsDanglingNamedJavaScriptReferencesAgainstNodeLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Kids [100 0 R 101 0 R 102 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source, readOptions).InspectSanitization());
+
+        Assert.Equal(PdfReadLimitKind.NameTreeNodes, exception.Kind);
+    }
+
+    [Fact]
+    public void InspectSanitization_CachesSharedNamedJavaScriptRootsAcrossTheScan() {
+        byte[] source = BuildSharedNamedJavaScriptRootPdf();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
+        };
+
+        PdfSanitizationReport report = PdfDocument.Load(source, readOptions).InspectSanitization();
+
+        Assert.Equal(2, report.ActionCounts.JavaScript);
+    }
+
+    [Fact]
+    public void InspectSanitization_DoesNotChargeActionPayloadsToTheNameTreeNodeLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Names [(Run) 6 0 R] >>", "endobj",
+            "6 0 obj", "<< /S /JavaScript /JS 7 0 R >>", "endobj",
+            "7 0 obj", "(app.alert\\('test'\\);)", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfSanitizationReport report = PdfDocument.Load(source, readOptions).InspectSanitization();
+
+        Assert.Equal(1, report.ActionCounts.JavaScript);
+    }
+
+    [Fact]
+    public void SanitizationOptions_RejectUnsupportedActionKindBits() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfSanitizationOptions {
+            ActionKindsToRemove = (PdfSanitizationActionKind)(1 << 20)
+        });
+    }
+
+    [Fact]
     public void Analyze_HonorsPolicyCancellation() {
         byte[] source = BuildActiveContentPdf();
         using var cancellation = new System.Threading.CancellationTokenSource();
@@ -391,7 +958,7 @@ public class PdfSanitizerTests {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
-            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /AA << /WC 12 0 R /WS 13 0 R /WP 14 0 R >> >>",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /URI << /Base (https://base.example/) >> /AA << /WC 12 0 R /WS 13 0 R /WP 14 0 R >> >>",
             "endobj",
             "2 0 obj",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -446,6 +1013,279 @@ public class PdfSanitizerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildCustomInfoMetadataPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /Title (PRIVATE-TITLE) /Company (PRIVATE-COMPANY) /CustomField (PRIVATE-CUSTOM) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Info 5 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildComponentXmpMetadataPdf() {
+        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'>COMPONENT-XMP</x:xmpmeta><?xpacket end='w'?>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Metadata 5 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /Metadata /Subtype /XML", xmp),
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildReverseLinkedAliasedOutlinePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R /PieceInfo << /Private 12 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "10 0 obj", "<< /Type /Outlines /First 11 0 R /Last 12 0 R /Count 2 >>", "endobj",
+            "11 0 obj", "<< /Title (FIRST-BOOKMARK) /Parent 10 0 R >>", "endobj",
+            "12 0 obj", "<< /Title (PRIVATE-REVERSE-BOOKMARK) /Parent 10 0 R /Prev 11 0 R >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 13 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedFileSpecificationPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(PRIVATE-FILENAME.txt) 6 0 R] >> >> /PieceInfo << /Private 6 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /EmbeddedFile", "PRIVATE-FILE-PAYLOAD"),
+            "6 0 obj", "<< /Type /Filespec /F (PRIVATE-FILENAME.txt) /UF (PRIVATE-FILENAME.txt) /Desc (PRIVATE-FILE-DESCRIPTION) /EF << /F 5 0 R >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedOptionalContentConfigurationPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties 6 0 R /PieceInfo << /Private 7 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Properties << /Layer 8 0 R >> >> /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj", "<< /OCGs [8 0 R] /D 7 0 R >>", "endobj",
+            "7 0 obj", "<< /Name (PRIVATE-LAYER-CONFIG) /Creator (PRIVATE-LAYER-CREATOR) /ON [8 0 R] >>", "endobj",
+            "8 0 obj", "<< /Type /OCG /Name (PRIVATE-LAYER-NAME) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildCategoryPageModePdf(PdfSanitizationContentKind kind, string pageMode) {
+        string catalog = kind switch {
+            PdfSanitizationContentKind.EmbeddedFiles =>
+                "<< /Type /Catalog /Pages 2 0 R /PageMode /" + pageMode + " /Names << /EmbeddedFiles << /Names [(payload.txt) 6 0 R] >> >> >>",
+            PdfSanitizationContentKind.OptionalContent =>
+                "<< /Type /Catalog /Pages 2 0 R /PageMode /" + pageMode + " /OCProperties << /OCGs [6 0 R] /D << /ON [6 0 R] >> >> >>",
+            PdfSanitizationContentKind.Bookmarks =>
+                "<< /Type /Catalog /Pages 2 0 R /PageMode /" + pageMode + " /Outlines 6 0 R >>",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj",
+            catalog,
+            "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty)
+        };
+        if (kind == PdfSanitizationContentKind.EmbeddedFiles) {
+            lines.Add(StreamObject(5, "/Type /EmbeddedFile", "payload"));
+            lines.Add("6 0 obj\n<< /Type /Filespec /F (payload.txt) /EF << /F 5 0 R >> >>\nendobj");
+        } else if (kind == PdfSanitizationContentKind.OptionalContent) {
+            lines.Add("6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj");
+        } else {
+            lines.Add("6 0 obj\n<< /Type /Outlines >>\nendobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size 7 >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildIndirectCategoryPageModePdf(PdfSanitizationContentKind kind, string pageMode) {
+        string pdf = Encoding.ASCII.GetString(BuildCategoryPageModePdf(kind, pageMode));
+        pdf = pdf.Replace("/PageMode /" + pageMode, "/PageMode 9 0 R")
+            .Replace(
+                "trailer\n<< /Root 1 0 R /Size 7 >>",
+                "9 0 obj\n/" + pageMode + "\nendobj\ntrailer\n<< /Root 1 0 R /Size 10 >>");
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildExternalFileSpecificationActionPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OpenAction 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /S /GoToR /F 6 0 R /D [0 /Fit] >>", "endobj",
+            "6 0 obj", "<< /Type /Filespec /F (remote.pdf) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildLastOnlyOutlinePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "10 0 obj", "<< /Type /Outlines /Last 12 0 R /Count 2 >>", "endobj",
+            "11 0 obj", "<< /Title (PRIVATE-LAST-ONLY-FIRST) /Parent 10 0 R >>", "endobj",
+            "12 0 obj", "<< /Title (PRIVATE-LAST-ONLY-SECOND) /Parent 10 0 R /Prev 11 0 R >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 13 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildDeepAttachmentNameTreeWithActionPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 5 0 R >> /OpenAction 8 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /Kids [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Kids [7 0 R] >>", "endobj",
+            "7 0 obj", "<< /Names [] >>", "endobj",
+            "8 0 obj", "<< /S /JavaScript /JS (app.alert('selected')) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedUntypedRichMediaPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /PieceInfo << /Private 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /Subtype /RichMedia /Contents (PRIVATE-UNTYPED-RICH-MEDIA) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildBeforeSharingPdf() {
+        const string pageContent = "BT /F1 12 Tf 20 150 Td (VISIBLE-PAGE-CONTENT) Tj ET\n/OC /Layer BDC BT /F1 12 Tf 20 120 Td (VISIBLE-AFTER-LAYER-FLATTEN) Tj ET EMC";
+        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title><rdf:Alt><rdf:li xml:lang='x-default'>PRIVATE-XMP-TITLE</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end='w'?>";
+        const string payload = "PRIVATE-ATTACHMENT-PAYLOAD";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R /PageMode /UseOutlines /Names << /EmbeddedFiles << /Names [(payload.txt) 14 0 R] >> /JavaScript << /Names [(startup) 17 0 R] >> >> /Metadata 12 0 R /OCProperties << /OCGs [16 0 R] /D << /ON [16 0 R] /Order [16 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> /Properties << /Layer 16 0 R >> >> /Contents 4 0 R /Annots [5 0 R 6 0 R 7 0 R 15 0 R] >>",
+            "endobj",
+            StreamObject(4, string.Empty, pageContent),
+            "5 0 obj", "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (PRIVATE-COMMENT) >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Link /Rect [50 20 100 40] /A << /S /URI /URI (https://example.com/) >> >>", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /Widget /Rect [110 20 180 40] >>", "endobj",
+            "8 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "10 0 obj", "<< /Type /Outlines /First 11 0 R /Last 11 0 R /Count 1 >>", "endobj",
+            "11 0 obj", "<< /Title (PRIVATE-BOOKMARK) /Parent 10 0 R /Dest [3 0 R /Fit] >>", "endobj",
+            StreamObject(12, "/Type /Metadata /Subtype /XML", xmp),
+            StreamObject(13, "/Type /EmbeddedFile /Subtype /text#2Fplain", payload),
+            "14 0 obj", "<< /Type /Filespec /F (payload.txt) /UF (payload.txt) /EF << /F 13 0 R /UF 13 0 R >> >>", "endobj",
+            "15 0 obj", "<< /Type /Annot /Subtype /FileAttachment /Rect [190 20 210 40] /FS 14 0 R /Contents (PRIVATE-ATTACHMENT-COMMENT) >>", "endobj",
+            "16 0 obj", "<< /Type /OCG /Name (PRIVATE-LAYER) >>", "endobj",
+            "17 0 obj", "<< /S /JavaScript /JS (app.alert('PRIVATE-SCRIPT')) >>", "endobj",
+            "20 0 obj",
+            "<< /Title (PRIVATE-TITLE) /Author (PRIVATE-AUTHOR) /Subject (PRIVATE-SUBJECT) /Keywords (PRIVATE-KEYWORDS) /Creator (PRIVATE-CREATOR) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>",
+            "endobj",
+            "trailer", "<< /Root 1 0 R /Info 20 0 R /Size 21 >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildAliasedXmpMetadataPdf() {
+        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'>PRIVATE-XMP-ALIAS</x:xmpmeta><?xpacket end='w'?>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Metadata 5 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /Metadata /Subtype /XML", xmp),
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedEmbeddedFilePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(payload.txt) 6 0 R] >> >> /PieceInfo << /Private 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /EmbeddedFile /Subtype /text#2Fplain", "PRIVATE-ATTACHMENT-ALIAS"),
+            "6 0 obj", "<< /Type /Filespec /F (payload.txt) /UF (payload.txt) /EF << /F 5 0 R /UF 5 0 R >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedUnplacedCommentPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /PieceInfo << /Private 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /Type /Annot /Subtype /Text /Contents (PRIVATE-UNPLACED-COMMENT) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildDeepOutlinePdf(int depth) {
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "10 0 obj", "<< /Type /Outlines /First 11 0 R /Last 11 0 R /Count " + depth.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "endobj"
+        };
+        for (int index = 0; index < depth; index++) {
+            int objectNumber = 11 + index;
+            int parentObjectNumber = index == 0 ? 10 : objectNumber - 1;
+            string child = index + 1 < depth
+                ? " /First " + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R"
+                : string.Empty;
+            lines.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj");
+            lines.Add("<< /Title (PRIVATE-BOOKMARK-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") /Parent " +
+                      parentObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R" + child + " >>");
+            lines.Add("endobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size " + (11 + depth).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildIndirectOptionalContentTypePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /ON [6 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Properties << /Layer 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj", "<< /Type 7 0 R /Name (PRIVATE-INDIRECT-LAYER) >>", "endobj",
+            "7 0 obj", "/OCG", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
+    }
+
     private static byte[] BuildForbiddenWidgetRootWithRetainedNextPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
@@ -469,6 +1309,52 @@ public class PdfSanitizerTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>", "endobj",
             "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
             "6 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A << /S /URI /URI (javascript:unsafe) >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildMalformedNamedJavaScriptPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildNamedJavaScriptReferenceChainPdf(int referenceCount) {
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+        };
+        for (int index = 0; index < referenceCount; index++) {
+            int objectNumber = 5 + index;
+            lines.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj");
+            lines.Add(index + 1 < referenceCount
+                ? "<< /Kids [" + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R] >>"
+                : "<< /Names [] >>");
+            lines.Add("endobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size " + (5 + referenceCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildSharedNamedJavaScriptRootPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R /Also << /JavaScript 5 0 R >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Kids [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Names [] >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));
     }
@@ -626,5 +1512,21 @@ public class PdfSanitizerTests {
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n";
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static string StreamObject(int objectNumber, string dictionaryEntries, string content) =>
+        objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n<< " + dictionaryEntries +
+        " /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        " >>\nstream\n" + content + "\nendstream\nendobj";
+
+    private static string? ReadInfoString(byte[] pdf, string key) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        if (!PdfSyntax.TryGetTrailerReference(trailerRaw, "Info", limits: null, out PdfReference infoReference) ||
+            !objects.TryGetValue(infoReference.ObjectNumber, out PdfIndirectObject? infoObject) ||
+            infoObject.Value is not PdfDictionary info ||
+            info.Get<PdfStringObj>(key) is not PdfStringObj value) {
+            return null;
+        }
+        return value.Value;
     }
 }

@@ -104,6 +104,63 @@ returning it. Per-script, script-count, and aggregate-byte limits come from
 sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed
 inputs rather than weakening their security or revision contracts.
 
+### Preview and select active-content removal
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+var policy = new PdfSanitizationOptions {
+    ActionKindsToRemove = PdfSanitizationActionKind.JavaScript |
+        PdfSanitizationActionKind.Launch |
+        PdfSanitizationActionKind.SubmitForm
+};
+
+PdfSanitizationReport preview = incoming.InspectSanitization(policy);
+Console.WriteLine($"Scripts: {preview.ActionCounts.JavaScript}");
+Console.WriteLine($"Launch actions: {preview.ActionCounts.Launch}");
+
+PdfSanitizationResult result = incoming.Sanitize(policy);
+File.WriteAllBytes("sanitized.pdf", result.ToBytes());
+```
+
+`ActionKindsToRemove` is an exact opt-in selection, so unselected action kinds
+remain. Selecting `Uri` removes every URI action and catalog URI base, including
+ordinary web links. Leave the property null for the established default policy:
+known active-content actions are removed, allowed `http`, `https`, `mailto`, and
+`tel` links remain, and URI schemes outside `AllowedUriSchemes` are removed.
+
+### Inspect and sanitize before sharing
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+var policy = new PdfSanitizationOptions {
+    ContentKindsToRemove = PdfSanitizationContentKind.All,
+    ActionKindsToRemove = PdfSanitizationActionKind.All
+};
+
+PdfSanitizationReport preview = incoming.InspectSanitization(policy);
+Console.WriteLine($"User metadata: {preview.CategoryCounts.UserMetadata}");
+Console.WriteLine($"Attachments: {preview.CategoryCounts.EmbeddedFiles}");
+Console.WriteLine($"Actions: {preview.CategoryCounts.Actions}");
+Console.WriteLine($"Comments and markup: {preview.CategoryCounts.CommentsAndMarkup}");
+Console.WriteLine($"Bookmarks: {preview.CategoryCounts.Bookmarks}");
+Console.WriteLine($"Layer definitions: {preview.CategoryCounts.OptionalContent}");
+
+PdfSanitizationResult result = incoming.Sanitize(policy);
+File.WriteAllBytes("shared.pdf", result.ToBytes());
+```
+
+`ContentKindsToRemove` is an exact selection of user-authored Info fields and
+XMP, embedded files, actions, comments and markup, bookmarks, and optional-content
+definitions. Unselected categories remain. Link and Widget annotations remain
+when comments are selected; selecting URI actions can still remove a link's URI.
+Producer, creation and modification dates, and trapping status are not classified
+as user metadata and remain in the output.
+
+Selecting optional content removes layer definitions and associations. Drawing
+and text operators that belonged to a layer remain as ordinary page content, so
+they no longer depend on viewer layer state. Use content-safety inspection and
+verified redaction when the page content itself must be removed.
+
 ### Add interactive fields to an existing PDF
 
 ```csharp
@@ -757,6 +814,7 @@ PDF signature discovery, byte-range inspection, mutation blocking, and caller-de
 `OfficeIMO.Security`. For the built-in CMS adapter, install the optional package and pass its provider explicitly:
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 
@@ -767,7 +825,14 @@ PdfExternalSignatureCompletion signed = PdfDocument
     .Load("contract.pdf")
     .Security.SignExternal(
         signer,
-        new PdfExternalSignatureOptions { FieldName = "Approval" });
+        new PdfExternalSignatureOptions {
+            FieldName = "Approval",
+            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                ImageBytes = File.ReadAllBytes("approval-mark.png"),
+                ImageFit = OfficeImageFit.Contain,
+                ShowText = false
+            }
+        });
 
 var cryptography = new PdfCmsSignatureCryptographyProvider(
     security,
@@ -778,6 +843,37 @@ PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSigna
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
+The optional appearance image is visual content only; certificate validation remains the source of signer identity.
+
+### Review, apply, and verify redactions
+
+Build a source-bound plan, review its areas and matches, then apply that exact plan and retain the evidence report with the output:
+
+```csharp
+PdfDocument source = PdfDocument.Load("contract.pdf");
+PdfRedactionPlan plan = source.Redactions.Search(
+    new PdfRedactionSearchOptions().AddLiteral("Account: 123-45-6789"));
+
+// Present plan.Areas and plan.Matches for approval before applying it.
+var verification = new PdfRedactionVerificationOptions {
+    RequireCompleteStreamInspection = true,
+    CheckManagedRendering = true
+}.RequireRemovedText("Account: 123-45-6789");
+
+PdfRedactionApplyResult redacted = source.Redactions.ApplyWithEvidence(
+    plan,
+    verificationOptions: verification);
+
+redacted.ThrowIfUnverified();
+File.WriteAllBytes("contract-redacted.pdf", redacted.Pdf);
+Console.WriteLine(redacted.Evidence.Summary);
+```
+
+`Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
+
+Text redaction rewrites native text-show operations at glyph granularity. Encoded glyphs outside the reviewed areas retain their original font resource and position; removed glyph advances become `TJ` displacements so adjacent text does not reflow. When a glyph mapping cannot be proven safe, the complete PDF text object is removed instead.
+
+When `verificationOptions` is omitted, `ApplyWithEvidence` requires complete stream inspection and managed-rendering checks by default. Supply explicit options, as above, when the workflow also needs removed/retained markers or an external validator.
 
 ### Stamp and watermark an existing PDF
 
@@ -836,6 +932,29 @@ shapes, drawings, clipping, and effects are supported. Interactive links and
 annotations, named destinations, forms, and document outlines use their
 dedicated editors so their behavior is not silently flattened or discarded.
 
+Use a scoped canvas blend mode when foreground artwork must composite with the
+existing page. This example adds a Multiply highlight while keeping dark text
+legible:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var highlight = OfficeShape.Rectangle(180, 18);
+highlight.FillColor = OfficeColor.FromRgb(255, 230, 70);
+highlight.StrokeWidth = 0;
+
+PdfDocument.Load("contract.pdf")
+    .Stamp.Content((canvas, page) => canvas
+        .WithBlendMode(OfficeBlendMode.Multiply, blended =>
+            blended.Shape(highlight, 72, 140)))
+    .Save("contract-highlighted.pdf");
+```
+
+`Effect(transform, opacity, blendMode, build)` combines affine transforms,
+group opacity, and any standard PDF blend mode. Set `BehindContent = true` on
+`PdfCanvasStampOptions` for a true underlay; use the foreground default when
+the blend must use existing page artwork as its backdrop.
+
 ### Search and edit existing page text
 
 Text editing coordinates use PDF points from the page bottom-left. Inspect a
@@ -867,9 +986,35 @@ text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
 keeps wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
-Replacement uses the closest standard PDF font unless the caller selects one;
+Unmatched glyphs remain encoded in their original font; newly inserted replacement text uses the closest standard PDF font unless the caller selects one.
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
+
+Invisible OCR text stored with PDF text rendering mode 3 is opt-in for both
+discovery and mutation. Use `IncludeTextRenderingMode3` to find it, then
+`AllowTextRenderingMode3` to authorize an edit that preserves the invisible
+rendering mode:
+
+```csharp
+PdfDocument scanned = PdfDocument.Load("scanned-contract.pdf");
+var ocrSearch = new PdfTextSearchOptions {
+    MatchCase = true,
+    IncludeTextRenderingMode3 = true
+};
+
+PdfTextMatch ocrMatch = scanned.Text.Find("Account number", ocrSearch).Single();
+PdfTextEditResult corrected = scanned.Text.Replace(
+    ocrMatch,
+    "Customer number",
+    new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+corrected.Document.Save("scanned-contract-corrected.pdf");
+```
+
+The OCR opt-ins do not authorize clipping text modes or Type3 font glyph
+programs, because those glyph programs can paint visible graphics independently
+of the text rendering mode. One edit also cannot combine visible text and
+rendering-mode-3 OCR text.
 
 ### Find and edit existing page images
 
@@ -1026,7 +1171,7 @@ The PDF owner recognizes the standards-defined embedded file with media type `ap
 
 ## Concealed-content inspection and cleanup
 
-`PdfDocument.InspectContentSafety(...)` reports non-painting text render modes, effective transparency, clipping, tiny/zero/off-canvas geometry, paint-order-resolved low contrast, and Unicode evidence from decoded spans. `PdfDocument.RemoveSelectedContent(...)` physically removes exact selected spans and can rewrite reviewed Unicode ranges in ordinary painted or painted low-contrast spans while verifying neighboring text restoration. Unicode sub-findings whose restamp could change concealment remain report-only, while their whole concealed span remains removable. Encrypted and signed PDFs are rejected; hidden optional-content nesting that cannot be mapped to an exact removable span is diagnosed instead of guessed.
+`PdfDocument.InspectContentSafety(...)` reports non-painting text render modes, effective transparency, clipping, tiny/zero/off-canvas geometry, paint-order-resolved low contrast, hidden annotation and form-widget values, text inside layers hidden by the default optional-content configuration, and Unicode evidence from decoded spans. `PdfDocument.RemoveSelectedContent(...)` physically removes exact selected spans and can rewrite reviewed Unicode ranges in ordinary painted or painted low-contrast spans while verifying neighboring text restoration. Hidden layer, annotation, and widget findings remain report-only because their container semantics cannot be safely converted into an exact text edit. Encrypted and signed PDFs are rejected.
 
 ### Generate a formal e-invoice carrier
 

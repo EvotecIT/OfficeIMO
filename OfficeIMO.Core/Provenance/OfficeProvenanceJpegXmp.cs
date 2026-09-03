@@ -121,7 +121,13 @@ internal static class OfficeProvenanceJpegXmp {
             var updatedStandards = new Dictionary<int, byte[]>();
             bool referencesUpdated = true;
             foreach (int standardStart in reference.Value.Distinct()) {
-                if (!TryReplaceExtendedGuid(currentPackets[standardStart], reference.Key, replacementGuid, options, out byte[] updated)) {
+                if (!TryReplaceExtendedGuid(
+                    currentPackets[standardStart],
+                    reference.Key,
+                    replacementGuid,
+                    options,
+                    removalOptions.EffectiveMaxOutputBytes,
+                    out byte[] updated)) {
                     referencesUpdated = false;
                     break;
                 }
@@ -130,14 +136,22 @@ internal static class OfficeProvenanceJpegXmp {
             if (!referencesUpdated) continue;
 
             foreach (KeyValuePair<int, byte[]> updated in updatedStandards) currentPackets[updated.Key] = updated.Value;
-            ApplyExtendedReplacement(result.Replacements, chunks, replacementGuid, cleanedPacket);
+            ApplyExtendedReplacement(
+                result.Replacements,
+                chunks,
+                replacementGuid,
+                cleanedPacket,
+                removalOptions.EffectiveMaxOutputBytes);
             changes.AddRange(pendingChanges);
         }
 
         foreach (StandardPacket standard in standards) {
             byte[] current = currentPackets[standard.SegmentStart];
             if (!ReferenceEquals(current, standard.Packet)) {
-                result.Replacements[standard.SegmentStart] = CreateSegment(Join(StandardHeader, current));
+                result.Replacements[standard.SegmentStart] = CreateSegment(
+                    StandardHeader,
+                    current,
+                    removalOptions!.EffectiveMaxOutputBytes);
             }
         }
         return result;
@@ -200,6 +214,7 @@ internal static class OfficeProvenanceJpegXmp {
         string oldGuid,
         string newGuid,
         OfficeProvenanceOptions options,
+        long maximumOutputBytes,
         out byte[] updated) {
         updated = packet;
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return false;
@@ -212,7 +227,7 @@ internal static class OfficeProvenanceJpegXmp {
             changed = true;
         }
         if (!changed) return false;
-        updated = Serialize(document);
+        updated = Serialize(document, maximumOutputBytes);
         return true;
     }
 
@@ -244,8 +259,8 @@ internal static class OfficeProvenanceJpegXmp {
         return OfficeProvenanceXml.TryLoadDocument(packet, options, out document);
     }
 
-    private static byte[] Serialize(XDocument document) {
-        using var stream = new MemoryStream();
+    private static byte[] Serialize(XDocument document, long maximumOutputBytes) {
+        using var stream = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes);
         var settings = new XmlWriterSettings {
             Encoding = new UTF8Encoding(false),
             Indent = false,
@@ -260,18 +275,22 @@ internal static class OfficeProvenanceJpegXmp {
         Dictionary<int, byte[]> replacements,
         ExtendedChunk[] chunks,
         string guid,
-        byte[] packet) {
+        byte[] packet,
+        long maximumOutputBytes) {
         int maximumChunkBytes = MaximumSegmentPayload - ExtendedHeader.Length - ExtendedChunkMetadataLength;
-        using var segments = new MemoryStream();
+        using var segments = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes);
         for (int offset = 0; offset < packet.Length; offset += maximumChunkBytes) {
             int count = Math.Min(maximumChunkBytes, packet.Length - offset);
+            OfficeProvenanceBinary.EnsureOutputWithinLimit(
+                ExtendedHeader.Length + ExtendedChunkMetadataLength + count + 4L,
+                maximumOutputBytes);
             byte[] metadata = new byte[ExtendedHeader.Length + ExtendedChunkMetadataLength + count];
             Buffer.BlockCopy(ExtendedHeader, 0, metadata, 0, ExtendedHeader.Length);
             Encoding.ASCII.GetBytes(guid, 0, guid.Length, metadata, ExtendedHeader.Length);
             WriteUInt32(metadata, ExtendedHeader.Length + GuidLength, (uint)packet.Length);
             WriteUInt32(metadata, ExtendedHeader.Length + GuidLength + 4, (uint)offset);
             Buffer.BlockCopy(packet, offset, metadata, ExtendedHeader.Length + ExtendedChunkMetadataLength, count);
-            byte[] segment = CreateSegment(metadata);
+            byte[] segment = CreateSegment(metadata, maximumOutputBytes);
             segments.Write(segment, 0, segment.Length);
         }
         replacements[chunks[0].SegmentStart] = segments.ToArray();
@@ -286,8 +305,9 @@ internal static class OfficeProvenanceJpegXmp {
         return builder.ToString();
     }
 
-    private static byte[] CreateSegment(byte[] payload) {
+    private static byte[] CreateSegment(byte[] payload, long maximumOutputBytes) {
         if (payload.Length > MaximumSegmentPayload) throw new InvalidDataException("JPEG XMP packet exceeds the APP1 segment limit.");
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(payload.LongLength + 4L, maximumOutputBytes);
         byte[] segment = new byte[payload.Length + 4];
         segment[0] = 0xFF;
         segment[1] = 0xE1;
@@ -296,6 +316,11 @@ internal static class OfficeProvenanceJpegXmp {
         segment[3] = (byte)length;
         Buffer.BlockCopy(payload, 0, segment, 4, payload.Length);
         return segment;
+    }
+
+    private static byte[] CreateSegment(byte[] first, byte[] second, long maximumOutputBytes) {
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(first.LongLength + second.LongLength + 4L, maximumOutputBytes);
+        return CreateSegment(Join(first, second), maximumOutputBytes);
     }
 
     private static byte[] Join(byte[] first, byte[] second) {

@@ -65,7 +65,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithDoubleQuoteLineAdvanceOperator() {
-        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 0 (Second) \"\nET\n";
+        const string streamContent = "BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\n0 0 (Second) \"\nET\n";
         return BuildSingleStreamPdf(streamContent);
     }
 

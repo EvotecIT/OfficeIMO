@@ -14,8 +14,10 @@ internal static class OfficeProvenanceJpeg {
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
-        using var output = new MemoryStream(data.Length);
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
         reserialized = Walk(data, options.Limits, context: null, output, options, changes);
         return output.ToArray();
     }

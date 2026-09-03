@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Provenance;
 using Xunit;
@@ -6,6 +7,34 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfProvenanceTests {
+    [Fact]
+    public void ProvenanceReaderForwardsCancellationIntoPdfParsing() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfProvenance.OpenReadDocument(
+            pdf,
+            new PdfLoadOptions(),
+            cancellation.Token));
+    }
+
+    [Fact]
+    public void ProvenanceGraphEditorForwardsCancellationIntoTheFullRewrite() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfProvenanceGraphEditor.RemoveFileSpecifications(
+            pdf,
+            new HashSet<int> { int.MaxValue },
+            document,
+            readOptions: null,
+            maximumOutputBytes: pdf.LongLength * 2L,
+            cancellationToken: cancellation.Token));
+    }
+
     [Fact]
     public void InspectAndRemoveUseTheExactC2paAssociatedFileProfile() {
         byte[] manifest = CreateManifestStore();
@@ -824,16 +853,15 @@ public sealed partial class PdfProvenanceTests {
     }
 
     [Fact]
-    public void RemovalEnforcesExpandedContainerLimitDuringGraphRewrite() {
+    public void RemovalEnforcesIndependentOutputLimitDuringGraphRewrite() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
-        var options = new OfficeProvenanceRemovalOptions();
+        var options = new OfficeProvenanceRemovalOptions { MaxOutputBytes = 300 };
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
         options.Limits.MaxManifestBytes = 512;
-        options.Limits.MaxExpandedContainerBytes = 300;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
 
-        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -847,7 +875,7 @@ public sealed partial class PdfProvenanceTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             PdfPageExtractor.EnsureSerializedObjectWithinLimit(stream, context, 1024 * 1024));
 
-        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

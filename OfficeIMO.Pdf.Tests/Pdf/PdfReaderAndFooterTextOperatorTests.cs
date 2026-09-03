@@ -23,6 +23,16 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_AppliesNumericOnlyTJPositioning() {
+        byte[] bytes = BuildSingleStreamPdf("BT /F1 12 Tf 50 700 Td [-5000] TJ (tail) Tj ET\n");
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("tail", span.Text);
+        Assert.InRange(span.X, 109.99D, 110.01D);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsSingleQuoteOperator() {
         byte[] bytes = BuildPdfWithSingleQuoteOperator();
 
@@ -52,7 +62,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
     [Fact]
     public void PdfTextExtractor_ExtractAllText_TreatsQuoteOperatorsAsLineAdvance() {
-        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
         byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
 
         Assert.Matches("First\\r?\\nSecond", PdfTextExtractor.ExtractAllText(singleQuote));
@@ -63,7 +73,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ResetsXForLineAdvanceOperators() {
         byte[] tStar = BuildSingleStreamPdf("BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\nT*\n(Second) Tj\nET\n");
         byte[] td = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 -14 Td\n(Second) Tj\nET\n");
-        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
         byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
 
         AssertSecondLineStartsAtFirstLineX(tStar);

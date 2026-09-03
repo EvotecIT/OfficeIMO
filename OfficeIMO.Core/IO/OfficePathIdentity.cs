@@ -9,6 +9,11 @@ using System.Text;
 namespace OfficeIMO.Internal {
     /// <summary>Provides strict physical, link-aware path identity for trusted in-process consumers.</summary>
     internal static partial class OfficePathIdentity {
+        internal static bool SupportsPhysicalIdentity =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
         internal static string Normalize(string path) {
             string identity = ResolvePhysicalPath(path);
             return Normalize(identity, IsCaseInsensitiveFileSystem(identity));
@@ -210,6 +215,7 @@ namespace OfficeIMO.Internal {
                     : normalizedRoot + Path.DirectorySeparatorChar;
 
         internal static bool IsCaseInsensitiveFileSystem(string path) {
+            if (!SupportsPhysicalIdentity) return IsConservativelyCaseInsensitivePlatform;
             return TryGetFileSystemCaseBehavior(path, out bool caseInsensitive)
                 ? caseInsensitive
                 : IsConservativelyCaseInsensitivePlatform;

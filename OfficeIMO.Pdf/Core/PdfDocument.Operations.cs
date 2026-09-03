@@ -273,7 +273,8 @@ public sealed partial class PdfDocument {
     internal PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => PdfRedactionPlanner.Search(GetBytesForOperation(), search, layoutOptions, options ?? ReadOptions);
 
     /// <summary>
-    /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
+    /// Creates a new PDF with intersecting text glyphs and annotations removed from the supplied redaction areas.
+    /// Unsupported text mappings fall back to removal of the complete PDF text object.
     /// </summary>
     internal PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options);
@@ -281,6 +282,94 @@ public sealed partial class PdfDocument {
 
     /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
     internal PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
+
+    /// <summary>Applies a reviewed redaction plan and returns source-bound post-rewrite evidence.</summary>
+    internal PdfRedactionApplyResult ApplyRedactionsWithEvidence(
+        PdfRedactionPlan plan,
+        PdfRedactionApplyOptions? applyOptions = null,
+        PdfRedactionVerificationOptions? verificationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfLoadOptions? options = null) {
+        Guard.NotNull(plan, nameof(plan));
+        PdfLoadOptions? readOptions = options ?? ReadOptions;
+        byte[] source = GetBytesForOperation();
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.Redact, readOptions);
+        byte[] output = PdfRedactionApplier.Apply(
+            source,
+            plan,
+            applyOptions,
+            layoutOptions,
+            readOptions,
+            out PdfGeneratedOutputGrowth generatedGrowth,
+            out IReadOnlyList<PdfRedactionMatch> appliedImageMatches);
+        PdfRedactionVerificationOptions effectiveVerification = verificationOptions ?? new PdfRedactionVerificationOptions {
+            RequireCompleteStreamInspection = true,
+            CheckManagedRendering = true
+        };
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(
+            output,
+            plan,
+            effectiveVerification,
+            outputReadOptions,
+            appliedImageMatches);
+        IReadOnlyList<PdfRedactionMatch> residualMatches = plan.Areas.Count == 0 || verification.Issues.Any(static issue =>
+            issue.Feature == "ReviewedRedactionPlanBlocked" ||
+            issue.Feature == "RedactionPlanPageCountChanged" ||
+            issue.Feature == "RedactionPlanPageIdentityChanged" ||
+            issue.Feature == "RedactionPlanPageMissing" ||
+            issue.Feature == "RedactionPlanInspectionBlocked")
+            ? Array.Empty<PdfRedactionMatch>()
+            : PdfRedactionVerification.FilterAppliedImageResiduals(
+                PdfRedactionPlanner.PlanForVerification(output, plan.Areas, outputReadOptions).Matches,
+                appliedImageMatches);
+        IReadOnlyList<PdfRedactionMatch> inconclusiveMatches = FindWidgetMatchesWithReachableFieldOwners(
+            source,
+            output,
+            plan,
+            readOptions,
+            outputReadOptions);
+        var evidence = new PdfRedactionEvidenceReport(
+            plan,
+            PdfRedactionPlan.ComputeSourceSha256(output),
+            residualMatches,
+            inconclusiveMatches,
+            verification);
+        return new PdfRedactionApplyResult(output, mutationPlan, evidence, outputReadOptions);
+    }
+
+    private static IReadOnlyList<PdfRedactionMatch> FindWidgetMatchesWithReachableFieldOwners(
+        byte[] source,
+        byte[] output,
+        PdfRedactionPlan plan,
+        PdfLoadOptions? sourceReadOptions,
+        PdfLoadOptions outputReadOptions) {
+        PdfRedactionMatch[] widgetMatches = plan.Matches
+            .Where(static match => match.Kind == PdfRedactionMatchKind.Annotation &&
+                string.Equals(match.Subtype, "Widget", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (widgetMatches.Length == 0) return Array.Empty<PdfRedactionMatch>();
+
+        IReadOnlyList<PdfFormField> sourceFields = PdfReadDocument.Open(source, sourceReadOptions).FormFields;
+        var outputFieldNames = new HashSet<string>(
+            PdfReadDocument.Open(output, outputReadOptions).FormFields
+                .Where(static field => !string.IsNullOrEmpty(field.Name))
+                .Select(static field => field.Name!),
+            StringComparer.Ordinal);
+        var inconclusive = new List<PdfRedactionMatch>();
+        for (int matchIndex = 0; matchIndex < widgetMatches.Length; matchIndex++) {
+            PdfRedactionMatch match = widgetMatches[matchIndex];
+            PdfFormField? owner = sourceFields.FirstOrDefault(field =>
+                match.ObjectNumber.HasValue &&
+                (field.ObjectNumber == match.ObjectNumber ||
+                 field.Widgets.Any(widget => widget.ObjectNumber == match.ObjectNumber)));
+            if (owner?.Name is null || outputFieldNames.Contains(owner.Name)) {
+                inconclusive.Add(match);
+            }
+        }
+
+        return inconclusive.AsReadOnly();
+    }
 
     /// <summary>
     /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.
@@ -292,6 +381,22 @@ public sealed partial class PdfDocument {
             PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.Redact,
             _ => ApplyRedactions(areas, applyOptions, layoutOptions, options),
+            options: options ?? ReadOptions);
+    }
+
+    /// <summary>Attempts to apply a reviewed plan and produce source-bound post-rewrite evidence.</summary>
+    internal PdfOperationResult<PdfRedactionApplyResult> TryApplyRedactionsWithEvidence(
+        PdfRedactionPlan plan,
+        PdfRedactionApplyOptions? applyOptions = null,
+        PdfRedactionVerificationOptions? verificationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfLoadOptions? options = null) {
+        Guard.NotNull(plan, nameof(plan));
+        return TryMutationOperation(
+            "Apply redactions with evidence",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.Redact,
+            _ => ApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options),
             options: options ?? ReadOptions);
     }
 
@@ -655,6 +760,11 @@ public sealed partial class PdfDocument {
     /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
     public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null) {
         return PdfSanitizer.Sanitize(GetBytesForOperation(), options, ReadOptions);
+    }
+
+    /// <summary>Inspects what the supplied sanitization policy would remove without modifying the PDF.</summary>
+    public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null) {
+        return PdfSanitizer.Inspect(GetBytesForOperation(), options, ReadOptions);
     }
 
     /// <summary>

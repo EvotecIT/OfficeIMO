@@ -34,6 +34,8 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 
 `IOfficeProvenanceSignalDetector` is the extension point for vendor-specific watermark and disclosure services. Each result retains the provider name, signal type, and `Detected`, `NotDetected`, `Inconclusive`, `ProviderUnavailable`, or `Error` status. `OfficeProvenanceAssessment` combines those results with structural, verification, and Unicode evidence without producing an `IsAi` property.
 
+Providers can opt into cooperative cancellation through `ICancellableOfficeProvenanceSignalDetector` and `ICancellableOfficeProvenanceVerifier`. The original interfaces remain supported, so existing provider implementations do not need to change.
+
 ## Transformation and authoring
 
 `OfficeProvenanceLifecycle` compares the source and candidate bytes before commit. Its default `PreserveIfUnchanged` policy blocks changed output when the source has an embedded or external Content Credential. `RemoveInvalidated` records before/after evidence; `SignAsDerived` requires an `IOfficeProvenanceSigner`, signs immutable snapshots of the inspected source and candidate, and always passes the source snapshot as the parent ingredient. The lifecycle independently checks provider identity, output location, file existence, and actual committed structural evidence.
@@ -45,6 +47,16 @@ For signed Office, OpenDocument, EPUB, or PDF packages, use the owning package's
 ## Text integrity
 
 `OfficeTextIntegrityInspector` reports exact BOMs, zero-width characters, word joiners, bidi controls, Unicode tags, variation selectors, typographic spaces, selected invisible format characters, controls, and unpaired surrogates. Findings retain UTF-16 offsets and distinguish informational, context-dependent, and potentially dangerous values. `OfficeTextIntegrityCleaner` removes only findings explicitly selected by the caller and verifies that the selected code point still occupies the recorded range.
+
+## Workflow and command-line orchestration
+
+`OfficeIMO.Workflows` exposes `IOfficeProvenanceWorkflowRunner` and `OfficeProvenanceWorkflowCatalog` for desktop, PowerShell, command-line, and service hosts. Inspect and assess are report-only operations. Removal preserves the source format, calls the package-owned adapter, stages the result beside its destination, reopens it through the same owner, compares the reopened structural evidence with the removal result, and publishes it only after that check succeeds. Batches are sequential and have an explicit item limit.
+
+Files with unknown extensions remain signature-driven: recognized image, HTML, and PDF content can use the corresponding removal path, while a generic ZIP package remains inspection-only until a document owner establishes its mutation contract. Batch removal rejects duplicate effective output paths before processing any item, including collisions caused by equal basenames in one output directory.
+
+`OfficeIMO.Tool` exposes the same contract under `officeimo provenance`. Its default JSON envelopes carry versioned schema identifiers, while `--format text` provides an interactive summary. Structural findings do not by themselves produce a failing exit code. Invalid requests, missing or unsupported inputs, output failures, cancellation, and execution failures use the tool's stable shared exit codes.
+
+Provider-backed verification and signal detection are dependency-injected workflow services. The default CLI does not bundle credentials, trust material, vendor APIs, or a `c2patool` executable, so its `assess` command reports structural and text-integrity evidence unless a host composes additional providers.
 
 ## Package-owned adapters
 
@@ -65,6 +77,7 @@ For signed Office, OpenDocument, EPUB, or PDF packages, use the owning package's
 - OfficeIMO does not alter visible pixels, reconstruct images, suppress durable media watermarks, or rewrite generated text to defeat statistical watermarking.
 - OfficeIMO does not ship vendor detector credentials or private APIs. Applications can add authorized detectors through `IOfficeProvenanceSignalDetector`.
 - Strict removal preserves duplicate, competing, malformed, unsupported, signed, or structurally shared carriers when a targeted rewrite could discard unrelated data.
+- Provider-backed HTML assessment snapshots local relative external manifests. An absolute `file:` base is rejected before providers run because the unchanged snapshot would otherwise resolve that dependency back to mutable source storage.
 - Resource limits are configurable through `OfficeProvenanceOptions` and `OfficeProvenanceRemovalOptions`; inputs that exceed them are rejected instead of partially inspected.
 - Cryptographic signing and verification currently depend on the external `c2patool` adapter. Core inspection, assessment, lifecycle policy, text integrity, and removal remain dependency-free.
 - Unix process containment requires `setsid` from `util-linux`. The adapter recognizes standard Linux paths and Homebrew's macOS keg paths, and fails closed before launching `c2patool` when a session launcher is unavailable.

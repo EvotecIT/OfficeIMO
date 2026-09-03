@@ -268,6 +268,24 @@ internal static class StreamDecoder {
         return unsupported;
     }
 
+    internal static bool TryGetDeclaredFilterNames(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject>? objects,
+        out IReadOnlyList<string> filterNames) {
+        if (!dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) {
+            filterNames = Array.Empty<string>();
+            return true;
+        }
+
+        if (!TryGetFilterNames(filterObject, objects, out List<string> resolvedFilterNames)) {
+            filterNames = Array.Empty<string>();
+            return false;
+        }
+
+        filterNames = resolvedFilterNames.AsReadOnly();
+        return true;
+    }
+
     internal static bool HasNoEffectiveFilters(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject>? objects = null) {

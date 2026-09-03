@@ -1,11 +1,28 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceBinary {
-    internal static byte[] ReadBounded(Stream stream, long maximumBytes) {
+    internal static byte[] ComputeSha256(byte[] data, CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        const int chunkSize = 81920;
+        int offset = 0;
+        while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, data.Length - offset);
+            algorithm.AppendData(data, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return algorithm.GetHashAndReset();
+    }
+
+    internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (maximumBytes <= 0 || maximumBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes), "The asset limit must be between 1 byte and Int32.MaxValue.");
@@ -17,13 +34,14 @@ internal static class OfficeProvenanceBinary {
                 throw new InvalidDataException($"The asset exceeds the configured limit of {maximumBytes} bytes.");
             }
             byte[] data = new byte[(int)remaining];
-            ReadExactly(stream, data, 0, data.Length);
+            ReadExactly(stream, data, 0, data.Length, cancellationToken);
             return data;
         }
 
         using var buffer = new MemoryStream();
         byte[] chunk = new byte[8192];
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = stream.Read(chunk, 0, chunk.Length);
             if (read <= 0) break;
             if (buffer.Length > maximumBytes - read) {
@@ -51,10 +69,30 @@ internal static class OfficeProvenanceBinary {
     internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateLimits(options.Limits);
+        if (options.MaxOutputBytes.HasValue &&
+            (options.MaxOutputBytes.Value <= 0 || options.MaxOutputBytes.Value > int.MaxValue)) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes));
+        }
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
         if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
         }
+    }
+
+    internal static void EnsureOutputWithinLimit(long outputBytes, long maximumOutputBytes) {
+        if (maximumOutputBytes <= 0 || maximumOutputBytes > int.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+        }
+        if (outputBytes < 0 || outputBytes > maximumOutputBytes) {
+            throw OfficeProvenanceLimitException.CreateOutput(
+                $"The rewritten asset exceeds the configured output limit of {maximumOutputBytes} bytes.");
+        }
+    }
+
+    internal static byte[] CloneForOutput(byte[] data, long maximumOutputBytes) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        EnsureOutputWithinLimit(data.LongLength, maximumOutputBytes);
+        return (byte[])data.Clone();
     }
 
     internal static bool HasPrefix(byte[] data, params byte[] prefix) {
@@ -145,8 +183,9 @@ internal static class OfficeProvenanceBinary {
         return encoding.GetString(data, offset, count);
     }
 
-    internal static void ReadExactly(Stream stream, byte[] buffer, int offset, int count) {
+    internal static void ReadExactly(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken = default) {
         while (count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = stream.Read(buffer, offset, count);
             if (read <= 0) throw new EndOfStreamException("Unexpected end of provenance data.");
             offset += read;

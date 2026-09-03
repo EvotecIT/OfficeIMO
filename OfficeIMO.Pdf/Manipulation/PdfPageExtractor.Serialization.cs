@@ -94,7 +94,7 @@ internal static partial class PdfPageExtractor {
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
-            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
         }
     }
 
@@ -104,12 +104,12 @@ internal static partial class PdfPageExtractor {
         int objectNumber,
         long maximumBytes) {
         if (maximumBytes < 0) {
-            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
         }
         long total = CountSerializedObjectBytes(value, context, maximumBytes);
         total = AddCounted(total, objectNumber.ToString(CultureInfo.InvariantCulture).Length + 14L, maximumBytes);
         if (maximumBytes < 0 || total > maximumBytes) {
-            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
         }
     }
 

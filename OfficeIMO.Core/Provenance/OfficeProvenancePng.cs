@@ -14,8 +14,12 @@ internal static class OfficeProvenancePng {
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
-        using var output = new MemoryStream(EstimateRemovalOutputCapacity(data, options));
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
+        using var output = new OfficeProvenanceBoundedMemoryStream(
+            options.EffectiveMaxOutputBytes,
+            EstimateRemovalOutputCapacity(data, options));
         output.Write(data, 0, SignatureLength);
         reserialized = Walk(data, options.Limits, context: null, output, options, changes);
         return output.ToArray();

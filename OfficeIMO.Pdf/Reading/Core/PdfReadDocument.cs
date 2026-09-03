@@ -40,6 +40,7 @@ public sealed partial class PdfReadDocument {
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
+    internal PdfDictionary? CatalogDictionary => FindCatalog();
     internal PdfLoadOptions ReadOptions => _options;
     internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
     internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;

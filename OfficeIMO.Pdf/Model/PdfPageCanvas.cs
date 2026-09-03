@@ -415,24 +415,37 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds nested canvas content through one top-left-coordinate affine transform and opacity state.</summary>
-    public PdfPageCanvas Effect(OfficeTransform transform, double opacity, Action<PdfPageCanvas> build) {
+    public PdfPageCanvas Effect(OfficeTransform transform, double opacity, Action<PdfPageCanvas> build) =>
+        Effect(transform, opacity, OfficeBlendMode.Normal, build);
+
+    /// <summary>Adds nested canvas content through one top-left-coordinate affine transform, opacity, and blend mode.</summary>
+    public PdfPageCanvas Effect(OfficeTransform transform, double opacity, OfficeBlendMode blendMode, Action<PdfPageCanvas> build) {
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Canvas effect opacity must be between zero and one.");
+        }
+        if (blendMode < OfficeBlendMode.Normal || blendMode > OfficeBlendMode.Luminosity) {
+            throw new ArgumentOutOfRangeException(nameof(blendMode), blendMode, "Unsupported canvas blend mode.");
         }
         Guard.NotNull(build, nameof(build));
         var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(nestedCanvas);
-        bool trivialEffect = transform == OfficeTransform.Identity && Math.Abs(opacity - 1D) <= 0.000001D;
+        bool trivialEffect = transform == OfficeTransform.Identity &&
+            Math.Abs(opacity - 1D) <= 0.000001D &&
+            blendMode == OfficeBlendMode.Normal;
         if (ContainsInteractiveFormContent(nestedCanvas.Items)) {
             if (!trivialEffect) {
-                throw new ArgumentException("Interactive form fields cannot be nested inside a transformed or translucent canvas effect.", nameof(build));
+                throw new ArgumentException("Interactive form fields cannot be nested inside a transformed, translucent, or blended canvas effect.", nameof(build));
             }
             _items.AddRange(nestedCanvas.Items);
             return this;
         }
-        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity));
+        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity, blendMode));
         return this;
     }
+
+    /// <summary>Adds nested canvas content composited with the requested blend mode.</summary>
+    public PdfPageCanvas WithBlendMode(OfficeBlendMode blendMode, Action<PdfPageCanvas> build) =>
+        Effect(OfficeTransform.Identity, 1D, blendMode, build);
 
     private static bool ContainsInteractiveFormContent(IReadOnlyList<PdfCanvasItem> items) {
         foreach (PdfCanvasItem item in items) {
@@ -801,14 +814,16 @@ internal sealed class PdfCanvasClipItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasEffectItem : PdfCanvasItem {
-    public PdfCanvasEffectItem(IReadOnlyList<PdfCanvasItem> items, OfficeTransform transform, double opacity)
+    public PdfCanvasEffectItem(IReadOnlyList<PdfCanvasItem> items, OfficeTransform transform, double opacity, OfficeBlendMode blendMode)
         : base(0D, 0D) {
         Items = items;
         Transform = transform;
         Opacity = opacity;
+        BlendMode = blendMode;
     }
 
     public IReadOnlyList<PdfCanvasItem> Items { get; }
     public OfficeTransform Transform { get; }
     public double Opacity { get; }
+    public OfficeBlendMode BlendMode { get; }
 }

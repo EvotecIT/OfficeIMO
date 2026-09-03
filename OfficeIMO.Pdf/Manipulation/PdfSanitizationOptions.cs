@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Explicit policy for removing active content and embedded payloads from a PDF.</summary>
 public sealed class PdfSanitizationOptions {
+    private PdfSanitizationActionKind? _actionKindsToRemove;
+    private PdfSanitizationContentKind? _contentKindsToRemove;
+
     /// <summary>Cancellation observed between inventory, object-graph rewrite, and verification stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
@@ -10,6 +13,36 @@ public sealed class PdfSanitizationOptions {
 
     /// <summary>Action types that may remain. Values are PDF action names without a leading slash.</summary>
     public ISet<string> AllowedActionTypes { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Exact action kinds to remove. When null, the existing default policy removes known active-content
+    /// actions and only URI targets whose schemes are not allowed. When set, unselected action kinds are
+    /// preserved and selecting <see cref="PdfSanitizationActionKind.Uri"/> removes every URI target.
+    /// </summary>
+    public PdfSanitizationActionKind? ActionKindsToRemove {
+        get => _actionKindsToRemove;
+        set {
+            if (value.HasValue && (value.Value & ~PdfSanitizationActionKind.All) != 0) {
+                throw new ArgumentOutOfRangeException(nameof(ActionKindsToRemove), value, "Unsupported PDF sanitization action kind.");
+            }
+            _actionKindsToRemove = value;
+        }
+    }
+
+    /// <summary>
+    /// Exact before-sharing content categories to remove. When null, the established sanitizer behavior is
+    /// retained. When set, unselected categories remain. Action selection is further narrowed by
+    /// <see cref="ActionKindsToRemove"/> when the <see cref="PdfSanitizationContentKind.Actions"/> category is selected.
+    /// </summary>
+    public PdfSanitizationContentKind? ContentKindsToRemove {
+        get => _contentKindsToRemove;
+        set {
+            if (value.HasValue && (value.Value & ~PdfSanitizationContentKind.All) != 0) {
+                throw new ArgumentOutOfRangeException(nameof(ContentKindsToRemove), value, "Unsupported PDF sanitization content kind.");
+            }
+            _contentKindsToRemove = value;
+        }
+    }
 
     /// <summary>Absolute URI schemes that may remain. Relative URI targets are preserved.</summary>
     public ISet<string> AllowedUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -23,6 +56,56 @@ public sealed class PdfSanitizationOptions {
     public bool RemoveRichMedia { get; set; } = true;
 
     internal bool IsActionAllowed(string actionType) => AllowedActionTypes.Contains(actionType);
+
+    internal bool ShouldRemoveContent(PdfSanitizationContentKind kind) => ContentKindsToRemove.HasValue
+        ? (ContentKindsToRemove.Value & kind) == kind
+        : kind == PdfSanitizationContentKind.EmbeddedFiles || kind == PdfSanitizationContentKind.Actions;
+
+    internal bool ShouldRemoveAction(string actionType, string? uri = null) {
+        if (!ShouldRemoveContent(PdfSanitizationContentKind.Actions)) return false;
+        PdfSanitizationActionKind kind = GetActionKind(actionType);
+        if (ActionKindsToRemove.HasValue) {
+            if (IsActionAllowed(actionType)) return false;
+            return kind != PdfSanitizationActionKind.None && (ActionKindsToRemove.Value & kind) == kind;
+        }
+        if (kind == PdfSanitizationActionKind.Uri) return uri != null && !IsUriAllowed(uri);
+        if (IsActionAllowed(actionType)) return false;
+        return PdfActiveContentPolicy.IsUnsafeActionType(actionType);
+    }
+
+    internal bool ShouldRemoveCatalogUriBase(string value) =>
+        ShouldRemoveContent(PdfSanitizationContentKind.Actions) &&
+        (ActionKindsToRemove.HasValue
+            ? (ActionKindsToRemove.Value & PdfSanitizationActionKind.Uri) != 0
+            : !IsUriAllowed(value));
+
+    internal bool ShouldRemoveEmbeddedFiles => ShouldRemoveContent(PdfSanitizationContentKind.EmbeddedFiles);
+    internal bool ShouldRemoveUserMetadata => ShouldRemoveContent(PdfSanitizationContentKind.UserMetadata);
+    internal bool ShouldRemoveCommentsAndMarkup => ShouldRemoveContent(PdfSanitizationContentKind.CommentsAndMarkup);
+    internal bool ShouldRemoveBookmarks => ShouldRemoveContent(PdfSanitizationContentKind.Bookmarks);
+    internal bool ShouldRemoveOptionalContent => ShouldRemoveContent(PdfSanitizationContentKind.OptionalContent);
+
+    internal bool ShouldRemoveCommentAnnotation(string subtype) => ShouldRemoveCommentsAndMarkup &&
+        !string.Equals(subtype, "Link", StringComparison.Ordinal) &&
+        !string.Equals(subtype, "Widget", StringComparison.Ordinal) &&
+        !string.Equals(subtype, "FileAttachment", StringComparison.Ordinal);
+
+    internal bool ShouldRemoveLegacyRichAnnotation(string subtype) =>
+        !ContentKindsToRemove.HasValue && RemoveRichMedia && PdfSanitizer.IsRichAnnotationSubtype(subtype);
+
+    internal static PdfSanitizationActionKind GetActionKind(string actionType) => actionType switch {
+        "JavaScript" => PdfSanitizationActionKind.JavaScript,
+        "URI" => PdfSanitizationActionKind.Uri,
+        "Launch" => PdfSanitizationActionKind.Launch,
+        "SubmitForm" => PdfSanitizationActionKind.SubmitForm,
+        "GoToR" => PdfSanitizationActionKind.GoToR,
+        "GoToE" => PdfSanitizationActionKind.GoToE,
+        "ImportData" => PdfSanitizationActionKind.ImportData,
+        "Movie" => PdfSanitizationActionKind.Movie,
+        "Rendition" => PdfSanitizationActionKind.Rendition,
+        "RichMedia" => PdfSanitizationActionKind.RichMedia,
+        _ => PdfSanitizationActionKind.None
+    };
 
     internal bool IsUriAllowed(string value) {
         if (!Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? uri) || !uri.IsAbsoluteUri) {

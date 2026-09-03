@@ -532,7 +532,7 @@ internal static partial class PdfWriter {
             var graphicsStates = new List<(string Name, int Id)>();
             if (page.GraphicsStates.Count > 0) {
                 foreach (var state in page.GraphicsStates) {
-                    int gsId = AddObject(objects, PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(state.FillOpacity, state.StrokeOpacity));
+                    int gsId = AddObject(objects, PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(state.FillOpacity, state.StrokeOpacity, state.BlendMode));
                     graphicsStates.Add(("/" + state.Name, gsId));
                 }
             }

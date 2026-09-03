@@ -7,7 +7,9 @@ public enum PdfRedactionMatchKind {
     /// <summary>Page annotation rectangle.</summary>
     Annotation = 1,
     /// <summary>Image XObject placement rectangle.</summary>
-    ImagePlacement = 2
+    ImagePlacement = 2,
+    /// <summary>Vector path inside nested Form XObject content that the current redaction writer cannot safely remove.</summary>
+    VectorPath = 3
 }
 
 /// <summary>Content intersecting a requested redaction area.</summary>

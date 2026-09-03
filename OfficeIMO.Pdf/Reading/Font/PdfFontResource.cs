@@ -13,12 +13,13 @@ internal sealed class PdfFontResource {
     public string FontSubtype { get; }
     public string? EmbeddedProgramSubtype { get; }
     public bool HasToUnicode { get; }
+    public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
     public IReadOnlyDictionary<int, string>? Differences { get; }
     public byte[]? EmbeddedTrueTypeFont { get; }
     public string? DrawingFontFamily { get; }
     internal PdfType3FontResource? Type3 { get; }
-    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null, string? fontSubtype = null, string? embeddedProgramSubtype = null, PdfType3FontResource? type3 = null) {
+    public PdfFontResource(string resourceName, string baseFont, string encoding, bool hasToUnicode, ToUnicodeCMap? cmap = null, IReadOnlyDictionary<int, string>? differences = null, byte[]? embeddedTrueTypeFont = null, string? fontSubtype = null, string? embeddedProgramSubtype = null, PdfType3FontResource? type3 = null, bool isVerticalWriting = false) {
         ResourceName = resourceName;
         BaseFont = baseFont;
         Encoding = encoding;
@@ -26,6 +27,7 @@ internal sealed class PdfFontResource {
         EmbeddedProgramSubtype = embeddedProgramSubtype;
         Type3 = type3;
         HasToUnicode = hasToUnicode;
+        IsVerticalWriting = isVerticalWriting;
         CMap = cmap;
         Differences = differences;
         EmbeddedTrueTypeFont = embeddedTrueTypeFont;
@@ -39,6 +41,7 @@ internal sealed class PdfFontResource {
         FontSubtype = source.FontSubtype;
         EmbeddedProgramSubtype = source.EmbeddedProgramSubtype;
         HasToUnicode = source.HasToUnicode;
+        IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
         Differences = source.Differences;
         EmbeddedTrueTypeFont = source.EmbeddedTrueTypeFont;

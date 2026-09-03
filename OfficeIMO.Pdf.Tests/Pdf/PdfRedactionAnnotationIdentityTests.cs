@@ -62,6 +62,20 @@ public class PdfRedactionAnnotationIdentityTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnplacedAnnotationPayload() {
+        byte[] source = BuildTextAnnotationIdentityPdf("/Contents (first)", includeRectangle: false);
+        PdfRedactionPlan plan = CreatePlan(source);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            BuildTextAnnotationIdentityPdf("/Contents (second)", includeRectangle: false),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationAcceptsPreservedAnnotationAppearanceGraph() {
         const string appearance = "q 1 0 0 rg 0 0 40 40 re f Q";
         byte[] source = BuildTextAnnotationIdentityPdf(
@@ -83,14 +97,18 @@ public class PdfRedactionAnnotationIdentityTests {
             new PdfRedactionArea(1, 10D, 10D, 10D, 10D, "reviewed blank area")
         ]);
 
-    private static byte[] BuildTextAnnotationIdentityPdf(string annotationEntries, string? additionalObject = null) {
+    private static byte[] BuildTextAnnotationIdentityPdf(
+        string annotationEntries,
+        string? additionalObject = null,
+        bool includeRectangle = true) {
+        string rectangle = includeRectangle ? "/Rect [100 100 140 140] " : string.Empty;
         var lines = new List<string> {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [50 0 R] /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
-            "50 0 obj", $"<< /Type /Annot /Subtype /Text /Rect [100 100 140 140] /P 3 0 R /Contents (annotation identity) {annotationEntries} >>", "endobj"
+            "50 0 obj", $"<< /Type /Annot /Subtype /Text {rectangle}/P 3 0 R {annotationEntries} >>", "endobj"
         };
         if (additionalObject != null) {
             lines.Add("51 0 obj");

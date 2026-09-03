@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -66,6 +68,12 @@ public interface IOfficeProvenanceSignalDetector {
     OfficeProvenanceSignalResult Detect(string filePath);
 }
 
+/// <summary>Optional cancellation-aware extension for provider-specific signal detectors.</summary>
+public interface ICancellableOfficeProvenanceSignalDetector : IOfficeProvenanceSignalDetector {
+    /// <summary>Inspects one asset while observing cancellation and returns a normalized provider result.</summary>
+    OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken);
+}
+
 /// <summary>Configures a combined provenance assessment.</summary>
 public sealed class OfficeProvenanceAssessmentOptions {
     /// <summary>Gets structural provenance limits.</summary>
@@ -118,35 +126,152 @@ public static class OfficeProvenanceAssessment {
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
         options ??= new OfficeProvenanceAssessmentOptions();
+        IOfficeProvenanceSignalDetector[] detectors = (signalDetectors ?? Array.Empty<IOfficeProvenanceSignalDetector>())
+            .Select(detector => detector ?? throw new ArgumentException(
+                "Signal detector collections cannot contain null entries.", nameof(signalDetectors)))
+            .ToArray();
+        bool hasExternalProviders = verifier != null || detectors.Length != 0;
 
-        OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(fullPath, options.Structural);
+        using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(
+                   fullPath,
+                   options.Structural.MaxAssetBytes)) {
+            snapshot.SealForProviderAccess();
+            OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(snapshot.FilePath, options.Structural);
+            if (hasExternalProviders) {
+                snapshot.CaptureExternalManifestDependencies(
+                    fullPath,
+                    structural,
+                    options.Structural.MaxManifestBytes,
+                    options.Structural.MaxExpandedContainerBytes);
+            }
+            OfficeProvenanceAssessmentReport assessment = AssessSnapshotFile(
+                snapshot.FilePath,
+                fullPath,
+                structural,
+                options,
+                verifier,
+                detectors);
+            snapshot.VerifyPrimaryFile();
+            if (hasExternalProviders) snapshot.VerifyExternalManifestDependencies();
+            return assessment;
+        }
+    }
+
+    /// <summary>Combines an existing structural report with optional text, cryptographic, and provider evidence.</summary>
+    /// <remarks>
+    /// This overload lets workflow hosts preserve format-owner structural inspection while keeping evidence
+    /// composition and provider-result validation in the canonical provenance owner. The caller must ensure
+    /// <paramref name="filePath"/> identifies the same immutable bytes used to create <paramref name="structural"/>.
+    /// </remarks>
+    public static OfficeProvenanceAssessmentReport AssessFile(
+        string filePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options = null,
+        IOfficeProvenanceVerifier? verifier = null,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
+        CancellationToken cancellationToken = default) => AssessFileCore(
+            filePath,
+            filePath,
+            structural,
+            options,
+            verifier,
+            signalDetectors,
+            cancellationToken);
+
+    internal static OfficeProvenanceAssessmentReport AssessSnapshotFile(
+        string snapshotFilePath,
+        string logicalFilePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options = null,
+        IOfficeProvenanceVerifier? verifier = null,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
+        CancellationToken cancellationToken = default,
+        Encoding? textEncoding = null) => AssessFileCore(
+            snapshotFilePath,
+            logicalFilePath,
+            structural,
+            options,
+            verifier,
+            signalDetectors,
+            cancellationToken,
+            textEncoding);
+
+    private static OfficeProvenanceAssessmentReport AssessFileCore(
+        string filePath,
+        string logicalFilePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options,
+        IOfficeProvenanceVerifier? verifier,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
+        CancellationToken cancellationToken,
+        Encoding? textEncoding = null) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
+        string fullPath = Path.GetFullPath(filePath);
+        string logicalFullPath = Path.GetFullPath(logicalFilePath);
+        if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
+        if (structural == null) throw new ArgumentNullException(nameof(structural));
+        options ??= new OfficeProvenanceAssessmentOptions();
+
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
         if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
-            textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity);
+            textIntegrity = OfficeTextIntegrityInspector.InspectFile(
+                fullPath,
+                options.TextIntegrity,
+                logicalFullPath,
+                textEncoding,
+                cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
         }
-        OfficeProvenanceVerificationResult? verification = verifier?.Verify(fullPath, options.Verification);
+        OfficeProvenanceVerificationResult? verification = verifier == null
+            ? null
+            : Verify(verifier, fullPath, options.Verification, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (verifier != null && verification == null) {
-            throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned no result.");
+            throw OfficeProvenanceProviderContractException.Create(
+                $"The '{verifier.Name}' provenance verifier returned no result.");
         }
         if (verifier != null && !string.Equals(verification!.ProviderName, verifier.Name, StringComparison.Ordinal)) {
-            throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned inconsistent provider metadata.");
+            throw OfficeProvenanceProviderContractException.Create(
+                $"The '{verifier.Name}' provenance verifier returned inconsistent provider metadata.");
         }
         var signals = new List<OfficeProvenanceSignalResult>();
         if (signalDetectors != null) {
             foreach (IOfficeProvenanceSignalDetector detector in signalDetectors) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
-                OfficeProvenanceSignalResult result = detector.Detect(fullPath) ??
-                    throw new InvalidDataException($"The '{detector.Name}' signal detector returned no result.");
+                OfficeProvenanceSignalResult result = Detect(detector, fullPath, cancellationToken) ??
+                    throw OfficeProvenanceProviderContractException.Create(
+                        $"The '{detector.Name}' signal detector returned no result.");
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(result.ProviderName, detector.Name, StringComparison.Ordinal) || result.SignalKind != detector.SignalKind) {
-                    throw new InvalidDataException($"The '{detector.Name}' signal detector returned inconsistent provider metadata.");
+                    throw OfficeProvenanceProviderContractException.Create(
+                        $"The '{detector.Name}' signal detector returned inconsistent provider metadata.");
                 }
                 signals.Add(result);
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new OfficeProvenanceAssessmentReport(structural, verification, textIntegrity, signals.AsReadOnly());
     }
 
     private static bool IsTextLike(OfficeProvenanceAssetFormat format) =>
         format is OfficeProvenanceAssetFormat.StructuredText or OfficeProvenanceAssetFormat.UnstructuredText or
             OfficeProvenanceAssetFormat.Html or OfficeProvenanceAssetFormat.Svg;
+
+    private static OfficeProvenanceVerificationResult Verify(
+        IOfficeProvenanceVerifier verifier,
+        string filePath,
+        OfficeProvenanceVerificationOptions options,
+        CancellationToken cancellationToken) => verifier is ICancellableOfficeProvenanceVerifier cancellable
+            ? cancellable.Verify(filePath, options, cancellationToken)
+            : verifier.Verify(filePath, options);
+
+    private static OfficeProvenanceSignalResult Detect(
+        IOfficeProvenanceSignalDetector detector,
+        string filePath,
+        CancellationToken cancellationToken) => detector is ICancellableOfficeProvenanceSignalDetector cancellable
+            ? cancellable.Detect(filePath, cancellationToken)
+            : detector.Detect(filePath);
 }

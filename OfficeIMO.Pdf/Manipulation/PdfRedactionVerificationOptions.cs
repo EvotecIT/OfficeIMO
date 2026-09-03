@@ -27,7 +27,8 @@ public sealed class PdfRedactionVerificationOptions {
     public bool FailOnUndecodablePdfStreams { get; set; } = true;
 
     /// <summary>
-    /// True when every PDF stream must be inspectable even when decoded-stream marker checks or undecodable-stream failures were disabled.
+    /// True when every semantic PDF stream must be inspectable even when decoded-stream marker checks or undecodable-stream failures were disabled.
+    /// Opaque image-codec payloads are inspected through image placement and mutation evidence instead of generic stream decoding.
     /// Use this for plan-aware verification where image or annotation removal also requires fail-closed proof.
     /// </summary>
     public bool RequireCompleteStreamInspection { get; set; }

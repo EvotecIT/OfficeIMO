@@ -9,6 +9,8 @@ internal sealed class PdfContentOrderKey : IComparable<PdfContentOrderKey>, IEqu
 
     internal static PdfContentOrderKey Root { get; } = new PdfContentOrderKey(Array.Empty<int>());
 
+    internal int Depth => _segments.Length;
+
     internal PdfContentOrderKey Append(int segment) {
         var segments = new int[_segments.Length + 1];
         Array.Copy(_segments, segments, _segments.Length);

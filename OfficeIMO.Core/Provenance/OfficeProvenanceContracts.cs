@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -99,10 +100,27 @@ public sealed class OfficeProvenanceReport {
     public OfficeProvenanceReport(
         OfficeProvenanceAssetFormat format,
         IReadOnlyList<OfficeProvenanceEvidence> evidence,
-        IReadOnlyList<string>? diagnostics = null) {
+        IReadOnlyList<string>? diagnostics = null)
+        : this(format, evidence, diagnostics, expandedInspectionBytes: 0) { }
+
+    internal OfficeProvenanceReport(
+        OfficeProvenanceAssetFormat format,
+        IReadOnlyList<OfficeProvenanceEvidence> evidence,
+        IReadOnlyList<string>? diagnostics,
+        long expandedInspectionBytes,
+        IReadOnlyDictionary<OfficeProvenanceEvidence, string>? resolvedExternalManifestReferences = null) {
+        if (expandedInspectionBytes < 0) throw new ArgumentOutOfRangeException(nameof(expandedInspectionBytes));
         Format = format;
         Evidence = new List<OfficeProvenanceEvidence>(evidence ?? throw new ArgumentNullException(nameof(evidence))).AsReadOnly();
         Diagnostics = new List<string>(diagnostics ?? Array.Empty<string>()).AsReadOnly();
+        ExpandedInspectionBytes = expandedInspectionBytes;
+        var resolvedReferences = new Dictionary<OfficeProvenanceEvidence, string>();
+        if (resolvedExternalManifestReferences is not null) {
+            foreach (KeyValuePair<OfficeProvenanceEvidence, string> pair in resolvedExternalManifestReferences) {
+                resolvedReferences.Add(pair.Key, pair.Value);
+            }
+        }
+        ResolvedExternalManifestReferences = resolvedReferences;
     }
 
     /// <summary>Gets the identified asset format.</summary>
@@ -111,6 +129,11 @@ public sealed class OfficeProvenanceReport {
     public IReadOnlyList<OfficeProvenanceEvidence> Evidence { get; }
     /// <summary>Gets structural diagnostics that did not prevent inspection.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+    /// <summary>Gets expanded bytes already consumed by structural inspection for shared assessment limits.</summary>
+    internal long ExpandedInspectionBytes { get; }
+    private IReadOnlyDictionary<OfficeProvenanceEvidence, string> ResolvedExternalManifestReferences { get; }
+    internal string? GetExternalManifestReference(OfficeProvenanceEvidence evidence) =>
+        ResolvedExternalManifestReferences.TryGetValue(evidence, out string? resolved) ? resolved : evidence.Value;
     /// <summary>Gets whether an embedded C2PA carrier was discovered.</summary>
     public bool HasC2paManifest {
         get {
@@ -143,6 +166,7 @@ public sealed class OfficeProvenanceReport {
 
 /// <summary>Bounds structural provenance inspection and removal.</summary>
 public sealed class OfficeProvenanceOptions {
+    internal CancellationToken CancellationToken { get; set; }
     /// <summary>Maximum encoded asset bytes accepted. Defaults to 256 MiB.</summary>
     public long MaxAssetBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Maximum single manifest-store bytes accepted. Defaults to 64 MiB.</summary>
@@ -151,7 +175,7 @@ public sealed class OfficeProvenanceOptions {
     public int MaxCarriers { get; set; } = 128;
     /// <summary>Maximum structural entries or materialized XML nodes accepted in a container. Defaults to 65,536.</summary>
     public int MaxContainerEntries { get; set; } = 65536;
-    /// <summary>Maximum cumulative expanded bytes copied while rewriting a container. Defaults to 1 GiB.</summary>
+    /// <summary>Maximum cumulative expanded bytes inspected or copied across a container or its external provenance dependencies. Defaults to 1 GiB.</summary>
     public long MaxExpandedContainerBytes { get; set; } = 1024L * 1024L * 1024L;
     /// <summary>Whether supported image assets inside ZIP-based documents are inspected. Defaults to true.</summary>
     public bool ProcessEmbeddedAssets { get; set; } = true;
@@ -175,8 +199,16 @@ public sealed class OfficeProvenanceRemovalOptions {
     public bool ProcessEmbeddedAssets { get; set; } = true;
     /// <summary>Maximum embedded assets processed by one document operation. Defaults to 4096.</summary>
     public int MaxEmbeddedAssets { get; set; } = 4096;
+    /// <summary>
+    /// Maximum encoded bytes that the rewritten asset may contain. A null value preserves the
+    /// historical behavior by using <see cref="OfficeProvenanceOptions.MaxAssetBytes"/>.
+    /// </summary>
+    public long? MaxOutputBytes { get; set; }
     /// <summary>Inspection and removal resource limits.</summary>
     public OfficeProvenanceOptions Limits { get; } = new OfficeProvenanceOptions();
+
+    internal long EffectiveMaxOutputBytes => MaxOutputBytes ?? Limits.MaxAssetBytes;
+    internal long EffectiveMaxIntermediateBytes => Math.Max(EffectiveMaxOutputBytes, Limits.MaxAssetBytes);
 }
 
 /// <summary>One format-native provenance mutation.</summary>
@@ -273,6 +305,9 @@ public sealed class OfficeProvenanceRemovalResult {
     public bool WasReserialized { get; }
     /// <summary>Gets whether an owning document API removed signatures that the provenance mutation invalidated.</summary>
     public bool WereInvalidatedSignaturesRemoved { get; }
+    internal long DataLength => _data.LongLength;
+    internal byte[] ComputeDataSha256(CancellationToken cancellationToken = default) =>
+        OfficeProvenanceBinary.ComputeSha256(_data, cancellationToken);
     /// <summary>Returns an owned copy of the resulting asset.</summary>
     public byte[] ToArray() => (byte[])_data.Clone();
 }
@@ -342,4 +377,13 @@ public interface IOfficeProvenanceVerifier {
     string Name { get; }
     /// <summary>Verifies provenance carried by an asset file.</summary>
     OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null);
+}
+
+/// <summary>Optional cancellation-aware extension for cryptographic provenance verification providers.</summary>
+public interface ICancellableOfficeProvenanceVerifier : IOfficeProvenanceVerifier {
+    /// <summary>Verifies provenance carried by an asset file while observing cancellation.</summary>
+    OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options,
+        CancellationToken cancellationToken);
 }

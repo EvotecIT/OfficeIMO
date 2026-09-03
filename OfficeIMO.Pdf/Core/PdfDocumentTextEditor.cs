@@ -10,7 +10,7 @@ public sealed class PdfDocumentTextEditor {
     public PdfRegionText Inspect(PdfPageRegion region, PdfLoadOptions? readOptions = null) =>
         PdfTextEditor.Inspect(_document.GetBytesForOperation(), region, readOptions ?? _document.ReadOptions);
 
-    /// <summary>Finds visible, unclipped text occurrences across decoded visual runs.</summary>
+    /// <summary>Finds visible, unclipped text occurrences and optionally OCR-style rendering-mode-3 text.</summary>
     public IReadOnlyList<PdfTextMatch> Find(string text, PdfTextSearchOptions? options = null, PdfLoadOptions? readOptions = null) =>
         PdfTextEditor.Find(_document.GetBytesForOperation(), text, options, readOptions ?? _document.ReadOptions);
 

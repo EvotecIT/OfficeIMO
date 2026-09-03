@@ -281,7 +281,29 @@ namespace OfficeIMO.Core.Internal {
                 targetPath,
                 destinationMatchesExpected,
                 installedFileMatchesExpected,
-                afterFirstRollbackReplacement: null);
+                beforeCommitFinalized: null,
+                afterFirstRollbackReplacement: null,
+                backupCleanupFailed: null);
+
+        /// <summary>
+        /// Atomically installs a staging file and invokes a final validation callback while the
+        /// displaced destination remains available for rollback.
+        /// </summary>
+        internal static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedAndFinalize(
+            string temporaryPath,
+            string targetPath,
+            Func<string, bool> destinationMatchesExpected,
+            Func<string, bool>? installedFileMatchesExpected,
+            Action<string> beforeCommitFinalized,
+            Action<string, Exception>? backupCleanupFailed = null) =>
+            TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
+                temporaryPath,
+                targetPath,
+                destinationMatchesExpected,
+                installedFileMatchesExpected,
+                beforeCommitFinalized,
+                afterFirstRollbackReplacement: null,
+                backupCleanupFailed);
 
         internal static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
             string temporaryPath,
@@ -294,14 +316,18 @@ namespace OfficeIMO.Core.Internal {
                 targetPath,
                 destinationMatchesExpected,
                 installedFileMatchesExpected,
-                afterFirstRollbackReplacement);
+                beforeCommitFinalized: null,
+                afterFirstRollbackReplacement,
+                backupCleanupFailed: null);
 
         private static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
             string temporaryPath,
             string targetPath,
             Func<string, bool> destinationMatchesExpected,
             Func<string, bool>? installedFileMatchesExpected,
-            Action<string>? afterFirstRollbackReplacement) {
+            Action<string>? beforeCommitFinalized,
+            Action<string>? afterFirstRollbackReplacement,
+            Action<string, Exception>? backupCleanupFailed) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) {
                 throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
             }
@@ -329,7 +355,13 @@ namespace OfficeIMO.Core.Internal {
                 targetContainsTemporary = true;
                 if (destinationMatchesExpected(backupPath) &&
                     (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
-                    DeleteIfExists(backupPath);
+                    beforeCommitFinalized?.Invoke(fullTargetPath);
+                    try {
+                        if (File.Exists(backupPath)) File.Delete(backupPath);
+                    } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                        preserveBackupPath = true;
+                        backupCleanupFailed?.Invoke(backupPath, exception);
+                    }
                     targetContainsTemporary = false;
                     return true;
                 }
@@ -345,17 +377,25 @@ namespace OfficeIMO.Core.Internal {
                     ref preserveDisplacedPath);
                 return false;
             } catch (Exception commitException) {
-                if (targetContainsTemporary && File.Exists(backupPath) && File.Exists(fullTargetPath)) {
+                if (targetContainsTemporary && File.Exists(backupPath)) {
                     try {
-                        RestoreDisplacedDestinationWithoutLosingConcurrentSave(
-                            fullTargetPath,
-                            backupPath,
-                            displacedPath,
-                            installedTemporaryIdentity,
-                            ref targetContainsTemporary,
-                            ref preserveBackupPath,
-                            afterFirstRollbackReplacement,
-                            ref preserveDisplacedPath);
+                        if (File.Exists(fullTargetPath)) {
+                            RestoreDisplacedDestinationWithoutLosingConcurrentSave(
+                                fullTargetPath,
+                                backupPath,
+                                displacedPath,
+                                installedTemporaryIdentity,
+                                ref targetContainsTemporary,
+                                ref preserveBackupPath,
+                                afterFirstRollbackReplacement,
+                                ref preserveDisplacedPath);
+                        } else {
+                            RestoreMissingDisplacedDestination(
+                                fullTargetPath,
+                                backupPath,
+                                ref targetContainsTemporary,
+                                ref preserveBackupPath);
+                        }
                     } catch (Exception rollbackException) {
                         throw new IOException(
                             "The guarded atomic commit failed and the displaced destination could not be restored. " +
@@ -367,6 +407,23 @@ namespace OfficeIMO.Core.Internal {
             } finally {
                 if (!targetContainsTemporary && !preserveBackupPath) DeleteIfExists(backupPath);
                 if (!preserveDisplacedPath) DeleteIfExists(displacedPath);
+            }
+        }
+
+        private static void RestoreMissingDisplacedDestination(
+            string targetPath,
+            string backupPath,
+            ref bool targetContainsTemporary,
+            ref bool preserveBackupPath) {
+            try {
+                File.Move(backupPath, targetPath);
+                targetContainsTemporary = false;
+            } catch (IOException) when (File.Exists(targetPath)) {
+                targetContainsTemporary = false;
+                preserveBackupPath = true;
+                throw new IOException(
+                    "A newer concurrent save claimed the destination while the displaced file was being restored. " +
+                    "The original destination remains recoverable at '" + backupPath + "'.");
             }
         }
 

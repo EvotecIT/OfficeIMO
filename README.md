@@ -765,9 +765,17 @@ _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no brows
 
 _Dependency footprint:_ OfficeIMO Core and PDF plus HtmlTinkerX. This optional package does not change the managed `OfficeIMO.Html.Pdf` dependency graph.
 
+#### [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md)
+
+- [x] Typed, bounded conversion, PDF health, page export, assembly, printing, and cross-format provenance workflows
+- [x] Canonical format-owner routing for provenance inspection, combined assessment, and strict selective removal
+- [x] Cooperative cancellation, conflict policies, staged reopen validation, atomic publication, and bounded sequential batches
+
+_Dependency footprint:_ first-party OfficeIMO format and conversion packages only; no hosted service, browser process, vendor detector, or bundled provenance executable.
+
 #### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
-- [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `agent`, and `mcp` command areas
+- [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `workflow`, `provenance`, `agent`, and `mcp` command areas
 - [x] Bounded HTML/MHTML-to-PDF conversion, document extraction, capability discovery, Markup validation, code emission, and Office export
 - [x] Compact inspect/search/fetch operations for documents and mail stores, plus a local STDIO MCP server for Codex and other clients
 - [x] Shared help, exit-code, packaging, NativeAOT, and stream contracts without duplicating document logic from the owning libraries

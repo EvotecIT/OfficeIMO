@@ -27,10 +27,12 @@ internal static class PdfTextAdvanceProjection {
             return false;
         }
 
-        // RotationDegrees already points from the run origin to its resolved endpoint. A
-        // negative total therefore changes the baseline direction and must be removed from
-        // the scalar advances before consumers project them along that direction.
-        double directionSign = signedTotal < 0D ? -1D : 1D;
+        // Parser-produced spans bind RotationDegrees to the painted baseline, independently
+        // of spacing-inclusive movement. Older synthetic spans do not carry that direction,
+        // so retain aggregate-direction normalization as their compatibility fallback.
+        double directionSign = span.CharacterAdvanceDirection != 0D
+            ? span.CharacterAdvanceDirection
+            : signedTotal < 0D ? -1D : 1D;
         boundaries = new double[advances.Count + 1];
         for (int i = 0; i < advances.Count; i++) {
             boundaries[i + 1] = boundaries[i] + advances[i] * directionSign;

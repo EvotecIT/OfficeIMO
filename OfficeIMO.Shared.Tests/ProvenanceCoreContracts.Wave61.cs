@@ -1,5 +1,7 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Provenance;
+using OfficeIMO.Security;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -40,5 +42,55 @@ public sealed partial class ProvenanceCoreContracts {
             OfficeProvenanceRemover.Remove(package, "signed.docx", options));
 
         Assert.Contains("expanded", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RemovalResultHashObservesCancellationBeforeProcessingOwnedBytes() {
+        var report = new OfficeProvenanceReport(
+            OfficeProvenanceAssetFormat.Png,
+            Array.Empty<OfficeProvenanceEvidence>());
+        var result = new OfficeProvenanceRemovalResult(
+            new byte[1024 * 1024],
+            report,
+            report,
+            Array.Empty<OfficeProvenanceChange>(),
+            wasReserialized: false);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => result.ComputeDataSha256(cancellation.Token));
+    }
+
+    [Fact]
+    public void OpcSignatureInspectionAcceptsEquivalentDuplicateDefaultContentTypes() {
+        const string contentTypes =
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+            "<Default Extension=\"XML\" ContentType=\"application/xml\"/>" +
+            "</Types>";
+        byte[] package = CreateZip(
+            ("[Content_Types].xml", Encoding.UTF8.GetBytes(contentTypes)),
+            ("ppt/presentation.xml", Encoding.UTF8.GetBytes("<presentation/>")));
+
+        OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(package);
+
+        Assert.False(info.HasSignatures);
+    }
+
+    [Fact]
+    public void OpcSignatureInspectionRejectsConflictingDuplicateDefaultContentTypes() {
+        const string contentTypes =
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+            "<Default Extension=\"XML\" ContentType=\"text/xml\"/>" +
+            "</Types>";
+        byte[] package = CreateZip(
+            ("[Content_Types].xml", Encoding.UTF8.GetBytes(contentTypes)),
+            ("ppt/presentation.xml", Encoding.UTF8.GetBytes("<presentation/>")));
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficePackageSignatureService.Inspect(package));
+
+        Assert.Contains("conflicting default content types", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -51,7 +51,9 @@ internal static class OfficeProvenanceSvg {
         List<OfficeProvenanceChange> changes,
         out bool reserialized) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
         XDocument document = Load(data, options.Limits);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
@@ -86,8 +88,8 @@ internal static class OfficeProvenanceSvg {
                 $"SVG/metadata/c2pa:manifest[{index}]",
                 0));
         }
-        if (changes.Count == 0) return (byte[])data.Clone();
-        using var output = new MemoryStream();
+        if (changes.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes);
         var settings = new XmlWriterSettings {
             Encoding = new UTF8Encoding(false),
             Indent = false,

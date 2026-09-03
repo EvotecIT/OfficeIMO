@@ -84,7 +84,7 @@ internal static partial class PdfRedactionApplier {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             Matrix2D invocationTransform = invocation.Transform;
             if (TryGetImageXObject(objects, xObjects, invocation.Name, out PdfReference imageReference, out PdfStream imageStream)) {
-                if (!TryFindImageTarget(invocation.Name, imageReference.ObjectNumber, invocationTransform, targets, out ImageRedactionTarget target) ||
+                if (!TryFindImageTarget(invocation.Name, imageReference.ObjectNumber, invocationTransform, targets, removedMatches, out ImageRedactionTarget target) ||
                     !CanRewriteImagePlacementPixels(invocationTransform)) {
                     continue;
                 }
@@ -212,10 +212,17 @@ internal static partial class PdfRedactionApplier {
             IsSharedReference(CountIndirectReferenceUsage(objects), reference);
     }
 
-    private static bool TryFindImageTarget(string resourceName, int objectNumber, Matrix2D transform, ImageRedactionTarget[] targets, out ImageRedactionTarget target) {
+    private static bool TryFindImageTarget(
+        string resourceName,
+        int objectNumber,
+        Matrix2D transform,
+        ImageRedactionTarget[] targets,
+        IReadOnlyList<PdfRedactionMatch> removedMatches,
+        out ImageRedactionTarget target) {
         GetUnitRectangleBounds(transform, out double x, out double y, out double width, out double height);
         for (int i = 0; i < targets.Length; i++) {
-            if (string.Equals(targets[i].ResourceName, resourceName, StringComparison.Ordinal) &&
+            if (!removedMatches.Contains(targets[i].Match) &&
+                string.Equals(targets[i].ResourceName, resourceName, StringComparison.Ordinal) &&
                 targets[i].MatchesObjectNumber(objectNumber) &&
                 targets[i].MatchesTransform(transform) &&
                 AreCloseImageCoordinate(targets[i].X, x) &&
@@ -232,11 +239,31 @@ internal static partial class PdfRedactionApplier {
     }
 
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity));
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), PdfTextStateSnapshot.Default);
 
-    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) {
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        PdfTextStateSnapshot initialTextState) =>
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, null);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        PdfTextStateSnapshot initialTextState,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts) =>
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, extGStateFonts);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) =>
+        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default, null);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        ImageContentGraphicsState graphicsState,
+        PdfTextStateSnapshot initialTextState,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null) {
         var invocations = new List<ImageResourceInvocation>();
         var args = new List<ImageContentOperand>(8);
+        var textStateStack = new Stack<PdfTextStateSnapshot>();
+        PdfTextStateSnapshot textState = initialTextState;
         int index = 0;
         int length = content.Length;
 
@@ -258,22 +285,28 @@ internal static partial class PdfRedactionApplier {
             }
 
             if (current == '(') {
+                int operandStart = index;
                 SkipLiteralString(content, ref index);
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 
             if (current == '<') {
+                int operandStart = index;
                 if (index + 1 < length && content[index + 1] == '<') {
                     SkipDictionary(content, ref index);
                 } else {
                     SkipHexString(content, ref index);
                 }
 
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 
             if (current == '[') {
+                int operandStart = index;
                 SkipArray(content, ref index);
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 
@@ -294,12 +327,18 @@ internal static partial class PdfRedactionApplier {
             }
 
             switch (op) {
+                case "BI":
+                    SkipInlineImage(content, ref index);
+                    args.Clear();
+                    break;
                 case "q":
                     graphicsState.Stack.Push(graphicsState.Transform);
+                    textStateStack.Push(textState);
                     args.Clear();
                     break;
                 case "Q":
                     graphicsState.Transform = graphicsState.Stack.Count > 0 ? graphicsState.Stack.Pop() : graphicsState.BaseTransform;
+                    textState = textStateStack.Count > 0 ? textStateStack.Pop() : initialTextState;
                     args.Clear();
                     break;
                 case "cm":
@@ -315,10 +354,66 @@ internal static partial class PdfRedactionApplier {
 
                     args.Clear();
                     break;
+                case "Tf" when args.Count >= 2:
+                    textState = textState.WithFont(
+                        args[args.Count - 2].Name ?? textState.FontResource,
+                        args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "gs" when args.Count >= 1:
+                    if (args[args.Count - 1].Name is string graphicsStateName &&
+                        extGStateFonts != null &&
+                        extGStateFonts.TryGetValue(graphicsStateName, out PdfExtGStateFontSelection fontSelection)) {
+                        if (!fontSelection.IsValid) {
+                            throw new NotSupportedException($"Extended graphics state /{graphicsStateName} has a malformed Font entry, so inherited form text state cannot be redacted safely.");
+                        }
+                        textState = textState.WithFont(fontSelection.FontResource, fontSelection.FontSize);
+                    }
+                    args.Clear();
+                    break;
+                case "Tc" when args.Count >= 1:
+                    textState = textState.WithCharacterSpacing(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tw" when args.Count >= 1:
+                    textState = textState.WithWordSpacing(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tz" when args.Count >= 1:
+                    textState = textState.WithHorizontalScaling(args[args.Count - 1].Number / 100D);
+                    args.Clear();
+                    break;
+                case "TL" when args.Count >= 1:
+                    textState = textState.WithLeading(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "TD" when args.Count >= 2:
+                    textState = textState.WithLeading(-args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Ts" when args.Count >= 1:
+                    textState = textState.WithTextRise(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tr" when args.Count >= 1:
+                    textState = textState.WithTextRenderingMode((int)args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "\"" when args.Count >= 3:
+                    textState = textState
+                        .WithWordSpacing(args[args.Count - 3].Number)
+                        .WithCharacterSpacing(args[args.Count - 2].Number);
+                    args.Clear();
+                    break;
                 case "Do":
                     if (args.Count >= 1 && !string.IsNullOrEmpty(args[args.Count - 1].Name)) {
                         ImageContentOperand operand = args[args.Count - 1];
-                        invocations.Add(new ImageResourceInvocation(operand.Name!, graphicsState.Transform, operand.Start, operand.End));
+                        invocations.Add(new ImageResourceInvocation(
+                            operand.Name!,
+                            graphicsState.Transform,
+                            operand.Start,
+                            operand.End,
+                            textState));
                     }
 
                     args.Clear();
@@ -925,11 +1020,17 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct ImageResourceInvocation {
-        public ImageResourceInvocation(string name, Matrix2D transform, int nameStart, int nameEnd) {
+        public ImageResourceInvocation(
+            string name,
+            Matrix2D transform,
+            int nameStart,
+            int nameEnd,
+            PdfTextStateSnapshot textState) {
             Name = name;
             Transform = transform;
             NameStart = nameStart;
             NameEnd = nameEnd;
+            TextState = textState;
         }
 
         public string Name { get; }
@@ -939,6 +1040,8 @@ internal static partial class PdfRedactionApplier {
         public int NameStart { get; }
 
         public int NameEnd { get; }
+
+        public PdfTextStateSnapshot TextState { get; }
     }
 
     private readonly struct ImageSampleRewriteEncoder {
