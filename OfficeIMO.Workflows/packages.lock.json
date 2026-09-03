@@ -39,11 +39,17 @@
       },
       "System.IO.Packaging": {
         "type": "Transitive",
-        "resolved": "10.0.2",
-        "contentHash": "JTpM4z0wpoIHHDvlCU27HsXo+zVnpWib94HXQpzzr+jc/P9NYf4w353AK4MXyGq/grm1mbLi7eXsOsDU8sGmNg=="
+        "resolved": "10.0.8",
+        "contentHash": "6Dzmgfpi7BdqgQ3g/6jZuJzgGspIFSEfSchY4ejTVkZTMOKRZRJiYp5/q0gIZ8H1+Eq8/sxJNnyWtzAHp6iTcQ=="
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.epub": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
       },
       "officeimo.excel": {
         "type": "Project",
@@ -76,6 +82,18 @@
           "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.opendocument": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
@@ -95,6 +113,13 @@
           "OfficeIMO.Core": "[3.3.0, )",
           "OfficeIMO.Pdf": "[3.3.0, )",
           "OfficeIMO.PowerPoint": "[3.3.0, )"
+        }
+      },
+      "officeimo.visio": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "System.IO.Packaging": "[10.0.8, )"
         }
       },
       "officeimo.word": {
@@ -157,8 +182,8 @@
       },
       "System.IO.Packaging": {
         "type": "Transitive",
-        "resolved": "8.0.1",
-        "contentHash": "KYkIOAvPexQOLDxPO2g0BVoWInnQhPpkFzRqvNrNrMhVT6kqhVr0zEb6KCHlptLFukxnZrjuMVAnxK7pOGUYrw=="
+        "resolved": "10.0.8",
+        "contentHash": "6Dzmgfpi7BdqgQ3g/6jZuJzgGspIFSEfSchY4ejTVkZTMOKRZRJiYp5/q0gIZ8H1+Eq8/sxJNnyWtzAHp6iTcQ=="
       },
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
@@ -167,6 +192,12 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.epub": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
       },
       "officeimo.excel": {
         "type": "Project",
@@ -200,6 +231,18 @@
           "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.opendocument": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
@@ -219,6 +262,13 @@
           "OfficeIMO.Core": "[3.3.0, )",
           "OfficeIMO.Pdf": "[3.3.0, )",
           "OfficeIMO.PowerPoint": "[3.3.0, )"
+        }
+      },
+      "officeimo.visio": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "System.IO.Packaging": "[10.0.8, )"
         }
       },
       "officeimo.word": {
