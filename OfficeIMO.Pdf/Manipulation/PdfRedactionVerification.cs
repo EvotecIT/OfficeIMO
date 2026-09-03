@@ -79,7 +79,7 @@ internal static partial class PdfRedactionVerification {
             if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
         }
 
-        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
+        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.RequireCompleteStreamInspection, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
     }
 
     /// <summary>
@@ -190,6 +190,7 @@ internal static partial class PdfRedactionVerification {
             markerReport.RawPdfBytesChecked,
             markerReport.EncodedPdfStringsChecked,
             markerReport.DecodedPdfStreamsChecked,
+            markerReport.CompleteStreamInspectionRequired,
             markerReport.ManagedRenderingChecked,
             markerReport.ExternalValidationResults,
             issues.AsReadOnly());

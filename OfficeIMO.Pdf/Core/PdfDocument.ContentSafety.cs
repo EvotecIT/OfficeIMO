@@ -153,8 +153,56 @@ public sealed partial class PdfDocument {
                     if (targets != null) foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = new PdfContentSafetyTarget(pageIndex + 1, span);
                 }
             }
+
+            IReadOnlyList<PdfTextSpan> hiddenOptionalContent = page.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
+            for (int hiddenIndex = 0; hiddenIndex < hiddenOptionalContent.Count; hiddenIndex++) {
+                PdfTextSpan span = hiddenOptionalContent[hiddenIndex];
+                if (string.IsNullOrWhiteSpace(span.Text)) continue;
+                string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenOptionalContentTextSpan[" + (hiddenIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
+                builder.Add(
+                    OfficeContentConcealmentKind.HiddenContainer,
+                    OfficeContentSafetyRisk.ContextDependent,
+                    location,
+                    "The decoded PDF text is inside optional content hidden by the document's default layer configuration.",
+                    span.Text,
+                    OfficeContentCleanupCapability.ReportOnly,
+                    inspectTextIntegrityEvidence: true);
+            }
+
+            IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
+            for (int annotationIndex = 0; annotationIndex < annotations.Count; annotationIndex++) {
+                PdfAnnotation annotation = annotations[annotationIndex];
+                if (!annotation.IsHidden && !annotation.IsInvisible && !annotation.IsNoView) continue;
+                string? text = !string.IsNullOrWhiteSpace(annotation.RichContentsPlainText)
+                    ? annotation.RichContentsPlainText
+                    : annotation.Contents;
+                string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
+                builder.Add(
+                    OfficeContentConcealmentKind.HiddenByProperty,
+                    OfficeContentSafetyRisk.ContextDependent,
+                    location,
+                    "The PDF annotation is concealed by its Invisible, Hidden, or NoView flag.",
+                    text,
+                    OfficeContentCleanupCapability.ReportOnly);
+            }
         }
-        if (document.OptionalContent != null) builder.AddDiagnostic("The PDF contains optional-content groups. Hidden group metadata is retained; text inside every hidden form-XObject nesting is not yet surfaced as an individually removable span.");
+
+        IReadOnlyList<PdfFormField> formFields = document.FormFields;
+        for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
+            PdfFormField field = formFields[fieldIndex];
+            bool allWidgetsHidden = field.Widgets.Count > 0 &&
+                field.Widgets.All(static widget => widget.IsHidden || widget.IsInvisible || widget.IsNoView);
+            if (!allWidgetsHidden || !field.HasValues) continue;
+            builder.Add(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                OfficeContentSafetyRisk.ContextDependent,
+                "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenWidgetValue",
+                "The PDF form value belongs only to widgets concealed by their Invisible, Hidden, or NoView flags.",
+                string.Join(" ", field.Values),
+                OfficeContentCleanupCapability.ReportOnly);
+        }
+
+        if (document.OptionalContent != null) builder.AddDiagnostic("Optional-content metadata and hidden text were inspected using the document's default layer configuration. Hidden optional-content findings are report-only.");
         return builder.Build();
     }
 

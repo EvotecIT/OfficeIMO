@@ -156,7 +156,8 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        bool includeHiddenOptionalContent = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -182,6 +183,7 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 pageHeight,
                 includeArtifactText: includeArtifactText,
+                includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
                 contentStreamObjectNumberAtOffset: contentSequence.GetObjectNumber,
@@ -649,7 +651,8 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         int? contentStreamObjectNumber = null,
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        bool includeHiddenOptionalContent = false) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -674,6 +677,7 @@ public sealed partial class PdfReadPage {
         int? ResolveMarkedContentMcid(string propertyName) =>
             GetMarkedContentMcid(resources, propertyName);
 
+        PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -685,7 +689,7 @@ public sealed partial class PdfReadPage {
             colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
             baseFontForResource: ResolveBaseFont,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
-            optionalContentVisibility: GetOptionalContentVisibility(resources),
+            optionalContentVisibility: includeHiddenOptionalContent ? null : optionalContentVisibility,
             pageHeight: pageHeight,
             paintOrderBase: paintOrderBase,
             paintOrderScale: paintOrderScale,
@@ -723,7 +727,7 @@ public sealed partial class PdfReadPage {
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
-                     GetOptionalContentVisibility(resources),
+                     includeHiddenOptionalContent ? null : optionalContentVisibility,
                      paintOrderBase,
                      paintOrderScale,
                      paintOrderOffset,
@@ -761,6 +765,12 @@ public sealed partial class PdfReadPage {
 
             try {
                 var formDict = formStream.Dictionary;
+                if (!includeHiddenOptionalContent &&
+                    optionalContentVisibility is not null &&
+                    formDict.Items.TryGetValue("OC", out PdfObject? formOptionalContent) &&
+                    optionalContentVisibility.IsHidden(formOptionalContent)) {
+                    continue;
+                }
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 PdfFontResourceSet formFontResources = _fontResourceCache.GetOrCreate(formResources, _objects);
                 var formDecoders = MergeDecoders(decoders, formFontResources.Decoders);
@@ -804,7 +814,8 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeColorSelection,
                     formObjectNumber,
                     contentStreamObjectNumberAtOffset: null,
-                    cancellationCheck: cancellationCheck);
+                    cancellationCheck: cancellationCheck,
+                    includeHiddenOptionalContent: includeHiddenOptionalContent);
             } finally {
                 activeForms.Remove(formStream);
             }

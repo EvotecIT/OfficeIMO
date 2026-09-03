@@ -103,6 +103,15 @@ internal sealed class PdfPageOptionalContentVisibility {
         return IsHiddenAny(references.ObjectNumbers);
     }
 
+    internal bool IsHidden(PdfObject optionalContentObject) =>
+        IsOptionalContentObjectHidden(
+            optionalContentObject,
+            _groupVisibility,
+            _objects,
+            new HashSet<int>(),
+            _maxExpressionDepth,
+            depth: 0);
+
     internal bool HasInvalidMembershipReferences(PdfInlineOptionalContentReferences references) {
         if (!references.IsMembershipDictionary) return false;
         if (references.HasInvalidPolicy || references.HasInvalidGroupContainer) return true;

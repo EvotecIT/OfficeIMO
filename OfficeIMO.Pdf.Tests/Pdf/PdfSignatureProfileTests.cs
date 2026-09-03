@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -67,6 +68,58 @@ public class PdfSignatureProfileTests {
         Assert.Contains("Approved by external signer", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Widget", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void VisibleApprovalProfileEmbedsRasterImageInAppearanceStream() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Image-backed approval source"))
+            .ToBytes();
+        byte[] image = PdfPngTestImages.CreateRgbPng(4, 2);
+        var appearance = new PdfVisibleSignatureAppearanceOptions {
+            PageNumber = 1,
+            X = 36,
+            Y = 36,
+            Width = 180,
+            Height = 72,
+            ImageBytes = image,
+            ImageFit = OfficeImageFit.Contain,
+            ImagePadding = 6,
+            ShowText = false
+        };
+        image[0] = 0;
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                Profile = PdfSignatureProfile.Approval,
+                FieldName = "ImageApproval",
+                VisibleAppearance = appearance,
+                ReservedSignatureContentsBytes = 512
+            });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        PdfReadDocument reopened = PdfReadDocument.Open(signed);
+        PdfFormWidget widget = Assert.Single(Assert.Single(reopened.FormFields, field => field.Name == "ImageApproval").Widgets);
+        string raw = PdfEncoding.Latin1GetString(signed);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(signed).Map;
+        PdfStream appearanceStream = Assert.Single(objects.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>(), stream =>
+                PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName { Name: "Form" } &&
+                PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null) is PdfDictionary resourceDictionary &&
+                resourceDictionary.Items.ContainsKey("XObject"));
+        PdfDictionary appearanceResources = Assert.IsType<PdfDictionary>(
+            PdfObjectLookup.ResolveChain(objects, appearanceStream.Dictionary.Items["Resources"]));
+        PdfDictionary appearanceImages = Assert.IsType<PdfDictionary>(
+            PdfObjectLookup.ResolveChain(objects, appearanceResources.Items["XObject"]));
+        PdfStream embeddedImage = Assert.IsType<PdfStream>(
+            PdfObjectLookup.ResolveChain(objects, appearanceImages.Items["Im1"]));
+
+        Assert.Equal(1, widget.PageNumber);
+        Assert.Contains("/XObject << /Im1", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
     }
 
     [Fact]
