@@ -245,10 +245,14 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Theory]
-    [InlineData("", true)]
-    [InlineData("/AP << /N << /Off 8 0 R >> >>", true)]
-    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", false)]
-    public void ContentSafetyRequiresSelectedButtonAppearanceEvidence(string appearanceEntry, bool shouldBeConcealed) {
+    [InlineData("", "", true)]
+    [InlineData("/AP << /N << /Off 8 0 R >> >>", "q 0 0 40 40 re f Q", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "q Q", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "q 0 0 40 40 re f Q", false)]
+    public void ContentSafetyRequiresSelectedButtonAppearanceEvidence(
+        string appearanceEntry,
+        string selectedAppearanceContent,
+        bool shouldBeConcealed) {
         var objects = new List<string> {
             "%PDF-1.7",
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances false /Fields [6 0 R] >> >>\nendobj",
@@ -259,7 +263,7 @@ public sealed class PdfHiddenContentInspectionTests {
             "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 60 60] /P 3 0 R /F 4 /AS /On " + appearanceEntry + " >>\nendobj"
         };
         if (appearanceEntry.Length > 0) {
-            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 40 40]", "q 0 0 40 40 re f Q"));
+            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 40 40]", selectedAppearanceContent));
             objects.Add(StreamObject(9, "/Type /XObject /Subtype /Form /BBox [0 0 40 40]", string.Empty));
         }
         objects.Add("trailer\n<< /Root 1 0 R /Size 10 >>");

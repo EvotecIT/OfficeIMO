@@ -6,11 +6,11 @@ internal static partial class PdfRedactionPlanner {
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
     public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
-        return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false);
+        return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false);
     }
 
     internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options) {
-        return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true);
+        return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true, excludeGeneratedRedactionMarks: true);
     }
 
     private static PdfRedactionPlan Plan(
@@ -18,7 +18,8 @@ internal static partial class PdfRedactionPlanner {
         IEnumerable<PdfRedactionArea> areas,
         PdfTextLayoutOptions? layoutOptions,
         PdfLoadOptions? options,
-        bool includeHiddenOptionalContentText) {
+        bool includeHiddenOptionalContentText,
+        bool excludeGeneratedRedactionMarks) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
 
@@ -90,7 +91,7 @@ internal static partial class PdfRedactionPlanner {
                     primitives = page.GetIdentityVisualPrimitives();
                     nestedPathPrimitivesByPage.Add(area.PageNumber, primitives);
                 }
-                AddNestedPathMatches(area, page, primitives, matches, findings);
+                AddPathMatches(area, page, primitives, matches, findings, excludeGeneratedRedactionMarks);
             }
         }
 
@@ -290,16 +291,20 @@ internal static partial class PdfRedactionPlanner {
         }
     }
 
-    private static void AddNestedPathMatches(
+    private static void AddPathMatches(
         PdfRedactionArea area,
         PdfReadPage page,
         IReadOnlyList<PdfPageVisualPrimitive> primitives,
         List<PdfRedactionMatch> matches,
-        List<PdfDiagnosticFinding> findings) {
+        List<PdfDiagnosticFinding> findings,
+        bool excludeGeneratedRedactionMarks) {
         PdfVisualBounds visualArea = page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top);
+        int generatedMarkIndex = excludeGeneratedRedactionMarks
+            ? FindGeneratedRedactionMarkIndex(visualArea, primitives)
+            : -1;
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
-            if (primitive.ContentOrderKey?.Depth <= 1) continue;
+            if (i == generatedMarkIndex) continue;
             double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
             double left = primitive.X - strokePadding;
             double top = primitive.Y - strokePadding;
@@ -331,11 +336,38 @@ internal static partial class PdfRedactionPlanner {
                 null));
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
-                "RedactionPlanNestedVectorIntersection",
-                "The redaction area intersects vector content inside a nested Form XObject. The current writer cannot remove that path; applied-plan verification will remain unverified while the nested vector content remains.",
+                primitive.ContentOrderKey?.Depth > 1
+                    ? "RedactionPlanNestedVectorIntersection"
+                    : "RedactionPlanVectorIntersection",
+                primitive.ContentOrderKey?.Depth > 1
+                    ? "The redaction area intersects vector content inside a nested Form XObject. The current writer cannot remove that path; applied-plan verification will remain unverified while the nested vector content remains."
+                    : "The redaction area intersects a page-level vector path. Applying the plan removes supported intersecting paths when path removal is enabled; otherwise applied-plan verification remains unverified while the path survives.",
                 pageNumber: area.PageNumber));
         }
     }
+
+    private static int FindGeneratedRedactionMarkIndex(
+        PdfVisualBounds visualArea,
+        IReadOnlyList<PdfPageVisualPrimitive> primitives) {
+        for (int i = primitives.Count - 1; i >= 0; i--) {
+            PdfPageVisualPrimitive primitive = primitives[i];
+            if (primitive.ContentOrderKey?.Depth > 1 ||
+                primitive.Kind != PdfPageVisualPrimitiveKind.Rectangle ||
+                !primitive.HasFillPaint ||
+                primitive.HasStrokePaint) {
+                continue;
+            }
+            if (AreClose(primitive.X, visualArea.Left) &&
+                AreClose(primitive.Y, visualArea.Top) &&
+                AreClose(primitive.Width, visualArea.Width) &&
+                AreClose(primitive.Height, visualArea.Height)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static bool AreClose(double left, double right) => Math.Abs(left - right) < 0.0001D;
 
     private static bool Intersects(double ax, double ay, double aw, double ah, double bx, double by, double bw, double bh) {
         return ax < bx + bw &&

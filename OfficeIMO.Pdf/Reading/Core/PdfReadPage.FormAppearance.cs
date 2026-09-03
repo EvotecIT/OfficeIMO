@@ -79,10 +79,72 @@ public sealed partial class PdfReadPage {
         }
 
         try {
-            return budget._pageContentBudget.Decode(appearance).Any(static value => !char.IsWhiteSpace((char)value));
+            string content = PdfEncoding.Latin1GetString(budget._pageContentBudget.Decode(appearance));
+            bool hasPaint = false;
+            int textRenderingMode = 0;
+            var textRenderingModeStack = new Stack<int>();
+            PdfContentStreamInterpreter.Interpret(
+                content,
+                _limits.MaxContentOperations,
+                operation => {
+                    if (hasPaint) return;
+                    switch (operation.Name) {
+                        case "q":
+                            textRenderingModeStack.Push(textRenderingMode);
+                            break;
+                        case "Q":
+                            textRenderingMode = textRenderingModeStack.Count > 0 ? textRenderingModeStack.Pop() : 0;
+                            break;
+                        case "Tr" when operation.Operands.Count > 0:
+                            textRenderingMode = (int)Convert.ToDouble(
+                                operation.Operands[operation.Operands.Count - 1],
+                                System.Globalization.CultureInfo.InvariantCulture);
+                            break;
+                        case "Tj":
+                        case "TJ":
+                        case "'":
+                        case "\"":
+                            hasPaint = textRenderingMode != 3 && ContainsTextBytes(operation.Operands);
+                            break;
+                        case "S":
+                        case "s":
+                        case "f":
+                        case "F":
+                        case "f*":
+                        case "B":
+                        case "B*":
+                        case "b":
+                        case "b*":
+                        case "Do":
+                        case "sh":
+                            hasPaint = true;
+                            break;
+                        case "BI" when operation.InlineImage is not null:
+                            hasPaint = operation.InlineImage.Data.Length > 0;
+                            break;
+                    }
+                },
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands);
+            return hasPaint;
         } catch (System.IO.InvalidDataException) {
             return false;
+        } catch (FormatException) {
+            return false;
+        } catch (InvalidCastException) {
+            return false;
+        } catch (OverflowException) {
+            return false;
         }
+    }
+
+    private static bool ContainsTextBytes(IEnumerable<object> operands) {
+        foreach (object operand in operands) {
+            if (operand is byte[] bytes && bytes.Length > 0) return true;
+            if (operand is string text && text.Length > 0) return true;
+            if (operand is IEnumerable<object> nested && ContainsTextBytes(nested)) return true;
+        }
+        return false;
     }
 
     internal sealed class WidgetAppearanceScanBudget {

@@ -221,6 +221,43 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceRejectsPagePathThatExplicitlySurvivesRedaction() {
+        byte[] source = BuildDegeneratePageStrokePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, 50D, 30D, 20D, "retained page path")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            new PdfRedactionApplyOptions { RemoveIntersectingPaths = false },
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRejectsPagePathWhoseGraphicsStateCrossesContentStreams() {
+        byte[] source = BuildSplitStreamGraphicsStatePathPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 60D, 64D, 30D, 0.5D, "split stream path")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath);
+    }
+
+    [Fact]
     public void ApplyWithEvidenceRemovesIntersectingDegeneratePageStroke() {
         byte[] source = BuildDegeneratePageStrokePdf();
         PdfDocument document = PdfDocument.Load(source);
@@ -1584,6 +1621,20 @@ public class PdfRedactionVerificationTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>", "endobj",
             "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildSplitStreamGraphicsStatePathPdf() {
+        const string firstContent = "q 1 0 0 1 20 0 cm 10 w 10 60 m";
+        const string secondContent = "190 60 l S Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 120] /Contents [4 0 R 5 0 R] >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(firstContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", firstContent, "endstream", "endobj",
+            "5 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(secondContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", secondContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
     }
 
