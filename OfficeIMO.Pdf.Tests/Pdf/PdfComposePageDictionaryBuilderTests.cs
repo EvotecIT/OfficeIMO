@@ -810,6 +810,9 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(
                 "<< /Type /ExtGState /ca 0.35 /CA 0.75 >>\n",
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(0.35, 0.75));
+            Assert.Equal(
+                "<< /Type /ExtGState /ca 1 /CA 1 /BM /Multiply >>\n",
+                PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(1, 1, OfficeBlendMode.Multiply));
 
             Assert.Equal(
                 "<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [30 118 120 118] /Function << /FunctionType 2 /Domain [0 1] /C0 [0.039 0.078 0.118] /C1 [1 0.502 0] /N 1 >> /Extend [true true] >>\n",
@@ -866,6 +869,8 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(-0.1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(1, 1.1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(1, 1, (OfficeBlendMode)99));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(double.NaN, 0, 1, 1, OfficeColor.Black, OfficeColor.White));
             Assert.Throws<ArgumentOutOfRangeException>(() =>

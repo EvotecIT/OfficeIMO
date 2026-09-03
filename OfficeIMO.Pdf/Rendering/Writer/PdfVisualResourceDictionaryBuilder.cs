@@ -10,14 +10,21 @@ internal static class PdfVisualResourceDictionaryBuilder {
     private const int MaximumGradientSubdivisionDepth = 8;
     private const double GradientTransformTolerance = 1D / 1024D;
 
-    internal static string BuildExtGStateObject(double fillOpacity, double strokeOpacity) {
+    internal static string BuildExtGStateObject(
+        double fillOpacity,
+        double strokeOpacity,
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal) {
         ValidateOpacity(fillOpacity, nameof(fillOpacity));
         ValidateOpacity(strokeOpacity, nameof(strokeOpacity));
+        if (blendMode < OfficeBlendMode.Normal || blendMode > OfficeBlendMode.Luminosity) {
+            throw new ArgumentOutOfRangeException(nameof(blendMode), blendMode, "Unsupported PDF blend mode.");
+        }
 
         return "<< /Type /ExtGState /ca " +
             FormatNumber(fillOpacity) +
             " /CA " +
             FormatNumber(strokeOpacity) +
+            (blendMode == OfficeBlendMode.Normal ? string.Empty : " /BM /" + blendMode) +
             " >>\n";
     }
 

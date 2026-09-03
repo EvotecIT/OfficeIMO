@@ -535,7 +535,9 @@ internal static partial class PdfWriter {
 
         for (int i = 0; i < page.GraphicsStates.Count; i++) {
             var existing = page.GraphicsStates[i];
-            if (existing.FillOpacity.Equals(fillOpacity) && existing.StrokeOpacity.Equals(strokeOpacity)) {
+            if (existing.FillOpacity.Equals(fillOpacity) &&
+                existing.StrokeOpacity.Equals(strokeOpacity) &&
+                existing.BlendMode == OfficeBlendMode.Normal) {
                 return existing.Name;
             }
         }

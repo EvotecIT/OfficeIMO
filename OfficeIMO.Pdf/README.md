@@ -836,6 +836,29 @@ shapes, drawings, clipping, and effects are supported. Interactive links and
 annotations, named destinations, forms, and document outlines use their
 dedicated editors so their behavior is not silently flattened or discarded.
 
+Use a scoped canvas blend mode when foreground artwork must composite with the
+existing page. This example adds a Multiply highlight while keeping dark text
+legible:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var highlight = OfficeShape.Rectangle(180, 18);
+highlight.FillColor = OfficeColor.FromRgb(255, 230, 70);
+highlight.StrokeWidth = 0;
+
+PdfDocument.Load("contract.pdf")
+    .Stamp.Content((canvas, page) => canvas
+        .WithBlendMode(OfficeBlendMode.Multiply, blended =>
+            blended.Shape(highlight, 72, 140)))
+    .Save("contract-highlighted.pdf");
+```
+
+`Effect(transform, opacity, blendMode, build)` combines affine transforms,
+group opacity, and any standard PDF blend mode. Set `BehindContent = true` on
+`PdfCanvasStampOptions` for a true underlay; use the foreground default when
+the blend must use existing page artwork as its backdrop.
+
 ### Search and edit existing page text
 
 Text editing coordinates use PDF points from the page bottom-left. Inspect a
