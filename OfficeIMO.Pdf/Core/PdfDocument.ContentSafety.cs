@@ -183,10 +183,11 @@ public sealed partial class PdfDocument {
                 PdfAnnotation annotation = annotations[annotationIndex];
                 bool hiddenByFlags = annotation.IsHidden || annotation.IsInvisible || annotation.IsNoView;
                 bool hiddenByOptionalContent = page.IsHiddenOptionalContent(annotation.SourceDictionary);
+                bool transparent = annotation.Opacity.HasValue && annotation.Opacity.Value <= 0D;
                 bool unreadableRectangle = !annotation.HasReadableRectangle;
                 bool degenerateRectangle = annotation.HasReadableRectangle && HasDegenerateAnnotationRectangle(annotation);
                 bool outsidePage = annotation.HasReadableRectangle && IsAnnotationOutsidePage(page, annotation);
-                if (!hiddenByFlags && !hiddenByOptionalContent && !unreadableRectangle && !degenerateRectangle && !outsidePage) continue;
+                if (!hiddenByFlags && !hiddenByOptionalContent && !transparent && !unreadableRectangle && !degenerateRectangle && !outsidePage) continue;
                 if (annotation.ObjectNumber.HasValue) concealedAnnotationObjectNumbers.Add(annotation.ObjectNumber.Value);
                 string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
                 string evidence = unreadableRectangle
@@ -195,6 +196,8 @@ public sealed partial class PdfDocument {
                     ? "The PDF annotation rectangle has zero area and cannot present its stored content."
                     : outsidePage
                     ? "The PDF annotation rectangle is outside the page boundary and has no visible presentation."
+                    : transparent
+                    ? "The PDF annotation has zero effective opacity and its stored content has no visible presentation."
                     : hiddenByFlags && hiddenByOptionalContent
                     ? "The PDF annotation is concealed by its flags and optional-content configuration."
                     : hiddenByOptionalContent
@@ -241,6 +244,7 @@ public sealed partial class PdfDocument {
         var reportedValueOwners = new HashSet<int>();
         var reportedDefaultValueOwners = new HashSet<int>();
         var reportedRichValueOwners = new HashSet<int>();
+        var widgetAppearanceBudgets = new Dictionary<int, PdfReadPage.WidgetAppearanceScanBudget>();
         for (int fieldIndex = 0; builder.Options.IncludeNonPrimaryContent && fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
             string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
@@ -250,7 +254,7 @@ public sealed partial class PdfDocument {
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
                 (hiddenChoiceExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers))) {
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers, widgetAppearanceBudgets))) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
@@ -270,7 +274,7 @@ public sealed partial class PdfDocument {
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
                 (distinctStoredDefault ||
                  hiddenChoiceDefaultExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) &&
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers, widgetAppearanceBudgets)) &&
                 reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
@@ -314,7 +318,8 @@ public sealed partial class PdfDocument {
         IReadOnlyList<PdfFormField> fields,
         int fieldIndex,
         bool defaultValue,
-        HashSet<int> concealedAnnotationObjectNumbers) {
+        HashSet<int> concealedAnnotationObjectNumbers,
+        Dictionary<int, PdfReadPage.WidgetAppearanceScanBudget> widgetAppearanceBudgets) {
         PdfFormField field = fields[fieldIndex];
         int? ownerKey = defaultValue
             ? field.DefaultValueOwnerKey
@@ -345,8 +350,28 @@ public sealed partial class PdfDocument {
                 IReadOnlyList<string> presentedValues = defaultValue
                     ? candidate.DefaultValues
                     : candidate.Values;
-                if (!candidate.IsButtonField ||
-                    widget.AppearanceState is not null && presentedValues.Contains(widget.AppearanceState, StringComparer.Ordinal)) {
+                if (document.AcroFormNeedAppearances == true) return true;
+                int pageIndex = widget.PageNumber!.Value - 1;
+                if (!widgetAppearanceBudgets.TryGetValue(pageIndex, out PdfReadPage.WidgetAppearanceScanBudget? appearanceBudget)) {
+                    appearanceBudget = document.Pages[pageIndex].CreateWidgetAppearanceScanBudget();
+                    widgetAppearanceBudgets.Add(pageIndex, appearanceBudget);
+                }
+                if (candidate.IsButtonField) {
+                    if (widget.AppearanceState is not null &&
+                        presentedValues.Contains(widget.AppearanceState, StringComparer.Ordinal) &&
+                        widget.ObjectNumber.HasValue &&
+                        document.Pages[pageIndex].DoesWidgetNormalAppearancePresentButtonState(
+                            widget.ObjectNumber.Value,
+                            appearanceBudget)) {
+                        return true;
+                    }
+                    continue;
+                }
+                if (widget.ObjectNumber.HasValue &&
+                    document.Pages[pageIndex].DoesWidgetNormalAppearancePresentAllText(
+                        widget.ObjectNumber.Value,
+                        presentedValues,
+                        appearanceBudget)) {
                     return true;
                 }
             }

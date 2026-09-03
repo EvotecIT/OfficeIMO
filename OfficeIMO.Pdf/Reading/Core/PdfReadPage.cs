@@ -524,6 +524,25 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber) {
+        return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
+    }
+
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacementsIncludingHiddenOptionalContent(int pageNumber) {
+        IReadOnlyList<PdfImagePlacement> visible = GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
+        IReadOnlyList<PdfImagePlacement> all = GetImagePlacements(pageNumber, includeHiddenOptionalContent: true);
+        if (all.Count == visible.Count) return all;
+
+        var visibleContentOrderKeys = new HashSet<PdfContentOrderKey>(visible
+            .Select(static placement => placement.ContentOrderKey)
+            .OfType<PdfContentOrderKey>());
+        return all
+            .Select(placement => placement.ContentOrderKey is not null && visibleContentOrderKeys.Contains(placement.ContentOrderKey)
+                ? placement
+                : placement.WithHiddenOptionalContent(true))
+            .ToArray();
+    }
+
+    private IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber, bool includeHiddenOptionalContent) {
         var placements = new List<PdfImagePlacement>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -540,7 +559,9 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 placements,
                 activeForms,
-                pageContentBudget: pageContentBudget);
+                includeHiddenOptionalContent: includeHiddenOptionalContent,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
@@ -885,18 +906,22 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
         PdfContentOrderKey? contentOrderPrefix = null,
-        bool skipTransparencyGroupForms = false) {
+        bool skipTransparencyGroupForms = false,
+        bool includeHiddenOptionalContent = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textClippingBudget ??= new PdfTextClippingBudget();
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
+            ? null
+            : GetOptionalContentVisibility(resources);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
                      pageHeight,
                      GetGraphicsStateResources(resources),
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
-                     GetOptionalContentVisibility(resources),
+                     optionalContentVisibility,
                      initialFillColor,
                      initialFillColorSpace,
                       initialFillOpacity,
@@ -951,6 +976,12 @@ public sealed partial class PdfReadPage {
                     out int imageObjectNumber,
                     out int directStreamIdentity,
                     out PdfStream? imageStream)) {
+                if (!includeHiddenOptionalContent &&
+                    optionalContentVisibility is not null &&
+                    imageStream!.Dictionary.Items.TryGetValue("OC", out PdfObject? imageOptionalContent) &&
+                    optionalContentVisibility.IsHidden(imageOptionalContent)) {
+                    continue;
+                }
                 PdfImagePlacement placement = BuildImagePlacement(
                     pageNumber,
                     invocation.Name,
@@ -989,6 +1020,12 @@ public sealed partial class PdfReadPage {
 
             try {
                 var formDict = formStream.Dictionary;
+                if (!includeHiddenOptionalContent &&
+                    optionalContentVisibility is not null &&
+                    formDict.Items.TryGetValue("OC", out PdfObject? formOptionalContent) &&
+                    optionalContentVisibility.IsHidden(formOptionalContent)) {
+                    continue;
+                }
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formDict);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict);
@@ -1018,7 +1055,8 @@ public sealed partial class PdfReadPage {
                     textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget,
                     contentOrderPrefix: invocationOrder,
-                    skipTransparencyGroupForms: skipTransparencyGroupForms);
+                    skipTransparencyGroupForms: skipTransparencyGroupForms,
+                    includeHiddenOptionalContent: includeHiddenOptionalContent);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1933,7 +1971,7 @@ public sealed partial class PdfReadPage {
         return Filters.StreamDecoder.DecodeRequired(s.Dictionary, s.Data, _objects, maxDecodedBytes);
     }
 
-    private sealed class PageContentBudget {
+    internal sealed class PageContentBudget {
         private readonly PdfReadPage _page;
         private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
         private long _decodedBytes;

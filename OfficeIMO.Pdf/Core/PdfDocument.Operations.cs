@@ -320,7 +320,7 @@ public sealed partial class PdfDocument {
             issue.Feature == "RedactionPlanInspectionBlocked")
             ? Array.Empty<PdfRedactionMatch>()
             : PdfRedactionVerification.FilterAppliedImageResiduals(
-                PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, outputReadOptions).Matches,
+                PdfRedactionPlanner.PlanForVerification(output, plan.Areas, outputReadOptions).Matches,
                 appliedImageMatches);
         IReadOnlyList<PdfRedactionMatch> inconclusiveMatches = FindWidgetMatchesWithReachableFieldOwners(
             source,

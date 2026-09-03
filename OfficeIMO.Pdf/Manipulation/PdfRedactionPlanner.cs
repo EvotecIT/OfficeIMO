@@ -50,6 +50,7 @@ internal static partial class PdfRedactionPlanner {
         var matches = new List<PdfRedactionMatch>();
         var nestedPathPrimitivesByPage = new Dictionary<int, IReadOnlyList<PdfPageVisualPrimitive>>();
         var hiddenTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
+        var hiddenImagePlacementsByPage = new Dictionary<int, IReadOnlyList<PdfImagePlacement>>();
         var inconclusiveOptionalContentPages = new HashSet<int>();
 
         foreach (PdfRedactionArea area in areaArray) {
@@ -72,7 +73,16 @@ internal static partial class PdfRedactionPlanner {
                     AddHiddenTextMatches(area, hiddenSpans, matches);
                 }
             }
-            AddImageMatches(area, logical.Images, matches, findings);
+            if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
+                if (!hiddenImagePlacementsByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfImagePlacement>? hiddenImagePlacements)) {
+                    hiddenImagePlacements = readDocument.Pages[area.PageNumber - 1]
+                        .GetImagePlacementsIncludingHiddenOptionalContent(area.PageNumber);
+                    hiddenImagePlacementsByPage.Add(area.PageNumber, hiddenImagePlacements);
+                }
+                AddImagePlacementMatches(area, hiddenImagePlacements, matches, findings);
+            } else {
+                AddImageMatches(area, logical.Images, matches, findings);
+            }
             AddAnnotationMatches(area, info.Pages, matches);
             if (area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage page = readDocument.Pages[area.PageNumber - 1];
@@ -213,32 +223,49 @@ internal static partial class PdfRedactionPlanner {
             }
 
             foreach (PdfImagePlacement placement in image.Placements) {
-                if (!Intersects(area.X, area.Y, area.Width, area.Height, placement.X, placement.Y, placement.Width, placement.Height)) {
-                    continue;
-                }
-
-                matches.Add(new PdfRedactionMatch(
-                    PdfRedactionMatchKind.ImagePlacement,
-                    area,
-                    placement.PageNumber,
-                    placement.X,
-                    placement.Y,
-                    placement.Width,
-                    placement.Height,
-                    null,
-                    null,
-                    placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
-                    placement.ResourceName,
-                    placement));
-
-                findings.Add(new PdfDiagnosticFinding(
-                    PdfDiagnosticSeverity.Warning,
-                    "RedactionPlanImageIntersection",
-                    "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
-                    placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
-                    placement.PageNumber));
+                AddImagePlacementMatch(area, placement, matches, findings);
             }
         }
+    }
+
+    private static void AddImagePlacementMatches(
+        PdfRedactionArea area,
+        IReadOnlyList<PdfImagePlacement> placements,
+        List<PdfRedactionMatch> matches,
+        List<PdfDiagnosticFinding> findings) {
+        for (int i = 0; i < placements.Count; i++) {
+            PdfImagePlacement placement = placements[i];
+            if (placement.PageNumber == area.PageNumber) AddImagePlacementMatch(area, placement, matches, findings);
+        }
+    }
+
+    private static void AddImagePlacementMatch(
+        PdfRedactionArea area,
+        PdfImagePlacement placement,
+        List<PdfRedactionMatch> matches,
+        List<PdfDiagnosticFinding> findings) {
+        if (!Intersects(area.X, area.Y, area.Width, area.Height, placement.X, placement.Y, placement.Width, placement.Height)) return;
+
+        matches.Add(new PdfRedactionMatch(
+            PdfRedactionMatchKind.ImagePlacement,
+            area,
+            placement.PageNumber,
+            placement.X,
+            placement.Y,
+            placement.Width,
+            placement.Height,
+            null,
+            null,
+            placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+            placement.ResourceName,
+            placement));
+
+        findings.Add(new PdfDiagnosticFinding(
+            PdfDiagnosticSeverity.Warning,
+            "RedactionPlanImageIntersection",
+            "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
+            placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+            placement.PageNumber));
     }
 
     private static void AddHiddenTextMatches(

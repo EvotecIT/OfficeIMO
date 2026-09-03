@@ -144,7 +144,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 9 0 R >> >> /Contents 4 0 R /Annots [7 0 R 8 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -209,12 +209,101 @@ public sealed class PdfHiddenContentInspectionTests {
             finding.TextPreview.Contains("SECRET", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("/NeedAppearances false", null, true)]
+    [InlineData("", null, true)]
+    [InlineData("/NeedAppearances false", "BT /F1 10 Tf 2 4 Td (PUBLIC-STALE-VALUE) Tj ET", true)]
+    [InlineData("", "BT /F1 10 Tf 2 4 Td (CURRENT-SECRET-VALUE) Tj ET", false)]
+    [InlineData("/NeedAppearances false", "BT /F1 10 Tf 2 4 Td 3 Tr (CURRENT-SECRET-VALUE) Tj ET", true)]
+    [InlineData("/NeedAppearances false", "BT /F1 10 Tf 500 500 Td (CURRENT-SECRET-VALUE) Tj ET", true)]
+    public void ContentSafetyRequiresCurrentTextWidgetAppearanceEvidence(string needAppearancesEntry, string? appearanceContent, bool shouldBeConcealed) {
+        string appearanceEntry = appearanceContent is null ? string.Empty : " /AP << /N 8 0 R >>";
+        var objects = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << " + needAppearancesEntry + " /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /FT /Tx /T (StaleField) /V (CURRENT-SECRET-VALUE) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4" + appearanceEntry + " >>\nendobj"
+        };
+        if (appearanceContent is not null) {
+            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 5 0 R >> >>", appearanceContent));
+        }
+        objects.Add("trailer\n<< /Root 1 0 R /Size " + (appearanceContent is null ? "8" : "9") + " >>");
+        objects.Add("%%EOF");
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(string.Join("\n", objects)));
+
+        bool concealed = report.Findings.Any(finding =>
+            finding.Location.EndsWith("/HiddenWidgetValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("CURRENT-SECRET-VALUE", StringComparison.Ordinal));
+        Assert.Equal(shouldBeConcealed, concealed);
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("/AP << /N << /Off 8 0 R >> >>", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", false)]
+    public void ContentSafetyRequiresSelectedButtonAppearanceEvidence(string appearanceEntry, bool shouldBeConcealed) {
+        var objects = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances false /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Btn /T (Approval) /V /On /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 60 60] /P 3 0 R /F 4 /AS /On " + appearanceEntry + " >>\nendobj"
+        };
+        if (appearanceEntry.Length > 0) {
+            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 40 40]", "q 0 0 40 40 re f Q"));
+            objects.Add(StreamObject(9, "/Type /XObject /Subtype /Form /BBox [0 0 40 40]", string.Empty));
+        }
+        objects.Add("trailer\n<< /Root 1 0 R /Size 10 >>");
+        objects.Add("%%EOF");
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(string.Join("\n", objects)));
+
+        bool concealed = report.Findings.Any(finding =>
+            finding.Location.EndsWith("/HiddenWidgetValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("On", StringComparison.Ordinal));
+        Assert.Equal(shouldBeConcealed, concealed);
+    }
+
+    [Fact]
+    public void ContentSafetySharesAppearanceDecodeBudgetAcrossWidgetsOnOnePage() {
+        string oversizedPairMember = new string(' ', 700);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances false /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [7 0 R 8 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Tx /T (Shared) /V (CURRENT) /Kids [7 0 R 8 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 100 40] /P 3 0 R /F 4 /AP << /N 9 0 R >> >>\nendobj",
+            "8 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 /AP << /N 10 0 R >> >>\nendobj",
+            StreamObject(9, "/Type /XObject /Subtype /Form /BBox [0 0 80 20]", oversizedPairMember),
+            StreamObject(10, "/Type /XObject /Subtype /Form /BBox [0 0 100 20]", oversizedPairMember),
+            "trailer\n<< /Root 1 0 R /Size 11 >>",
+            "%%EOF"
+        });
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = 1024 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf), readOptions: readOptions));
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
     [Fact]
     public void ContentSafetySurfacesChoiceExportValueBehindDisplayText() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -319,6 +408,26 @@ public sealed class PdfHiddenContentInspectionTests {
             finding.TextPreview.Contains("ZERO-AREA-ANNOTATION-SECRET", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ContentSafetyTreatsZeroOpacityAnnotationAsConcealed() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [5 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [20 20 180 60] /CA 0 /Contents (TRANSPARENT-ANNOTATION-SECRET) >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("TRANSPARENT-ANNOTATION-SECRET", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("/Rect [20 20 invalid 40]")]
@@ -350,7 +459,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -377,7 +486,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -402,7 +511,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 11 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -503,7 +612,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -529,7 +638,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Tx /T (Shared) /V (DIRECT-OWNER-VALUE) /Kids [7 0 R 8 0 R] >>] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [<< /FT /Tx /T (Shared) /V (DIRECT-OWNER-VALUE) /Kids [7 0 R 8 0 R] >>] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),
@@ -643,7 +752,7 @@ public sealed class PdfHiddenContentInspectionTests {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /NeedAppearances true /Fields [6 0 R] >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
             StreamObject(4, string.Empty, content),

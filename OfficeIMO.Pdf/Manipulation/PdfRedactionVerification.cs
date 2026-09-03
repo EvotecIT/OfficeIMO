@@ -248,7 +248,8 @@ internal static partial class PdfRedactionVerification {
 
         PdfImagePlacement? expected = proof.ImagePlacement;
         PdfImagePlacement? actual = residual.ImagePlacement;
-        return expected is null || actual is null ||
+        return expected is not null && actual is not null &&
+            expected.IsHiddenOptionalContent == actual.IsHiddenOptionalContent &&
             NearlyEqual(expected.A, actual.A) &&
             NearlyEqual(expected.B, actual.B) &&
             NearlyEqual(expected.C, actual.C) &&
