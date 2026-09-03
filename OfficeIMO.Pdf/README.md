@@ -501,8 +501,12 @@ caption elements through vertical proximity and horizontal alignment only when
 the image has a non-transparent, clipped intersection with the page, and expose
 confidence plus stable evidence codes. Structured reads also use tagged-PDF
 Figure ownership, including marked content inside Form XObjects, and retain the
-owning Figure's alternate text. Artifact-marked images remain extractable but do
-not inherit structural Figure ownership.
+owning Figure's alternate text. An unambiguous tagged structure relationship
+also binds a direct child caption, or a boundary caption under a parent that has
+exactly one Figure, without depending on caption wording or page proximity.
+Multi-figure structures remain unassociated unless their ownership is explicit.
+Artifact-marked images remain extractable but do not inherit structural Figure
+ownership.
 
 ```csharp
 foreach (PdfLogicalPage page in result.Pages) {

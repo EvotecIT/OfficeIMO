@@ -818,6 +818,146 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredPipeline_AssociatesAnUnambiguousTaggedFigureCaptionWithoutGeometry() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 11 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Tagged caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Div /P 6 0 R /Pg 3 0 R /K [8 0 R 9 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Tagged chart) /K 3 >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K [10 0 R] >>",
+            "<< /Type /StructElem /S /P /P 9 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.True(region.IsFigure);
+        Assert.Equal("Tagged chart", region.AlternativeText);
+        Assert.Equal("Tagged caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Equal("Tagged caption", Assert.Single(page.Captions).Text);
+    }
+
+    [Fact]
+    public void StructuredPipeline_AssociatesACaptionContainedByItsTaggedFigure() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 9 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Contained caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n0000FF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Contained chart) /K [3 8 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Equal("Contained caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotInventATaggedCaptionRelationshipForMultipleSiblingFigures() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 360 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 11 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 100 0 0 60 40 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "q 100 0 0 60 210 180 cm /Figure << /MCID 5 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Ambiguous caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FF00>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Div /P 6 0 R /Pg 3 0 R /K [8 0 R 9 0 R 10 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (First chart) /K 3 >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Second chart) /K 5 >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+
+        Assert.Equal(2, page.Analysis.ImageRegions.Count);
+        Assert.All(page.Analysis.ImageRegions, static region => {
+            Assert.True(region.IsFigure);
+            Assert.Null(region.Caption);
+            Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        });
+        Assert.Equal("Ambiguous caption", Assert.Single(page.Captions).Text);
+    }
+
+    [Fact]
+    public void StructuredPipeline_IgnoresDetachedFigureAndCaptionStructureFragments() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 10 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Detached caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF00FF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Document /P 6 0 R /K [] >>",
+            "<< /Type /StructElem /S /Figure /P 12 0 R /Pg 3 0 R /Alt (Detached chart) /K [3 9 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 8 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.False(region.IsFigure);
+        Assert.Null(region.AlternativeText);
+        Assert.Null(region.Caption);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(page.Analysis.Elements, static element =>
+            element.Kind == PdfUnderstandingSemanticKind.Caption && element.Region.Text == "Detached caption");
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotBindACaptionThroughAnInconsistentCyclicStructureEdge() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 10 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Malformed caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FFFF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Document /P 6 0 R /K [8 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Reachable chart) /K [3 9 0 R 7 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 8 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.True(region.IsFigure);
+        Assert.Null(region.Caption);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+    }
+
+    [Fact]
     public void StructuredPipeline_ResolvesUniquelyScopedPageContentFigureOwnership() {
         byte[] pdf = BuildClassicPdf(
             "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",

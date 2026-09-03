@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Document-wide evidence fusion for the canonical semantic page analyses.</summary>
-internal static class PdfDocumentSemanticEnricher {
+internal static partial class PdfDocumentSemanticEnricher {
     internal static IReadOnlyList<PdfUnderstandingPageResult> Enrich(
         PdfReadDocument document,
         int[] pageNumbers,
@@ -33,10 +33,15 @@ internal static class PdfDocumentSemanticEnricher {
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
-        TaggedContentRoleIndex? taggedRoles = BuildTaggedContentRoleIndex(document, workBudget);
+        TaggedStructureGraph? taggedGraph = BuildTaggedStructureGraph(document, workBudget);
+        TaggedContentRoleIndex? taggedRoles = BuildTaggedContentRoleIndex(document, taggedGraph, workBudget);
+        TaggedFigureCaptionIndex? taggedFigureCaptions = imageRegions.Any(static regions => regions.Count > 0)
+            ? BuildTaggedFigureCaptionIndex(document, taggedGraph, workBudget)
+            : null;
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
         ApplyTaggedTableHeaderEvidence(document, pageNumbers, tableCandidates, taggedRoles, workBudget);
         ApplyTaggedImageEvidence(document, pageNumbers, imageRegions, taggedRoles, workBudget);
+        ApplyTaggedFigureCaptionEvidence(document, pageNumbers, imageRegions, elements, taggedFigureCaptions, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
@@ -308,21 +313,18 @@ internal static class PdfDocumentSemanticEnricher {
 
     private static TaggedContentRoleIndex? BuildTaggedContentRoleIndex(
         PdfReadDocument document,
+        TaggedStructureGraph? graph,
         PdfUnderstandingWorkBudget workBudget) {
-        PdfTaggedContentInfo? tagged = document.TaggedContent;
-        if (tagged is null || tagged.StructureElements.Count == 0) return null;
-        var structuresByObject = new Dictionary<int, PdfStructureElementInfo>(tagged.StructureElements.Count);
-        foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
-            workBudget.Consume();
-            structuresByObject.Add(structureElement.ObjectNumber, structureElement);
-        }
+        if (graph is null) return null;
+        PdfTaggedContentInfo tagged = graph.Tagged;
 
         var index = new TaggedContentRoleIndex();
         foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
+            if (!graph.ReachableObjectNumbers.Contains(structureElement.ObjectNumber)) continue;
             if (structureElement.MarkedContentReferences.Count == 0) continue;
             TaggedStructureBinding? binding = ResolveTaggedBinding(
                 tagged,
-                structuresByObject,
+                graph.StructuresByObject,
                 structureElement,
                 workBudget);
             if (!binding.HasValue) continue;
@@ -670,7 +672,7 @@ internal static class PdfDocumentSemanticEnricher {
         if (string.Equals(role, "P", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Paragraph, null, 1);
         if (string.Equals(role, "LI", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.ListItem, null, 2);
         if (string.Equals(role, "Table", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Table, null, 3);
-        if (string.Equals(role, "Caption", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Caption, null, 4);
+        if (string.Equals(role, "Caption", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Caption, null, 0);
         if (string.Equals(role, "Header", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Header, null, 5);
         if (string.Equals(role, "Footer", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Footer, null, 5);
         return null;
