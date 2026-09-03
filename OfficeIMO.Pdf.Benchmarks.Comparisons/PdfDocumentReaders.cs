@@ -29,15 +29,19 @@ internal static class PdfDocumentReaders {
     internal static IReadOnlyList<string> ExtractOfficeImoTextByPage(
         byte[] pdf,
         global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) {
-        global::OfficeIMO.Pdf.PdfDocumentReadResult result = OfficePdfDocument
-            .Load(pdf, loadOptions)
-            .Read(new global::OfficeIMO.Pdf.PdfReadOptions {
-                Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
-        });
+        global::OfficeIMO.Pdf.PdfDocumentReadResult result = ReadOfficeImoStructured(pdf, loadOptions);
         return result.Pages
             .Select(static page => string.Join('\n', page.TextBlocks.Select(static block => block.Text)))
             .ToArray();
     }
+
+    internal static global::OfficeIMO.Pdf.PdfDocumentReadResult ReadOfficeImoStructured(
+        byte[] pdf,
+        global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) => OfficePdfDocument
+            .Load(pdf, loadOptions)
+            .Read(new global::OfficeIMO.Pdf.PdfReadOptions {
+                Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
+        });
 
     private static PdfReadObservation ReadWithOfficeImo(byte[] pdf) {
         global::OfficeIMO.Pdf.PdfReadDocument document = global::OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
