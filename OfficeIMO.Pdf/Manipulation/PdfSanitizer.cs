@@ -17,7 +17,8 @@ internal static partial class PdfSanitizer {
         cancellationToken.ThrowIfCancellationRequested();
         var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return Scan(parsed.Map, policy);
+        PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
+        return Scan(parsed.Map, policy, readLimits);
     }
 
     /// <summary>

@@ -123,6 +123,73 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void InspectSanitization_BoundsNamedJavaScriptReferenceChains() {
+        byte[] source = BuildNamedJavaScriptReferenceChainPdf(referenceCount: 8);
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeDepth = 4 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source, readOptions).InspectSanitization());
+
+        Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void InspectSanitization_CountsDanglingNamedJavaScriptReferencesAgainstNodeLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Kids [100 0 R 101 0 R 102 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source, readOptions).InspectSanitization());
+
+        Assert.Equal(PdfReadLimitKind.NameTreeNodes, exception.Kind);
+    }
+
+    [Fact]
+    public void InspectSanitization_CachesSharedNamedJavaScriptRootsAcrossTheScan() {
+        byte[] source = BuildSharedNamedJavaScriptRootPdf();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
+        };
+
+        PdfSanitizationReport report = PdfDocument.Load(source, readOptions).InspectSanitization();
+
+        Assert.Equal(2, report.ActionCounts.JavaScript);
+    }
+
+    [Fact]
+    public void InspectSanitization_DoesNotChargeActionPayloadsToTheNameTreeNodeLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Names [(Run) 6 0 R] >>", "endobj",
+            "6 0 obj", "<< /S /JavaScript /JS 7 0 R >>", "endobj",
+            "7 0 obj", "(app.alert\\('test'\\);)", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfSanitizationReport report = PdfDocument.Load(source, readOptions).InspectSanitization();
+
+        Assert.Equal(1, report.ActionCounts.JavaScript);
+    }
+
+    [Fact]
     public void SanitizationOptions_RejectUnsupportedActionKindBits() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfSanitizationOptions {
             ActionKindsToRemove = (PdfSanitizationActionKind)(1 << 20)
@@ -605,6 +672,41 @@ public class PdfSanitizerTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildNamedJavaScriptReferenceChainPdf(int referenceCount) {
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+        };
+        for (int index = 0; index < referenceCount; index++) {
+            int objectNumber = 5 + index;
+            lines.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj");
+            lines.Add(index + 1 < referenceCount
+                ? "<< /Kids [" + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R] >>"
+                : "<< /Names [] >>");
+            lines.Add("endobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size " + (5 + referenceCount).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildSharedNamedJavaScriptRootPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R /Also << /JavaScript 5 0 R >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Kids [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Names [] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));
     }
 
