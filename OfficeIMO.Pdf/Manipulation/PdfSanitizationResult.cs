@@ -20,6 +20,8 @@ public sealed class PdfSanitizationResult {
         RemovedFindings = removedFindings;
         RemainingFindings = remainingFindings;
         QuarantinedAttachments = quarantinedAttachments;
+        RemovedActionCounts = new PdfSanitizationActionCounts(removedFindings);
+        RemainingActionCounts = new PdfSanitizationActionCounts(remainingFindings);
     }
 
     /// <summary>Shared mutation plan used for the full rewrite.</summary>
@@ -33,6 +35,12 @@ public sealed class PdfSanitizationResult {
 
     /// <summary>Forbidden items found after save. A successful operation always returns an empty list.</summary>
     public IReadOnlyList<PdfSanitizationFinding> RemainingFindings { get; }
+
+    /// <summary>Per-kind counts of actions removed by the policy.</summary>
+    public PdfSanitizationActionCounts RemovedActionCounts { get; }
+
+    /// <summary>Per-kind counts of selected actions found after the rewrite.</summary>
+    public PdfSanitizationActionCounts RemainingActionCounts { get; }
 
     /// <summary>Decoded attachments retained in memory when quarantine mode was requested.</summary>
     public IReadOnlyList<PdfExtractedAttachment> QuarantinedAttachments { get; }

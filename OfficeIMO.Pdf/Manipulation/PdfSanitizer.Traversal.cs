@@ -46,8 +46,8 @@ internal static partial class PdfSanitizer {
         string path,
         List<PdfSanitizationFinding> findings) {
         policy.CancellationToken.ThrowIfCancellationRequested();
-        if (TryGetForbiddenAction(objects, dictionary, policy, out PdfSanitizationFindingKind actionKind, out string? actionDetail)) {
-            findings.Add(new PdfSanitizationFinding(actionKind, objectNumber, path, actionDetail!));
+        if (TryGetForbiddenAction(objects, dictionary, policy, out PdfSanitizationFindingKind findingKind, out PdfSanitizationActionKind actionKind, out string? actionDetail)) {
+            findings.Add(new PdfSanitizationFinding(findingKind, objectNumber, path, actionDetail!, actionKind));
         }
 
         if (IsRichAnnotation(objects, dictionary, policy, out string? annotationSubtype)) {
@@ -62,8 +62,11 @@ internal static partial class PdfSanitizer {
             }
 
             if (item.Key == "URI" && Resolve(objects, item.Value) is PdfDictionary uriDictionary &&
-                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && !policy.IsUriAllowed(baseUri!)) {
-                findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.UnsafeUri, objectNumber, itemPath + "/Base", baseUri!));
+                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && policy.ShouldRemoveCatalogUriBase(baseUri!)) {
+                PdfSanitizationFindingKind uriFindingKind = policy.ActionKindsToRemove.HasValue
+                    ? PdfSanitizationFindingKind.ActiveAction
+                    : PdfSanitizationFindingKind.UnsafeUri;
+                findings.Add(new PdfSanitizationFinding(uriFindingKind, objectNumber, itemPath + "/Base", baseUri!, PdfSanitizationActionKind.Uri));
             }
 
             if (item.Value is not PdfReference) {
@@ -115,7 +118,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         PdfSanitizerActionBudget actionBudget) {
-        if (!policy.IsActionAllowed("JavaScript")) {
+        if (policy.ShouldRemoveAction("JavaScript")) {
             dictionary.Items.Remove("JavaScript");
         }
 
@@ -138,7 +141,7 @@ internal static partial class PdfSanitizer {
             if (actionTraversalAlreadyNormalized && string.Equals(key, "Next", StringComparison.Ordinal)) continue;
 
             PdfObject? resolved = Resolve(objects, item);
-            if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _)) {
+            if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _, out _)) {
                 List<PdfDictionary> retained = action.Items.TryGetValue("Next", out PdfObject? next)
                     ? CollectRetainedActions(objects, next, policy, maximumActionDepth, 0, new HashSet<(int ObjectNumber, int Generation)>(), actionBudget)
                     : new List<PdfDictionary>();
@@ -159,7 +162,7 @@ internal static partial class PdfSanitizer {
             }
 
             if (key == "URI" && resolved is PdfDictionary uriDictionary &&
-                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && !policy.IsUriAllowed(baseUri!)) {
+                TryGetString(objects, uriDictionary, "Base", out string? baseUri) && policy.ShouldRemoveCatalogUriBase(baseUri!)) {
                 uriDictionary.Items.Remove("Base");
             }
 
@@ -235,7 +238,7 @@ internal static partial class PdfSanitizer {
         action.Items.Remove("Next");
         AttachNextActions(action, children);
         actionBudget.MarkNormalized(action);
-        if (TryGetForbiddenAction(objects, action, policy, out _, out _)) return children;
+        if (TryGetForbiddenAction(objects, action, policy, out _, out _, out _)) return children;
 
         var clone = new PdfDictionary();
         foreach (KeyValuePair<string, PdfObject> item in action.Items) {
@@ -376,25 +379,31 @@ internal static partial class PdfSanitizer {
         PdfDictionary dictionary,
         PdfSanitizationOptions policy,
         out PdfSanitizationFindingKind kind,
+        out PdfSanitizationActionKind actionKind,
         out string? detail) {
         kind = PdfSanitizationFindingKind.ActiveAction;
+        actionKind = PdfSanitizationActionKind.None;
         detail = null;
         if (Resolve(objects, dictionary.Get<PdfObject>("S")) is not PdfName actionName) {
             return false;
         }
 
         string actionType = actionName.Name;
+        actionKind = PdfSanitizationOptions.GetActionKind(actionType);
         if (actionType == "URI") {
-            if (TryGetString(objects, dictionary, "URI", out string? uri) && !policy.IsUriAllowed(uri!)) {
-                kind = PdfSanitizationFindingKind.UnsafeUri;
-                detail = uri;
+            bool hasUri = TryGetString(objects, dictionary, "URI", out string? uri);
+            if (policy.ShouldRemoveAction(actionType, hasUri ? uri : null)) {
+                kind = policy.ActionKindsToRemove.HasValue
+                    ? PdfSanitizationFindingKind.ActiveAction
+                    : PdfSanitizationFindingKind.UnsafeUri;
+                detail = hasUri ? uri : actionType;
                 return true;
             }
 
             return false;
         }
 
-        if (!PdfActiveContentPolicy.IsUnsafeActionType(actionType) || policy.IsActionAllowed(actionType)) {
+        if (!policy.ShouldRemoveAction(actionType)) {
             return false;
         }
 

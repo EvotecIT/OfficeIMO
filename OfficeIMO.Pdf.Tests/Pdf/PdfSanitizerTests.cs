@@ -6,6 +6,101 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfSanitizerTests {
     [Fact]
+    public void InspectSanitization_ReportsTypedActionCountsForTheDefaultPolicy() {
+        PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization();
+
+        Assert.Equal(2, report.ActionCounts.JavaScript);
+        Assert.Equal(1, report.ActionCounts.Uri);
+        Assert.Equal(1, report.ActionCounts.Launch);
+        Assert.Equal(1, report.ActionCounts.SubmitForm);
+        Assert.Equal(1, report.ActionCounts.GoToR);
+        Assert.Equal(1, report.ActionCounts.GoToE);
+        Assert.Equal(1, report.ActionCounts.ImportData);
+        Assert.Equal(8, report.ActionCounts.Total);
+        Assert.Equal(report.Findings.Count, report.TotalCount);
+    }
+
+    [Theory]
+    [InlineData(PdfSanitizationActionKind.JavaScript, 2)]
+    [InlineData(PdfSanitizationActionKind.Launch, 1)]
+    [InlineData(PdfSanitizationActionKind.SubmitForm, 1)]
+    [InlineData(PdfSanitizationActionKind.GoToR, 1)]
+    [InlineData(PdfSanitizationActionKind.GoToE, 1)]
+    [InlineData(PdfSanitizationActionKind.ImportData, 1)]
+    public void InspectSanitization_UsesAnExactActionKindSelection(PdfSanitizationActionKind selected, int expectedCount) {
+        var policy = new PdfSanitizationOptions { ActionKindsToRemove = selected };
+
+        PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);
+
+        Assert.Equal(expectedCount, report.ActionCounts.GetCount(selected));
+        Assert.Equal(expectedCount, report.ActionCounts.Total);
+        Assert.All(report.Findings.Where(static finding => finding.ActionKind.HasValue),
+            finding => Assert.Equal(selected, finding.ActionKind));
+    }
+
+    [Fact]
+    public void Sanitize_CanRemoveJavaScriptWithoutRemovingOtherActionKinds() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript
+        };
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        IReadOnlyList<PdfSanitizationFinding> preservedActions = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(2, result.RemovedActionCounts.JavaScript);
+        Assert.DoesNotContain("JavaScript", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.SubmitForm);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.GoToR);
+    }
+
+    [Fact]
+    public void Sanitize_CanRemoveEveryUriActionWithoutRemovingOtherActionKinds() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.Uri
+        };
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+        IReadOnlyList<PdfSanitizationFinding> preservedActions = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(3, result.RemovedActionCounts.Uri);
+        Assert.Empty(info.LinkAnnotations.Where(static link => link.Uri != null));
+        Assert.DoesNotContain("base.example", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+        Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+    }
+
+    [Fact]
+    public void Sanitize_ExplicitAllowListOverridesAnExactActionKindSelection() {
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript |
+                                  PdfSanitizationActionKind.Launch
+        };
+        policy.AllowedActionTypes.Add("JavaScript");
+
+        PdfSanitizationReport preview = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildActiveContentPdf(), policy);
+        IReadOnlyList<PdfSanitizationFinding> defaultPolicyFindings = PdfSanitizer.Analyze(result.ToBytes());
+
+        Assert.Equal(0, preview.ActionCounts.JavaScript);
+        Assert.Equal(1, preview.ActionCounts.Launch);
+        Assert.Equal(0, result.RemovedActionCounts.JavaScript);
+        Assert.Equal(1, result.RemovedActionCounts.Launch);
+        Assert.Contains(defaultPolicyFindings, static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+        Assert.DoesNotContain(defaultPolicyFindings, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);
+    }
+
+    [Fact]
+    public void SanitizationOptions_RejectUnsupportedActionKindBits() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfSanitizationOptions {
+            ActionKindsToRemove = (PdfSanitizationActionKind)(1 << 20)
+        });
+    }
+
+    [Fact]
     public void Analyze_HonorsPolicyCancellation() {
         byte[] source = BuildActiveContentPdf();
         using var cancellation = new System.Threading.CancellationTokenSource();
@@ -391,7 +486,7 @@ public class PdfSanitizerTests {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
-            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /AA << /WC 12 0 R /WS 13 0 R /WP 14 0 R >> >>",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /URI << /Base (https://base.example/) >> /AA << /WC 12 0 R /WS 13 0 R /WP 14 0 R >> >>",
             "endobj",
             "2 0 obj",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",

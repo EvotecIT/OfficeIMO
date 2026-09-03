@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
 internal static partial class PdfSanitizer {
+    internal static PdfSanitizationReport Inspect(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) =>
+        new PdfSanitizationReport(Analyze(pdf, options, readOptions));
+
     /// <summary>Returns the forbidden-content inventory that the supplied policy would remove.</summary>
     public static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options = null) {
         return Analyze(pdf, options, readOptions: null);
@@ -101,11 +104,11 @@ internal static partial class PdfSanitizer {
         PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, sourceDocument, cancellationToken);
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;
-            if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
+            if (uri is not null && policy.ShouldRemoveAction("URI", uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
         }
         AddPolicyRetainedActionTypes(originalInfo, policy, preservationOptions.PreservedActionTypes);
         for (int i = 0; i < before.Count; i++) {
-            if (before[i].Kind == PdfSanitizationFindingKind.UnsafeUri) {
+            if (before[i].ActionKind == PdfSanitizationActionKind.Uri) {
                 preservationOptions.ExcludedActionUris.Add(before[i].Detail);
             }
         }
@@ -139,7 +142,7 @@ internal static partial class PdfSanitizer {
     }
 
     private static void AddPolicyRetainedActionType(string actionType, PdfSanitizationOptions policy, ISet<string> preservedActionTypes) {
-        if (!PdfActiveContentPolicy.IsUnsafeActionType(actionType) || policy.IsActionAllowed(actionType)) preservedActionTypes.Add(actionType);
+        if (!policy.ShouldRemoveAction(actionType)) preservedActionTypes.Add(actionType);
     }
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>
