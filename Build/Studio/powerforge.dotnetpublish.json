@@ -9,7 +9,7 @@
     "NoRestoreInPublish": true,
     "NoBuildInPublish": true,
     "MsBuildProperties": {
-      "RestoreLockedMode": "true"
+      "RestorePackagesWithLockFile": "false"
     },
     "LockedOutputGuard": true
   },
