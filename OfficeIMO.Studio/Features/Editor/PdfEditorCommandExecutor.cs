@@ -42,11 +42,11 @@ internal static class PdfEditorCommandExecutor {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(plan);
         PdfDocument source = PdfDocument.Load(pdf);
-        PdfDocument redacted = source.Redactions.Apply(plan, new PdfRedactionApplyOptions {
+        var applyOptions = new PdfRedactionApplyOptions {
             PaintUnmatchedAreas = true,
             UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
             RemoveIntersectingPaths = true
-        });
+        };
         var verificationOptions = new PdfRedactionVerificationOptions {
             CheckManagedRendering = true,
             FailOnUndecodablePdfStreams = true,
@@ -55,8 +55,10 @@ internal static class PdfEditorCommandExecutor {
         if (!string.IsNullOrWhiteSpace(removedTextMarker)) {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
-        PdfRedactionVerificationReport verification = redacted.Redactions.AssertAppliedPlan(plan, verificationOptions);
-        return new PdfVerifiedRedactionResult(redacted.ToBytes(), plan, verification);
+        PdfRedactionApplyResult applied = source.Redactions
+            .ApplyWithEvidence(plan, applyOptions, verificationOptions)
+            .ThrowIfUnverified();
+        return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence);
     }
 
     internal static PdfRedactionPlan PlanRedaction(byte[] pdf, PdfEditorCommand command) {

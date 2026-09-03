@@ -86,11 +86,12 @@ public sealed class PdfEditorCommandTests {
         PdfVerifiedRedactionResult result = PdfEditorCommandExecutor.ApplyVerifiedRedaction(source, command, secret);
 
         Assert.True(result.Plan.HasMatches);
-        Assert.True(result.Verification.IsVerified, result.Verification.Summary);
+        Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
         Assert.DoesNotContain(secret, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
-        Assert.True(result.Verification.RawPdfBytesChecked);
-        Assert.True(result.Verification.DecodedPdfStreamsChecked);
-        Assert.True(result.Verification.ManagedRenderingChecked);
+        Assert.All(result.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
+        Assert.True(result.Evidence.Verification.RawPdfBytesChecked);
+        Assert.True(result.Evidence.Verification.DecodedPdfStreamsChecked);
+        Assert.True(result.Evidence.Verification.ManagedRenderingChecked);
     }
 
     [Fact]
@@ -115,9 +116,10 @@ public sealed class PdfEditorCommandTests {
             source,
             PdfEditorCommandFactory.Create(source, PdfEditorTool.Redact, gesture, CreateProperties()));
 
-        Assert.True(result.Verification.IsVerified, result.Verification.Summary);
+        Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
         Assert.Contains(repeated, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
-        Assert.Empty(PdfDocument.Load(result.Bytes).Redactions.Plan(result.Plan.Areas).Matches);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        Assert.All(result.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
     }
 
     [Fact]
@@ -136,8 +138,9 @@ public sealed class PdfEditorCommandTests {
             PdfEditorCommandFactory.Create(withImage, PdfEditorTool.Redact, imageGesture, CreateProperties()));
 
         Assert.Contains(imageResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
-        Assert.True(imageResult.Verification.IsVerified, imageResult.Verification.Summary);
-        Assert.Empty(PdfDocument.Load(imageResult.Bytes).Redactions.Plan(imageResult.Plan.Areas).Matches);
+        Assert.True(imageResult.Evidence.IsVerified, imageResult.Evidence.Summary);
+        Assert.Empty(imageResult.Evidence.ResidualMatches);
+        Assert.All(imageResult.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
 
         byte[] withAnnotation = PdfEditorCommandExecutor.Apply(
             blank,
@@ -151,8 +154,9 @@ public sealed class PdfEditorCommandTests {
             PdfEditorCommandFactory.Create(withAnnotation, PdfEditorTool.Redact, annotationGesture, CreateProperties()));
 
         Assert.Contains(annotationResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.Annotation);
-        Assert.True(annotationResult.Verification.IsVerified, annotationResult.Verification.Summary);
-        Assert.Empty(PdfDocument.Load(annotationResult.Bytes).Redactions.Plan(annotationResult.Plan.Areas).Matches);
+        Assert.True(annotationResult.Evidence.IsVerified, annotationResult.Evidence.Summary);
+        Assert.Empty(annotationResult.Evidence.ResidualMatches);
+        Assert.All(annotationResult.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
     }
 
     private static byte[] CreateSource(string text = "Existing content") =>

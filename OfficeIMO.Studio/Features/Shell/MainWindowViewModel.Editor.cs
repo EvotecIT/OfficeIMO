@@ -356,7 +356,7 @@ public sealed partial class MainWindowViewModel {
                 CreateProgress()).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || proof is null) return;
-        OperationStatus = proof.Verification.Summary + $" Removed {proof.Plan.Matches.Count} intersecting item(s).";
+        OperationStatus = proof.Evidence.Summary;
     }
 
     [RelayCommand]
