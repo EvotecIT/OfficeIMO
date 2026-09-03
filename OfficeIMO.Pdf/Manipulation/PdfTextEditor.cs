@@ -136,8 +136,12 @@ internal static partial class PdfTextEditor {
     private static TextMutationResult ReplaceHits(byte[] pdf, IReadOnlyList<TextSearchHit> hits, string replacement, PdfTextEditOptions? editOptions, PdfLoadOptions? readOptions) {
         PdfTextEditOptions snapshot = (editOptions ?? new PdfTextEditOptions()).Snapshot();
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
+            foreach (TextSearchHit hit in pageHits) {
+                EnsureCompatibleRenderingModes(
+                    hit.Segments.Select(static segment => segment.Span).Distinct().ToArray(),
+                    snapshot.AllowTextRenderingMode3);
+            }
             PdfTextSpan[] targetSpans = pageHits.SelectMany(static hit => hit.Segments).Select(static segment => segment.Span).Distinct().ToArray();
-            EnsureCompatibleRenderingModes(targetSpans, snapshot.AllowTextRenderingMode3);
             EnsureAppendOrderIsSafe(pdf, pageHits.Key, targetSpans, readOptions);
         }
 

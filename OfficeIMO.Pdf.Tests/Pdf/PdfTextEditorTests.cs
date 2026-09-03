@@ -343,6 +343,25 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceAllHandlesIndependentVisibleAndRenderingMode3Occurrences() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (token) Tj 3 Tr 0 -30 Td (token) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
+            "token",
+            "value",
+            searchOptions,
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+        PdfTextMatch[] replacements = result.Document.Text.Find("value", searchOptions).ToArray();
+        Assert.Equal(2, result.AffectedCount);
+        Assert.Equal(2, replacements.Length);
+        Assert.Single(replacements, static match => !match.IsTextRenderingMode3);
+        Assert.Single(replacements, static match => match.IsTextRenderingMode3);
+    }
+
+    [Fact]
     public void RenderingMode3MovePreservesInvisibleRenderingState() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 3 Tr 50 700 Td (move OCR text) Tj ET\n");
         var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
