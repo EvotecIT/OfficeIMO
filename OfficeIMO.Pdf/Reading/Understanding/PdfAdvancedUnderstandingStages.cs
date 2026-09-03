@@ -12,6 +12,8 @@ public static class PdfAdvancedUnderstandingStages {
     public static IPdfWordGroupingStage WordGrouping { get; } = new AdvancedWordGroupingStage();
     /// <summary>Arbitrary-baseline line grouping.</summary>
     public static IPdfLineGroupingStage LineGrouping { get; } = new AdvancedLineGroupingStage();
+    /// <summary>Language-neutral table candidate detection.</summary>
+    public static IPdfTableDetectionStage TableDetection { get; } = new AdvancedTableDetectionStage();
     /// <summary>Spatial connected-region segmentation.</summary>
     public static IPdfPageSegmentationStage PageSegmentation { get; } = new AdvancedPageSegmentationStage();
     /// <summary>Spanning-band and multi-column reading order.</summary>
@@ -323,8 +325,84 @@ public static class PdfAdvancedUnderstandingStages {
         }
     }
 
+    private sealed class AdvancedTableDetectionStage : IPdfTableDetectionStage {
+        public IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines) {
+            if (context.DecodedRuns.Count == 0 || lines.Count == 0) {
+                return Array.Empty<PdfUnderstandingTableCandidate>();
+            }
+
+            StructuredPage structure = ContentStructureExtractor.Extract(
+                context.DecodedRuns,
+                context.LayoutOptions.ToEngineOptions(),
+                context.Height,
+                context.ConsumeWork,
+                context.ThrowIfCancellationRequested);
+            var result = new List<PdfUnderstandingTableCandidate>(structure.TablesDetailed.Count);
+            foreach (StructuredTable table in structure.TablesDetailed) {
+                context.ConsumeWork();
+                if (table.Columns.Count < 2 || table.SourceRuns.Count == 0) continue;
+
+                var ownedRuns = new HashSet<PdfTextSpan>();
+                for (int runIndex = 0; runIndex < table.SourceRuns.Count; runIndex++) {
+                    context.ConsumeWork();
+                    ownedRuns.Add(table.SourceRuns[runIndex]);
+                }
+                var matchedLines = new List<PdfUnderstandingLine>();
+                for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                    context.ConsumeWork();
+                    PdfUnderstandingLine line = lines[lineIndex];
+                    var ownedWords = new List<PdfUnderstandingWord>();
+                    for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                        PdfUnderstandingWord word = line.Words[wordIndex];
+                        IReadOnlyList<PdfTextSpan> sourceRuns = word.SourceRuns;
+                        bool owned = false;
+                        for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                            context.ConsumeWork();
+                            if (!ownedRuns.Contains(sourceRuns[runIndex])) continue;
+                            owned = true;
+                            break;
+                        }
+                        if (owned) ownedWords.Add(word);
+                    }
+                    if (ownedWords.Count > 0) {
+                        matchedLines.Add(new PdfUnderstandingLine(
+                            ownedWords.AsReadOnly(),
+                            line.Confidence,
+                            line.Evidence));
+                    }
+                }
+                PdfUnderstandingLine[] sourceLines = CopyAndSort(
+                    context,
+                    matchedLines,
+                    static (first, second) => {
+                        int baseline = second.BaselineY.CompareTo(first.BaselineY);
+                        return baseline != 0 ? baseline : first.XStart.CompareTo(second.XStart);
+                    });
+                if (sourceLines.Length < 2) continue;
+
+                double confidence = PdfInference.Clamp(sourceLines.Average(static line => line.Confidence));
+                result.Add(PdfUnderstandingTableCandidate.FromStructured(
+                    table,
+                    sourceLines,
+                    confidence,
+                    new[] {
+                        new PdfInferenceEvidence(
+                            "table.aligned-geometry",
+                            "Repeated column geometry and row alignment form a bounded table candidate.",
+                            0.9D)
+                    },
+                    context.ConsumeWork,
+                    context.ThrowIfCancellationRequested));
+            }
+            return result.Count == 0 ? Array.Empty<PdfUnderstandingTableCandidate>() : result.AsReadOnly();
+        }
+    }
+
     private sealed class AdvancedPageSegmentationStage : IPdfPageSegmentationStage {
         public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) {
+            lines = BuildSegmentationLines(context, lines);
             var remaining = new HashSet<int>(Enumerable.Range(0, lines.Count));
             var regions = new List<PdfUnderstandingRegion>();
             AddCanonicalTableRegions(context, lines, remaining, regions);
@@ -365,31 +443,83 @@ public static class PdfAdvancedUnderstandingStages {
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
         }
 
+        private static IReadOnlyList<PdfUnderstandingLine> BuildSegmentationLines(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines) {
+            PdfUnderstandingTableCandidate[] tables = context.TableCandidates
+                .Where(static table => !string.Equals(table.DetectionKind, "leaders", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (tables.Length == 0) return lines;
+
+            var ownedRuns = new HashSet<PdfTextSpan>();
+            var tableLines = new HashSet<PdfUnderstandingLine>();
+            for (int tableIndex = 0; tableIndex < tables.Length; tableIndex++) {
+                IReadOnlyList<PdfUnderstandingLine> sourceLines = tables[tableIndex].SourceLines;
+                for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+                    context.ConsumeWork();
+                    PdfUnderstandingLine sourceLine = sourceLines[lineIndex];
+                    tableLines.Add(sourceLine);
+                    for (int wordIndex = 0; wordIndex < sourceLine.Words.Count; wordIndex++) {
+                        IReadOnlyList<PdfTextSpan> sourceRuns = sourceLine.Words[wordIndex].SourceRuns;
+                        for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                            context.ConsumeWork();
+                            ownedRuns.Add(sourceRuns[runIndex]);
+                        }
+                    }
+                }
+            }
+
+            var result = new List<PdfUnderstandingLine>(lines.Count + tableLines.Count);
+            result.AddRange(tableLines);
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                context.ConsumeWork();
+                PdfUnderstandingLine line = lines[lineIndex];
+                var unownedWords = new List<PdfUnderstandingWord>(line.Words.Count);
+                for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                    PdfUnderstandingWord word = line.Words[wordIndex];
+                    bool owned = false;
+                    for (int runIndex = 0; runIndex < word.SourceRuns.Count; runIndex++) {
+                        context.ConsumeWork();
+                        if (!ownedRuns.Contains(word.SourceRuns[runIndex])) continue;
+                        owned = true;
+                        break;
+                    }
+                    if (!owned) unownedWords.Add(word);
+                }
+                if (unownedWords.Count == line.Words.Count) {
+                    result.Add(line);
+                } else if (unownedWords.Count > 0) {
+                    result.Add(new PdfUnderstandingLine(
+                        unownedWords.AsReadOnly(),
+                        line.Confidence,
+                        line.Evidence));
+                }
+            }
+            PdfUnderstandingLine[] ordered = CopyAndSort(
+                context,
+                result.Distinct().ToArray(),
+                static (left, right) => {
+                    int baseline = right.BaselineY.CompareTo(left.BaselineY);
+                    return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
+                });
+            return ordered.Length == 0 ? Array.Empty<PdfUnderstandingLine>() : Array.AsReadOnly(ordered);
+        }
+
         private static void AddCanonicalTableRegions(
             PdfUnderstandingPageContext context,
             IReadOnlyList<PdfUnderstandingLine> lines,
             HashSet<int> remaining,
             List<PdfUnderstandingRegion> regions) {
-            if (context.DecodedRuns.Count == 0 || lines.Count == 0) return;
+            if (context.TableCandidates.Count == 0 || lines.Count == 0) return;
 
-            StructuredPage structure = ContentStructureExtractor.Extract(
-                context.DecodedRuns,
-                context.LayoutOptions.ToEngineOptions(),
-                context.Height,
-                context.ConsumeWork,
-                context.ThrowIfCancellationRequested);
-            foreach (StructuredTable table in structure.TablesDetailed) {
+            foreach (PdfUnderstandingTableCandidate table in context.TableCandidates) {
                 context.ConsumeWork();
-                if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase) || table.Columns.Count < 2) continue;
-
-                double top = Math.Max(table.YTop, table.YBottom);
-                double bottom = Math.Min(table.YTop, table.YBottom);
-                double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
-                double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+                if (string.Equals(table.DetectionKind, "leaders", StringComparison.OrdinalIgnoreCase)) continue;
+                var sourceLines = new HashSet<PdfUnderstandingLine>(table.SourceLines);
                 var matchedIndexes = new List<int>();
                 foreach (int index in remaining) {
                     context.ConsumeWork();
-                    if (HasMeaningfulTableOverlap(lines[index], top, bottom, left, right)) matchedIndexes.Add(index);
+                    if (sourceLines.Contains(lines[index])) matchedIndexes.Add(index);
                 }
                 int[] tableLineIndexes = CopyAndSort(
                     context,
@@ -406,7 +536,7 @@ public static class PdfAdvancedUnderstandingStages {
                 regions.Add(new PdfUnderstandingRegion(tableLines, confidence, new[] {
                     new PdfInferenceEvidence(
                         "region.canonical-table",
-                        "The canonical layout engine recovered these aligned lines as one validated table.",
+                        "The page table-detection stage owns these aligned source lines.",
                         0.9D)
                 }));
             }
@@ -551,21 +681,6 @@ public static class PdfAdvancedUnderstandingStages {
         internal double Angle { get; }
         internal double Normal { get; set; }
         internal List<PdfUnderstandingWord> Words { get; } = new();
-    }
-
-    internal static bool HasMeaningfulTableOverlap(
-        PdfUnderstandingLine line,
-        double top,
-        double bottom,
-        double left,
-        double right) {
-        double verticalTolerance = Math.Max(1D, line.FontSize * 0.5D);
-        if (line.BaselineY > top + verticalTolerance || line.BaselineY < bottom - verticalTolerance) return false;
-        double lineLeft = Math.Min(line.XStart, line.XEnd);
-        double lineRight = Math.Max(line.XStart, line.XEnd);
-        double overlap = Math.Max(0D, Math.Min(lineRight, right) - Math.Max(lineLeft, left));
-        double narrowerWidth = Math.Min(lineRight - lineLeft, right - left);
-        return narrowerWidth > 0.001D && overlap + 0.001D >= narrowerWidth * 0.5D;
     }
 
     private static double WordAnchorX(PdfUnderstandingWord word) => (word.XStart + word.XEnd) / 2D;

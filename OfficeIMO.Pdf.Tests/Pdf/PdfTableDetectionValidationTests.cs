@@ -108,22 +108,6 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
-    public void LogicalTables_RetainSparseSpanningRowsWhenTheTableHasStrongEvidence() {
-        byte[] pdf = PdfDocument.Create()
-            .Table(new[] {
-                new[] { "Account", "Owner", "Amount", "Status" },
-                new[] { "SECTION-A", "", "", "" },
-                new[] { "ACC-01", "Owner 01", "1037.25", "Approved" }
-            }, style: new PdfTableStyle { HeaderRowCount = 1 })
-            .ToBytes();
-
-        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
-        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
-        Assert.Contains("SECTION-A", data.Rows.SelectMany(static row => row));
-        Assert.Contains("1037.25", data.Rows.SelectMany(static row => row));
-    }
-
-    [Fact]
     public void TableDetector_RetainsSparseResponseFormsWithShatteredCompactHeaders() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D,
@@ -167,6 +151,29 @@ public sealed class PdfTableDetectionValidationTests {
         Assert.Contains("Client owner", table.Rows.SelectMany(static row => row));
     }
 
+    [Fact]
+    public void TableDetector_RetainsSparseFormsWhenLabelsAreNotInTheFirstColumn() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D,
+                ("Notes", 50D, 40D, "Helvetica"), ("Date", 150D, 40D, "Helvetica"),
+                ("Decision", 250D, 50D, "Helvetica"), ("Name", 350D, 40D, "Helvetica"),
+                ("Role", 450D, 40D, "Helvetica")) },
+            new() { CreateLine(500D,
+                (" ", 50D, 40D, "Helvetica"), (" ", 150D, 40D, "Helvetica"),
+                (" ", 250D, 40D, "Helvetica"), (" ", 350D, 40D, "Helvetica"),
+                ("Lead auditor", 450D, 40D, "Helvetica")) },
+            new() { CreateLine(480D,
+                (" ", 50D, 40D, "Helvetica"), (" ", 150D, 40D, "Helvetica"),
+                (" ", 250D, 40D, "Helvetica"), (" ", 350D, 40D, "Helvetica"),
+                ("Client owner", 450D, 40D, "Helvetica")) }
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        Assert.Equal(5, table.Columns.Count);
+        Assert.Contains("Lead auditor", table.Rows.SelectMany(static row => row));
+        Assert.Contains("Client owner", table.Rows.SelectMany(static row => row));
+    }
+
     [Theory]
     [InlineData("Intervening narrative text must remain a paragraph.")]
     [InlineData("Intervening narrative remains independent")]
@@ -198,6 +205,24 @@ public sealed class PdfTableDetectionValidationTests {
         Assert.Equal(2, logical.Tables.Count);
         Assert.Contains(logical.Paragraphs,
             paragraph => paragraph.Text.Contains(narrative, StringComparison.Ordinal));
+        Assert.All(logical.Pages[0].Analysis.TableCandidates, candidate =>
+            Assert.DoesNotContain(candidate.SourceLines, line => line.Text.Contains(narrative, StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void LogicalTables_RetainCompactSparseRowsUsingStructuralEvidence() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Code", "Owner", "Amount", "State" },
+                new[] { "AREA-77", "", "", "" },
+                new[] { "ACC-01", "Owner 01", "4100.25", "Accepted" }
+            }, style: new PdfTableStyle { HeaderRowCount = 1 })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("AREA-77", data.Rows.SelectMany(static row => row));
+        Assert.Contains("4100.25", data.Rows.SelectMany(static row => row));
     }
 
     [Fact]
@@ -337,7 +362,7 @@ public sealed class PdfTableDetectionValidationTests {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
             new() { CreateLine(500D, ("A-1", 50D, 24D, "Helvetica"), ("100", 220D, 24D, "Helvetica")) },
-            new() { CreateLine(480D, ("Amounts exclude tax.", 50D, 250D, "Helvetica")) },
+            new() { CreateLine(480D, ("Amounts exclude tax.", 50D, 250D, "Helvetica-Bold")) },
             new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
         };
 
@@ -430,7 +455,7 @@ public sealed class PdfTableDetectionValidationTests {
         double y,
         params (string Text, double X, double Advance, string Font)[] values) {
         var spans = values
-            .Select(value => new PdfTextSpan(value.Text, value.Font, 11D, value.X, y, value.Advance))
+            .Select(value => new PdfTextSpan(value.Text, value.Font, 11D, value.X, y, value.Advance, baseFont: value.Font))
             .ToList();
         return new TextLayoutEngine.TextLine(
             y,

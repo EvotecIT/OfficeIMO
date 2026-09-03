@@ -207,6 +207,64 @@ public sealed class PdfLogicalTableContinuationContractTests {
             tolerance: 4D));
     }
 
+    [Fact]
+    public void TableContinuations_UseOcrVisualBoundsForPageEdgeInference() {
+        PdfDocumentReadResult source = PdfDocumentReadResult.Load(
+            PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.Text("First page"))
+                .PageBreak()
+                .Paragraph(paragraph => paragraph.Text("Second page"))
+                .ToBytes());
+        PdfLogicalPage firstSource = source.Pages[0];
+        PdfLogicalPage secondSource = source.Pages[1];
+        double firstHeight = firstSource.GetVisualPageSize().Height;
+        IReadOnlyList<IReadOnlyList<string>> firstRows = [
+            new[] { "Code", "Amount" },
+            new[] { "A-1", "10" },
+            new[] { "A-2", "20" }
+        ];
+        IReadOnlyList<IReadOnlyList<string>> secondRows = [
+            new[] { "Code", "Amount" },
+            new[] { "A-3", "30" },
+            new[] { "A-4", "40" }
+        ];
+        PdfUnderstandingTableCandidate firstCandidate = CreateOcrCandidate(firstHeight - 90D, firstHeight - 10D, firstRows);
+        PdfUnderstandingTableCandidate secondCandidate = CreateOcrCandidate(10D, 90D, secondRows);
+        PdfLogicalPage first = AddOcrTable(firstSource, firstCandidate);
+        PdfLogicalPage second = AddOcrTable(secondSource, secondCandidate);
+        PdfDocumentReadResult enriched = source.WithPages(new[] { first, second });
+
+        PdfLogicalTableContinuationGroup group = Assert.Single(enriched.GetTableContinuationGroups());
+
+        Assert.True(group.SpansPages);
+        Assert.Equal(new[] { 1, 2 }, group.Segments.Select(static segment => segment.PageNumber));
+        Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.PageEdges));
+    }
+
+    private static PdfLogicalPage AddOcrTable(
+        PdfLogicalPage page,
+        PdfUnderstandingTableCandidate candidate) =>
+        page.WithOcrContent(
+            Array.Empty<PdfLogicalTextBlock>(),
+            Array.Empty<PdfLogicalHeading>(),
+            Array.Empty<PdfLogicalParagraph>(),
+            Array.Empty<PdfLogicalListItem>(),
+            new[] { candidate });
+
+    private static PdfUnderstandingTableCandidate CreateOcrCandidate(
+        double top,
+        double bottom,
+        IReadOnlyList<IReadOnlyList<string>> rows) =>
+        PdfUnderstandingTableCandidate.FromOcr(
+            "OcrAlignedColumns",
+            top,
+            bottom,
+            new PdfLogicalVisualBounds(30D, top, 230D, bottom),
+            [(30D, 130D), (130D, 230D)],
+            rows,
+            0.9D,
+            new[] { new PdfInferenceEvidence("test.ocr-table", "Test OCR table geometry.", 1D) });
+
     private static byte[] BuildMultiPageTablePdf() {
         var rows = new List<string[]> {
             new[] { "Group", "State" },

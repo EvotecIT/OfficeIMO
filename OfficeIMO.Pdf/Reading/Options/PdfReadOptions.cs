@@ -79,6 +79,7 @@ public sealed class PdfReadOptions {
             GlyphDecoding = options.GlyphDecoding,
             WordGrouping = options.WordGrouping,
             LineGrouping = options.LineGrouping,
+            TableDetection = options.TableDetection,
             PageSegmentation = options.PageSegmentation,
             ReadingOrder = options.ReadingOrder,
             SemanticClassification = options.SemanticClassification,
@@ -87,6 +88,7 @@ public sealed class PdfReadOptions {
             MaxTextCharactersPerPage = options.MaxTextCharactersPerPage,
             MaxWordsPerPage = options.MaxWordsPerPage,
             MaxLinesPerPage = options.MaxLinesPerPage,
+            MaxTableCandidatesPerPage = options.MaxTableCandidatesPerPage,
             MaxRegionsPerPage = options.MaxRegionsPerPage,
             MaxWorkUnitsPerPage = options.MaxWorkUnitsPerPage,
             MaxDocumentWorkUnits = options.MaxDocumentWorkUnits

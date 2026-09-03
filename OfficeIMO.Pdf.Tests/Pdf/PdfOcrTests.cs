@@ -395,6 +395,11 @@ public class PdfOcrTests {
         PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
         PdfLogicalTable table = Assert.Single(result.EnrichedDocument.Tables, candidate => candidate.SourceKind == PdfLogicalContentSourceKind.Ocr);
         Assert.Equal("OcrAlignedColumns", table.DetectionKind);
+        Assert.Equal(PdfTableCoordinateSpace.VisualTopLeft, table.CoordinateSpace);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(
+            result.EnrichedDocument.Pages[0].Analysis.TableCandidates,
+            candidate => candidate.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.Equal(table.Rows.Select(static row => row.ToArray()), candidate.Rows.Select(static row => row.ToArray()));
         Assert.Equal(3, table.Rows.Count);
         Assert.Equal(new[] { "Alpha", "10" }, table.Rows[1]);
         Assert.DoesNotContain(table.Rows, row => row.Contains("Narrative"));
@@ -413,6 +418,46 @@ public class PdfOcrTests {
 
         string html = result.EnrichedDocument.ToHtml();
         Assert.Equal(1, html.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void EnrichedDocument_DoesNotDuplicateNativeTableWithOverlappingOcrCandidate() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Item", "Value" },
+                new[] { "Alpha", "10" },
+                new[] { "Beta", "20" }
+            })
+            .ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
+        PdfUnderstandingTableCandidate native = Assert.Single(page.Analysis.TableCandidates);
+        double left = native.Columns.Min(static column => column.From);
+        double right = native.Columns.Max(static column => column.To);
+        PdfVisualBounds visual = page.TransformBoundsToVisual(
+            left,
+            Math.Min(native.YBottom, native.YTop),
+            right,
+            Math.Max(native.YBottom, native.YTop));
+        PdfUnderstandingTableCandidate ocr = PdfUnderstandingTableCandidate.FromOcr(
+            "OcrAlignedColumns",
+            visual.Top - 2D,
+            visual.Bottom + 2D,
+            new PdfLogicalVisualBounds(visual.Left - 2D, visual.Top - 2D, visual.Right + 2D, visual.Bottom + 2D),
+            native.Columns.Select(column => (column.From, column.To)).ToArray(),
+            native.Rows,
+            0.99D,
+            new[] { new PdfInferenceEvidence("test.ocr-duplicate", "Overlapping OCR candidate.", 1D) });
+
+        PdfLogicalPage enriched = page.WithOcrContent(
+            Array.Empty<PdfLogicalTextBlock>(),
+            Array.Empty<PdfLogicalHeading>(),
+            Array.Empty<PdfLogicalParagraph>(),
+            Array.Empty<PdfLogicalListItem>(),
+            new[] { ocr });
+
+        Assert.Single(enriched.Tables);
+        Assert.Single(enriched.Analysis.TableCandidates);
+        Assert.All(enriched.Tables, table => Assert.Equal(PdfLogicalContentSourceKind.Native, table.SourceKind));
     }
 
     [Fact]

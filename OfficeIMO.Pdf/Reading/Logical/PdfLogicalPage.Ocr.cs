@@ -6,8 +6,13 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfLogicalHeading> ocrHeadings,
         IReadOnlyList<PdfLogicalParagraph> ocrParagraphs,
         IReadOnlyList<PdfLogicalListItem> ocrListItems,
-        IReadOnlyList<PdfLogicalTable> ocrTables) {
-        var elements = new List<IPdfLogicalElement>(Elements.Count + ocrTextBlocks.Count + ocrTables.Count);
+        IReadOnlyList<PdfUnderstandingTableCandidate> ocrTableCandidates) {
+        IReadOnlyList<PdfUnderstandingTableCandidate> acceptedOcrTableCandidates =
+            PdfUnderstandingTableCandidateReconciler.FilterAdditions(this, Analysis.TableCandidates, ocrTableCandidates);
+        PdfLogicalTable[] ocrTables = acceptedOcrTableCandidates
+            .Select(candidate => PdfLogicalTable.From(PageNumber, candidate))
+            .ToArray();
+        var elements = new List<IPdfLogicalElement>(Elements.Count + ocrTextBlocks.Count + ocrTables.Length);
         elements.AddRange(Elements);
         elements.AddRange(ocrTextBlocks);
         elements.AddRange(ocrTables);
@@ -16,6 +21,7 @@ public sealed partial class PdfLogicalPage {
         PdfLogicalParagraph[] paragraphs = Paragraphs.Concat(ocrParagraphs).ToArray();
         PdfLogicalListItem[] listItems = ListItems.Concat(ocrListItems).ToArray();
         PdfLogicalTable[] tables = Tables.Concat(ocrTables).ToArray();
+        PdfUnderstandingPageResult analysis = Analysis.WithAdditionalTableCandidates(acceptedOcrTableCandidates);
         var merged = new PdfLogicalPage(
             PageNumber,
             Width,
@@ -36,7 +42,7 @@ public sealed partial class PdfLogicalPage {
             LinkAnnotations,
             FormWidgets,
             PageActions,
-            Analysis);
+            analysis);
         IReadOnlyList<PdfLogicalTextBlock> orderedTextBlocks = OrderTextBlocks(merged);
         if (orderedTextBlocks.SequenceEqual(textBlocks)) return merged;
         var orderedElements = new List<IPdfLogicalElement>(elements.Count);
@@ -62,7 +68,7 @@ public sealed partial class PdfLogicalPage {
             LinkAnnotations,
             FormWidgets,
             PageActions,
-            Analysis);
+            analysis);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalTextBlock> OrderTextBlocks(PdfLogicalPage page) {

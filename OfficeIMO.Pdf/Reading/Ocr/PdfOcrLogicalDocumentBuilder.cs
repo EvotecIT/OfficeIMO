@@ -64,9 +64,9 @@ internal static class PdfOcrLogicalDocumentBuilder {
         CancellationToken cancellationToken) {
         List<OcrLine> sourceLines = BuildLines(words, cancellationToken);
         HashSet<int> tableLineIndexes = new HashSet<int>();
-        IReadOnlyList<PdfLogicalTable> tables = options.DetectAlignedTables
+        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = options.DetectAlignedTables
             ? DetectTables(page, sourceLines, tableLineIndexes, options, cancellationToken)
-            : Array.Empty<PdfLogicalTable>();
+            : Array.Empty<PdfUnderstandingTableCandidate>();
         List<(OcrLine Line, bool IsTableLine)> lines = BuildSemanticLines(
             sourceLines,
             tableLineIndexes,
@@ -122,7 +122,12 @@ internal static class PdfOcrLogicalDocumentBuilder {
         }
         FlushParagraph();
 
-        return page.WithOcrContent(textBlocks.AsReadOnly(), headings.AsReadOnly(), paragraphs.AsReadOnly(), listItems.AsReadOnly(), tables);
+        return page.WithOcrContent(
+            textBlocks.AsReadOnly(),
+            headings.AsReadOnly(),
+            paragraphs.AsReadOnly(),
+            listItems.AsReadOnly(),
+            tableCandidates);
 
         void FlushParagraph() {
             if (paragraphLines.Count == 0) return;
@@ -214,7 +219,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
         return result;
     }
 
-    private static IReadOnlyList<PdfLogicalTable> DetectTables(
+    private static IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(
         PdfLogicalPage page,
         IReadOnlyList<OcrLine> lines,
         HashSet<int> tableLineIndexes,
@@ -226,7 +231,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
             IReadOnlyList<OcrCell> cells = SplitCells(lines[lineIndex].Words, options.MinimumTableColumnGapPoints);
             if (cells.Count >= 2) candidates.Add((lineIndex, cells));
         }
-        if (candidates.Count < options.MinimumAlignedTableRows) return Array.Empty<PdfLogicalTable>();
+        if (candidates.Count < options.MinimumAlignedTableRows) return Array.Empty<PdfUnderstandingTableCandidate>();
 
         var groups = new List<List<(int Index, IReadOnlyList<OcrCell> Cells)>>();
         foreach ((int index, IReadOnlyList<OcrCell> cells) in candidates) {
@@ -239,53 +244,59 @@ internal static class PdfOcrLogicalDocumentBuilder {
             group.Add((index, cells));
         }
 
-        var result = new List<PdfLogicalTable>();
+        var result = new List<PdfUnderstandingTableCandidate>();
         foreach (List<(int Index, IReadOnlyList<OcrCell> Cells)> group in groups.Where(group => group.Count >= options.MinimumAlignedTableRows)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!HasConservativeTableEvidence(group)) continue;
+            if (!HasConservativeTableEvidence(group, lines)) continue;
             if (result.Count >= options.MaxInferredTablesPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxInferredTablesPerPage, result.Count + 1L);
             }
             int columnCount = group[0].Cells.Count;
-            var columnBounds = new List<(double From, double To)>(columnCount);
+            var visualColumnBounds = new List<(double From, double To)>(columnCount);
             for (int column = 0; column < columnCount; column++) {
-                columnBounds.Add((group.Min(row => row.Cells[column].Left), group.Max(row => row.Cells[column].Right)));
+                visualColumnBounds.Add((group.Min(row => row.Cells[column].Left), group.Max(row => row.Cells[column].Right)));
             }
             var rows = group.Select(row => (IReadOnlyList<string>)row.Cells.Select(static cell => cell.Text).ToArray()).ToArray();
             double top = group.Min(row => lines[row.Index].Top);
             double bottom = group.Max(row => lines[row.Index].Bottom);
-            result.Add(PdfLogicalTable.FromOcr(page.PageNumber, top, bottom, columnBounds, rows));
+            double left = visualColumnBounds.Min(static column => column.From);
+            double right = visualColumnBounds.Max(static column => column.To);
+            double confidence = PdfInference.Clamp(group.Average(row => lines[row.Index].Confidence));
+            result.Add(PdfUnderstandingTableCandidate.FromOcr(
+                "OcrAlignedColumns",
+                top,
+                bottom,
+                new PdfLogicalVisualBounds(left, top, right, bottom),
+                visualColumnBounds,
+                rows,
+                confidence,
+                new[] {
+                    new PdfInferenceEvidence(
+                        "table.ocr-aligned-geometry",
+                        "Accepted OCR words form repeated columns with compact row rhythm.",
+                        0.85D)
+                }));
             foreach ((int index, IReadOnlyList<OcrCell> _) in group) tableLineIndexes.Add(index);
         }
         return result.AsReadOnly();
     }
 
     private static bool HasConservativeTableEvidence(
-        IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows) {
-        int columnCount = rows[0].Cells.Count;
-        if (columnCount >= 3 && rows.Count >= 4) return true;
-        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            int nonEmptyCount = 0;
-            int typedValueCount = 0;
-            for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
-                string value = rows[rowIndex].Cells[columnIndex].Text.Trim();
-                if (value.Length == 0) continue;
-                nonEmptyCount++;
-                if (LooksLikeTypedTableValue(value)) typedValueCount++;
-            }
-            if (nonEmptyCount >= 2 && typedValueCount >= 2 && typedValueCount * 4 >= nonEmptyCount * 3) return true;
+        IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows,
+        IReadOnlyList<OcrLine> lines) {
+        if (rows.Count < 3 || rows[0].Cells.Count < 2) return false;
+        double[] verticalSteps = new double[rows.Count - 1];
+        for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
+            verticalSteps[rowIndex - 1] = lines[rows[rowIndex].Index].CenterY - lines[rows[rowIndex - 1].Index].CenterY;
+            if (verticalSteps[rowIndex - 1] <= 0D) return false;
         }
-        return false;
+        double medianStep = Median(verticalSteps);
+        double medianHeight = Median(rows.Select(row => lines[row.Index].Height));
+        if (medianHeight <= 0D || medianStep > Math.Max(24D, medianHeight * 3D)) return false;
+        double smallestStep = verticalSteps.Min();
+        double largestStep = verticalSteps.Max();
+        return smallestStep > 0D && largestStep <= smallestStep * 1.75D;
     }
-
-    private static bool LooksLikeTypedTableValue(string value) =>
-        PdfLogicalTableAnalysis.LooksLikeNumericValue(value) ||
-        bool.TryParse(value, out _) ||
-        DateTime.TryParse(
-            value,
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AllowWhiteSpaces,
-            out _);
 
     private static IReadOnlyList<OcrCell> SplitCells(List<PdfRecognizedWord> words, double minimumGap) {
         if (words.Count == 0) return Array.Empty<OcrCell>();

@@ -282,7 +282,10 @@ public sealed partial class PdfLogicalPage {
                 options,
                 cancellationToken,
                 analysis.ConsumeWork,
-                analysis.CancellationCheck);
+                analysis.CancellationCheck,
+                analysis.TableCandidates
+                    .Select(table => table.ToStructuredTable(analysis.ConsumeWork, analysis.CancellationCheck))
+                    .ToArray());
         if (analysis is not null) {
             ReplaceProjectionLines(page, structured, retainedLines!, cancellationToken);
         }
@@ -339,8 +342,10 @@ public sealed partial class PdfLogicalPage {
             elements.Add(leader);
         }
 
-        foreach (var table in structured.TablesDetailed) {
-            var logicalTable = PdfLogicalTable.From(pageNumber, table);
+        IEnumerable<PdfLogicalTable> logicalTables = analysis is null
+            ? structured.TablesDetailed.Select(table => PdfLogicalTable.From(pageNumber, table))
+            : analysis.TableCandidates.Select(table => PdfLogicalTable.From(pageNumber, table));
+        foreach (PdfLogicalTable logicalTable in logicalTables) {
             tables.Add(logicalTable);
             elements.Add(logicalTable);
         }
