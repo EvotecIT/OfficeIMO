@@ -211,7 +211,11 @@ public static class OfficeProvenanceAssessment {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
         if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
-            textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity, logicalFullPath);
+            textIntegrity = OfficeTextIntegrityInspector.InspectFile(
+                fullPath,
+                options.TextIntegrity,
+                logicalFullPath,
+                cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
         }
         OfficeProvenanceVerificationResult? verification = verifier == null

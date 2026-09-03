@@ -16,7 +16,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private const uint UnixOwnerReadWriteMode = 0x180; // 0600
     private readonly string _directoryPath;
     private readonly FileStream _lease;
-    private readonly string _physicalIdentity;
+    private readonly string? _physicalIdentity;
+    private readonly bool _usesPhysicalIdentity;
     private readonly byte[] _sha256;
     private readonly List<string> _dependentFiles = new List<string>();
     private readonly List<DependencySnapshot> _dependentSnapshots = new List<DependencySnapshot>();
@@ -28,15 +29,17 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string directoryPath,
         string filePath,
         long length,
-        string physicalIdentity,
+        string? physicalIdentity,
         byte[] sha256,
-        FileStream lease) {
+        FileStream lease,
+        bool usesPhysicalIdentity) {
         _directoryPath = directoryPath;
         FilePath = filePath;
         Length = length;
         _physicalIdentity = physicalIdentity;
         _sha256 = sha256;
         _lease = lease;
+        _usesPhysicalIdentity = usesPhysicalIdentity;
     }
 
     /// <summary>Gets the immutable snapshot path supplied to format owners and assessment providers.</summary>
@@ -59,7 +62,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         if (maximumTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTotalBytes));
 
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
-        string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(sourceDirectory);
+        string sourceDirectoryIdentity = _usesPhysicalIdentity
+            ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
+            : Path.GetFullPath(sourceDirectory);
         long capturedBytes = 0;
         var capturedTargets = new HashSet<string>(OfficePathIdentity.GetComparer(_directoryPath));
         foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
@@ -84,7 +89,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 long copiedBytes = CopyDependency(
                     sourceDependency,
                     targetDependency,
-                    physicalSourceDirectory,
+                    sourceDirectoryIdentity,
+                    _usesPhysicalIdentity,
                     maximumDependencyBytes,
                     maximumTotalBytes - report.ExpandedInspectionBytes - capturedBytes,
                     cancellationToken);
@@ -110,14 +116,19 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     internal void VerifyPrimaryFile(CancellationToken cancellationToken = default) {
         if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
         try {
-            string physicalDirectory = OfficePathIdentity.ResolvePhysicalPath(_directoryPath);
-            using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(
+            string directoryIdentity = _usesPhysicalIdentity
+                ? OfficePathIdentity.ResolvePhysicalPath(_directoryPath)
+                : Path.GetFullPath(_directoryPath);
+            using FileStream stream = OpenRegularFileForRead(
                 FilePath,
-                physicalDirectory,
-                81920);
-            string identity = OfficePathIdentity.GetPhysicalIdentityKey(FilePath, stream.SafeFileHandle);
+                directoryIdentity,
+                _usesPhysicalIdentity,
+                "The primary provenance snapshot could not be opened as a regular file.");
+            string? identity = _usesPhysicalIdentity
+                ? OfficePathIdentity.GetPhysicalIdentityKey(FilePath, stream.SafeFileHandle)
+                : null;
             if (stream.Length != Length ||
-                !string.Equals(identity, _physicalIdentity, StringComparison.Ordinal) ||
+                (_usesPhysicalIdentity && !string.Equals(identity, _physicalIdentity, StringComparison.Ordinal)) ||
                 !FixedTimeEquals(ComputeHash(stream, cancellationToken), _sha256)) {
                 throw new InvalidDataException(
                     "The primary provenance snapshot changed while the operation was running.");
@@ -135,7 +146,27 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     internal static OfficeProvenanceFileSnapshot Capture(
         string sourcePath,
         long maximumBytes,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => CaptureCore(
+            sourcePath,
+            maximumBytes,
+            cancellationToken,
+            OfficePathIdentity.SupportsPhysicalIdentity);
+
+    /// <summary>Exercises the portable snapshot path on platforms where physical file identity is unavailable.</summary>
+    internal static OfficeProvenanceFileSnapshot CapturePortable(
+        string sourcePath,
+        long maximumBytes,
+        CancellationToken cancellationToken = default) => CaptureCore(
+            sourcePath,
+            maximumBytes,
+            cancellationToken,
+            usesPhysicalIdentity: false);
+
+    private static OfficeProvenanceFileSnapshot CaptureCore(
+        string sourcePath,
+        long maximumBytes,
+        CancellationToken cancellationToken,
+        bool usesPhysicalIdentity) {
         if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
         if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
 
@@ -145,9 +176,11 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         try {
             long copiedBytes;
             byte[] copiedSha256;
-            string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(
-                Path.GetDirectoryName(fullPath)!);
-            using (FileStream source = OpenSnapshotSource(fullPath, physicalSourceDirectory))
+            string sourceDirectory = Path.GetDirectoryName(fullPath)!;
+            string sourceDirectoryIdentity = usesPhysicalIdentity
+                ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
+                : Path.GetFullPath(sourceDirectory);
+            using (FileStream source = OpenSnapshotSource(fullPath, sourceDirectoryIdentity, usesPhysicalIdentity))
             using (var destination = new FileStream(
                        filePath,
                        FileMode.CreateNew,
@@ -162,9 +195,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     "The asset snapshot exceeds the configured input limit.",
                     cancellationToken,
                     out copiedBytes);
-                if (!OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                if (usesPhysicalIdentity && !OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
                         fullPath,
-                        physicalSourceDirectory,
+                        sourceDirectoryIdentity,
                         source.SafeFileHandle)) {
                     throw new InvalidDataException(
                         "The asset snapshot source changed identity while it was being captured.");
@@ -182,7 +215,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 81920,
                 FileOptions.SequentialScan);
             try {
-                string physicalIdentity = OfficePathIdentity.GetPhysicalIdentityKey(filePath, lease.SafeFileHandle);
+                string? physicalIdentity = usesPhysicalIdentity
+                    ? OfficePathIdentity.GetPhysicalIdentityKey(filePath, lease.SafeFileHandle)
+                    : null;
                 byte[] sha256 = ComputeHash(lease, cancellationToken);
                 if (lease.Length != copiedBytes || !FixedTimeEquals(sha256, copiedSha256)) {
                     throw new InvalidDataException(
@@ -195,7 +230,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     copiedBytes,
                     physicalIdentity,
                     sha256,
-                    lease);
+                    lease,
+                    usesPhysicalIdentity);
             } catch {
                 lease.Dispose();
                 throw;
@@ -224,7 +260,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private static long CopyDependency(
         string sourcePath,
         string targetPath,
-        string physicalSourceDirectory,
+        string sourceDirectoryIdentity,
+        bool usesPhysicalIdentity,
         long maximumDependencyBytes,
         long remainingTotalBytes,
         CancellationToken cancellationToken) {
@@ -232,19 +269,11 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
         }
         long copiedBytes = 0;
-        FileStream source;
-        try {
-            source = OfficePathIdentity.OpenRegularFileForRead(
-                sourcePath,
-                physicalSourceDirectory,
-                81920);
-        } catch (InvalidDataException) {
-            throw;
-        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
-            throw new InvalidDataException(
-                "The external provenance manifest could not be opened as a regular file within the source directory.",
-                exception);
-        }
+        FileStream source = OpenRegularFileForRead(
+            sourcePath,
+            sourceDirectoryIdentity,
+            usesPhysicalIdentity,
+            "The external provenance manifest could not be opened as a regular file within the source directory.");
         using (source) {
             if (source.Length > maximumDependencyBytes) {
                 throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
@@ -264,9 +293,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 limitMessage,
                 cancellationToken,
                 out copiedBytes);
-            if (!OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+            if (usesPhysicalIdentity && !OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
                     sourcePath,
-                    physicalSourceDirectory,
+                    sourceDirectoryIdentity,
                     source.SafeFileHandle)) {
                 throw new InvalidDataException(
                     "An external provenance manifest changed identity while it was being captured.");
@@ -455,17 +484,51 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         public void Dispose() => _lease.Dispose();
     }
 
-    private static FileStream OpenSnapshotSource(string path, string physicalSourceDirectory) {
+    private static FileStream OpenSnapshotSource(
+        string path,
+        string sourceDirectoryIdentity,
+        bool usesPhysicalIdentity) => OpenRegularFileForRead(
+            path,
+            sourceDirectoryIdentity,
+            usesPhysicalIdentity,
+            "The provenance snapshot source could not be opened as a regular file.");
+
+    private static FileStream OpenRegularFileForRead(
+        string path,
+        string sourceDirectoryIdentity,
+        bool usesPhysicalIdentity,
+        string failureMessage) {
         try {
-            return OfficePathIdentity.OpenRegularFileForRead(path, physicalSourceDirectory, 81920);
+            if (usesPhysicalIdentity) {
+                return OfficePathIdentity.OpenRegularFileForRead(path, sourceDirectoryIdentity, 81920);
+            }
+
+            string fullPath = Path.GetFullPath(path);
+            if (!IsWithinDirectory(fullPath, sourceDirectoryIdentity)) {
+                throw new InvalidDataException("The opened filesystem entry resolves outside the source directory.");
+            }
+            FileAttributes attributes = File.GetAttributes(fullPath);
+            if ((attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0) {
+                throw new InvalidDataException("The filesystem entry is not a portable regular file.");
+            }
+            var stream = new FileStream(
+                fullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                81920,
+                FileOptions.SequentialScan);
+            if (!stream.CanSeek) {
+                stream.Dispose();
+                throw new InvalidDataException("The filesystem entry is not a seekable regular file.");
+            }
+            return stream;
         } catch (InvalidDataException) {
             throw;
         } catch (FileNotFoundException) {
             throw;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
-            throw new InvalidDataException(
-                "The provenance snapshot source could not be opened as a regular file.",
-                exception);
+            throw new InvalidDataException(failureMessage, exception);
         }
     }
 

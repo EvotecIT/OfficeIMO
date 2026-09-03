@@ -1,4 +1,6 @@
 using OfficeIMO.Provenance;
+using System.Text;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -94,6 +96,36 @@ public sealed class TextIntegrityContracts {
             Assert.Throws<InvalidDataException>(() => OfficeTextIntegrityInspector.InspectFile(
                 path,
                 new OfficeTextIntegrityOptions { MaxEncodedBytes = 1 }));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void StringInspectionObservesCancellationDuringTraversal() {
+        string text = new string('a', 16 * 1024 * 1024);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
+
+        Assert.Throws<OperationCanceledException>(() => OfficeTextIntegrityInspector.Inspect(
+            text,
+            new OfficeTextIntegrityOptions { MaxCharacters = text.Length },
+            "LargeText",
+            cancellation.Token));
+    }
+
+    [Fact]
+    public void FileInspectionObservesCancellationBeforeDecodeAndScan() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "text", new UTF8Encoding(false));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        try {
+            Assert.Throws<OperationCanceledException>(() => OfficeTextIntegrityInspector.InspectFile(
+                path,
+                new OfficeTextIntegrityOptions(),
+                "Text",
+                cancellation.Token));
         } finally {
             File.Delete(path);
         }

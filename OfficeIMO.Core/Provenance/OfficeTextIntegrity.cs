@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -120,24 +121,43 @@ public static class OfficeTextIntegrityInspector {
     public static OfficeTextIntegrityReport InspectFile(
         string filePath,
         OfficeTextIntegrityOptions? options = null,
-        string? location = null) {
+        string? location = null) => InspectFile(filePath, options, location, CancellationToken.None);
+
+    /// <summary>Inspects a BOM-aware UTF-8, UTF-16, or UTF-32 text file with cooperative cancellation.</summary>
+    public static OfficeTextIntegrityReport InspectFile(
+        string filePath,
+        OfficeTextIntegrityOptions? options,
+        string? location,
+        CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The text file was not found.", fullPath);
         options ??= new OfficeTextIntegrityOptions();
         Validate(options);
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] data;
         using (var stream = File.OpenRead(fullPath)) {
-            data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxEncodedBytes);
+            data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxEncodedBytes, cancellationToken);
         }
-        return Inspect(DecodeText(data), options, location ?? fullPath);
+        return Inspect(
+            DecodeText(data, options.MaxCharacters, cancellationToken),
+            options,
+            location ?? fullPath,
+            cancellationToken);
     }
 
     /// <summary>Inspects a string and reports exact, context-sensitive Unicode code points.</summary>
     public static OfficeTextIntegrityReport Inspect(
         string text,
         OfficeTextIntegrityOptions? options = null,
-        string location = "Text") {
+        string location = "Text") => Inspect(text, options, location, CancellationToken.None);
+
+    /// <summary>Inspects a string with cooperative cancellation and reports exact, context-sensitive Unicode code points.</summary>
+    public static OfficeTextIntegrityReport Inspect(
+        string text,
+        OfficeTextIntegrityOptions? options,
+        string location,
+        CancellationToken cancellationToken) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         options ??= new OfficeTextIntegrityOptions();
         Validate(options);
@@ -146,8 +166,10 @@ public static class OfficeTextIntegrityInspector {
         }
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A text location is required.", nameof(location));
 
+        cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<OfficeTextIntegrityFinding>();
         for (int offset = 0; offset < text.Length;) {
+            if ((offset & 0x3FF) == 0) cancellationToken.ThrowIfCancellationRequested();
             char current = text[offset];
             int codePoint;
             int length;
@@ -176,6 +198,7 @@ public static class OfficeTextIntegrityInspector {
             }
             offset += length;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new OfficeTextIntegrityReport(findings.AsReadOnly());
     }
 
@@ -286,7 +309,7 @@ public static class OfficeTextIntegrityInspector {
         if (options.MaxFindings <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxFindings must be positive.");
     }
 
-    private static string DecodeText(byte[] data) {
+    private static string DecodeText(byte[] data, int maximumCharacters, CancellationToken cancellationToken) {
         Encoding encoding = StrictUtf8;
         int offset = 0;
         if (StartsWith(data, new byte[] { 0x00, 0x00, 0xFE, 0xFF })) {
@@ -306,7 +329,36 @@ public static class OfficeTextIntegrityInspector {
             offset = 2;
         }
         try {
-            return encoding.GetString(data, offset, data.Length - offset);
+            cancellationToken.ThrowIfCancellationRequested();
+            Decoder decoder = encoding.GetDecoder();
+            var builder = new StringBuilder(Math.Min(data.Length - offset, maximumCharacters));
+            var characters = new char[4096];
+            int byteOffset = offset;
+            bool completed;
+            do {
+                cancellationToken.ThrowIfCancellationRequested();
+                decoder.Convert(
+                    data,
+                    byteOffset,
+                    data.Length - byteOffset,
+                    characters,
+                    0,
+                    characters.Length,
+                    flush: true,
+                    out int bytesUsed,
+                    out int charactersUsed,
+                    out completed);
+                if (charactersUsed > maximumCharacters - builder.Length) {
+                    throw new InvalidDataException("The text exceeds the configured character limit.");
+                }
+                builder.Append(characters, 0, charactersUsed);
+                byteOffset += bytesUsed;
+                if (!completed && bytesUsed == 0 && charactersUsed == 0) {
+                    throw new InvalidDataException("The text file could not be decoded incrementally.");
+                }
+            } while (!completed);
+            cancellationToken.ThrowIfCancellationRequested();
+            return builder.ToString();
         } catch (DecoderFallbackException exception) {
             throw new InvalidDataException("The text file contains invalid encoded text.", exception);
         }

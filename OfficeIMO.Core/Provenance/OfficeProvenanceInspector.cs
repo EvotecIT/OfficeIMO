@@ -74,6 +74,9 @@ public static class OfficeProvenanceInspector {
             case OfficeProvenanceAssetFormat.Svg:
                 OfficeProvenanceSvg.Inspect(data, options, context);
                 break;
+            case OfficeProvenanceAssetFormat.Html:
+                OfficeProvenanceHtml.Inspect(data, options, context);
+                break;
             case OfficeProvenanceAssetFormat.ZipPackage:
                 OfficeProvenanceZip.Inspect(data, options, context);
                 break;

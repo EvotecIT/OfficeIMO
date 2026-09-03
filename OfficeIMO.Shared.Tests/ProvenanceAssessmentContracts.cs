@@ -209,6 +209,109 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void CoreAssessmentPreservesRelativeHtmlManifestForVerifier() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "claims"));
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claims/claim.c2pa\"></head><body>body</body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, "claims", "claim.c2pa"), "immutable claim", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(
+                path,
+                verifier: new RelativeSidecarVerifier("claims/claim.c2pa", "immutable claim"));
+
+            OfficeProvenanceEvidence evidence = Assert.Single(report.Structural.Evidence);
+            Assert.Equal(OfficeProvenanceCarrierKind.C2paExternalManifest, evidence.Carrier);
+            Assert.True(evidence.IsStructurallyValid);
+            Assert.Equal(OfficeProvenanceVerificationStatus.Valid, report.Verification!.Status);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CoreHtmlInspectionResolvesRelativeBaseForManifestSnapshot() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "sub"));
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><base href=\"sub/\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>body</body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, "sub", "claim.c2pa"), "based claim", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(
+                path,
+                verifier: new RelativeSidecarVerifier("sub/claim.c2pa", "based claim"));
+
+            Assert.True(Assert.Single(report.Structural.Evidence).IsStructurallyValid);
+            Assert.Equal(OfficeProvenanceVerificationStatus.Valid, report.Verification!.Status);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CoreHtmlInspectionReportsEmbeddedManifestAssociations() {
+        string manifest = Convert.ToBase64String(ProvenanceCoreContracts.CreateManifestStoreForLifecycleTests());
+        byte[] html = Encoding.UTF8.GetBytes(
+            $"<!doctype html><html><head><script type=\"application/c2pa\">{manifest}</script></head><body></body></html>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(html, "page.html");
+
+        OfficeProvenanceEvidence evidence = Assert.Single(report.Evidence);
+        Assert.Equal(OfficeProvenanceCarrierKind.C2paManifest, evidence.Carrier);
+        Assert.True(evidence.IsStructurallyValid);
+        Assert.True(evidence.PayloadLength > 0);
+        Assert.Equal(evidence.PayloadLength, report.ExpandedInspectionBytes);
+    }
+
+    [Fact]
+    public void CoreHtmlInspectionRejectsUnsafeAndCompetingManifestAssociations() {
+        byte[] unsafeHtml = Encoding.UTF8.GetBytes(
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"java&#10;script:alert(1)\"></head></html>");
+        byte[] competingHtml = Encoding.UTF8.GetBytes(
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"first.c2pa\"><link rel=\"c2pa-manifest\" href=\"second.c2pa\"></head></html>");
+
+        Assert.False(Assert.Single(OfficeProvenanceInspector.Inspect(unsafeHtml, "unsafe.html").Evidence).IsStructurallyValid);
+        OfficeProvenanceReport competing = OfficeProvenanceInspector.Inspect(competingHtml, "competing.html");
+        Assert.Equal(2, competing.Evidence.Count);
+        Assert.All(competing.Evidence, item => Assert.False(item.IsStructurallyValid));
+        Assert.Single(competing.Diagnostics);
+    }
+
+    [Fact]
+    public void PortableSnapshotFallbackCapturesPrimaryAndRelativeDependencyFiles() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>portable snapshot</body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, "claim.c2pa"), "portable claim", new UTF8Encoding(false));
+        string? snapshotPath = null;
+        try {
+            using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.CapturePortable(path, 4096)) {
+                snapshotPath = snapshot.FilePath;
+                OfficeProvenanceReport report = OfficeProvenanceInspector.InspectFile(snapshot.FilePath);
+                snapshot.CaptureExternalManifestDependencies(path, report, 4096, 4096);
+
+                Assert.Contains("portable snapshot", File.ReadAllText(snapshot.FilePath), StringComparison.Ordinal);
+                Assert.Equal("portable claim", File.ReadAllText(Path.Combine(Path.GetDirectoryName(snapshot.FilePath)!, "claim.c2pa")));
+                snapshot.VerifyPrimaryFile();
+                snapshot.VerifyExternalManifestDependencies();
+            }
+            Assert.False(File.Exists(snapshotPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SnapshotDeduplicatesCaseAliasesOnACaseInsensitiveFileSystem() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -483,6 +586,29 @@ public sealed class ProvenanceAssessmentContracts {
                 Name,
                 SignalKind,
                 detected ? OfficeProvenanceSignalStatus.Detected : OfficeProvenanceSignalStatus.NotDetected);
+        }
+    }
+
+    private sealed class RelativeSidecarVerifier : IOfficeProvenanceVerifier {
+        private readonly string _relativePath;
+        private readonly string _expectedContent;
+
+        internal RelativeSidecarVerifier(string relativePath, string expectedContent) {
+            _relativePath = relativePath;
+            _expectedContent = expectedContent;
+        }
+
+        public string Name => "relative-sidecar";
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) {
+            string sidecarPath = Path.Combine(Path.GetDirectoryName(filePath)!, _relativePath);
+            bool valid = File.Exists(sidecarPath) && File.ReadAllText(sidecarPath) == _expectedContent;
+            return new OfficeProvenanceVerificationResult(
+                valid ? OfficeProvenanceVerificationStatus.Valid : OfficeProvenanceVerificationStatus.Invalid,
+                Name,
+                Array.Empty<string>());
         }
     }
 
