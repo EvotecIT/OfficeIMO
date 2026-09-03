@@ -486,13 +486,17 @@ internal static partial class TableDetector {
                 }
                 if (bridgeDecision == InterveningBandDecision.Include &&
                     LooksLikeEmphasizedHeaderBand(bands[current.idx + 1], next.splits) &&
-                    !LooksLikeNaturalSpanningPhrase(bands[current.idx + 1][0]) &&
                     BandsAlignUsingSplits(bands[current.idx + 1], next.lines, next.splits)) {
                     break;
                 }
 
-                bool nextRequiresAlignedCellSplits = !splitsAreSimilar &&
-                                                     (hasNonLeftAlignedCells || hasContinuousAlignedCells);
+                bool baseSplitsSeparateNextCells = SplitsSeparatePositionedCells(
+                    next.lines,
+                    baseSplits,
+                    baseSplits.Count + 1);
+                bool nextRequiresAlignedCellSplits = !baseSplitsSeparateNextCells ||
+                                                     (!splitsAreSimilar &&
+                                                      (hasNonLeftAlignedCells || hasContinuousAlignedCells));
                 if (!alignedSplitAccumulator.TryAppend(
                     next.lines,
                     requiresAlignedCellSplits || nextRequiresAlignedCellSplits)) {
@@ -677,12 +681,12 @@ internal static partial class TableDetector {
         if (gap <= Math.Max(36D, largestFontSize * 3D)) return true;
 
         if (followingBand == null ||
-            followingBand.Count != 1 ||
-            !BandsHaveAlignedCells(secondBand, followingBand)) {
+            followingBand.Count == 0 ||
+            !BandsContainAlignedCells(secondBand, followingBand)) {
             return false;
         }
 
-        double followingGap = secondBand[0].Y - followingBand[0].Y;
+        double followingGap = secondBandTop - followingBand.Max(static line => line.Y);
         if (followingGap <= 0D) return false;
         double smallerGap = Math.Min(gap, followingGap);
         double largerGap = Math.Max(gap, followingGap);
@@ -780,7 +784,7 @@ internal static partial class TableDetector {
                 twoRowLines,
                 bodySplits,
                 "band-group");
-            if (twoRowTable is null || !HasStrongTwoRowEvidence(twoRowTable, twoRowLines)) {
+            if (twoRowTable is null || !HasStrongHeaderAndBodyEvidence(twoRowTable, twoRowLines)) {
                 return null;
             }
         }
@@ -853,8 +857,8 @@ internal static partial class TableDetector {
     private static bool LooksLikeEmphasizedHeaderBand(
         List<TextLayoutEngine.TextLine> band,
         List<double> splits) {
-        if (band.Count != 1 || splits.Count == 0 || !HasEmphasizedText(band[0])) return false;
-        string[] cells = SplitBySplits(band[0], splits);
+        if (band.Count == 0 || splits.Count == 0 || band.Any(static line => !HasEmphasizedText(line))) return false;
+        string[] cells = MergeBandCellsBySplits(band, splits);
         return LooksLikeHeaderRow(cells) && !LooksLikeSummaryRow(cells);
     }
 
@@ -996,8 +1000,15 @@ internal static partial class TableDetector {
         StructuredTable table,
         List<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count != 2 || sourceLines.Count != 2) return false;
+        return HasStrongHeaderAndBodyEvidence(table, sourceLines);
+    }
+
+    private static bool HasStrongHeaderAndBodyEvidence(
+        StructuredTable table,
+        List<TextLayoutEngine.TextLine> sourceLines) {
+        if (table.Rows.Count < 2 || sourceLines.Count < 2) return false;
         if (!LooksLikeHeaderRow(table.Rows[0])) return false;
-        return table.Rows[1].Any(IsTabularValue) ||
+        return table.Rows.Skip(1).Any(static row => row.Any(IsTabularValue)) ||
                (HasStableColumnAnchors(table, sourceLines) && HasEmphasizedHeader(sourceLines));
     }
 

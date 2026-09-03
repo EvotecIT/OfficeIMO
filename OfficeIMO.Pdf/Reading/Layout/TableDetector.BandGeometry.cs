@@ -40,23 +40,6 @@ internal static partial class TableDetector {
         return true;
     }
 
-    private static bool LooksLikeNaturalSpanningPhrase(TextLayoutEngine.TextLine line) {
-        PdfTextSpan[] spans = line.Spans
-            .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
-            .OrderBy(static span => span.X)
-            .ToArray();
-        if (spans.Length < 2 || spans.Any(static span => span.Text.Any(char.IsDigit))) return false;
-
-        for (int index = 1; index < spans.Length; index++) {
-            PdfTextSpan previous = spans[index - 1];
-            PdfTextSpan current = spans[index];
-            double gap = current.X - (previous.X + Math.Max(0D, previous.Advance));
-            double wordSpacing = Math.Max(4D, Math.Max(previous.FontSize, current.FontSize) * 1.25D);
-            if (gap < -1D || gap > wordSpacing) return false;
-        }
-        return true;
-    }
-
     private static List<(double From, double To)>? GetSplitCellBounds(
         TextLayoutEngine.TextLine line,
         List<double> splits) {
@@ -76,6 +59,63 @@ internal static partial class TableDetector {
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             if (double.IsPositiveInfinity(from[columnIndex])) return null;
             cells.Add((from[columnIndex], to[columnIndex]));
+        }
+        return cells;
+    }
+
+    private static bool BandsContainAlignedCells(
+        List<TextLayoutEngine.TextLine> firstBand,
+        List<TextLayoutEngine.TextLine> secondBand) {
+        var firstRowsByColumnCount = new Dictionary<int, PositionedRow>();
+        for (int firstIndex = 0; firstIndex < firstBand.Count; firstIndex++) {
+            PositionedRow? first = TryCreatePositionedRow(firstBand[firstIndex]);
+            if (first is not null && !firstRowsByColumnCount.ContainsKey(first.Cells.Count)) {
+                firstRowsByColumnCount.Add(first.Cells.Count, first);
+            }
+        }
+        for (int secondIndex = 0; secondIndex < secondBand.Count; secondIndex++) {
+            PositionedRow? second = TryCreatePositionedRow(secondBand[secondIndex]);
+            if (second is not null &&
+                firstRowsByColumnCount.TryGetValue(second.Cells.Count, out PositionedRow? first) &&
+                PositionedRowsAlign(first, second)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool SplitsSeparatePositionedCells(
+        List<TextLayoutEngine.TextLine> lines,
+        List<double> splits,
+        int expectedColumnCount) {
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            PositionedRow? row = TryCreatePositionedRow(lines[lineIndex]);
+            if (row is null || row.Cells.Count != expectedColumnCount) continue;
+            for (int boundaryIndex = 0; boundaryIndex < splits.Count; boundaryIndex++) {
+                double split = splits[boundaryIndex];
+                if (split <= row.Cells[boundaryIndex].LastSpanStart ||
+                    split > row.Cells[boundaryIndex + 1].From) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static string[] MergeBandCellsBySplits(
+        List<TextLayoutEngine.TextLine> band,
+        List<double> splits) {
+        var cells = new string[splits.Count + 1];
+        for (int columnIndex = 0; columnIndex < cells.Length; columnIndex++) cells[columnIndex] = string.Empty;
+        for (int lineIndex = 0; lineIndex < band.Count; lineIndex++) {
+            string[] lineCells = SplitBySplits(band[lineIndex], splits);
+            for (int columnIndex = 0; columnIndex < cells.Length; columnIndex++) {
+                string value = lineCells[columnIndex].Trim();
+                if (value.Length == 0) continue;
+                cells[columnIndex] = string.IsNullOrEmpty(cells[columnIndex])
+                    ? value
+                    : cells[columnIndex] + " " + value;
+            }
         }
         return cells;
     }

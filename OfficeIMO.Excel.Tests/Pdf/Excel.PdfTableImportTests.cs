@@ -743,7 +743,7 @@ public partial class Excel {
 
         static PdfCore.TextLayoutEngine.TextLine SplitlessHeader(double y) {
             var spans = new List<PdfCore.PdfTextSpan> {
-                new("Name", "F1", 10, 20, y, 145, baseFont: "Helvetica-Bold"),
+                new("Name", "F1", 10, 20, y, 150, baseFont: "Helvetica-Bold"),
                 new("Total", "F1", 10, 180, y, 100, baseFont: "Helvetica-Bold")
             };
             return new PdfCore.TextLayoutEngine.TextLine(y, 20, 280, "Name Total", spans);
@@ -854,8 +854,8 @@ public partial class Excel {
         }
 
         var sectionSpans = new List<PdfCore.PdfTextSpan> {
-            new("North", "F1", 10, 20, 640, 80, baseFont: "Helvetica-Bold"),
-            new("America", "F1", 10, 110, 640, 70, baseFont: "Helvetica-Bold")
+            new("North", "F1", 10, 20, 640, 60, baseFont: "Helvetica-Bold"),
+            new("America", "F1", 10, 90, 640, 80, baseFont: "Helvetica-Bold")
         };
         var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
             new() { WideRow(700, true, "Region", "Total") },
@@ -936,8 +936,8 @@ public partial class Excel {
     [Fact]
     public void PdfTables_BandGroupingKeepsSplitlessHeaderAboveMultiLineBodyBand() {
         var headerSpans = new List<PdfCore.PdfTextSpan> {
-            new("Account", "F1", 10, 20, 700, 145, baseFont: "Helvetica-Bold"),
-            new("Total", "F1", 10, 180, 700, 70, baseFont: "Helvetica-Bold")
+            new("Account", "F1", 10, 20, 800, 145, baseFont: "Helvetica-Bold"),
+            new("Total", "F1", 10, 180, 800, 70, baseFont: "Helvetica-Bold")
         };
 
         static PdfCore.TextLayoutEngine.TextLine BodyLine(double y, string left, string right) {
@@ -949,7 +949,7 @@ public partial class Excel {
         }
 
         var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
-            new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 250, "Account Total", headerSpans) },
+            new() { new PdfCore.TextLayoutEngine.TextLine(800, 20, 250, "Account Total", headerSpans) },
             new() { BodyLine(680, "North", "1250"), BodyLine(668, "Region", "100") },
             new() { BodyLine(640, "South", "980") }
         };
@@ -962,6 +962,68 @@ public partial class Excel {
         Assert.Equal(new[] { "Account", "Total" }, table.Rows[0]);
         Assert.Equal(new[] { "North", "1250" }, table.Rows[1]);
         Assert.Equal(new[] { "South", "980" }, table.Rows[3]);
+    }
+
+    [Fact]
+    public void PdfTables_BandGroupingStopsAtMultiLineEmphasizedHeaderBand() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
+            string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60, baseFont: baseFont),
+                new(right, "F1", 10, 180, y, 40, baseFont: baseFont)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Row(700, true, "Code", "Qty") },
+            new() { Row(680, false, "A-100", "12") },
+            new() { Row(660, false, "B-200", "14") },
+            new() { Row(640, true, "Account", "Annual"), Row(632, true, "Name", "Total") },
+            new() { Row(610, false, "North", "1250") },
+            new() { Row(590, false, "South", "980") }
+        };
+
+        PdfCore.StructuredTable[] grouped = PdfCore.TableDetector.DetectTablesFromBands(bands)
+            .Where(static table => table.Kind == "band-group")
+            .ToArray();
+
+        Assert.Equal(2, grouped.Length);
+        Assert.Equal(new[] { "Code", "Qty" }, grouped[0].Rows[0]);
+        Assert.Equal(new[] { "Account", "Annual" }, grouped[1].Rows[0]);
+        Assert.Equal(new[] { "Name", "Total" }, grouped[1].Rows[1]);
+    }
+
+    [Fact]
+    public void PdfTables_BandGroupingAdjustsSimilarSplitThatCrossesAColumnAnchor() {
+        static PdfCore.TextLayoutEngine.TextLine Header(double y) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new("Region", "F1", 10, 20, y, 60, baseFont: "Helvetica-Bold"),
+                new("Total", "F1", 10, 120, y, 40, baseFont: "Helvetica-Bold")
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 160, "Region Total", spans);
+        }
+
+        static PdfCore.TextLayoutEngine.TextLine Body(double y, string left, string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 50),
+                new(right, "F1", 10, 99, y, 61)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 160, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Header(700) },
+            new() { Body(680, "North", "7") },
+            new() { Body(660, "South", "9") }
+        };
+
+        PdfCore.StructuredTable table = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static candidate => candidate.Kind == "band-group");
+
+        Assert.Equal(new[] { "North", "7" }, table.Rows[1]);
+        Assert.Equal(new[] { "South", "9" }, table.Rows[2]);
     }
 
     [Fact]
