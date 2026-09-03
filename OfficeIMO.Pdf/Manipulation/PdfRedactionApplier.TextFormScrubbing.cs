@@ -11,6 +11,7 @@ internal static partial class PdfRedactionApplier {
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
+        ISet<string> parentVerticalWritingFonts,
         IReadOnlyList<Matrix2D> parentTransforms,
         PdfTextStateSnapshot initialTextState,
         IReadOnlyDictionary<int, int> referenceCounts,
@@ -20,7 +21,10 @@ internal static partial class PdfRedactionApplier {
         ref int nextObjectNumber) {
         bool changed = false;
         string rewrittenContent = content;
-        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, initialTextState);
+        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(
+            content,
+            initialTextState,
+            ResolveExtGStateFontSelections(objects, resources));
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
@@ -50,6 +54,7 @@ internal static partial class PdfRedactionApplier {
                     textTargets,
                     parentFontDecoders,
                     parentFontWidthProviders,
+                    parentVerticalWritingFonts,
                     parentTransforms,
                     invocation.TextState,
                     referenceCounts,
@@ -92,6 +97,7 @@ internal static partial class PdfRedactionApplier {
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
+        ISet<string> parentVerticalWritingFonts,
         IReadOnlyList<Matrix2D> parentTransforms,
         PdfTextStateSnapshot inheritedTextState,
         IReadOnlyDictionary<int, int> referenceCounts,
@@ -117,12 +123,21 @@ internal static partial class PdfRedactionApplier {
             localWidthProviders,
             formDecoders,
             formWidthProviders);
+        HashSet<string> formVerticalWritingFonts = GetVerticalWritingFontResources(formResources, objects);
+        foreach (string parentFont in parentVerticalWritingFonts) {
+            formVerticalWritingFonts.Add(parentFont);
+        }
+        if (parentVerticalWritingFonts.Contains(inheritedTextState.FontResource) &&
+            !string.Equals(formInitialTextState.FontResource, inheritedTextState.FontResource, StringComparison.Ordinal)) {
+            formVerticalWritingFonts.Add(formInitialTextState.FontResource);
+        }
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
         var formGraphicsState = new TextScrubGraphicsState { TextState = formInitialTextState };
-        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits, formGraphicsState);
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection> formExtGStateFonts = ResolveExtGStateFontSelections(objects, formResources);
+        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits, formGraphicsState, formExtGStateFonts, formVerticalWritingFonts);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
             objects,
@@ -132,6 +147,7 @@ internal static partial class PdfRedactionApplier {
             textTargets,
             formDecoders,
             formWidthProviders,
+            formVerticalWritingFonts,
             effectiveTransforms,
             formInitialTextState,
             referenceCounts,
@@ -179,6 +195,36 @@ internal static partial class PdfRedactionApplier {
         return inheritedTextState.WithFont(alias, inheritedTextState.FontSize);
     }
 
+    private static Dictionary<string, PdfExtGStateFontSelection> ResolveExtGStateFontSelections(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary resources) {
+        var result = new Dictionary<string, PdfExtGStateFontSelection>(StringComparer.Ordinal);
+        PdfDictionary? states = ResolveDictionary(
+            objects,
+            resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null);
+        if (states == null) return result;
+        foreach (KeyValuePair<string, PdfObject> entry in states.Items) {
+            PdfDictionary? state = ResolveDictionary(objects, entry.Value);
+            if (state == null || !state.Items.TryGetValue("Font", out PdfObject? fontObject)) continue;
+            PdfObject? resolvedFont = ResolveRedactionObject(objects, fontObject);
+            if (resolvedFont is PdfNull) continue;
+            if (resolvedFont is not PdfArray fontArray || fontArray.Items.Count != 2 ||
+                ResolveRedactionObject(objects, fontArray.Items[0]) is not PdfName fontName ||
+                ResolveRedactionObject(objects, fontArray.Items[1]) is not PdfNumber fontSize ||
+                double.IsNaN(fontSize.Value) || double.IsInfinity(fontSize.Value) || fontSize.Value < 0D) {
+                result[entry.Key] = PdfExtGStateFontSelection.Invalid;
+                continue;
+            }
+            result[entry.Key] = new PdfExtGStateFontSelection(fontName.Name, fontSize.Value);
+        }
+        return result;
+    }
+
+    private static PdfObject? ResolveRedactionObject(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) {
+        if (value is not PdfReference reference) return value;
+        return PdfObjectLookup.TryResolveReferenceChain(objects, reference, out PdfObject? resolved) ? resolved : null;
+    }
+
     private static PdfDictionary ResolveTextFormResources(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary inheritedResources,
@@ -209,4 +255,20 @@ internal static partial class PdfRedactionApplier {
 
         internal string Content { get; }
     }
+}
+
+internal readonly struct PdfExtGStateFontSelection {
+    internal PdfExtGStateFontSelection(string fontResource, double fontSize) {
+        FontResource = fontResource;
+        FontSize = fontSize;
+        IsValid = true;
+    }
+
+    internal string FontResource { get; }
+
+    internal double FontSize { get; }
+
+    internal bool IsValid { get; }
+
+    internal static PdfExtGStateFontSelection Invalid => default;
 }

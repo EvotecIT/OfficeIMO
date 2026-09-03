@@ -188,20 +188,23 @@ internal sealed class PdfRedactionTextObjectScope {
 }
 
 internal readonly struct PdfRedactionPaintOrderContext : IEquatable<PdfRedactionPaintOrderContext> {
-    internal PdfRedactionPaintOrderContext(int pathPaintsBefore, int retainedImagePaintsBefore) {
+    internal PdfRedactionPaintOrderContext(int pathPaintsBefore, int retainedImagePaintsBefore, int retainedTextPaintsBefore = 0) {
         PathPaintsBefore = pathPaintsBefore;
         RetainedImagePaintsBefore = retainedImagePaintsBefore;
+        RetainedTextPaintsBefore = retainedTextPaintsBefore;
     }
 
     internal int PathPaintsBefore { get; }
     internal int RetainedImagePaintsBefore { get; }
+    internal int RetainedTextPaintsBefore { get; }
 
     public bool Equals(PdfRedactionPaintOrderContext other) =>
         PathPaintsBefore == other.PathPaintsBefore &&
-        RetainedImagePaintsBefore == other.RetainedImagePaintsBefore;
+        RetainedImagePaintsBefore == other.RetainedImagePaintsBefore &&
+        RetainedTextPaintsBefore == other.RetainedTextPaintsBefore;
 
     public override bool Equals(object? obj) => obj is PdfRedactionPaintOrderContext other && Equals(other);
-    public override int GetHashCode() => unchecked((PathPaintsBefore * 397) ^ RetainedImagePaintsBefore);
+    public override int GetHashCode() => unchecked(((PathPaintsBefore * 397) ^ RetainedImagePaintsBefore) * 397 ^ RetainedTextPaintsBefore);
 }
 
 internal readonly struct PdfRedactionTextGlyphIdentity {

@@ -73,6 +73,7 @@ public class PdfRedactionApplierTests {
     [Theory]
     [InlineData("(Alpha secret Omega) Tj")]
     [InlineData("[(Alpha ) -120 (secret) 40 ( Omega)] TJ")]
+    [InlineData("[(Alpha ) <> -120 (secret) 40 ( Omega)] TJ")]
     [InlineData("(Alpha secret Omega) '")]
     [InlineData("0 0 (Alpha secret Omega) \"")]
     public void Apply_RewritesTextShowOperatorsAndPreservesUnmatchedEncodedGlyphs(string showOperation) {
@@ -112,6 +113,29 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_FallsBackToWholeTextObjectWhenActualTextCoversPartialRedaction() {
+        byte[] source = BuildSingleTextObjectRedactionSource(
+            "/Span << /ActualText (Alpha secret Omega) >> BDC (painted substitute) Tj EMC");
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+        var area = new PdfRedactionArea(
+            1,
+            bounds.Left + bounds.Width * 0.4D,
+            bounds.Bottom + 0.05D,
+            bounds.Width * 0.2D,
+            bounds.Height - 0.1D,
+            "ActualText partial");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string extracted = PdfTextExtractor.ExtractAllText(redacted);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("secret", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("painted substitute", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_PreservesTwoByteEmbeddedType0GlyphCodesOutsidePartialRedaction() {
         const string text = "Alpha secret Omega";
         byte[] source = BuildType0ToUnicodeSingleTextObjectRedactionSource(text);
@@ -129,6 +153,21 @@ public class PdfRedactionApplierTests {
         Assert.Contains("000E000F001000110012", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2 9 0 R", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_FailsClosedForVerticalWritingTextObjects() {
+        byte[] source = PdfEncoding.Latin1GetBytes(
+            PdfEncoding.Latin1GetString(BuildType0ToUnicodeSingleTextObjectRedactionSource("Alpha secret Omega"))
+                .Replace("/Identity-H", "/Identity-V"));
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Alpha", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain(" Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -369,6 +408,65 @@ public class PdfRedactionApplierTests {
         Assert.Contains(rejected.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
+    [Theory]
+    [InlineData("1 w", "2 w")]
+    [InlineData("0 J", "1 J")]
+    [InlineData("0 j", "1 j")]
+    [InlineData("9 M", "8 M")]
+    [InlineData("[1] 0 d", "[2] 0 d")]
+    public void AppliedPlanVerificationRejectsChangedStrokeParametersOnPreservedGlyphs(string originalState, string changedState) {
+        byte[] source = BuildTextContentRedactionSource("2 Tr\n1 w\n0 J\n0 j\n9 M\n[1] 0 d\nBT\n/F1 20 Tf\n72 720 Td\n(Alpha secret Omega) Tj\nET");
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+
+        PdfRedactionVerificationReport accepted = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+        byte[] mutated = PdfEncoding.Latin1GetBytes(
+            PdfEncoding.Latin1GetString(redacted).Replace(originalState, changedState));
+        PdfRedactionVerificationReport rejected = PdfRedactionVerification.VerifyAppliedPlan(
+            mutated,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(accepted.IsVerified, string.Join("; ", accepted.Issues.Select(static issue => issue.Message)));
+        Assert.False(rejected.IsVerified);
+        Assert.Contains(rejected.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsUnreviewedTextMovedAcrossPartialSurvivor() {
+        const string backdrop = "BT /F1 10 Tf 72 700 Td (Backdrop) Tj ET";
+        const string reviewed = "BT /F1 20 Tf 72 700 Td (Alpha secret Omega) Tj ET";
+        byte[] source = BuildTextContentRedactionSource(backdrop + "\n" + reviewed);
+        PdfTextSpan span = Assert.Single(
+            PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            static value => value.Text.Contains("secret", StringComparison.Ordinal));
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+        int backdropStart = raw.IndexOf(backdrop, StringComparison.Ordinal);
+        int reviewedStart = raw.IndexOf("BT /F1 20 Tf", StringComparison.Ordinal);
+        int reviewedEnd = raw.IndexOf("ET", reviewedStart, StringComparison.Ordinal) + 2;
+        Assert.True(backdropStart >= 0 && reviewedStart > backdropStart && reviewedEnd > reviewedStart);
+        string reordered = raw.Substring(0, backdropStart) +
+            raw.Substring(reviewedStart, reviewedEnd - reviewedStart) + "\n" +
+            backdrop +
+            raw.Substring(reviewedEnd);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            PdfEncoding.Latin1GetBytes(reordered),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
     [Fact]
     public void AppliedPlanVerificationRejectsMissingTextObjectWithExpectedSurvivors() {
         const string textObject = "BT\n/F1 20 Tf\n72 720 Td\n(Alpha secret Omega) Tj\nET";
@@ -512,6 +610,19 @@ public class PdfRedactionApplierTests {
             PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
             static value => value.Text.Contains("secret", StringComparison.Ordinal));
         PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Contains("Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Omega", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_UsesFontSelectedByExtendedGraphicsStateBeforeFormInvocation() {
+        byte[] source = BuildExtGStateFontFormRedactionSource();
+        var area = new PdfRedactionArea(1, 182D, 680D, 100D, 35D, "ExtGState-selected secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -1036,6 +1147,22 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 320 60]")
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExtGStateFontFormRedactionSource() {
+        const string pageContent = "/F1 4 Tf\n/GSFont gs\nq\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        const string formContent = "BT\n0 0 Td\n(Alpha secret Omega) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 7 0 R >> /ExtGState << /GSFont 8 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 420 60]"),
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>\nendobj",
+            "8 0 obj\n<< /Type /ExtGState /Font [/F2 30] >>\nendobj"
         };
         return BuildPdf(objects, rootObjectNumber: 1);
     }

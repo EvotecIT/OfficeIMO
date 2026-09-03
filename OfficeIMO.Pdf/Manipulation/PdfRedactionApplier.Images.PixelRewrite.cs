@@ -244,15 +244,22 @@ internal static partial class PdfRedactionApplier {
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(
         string content,
         PdfTextStateSnapshot initialTextState) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState);
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, null);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        PdfTextStateSnapshot initialTextState,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts) =>
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, extGStateFonts);
 
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) =>
-        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default);
+        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default, null);
 
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(
         string content,
         ImageContentGraphicsState graphicsState,
-        PdfTextStateSnapshot initialTextState) {
+        PdfTextStateSnapshot initialTextState,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null) {
         var invocations = new List<ImageResourceInvocation>();
         var args = new List<ImageContentOperand>(8);
         var textStateStack = new Stack<PdfTextStateSnapshot>();
@@ -351,6 +358,17 @@ internal static partial class PdfRedactionApplier {
                     textState = textState.WithFont(
                         args[args.Count - 2].Name ?? textState.FontResource,
                         args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "gs" when args.Count >= 1:
+                    if (args[args.Count - 1].Name is string graphicsStateName &&
+                        extGStateFonts != null &&
+                        extGStateFonts.TryGetValue(graphicsStateName, out PdfExtGStateFontSelection fontSelection)) {
+                        if (!fontSelection.IsValid) {
+                            throw new NotSupportedException($"Extended graphics state /{graphicsStateName} has a malformed Font entry, so inherited form text state cannot be redacted safely.");
+                        }
+                        textState = textState.WithFont(fontSelection.FontResource, fontSelection.FontSize);
+                    }
                     args.Clear();
                     break;
                 case "Tc" when args.Count >= 1:

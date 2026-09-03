@@ -6,7 +6,8 @@ internal static partial class PdfRedactionApplier {
     private static Dictionary<int, TextObjectContext> CollectTextObjectContexts(
         string content,
         TextScrubGraphicsState? graphicsState,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null) {
         var contexts = new Dictionary<int, TextObjectContext>();
         TextScrubGraphicsState state = graphicsState ?? new TextScrubGraphicsState();
         Stack<TextScrubStateSnapshot> stack = state.Stack;
@@ -46,6 +47,16 @@ internal static partial class PdfRedactionApplier {
                     case "Tf" when operation.Operands.Count >= 2:
                         string font = operation.Operands[operation.Operands.Count - 2] as string ?? textState.FontResource;
                         textState = textState.WithFont(font, ReadTextStateNumber(operation.Operands, operation.Operands.Count - 1, textState.FontSize));
+                        break;
+                    case "gs" when operation.Operands.Count >= 1:
+                        if (operation.Operands[operation.Operands.Count - 1] is string graphicsStateName &&
+                            extGStateFonts != null &&
+                            extGStateFonts.TryGetValue(graphicsStateName, out PdfExtGStateFontSelection fontSelection)) {
+                            if (!fontSelection.IsValid) {
+                                throw new NotSupportedException($"Extended graphics state /{graphicsStateName} has a malformed Font entry, so text state cannot be redacted safely.");
+                            }
+                            textState = textState.WithFont(fontSelection.FontResource, fontSelection.FontSize);
+                        }
                         break;
                     case "Tc" when operation.Operands.Count >= 1:
                         textState = textState.WithCharacterSpacing(ReadTextStateNumber(operation.Operands, operation.Operands.Count - 1, textState.CharacterSpacing));

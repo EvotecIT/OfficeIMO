@@ -17,6 +17,8 @@ internal static class PdfContentStreamTextRewriter {
         PdfTextStateSnapshot initialTextState,
         IReadOnlyList<PdfContentStreamTextRewriteTarget> targets,
         PdfReadLimits limits,
+        ISet<string>? verticalWritingFonts,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts,
         out string rewritten) {
         rewritten = textObject;
         if (targets.Count == 0 || transforms.Count == 0) return false;
@@ -26,7 +28,8 @@ internal static class PdfContentStreamTextRewriter {
             fontDecoders,
             fontWidthProviders,
             transforms,
-            initialTextState);
+            initialTextState,
+            extGStateFonts);
         if (spansByTransform.Count != transforms.Count) return false;
 
         PdfTextStateSnapshot currentTextState = initialTextState;
@@ -71,6 +74,17 @@ internal static class PdfContentStreamTextRewriter {
                     case "Tr" when operation.Operands.Count >= 1:
                         currentTextState = currentTextState.WithTextRenderingMode((int)NumberAt(operation.Operands, operation.Operands.Count - 1, currentTextState.TextRenderingMode));
                         break;
+                    case "gs" when operation.Operands.Count >= 1:
+                        if (operation.Operands[operation.Operands.Count - 1] is string graphicsStateName &&
+                            extGStateFonts != null &&
+                            extGStateFonts.TryGetValue(graphicsStateName, out PdfExtGStateFontSelection fontSelection)) {
+                            if (!fontSelection.IsValid) {
+                                safe = false;
+                                return false;
+                            }
+                            currentTextState = currentTextState.WithFont(fontSelection.FontResource, fontSelection.FontSize);
+                        }
+                        break;
                     case "q":
                         textStateStack.Push(currentTextState);
                         break;
@@ -81,6 +95,10 @@ internal static class PdfContentStreamTextRewriter {
 
                 if (!IsTextShowOperator(operation.Name)) return true;
                 sawTextShowOperator = true;
+                if (verticalWritingFonts != null && verticalWritingFonts.Contains(currentTextState.FontResource)) {
+                    safe = false;
+                    return false;
+                }
 
                 double effectiveCharacterSpacing = currentTextState.CharacterSpacing;
                 double effectiveWordSpacing = currentTextState.WordSpacing;
@@ -133,8 +151,18 @@ internal static class PdfContentStreamTextRewriter {
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
-        PdfTextStateSnapshot initialTextState) {
+        PdfTextStateSnapshot initialTextState,
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts) {
         var result = new List<Dictionary<int, List<PdfTextSpan>>>(transforms.Count);
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = extGStateFonts?.ToDictionary(
+            static entry => entry.Key,
+            static entry => entry.Value.IsValid ? new PdfPageGraphicsStateResource(
+                null, null, null, null, null, null,
+                fontResource: entry.Value.FontResource,
+                fontSize: entry.Value.FontSize) : new PdfPageGraphicsStateResource(
+                    null, null, null, null, null, null,
+                    hasUnsupportedTextRestampEffect: true),
+            StringComparer.Ordinal);
         for (int transformIndex = 0; transformIndex < transforms.Count; transformIndex++) {
             string prefix = BuildTransformPrefix(transforms[transformIndex]);
             string wrapped = prefix + textObject + " Q";
@@ -146,7 +174,8 @@ internal static class PdfContentStreamTextRewriter {
                 (font, bytes) => fontWidthProviders.TryGetValue(font, out Func<byte[], double>? provider)
                     ? provider(bytes)
                     : bytes.Length * 500D,
-                initialTextState: initialTextState);
+                initialTextState: initialTextState,
+                graphicsStates: graphicsStates);
             var byOperator = new Dictionary<int, List<PdfTextSpan>>();
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 int operatorOffset = checked((int)Math.Round(spans[spanIndex].PaintOrder, MidpointRounding.AwayFromZero)) - prefix.Length;
@@ -198,6 +227,11 @@ internal static class PdfContentStreamTextRewriter {
             }
             if (item is not byte[] bytes) return false;
 
+            if (bytes.Length == 0) {
+                output.Add("<>");
+                continue;
+            }
+
             var transformSpans = new PdfTextSpan[spansForOperation.Count];
             for (int transformIndex = 0; transformIndex < spansForOperation.Count; transformIndex++) {
                 transformSpans[transformIndex] = spansForOperation[transformIndex][textItemIndex];
@@ -208,6 +242,8 @@ internal static class PdfContentStreamTextRewriter {
                 FlushKeptBytes(output, bytes.ToList());
                 continue;
             }
+
+            if (transformSpans.Any(static span => span.HasActualText)) return false;
 
             if (!TryRewriteByteString(
                     bytes,
@@ -450,8 +486,11 @@ internal static class PdfContentStreamTextRewriter {
             items.Add(bytes);
         }
         for (int index = 0; index < items.Count; index++) {
-            if (items[index] is byte[]) byteStringCount++;
-            else if (items[index] is not double) return false;
+            if (items[index] is byte[] bytes) {
+                if (bytes.Length > 0) byteStringCount++;
+                continue;
+            }
+            if (items[index] is not double) return false;
         }
         return byteStringCount > 0;
     }

@@ -251,10 +251,27 @@ public sealed class PdfRedactionPlan {
             .Where(placement => reviewedAreas == null ||
                 !IntersectsReviewedArea(reviewedAreas, placement.X, placement.Y, placement.Width, placement.Height))
             .ToArray();
+        var reviewedTextObjectKeys = new HashSet<PdfContentOrderKey>();
+        if (reviewedAreas != null) {
+            foreach (PdfTextSpan span in spans) {
+                if (span.TextObjectOrderKey is PdfContentOrderKey textObjectKey) {
+                    PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+                    if (IntersectsReviewedArea(reviewedAreas, bounds.Left, bounds.Bottom, bounds.Right - bounds.Left, bounds.Top - bounds.Bottom)) {
+                        reviewedTextObjectKeys.Add(textObjectKey);
+                    }
+                }
+            }
+        }
+        double[] retainedTextPaints = spans
+            .Where(span => span.TextObjectOrderKey is null || !reviewedTextObjectKeys.Contains(span.TextObjectOrderKey))
+            .Select(static span => span.PaintOrder)
+            .Distinct()
+            .ToArray();
 
         PdfRedactionPaintOrderContext ResolvePaintOrderContext(double paintOrder) => new(
             paths.Count(path => path.PaintOrder < paintOrder),
-            retainedImages.Count(image => image.PaintOrder < paintOrder));
+            retainedImages.Count(image => image.PaintOrder < paintOrder),
+            retainedTextPaints.Count(textPaintOrder => textPaintOrder < paintOrder));
 
         return spans
             .Where(static span => span.TextObjectOrderKey is not null)
