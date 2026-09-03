@@ -159,7 +159,6 @@ public sealed partial class OfficeWorkflowRunner {
             if (cancellationToken.IsCancellationRequested) return prepared;
             OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
-                request.ConflictPolicy != OfficeWorkflowConflictPolicy.Rename ||
                 string.IsNullOrWhiteSpace(request.OutputPath)) continue;
             request.BatchBlockedOutputIdentities = blockedOutputIdentities;
             request.BatchOwnReservedOutputIdentity = pathIndex.NormalizeCandidate(request.OutputPath);

@@ -77,9 +77,12 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                          !string.IsNullOrWhiteSpace(item.Value))) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string reference = report.GetExternalManifestReference(evidence)!;
-                if (Uri.TryCreate(reference, UriKind.Absolute, out Uri? absoluteReference) && absoluteReference.IsFile) {
-                    throw new InvalidDataException(
-                        "An absolute file-based external provenance manifest cannot be bound to the immutable snapshot.");
+                if (Uri.TryCreate(reference, UriKind.Absolute, out Uri? absoluteReference)) {
+                    if (absoluteReference.IsFile) {
+                        throw new InvalidDataException(
+                            "An absolute file-based external provenance manifest cannot be bound to the immutable snapshot.");
+                    }
+                    continue;
                 }
                 if (!evidence.IsStructurallyValid) continue;
                 if (!TryResolveRelativeDependency(
@@ -88,8 +91,11 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                         FilePath,
                         reference,
                         out string sourceDependency,
-                        out string targetDependency) ||
-                    !capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||
+                        out string targetDependency)) {
+                    throw new InvalidDataException(
+                        "A relative external provenance manifest cannot be bound within the immutable snapshot.");
+                }
+                if (!capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||
                     !File.Exists(sourceDependency)) continue;
 
                 string? targetDirectory = Path.GetDirectoryName(targetDependency);

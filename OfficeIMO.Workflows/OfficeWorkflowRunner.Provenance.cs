@@ -50,6 +50,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             inputBytes = new FileInfo(validated.InputPath).Length;
             long operationInputLimit = GetOperationInputLimit(validated);
             EnforceInputLimit(validated.InputPath, inputBytes, operationInputLimit);
+            failureStage = WorkflowFailureStage.Snapshot;
             inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
                 validated.InputPath,
                 operationInputLimit,
@@ -164,6 +165,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     "Inspection is supported, but no safe mutation owner is registered for this asset format.");
             }
 
+            long remainingExpandedBytes = validated.RemovalInputInspection.MaxExpandedContainerBytes;
+            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, structural.ExpandedInspectionBytes);
+
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = Path.GetDirectoryName(validated.OutputPath!)!;
             Directory.CreateDirectory(outputDirectory);
@@ -175,14 +179,22 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             failureStage = WorkflowFailureStage.Operation;
             OfficeProvenanceRemovalResult removal;
             try {
+                OfficeProvenanceRemovalOptions removalOptions = CloneRemovalOptions(
+                    validated.Removal,
+                    validated.Removal.Limits.MaxAssetBytes,
+                    validated.Removal.EffectiveMaxOutputBytes);
+                removalOptions.Limits.MaxExpandedContainerBytes = Math.Max(1L, remainingExpandedBytes);
                 removal = await Task.Run(
-                    () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal, cancellationToken),
+                    () => OfficeProvenanceWorkflowAdapter.Remove(
+                        refinedOwner, operationInputPath, stagingPath, removalOptions, cancellationToken),
                     cancellationToken).ConfigureAwait(false);
             } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
                 failureStage = WorkflowFailureStage.Output;
                 throw;
             }
             cancellationToken.ThrowIfCancellationRequested();
+            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.Before.ExpandedInspectionBytes);
+            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
             inputSnapshot!.Dispose();
             inputSnapshot = null;
@@ -201,15 +213,20 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 removal.DataLength,
                 removal.ComputeDataSha256(cancellationToken),
                 cancellationToken);
+            OfficeProvenanceOptions outputInspectionOptions = CloneInspectionOptions(
+                validated.RemovalOutputInspection,
+                validated.RemovalOutputInspection.MaxAssetBytes);
+            outputInspectionOptions.MaxExpandedContainerBytes = Math.Max(1L, remainingExpandedBytes);
             OfficeProvenanceReport reopened = await Task.Run(
                 () => OfficeProvenanceWorkflowAdapter.Inspect(
                     refinedOwner,
                     stagingPath,
-                    validated.RemovalOutputInspection,
+                    outputInspectionOptions,
                     validated.OutputPath,
                     cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, reopened.ExpandedInspectionBytes);
             EnsureEquivalent(removal.After, reopened);
             stagedFingerprint.VerifyStagingPath(
                 stagingPath,
@@ -611,6 +628,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             string publishedPath;
             switch (policy) {
                 case OfficeWorkflowConflictPolicy.Fail:
+                    EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
                     File.Move(stagingPath, requestedPath, overwrite: false);
                     publishedPath = requestedPath;
                     PinAndFinalize(publishedPath);
@@ -648,6 +666,21 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             }
         }
 
+        void EnsureBatchCandidateDoesNotOverlapAnotherRequest(string path) {
+            if (blockedOutputIdentities is null) return;
+            string identity = OfficeWorkflowPathIdentity.Normalize(path);
+            bool isOwnReservation = string.Equals(identity, ownReservedOutputIdentity, StringComparison.Ordinal);
+            bool hasHierarchyCollision = TryFindAncestorOrDescendant(
+                identity,
+                blockedOutputIdentities,
+                out string? collisionIdentity) &&
+                !string.Equals(collisionIdentity, ownReservedOutputIdentity, StringComparison.Ordinal);
+            if ((!isOwnReservation && blockedOutputIdentities.Contains(identity)) || hasHierarchyCollision) {
+                throw new IOException(
+                    "The provenance output now overlaps another batch request path and cannot be published safely.");
+            }
+        }
+
         string PublishRenamed() {
             for (int suffix = 0; suffix < 10_000; suffix++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -679,6 +712,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         }
 
         string PublishReplacement() {
+            EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
             if (!File.Exists(requestedPath)) {
                 bool destinationAppeared = false;
                 try {
@@ -693,6 +727,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 }
             }
 
+            EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
             using StagedArtifactFingerprint destination = StagedArtifactFingerprint.Capture(
                 requestedPath,
                 maximumBytes,
@@ -838,6 +873,22 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceWorkflowOperation.Remove => request.RemovalInputInspection.MaxAssetBytes,
         _ => request.Limits.MaximumInputBytes
     };
+
+    private static OfficeProvenanceOptions CloneInspectionOptions(
+        OfficeProvenanceOptions source,
+        long maximumAssetBytes) {
+        var clone = new OfficeProvenanceOptions();
+        CopyInspectionOptions(source, clone, maximumAssetBytes);
+        return clone;
+    }
+
+    private static void ConsumeExpandedProcessingBytes(ref long remainingBytes, long consumedBytes) {
+        if (consumedBytes < 0 || consumedBytes > remainingBytes) {
+            throw OfficeProvenanceLimitException.Create(
+                "The provenance workflow exceeds the configured cumulative expanded-data limit.");
+        }
+        remainingBytes -= consumedBytes;
+    }
 
     private static OfficeProvenanceOptions CreateOutputInspectionOptions(
         OfficeProvenanceRemovalOptions removal) {

@@ -109,8 +109,9 @@ public static class OfficeProvenanceInspector {
         if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-")) return OfficeProvenanceAssetFormat.Pdf;
         if (LooksLikeSvg(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
         if (LooksLikeHtml(data, null, options.MaxContainerEntries, options.CancellationToken)) return OfficeProvenanceAssetFormat.Html;
-        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.UnstructuredText;
-        if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
+        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(
+                data, options.MaxContainerEntries, options.CancellationToken)) return OfficeProvenanceAssetFormat.UnstructuredText;
+        if (OfficeProvenanceText.HasStructuredDelimiter(data, options.CancellationToken)) return OfficeProvenanceAssetFormat.StructuredText;
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return OfficeProvenanceAssetFormat.Svg;
         if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
