@@ -3,7 +3,8 @@ namespace OfficeIMO.Studio.Infrastructure.Preferences;
 internal enum StudioThemePreference {
     System,
     Light,
-    Dark
+    Dark,
+    HighContrast
 }
 
 /// <summary>Versioned, user-scoped presentation preferences for OfficeIMO Studio.</summary>

@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:preferences="clr-namespace:OfficeIMO.Studio.Infrastructure.Preferences"
              x:Class="OfficeIMO.Studio.App">
   <Application.Resources>
     <ResourceDictionary>
@@ -50,6 +51,30 @@
           <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#44341D" />
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#EF6267" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#472326" />
+          <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="{x:Static preferences:StudioThemeVariants.HighContrast}">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#080808" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#171717" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#17254A" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#E6E6E6" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#78A8FF" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#A8C6FF" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#17254A" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#66FFCC" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#073326" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#FFD166" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#332500" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#FF8A8F" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#3D090C" />
           <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>

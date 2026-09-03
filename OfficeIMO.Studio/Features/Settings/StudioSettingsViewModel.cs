@@ -33,7 +33,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
         Themes = [
             new(StudioThemePreference.System, _localizer.Get("Settings.ThemeSystem"), _localizer.Get("Settings.ThemeSystemDescription")),
             new(StudioThemePreference.Light, _localizer.Get("Settings.ThemeLight"), _localizer.Get("Settings.ThemeLightDescription")),
-            new(StudioThemePreference.Dark, _localizer.Get("Settings.ThemeDark"), _localizer.Get("Settings.ThemeDarkDescription"))
+            new(StudioThemePreference.Dark, _localizer.Get("Settings.ThemeDark"), _localizer.Get("Settings.ThemeDarkDescription")),
+            new(StudioThemePreference.HighContrast, _localizer.Get("Settings.ThemeHighContrast"), _localizer.Get("Settings.ThemeHighContrastDescription"))
         ];
 
         StudioSupportSnapshot support = diagnostics.CreateSupportSnapshot();

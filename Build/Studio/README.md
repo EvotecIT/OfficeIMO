@@ -9,8 +9,12 @@ Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code pr
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
 ./Build/Studio/Build-Studio.ps1 -Plan
-./Build/Studio/Build-Studio.ps1 -Runtime win-x64
+./Build/Studio/Build-Studio.ps1 -Target Studio.Windows -Runtime win-x64
+./Build/Studio/Build-Studio.ps1 -Target Studio.macOS -Runtime osx-arm64
+./Build/Studio/Build-Studio.ps1 -Target Studio.Linux -Runtime linux-x64
 ```
+
+Always pair a target with its compatible runtime when narrowing the release matrix. Do not use `-SkipBuild`: each runtime needs its own project-reference outputs before PowerForge performs the no-build publish and packages the result.
 
 The release matrix contains self-contained `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, and `linux-arm64` archives. The generated MSI uses a stable upgrade code and installs the `win-x64` build with a Start menu shortcut. User preferences and privacy-safe diagnostics remain under the user profile and are intentionally retained during ordinary uninstall.
 

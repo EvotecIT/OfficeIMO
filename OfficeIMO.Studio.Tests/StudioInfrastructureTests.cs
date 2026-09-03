@@ -22,6 +22,16 @@ public sealed class StudioInfrastructureTests {
     }
 
     [Fact]
+    public void PreferencesPreserveExplicitHighContrastTheme() {
+        using var folder = new TemporaryFolder("preferences-high-contrast");
+        var store = new JsonStudioPreferencesStore(Path.Combine(folder.Path, "preferences.json"));
+
+        store.Save(new StudioPreferences { Theme = StudioThemePreference.HighContrast });
+
+        Assert.Equal(StudioThemePreference.HighContrast, store.Load().Theme);
+    }
+
+    [Fact]
     public void PreferencesRecoverFromInvalidJsonAndCulture() {
         using var folder = new TemporaryFolder("preferences-invalid");
         string path = Path.Combine(folder.Path, "preferences.json");

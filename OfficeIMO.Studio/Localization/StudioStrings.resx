@@ -1113,6 +1113,12 @@
   <data name="Settings.ThemeDarkDescription" xml:space="preserve">
     <value>Use a low-light document workspace.</value>
   </data>
+  <data name="Settings.ThemeHighContrast" xml:space="preserve">
+    <value>High contrast</value>
+  </data>
+  <data name="Settings.ThemeHighContrastDescription" xml:space="preserve">
+    <value>Use maximum separation between text, controls, and workspace surfaces.</value>
+  </data>
   <data name="Settings.LocalizationReadiness" xml:space="preserve">
     <value>Localization readiness</value>
   </data>

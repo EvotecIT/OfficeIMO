@@ -1,4 +1,5 @@
 param(
+    [string[]] $Target,
     [string[]] $Runtime,
     [switch] $Validate,
     [switch] $Plan
@@ -14,6 +15,7 @@ $parameters = @{
     ExitCode = $true
     ErrorAction = 'Stop'
 }
+if ($Target) { $parameters.Target = $Target }
 if ($Runtime) { $parameters.Runtimes = $Runtime }
 if ($Validate) { $parameters.Validate = $true }
 if ($Plan) { $parameters.Plan = $true }

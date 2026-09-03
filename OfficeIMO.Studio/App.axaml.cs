@@ -22,6 +22,7 @@ public sealed partial class App : Application {
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
             StudioThemePreference.Dark => Avalonia.Styling.ThemeVariant.Dark,
+            StudioThemePreference.HighContrast => StudioThemeVariants.HighContrast,
             _ => Avalonia.Styling.ThemeVariant.Default
         };
         Services.Preferences.Changed += OnPreferencesChanged;
@@ -31,6 +32,7 @@ public sealed partial class App : Application {
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
             StudioThemePreference.Dark => Avalonia.Styling.ThemeVariant.Dark,
+            StudioThemePreference.HighContrast => StudioThemeVariants.HighContrast,
             _ => Avalonia.Styling.ThemeVariant.Default
         };
     }
