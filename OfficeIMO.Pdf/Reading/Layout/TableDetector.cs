@@ -16,10 +16,10 @@ internal static partial class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
-    private static readonly HashSet<string> ColumnHeaderWords = new(StringComparer.OrdinalIgnoreCase) {
-        "account", "amount", "annual", "category", "code", "date", "department", "description", "fiscal",
-        "id", "item", "measure", "metric", "month", "name", "period", "project", "qty", "quantity",
-        "quarter", "region", "reporting", "status", "total", "type", "value", "year"
+    private static readonly HashSet<string> ReportingPeriodHeaderLabels = new(StringComparer.OrdinalIgnoreCase) {
+        "account", "amount", "category", "code", "date", "department", "description", "id", "item",
+        "fiscal year", "measure", "metric", "month", "name", "period", "project", "quarter", "region",
+        "reporting period", "status", "type", "value", "year"
     };
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines, double? pageHeight = null) {
         var rows = new List<string[]>();
@@ -507,7 +507,7 @@ internal static partial class TableDetector {
                     baseSplits,
                     current.idx > bandSplits[start].idx
                         ? bands[current.idx - 1]
-                        : headerLines);
+                        : null);
                 if (bridgeDecision == InterveningBandDecision.Reject) {
                     break;
                 }
@@ -918,17 +918,14 @@ internal static partial class TableDetector {
             string value = ContentStructureExtractor.NormalizeShattered(cell).Trim();
             return LooksLikeSummaryValue(value) &&
                    (!reportingPeriodHeader || !LooksLikeReportingPeriodHeaderValue(value));
-        }) || (!reportingPeriodHeader &&
-               !cells.All(static cell => LooksLikeColumnHeaderLabel(cell)));
+        });
     }
 
     private static bool LooksLikeColumnHeaderLabel(string cell) {
         string value = ContentStructureExtractor.NormalizeShattered(cell)
             .Trim()
             .Trim(':', '-', '_', '/', '\\');
-        string[] words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        return words.Length > 0 && words.All(static word => ColumnHeaderWords.Contains(
-            word.Trim(':', '-', '_', '/', '\\')));
+        return ReportingPeriodHeaderLabels.Contains(value);
     }
 
     private static bool LooksLikeReportingPeriodHeaderValue(string value) {
