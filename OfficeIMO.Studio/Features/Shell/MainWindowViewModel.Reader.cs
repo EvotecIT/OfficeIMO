@@ -69,8 +69,8 @@ public sealed partial class MainWindowViewModel {
     public int PrimaryReaderColumnSpan => IsComparisonOpen ? 1 : 3;
 
     public string ComparisonPagePosition => ComparisonSelectedPage is null
-        ? "No page"
-        : $"Page {ComparisonSelectedPage.PageNumber} of {ComparisonPages.Count}";
+        ? _localizer.Get("Document.NoPage")
+        : _localizer.Format("Document.PagePosition", ComparisonSelectedPage.PageNumber, ComparisonPages.Count);
 
     partial void OnSelectedReaderLayoutChoiceChanged(ReaderLayoutChoice value) {
         RefreshReaderPages();

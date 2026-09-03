@@ -15,7 +15,8 @@ public enum StudioWorkspaceMode {
     Ocr,
     Convert,
     Output,
-    DocumentHealth
+    DocumentHealth,
+    Settings
 }
 
 public enum StudioDocumentMode {
@@ -36,6 +37,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsConversionMode))]
     [NotifyPropertyChangedFor(nameof(IsOutputMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
+    [NotifyPropertyChangedFor(nameof(IsSettingsMode))]
     [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private StudioWorkspaceMode _workspaceMode;
 
@@ -64,6 +66,7 @@ public sealed partial class MainWindowViewModel {
     public bool IsConversionMode => WorkspaceMode == StudioWorkspaceMode.Convert;
     public bool IsOutputMode => WorkspaceMode == StudioWorkspaceMode.Output;
     public bool IsDocumentHealthMode => WorkspaceMode == StudioWorkspaceMode.DocumentHealth;
+    public bool IsSettingsMode => WorkspaceMode == StudioWorkspaceMode.Settings;
     public bool IsJobsMode => IsConversionMode;
     public bool IsViewDocumentMode => DocumentMode == StudioDocumentMode.View;
     public bool IsAnnotateDocumentMode => DocumentMode == StudioDocumentMode.Annotate;
@@ -82,6 +85,13 @@ public sealed partial class MainWindowViewModel {
             value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit) {
             ClearObjectSelection();
         }
+        OnPropertyChanged(nameof(SecurityWarning));
+        OnPropertyChanged(nameof(HasSecurityWarning));
+    }
+
+    partial void OnWorkspaceModeChanged(StudioWorkspaceMode value) {
+        OnPropertyChanged(nameof(SecurityWarning));
+        OnPropertyChanged(nameof(HasSecurityWarning));
     }
 
     private PdfEditorSelectionMode GetEditorSelectionMode() => DocumentMode switch {
@@ -107,6 +117,9 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void ShowJobs() => WorkspaceMode = StudioWorkspaceMode.Convert;
+
+    [RelayCommand]
+    private void ShowSettings() => WorkspaceMode = StudioWorkspaceMode.Settings;
 
     [RelayCommand]
     private void ShowConversionWorkbench() => WorkspaceMode = StudioWorkspaceMode.Convert;

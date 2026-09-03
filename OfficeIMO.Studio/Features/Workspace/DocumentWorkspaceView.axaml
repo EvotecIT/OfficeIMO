@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
@@ -11,23 +12,23 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,0">
         <StackPanel Orientation="Horizontal" Spacing="1">
-          <ToggleButton Classes="mode" Content="View"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.View}" Content="{loc:Loc DocumentWorkspace.View}"
                        IsChecked="{Binding IsViewDocumentMode, Mode=OneWay}" Command="{Binding ShowViewModeCommand}" />
-          <ToggleButton Classes="mode" Content="Annotate"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Annotate}" Content="{loc:Loc DocumentWorkspace.Annotate}"
                        IsChecked="{Binding IsAnnotateDocumentMode, Mode=OneWay}" Command="{Binding ShowAnnotateModeCommand}" />
-          <ToggleButton Classes="mode" Content="Edit"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Edit}" Content="{loc:Loc DocumentWorkspace.Edit}"
                        IsChecked="{Binding IsEditDocumentMode, Mode=OneWay}" Command="{Binding ShowEditModeCommand}" />
-          <ToggleButton Classes="mode" Content="Pages"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Pages}" Content="{loc:Loc DocumentWorkspace.Pages}"
                        IsChecked="{Binding IsPagesDocumentMode, Mode=OneWay}" Command="{Binding ShowPagesModeCommand}" />
-          <ToggleButton Classes="mode" Content="Forms"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Forms}" Content="{loc:Loc DocumentWorkspace.Forms}"
                        IsChecked="{Binding IsFormsDocumentMode, Mode=OneWay}" Command="{Binding ShowFormsModeCommand}" />
-          <ToggleButton Classes="mode" Content="Protect"
+          <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Protect}" Content="{loc:Loc DocumentWorkspace.Protect}"
                        IsChecked="{Binding IsProtectDocumentMode, Mode=OneWay}" Command="{Binding ShowProtectModeCommand}" />
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-          <Button Classes="tool" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" Content="Undo" />
-          <Button Classes="tool" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" Content="Redo" />
-          <Button Classes="tool" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}" Content="Save" />
+          <Button Classes="tool" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" Content="{loc:Loc DocumentWorkspace.Undo}" />
+          <Button Classes="tool" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redo}" Content="{loc:Loc DocumentWorkspace.Redo}" />
+          <Button Classes="tool" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Save}" Content="{loc:Loc DocumentWorkspace.Save}" />
         </StackPanel>
       </Grid>
     </Border>
@@ -36,63 +37,63 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" MinHeight="48">
       <Grid>
         <StackPanel IsVisible="{Binding IsAnnotateDocumentMode}" Orientation="Horizontal" Spacing="2" Margin="8,3">
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Select">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" /><TextBlock Text="Select" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Select" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Select}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Select}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Note">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconNote}" Width="17" Height="17" /><TextBlock Text="Note" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Note" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Note}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconNote}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Note}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Text box">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconText}" Width="17" Height="17" /><TextBlock Text="Text" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Text box" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Text}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconText}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Highlight">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHighlight}" Width="17" Height="17" Foreground="#D6A500" /><TextBlock Text="Highlight" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Highlight" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Highlight}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHighlight}" Width="17" Height="17" Foreground="#D6A500" /><TextBlock Text="{loc:Loc DocumentWorkspace.Highlight}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Underline">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconUnderline}" Width="17" Height="17" /><TextBlock Text="Underline" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Underline" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Underline}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconUnderline}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Underline}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Strikeout">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconStrike}" Width="17" Height="17" /><TextBlock Text="Strikeout" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Strikeout" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Strikeout}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconStrike}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Strikeout}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Rectangle">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconRectangle}" Width="17" Height="17" /><TextBlock Text="Rectangle" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Rectangle" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Rectangle}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconRectangle}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Rectangle}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Line">
-            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconLine}" Width="17" Height="17" /><TextBlock Text="Line" FontSize="10" /></StackPanel>
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Line" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Line}">
+            <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconLine}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Line}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="tool" Content="Flatten all" Command="{Binding FlattenAllAnnotationsCommand}" IsEnabled="{Binding CanEditAnnotations}" Margin="8,0,0,0" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenAll}" Content="{loc:Loc DocumentWorkspace.FlattenAll}" Command="{Binding FlattenAllAnnotationsCommand}" IsEnabled="{Binding CanEditAnnotations}" Margin="8,0,0,0" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsEditDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <Button Classes="tool" Content="Add text" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add text" />
-          <Button Classes="tool" Content="Add image" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add image" />
-          <Button Classes="tool" Content="Add link" Command="{Binding SelectEditorToolCommand}" CommandParameter="Link" />
-          <Button Classes="tool" Content="Watermark" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
-          <Button Classes="tool" Content="Page numbers" Command="{Binding ApplyPageNumbersCommand}" IsEnabled="{Binding CanEditPageContent}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddText}" Content="{loc:Loc DocumentWorkspace.AddText}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add text" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddImage}" Content="{loc:Loc DocumentWorkspace.AddImage}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add image" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddLink}" Content="{loc:Loc DocumentWorkspace.AddLink}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Link" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Watermark}" Content="{loc:Loc DocumentWorkspace.Watermark}" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.PageNumbers}" Content="{loc:Loc DocumentWorkspace.PageNumbers}" Command="{Binding ApplyPageNumbersCommand}" IsEnabled="{Binding CanEditPageContent}" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <Button Classes="tool" Content="Add PDFs" Command="{Binding ImportPagesCommand}" IsEnabled="{Binding CanImportPages}" />
-          <Button Classes="tool" Content="Blank page" Command="{Binding InsertBlankCommand}" IsEnabled="{Binding CanMutatePages}" />
-          <Button Classes="tool" Content="Extract" Command="{Binding ExtractSelectedCommand}" IsEnabled="{Binding CanExtractSelection}" />
-          <Button Classes="tool" Content="Split" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddPDFs}" Content="{loc:Loc DocumentWorkspace.AddPDFs}" Command="{Binding ImportPagesCommand}" IsEnabled="{Binding CanImportPages}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.BlankPage}" Content="{loc:Loc DocumentWorkspace.BlankPage}" Command="{Binding InsertBlankCommand}" IsEnabled="{Binding CanMutatePages}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Extract}" Content="{loc:Loc DocumentWorkspace.Extract}" Command="{Binding ExtractSelectedCommand}" IsEnabled="{Binding CanExtractSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Split}" Content="{loc:Loc DocumentWorkspace.Split}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsFormsDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <TextBlock Text="Form fields" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Button Classes="tool" Content="Flatten field" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
-          <Button Classes="tool" Content="Flatten all" Command="{Binding FlattenAllFormFieldsCommand}" IsEnabled="{Binding CanFlattenForms}" />
+          <TextBlock Text="{loc:Loc DocumentWorkspace.FormFields}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenField}" Content="{loc:Loc DocumentWorkspace.FlattenField}" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenAll}" Content="{loc:Loc DocumentWorkspace.FlattenAll}" Command="{Binding FlattenAllFormFieldsCommand}" IsEnabled="{Binding CanFlattenForms}" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <Button Classes="tool" Content="Redact" Command="{Binding BeginRedactionCommand}" />
-          <Button Classes="tool" Content="Validate signatures" Command="{Binding ValidateSignaturesCommand}" />
-          <Button Classes="tool" Content="Bates numbers" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
-          <TextBlock Classes="muted" Text="Sensitive operations require explicit review and verification." VerticalAlignment="Center" Margin="8,0" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redact}" Content="{loc:Loc DocumentWorkspace.Redact}" Command="{Binding BeginRedactionCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ValidateSignatures}" Content="{loc:Loc DocumentWorkspace.ValidateSignatures}" Command="{Binding ValidateSignaturesCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.BatesNumbers}" Content="{loc:Loc DocumentWorkspace.BatesNumbers}" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
+          <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.SensitiveOperationsRequireExplicitReviewAndVerification}" VerticalAlignment="Center" Margin="8,0" />
         </StackPanel>
 
         <Grid IsVisible="{Binding IsViewDocumentMode}" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" ColumnSpacing="8" Margin="10,6">
-          <TextBlock Text="Layout" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Loc DocumentWorkspace.Layout}" FontWeight="SemiBold" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" Width="150"
                     ItemsSource="{Binding ReaderLayoutChoices}"
                     SelectedItem="{Binding SelectedReaderLayoutChoice, Mode=TwoWay}"
@@ -103,14 +104,14 @@
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
-          <ToggleButton Grid.Column="2" Classes="tool" Content="Page night mode"
+          <ToggleButton Grid.Column="2" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.PageNightMode}" Content="{loc:Loc DocumentWorkspace.PageNightMode}"
                         IsChecked="{Binding IsPageNightMode, Mode=TwoWay}" />
-          <Button Grid.Column="3" Classes="tool" Content="Compare side by side…"
+          <Button Grid.Column="3" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CompareSideBySide}" Content="{loc:Loc DocumentWorkspace.CompareSideBySide}"
                   Command="{Binding OpenComparisonCommand}" />
-          <Button Grid.Column="4" Classes="tool" Content="Close comparison"
+          <Button Grid.Column="4" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CloseComparison}" Content="{loc:Loc DocumentWorkspace.CloseComparison}"
                   Command="{Binding CloseComparisonCommand}" IsVisible="{Binding IsComparisonOpen}" />
           <TextBlock Grid.Column="5" Classes="muted"
-                     Text="Select text, follow links, search, and navigate bookmarks."
+                     Text="{loc:Loc DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks}"
                      VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </Grid>
       </Grid>
@@ -124,30 +125,30 @@
             <PathIcon Data="{StaticResource IconOpen}" Width="28" Height="28" Foreground="{DynamicResource StudioAccentBrush}"
                       HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
-          <TextBlock Text="Open a PDF to begin" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
-          <TextBlock Classes="muted" Text="Read, annotate, organize, fill, protect, and verify from one workspace." HorizontalAlignment="Center" />
-          <Button Classes="primary" Command="{Binding OpenCommand}" Content="Open PDF" HorizontalAlignment="Center" />
+          <TextBlock Text="{loc:Loc DocumentWorkspace.OpenAPDFToBegin}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+          <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.ReadAnnotateOrganizeFillProtectAndVerifyFromOneWorkspace}" HorizontalAlignment="Center" />
+          <Button Classes="primary" Command="{Binding OpenCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.OpenPDF}" Content="{loc:Loc DocumentWorkspace.OpenPDF}" HorizontalAlignment="Center" />
         </StackPanel>
       </Border>
 
       <Border Grid.Column="0" IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
         <TabControl x:Name="NavigationTabs">
-          <TabItem Header="Pages">
+          <TabItem Header="{loc:Loc DocumentWorkspace.Pages}">
             <Grid RowDefinitions="Auto,*">
               <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Margin="8,6" Spacing="5">
                 <TextBlock Text="{Binding OrganizerSelectionLabel}" FontWeight="SemiBold" />
                 <WrapPanel>
-                  <Button Classes="tool" Content="Select all" Command="{Binding SelectAllPagesCommand}" />
-                  <Button Classes="tool" Content="Clear" Command="{Binding ClearPageSelectionCommand}" IsEnabled="{Binding HasOrganizerSelection}" />
-                  <Button Classes="tool" Content="Up" Command="{Binding MoveSelectedUpCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                  <Button Classes="tool" Content="Down" Command="{Binding MoveSelectedDownCommand}" IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SelectAll}" Content="{loc:Loc DocumentWorkspace.SelectAll}" Command="{Binding SelectAllPagesCommand}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Clear}" Content="{loc:Loc DocumentWorkspace.Clear}" Command="{Binding ClearPageSelectionCommand}" IsEnabled="{Binding HasOrganizerSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Up}" Content="{loc:Loc DocumentWorkspace.Up}" Command="{Binding MoveSelectedUpCommand}" IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Down}" Content="{loc:Loc DocumentWorkspace.Down}" Command="{Binding MoveSelectedDownCommand}" IsEnabled="{Binding CanMutateSelection}" />
                 </WrapPanel>
                 <WrapPanel>
-                  <Button Classes="tool" Content="Rotate left" Command="{Binding RotateLeftCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                  <Button Classes="tool" Content="Rotate right" Command="{Binding RotateRightCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                  <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                  <Button Classes="tool" Content="Delete" Command="{Binding DeleteSelectedCommand}" IsEnabled="{Binding CanDeleteSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateLeft}" Content="{loc:Loc DocumentWorkspace.RotateLeft}" Command="{Binding RotateLeftCommand}" IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateRight}" Content="{loc:Loc DocumentWorkspace.RotateRight}" Command="{Binding RotateRightCommand}" IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Duplicate}" Content="{loc:Loc DocumentWorkspace.Duplicate}" Command="{Binding DuplicateSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Delete}" Content="{loc:Loc DocumentWorkspace.Delete}" Command="{Binding DeleteSelectedCommand}" IsEnabled="{Binding CanDeleteSelection}" />
                 </WrapPanel>
               </StackPanel>
               <ListBox Grid.Row="1" x:Name="OrganizerList" DragDrop.AllowDrop="True"
@@ -160,15 +161,15 @@
               </ListBox>
             </Grid>
           </TabItem>
-          <TabItem Header="Bookmarks">
+          <TabItem Header="{loc:Loc DocumentWorkspace.Bookmarks}">
             <ListBox ItemsSource="{Binding Bookmarks}" SelectedItem="{Binding SelectedBookmark, Mode=TwoWay}"
                      BorderThickness="0" Background="Transparent">
               <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfBookmarkViewModel"><TextBlock Text="{Binding IndentedTitle}" Margin="8,5" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
             </ListBox>
           </TabItem>
-          <TabItem Header="Search">
+          <TabItem Header="{loc:Loc DocumentWorkspace.Search}">
             <Grid RowDefinitions="Auto,*" Margin="8">
-              <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="SearchBox" Text="{Binding SearchQuery}" PlaceholderText="Find in PDF" /><Button Grid.Column="1" Classes="tool" Content="Find" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
+              <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="SearchBox" Text="{Binding SearchQuery}" PlaceholderText="{loc:Loc DocumentWorkspace.FindInPDF}" /><Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Find}" Content="{loc:Loc DocumentWorkspace.Find}" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
               <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}" BorderThickness="0" Background="Transparent">
                 <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfSearchHit"><TextBlock Text="{Binding Label}" Margin="6" TextWrapping="Wrap" FontSize="11" /></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
@@ -263,98 +264,98 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel Margin="14" Spacing="10">
             <StackPanel IsVisible="{Binding IsViewDocumentMode}" Spacing="7">
-              <TextBlock Text="Document" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Document}" FontSize="15" FontWeight="SemiBold" />
               <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" TextWrapping="Wrap" />
               <TextBlock Text="{Binding DocumentDescription}" Classes="muted" />
-              <TextBlock Classes="muted" Text="Choose Annotate, Edit, Pages, Forms, or Protect to reveal contextual controls." TextWrapping="Wrap" />
+              <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.ChooseAnnotateEditPagesFormsOrProtectToRevealContextual}" TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsAnnotateDocumentMode}" Spacing="8">
               <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="8">
                 <TextBlock Text="{Binding SelectedEditorToolChoice.Label}" FontSize="15" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding EditorInstruction}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
-                <TextBlock Text="Color" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
-                <TextBlock Text="Opacity" FontSize="11" /><Slider Minimum="0" Maximum="1" Value="1" />
-                <TextBlock Text="Author" FontSize="11" /><TextBox Text="{Binding EditorAuthor}" />
-                <TextBlock Text="Text / comment" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Color}" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Opacity}" FontSize="11" /><Slider Minimum="0" Maximum="1" Value="1" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Author}" FontSize="11" /><TextBox Text="{Binding EditorAuthor}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.TextComment}" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
               </StackPanel>
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsEditDocumentMode}" Spacing="8">
               <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="8">
-                <TextBlock Text="Edit properties" FontSize="15" FontWeight="SemiBold" />
-                <TextBlock Text="Select existing text, an image, or an annotation on the page to inspect and edit it." Classes="muted" TextWrapping="Wrap" />
-                <TextBlock Text="Tool" FontSize="11" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.EditProperties}" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.SelectExistingTextAnImageOrAnAnnotationOnThe}" Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Tool}" FontSize="11" />
                 <ComboBox ItemsSource="{Binding EditorTools}" SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}">
                   <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfEditorToolChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
-                <TextBlock Text="Text" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" />
-                <TextBlock Text="Font size" FontSize="11" /><NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" />
-                <TextBlock Text="Watermark text" FontSize="11" /><TextBox Text="{Binding WatermarkText}" />
-                <Button Classes="tool" Content="Add watermark" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.FontSize}" FontSize="11" /><NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.WatermarkText}" FontSize="11" /><TextBox Text="{Binding WatermarkText}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddWatermark}" Content="{loc:Loc DocumentWorkspace.AddWatermark}" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
                 <Separator Margin="0,4" />
-                <TextBlock Text="Find and replace" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ReplaceAllFindText}" PlaceholderText="Find in document" />
-                <TextBox Text="{Binding ReplaceAllReplacementText}" PlaceholderText="Replace with" />
-                <CheckBox IsChecked="{Binding ReplaceAllMatchCase}" Content="Match case" />
-                <CheckBox IsChecked="{Binding ReplaceAllWholeWords}" Content="Whole words" />
-                <Button Classes="tool" Content="Replace all" Command="{Binding ReplaceAllDocumentTextCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.FindAndReplace}" FontWeight="SemiBold" />
+                <TextBox Text="{Binding ReplaceAllFindText}" PlaceholderText="{loc:Loc DocumentWorkspace.FindInDocument}" />
+                <TextBox Text="{Binding ReplaceAllReplacementText}" PlaceholderText="{loc:Loc DocumentWorkspace.ReplaceWith}" />
+                <CheckBox IsChecked="{Binding ReplaceAllMatchCase}" Content="{loc:Loc DocumentWorkspace.MatchCase}" />
+                <CheckBox IsChecked="{Binding ReplaceAllWholeWords}" Content="{loc:Loc DocumentWorkspace.WholeWords}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceAll}" Content="{loc:Loc DocumentWorkspace.ReplaceAll}" Command="{Binding ReplaceAllDocumentTextCommand}" IsEnabled="{Binding CanEditPageContent}" />
               </StackPanel>
             </StackPanel>
 
             <StackPanel IsVisible="{Binding HasSelectedObject}" Spacing="8">
-              <TextBlock Text="Selected object" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.SelectedObject}" FontSize="15" FontWeight="SemiBold" />
               <TextBlock Text="{Binding SelectedObjectSummary}" Classes="muted" TextWrapping="Wrap" />
 
               <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="7">
-                <TextBlock Text="Text" FontSize="11" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="11" />
                 <TextBox Text="{Binding SelectedObjectText}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap" />
-                <Button Classes="primary" Content="Replace text" Command="{Binding ReplaceSelectedTextCommand}" IsEnabled="{Binding CanReplaceSelectedText}" />
+                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceText}" Content="{loc:Loc DocumentWorkspace.ReplaceText}" Command="{Binding ReplaceSelectedTextCommand}" IsEnabled="{Binding CanReplaceSelectedText}" />
               </StackPanel>
 
               <StackPanel IsVisible="{Binding HasSelectedImage}" Spacing="7">
-                <TextBlock Text="The replacement keeps this placement's position, size, and rotation." Classes="muted" TextWrapping="Wrap" />
-                <Button Classes="primary" Content="Replace image…" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.TheReplacementKeepsThisPlacementSPositionSizeAndRotation}" Classes="muted" TextWrapping="Wrap" />
+                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceImage}" Content="{loc:Loc DocumentWorkspace.ReplaceImage}" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
               </StackPanel>
 
               <StackPanel IsVisible="{Binding HasSelectedAnnotation}" Spacing="7">
-                <TextBlock Text="Comment" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
-                <TextBlock Text="Author" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationAuthor}" />
-                <TextBlock Text="Color" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
-                <Button Classes="primary" Content="Apply properties" Command="{Binding UpdateSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Comment}" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Author}" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationAuthor}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Color}" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
+                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyProperties}" Content="{loc:Loc DocumentWorkspace.ApplyProperties}" Command="{Binding UpdateSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="5">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="X" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Y" FontSize="11" />
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.X}" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Y}" FontSize="11" />
                   <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding SelectedAnnotationX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SelectedAnnotationY}" />
-                  <TextBlock Grid.Row="2" Grid.Column="0" Text="Width" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Height" FontSize="11" />
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="11" />
                   <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding SelectedAnnotationWidth}" Minimum="0.1" /><NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SelectedAnnotationHeight}" Minimum="0.1" />
                 </Grid>
-                <Button Classes="tool" Content="Apply geometry" Command="{Binding ResizeSelectedAnnotationCommand}" IsEnabled="{Binding CanResizeSelectedAnnotation}" />
-                <TextBox Text="{Binding AnnotationReplyText}" PlaceholderText="Reply" AcceptsReturn="True" MinHeight="50" />
-                <Button Classes="tool" Content="Add reply" Command="{Binding ReplyToSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
-                <Button Classes="tool" Content="Flatten annotation" Command="{Binding FlattenSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyGeometry}" Content="{loc:Loc DocumentWorkspace.ApplyGeometry}" Command="{Binding ResizeSelectedAnnotationCommand}" IsEnabled="{Binding CanResizeSelectedAnnotation}" />
+                <TextBox Text="{Binding AnnotationReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="50" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddReply}" Content="{loc:Loc DocumentWorkspace.AddReply}" Command="{Binding ReplyToSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Content="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Command="{Binding FlattenSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
               </StackPanel>
 
               <Separator Margin="0,4" />
               <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="5">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Move X" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Move Y" FontSize="11" />
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.MoveX}" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.MoveY}" FontSize="11" />
                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding ObjectMoveX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ObjectMoveY}" />
               </Grid>
-              <Button Classes="tool" Content="Move object" Command="{Binding MoveSelectedObjectCommand}" />
-              <Button Classes="danger" Content="Delete object" Command="{Binding DeleteSelectedObjectCommand}" />
+              <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.MoveObject}" Content="{loc:Loc DocumentWorkspace.MoveObject}" Command="{Binding MoveSelectedObjectCommand}" />
+              <Button Classes="danger" AutomationProperties.Name="{loc:Loc DocumentWorkspace.DeleteObject}" Content="{loc:Loc DocumentWorkspace.DeleteObject}" Command="{Binding DeleteSelectedObjectCommand}" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Spacing="8">
-              <TextBlock Text="Page actions" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.PageActions}" FontSize="15" FontWeight="SemiBold" />
               <TextBlock Text="{Binding OrganizerSelectionLabel}" Classes="muted" TextWrapping="Wrap" />
-              <TextBlock Text="Crop margin" FontSize="11" /><TextBox Text="{Binding CropMargin}" PlaceholderText="Points" />
-              <Button Classes="tool" Content="Crop selected pages" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
-              <TextBlock Text="Pages per split file" FontSize="11" /><NumericUpDown Minimum="1" Maximum="9999" Value="{Binding SplitPagesPerDocument}" />
-              <Button Classes="primary" Content="Split to folder" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.CropMargin}" FontSize="11" /><TextBox Text="{Binding CropMargin}" PlaceholderText="{loc:Loc DocumentWorkspace.Points}" />
+              <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}" Content="{loc:Loc DocumentWorkspace.CropSelectedPages}" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.PagesPerSplitFile}" FontSize="11" /><NumericUpDown Minimum="1" Maximum="9999" Value="{Binding SplitPagesPerDocument}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SplitToFolder}" Content="{loc:Loc DocumentWorkspace.SplitToFolder}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsFormsDocumentMode}" Spacing="8">
-              <TextBlock Text="Fill fields" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="This PDF has no named form fields yet." TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="{loc:Loc DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet}" TextWrapping="Wrap" />
               <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldViewModel"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
@@ -365,13 +366,13 @@
                 <TextBox IsVisible="{Binding SelectedFormField.IsPassword}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
                          PasswordChar="●" />
                 <CheckBox IsVisible="{Binding SelectedFormField.IsCheckBoxEditor}" IsChecked="{Binding SelectedFormField.IsChecked, Mode=TwoWay}"
-                          Content="Checked" />
+                          Content="{loc:Loc DocumentWorkspace.Checked}" />
                 <ComboBox IsVisible="{Binding SelectedFormField.IsSingleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}"
                           SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=TwoWay}">
                   <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
                 <TextBox IsVisible="{Binding SelectedFormField.IsEditableChoice}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
-                         PlaceholderText="Custom value" />
+                         PlaceholderText="{loc:Loc DocumentWorkspace.CustomValue}" />
                 <ItemsControl IsVisible="{Binding SelectedFormField.IsMultipleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="editor:PdfFormChoiceViewModel">
@@ -380,139 +381,139 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock IsVisible="{Binding SelectedFormField.IsSignature}" Classes="muted"
-                           Text="This is a signature field. Use the signing section in Protect mode to apply a certificate signature." TextWrapping="Wrap" />
+                           Text="{loc:Loc DocumentWorkspace.ThisIsASignatureFieldUseTheSigningSectionIn}" TextWrapping="Wrap" />
                 <TextBlock IsVisible="{Binding SelectedFormField.IsUnsupported}" Classes="muted"
-                           Text="This field is not directly fillable from this inspector." TextWrapping="Wrap" />
-                <Button Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
-                <Button Classes="tool" Content="Fill and flatten" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
-                <Button Classes="tool" Content="Flatten selected field" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+                           Text="{loc:Loc DocumentWorkspace.ThisFieldIsNotDirectlyFillableFromThisInspector}" TextWrapping="Wrap" />
+                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillField}" Content="{loc:Loc DocumentWorkspace.FillField}" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillAndFlatten}" Content="{loc:Loc DocumentWorkspace.FillAndFlatten}" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Content="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
               </StackPanel>
-              <TextBlock Classes="muted" Text="Flattening is explicit and makes supported widgets permanent page content." TextWrapping="Wrap" />
+              <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.FlatteningIsExplicitAndMakesSupportedWidgetsPermanentPageContent}" TextWrapping="Wrap" />
 
               <Separator Margin="0,5" />
-              <TextBlock Text="Create field" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="Field authoring is unavailable under this document's current security policy." TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.CreateField}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="{loc:Loc DocumentWorkspace.FieldAuthoringIsUnavailableUnderThisDocumentSCurrentSecurity}" TextWrapping="Wrap" />
               <ComboBox ItemsSource="{Binding FormFieldCreationChoices}" SelectedItem="{Binding SelectedFormFieldCreationChoice, Mode=TwoWay}" IsEnabled="{Binding CanAuthorForms}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldCreationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
-              <TextBlock Text="Name" FontSize="11" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Name}" FontSize="11" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
               <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Page" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Left" FontSize="11" />
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Page}" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Left}" FontSize="11" />
                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding NewFormFieldPageNumber}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
                 <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding NewFormFieldX}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bottom" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Width" FontSize="11" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Bottom}" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="11" />
                 <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding NewFormFieldY}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
                 <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding NewFormFieldWidth}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Height" FontSize="11" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="11" />
                 <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding NewFormFieldHeight}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
               </Grid>
               <StackPanel IsVisible="{Binding IsCreatingTextField}" Spacing="5">
-                <TextBlock Text="Initial value" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
-                <CheckBox IsChecked="{Binding NewFormFieldIsMultiline}" Content="Multiline" />
-                <CheckBox IsChecked="{Binding NewFormFieldIsPassword}" Content="Password field" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
+                <CheckBox IsChecked="{Binding NewFormFieldIsMultiline}" Content="{loc:Loc DocumentWorkspace.Multiline}" />
+                <CheckBox IsChecked="{Binding NewFormFieldIsPassword}" Content="{loc:Loc DocumentWorkspace.PasswordField}" />
               </StackPanel>
-              <CheckBox IsVisible="{Binding IsCreatingCheckBox}" IsChecked="{Binding NewFormFieldIsChecked}" Content="Initially checked" />
+              <CheckBox IsVisible="{Binding IsCreatingCheckBox}" IsChecked="{Binding NewFormFieldIsChecked}" Content="{loc:Loc DocumentWorkspace.InitiallyChecked}" />
               <StackPanel IsVisible="{Binding IsCreatingChoiceField}" Spacing="5">
-                <TextBlock Text="Options (one per line)" FontSize="11" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.OptionsOnePerLine}" FontSize="11" />
                 <TextBox Text="{Binding NewFormFieldOptions}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
-                <TextBlock Text="Initial value" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
                 <StackPanel IsVisible="{Binding IsCreatingChoiceList}" Spacing="5">
-                  <CheckBox IsChecked="{Binding NewFormFieldIsComboBox}" Content="Drop-down" />
-                  <CheckBox IsChecked="{Binding NewFormFieldAllowsCustomValue}" Content="Allow a custom value" />
-                  <CheckBox IsChecked="{Binding NewFormFieldAllowsMultipleSelection}" Content="Allow multiple selections" />
+                  <CheckBox IsChecked="{Binding NewFormFieldIsComboBox}" Content="{loc:Loc DocumentWorkspace.DropDown}" />
+                  <CheckBox IsChecked="{Binding NewFormFieldAllowsCustomValue}" Content="{loc:Loc DocumentWorkspace.AllowACustomValue}" />
+                  <CheckBox IsChecked="{Binding NewFormFieldAllowsMultipleSelection}" Content="{loc:Loc DocumentWorkspace.AllowMultipleSelections}" />
                 </StackPanel>
               </StackPanel>
               <StackPanel IsVisible="{Binding IsCreatingButton}" Spacing="5">
-                <TextBlock Text="Caption" FontSize="11" /><TextBox Text="{Binding NewFormFieldCaption}" />
+                <TextBlock Text="{loc:Loc DocumentWorkspace.Caption}" FontSize="11" /><TextBox Text="{Binding NewFormFieldCaption}" />
               </StackPanel>
-              <Button Classes="primary" Content="Create field" Command="{Binding CreateFormFieldCommand}" IsEnabled="{Binding CanAuthorForms}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CreateField}" Content="{loc:Loc DocumentWorkspace.CreateField}" Command="{Binding CreateFormFieldCommand}" IsEnabled="{Binding CanAuthorForms}" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Spacing="8">
-              <TextBlock Text="Protect" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Draw a redaction area, review matched content, and apply only after verification." TextWrapping="Wrap" />
-              <Button Classes="primary" Content="Use redaction tool" Command="{Binding BeginRedactionCommand}" IsEnabled="{Binding CanRedact}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Protect}" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly}" TextWrapping="Wrap" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.UseRedactionTool}" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding BeginRedactionCommand}" IsEnabled="{Binding CanRedact}" />
               <Border IsVisible="{Binding HasPendingRedaction}" Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
                 <StackPanel Spacing="7">
-                  <TextBlock Text="Permanent redaction" Foreground="{DynamicResource StudioErrorBrush}" FontWeight="SemiBold" />
+                  <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" Foreground="{DynamicResource StudioErrorBrush}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" FontSize="11" />
-                  <TextBox Text="{Binding RedactionRemovedMarker}" PlaceholderText="Text that must be absent" />
-                  <Button Classes="primary" Content="Apply and verify" Command="{Binding ApplyPendingRedactionCommand}" />
-                  <Button Classes="tool" Content="Cancel" Command="{Binding CancelPendingRedactionCommand}" />
+                  <TextBox Text="{Binding RedactionRemovedMarker}" PlaceholderText="{loc:Loc DocumentWorkspace.TextThatMustBeAbsent}" />
+                  <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Content="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Command="{Binding ApplyPendingRedactionCommand}" />
+                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Cancel}" Content="{loc:Loc DocumentWorkspace.Cancel}" Command="{Binding CancelPendingRedactionCommand}" />
                 </StackPanel>
               </Border>
 
               <Separator Margin="0,5" />
-              <TextBlock Text="Password protection" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.PasswordProtection}" FontSize="15" FontWeight="SemiBold" />
               <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Classes="muted"
-                         Text="This document is already protected. Enter its owner password below only if owner authorization was not used when opening it." TextWrapping="Wrap" />
-              <TextBlock Text="Document-open password" FontSize="11" />
+                         Text="{loc:Loc DocumentWorkspace.ThisDocumentIsAlreadyProtectedEnterItsOwnerPasswordBelow}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.DocumentOpenPassword}" FontSize="11" />
               <TextBox Text="{Binding ProtectUserPassword}" PasswordChar="●" />
-              <TextBlock Text="Confirm password" FontSize="11" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.ConfirmPassword}" FontSize="11" />
               <TextBox Text="{Binding ProtectConfirmPassword}" PasswordChar="●" />
-              <TextBlock Text="New owner password (optional)" FontSize="11" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.NewOwnerPasswordOptional}" FontSize="11" />
               <TextBox Text="{Binding ProtectOwnerPassword}" PasswordChar="●" />
-              <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Text="Current owner password" FontSize="11" />
+              <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Text="{loc:Loc DocumentWorkspace.CurrentOwnerPassword}" FontSize="11" />
               <TextBox IsVisible="{Binding IsDocumentEncrypted}" Text="{Binding CurrentOwnerPassword}" PasswordChar="●" />
-              <TextBlock Text="Allowed operations" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.AllowedOperations}" FontSize="11" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="5">
-                <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding ProtectAllowPrint}" Content="Print" />
-                <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding ProtectAllowHighQualityPrint}" Content="High-quality print" />
-                <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding ProtectAllowCopy}" Content="Copy content" />
-                <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ProtectAllowAccessibility}" Content="Accessibility" />
-                <CheckBox Grid.Row="2" Grid.Column="0" IsChecked="{Binding ProtectAllowAnnotations}" Content="Annotations" />
-                <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding ProtectAllowFormFill}" Content="Fill forms" />
-                <CheckBox Grid.Row="3" Grid.Column="0" IsChecked="{Binding ProtectAllowDocumentAssembly}" Content="Assemble pages" />
-                <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding ProtectAllowContentChanges}" Content="Change content" />
+                <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding ProtectAllowPrint}" Content="{loc:Loc DocumentWorkspace.Print}" />
+                <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding ProtectAllowHighQualityPrint}" Content="{loc:Loc DocumentWorkspace.HighQualityPrint}" />
+                <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding ProtectAllowCopy}" Content="{loc:Loc DocumentWorkspace.CopyContent}" />
+                <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ProtectAllowAccessibility}" Content="{loc:Loc DocumentWorkspace.Accessibility}" />
+                <CheckBox Grid.Row="2" Grid.Column="0" IsChecked="{Binding ProtectAllowAnnotations}" Content="{loc:Loc DocumentWorkspace.Annotations}" />
+                <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding ProtectAllowFormFill}" Content="{loc:Loc DocumentWorkspace.FillForms}" />
+                <CheckBox Grid.Row="3" Grid.Column="0" IsChecked="{Binding ProtectAllowDocumentAssembly}" Content="{loc:Loc DocumentWorkspace.AssemblePages}" />
+                <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding ProtectAllowContentChanges}" Content="{loc:Loc DocumentWorkspace.ChangeContent}" />
               </Grid>
-              <CheckBox IsChecked="{Binding ProtectEncryptMetadata}" Content="Encrypt document metadata" />
-              <Button Classes="primary" Content="Save protected copy…" Command="{Binding SaveProtectedCopyCommand}" IsEnabled="{Binding CanChangeProtection}" />
-              <Button IsVisible="{Binding IsDocumentEncrypted}" Classes="tool" Content="Save decrypted copy…" Command="{Binding SaveDecryptedCopyCommand}" IsEnabled="{Binding CanRemoveProtection}" />
+              <CheckBox IsChecked="{Binding ProtectEncryptMetadata}" Content="{loc:Loc DocumentWorkspace.EncryptDocumentMetadata}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SaveProtectedCopy}" Content="{loc:Loc DocumentWorkspace.SaveProtectedCopy}" Command="{Binding SaveProtectedCopyCommand}" IsEnabled="{Binding CanChangeProtection}" />
+              <Button IsVisible="{Binding IsDocumentEncrypted}" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SaveDecryptedCopy}" Content="{loc:Loc DocumentWorkspace.SaveDecryptedCopy}" Command="{Binding SaveDecryptedCopyCommand}" IsEnabled="{Binding CanRemoveProtection}" />
 
               <Separator Margin="0,5" />
-              <TextBlock Text="Certificate signature" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.CertificateSignature}" FontSize="15" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
                 <ComboBox ItemsSource="{Binding SigningCertificates}" SelectedItem="{Binding SelectedSigningCertificate, Mode=TwoWay}">
                   <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfSigningCertificateViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
-                <Button Grid.Column="1" Classes="tool" Content="Refresh" Command="{Binding RefreshSigningCertificatesCommand}" />
+                <Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Refresh}" Content="{loc:Loc DocumentWorkspace.Refresh}" Command="{Binding RefreshSigningCertificatesCommand}" />
               </Grid>
               <TextBlock IsVisible="{Binding !CanApplyCertificateSignature}" Classes="muted"
-                         Text="Choose a valid certificate with an accessible private key to sign this PDF." TextWrapping="Wrap" />
-              <TextBlock Text="Signature field" FontSize="11" /><TextBox Text="{Binding SignatureFieldName}" />
-              <TextBlock Text="Reason" FontSize="11" /><TextBox Text="{Binding SignatureReason}" />
-              <TextBlock Text="Location" FontSize="11" /><TextBox Text="{Binding SignatureLocation}" />
-              <CheckBox IsChecked="{Binding SignatureIsVisible}" Content="Show signature on the page" />
+                         Text="{loc:Loc DocumentWorkspace.ChooseAValidCertificateWithAnAccessiblePrivateKeyTo}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.SignatureField}" FontSize="11" /><TextBox Text="{Binding SignatureFieldName}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Reason}" FontSize="11" /><TextBox Text="{Binding SignatureReason}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Location}" FontSize="11" /><TextBox Text="{Binding SignatureLocation}" />
+              <CheckBox IsChecked="{Binding SignatureIsVisible}" Content="{loc:Loc DocumentWorkspace.ShowSignatureOnThePage}" />
               <Grid IsVisible="{Binding SignatureIsVisible}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Page" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Left" FontSize="11" />
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Page}" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Left}" FontSize="11" />
                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding SignaturePageNumber}" Minimum="1" />
                 <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SignatureX}" Minimum="0" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bottom" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Width" FontSize="11" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Bottom}" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="11" />
                 <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding SignatureY}" Minimum="0" />
                 <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SignatureWidth}" Minimum="1" />
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Height" FontSize="11" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="11" />
                 <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding SignatureHeight}" Minimum="1" />
               </Grid>
-              <Button Classes="primary" Content="Sign document" Command="{Binding ApplyCertificateSignatureCommand}" IsEnabled="{Binding CanApplyCertificateSignature}" />
-              <Button Classes="tool" Content="Validate signatures" Command="{Binding ValidateSignaturesCommand}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SignDocument}" Content="{loc:Loc DocumentWorkspace.SignDocument}" Command="{Binding ApplyCertificateSignatureCommand}" IsEnabled="{Binding CanApplyCertificateSignature}" />
+              <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ValidateSignatures}" Content="{loc:Loc DocumentWorkspace.ValidateSignatures}" Command="{Binding ValidateSignaturesCommand}" />
               <TextBlock IsVisible="{Binding HasSignatureValidationSummary}" Text="{Binding SignatureValidationSummary}" FontWeight="SemiBold" TextWrapping="Wrap" />
               <ItemsControl ItemsSource="{Binding SignatureValidationFindings}">
                 <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,2" /></DataTemplate></ItemsControl.ItemTemplate>
               </ItemsControl>
 
               <Separator Margin="0,5" />
-              <TextBlock Text="Bates numbering" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.BatesNumbering}" FontSize="15" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Start" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Digits" FontSize="11" />
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Start}" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Digits}" FontSize="11" />
                 <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding BatesStartNumber}" Minimum="0" />
                 <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding BatesMinimumDigits}" Minimum="1" Maximum="18" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Prefix" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Suffix" FontSize="11" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Prefix}" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Suffix}" FontSize="11" />
                 <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding BatesPrefix}" /><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BatesSuffix}" />
               </Grid>
               <ComboBox ItemsSource="{Binding BatesPositions}" SelectedItem="{Binding SelectedBatesPosition, Mode=TwoWay}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfBatesPositionChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
-              <Button Classes="primary" Content="Apply Bates numbers" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyBatesNumbers}" Content="{loc:Loc DocumentWorkspace.ApplyBatesNumbers}" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>
@@ -521,7 +522,7 @@
       <Border IsVisible="{Binding IsOpening}" Grid.ColumnSpan="3" Background="#66000000">
         <Border Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioBorderBrush}"
                 BorderThickness="1" CornerRadius="8" Padding="28,22" HorizontalAlignment="Center" VerticalAlignment="Center">
-          <StackPanel Spacing="12"><ProgressBar Width="180" IsIndeterminate="True" /><TextBlock Text="Opening PDF…" FontWeight="SemiBold" HorizontalAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="12"><ProgressBar Width="180" IsIndeterminate="True" /><TextBlock Text="{loc:Loc DocumentWorkspace.OpeningPDF}" FontWeight="SemiBold" HorizontalAlignment="Center" /></StackPanel>
         </Border>
       </Border>
     </Grid>
@@ -530,13 +531,13 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="12,0">
         <TextBlock Text="{Binding SelectedPagePosition}" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="tool" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}" Content="Previous" />
-        <Button Grid.Column="2" Classes="tool" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNext}" Content="Next" />
+        <Button Grid.Column="1" Classes="tool" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Previous}" Content="{loc:Loc DocumentWorkspace.Previous}" />
+        <Button Grid.Column="2" Classes="tool" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNext}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}" Content="{loc:Loc DocumentWorkspace.Next}" />
         <Button Grid.Column="3" Classes="tool" Command="{Binding ZoomOutCommand}" Content="−" />
         <Button Grid.Column="4" Classes="tool" Command="{Binding ActualSizeCommand}" Content="{Binding ZoomLabel}" MinWidth="58" />
         <Button Grid.Column="5" Classes="tool" Command="{Binding ZoomInCommand}" Content="+" />
-        <Button x:Name="FitWidthButton" Grid.Column="6" Classes="tool" Command="{Binding FitWidthCommand}" Content="Fit width" />
-        <Button x:Name="FitPageButton" Grid.Column="7" Classes="tool" Command="{Binding FitPageCommand}" Content="Fit page" />
+        <Button x:Name="FitWidthButton" Grid.Column="6" Classes="tool" Command="{Binding FitWidthCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitWidth}" Content="{loc:Loc DocumentWorkspace.FitWidth}" />
+        <Button x:Name="FitPageButton" Grid.Column="7" Classes="tool" Command="{Binding FitPageCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitPage}" Content="{loc:Loc DocumentWorkspace.FitPage}" />
       </Grid>
     </Border>
   </Grid>

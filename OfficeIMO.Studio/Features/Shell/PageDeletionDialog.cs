@@ -1,26 +1,28 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
 internal sealed class PageDeletionDialog : Window {
-    internal PageDeletionDialog(int pageCount) {
+    internal PageDeletionDialog(int pageCount, IStudioLocalizer? localizer = null) {
         if (pageCount < 1) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        localizer ??= StudioLocalization.Current;
 
-        Title = pageCount == 1 ? "Delete page?" : $"Delete {pageCount} pages?";
+        Title = pageCount == 1 ? localizer.Get("Dialog.DeletePageTitle") : localizer.Format("Dialog.DeletePagesTitle", pageCount);
         Width = 440;
         Height = 200;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         var delete = new Button {
-            Content = pageCount == 1 ? "Delete page" : "Delete pages",
+            Content = pageCount == 1 ? localizer.Get("Dialog.DeletePage") : localizer.Get("Dialog.DeletePages"),
             Background = Avalonia.Media.Brushes.Firebrick,
             Foreground = Avalonia.Media.Brushes.White,
             MinWidth = 104
         };
-        var cancel = new Button { Content = "Cancel", Classes = { "tool" }, MinWidth = 84 };
+        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84 };
         delete.Click += (_, _) => Close(true);
         cancel.Click += (_, _) => Close(false);
 
@@ -34,7 +36,7 @@ internal sealed class PageDeletionDialog : Window {
                     FontWeight = Avalonia.Media.FontWeight.SemiBold
                 },
                 new TextBlock {
-                    Text = "The pages will be removed from this working copy. You can still use Undo before saving.",
+                    Text = localizer.Get("Dialog.DeletePagesDescription"),
                     TextWrapping = Avalonia.Media.TextWrapping.Wrap
                 },
                 new StackPanel {

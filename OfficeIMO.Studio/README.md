@@ -25,6 +25,31 @@ Studio does not contain a second document engine:
 
 Tesseract is an explicit OCR runtime prerequisite. OfficeIMO discovers an installed executable and can provision checksum-pinned language data, but the application does not silently install or bundle a native OCR executable.
 
+## Language, accessibility, and local data
+
+Studio stores versioned user preferences under the operating system's local application-data directory. English is the fallback interface language. The language catalog already reserves Polish, German, French, Italian, and more than fifteen additional culture packs; only reviewed translations appear in the settings picker. The `en-XA` expansion locale is available now to expose clipped controls, hard-coded strings, and layouts that cannot accommodate longer translations.
+
+User-facing XAML, dialogs, file pickers, and capability notices resolve stable, feature-scoped resource keys through `IStudioLocalizer`. Document engines remain culture-neutral. A new translation adds satellite resources and a reviewed catalog entry rather than branching view models or document operations by language.
+
+Studio follows Avalonia's platform font selection and fallback instead of forcing a Windows-only typeface. Navigation and editing controls expose automation names, icon-only controls include help text, normal tab order follows the visual flow, and the shell supports the primary platform modifier for Open, Find, tab switching, tab closing, zoom, and fit commands. Page navigation also supports arrows, Page Up/Down, Home, and End.
+
+Crash diagnostics stay local, bounded, and privacy-safe. They record stable event codes, runtime metadata, exception type/HResult, and sanitized stack frames. They do not record document contents, document names, document paths, or exception messages.
+
+## Distribution
+
+PowerForge owns the release matrix, signing, archives, generated Windows MSI, checksums, and artifact manifests. Validate or inspect the repository-local product configuration with:
+
+```powershell
+./Build/Studio/Build-Studio.ps1 -Validate
+./Build/Studio/Build-Studio.ps1 -Plan
+```
+
+The initial update policy is manual: install a newer signed artifact over the stable application identity. Building artifacts never publishes them. See [`Build/Studio/README.md`](../Build/Studio/README.md) for runtime targets and the current native-package boundaries.
+
+## Host boundary
+
+Studio's reusable document behavior stays in OfficeIMO packages, while presentation preferences, localization, accessibility, and transport-neutral activation belong to the Studio host layer. A future browser companion should send a bounded activation request through an authenticated local native host and let Studio open the document or workflow. It should not duplicate PDF editing, OCR, conversion, storage, or policy logic in an extension.
+
 ## Run and verify
 
 ```powershell

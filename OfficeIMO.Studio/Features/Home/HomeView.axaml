@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              xmlns:home="using:OfficeIMO.Studio.Features.Home"
              x:Class="OfficeIMO.Studio.Features.Home.HomeView"
@@ -8,60 +9,61 @@
                 Background="{DynamicResource StudioPanelBrush}">
     <Grid Margin="28,24,28,30" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="22"
           MaxWidth="1160" HorizontalAlignment="Stretch">
-      <TextBlock Grid.Row="0" Text="Home" Classes="pageTitle" />
+      <TextBlock Grid.Row="0" Text="{loc:Loc Home.Home}" Classes="pageTitle" />
 
       <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
               CornerRadius="8" Padding="24" Background="{DynamicResource StudioPanelMutedBrush}">
         <StackPanel HorizontalAlignment="Center" Spacing="10">
           <PathIcon Data="{StaticResource IconOpen}" Width="34" Height="34"
                     Foreground="{DynamicResource StudioMutedTextBrush}" />
-          <TextBlock Text="Drag and drop files here" FontSize="14" HorizontalAlignment="Center" />
-          <Button Classes="primary" Command="{Binding OpenCommand}" IsEnabled="{Binding CanStartDocumentTransition}">
+          <TextBlock Text="{loc:Loc Home.DragAndDropFilesHere}" FontSize="14" HorizontalAlignment="Center" />
+          <Button Classes="primary" Command="{Binding OpenCommand}" IsEnabled="{Binding CanStartDocumentTransition}"
+                  AutomationProperties.Name="{loc:Loc Home.OpenFile}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <PathIcon Data="{StaticResource IconOpen}" Width="16" Height="16" />
-              <TextBlock Text="Open file" />
+              <TextBlock Text="{loc:Loc Home.OpenFile}" />
             </StackPanel>
           </Button>
         </StackPanel>
       </Border>
 
       <StackPanel Grid.Row="2" Spacing="10">
-        <TextBlock Text="Quick tasks" FontSize="15" FontWeight="SemiBold" />
+        <TextBlock Text="{loc:Loc Home.QuickTasks}" FontSize="15" FontWeight="SemiBold" />
         <Grid ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="8">
-          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowAssemblyCommand}">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowAssemblyCommand}" AutomationProperties.Name="{loc:Loc Home.Merge}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" />
-              <TextBlock Text="Merge" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.Merge}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageToolsCommand}">
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageToolsCommand}" AutomationProperties.Name="{loc:Loc Home.Split}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
-              <TextBlock Text="Split" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.Split}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}">
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}" AutomationProperties.Name="{loc:Loc Home.Convert}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconConvert}" Width="22" Height="22" Foreground="#7047EB" />
-              <TextBlock Text="Convert" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.Convert}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="3" Classes="cardAction" Command="{Binding ShowOcrCommand}">
+          <Button Grid.Column="3" Classes="cardAction" Command="{Binding ShowOcrCommand}" AutomationProperties.Name="{loc:Loc Home.OCR}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconOcr}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
-              <TextBlock Text="OCR" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.OCR}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="4" Classes="cardAction" Command="{Binding ShowOptimizeCommand}">
+          <Button Grid.Column="4" Classes="cardAction" Command="{Binding ShowOptimizeCommand}" AutomationProperties.Name="{loc:Loc Home.Compress}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" />
-              <TextBlock Text="Compress" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="5" Classes="cardAction" Command="{Binding ShowProtectCommand}">
+          <Button Grid.Column="5" Classes="cardAction" Command="{Binding ShowProtectCommand}" AutomationProperties.Name="{loc:Loc Home.Protect}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" />
-              <TextBlock Text="Protect" FontWeight="SemiBold" />
+              <TextBlock Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
         </Grid>
@@ -69,9 +71,9 @@
 
       <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="Recent" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Loc Home.Recent}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="ghost" Command="{Binding ClearRecentDocumentsCommand}"
-                  IsVisible="{Binding HasRecentDocuments}" Content="Clear list"
+                  IsVisible="{Binding HasRecentDocuments}" AutomationProperties.Name="{loc:Loc Home.ClearList}" Content="{loc:Loc Home.ClearList}"
                   Foreground="{DynamicResource StudioAccentBrush}" />
         </Grid>
 
@@ -79,19 +81,20 @@
                 CornerRadius="8" Background="{DynamicResource StudioPanelBrush}">
           <Grid>
             <StackPanel IsVisible="{Binding !HasRecentDocuments}" Margin="24" Spacing="5" HorizontalAlignment="Center">
-              <TextBlock Text="No recent documents" FontWeight="SemiBold" HorizontalAlignment="Center" />
-              <TextBlock Classes="muted" Text="Documents you open will appear here." HorizontalAlignment="Center" />
+              <TextBlock Text="{loc:Loc Home.NoRecentDocuments}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+              <TextBlock Classes="muted" Text="{loc:Loc Home.DocumentsYouOpenWillAppearHere}" HorizontalAlignment="Center" />
             </StackPanel>
             <ItemsControl IsVisible="{Binding HasRecentDocuments}" ItemsSource="{Binding RecentDocuments}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="home:RecentDocumentViewModel">
                   <Button Background="Transparent" BorderThickness="0" Padding="14,10"
                           HorizontalContentAlignment="Stretch"
+                          AutomationProperties.Name="{Binding FileName}"
                           Command="{ReflectionBinding $parent[UserControl].DataContext.OpenRecentCommand}"
                           CommandParameter="{Binding}">
                     <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="10">
                       <Border Width="30" Height="30" CornerRadius="6" Background="{DynamicResource StudioErrorSoftBrush}">
-                        <TextBlock Text="PDF" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}"
+                        <TextBlock Text="{loc:Loc Home.PDF}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                       <StackPanel Grid.Column="1" Spacing="2">

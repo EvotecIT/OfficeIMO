@@ -1,12 +1,19 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Home;
 
 /// <summary>Describes a recently opened document in the Studio shell.</summary>
 public sealed partial class RecentDocumentViewModel : ObservableObject {
-    public RecentDocumentViewModel(string path, DateTimeOffset openedAt) {
+    private readonly IStudioLocalizer _localizer;
+
+    public RecentDocumentViewModel(string path, DateTimeOffset openedAt)
+        : this(path, openedAt, StudioLocalization.Current) { }
+
+    internal RecentDocumentViewModel(string path, DateTimeOffset openedAt, IStudioLocalizer localizer) {
         Path = System.IO.Path.GetFullPath(path);
         OpenedAt = openedAt;
+        _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
     }
 
     public string Path { get; }
@@ -21,9 +28,9 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
         get {
             DateTimeOffset local = OpenedAt.ToLocalTime();
             DateTimeOffset now = DateTimeOffset.Now;
-            if (local.Date == now.Date) return $"Today, {local:HH:mm}";
-            if (local.Date == now.Date.AddDays(-1)) return $"Yesterday, {local:HH:mm}";
-            return local.ToString("d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture);
+            if (local.Date == now.Date) return _localizer.Format("Recent.TodayAt", local.ToString("t", _localizer.Culture));
+            if (local.Date == now.Date.AddDays(-1)) return _localizer.Format("Recent.YesterdayAt", local.ToString("t", _localizer.Culture));
+            return local.ToString("d", _localizer.Culture);
         }
     }
 
@@ -38,11 +45,11 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
                     value /= 1024D;
                     unit++;
                 }
-                return $"{value:0.#} {units[unit]}";
+                return _localizer.Format("Recent.FileSize", value.ToString("0.#", _localizer.Culture), units[unit]);
             } catch (IOException) {
-                return "Unavailable";
+                return _localizer.Get("Common.Unavailable");
             } catch (UnauthorizedAccessException) {
-                return "Unavailable";
+                return _localizer.Get("Common.Unavailable");
             }
         }
     }

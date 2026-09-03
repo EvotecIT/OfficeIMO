@@ -15,10 +15,8 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
 
     public JsonRecentDocumentStore(string path) => _path = Path.GetFullPath(path);
 
-    public static JsonRecentDocumentStore CreateDefault() {
-        string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return new JsonRecentDocumentStore(Path.Combine(root, "OfficeIMO", "Studio", "recent-documents.json"));
-    }
+    public static JsonRecentDocumentStore CreateDefault() =>
+        new(Infrastructure.StudioDataPaths.CreateDefault().RecentDocumentsPath);
 
     public IReadOnlyList<RecentDocumentViewModel> Load() {
         try {

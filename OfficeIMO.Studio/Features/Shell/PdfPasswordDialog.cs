@@ -2,12 +2,14 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
 internal sealed class PdfPasswordDialog : Window {
-    internal PdfPasswordDialog(string documentName, bool invalidPassword) {
-        Title = "Password required";
+    internal PdfPasswordDialog(string documentName, bool invalidPassword, IStudioLocalizer? localizer = null) {
+        localizer ??= StudioLocalization.Current;
+        Title = localizer.Get("Dialog.PasswordRequired");
         Width = 430;
         Height = invalidPassword ? 238 : 215;
         CanResize = false;
@@ -15,10 +17,10 @@ internal sealed class PdfPasswordDialog : Window {
 
         var password = new TextBox {
             PasswordChar = '●',
-            PlaceholderText = "Document password"
+            PlaceholderText = localizer.Get("Dialog.DocumentPassword")
         };
-        var open = new Button { Content = "Open", Classes = { "primary" }, MinWidth = 84, IsDefault = true };
-        var cancel = new Button { Content = "Cancel", Classes = { "tool" }, MinWidth = 84, IsCancel = true };
+        var open = new Button { Content = localizer.Get("Common.Open"), Classes = { "primary" }, MinWidth = 84, IsDefault = true };
+        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84, IsCancel = true };
         open.Click += (_, _) => Close(password.Text ?? string.Empty);
         cancel.Click += (_, _) => Close(null);
 
@@ -33,14 +35,14 @@ internal sealed class PdfPasswordDialog : Window {
                     TextTrimming = TextTrimming.CharacterEllipsis
                 },
                 new TextBlock {
-                    Text = "Enter the password to open this PDF.",
+                    Text = localizer.Get("Dialog.EnterPassword"),
                     TextWrapping = TextWrapping.Wrap
                 }
             }
         };
         if (invalidPassword) {
             content.Children.Add(new TextBlock {
-                Text = "That password did not open the document. Try again.",
+                Text = localizer.Get("Dialog.InvalidPassword"),
                 Foreground = Brushes.IndianRed,
                 TextWrapping = TextWrapping.Wrap
             });

@@ -8,6 +8,9 @@ using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Features.Workflows;
+using OfficeIMO.Studio.Features.Settings;
+using OfficeIMO.Studio.Infrastructure;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -34,6 +37,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private ViewerZoomMode _zoomMode = ViewerZoomMode.FitWidth;
     private bool _disposed;
     private bool _discardOnNextTransition;
+    private readonly StudioApplicationServices _services;
+    private readonly IStudioLocalizer _localizer;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -79,7 +84,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<string, bool>? canSaveAsPath = null,
         Func<string, CancellationToken, Task>? openDocumentInTab = null,
         Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null,
-        ISearchablePdfOcrService? ocrService = null) {
+        ISearchablePdfOcrService? ocrService = null,
+        StudioApplicationServices? services = null) {
+        _services = services ?? StudioApplicationServices.CreateDefault();
+        _localizer = _services.Localizer;
+        DocumentName = _localizer.Get("App.Name");
+        DocumentDescription = _localizer.Get("Document.EmptyDescription");
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -108,6 +118,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             openDocumentInTab,
             ocrService,
             _canSaveAsPath);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics);
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
@@ -121,6 +132,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public ObservableCollection<RecentDocumentViewModel> RecentDocuments { get; } = new();
 
+    internal StudioSettingsViewModel Settings { get; }
+
     public bool HasRecentDocuments => RecentDocuments.Count > 0;
 
     public bool IsEmpty => !HasDocument && !IsOpening;
@@ -128,8 +141,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
     public string SelectedPagePosition => SelectedPage is null
-        ? "No page"
-        : $"Page {SelectedPage.PageNumber} of {Pages.Count}";
+        ? _localizer.Get("Document.NoPage")
+        : _localizer.Format("Document.PagePosition", SelectedPage.PageNumber, Pages.Count);
 
     public string ZoomLabel => $"{Zoom:P0}";
 
@@ -153,7 +166,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
 
-    public string? SecurityWarning => _workspace?.SecurityWarning;
+    public string? SecurityWarning {
+        get {
+            if (!IsPdfWorkspaceMode || _workspace is null || DocumentMode == StudioDocumentMode.View) return null;
+            if (_workspace.HasSignatures) return _localizer.Get("Capability.SignedDocument");
+            if (_workspace.HasEncryption) return _localizer.Get("Capability.EncryptedDocument");
+            if (_workspace.HasCertifiedRestrictions) return _localizer.Get("Capability.RestrictedDocument");
+            return DocumentMode switch {
+                StudioDocumentMode.Annotate when !CanEditAnnotations => _localizer.Get("Capability.AnnotationsUnavailable"),
+                StudioDocumentMode.Edit when !CanEditPageContent => _localizer.Get("Capability.ContentEditingUnavailable"),
+                StudioDocumentMode.Pages when !CanMutatePages => _localizer.Get("Capability.PageEditingUnavailable"),
+                StudioDocumentMode.Forms when !CanFillForms && !CanFlattenForms && !CanAuthorForms => _localizer.Get("Capability.FormsUnavailable"),
+                StudioDocumentMode.Protect when !CanRedact && !CanChangeProtection => _localizer.Get("Capability.ProtectionUnavailable"),
+                _ => null
+            };
+        }
+    }
 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
@@ -393,6 +421,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
         OcrWorkbench.Dispose();
+        Settings.Dispose();
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {
             _disposeWhenIdle = true;
@@ -483,10 +512,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         }
 
         HasDocument = session is not null;
-        DocumentName = session?.FileName ?? "OfficeIMO Studio";
+        DocumentName = session?.FileName ?? _localizer.Get("App.Name");
         DocumentDescription = session is null
-            ? "Open a PDF to begin"
-            : $"{session.Pages.Count:N0} {(session.Pages.Count == 1 ? "page" : "pages")} · {FormatByteSize(session.FileSize)}";
+            ? _localizer.Get("Document.EmptyDescription")
+            : _localizer.Format(
+                "Document.Summary",
+                session.Pages.Count,
+                _localizer.Get(session.Pages.Count == 1 ? "Document.Page" : "Document.Pages"),
+                FormatByteSize(session.FileSize));
         SelectedPage = Pages.FirstOrDefault();
         OnPropertyChanged(nameof(SelectedPagePosition));
         OnPropertyChanged(nameof(HasOrganizerSelection));

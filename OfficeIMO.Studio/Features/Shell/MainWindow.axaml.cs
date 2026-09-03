@@ -7,6 +7,8 @@ using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Infrastructure;
+using OfficeIMO.Studio.Infrastructure.Preferences;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -22,8 +24,12 @@ public sealed partial class MainWindow : Window {
     private Point _organizerDragStart;
     private bool _organizerDragStarted;
     private bool _changingActiveDocument;
+    private readonly StudioApplicationServices _services;
 
-    public MainWindow() {
+    public MainWindow() : this(StudioApplicationServices.CreateDefault()) { }
+
+    internal MainWindow(StudioApplicationServices services) {
+        _services = services ?? throw new ArgumentNullException(nameof(services));
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument);
         ViewModel = TabHost.ActiveDocument;
         InitializeComponent();
@@ -79,11 +85,12 @@ public sealed partial class MainWindow : Window {
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: PickWorkflowFilesAsync,
-            recentDocumentStore: JsonRecentDocumentStore.CreateDefault(),
+            recentDocumentStore: new JsonRecentDocumentStore(_services.Paths.RecentDocumentsPath),
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => TabHost.CanActiveDocumentOwnPath(path),
             openDocumentInTab: openDocumentInTab,
-            pickAssemblyFolder: PickAssemblyFolderAsync);
+            pickAssemblyFolder: PickAssemblyFolderAsync,
+            services: _services);
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;
@@ -126,7 +133,7 @@ public sealed partial class MainWindow : Window {
         IsCompactLayout = width < 1180D;
         FitWidthButton.IsVisible = !IsCompactLayout;
         FitPageButton.IsVisible = !IsCompactLayout;
-        double workspaceWidth = Math.Max(0D, width - 80D);
+        double workspaceWidth = Math.Max(0D, width - 116D);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
     }
@@ -136,6 +143,10 @@ public sealed partial class MainWindow : Window {
         application.RequestedThemeVariant = application.ActualThemeVariant == ThemeVariant.Dark
             ? ThemeVariant.Light
             : ThemeVariant.Dark;
+        StudioThemePreference preference = application.RequestedThemeVariant == ThemeVariant.Dark
+            ? StudioThemePreference.Dark
+            : StudioThemePreference.Light;
+        _services.Preferences.Update(current => current with { Theme = preference });
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
@@ -247,10 +258,10 @@ public sealed partial class MainWindow : Window {
         if (!StorageProvider.CanOpen) return null;
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "Open PDF",
+            Title = _services.Localizer.Get("Picker.OpenPdf"),
             AllowMultiple = false,
             FileTypeFilter = [
-                new FilePickerFileType("PDF documents") {
+                new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
                     Patterns = ["*.pdf"],
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
@@ -266,10 +277,10 @@ public sealed partial class MainWindow : Window {
         if (!StorageProvider.CanOpen) return Array.Empty<string>();
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "Add PDF documents",
+            Title = _services.Localizer.Get("Picker.AddPdfDocuments"),
             AllowMultiple = true,
             FileTypeFilter = [
-                new FilePickerFileType("PDF documents") {
+                new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
                     Patterns = ["*.pdf"],
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
@@ -285,10 +296,10 @@ public sealed partial class MainWindow : Window {
         if (!StorageProvider.CanOpen) return Array.Empty<string>();
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "Add documents or images",
+            Title = _services.Localizer.Get("Picker.AddDocumentsOrImages"),
             AllowMultiple = true,
             FileTypeFilter = [
-                new FilePickerFileType("Supported documents, images, and archives") {
+                new FilePickerFileType(_services.Localizer.Get("Picker.SupportedFiles")) {
                     Patterns = [
                         "*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
                         "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
@@ -305,7 +316,7 @@ public sealed partial class MainWindow : Window {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanPickFolder) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
-            Title = "Add source folder",
+            Title = _services.Localizer.Get("Picker.AddSourceFolder"),
             AllowMultiple = false
         });
         cancellationToken.ThrowIfCancellationRequested();
@@ -333,12 +344,12 @@ public sealed partial class MainWindow : Window {
     }
 
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
-        var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'));
+        var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'), _services.Localizer);
         return await dialog.ShowDialog<UnsavedChangesDecision>(this);
     }
 
     private async Task<bool> ConfirmPageDeletionAsync(int pageCount) {
-        var dialog = new PageDeletionDialog(pageCount);
+        var dialog = new PageDeletionDialog(pageCount, _services.Localizer);
         return await dialog.ShowDialog<bool>(this);
     }
 
@@ -347,7 +358,7 @@ public sealed partial class MainWindow : Window {
         bool invalidPassword,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        var dialog = new PdfPasswordDialog(documentName, invalidPassword);
+        var dialog = new PdfPasswordDialog(documentName, invalidPassword, _services.Localizer);
         string? password = await dialog.ShowDialog<string?>(this);
         cancellationToken.ThrowIfCancellationRequested();
         return password;
@@ -357,11 +368,11 @@ public sealed partial class MainWindow : Window {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanSave) return null;
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
-            Title = "Save PDF",
+            Title = _services.Localizer.Get("Picker.SavePdf"),
             SuggestedFileName = System.IO.Path.GetFileNameWithoutExtension(ViewModel.DocumentName.TrimEnd(' ', '*')),
             DefaultExtension = "pdf",
             FileTypeChoices = [
-                new FilePickerFileType("PDF documents") {
+                new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
                     Patterns = ["*.pdf"],
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
@@ -376,7 +387,7 @@ public sealed partial class MainWindow : Window {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
-            Title = "Choose output folder",
+            Title = _services.Localizer.Get("Picker.ChooseOutputFolder"),
             AllowMultiple = false
         });
         cancellationToken.ThrowIfCancellationRequested();
@@ -387,10 +398,10 @@ public sealed partial class MainWindow : Window {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "Choose image",
+            Title = _services.Localizer.Get("Picker.ChooseImage"),
             AllowMultiple = false,
             FileTypeFilter = [
-                new FilePickerFileType("PNG or JPEG images") {
+                new FilePickerFileType(_services.Localizer.Get("Picker.PngOrJpegImages")) {
                     Patterns = ["*.png", "*.jpg", "*.jpeg"],
                     MimeTypes = ["image/png", "image/jpeg"],
                     AppleUniformTypeIdentifiers = ["public.png", "public.jpeg"]
@@ -403,7 +414,7 @@ public sealed partial class MainWindow : Window {
 
     private async Task OpenUriAsync(Uri uri) {
         bool opened = await Launcher.LaunchUriAsync(uri);
-        if (!opened) throw new InvalidOperationException("The operating system could not open this link.");
+        if (!opened) throw new InvalidOperationException(_services.Localizer.Get("Error.CouldNotOpenLink"));
     }
 
     private void OnOrganizerPointerPressed(object? sender, PointerPressedEventArgs e) {

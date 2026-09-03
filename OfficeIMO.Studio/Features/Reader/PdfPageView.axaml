@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              x:Class="OfficeIMO.Studio.Features.Reader.PdfPageView"
              x:DataType="reader:PdfPageViewModel">
@@ -31,7 +32,7 @@
                     VerticalAlignment="Center"
                     Spacing="10">
           <ProgressBar Width="120" IsIndeterminate="True" />
-          <TextBlock Text="Rendering page…"
+          <TextBlock Text="{loc:Loc PdfPage.RenderingPage}"
                      Foreground="#667085"
                      HorizontalAlignment="Center" />
         </StackPanel>
@@ -45,7 +46,7 @@
                 VerticalAlignment="Center"
                 MaxWidth="480">
           <StackPanel Spacing="8">
-            <TextBlock Text="This page could not be rendered"
+            <TextBlock Text="{loc:Loc PdfPage.ThisPageCouldNotBeRendered}"
                        Foreground="#B42318"
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center" />

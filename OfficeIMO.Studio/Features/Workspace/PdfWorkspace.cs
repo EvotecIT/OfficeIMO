@@ -92,6 +92,12 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal bool CanAuthorForms => CanPlan(PdfMutationOperation.ModifyAcroForm);
 
+    internal bool HasSignatures => _documentInfo.Security.HasSignatures;
+
+    internal bool HasEncryption => _documentInfo.Security.HasEncryption;
+
+    internal bool HasCertifiedRestrictions => _documentInfo.Security.HasDocMDPPermissions || _documentInfo.Security.HasUsageRights;
+
     internal string? SecurityWarning {
         get {
             PdfDocumentSecurityInfo security = _documentInfo.Security;

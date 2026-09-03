@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.ConversionWorkbenchView"
@@ -10,10 +11,10 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18" Spacing="12">
-          <TextBlock Classes="eyebrow" Text="CONVERSION SETUP" />
-          <TextBlock Classes="sectionTitle" Text="Choose the result" />
+          <TextBlock Classes="eyebrow" Text="{loc:Loc ConversionWorkbench.CONVERSIONSETUP}" />
+          <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ChooseTheResult}" />
 
-          <TextBlock Text="Route" FontWeight="SemiBold" Margin="0,6,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.Route}" FontWeight="SemiBold" Margin="0,6,0,0" />
           <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}"
                     SelectedItem="{Binding ConversionWorkbench.SelectedRoute, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
@@ -23,7 +24,7 @@
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedRoute.Description}"
                      FontSize="11" TextWrapping="Wrap" />
 
-          <TextBlock Text="Output profile" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.OutputProfile}" FontWeight="SemiBold" Margin="0,7,0,0" />
           <ComboBox ItemsSource="{Binding ConversionWorkbench.Profiles}"
                     SelectedItem="{Binding ConversionWorkbench.SelectedProfile, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
@@ -33,7 +34,7 @@
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedProfile.Description}"
                      FontSize="11" TextWrapping="Wrap" />
 
-          <TextBlock Text="If a file exists" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.IfAFileExists}" FontWeight="SemiBold" Margin="0,7,0,0" />
           <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}"
                     SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
@@ -43,10 +44,10 @@
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedConflict.Description}"
                      FontSize="11" TextWrapping="Wrap" />
 
-          <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.OutputFolder}" FontWeight="SemiBold" Margin="0,7,0,0" />
           <TextBox Text="{Binding ConversionWorkbench.OutputFolder, Mode=TwoWay}"
-                   PlaceholderText="Use each source folder" />
-          <Button Classes="tool" Content="Choose folder"
+                   PlaceholderText="{loc:Loc ConversionWorkbench.UseEachSourceFolder}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.ChooseFolder}" Content="{loc:Loc ConversionWorkbench.ChooseFolder}"
                   Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
                   HorizontalAlignment="Left" />
         </StackPanel>
@@ -56,13 +57,13 @@
     <Grid Grid.Column="1" RowDefinitions="68,*" Margin="18,0">
       <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
         <StackPanel>
-          <TextBlock Classes="sectionTitle" Text="Conversion queue" />
+          <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ConversionQueue}" />
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.QueueSummary}" FontSize="11" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
-          <Button Classes="primary" Content="Add files" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
-          <Button Classes="tool" Content="Remove" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
-          <Button Classes="tool" Content="Clear" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
+          <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Remove}" Content="{loc:Loc ConversionWorkbench.Remove}" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Clear}" Content="{loc:Loc ConversionWorkbench.Clear}" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
         </StackPanel>
       </Grid>
 
@@ -74,20 +75,20 @@
                 <TextBlock Text="⇄" FontSize="26" Foreground="{DynamicResource StudioAccentBrush}"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
               </Border>
-              <TextBlock Text="Build your conversion queue" FontSize="18" FontWeight="SemiBold"
+              <TextBlock Text="{loc:Loc ConversionWorkbench.BuildYourConversionQueue}" FontSize="18" FontWeight="SemiBold"
                          HorizontalAlignment="Center" />
-              <TextBlock Classes="muted" Text="Add one or more matching files. The selected route, profile, and conflict policy apply to the queue."
+              <TextBlock Classes="muted" Text="{loc:Loc ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile}"
                          TextAlignment="Center" TextWrapping="Wrap" />
-              <Button Classes="primary" Content="Add files" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+              <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
             </StackPanel>
           </Border>
 
           <Grid IsVisible="{Binding ConversionWorkbench.HasJobs}" RowDefinitions="42,*">
             <Grid Background="{DynamicResource StudioPanelMutedBrush}" ColumnDefinitions="2.2*,1.2*,1.25*,1.1*">
-              <TextBlock Text="FILE" Classes="eyebrow" Margin="12,0,0,0" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="1" Text="ROUTE" Classes="eyebrow" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="2" Text="STATUS" Classes="eyebrow" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="3" Text="PROGRESS" Classes="eyebrow" VerticalAlignment="Center" />
+              <TextBlock Text="{loc:Loc ConversionWorkbench.FILE}" Classes="eyebrow" Margin="12,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{loc:Loc ConversionWorkbench.Route}" Classes="eyebrow" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{loc:Loc ConversionWorkbench.STATUS}" Classes="eyebrow" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="{loc:Loc ConversionWorkbench.PROGRESS}" Classes="eyebrow" VerticalAlignment="Center" />
             </Grid>
             <ListBox Grid.Row="1" ItemsSource="{Binding ConversionWorkbench.Jobs}"
                      SelectedItem="{Binding ConversionWorkbench.SelectedJob, Mode=TwoWay}"
@@ -123,17 +124,17 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid>
           <StackPanel IsVisible="{Binding ConversionWorkbench.HasJobs}" Margin="18" Spacing="11">
-          <TextBlock Classes="eyebrow" Text="SELECTED JOB" />
-          <TextBlock Classes="sectionTitle" Text="Details and fidelity" />
+          <TextBlock Classes="eyebrow" Text="{loc:Loc ConversionWorkbench.SELECTEDJOB}" />
+          <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.DetailsAndFidelity}" />
           <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Route.Description}" TextWrapping="Wrap" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Fidelity}"
                      Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" />
-          <TextBlock Text="Engine" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.Engine}" Classes="muted" FontSize="11" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Engine}" FontFamily="Consolas,Menlo,monospace" />
-          <TextBlock Text="Known limitations" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.KnownLimitations}" Classes="muted" FontSize="11" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.KnownLimitations}" TextWrapping="Wrap" />
-          <TextBlock Text="Result" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{loc:Loc ConversionWorkbench.Result}" Classes="muted" FontSize="11" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}" TextWrapping="Wrap" />
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
                      FontSize="10" TextWrapping="Wrap" />
@@ -154,12 +155,12 @@
                       Margin="22" Spacing="9" VerticalAlignment="Center">
             <Border Width="42" Height="42" CornerRadius="12" HorizontalAlignment="Left"
                     Background="{DynamicResource StudioPanelMutedBrush}">
-              <TextBlock Text="i" FontWeight="Bold" Foreground="{DynamicResource StudioMutedTextBrush}"
+              <TextBlock Text="{loc:Loc ConversionWorkbench.I}" FontWeight="Bold" Foreground="{DynamicResource StudioMutedTextBrush}"
                          HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
-            <TextBlock Classes="sectionTitle" Text="No job selected" />
+            <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.NoJobSelected}" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="Add files to see route fidelity, engine details, diagnostics, and the published result." />
+                       Text="{loc:Loc ConversionWorkbench.AddFilesToSeeRouteFidelityEngineDetailsDiagnosticsAnd}" />
           </StackPanel>
         </Grid>
       </ScrollViewer>
@@ -171,9 +172,9 @@
         <TextBlock Text="{Binding ConversionWorkbench.Status}" VerticalAlignment="Center" />
         <ProgressBar Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding ConversionWorkbench.ProgressFraction}"
                      Height="7" VerticalAlignment="Center" />
-        <Button Grid.Column="2" Classes="primary" Content="Run queue"
+        <Button Grid.Column="2" Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.RunQueue}" Content="{loc:Loc ConversionWorkbench.RunQueue}"
                 Command="{Binding ConversionWorkbench.RunQueueCommand}" Margin="14,0,0,0" />
-        <Button Grid.Column="3" Classes="tool" Content="Cancel" Command="{Binding ConversionWorkbench.CancelCommand}"
+        <Button Grid.Column="3" Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Cancel}" Content="{loc:Loc ConversionWorkbench.Cancel}" Command="{Binding ConversionWorkbench.CancelCommand}"
                 IsEnabled="{Binding ConversionWorkbench.CanCancel}" Margin="7,0,0,0" />
       </Grid>
     </Border>
