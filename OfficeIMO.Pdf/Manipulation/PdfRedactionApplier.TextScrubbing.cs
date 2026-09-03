@@ -10,12 +10,11 @@ internal static partial class PdfRedactionApplier {
     private static bool RemoveMatchedTextObjects(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches,
         IReadOnlyList<PdfRedactionArea> areas,
         PdfReadLimits limits,
         HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
-        RedactionTextTarget[] textTargets = BuildTextTargets(matches, areas);
+        RedactionTextTarget[] textTargets = BuildTextTargets(areas);
         if (textTargets.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
             return false;
@@ -43,7 +42,7 @@ internal static partial class PdfRedactionApplier {
 
         if (allStreamsDecoded && contentSegments.Count > 0) {
             string combinedContent = string.Concat(contentSegments);
-            TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(
+            TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(
                 combinedContent,
                 textTargets,
                 fontDecoders,
@@ -54,7 +53,7 @@ internal static partial class PdfRedactionApplier {
             int contentOffset = 0;
             for (int index = 0; index < contentReferences.Length; index++) {
                 string content = contentSegments[index];
-                string scrubbed = RemoveTextObjectSpans(content, contentOffset, spansToRemove);
+                string scrubbed = RewriteTextObjectSpans(content, contentOffset, rewrites);
                 changed = ReplacePageContentStreamIfChanged(
                     objects,
                     pageDictionary,
@@ -128,24 +127,14 @@ internal static partial class PdfRedactionApplier {
         return true;
     }
 
-    private static RedactionTextTarget[] BuildTextTargets(
-        IReadOnlyList<PdfRedactionMatch> matches,
-        IReadOnlyList<PdfRedactionArea> areas) {
-        return matches
-            .Where(match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
-            .Select(match => new RedactionTextTarget(
-                NormalizeText(match.Text!),
-                match.X,
-                match.Y,
-                match.Width,
-                match.Height))
-            .Where(target => target.Text.Length > 0)
-            .Concat(areas.Select(area => new RedactionTextTarget(
+    private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionArea> areas) {
+        return areas
+            .Select(area => new RedactionTextTarget(
                 string.Empty,
                 area.X,
                 area.Y,
                 area.Width,
-                area.Height)))
+                area.Height))
             .ToArray();
     }
 
@@ -267,11 +256,11 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<Matrix2D> transforms,
         PdfReadLimits limits,
         TextScrubGraphicsState? graphicsState = null) {
-        TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(content, targets, fontDecoders, fontWidthProviders, transforms, graphicsState, limits);
-        return RemoveTextObjectSpans(content, 0, spansToRemove);
+        TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(content, targets, fontDecoders, fontWidthProviders, transforms, graphicsState, limits);
+        return RewriteTextObjectSpans(content, 0, rewrites);
     }
 
-    private static TextObjectSpan[] FindMatchingTextObjectSpans(
+    private static TextObjectRewrite[] FindMatchingTextObjectRewrites(
         string content,
         RedactionTextTarget[] targets,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
@@ -281,20 +270,43 @@ internal static partial class PdfRedactionApplier {
         PdfReadLimits limits) {
         List<RedactionTextObject> textObjects = CollectTextObjects(content, fontDecoders, fontWidthProviders, transforms, graphicsState, limits);
         if (textObjects.Count == 0) {
-            return Array.Empty<TextObjectSpan>();
+            return Array.Empty<TextObjectRewrite>();
         }
 
-        var removeByIndex = new HashSet<int>();
+        var targetsByIndex = new Dictionary<int, List<RedactionTextTarget>>();
         for (int targetIndex = 0; targetIndex < targets.Length; targetIndex++) {
-            MarkMatchingTextObjects(textObjects, targets[targetIndex], removeByIndex);
+            MarkMatchingTextObjects(textObjects, targets[targetIndex], targetsByIndex);
         }
 
-        if (removeByIndex.Count == 0) {
-            return Array.Empty<TextObjectSpan>();
+        if (targetsByIndex.Count == 0) {
+            return Array.Empty<TextObjectRewrite>();
         }
 
         return EnumerateTextObjectSpans(content, limits)
-            .Where(span => removeByIndex.Contains(span.Index))
+            .Where(span => targetsByIndex.ContainsKey(span.Index))
+            .Select(span => {
+                List<RedactionTextTarget> selectedTargets = targetsByIndex[span.Index];
+                RedactionTextObject textObject = textObjects.First(value => value.Index == span.Index);
+                var rewriteTargets = selectedTargets
+                    .Select(static target => new PdfContentStreamTextRewriteTarget(
+                        target.X,
+                        target.Y,
+                        target.Width,
+                        target.Height <= 0D ? RedactionFallbackTextHeight : target.Height))
+                    .ToArray();
+                string replacement = PdfContentStreamTextRewriter.TryRemoveIntersectingGlyphs(
+                    span.Value,
+                    fontDecoders,
+                    fontWidthProviders,
+                    textObject.Transforms,
+                    textObject.TextState,
+                    rewriteTargets,
+                    limits,
+                    out string rewritten)
+                    ? rewritten
+                    : string.Empty;
+                return new TextObjectRewrite(span.Index, span.Length, replacement);
+            })
             .ToArray();
     }
 
@@ -306,79 +318,32 @@ internal static partial class PdfRedactionApplier {
         TextScrubGraphicsState? graphicsState,
         PdfReadLimits limits) {
         var textObjects = new List<RedactionTextObject>();
-        Dictionary<int, Matrix2D> localTransforms = CollectTextObjectTransforms(content, graphicsState, limits);
+        Dictionary<int, TextObjectContext> contexts = CollectTextObjectContexts(content, graphicsState, limits);
         foreach (TextObjectSpan span in EnumerateTextObjectSpans(content, limits)) {
             string shownText = NormalizeText(ExtractTextFromTextObject(span.Value, fontDecoders));
-            Matrix2D localTransform = localTransforms.TryGetValue(span.Index, out Matrix2D resolved)
+            TextObjectContext context = contexts.TryGetValue(span.Index, out TextObjectContext resolved)
                 ? resolved
-                : Matrix2D.Identity;
+                : new TextObjectContext(Matrix2D.Identity, PdfTextStateSnapshot.Default);
             Matrix2D[] effectiveTransforms = transforms
-                .Select(parent => Matrix2D.Multiply(parent, localTransform))
+                .Select(parent => Matrix2D.Multiply(parent, context.Transform))
                 .ToArray();
-            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, fontWidthProviders, effectiveTransforms));
+            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, fontWidthProviders, effectiveTransforms, context.TextState));
         }
 
         return textObjects;
     }
 
-    private static Dictionary<int, Matrix2D> CollectTextObjectTransforms(string content, TextScrubGraphicsState? graphicsState, PdfReadLimits limits) {
-        var transforms = new Dictionary<int, Matrix2D>();
-        TextScrubGraphicsState state = graphicsState ?? new TextScrubGraphicsState();
-        Stack<Matrix2D> stack = state.Stack;
-        Matrix2D current = state.Current;
-        PdfContentStreamInterpreter.Interpret(
-            content,
-            limits.MaxContentOperations,
-            operation => {
-                switch (operation.Name) {
-                    case "q":
-                        stack.Push(current);
-                        break;
-                    case "Q":
-                        current = stack.Count > 0 ? stack.Pop() : Matrix2D.Identity;
-                        break;
-                    case "cm" when operation.Operands.Count >= 6:
-                        int start = operation.Operands.Count - 6;
-                        current = Matrix2D.Multiply(current, new Matrix2D(
-                            Convert.ToDouble(operation.Operands[start], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 1], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 2], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 3], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 4], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 5], CultureInfo.InvariantCulture)));
-                        break;
-                    case "BT":
-                        transforms[operation.OperatorOffset] = current;
-                        break;
-                }
-            },
-            maxNestingDepth: limits.MaxContentNestingDepth,
-            maxOperands: limits.MaxContentOperands);
-        state.Current = current;
-        return transforms;
-    }
-
-    private sealed class TextScrubGraphicsState {
-        internal Matrix2D Current { get; set; } = Matrix2D.Identity;
-        internal Stack<Matrix2D> Stack { get; } = new Stack<Matrix2D>();
-
-        internal void Reset() {
-            Current = Matrix2D.Identity;
-            Stack.Clear();
-        }
-    }
-
-    private static string RemoveTextObjectSpans(string content, int contentOffset, IReadOnlyList<TextObjectSpan> spansToRemove) {
-        if (spansToRemove.Count == 0) {
+    private static string RewriteTextObjectSpans(string content, int contentOffset, IReadOnlyList<TextObjectRewrite> rewrites) {
+        if (rewrites.Count == 0) {
             return content;
         }
 
         var builder = new StringBuilder(content.Length);
         int cursor = 0;
         int contentEnd = contentOffset + content.Length;
-        foreach (TextObjectSpan span in spansToRemove) {
-            int spanStart = Math.Max(contentOffset, span.Index);
-            int spanEnd = Math.Min(contentEnd, span.Index + span.Length);
+        foreach (TextObjectRewrite rewrite in rewrites) {
+            int spanStart = Math.Max(contentOffset, rewrite.Index);
+            int spanEnd = Math.Min(contentEnd, rewrite.Index + rewrite.Length);
             if (spanStart >= spanEnd) {
                 continue;
             }
@@ -391,6 +356,9 @@ internal static partial class PdfRedactionApplier {
 
             int copyEnd = Math.Max(cursor, localStart);
             builder.Append(content, cursor, copyEnd - cursor);
+            if (rewrite.Index >= contentOffset && rewrite.Index < contentEnd) {
+                builder.Append(rewrite.Replacement);
+            }
             cursor = localEnd;
         }
 
@@ -512,23 +480,25 @@ internal static partial class PdfRedactionApplier {
         string shownText,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
-        Matrix2D[] transforms) {
+        Matrix2D[] transforms,
+        PdfTextStateSnapshot textState) {
         RedactionTextBounds? bounds = null;
         for (int transformIndex = 0; transformIndex < transforms.Length; transformIndex++) {
             string transformedContent = WrapContentWithTransform(textObject, transforms[transformIndex]);
-            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders, fontWidthProviders);
+            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders, fontWidthProviders, textState);
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 bounds = AddSpanBounds(bounds, spans[spanIndex]);
             }
         }
 
-        return new RedactionTextObject(index, shownText, bounds);
+        return new RedactionTextObject(index, shownText, bounds, transforms, textState);
     }
 
     private static List<PdfTextSpan> ParseTextSpans(
         string content,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
-        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders) {
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
+        PdfTextStateSnapshot? initialTextState = null) {
         string DecodeWithFont(string fontResource, byte[] bytes) =>
             fontDecoders.TryGetValue(fontResource, out Func<byte[], string>? decoder)
                 ? decoder(bytes)
@@ -538,7 +508,7 @@ internal static partial class PdfRedactionApplier {
                 ? provider(bytes)
                 : bytes is null ? 0D : bytes.Length * 500D;
 
-        return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000);
+        return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, initialTextState: initialTextState);
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {
@@ -561,11 +531,11 @@ internal static partial class PdfRedactionApplier {
     private static void MarkMatchingTextObjects(
         List<RedactionTextObject> textObjects,
         RedactionTextTarget target,
-        HashSet<int> removeByIndex) {
+        Dictionary<int, List<RedactionTextTarget>> targetsByIndex) {
         if (target.Text.Length == 0) {
             foreach (RedactionTextObject textObject in textObjects) {
                 if (IntersectsTarget(textObject, target)) {
-                    removeByIndex.Add(textObject.Index);
+                    AddRewriteTarget(targetsByIndex, textObject.Index, target);
                 }
             }
 
@@ -575,7 +545,7 @@ internal static partial class PdfRedactionApplier {
         for (int start = 0; start < textObjects.Count; start++) {
             if (ContainsOrdinal(textObjects[start].Text, target.Text)) {
                 if (IntersectsTarget(textObjects[start], target)) {
-                    removeByIndex.Add(textObjects[start].Index);
+                    AddRewriteTarget(targetsByIndex, textObjects[start].Index, target);
                 }
 
                 continue;
@@ -600,12 +570,23 @@ internal static partial class PdfRedactionApplier {
                 }
 
                 for (int remove = start; remove <= end; remove++) {
-                    removeByIndex.Add(textObjects[remove].Index);
+                    AddRewriteTarget(targetsByIndex, textObjects[remove].Index, target);
                 }
 
                 break;
             }
         }
+    }
+
+    private static void AddRewriteTarget(
+        Dictionary<int, List<RedactionTextTarget>> targetsByIndex,
+        int textObjectIndex,
+        RedactionTextTarget target) {
+        if (!targetsByIndex.TryGetValue(textObjectIndex, out List<RedactionTextTarget>? targets)) {
+            targets = new List<RedactionTextTarget>();
+            targetsByIndex[textObjectIndex] = targets;
+        }
+        targets.Add(target);
     }
 
     private static bool IntersectsTarget(RedactionTextObject textObject, RedactionTextTarget target) =>
@@ -911,10 +892,12 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct RedactionTextObject {
-        public RedactionTextObject(int index, string text, RedactionTextBounds? bounds) {
+        public RedactionTextObject(int index, string text, RedactionTextBounds? bounds, Matrix2D[] transforms, PdfTextStateSnapshot textState) {
             Index = index;
             Text = text;
             Bounds = bounds;
+            Transforms = transforms;
+            TextState = textState;
         }
 
         public int Index { get; }
@@ -922,6 +905,10 @@ internal static partial class PdfRedactionApplier {
         public string Text { get; }
 
         public RedactionTextBounds? Bounds { get; }
+
+        public Matrix2D[] Transforms { get; }
+
+        public PdfTextStateSnapshot TextState { get; }
     }
 
     private readonly struct RedactionTextStringToken {
@@ -953,6 +940,20 @@ internal static partial class PdfRedactionApplier {
         public int Length { get; }
 
         public string Value { get; }
+    }
+
+    private readonly struct TextObjectRewrite {
+        public TextObjectRewrite(int index, int length, string replacement) {
+            Index = index;
+            Length = length;
+            Replacement = replacement;
+        }
+
+        public int Index { get; }
+
+        public int Length { get; }
+
+        public string Replacement { get; }
     }
 
     private readonly struct RedactionTextBounds {

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionVerificationTests {
     [Fact]
-    public void AppliedPlanVerificationAcceptsWholeTextObjectRemovalWhenOnlyOneSpanWasReviewed() {
+    public void AppliedPlanVerificationAcceptsPreciseRewriteWhenOnlyOneSpanWasReviewed() {
         byte[] source = BuildTextObjectWithTwoSpansPdf();
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
             new PdfRedactionArea(1, 8D, 88D, 60D, 18D, "first span")
@@ -26,7 +26,7 @@ public class PdfRedactionVerificationTests {
 
         Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
         Assert.DoesNotContain("FIRST", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain("SECOND", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("SECOND", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

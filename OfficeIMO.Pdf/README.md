@@ -814,6 +814,8 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Text redaction rewrites native text-show operations at glyph granularity. Encoded glyphs outside the reviewed areas retain their original font resource and position; removed glyph advances become `TJ` displacements so adjacent text does not reflow. When a glyph mapping cannot be proven safe, the complete PDF text object is removed instead.
+
 When `verificationOptions` is omitted, `ApplyWithEvidence` requires complete stream inspection and managed-rendering checks by default. Supply explicit options, as above, when the workflow also needs removed/retained markers or an external validator.
 
 ### Stamp and watermark an existing PDF
@@ -904,7 +906,7 @@ text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
 keeps wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
-Replacement uses the closest standard PDF font unless the caller selects one;
+Unmatched glyphs remain encoded in their original font; newly inserted replacement text uses the closest standard PDF font unless the caller selects one.
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
 

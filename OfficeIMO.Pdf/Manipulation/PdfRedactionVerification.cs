@@ -144,7 +144,8 @@ internal static partial class PdfRedactionVerification {
             rewrittenPreflight.CanReadLogicalObjects) {
             IReadOnlyList<string> rewrittenPageIdentities = PdfRedactionPlan.CapturePageIdentities(
                 PdfReadDocument.Open(redactedPdf, readOptions),
-                reviewedPlan.Areas);
+                reviewedPlan.Areas,
+                reviewedPlan.ReviewedTextObjectScopes);
             if (!reviewedPlan.PageIdentities.SequenceEqual(rewrittenPageIdentities, StringComparer.Ordinal)) {
                 pageIdentityMatches = false;
                 issues.Add(new PdfRedactionVerificationIssue(
@@ -170,6 +171,8 @@ internal static partial class PdfRedactionVerification {
         PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0 || !pageIdentityMatches
             ? null
             : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions);
+        bool hasResidualText = residualPlan is not null &&
+            HasResidualTextIntersection(redactedPdf, reviewedPlan.Areas, readOptions);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -185,10 +188,18 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
+        if (hasResidualText) {
+            issues.Add(new PdfRedactionVerificationIssue(
+                "RedactionPlanResidual",
+                "TextBlock",
+                "The rewritten PDF still contains text inside a reviewed redaction area."));
+        }
+
         IReadOnlyList<PdfRedactionMatch> unverifiedResidualMatches = FilterAppliedImageResiduals(
             residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
             appliedImageMatches);
         foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
+            .Where(static match => match.Kind != PdfRedactionMatchKind.TextBlock)
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
             string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             issues.Add(new PdfRedactionVerificationIssue(
@@ -258,6 +269,27 @@ internal static partial class PdfRedactionVerification {
             NearlyEqual(expected.F, actual.F);
 
         bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= tolerance;
+    }
+
+    private static bool HasResidualTextIntersection(
+        byte[] redactedPdf,
+        IReadOnlyList<PdfRedactionArea> areas,
+        PdfLoadOptions? readOptions) {
+        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, readOptions);
+        for (int areaIndex = 0; areaIndex < areas.Count; areaIndex++) {
+            PdfRedactionArea area = areas[areaIndex];
+            if (area.PageNumber < 1 || area.PageNumber > document.Pages.Count) continue;
+            IReadOnlyList<PdfTextSpan> spans = document.Pages[area.PageNumber - 1].GetTextSpansIncludingHiddenOptionalContent();
+            for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+                if (PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(
+                    spans[spanIndex],
+                    area.X,
+                    area.Y,
+                    area.Width,
+                    area.Height)) return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

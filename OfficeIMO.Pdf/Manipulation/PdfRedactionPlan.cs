@@ -9,7 +9,8 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfDiagnosticFinding> findings,
         IReadOnlyList<string>? searchCriteria,
         string sourceSha256,
-        IReadOnlyList<string>? pageIdentities = null) {
+        IReadOnlyList<string>? pageIdentities = null,
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>>? reviewedTextObjectScopes = null) {
         Preflight = preflight;
         Areas = areas;
         Matches = matches;
@@ -17,6 +18,7 @@ public sealed class PdfRedactionPlan {
         SearchCriteria = searchCriteria ?? Array.Empty<string>();
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
+        ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
     }
 
     /// <summary>Preflight result used while creating the plan.</summary>
@@ -38,6 +40,8 @@ public sealed class PdfRedactionPlan {
     public string SourceSha256 { get; }
 
     internal IReadOnlyList<string> PageIdentities { get; }
+
+    internal IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> ReviewedTextObjectScopes { get; }
 
     /// <summary>True when the source was inspectable and the plan contains no blocking findings.</summary>
     public bool IsReviewable =>
@@ -66,8 +70,17 @@ public sealed class PdfRedactionPlan {
     internal static IReadOnlyList<string> CapturePageIdentities(
         PdfReadDocument document,
         IReadOnlyList<PdfRedactionArea> reviewedAreas) {
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes = CaptureReviewedTextObjectScopes(document, reviewedAreas);
+        return CapturePageIdentities(document, reviewedAreas, reviewedTextObjectScopes);
+    }
+
+    internal static IReadOnlyList<string> CapturePageIdentities(
+        PdfReadDocument document,
+        IReadOnlyList<PdfRedactionArea> reviewedAreas,
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
+        Guard.NotNull(reviewedTextObjectScopes, nameof(reviewedTextObjectScopes));
         IReadOnlyDictionary<int, string> stablePageReferences = CreateStablePageReferenceLabels(document);
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -85,7 +98,10 @@ public sealed class PdfRedactionPlan {
                 FormatPageBoxIdentity(geometry.CropBox),
                 geometry.UserUnit?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "null"
             }));
-            AppendUnredactedTextIdentity(identity, document, page, pageAreas, drawingEffects);
+            IReadOnlyList<PdfRedactionTextObjectScope> pageReviewedTextObjectScopes = i < reviewedTextObjectScopes.Count
+                ? reviewedTextObjectScopes[i]
+                : Array.Empty<PdfRedactionTextObjectScope>();
+            AppendUnredactedTextIdentity(identity, document, page, pageAreas, pageReviewedTextObjectScopes, drawingEffects);
             AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
             AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
@@ -102,6 +118,21 @@ public sealed class PdfRedactionPlan {
         return identities;
     }
 
+    internal static IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> CaptureReviewedTextObjectScopes(
+        PdfReadDocument document,
+        IReadOnlyList<PdfRedactionArea> reviewedAreas) {
+        var result = new IReadOnlyList<PdfRedactionTextObjectScope>[document.Pages.Count];
+        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+            int pageNumber = pageIndex + 1;
+            PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
+            IReadOnlyList<PdfTextSpan> spans = document.Pages[pageIndex].GetTextSpansIncludingHiddenOptionalContent();
+            result[pageIndex] = CreateTextObjectScopes(spans, pageAreas)
+                .Where(static scope => scope.HasReviewedIntersection)
+                .ToArray();
+        }
+        return result;
+    }
+
     private static Dictionary<int, string> CreateStablePageReferenceLabels(PdfReadDocument document) {
         var labels = new Dictionary<int, string>();
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -116,20 +147,19 @@ public sealed class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
+        IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
-        var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
-        for (int i = 0; i < spans.Count; i++) {
-            PdfTextSpan span = spans[i];
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
-            if (span.TextObjectOrderKey != null && IntersectsReviewedArea(pageAreas, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
-                reviewedTextObjects.Add(span.TextObjectOrderKey);
-            }
+        var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
+        PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(spans);
+        for (int currentIndex = 0; currentIndex < currentTextObjectScopes.Length; currentIndex++) {
+            PdfRedactionTextObjectScope current = currentTextObjectScopes[currentIndex];
+            if (reviewedTextObjectScopes.Any(reviewed => reviewed.Matches(current))) ignoredTextObjectKeys.Add(current.Key);
         }
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
-            if (span.TextObjectOrderKey != null && reviewedTextObjects.Contains(span.TextObjectOrderKey) ||
+            if (span.TextObjectOrderKey != null && ignoredTextObjectKeys.Contains(span.TextObjectOrderKey) ||
                 span.TextObjectOrderKey == null && IntersectsReviewedArea(pageAreas, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
             identity.Append("|T:")
                 .Append(span.Text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
@@ -157,6 +187,15 @@ public sealed class PdfRedactionPlan {
             AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, span.PaintOrder, contentOrderKey: span.ContentOrderKey));
         }
     }
+
+    private static PdfRedactionTextObjectScope[] CreateTextObjectScopes(
+        IReadOnlyList<PdfTextSpan> spans,
+        IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) =>
+        spans
+            .Where(static span => span.TextObjectOrderKey is not null)
+            .GroupBy(static span => span.TextObjectOrderKey!)
+            .Select(group => new PdfRedactionTextObjectScope(group.Key, group.ToArray(), reviewedAreas))
+            .ToArray();
 
     private static void AppendPageRenderingResourceIdentity(
         System.Text.StringBuilder identity,

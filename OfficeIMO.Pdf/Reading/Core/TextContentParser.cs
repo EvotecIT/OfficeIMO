@@ -302,7 +302,8 @@ internal static class TextContentParser {
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         int? contentStreamObjectNumber = null,
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        PdfTextStateSnapshot? initialTextState = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -319,16 +320,25 @@ internal static class TextContentParser {
         textClippingBudget ??= new PdfTextClippingBudget();
 
         var spans = new List<PdfTextSpan>();
+        PdfTextStateSnapshot startingTextState = initialTextState ?? PdfTextStateSnapshot.Default;
         // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        string font = startingTextState.FontResource;
+        double size = startingTextState.FontSize;
+        double leading = startingTextState.Leading;
+        double charSpacing = startingTextState.CharacterSpacing;
+        double wordSpacing = startingTextState.WordSpacing;
+        double hScale = startingTextState.HorizontalScaling;
+        double textRise = startingTextState.TextRise;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
         PdfPageColorSpace fillColorSpace = initialFillColorSpace;
         OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
         PdfPageColorSpace strokeColorSpace = initialStrokeColorSpace;
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
-        int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+        int textRenderingMode = ReadTextRenderingMode(initialTextState.HasValue
+            ? startingTextState.TextRenderingMode
+            : initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
         OfficeBlendMode blendMode = OfficeBlendMode.Normal;
         bool hasSoftMask = false;
