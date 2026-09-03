@@ -94,6 +94,35 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_DefaultUriSchemePolicyOverridesTheActionTypeAllowList() {
+        var policy = new PdfSanitizationOptions();
+        policy.AllowedActionTypes.Add("URI");
+
+        PdfSanitizationReport preview = PdfDocument.Load(BuildUnsafeWidgetUriPdf()).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildUnsafeWidgetUriPdf(), policy);
+
+        Assert.Equal(1, preview.ActionCounts.Uri);
+        Assert.Equal(1, result.RemovedActionCounts.Uri);
+        Assert.DoesNotContain("javascript:unsafe", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InspectSanitization_InventoriesMalformedNamedJavaScriptContainer() {
+        byte[] source = BuildMalformedNamedJavaScriptPdf();
+        var policy = new PdfSanitizationOptions {
+            ActionKindsToRemove = PdfSanitizationActionKind.JavaScript
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source, policy);
+
+        Assert.Equal(1, preview.ActionCounts.JavaScript);
+        Assert.Equal(1, result.RemovedActionCounts.JavaScript);
+        Assert.True(result.IsSanitized);
+        Assert.DoesNotContain("/JavaScript", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SanitizationOptions_RejectUnsupportedActionKindBits() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfSanitizationOptions {
             ActionKindsToRemove = (PdfSanitizationActionKind)(1 << 20)
@@ -565,6 +594,17 @@ public class PdfSanitizerTests {
             "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
             "6 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A << /S /URI /URI (javascript:unsafe) >> >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildMalformedNamedJavaScriptPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
         }));
     }
 

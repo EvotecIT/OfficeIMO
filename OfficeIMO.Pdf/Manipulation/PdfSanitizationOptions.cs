@@ -42,12 +42,13 @@ public sealed class PdfSanitizationOptions {
     internal bool IsActionAllowed(string actionType) => AllowedActionTypes.Contains(actionType);
 
     internal bool ShouldRemoveAction(string actionType, string? uri = null) {
-        if (IsActionAllowed(actionType)) return false;
         PdfSanitizationActionKind kind = GetActionKind(actionType);
         if (ActionKindsToRemove.HasValue) {
+            if (IsActionAllowed(actionType)) return false;
             return kind != PdfSanitizationActionKind.None && (ActionKindsToRemove.Value & kind) == kind;
         }
         if (kind == PdfSanitizationActionKind.Uri) return uri != null && !IsUriAllowed(uri);
+        if (IsActionAllowed(actionType)) return false;
         return PdfActiveContentPolicy.IsUnsafeActionType(actionType);
     }
 

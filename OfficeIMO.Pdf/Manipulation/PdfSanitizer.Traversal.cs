@@ -61,6 +61,17 @@ internal static partial class PdfSanitizer {
                 findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.EmbeddedFile, objectNumber, itemPath, item.Key));
             }
 
+            if (item.Key == "JavaScript" &&
+                policy.ShouldRemoveAction("JavaScript") &&
+                !ContainsSelectedJavaScriptAction(objects, item.Value, policy, new HashSet<PdfObject>())) {
+                findings.Add(new PdfSanitizationFinding(
+                    PdfSanitizationFindingKind.ActiveAction,
+                    objectNumber,
+                    itemPath,
+                    "JavaScript",
+                    PdfSanitizationActionKind.JavaScript));
+            }
+
             if (item.Key == "URI" && Resolve(objects, item.Value) is PdfDictionary uriDictionary &&
                 TryGetString(objects, uriDictionary, "Base", out string? baseUri) && policy.ShouldRemoveCatalogUriBase(baseUri!)) {
                 PdfSanitizationFindingKind uriFindingKind = policy.ActionKindsToRemove.HasValue
@@ -436,6 +447,34 @@ internal static partial class PdfSanitizer {
         }
 
         value = null;
+        return false;
+    }
+
+    private static bool ContainsSelectedJavaScriptAction(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfSanitizationOptions policy,
+        HashSet<PdfObject> visited) {
+        PdfObject? resolved = Resolve(objects, value);
+        if (resolved is null || !visited.Add(resolved)) return false;
+        if (resolved is PdfStream stream) {
+            return ContainsSelectedJavaScriptAction(objects, stream.Dictionary, policy, visited);
+        }
+        if (resolved is PdfDictionary dictionary) {
+            if (TryGetForbiddenAction(objects, dictionary, policy, out _, out PdfSanitizationActionKind actionKind, out _) &&
+                actionKind == PdfSanitizationActionKind.JavaScript) {
+                return true;
+            }
+            foreach (PdfObject child in dictionary.Items.Values) {
+                if (ContainsSelectedJavaScriptAction(objects, child, policy, visited)) return true;
+            }
+            return false;
+        }
+        if (resolved is PdfArray array) {
+            for (int i = 0; i < array.Items.Count; i++) {
+                if (ContainsSelectedJavaScriptAction(objects, array.Items[i], policy, visited)) return true;
+            }
+        }
         return false;
     }
 
