@@ -8,15 +8,17 @@ internal static partial class PdfWriter {
         private static PdfColor? ToPdfColor(OfficeIMO.Drawing.OfficeColor? color) =>
             color.HasValue ? PdfColor.FromOfficeColorOrNull(color.Value) : null;
 
-        private string? EnsureGraphicsState(double fillOpacity, double strokeOpacity) {
-            if (fillOpacity >= 1D && strokeOpacity >= 1D) {
+        private string? EnsureGraphicsState(double fillOpacity, double strokeOpacity, OfficeBlendMode blendMode = OfficeBlendMode.Normal) {
+            if (fillOpacity >= 1D && strokeOpacity >= 1D && blendMode == OfficeBlendMode.Normal) {
                 return null;
             }
 
             EnsurePage();
             for (int i = 0; i < currentPage!.GraphicsStates.Count; i++) {
                 var existing = currentPage.GraphicsStates[i];
-                if (existing.FillOpacity.Equals(fillOpacity) && existing.StrokeOpacity.Equals(strokeOpacity)) {
+                if (existing.FillOpacity.Equals(fillOpacity) &&
+                    existing.StrokeOpacity.Equals(strokeOpacity) &&
+                    existing.BlendMode == blendMode) {
                     return existing.Name;
                 }
             }
@@ -25,7 +27,8 @@ internal static partial class PdfWriter {
             currentPage.GraphicsStates.Add(new PageGraphicsState {
                 Name = name,
                 FillOpacity = fillOpacity,
-                StrokeOpacity = strokeOpacity
+                StrokeOpacity = strokeOpacity,
+                BlendMode = blendMode
             });
             return name;
         }

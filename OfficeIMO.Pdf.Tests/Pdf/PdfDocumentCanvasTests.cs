@@ -1867,11 +1867,57 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasWithBlendMode_WritesScopedMultiplyGraphicsState() {
+        var highlight = OfficeShape.Rectangle(100D, 18D);
+        highlight.FillColor = OfficeColor.FromRgb(255, 230, 70);
+        highlight.StrokeWidth = 0D;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180D,
+                PageHeight = 100D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas
+                .Text("Readable text", 20D, 24D, 120D, 20D)
+                .WithBlendMode(OfficeBlendMode.Multiply, blended =>
+                    blended.Shape(highlight, 18D, 24D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfReadPage page = PdfReadDocument.Open(bytes).Pages[0];
+
+        Assert.Contains("/BM /Multiply", raw, StringComparison.Ordinal);
+        Assert.Contains("/Group << /S /Transparency /I true /K false >>", raw, StringComparison.Ordinal);
+        Assert.Contains(page.GetIdentityGraphicsEffectTransitions(), transition =>
+            transition.Effect.BlendMode == OfficeBlendMode.Multiply);
+    }
+
+    [Fact]
+    public void CanvasEffect_CombinesOpacityAndBlendModeInOneGraphicsState() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Effect(
+                OfficeTransform.Identity,
+                0.4D,
+                OfficeBlendMode.Screen,
+                blended => blended.Text("SCREENED", 20D, 20D, 100D, 20D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/ca 0.4 /CA 0.4 /BM /Screen", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasEffect_RejectsInvalidOpacity() {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, double.NaN, _ => { })));
         Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, null!)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
+            canvas.WithBlendMode((OfficeBlendMode)99, _ => { })));
     }
 
     [Fact]
@@ -1928,6 +1974,9 @@ public class PdfDocumentCanvasTests {
     public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
+                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+            canvas.WithBlendMode(OfficeBlendMode.Multiply, nested =>
                 nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
 
         byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
