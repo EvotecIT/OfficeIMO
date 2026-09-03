@@ -287,7 +287,7 @@ internal static class PdfContentStreamTextRewriter {
             PdfTextSpan span = spans[transformIndex];
             if (!string.Equals(span.RestampText, decoded, StringComparison.Ordinal) ||
                 !TryResolveCharacterAdvances(span, glyphs, fontSize, characterSpacing, wordSpacing, out IReadOnlyList<double> characterAdvances) ||
-                !TryResolveCharacterBoundaries(characterAdvances, out double[] boundaries)) return false;
+                !TryResolveCharacterBoundaries(characterAdvances, span.CharacterAdvanceDirection, out double[] boundaries)) return false;
             characterBoundariesByTransform[transformIndex] = boundaries;
         }
 
@@ -334,7 +334,10 @@ internal static class PdfContentStreamTextRewriter {
         return true;
     }
 
-    private static bool TryResolveCharacterBoundaries(IReadOnlyList<double> advances, out double[] boundaries) {
+    private static bool TryResolveCharacterBoundaries(
+        IReadOnlyList<double> advances,
+        double characterAdvanceDirection,
+        out double[] boundaries) {
         double signedTotal = 0D;
         for (int index = 0; index < advances.Count; index++) {
             double value = advances[index];
@@ -349,7 +352,9 @@ internal static class PdfContentStreamTextRewriter {
             return false;
         }
 
-        double directionSign = signedTotal < 0D ? -1D : 1D;
+        double directionSign = characterAdvanceDirection != 0D
+            ? characterAdvanceDirection
+            : signedTotal < 0D ? -1D : 1D;
         boundaries = new double[advances.Count + 1];
         for (int index = 0; index < advances.Count; index++) {
             boundaries[index + 1] = boundaries[index] + advances[index] * directionSign;

@@ -231,7 +231,22 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
         IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) {
-        IReadOnlyList<PdfPageVisualPrimitive> paths = page.GetIdentityVisualPrimitives();
+        PdfVisualBounds[]? visualAreas = reviewedAreas?
+            .Select(area => page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top))
+            .ToArray();
+        bool IntersectsReviewedPath(PdfPageVisualPrimitive path) {
+            if (visualAreas == null) return false;
+            double strokePadding = path.HasStrokePaint ? Math.Max(0D, path.StrokeWidth) / 2D : 0D;
+            return IntersectsReviewedArea(
+                visualAreas,
+                path.X - strokePadding,
+                path.Y - strokePadding,
+                path.Width + strokePadding * 2D,
+                path.Height + strokePadding * 2D);
+        }
+        PdfPageVisualPrimitive[] paths = page.GetIdentityVisualPrimitives()
+            .Where(path => !IntersectsReviewedPath(path))
+            .ToArray();
         PdfImagePlacement[] retainedImages = page.GetImagePlacements()
             .Where(placement => reviewedAreas == null ||
                 !IntersectsReviewedArea(reviewedAreas, placement.X, placement.Y, placement.Width, placement.Height))

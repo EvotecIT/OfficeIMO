@@ -225,7 +225,7 @@ public class PdfRedactionApplierTests {
     [Fact]
     public void Apply_UsesPaintedTextDirectionWhenNegativeSpacingReversesTheRunEndpoint() {
         byte[] source = BuildTextContentRedactionSource("BT /F1 20 Tf -30 Tc 100 700 Td (AB) Tj ET");
-        var area = new PdfRedactionArea(1, 102D, 680D, 5D, 30D, "painted A");
+        var area = new PdfRedactionArea(1, 85D, 680D, 5D, 30D, "painted B");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
 
         byte[] redacted = PdfRedactionApplier.Apply(source, plan);
@@ -235,8 +235,28 @@ public class PdfRedactionApplierTests {
             new PdfRedactionVerificationOptions());
 
         Assert.Contains(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
-        Assert.Equal("B", PdfTextExtractor.ExtractAllText(redacted).Trim());
+        Assert.Equal("A", PdfTextExtractor.ExtractAllText(redacted).Trim());
         Assert.True(verification.IsVerified, string.Join(Environment.NewLine, verification.Issues.Select(issue => issue.Message)));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceIgnoresReviewedPathRemovedBeforePartialTextSurvivor() {
+        byte[] source = BuildTextContentRedactionSource(string.Join("\n", new[] {
+            "0 0 0 rg 72 695 13 25 re f",
+            "BT /F1 20 Tf 72 700 Td (AB) Tj ET"
+        }));
+        var area = new PdfRedactionArea(1, 74D, 680D, 5D, 30D, "painted path and A");
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan(new[] { area });
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.Equal("B", PdfTextExtractor.ExtractAllText(result.Pdf).Trim());
+        Assert.True(result.IsVerified, result.Evidence.Summary);
     }
 
     [Fact]
