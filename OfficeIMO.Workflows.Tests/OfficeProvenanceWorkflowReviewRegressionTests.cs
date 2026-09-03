@@ -274,6 +274,27 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentWithoutProvidersDoesNotCopyAnOversizedExternalManifest() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        scope.Write("claim.c2pa", new string('x', 128));
+        var assessment = new OfficeProvenanceAssessmentOptions();
+        assessment.Structural.MaxManifestBytes = 8;
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input,
+                Assessment = assessment
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Single(result.Assessment!.Structural.Evidence);
+        Assert.Null(result.Assessment.Verification);
+        Assert.Empty(result.Assessment.ProviderSignals);
+    }
+
+    [Fact]
     public async Task AssessmentSnapshotsRelativeExternalManifestDependenciesForProviders() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
@@ -399,6 +420,31 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.False(result.Succeeded);
         Assert.True(progress.Deleted);
         Assert.Equal("existing destination", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public async Task ReplaceRejectsAnExistingDestinationAboveTheOutputLimitWithoutHashingOrChangingIt() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
+        string existing = new string('x', 2048);
+        string output = scope.Write("cleaned.html", existing);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Limits = new OfficeWorkflowLimits {
+                    MaximumInputBytes = 4096,
+                    MaximumOutputBytes = 1024
+                }
+            });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Contains("existing provenance destination", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(existing, File.ReadAllText(output));
     }
 
     [Theory]

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Provenance;
 
@@ -38,14 +39,17 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     internal void CaptureExternalManifestDependencies(
         string sourcePath,
         OfficeProvenanceReport report,
+        long maximumDependencyBytes,
         long maximumTotalBytes,
         CancellationToken cancellationToken = default) {
         if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
         if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
         if (report == null) throw new ArgumentNullException(nameof(report));
+        if (maximumDependencyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDependencyBytes));
         if (maximumTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTotalBytes));
 
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
+        string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(sourceDirectory);
         long capturedBytes = 0;
         var capturedTargets = new HashSet<string>(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? StringComparer.OrdinalIgnoreCase
@@ -72,6 +76,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 long copiedBytes = CopyDependency(
                     sourceDependency,
                     targetDependency,
+                    physicalSourceDirectory,
+                    maximumDependencyBytes,
                     maximumTotalBytes - capturedBytes,
                     cancellationToken);
                 capturedBytes += copiedBytes;
@@ -171,13 +177,23 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private static long CopyDependency(
         string sourcePath,
         string targetPath,
-        long maximumBytes,
+        string physicalSourceDirectory,
+        long maximumDependencyBytes,
+        long remainingTotalBytes,
         CancellationToken cancellationToken) {
-        if (maximumBytes <= 0) throw new InvalidDataException("External provenance manifests exceed the configured manifest limit.");
+        if (remainingTotalBytes <= 0) {
+            throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
+        }
         long copiedBytes = 0;
-        using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.SequentialScan);
-        if (source.Length > maximumBytes) {
-            throw new InvalidDataException("External provenance manifests exceed the configured manifest limit.");
+        using FileStream source = OfficePathIdentity.OpenRegularFileForRead(
+            sourcePath,
+            physicalSourceDirectory,
+            81920);
+        if (source.Length > maximumDependencyBytes) {
+            throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
+        }
+        if (source.Length > remainingTotalBytes) {
+            throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
         }
         using var target = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.SequentialScan);
         var buffer = new byte[81920];
@@ -185,8 +201,11 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
             cancellationToken.ThrowIfCancellationRequested();
             copiedBytes += read;
-            if (copiedBytes > maximumBytes) {
-                throw new InvalidDataException("External provenance manifests exceed the configured manifest limit.");
+            if (copiedBytes > maximumDependencyBytes) {
+                throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
+            }
+            if (copiedBytes > remainingTotalBytes) {
+                throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
             }
             target.Write(buffer, 0, read);
         }

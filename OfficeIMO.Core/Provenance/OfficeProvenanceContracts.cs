@@ -151,7 +151,7 @@ public sealed class OfficeProvenanceOptions {
     public int MaxCarriers { get; set; } = 128;
     /// <summary>Maximum structural entries or materialized XML nodes accepted in a container. Defaults to 65,536.</summary>
     public int MaxContainerEntries { get; set; } = 65536;
-    /// <summary>Maximum cumulative expanded bytes copied while rewriting a container. Defaults to 1 GiB.</summary>
+    /// <summary>Maximum cumulative expanded bytes inspected or copied across a container or its external provenance dependencies. Defaults to 1 GiB.</summary>
     public long MaxExpandedContainerBytes { get; set; } = 1024L * 1024L * 1024L;
     /// <summary>Whether supported image assets inside ZIP-based documents are inspected. Defaults to true.</summary>
     public bool ProcessEmbeddedAssets { get; set; } = true;

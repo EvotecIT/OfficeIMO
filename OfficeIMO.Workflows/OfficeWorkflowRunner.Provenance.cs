@@ -93,11 +93,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) {
                 Report(progress, validated.Id, "assess", "Collecting optional verification and signal evidence", 0.55D);
-                inputSnapshot!.CaptureExternalManifestDependencies(
-                    validated.InputPath,
-                    structural,
-                    validated.Assessment.Structural.MaxManifestBytes,
-                    cancellationToken);
+                bool hasExternalProviders = _provenanceVerifier != null || _provenanceSignalDetectors.Count != 0;
+                if (hasExternalProviders) {
+                    inputSnapshot!.CaptureExternalManifestDependencies(
+                        validated.InputPath,
+                        structural,
+                        validated.Assessment.Structural.MaxManifestBytes,
+                        validated.Assessment.Structural.MaxExpandedContainerBytes,
+                        cancellationToken);
+                }
                 OfficeProvenanceAssessmentReport assessment = await Task.Run(
                     () => OfficeProvenanceAssessment.AssessSnapshotFile(
                         operationInputPath,
@@ -109,7 +113,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         cancellationToken),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                inputSnapshot!.VerifyExternalManifestDependencies(cancellationToken);
+                if (hasExternalProviders) inputSnapshot!.VerifyExternalManifestDependencies(cancellationToken);
                 inputSnapshot!.Dispose();
                 inputSnapshot = null;
                 Report(progress, validated.Id, "complete", "Provenance assessment is ready", 1D);
@@ -148,6 +152,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             }
 
             Report(progress, validated.Id, "validate-output", "Reopening the staged artifact through " + ownerPackage, 0.72D);
+            using StagedArtifactFingerprint stagedFingerprint = StagedArtifactFingerprint.Capture(
+                stagingPath,
+                validated.Limits.MaximumOutputBytes,
+                cancellationToken);
             OfficeProvenanceReport reopened = await Task.Run(
                 () => OfficeProvenanceWorkflowAdapter.Inspect(
                     refinedOwner,
@@ -156,6 +164,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             EnsureEquivalent(removal.After, reopened);
+            stagedFingerprint.VerifyStagingPath(
+                stagingPath,
+                validated.Limits.MaximumOutputBytes,
+                cancellationToken);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "ProvenanceOutputReopened",
                 "The staged artifact was reopened through its owning format API and matched the in-memory removal report.",
@@ -166,10 +178,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     ["stagedBytes"] = stagedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
             }));
             cancellationToken.ThrowIfCancellationRequested();
-            using StagedArtifactFingerprint stagedFingerprint = StagedArtifactFingerprint.Capture(
-                stagingPath,
-                validated.Limits.MaximumOutputBytes,
-                cancellationToken);
 
             failureStage = WorkflowFailureStage.Output;
             string ownedStagingPath = stagingPath;
@@ -294,12 +302,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         internal static StagedArtifactFingerprint Capture(
             string path,
             long maximumBytes,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            string artifactDescription = "staged provenance artifact") {
             var stream = OpenForIdentity(path);
             try {
                 if (stream.Length > maximumBytes) {
                     throw OfficeProvenanceLimitException.CreateOutput(
-                        $"The staged provenance artifact exceeds the configured output limit of {maximumBytes} bytes.");
+                        $"The {artifactDescription} exceeds the configured output limit of {maximumBytes} bytes.");
                 }
                 byte[] sha256 = ComputeHash(stream, cancellationToken);
                 stream.Position = 0;
@@ -521,13 +530,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
             using StagedArtifactFingerprint destination = StagedArtifactFingerprint.Capture(
                 requestedPath,
-                long.MaxValue,
-                cancellationToken);
+                maximumBytes,
+                cancellationToken,
+                "existing provenance destination");
             destination.ReleaseStagingLease();
             bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedAndFinalize(
                 stagingPath,
                 requestedPath,
-                backupPath => destination.MatchesPath(backupPath, long.MaxValue, cancellationToken),
+                backupPath => destination.MatchesPath(backupPath, maximumBytes, cancellationToken),
                 installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
                 beforeCommitFinalized);
             if (!committed) {

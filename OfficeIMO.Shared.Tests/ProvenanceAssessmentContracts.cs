@@ -196,7 +196,7 @@ public sealed class ProvenanceAssessmentContracts {
             OfficeProvenanceReport report = HtmlProvenance.InspectFile(path);
             using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096)) {
                 snapshotDirectory = Path.GetDirectoryName(snapshot.FilePath)!;
-                snapshot.CaptureExternalManifestDependencies(path, report, 4096);
+                snapshot.CaptureExternalManifestDependencies(path, report, 4096, 4096);
 
                 Assert.Equal(
                     "immutable claim",
@@ -206,6 +206,91 @@ public sealed class ProvenanceAssessmentContracts {
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void SnapshotAppliesTheManifestLimitPerExternalDependency() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(path, "<!doctype html><html><body>body</body></html>", new UTF8Encoding(false));
+        File.WriteAllBytes(Path.Combine(directory, "first.c2pa"), [1, 2, 3, 4]);
+        File.WriteAllBytes(Path.Combine(directory, "second.c2pa"), [5, 6, 7, 8]);
+        string? snapshotDirectory = null;
+        try {
+            OfficeProvenanceReport report = CreateExternalManifestReport("first.c2pa", "second.c2pa");
+            using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096)) {
+                snapshotDirectory = Path.GetDirectoryName(snapshot.FilePath)!;
+                snapshot.CaptureExternalManifestDependencies(
+                    path,
+                    report,
+                    maximumDependencyBytes: 4,
+                    maximumTotalBytes: 8);
+
+                Assert.Equal([1, 2, 3, 4], File.ReadAllBytes(Path.Combine(snapshotDirectory, "first.c2pa")));
+                Assert.Equal([5, 6, 7, 8], File.ReadAllBytes(Path.Combine(snapshotDirectory, "second.c2pa")));
+            }
+            Assert.False(Directory.Exists(snapshotDirectory));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SnapshotAppliesTheExpandedDataLimitAcrossExternalDependencies() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(path, "<!doctype html><html><body>body</body></html>", new UTF8Encoding(false));
+        File.WriteAllBytes(Path.Combine(directory, "first.c2pa"), [1, 2, 3, 4]);
+        File.WriteAllBytes(Path.Combine(directory, "second.c2pa"), [5, 6, 7, 8]);
+        try {
+            OfficeProvenanceReport report = CreateExternalManifestReport("first.c2pa", "second.c2pa");
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                snapshot.CaptureExternalManifestDependencies(
+                    path,
+                    report,
+                    maximumDependencyBytes: 4,
+                    maximumTotalBytes: 7));
+
+            Assert.Contains("expanded-data limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SnapshotRejectsAnExternalManifestSymlinkThatEscapesTheSourceDirectory() {
+#if NET8_0_OR_GREATER
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string outside = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".c2pa");
+        string path = Path.Combine(directory, "page.html");
+        string sidecar = Path.Combine(directory, "claim.c2pa");
+        File.WriteAllText(path, "<!doctype html><html><body>body</body></html>", new UTF8Encoding(false));
+        File.WriteAllText(outside, "outside claim", new UTF8Encoding(false));
+        try {
+            try {
+                File.CreateSymbolicLink(sidecar, outside);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException) {
+                return;
+            }
+            OfficeProvenanceReport report = CreateExternalManifestReport("claim.c2pa");
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096);
+
+            Assert.Throws<InvalidDataException>(() => snapshot.CaptureExternalManifestDependencies(
+                path,
+                report,
+                maximumDependencyBytes: 4096,
+                maximumTotalBytes: 4096));
+        } finally {
+            File.Delete(sidecar);
+            File.Delete(outside);
+            Directory.Delete(directory, recursive: true);
+        }
+#endif
     }
 
     [Fact]
@@ -225,6 +310,15 @@ public sealed class ProvenanceAssessmentContracts {
             File.Delete(path);
         }
     }
+
+    private static OfficeProvenanceReport CreateExternalManifestReport(params string[] references) =>
+        new OfficeProvenanceReport(
+            OfficeProvenanceAssetFormat.Html,
+            references.Select(reference => new OfficeProvenanceEvidence(
+                OfficeProvenanceCarrierKind.C2paExternalManifest,
+                "html:link[rel=c2pa-manifest]",
+                isStructurallyValid: true,
+                value: reference)).ToArray());
 
     private sealed class StubVerifier : IOfficeProvenanceVerifier {
         public string Name => "stub-verifier";

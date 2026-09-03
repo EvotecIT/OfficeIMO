@@ -119,23 +119,31 @@ public static class OfficeProvenanceAssessment {
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
         options ??= new OfficeProvenanceAssessmentOptions();
+        IOfficeProvenanceSignalDetector[] detectors = (signalDetectors ?? Array.Empty<IOfficeProvenanceSignalDetector>())
+            .Select(detector => detector ?? throw new ArgumentException(
+                "Signal detector collections cannot contain null entries.", nameof(signalDetectors)))
+            .ToArray();
+        bool hasExternalProviders = verifier != null || detectors.Length != 0;
 
         using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(
                    fullPath,
                    options.Structural.MaxAssetBytes)) {
             OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(snapshot.FilePath, options.Structural);
-            snapshot.CaptureExternalManifestDependencies(
-                fullPath,
-                structural,
-                options.Structural.MaxManifestBytes);
+            if (hasExternalProviders) {
+                snapshot.CaptureExternalManifestDependencies(
+                    fullPath,
+                    structural,
+                    options.Structural.MaxManifestBytes,
+                    options.Structural.MaxExpandedContainerBytes);
+            }
             OfficeProvenanceAssessmentReport assessment = AssessSnapshotFile(
                 snapshot.FilePath,
                 fullPath,
                 structural,
                 options,
                 verifier,
-                signalDetectors);
-            snapshot.VerifyExternalManifestDependencies();
+                detectors);
+            if (hasExternalProviders) snapshot.VerifyExternalManifestDependencies();
             return assessment;
         }
     }
