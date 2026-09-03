@@ -292,7 +292,16 @@
     },
     "McpServerCard": { "Enabled": false },
     "OpenApi": { "Enabled": false },
-    "WebMcp": false,
+    "WebMcp": true,
+    "WebMcpTools": [
+      {
+        "Name": "search_site",
+        "Route": "/search/",
+        "Description": "Search OfficeIMO documentation, API references, articles, and examples.",
+        "Kind": "site-search",
+        "ReadOnly": true
+      }
+    ],
     "MarkdownNegotiation": false
   },
   "Cloudflare": {
