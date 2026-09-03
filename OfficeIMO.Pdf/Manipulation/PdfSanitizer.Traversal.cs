@@ -114,11 +114,15 @@ internal static partial class PdfSanitizer {
         int maximumActionNodes) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         SanitizeDocumentContainers(objects, security, policy);
+        HashSet<PdfDictionary> selectedAnnotations = CollectSelectedAnnotations(objects, policy);
+        NeutralizeSelectedPayloadObjects(objects, policy);
         var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
             policy.CancellationToken.ThrowIfCancellationRequested();
-            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
+            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget, selectedAnnotations);
         }
+
+        foreach (PdfDictionary annotation in selectedAnnotations) annotation.Items.Clear();
 
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
             policy.CancellationToken.ThrowIfCancellationRequested();
@@ -131,16 +135,17 @@ internal static partial class PdfSanitizer {
         PdfObject value,
         PdfSanitizationOptions policy,
         int maximumActionDepth,
-        PdfSanitizerActionBudget actionBudget) {
+        PdfSanitizerActionBudget actionBudget,
+        HashSet<PdfDictionary> selectedAnnotations) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) {
-            SanitizeDictionary(objects, stream.Dictionary, policy, maximumActionDepth, actionBudget);
+            SanitizeDictionary(objects, stream.Dictionary, policy, maximumActionDepth, actionBudget, selectedAnnotations);
         } else if (value is PdfDictionary dictionary) {
-            SanitizeDictionary(objects, dictionary, policy, maximumActionDepth, actionBudget);
+            SanitizeDictionary(objects, dictionary, policy, maximumActionDepth, actionBudget, selectedAnnotations);
         } else if (value is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
                 if (array.Items[i] is not PdfReference) {
-                    SanitizeObject(objects, array.Items[i], policy, maximumActionDepth, actionBudget);
+                    SanitizeObject(objects, array.Items[i], policy, maximumActionDepth, actionBudget, selectedAnnotations);
                 }
             }
         }
@@ -151,7 +156,8 @@ internal static partial class PdfSanitizer {
         PdfDictionary dictionary,
         PdfSanitizationOptions policy,
         int maximumActionDepth,
-        PdfSanitizerActionBudget actionBudget) {
+        PdfSanitizerActionBudget actionBudget,
+        HashSet<PdfDictionary> selectedAnnotations) {
         if (policy.ShouldRemoveAction("JavaScript")) {
             dictionary.Items.Remove("JavaScript");
         }
@@ -161,14 +167,17 @@ internal static partial class PdfSanitizer {
             dictionary.Items.Remove("AF");
             dictionary.Items.Remove("EF");
         }
+        if (policy.ShouldRemoveUserMetadata) {
+            dictionary.Items.Remove("Metadata");
+        }
         if (policy.ShouldRemoveOptionalContent) {
-            RemoveOptionalContentAssociation(dictionary);
+            RemoveOptionalContentAssociation(objects, dictionary);
         }
         bool actionTraversalAlreadyNormalized = actionBudget.WasNormalized(dictionary);
 
         if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
             Resolve(objects, annotationsObject) is PdfArray annotations) {
-            FilterAnnotations(objects, annotations, policy);
+            FilterAnnotations(objects, annotations, selectedAnnotations);
         }
 
         string[] keys = dictionary.Items.Keys.ToArray();
@@ -188,7 +197,7 @@ internal static partial class PdfSanitizer {
                     dictionary.Items.Remove(key);
                 } else {
                     PdfDictionary promoted = CreatePromotedActionRoot(retained);
-                    SanitizeNormalizedActionDictionary(objects, promoted, policy, maximumActionDepth, actionBudget);
+                    SanitizeNormalizedActionDictionary(objects, promoted, policy, maximumActionDepth, actionBudget, selectedAnnotations);
                     dictionary.Items[key] = promoted;
                 }
                 continue;
@@ -196,7 +205,7 @@ internal static partial class PdfSanitizer {
 
             if (key == "Next" && resolved is PdfArray nextActions) {
                 FilterActions(objects, nextActions, policy, maximumActionDepth, actionBudget);
-                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget);
+                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget, selectedAnnotations);
                 continue;
             }
 
@@ -206,7 +215,7 @@ internal static partial class PdfSanitizer {
             }
 
             if (item is not PdfReference) {
-                SanitizeObject(objects, item, policy, maximumActionDepth, actionBudget);
+                SanitizeObject(objects, item, policy, maximumActionDepth, actionBudget, selectedAnnotations);
             }
         }
     }
@@ -216,11 +225,12 @@ internal static partial class PdfSanitizer {
         PdfArray actions,
         PdfSanitizationOptions policy,
         int maximumActionDepth,
-        PdfSanitizerActionBudget actionBudget) {
+        PdfSanitizerActionBudget actionBudget,
+        HashSet<PdfDictionary> selectedAnnotations) {
         for (int i = 0; i < actions.Items.Count; i++) {
             policy.CancellationToken.ThrowIfCancellationRequested();
             if (actions.Items[i] is PdfDictionary action) {
-                SanitizeNormalizedActionDictionary(objects, action, policy, maximumActionDepth, actionBudget);
+                SanitizeNormalizedActionDictionary(objects, action, policy, maximumActionDepth, actionBudget, selectedAnnotations);
             }
         }
     }
@@ -230,19 +240,20 @@ internal static partial class PdfSanitizer {
         PdfDictionary action,
         PdfSanitizationOptions policy,
         int maximumActionDepth,
-        PdfSanitizerActionBudget actionBudget) {
+        PdfSanitizerActionBudget actionBudget,
+        HashSet<PdfDictionary> selectedAnnotations) {
         policy.CancellationToken.ThrowIfCancellationRequested();
         if (action.Items.TryGetValue("Next", out PdfObject? nextObject)) {
             if (nextObject is PdfDictionary nextAction) {
-                SanitizeNormalizedActionDictionary(objects, nextAction, policy, maximumActionDepth, actionBudget);
+                SanitizeNormalizedActionDictionary(objects, nextAction, policy, maximumActionDepth, actionBudget, selectedAnnotations);
             } else if (nextObject is PdfArray nextActions) {
-                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget);
+                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget, selectedAnnotations);
             }
         }
 
         foreach (KeyValuePair<string, PdfObject> item in action.Items.ToArray()) {
             if (string.Equals(item.Key, "Next", StringComparison.Ordinal) || item.Value is PdfReference) continue;
-            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
+            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget, selectedAnnotations);
         }
     }
 
@@ -371,12 +382,75 @@ internal static partial class PdfSanitizer {
     private static void FilterAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray annotations,
-        PdfSanitizationOptions policy) {
+        HashSet<PdfDictionary> selectedAnnotations) {
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
             if (Resolve(objects, annotations.Items[i]) is PdfDictionary annotation &&
-                ShouldRemoveAnnotation(objects, annotation, policy)) {
+                selectedAnnotations.Contains(annotation)) {
                 annotations.Items.RemoveAt(i);
             }
+        }
+    }
+
+    private static HashSet<PdfDictionary> CollectSelectedAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfSanitizationOptions policy) {
+        var selected = new HashSet<PdfDictionary>();
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            CollectSelectedAnnotations(objects, indirect.Value, policy, selected, visited);
+        }
+        return selected;
+    }
+
+    private static void CollectSelectedAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfSanitizationOptions policy,
+        HashSet<PdfDictionary> selected,
+        HashSet<PdfObject> visited) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
+        if (!visited.Add(value)) return;
+        if (value is PdfStream stream) value = stream.Dictionary;
+        if (value is PdfArray array) {
+            for (int i = 0; i < array.Items.Count; i++) {
+                if (array.Items[i] is not PdfReference) {
+                    CollectSelectedAnnotations(objects, array.Items[i], policy, selected, visited);
+                }
+            }
+            return;
+        }
+        if (value is not PdfDictionary dictionary) return;
+        if (Resolve(objects, dictionary.Get<PdfObject>("Type")) is PdfName type &&
+            string.Equals(type.Name, "Annot", StringComparison.Ordinal) &&
+            ShouldRemoveAnnotation(objects, dictionary, policy)) {
+            selected.Add(dictionary);
+        }
+        if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
+            Resolve(objects, annotationsObject) is PdfArray annotations) {
+            for (int i = 0; i < annotations.Items.Count; i++) {
+                if (Resolve(objects, annotations.Items[i]) is PdfDictionary annotation &&
+                    ShouldRemoveAnnotation(objects, annotation, policy)) {
+                    selected.Add(annotation);
+                }
+            }
+        }
+        foreach (PdfObject child in dictionary.Items.Values) {
+            if (child is not PdfReference) CollectSelectedAnnotations(objects, child, policy, selected, visited);
+        }
+    }
+
+    private static void NeutralizeSelectedPayloadObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfSanitizationOptions policy) {
+        if (!policy.ShouldRemoveEmbeddedFiles) return;
+        foreach (KeyValuePair<int, PdfIndirectObject> item in objects.ToArray()) {
+            if (item.Value.Value is not PdfStream stream ||
+                Resolve(objects, stream.Dictionary.Get<PdfObject>("Type")) is not PdfName type ||
+                !string.Equals(type.Name, "EmbeddedFile", StringComparison.Ordinal)) continue;
+            objects[item.Key] = new PdfIndirectObject(
+                item.Value.ObjectNumber,
+                item.Value.Generation,
+                new PdfStream(new PdfDictionary(), Array.Empty<byte>()));
         }
     }
 

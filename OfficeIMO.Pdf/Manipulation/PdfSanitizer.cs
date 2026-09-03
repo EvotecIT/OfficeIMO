@@ -87,9 +87,9 @@ internal static partial class PdfSanitizer {
             rewrittenReadOptions,
             Analyze(sanitized, policy, rewrittenReadOptions));
         cancellationToken.ThrowIfCancellationRequested();
-        if (remaining.TotalCount > 0) {
+        if (remaining.CategoryCounts.Total > 0) {
             throw new InvalidOperationException(
-                "PDF sanitization post-save validation found " + remaining.TotalCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "PDF sanitization post-save validation found " + remaining.CategoryCounts.Total.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " forbidden item(s); the artifact was not returned.");
         }
 

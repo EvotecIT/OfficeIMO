@@ -29,6 +29,6 @@ public sealed class PdfSanitizationReport {
     /// <summary>Logical per-category counts for the selected sanitization policy.</summary>
     public PdfSanitizationCategoryCounts CategoryCounts { get; }
 
-    /// <summary>Total number of selected logical items.</summary>
-    public int TotalCount => CategoryCounts.Total;
+    /// <summary>Total number of low-level findings selected by the policy.</summary>
+    public int TotalCount => Findings.Count;
 }

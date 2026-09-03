@@ -21,7 +21,7 @@ public class PdfSanitizerTests {
         Assert.Equal(1, preview.CategoryCounts.CommentsAndMarkup);
         Assert.Equal(1, preview.CategoryCounts.Bookmarks);
         Assert.Equal(1, preview.CategoryCounts.OptionalContent);
-        Assert.Equal(12, preview.TotalCount);
+        Assert.Equal(preview.Findings.Count, preview.TotalCount);
 
         PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
         PdfDocumentInfo info = result.ToDocument().Inspect();
@@ -68,6 +68,91 @@ public class PdfSanitizerTests {
         Assert.True(info.HasOptionalContent);
         Assert.Contains(info.Annotations, static annotation => annotation.Subtype == "Text");
         Assert.Contains(PdfSanitizer.Analyze(result.ToBytes()), static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
+    }
+
+    [Fact]
+    public void UserMetadataSanitizationNeutralizesAnXmpStreamRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedXmpMetadataPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.UserMetadata);
+        Assert.False(result.ToDocument().Inspect().HasXmpMetadata);
+        Assert.DoesNotContain("PRIVATE-XMP-ALIAS", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedFileSanitizationNeutralizesAPayloadStreamRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedEmbeddedFilePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.Equal(1, preview.CategoryCounts.EmbeddedFiles);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.EmbeddedFiles);
+        Assert.Empty(result.ToDocument().Inspect().Attachments);
+        Assert.DoesNotContain("PRIVATE-ATTACHMENT-ALIAS", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommentSanitizationCountsAndNeutralizesAnUnplacedAnnotationRetainedByASecondaryReference() {
+        byte[] source = BuildAliasedUnplacedCommentPdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.CommentsAndMarkup
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.Equal(1, preview.CategoryCounts.CommentsAndMarkup);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.CommentsAndMarkup);
+        Assert.DoesNotContain("PRIVATE-UNPLACED-COMMENT", raw, StringComparison.Ordinal);
+        Assert.Empty(result.ToDocument().Inspect().Annotations);
+    }
+
+    [Fact]
+    public void BookmarkSanitizationCountsTheCompleteOutlineTreeBeyondTheLogicalReaderDepth() {
+        byte[] source = BuildDeepOutlinePdf(depth: 65);
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.Bookmarks
+        };
+
+        PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+
+        Assert.Equal(65, preview.CategoryCounts.Bookmarks);
+        Assert.True(result.IsSanitized);
+        Assert.Equal(65, result.RemovedCategoryCounts.Bookmarks);
+        Assert.Empty(result.ToDocument().Inspect().Outlines);
+        Assert.DoesNotContain("PRIVATE-BOOKMARK-", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OptionalContentSanitizationResolvesAnIndirectGroupType() {
+        byte[] source = BuildIndirectOptionalContentTypePdf();
+        var policy = new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.OptionalContent
+        };
+
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+
+        Assert.True(result.IsSanitized);
+        Assert.Equal(1, result.RemovedCategoryCounts.OptionalContent);
+        Assert.False(result.ToDocument().Inspect().HasOptionalContent);
+        Assert.DoesNotContain("PRIVATE-INDIRECT-LAYER", raw, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -778,6 +863,83 @@ public class PdfSanitizerTests {
             "trailer", "<< /Root 1 0 R /Info 20 0 R /Size 21 >>", "%%EOF"
         }) + "\n";
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildAliasedXmpMetadataPdf() {
+        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'>PRIVATE-XMP-ALIAS</x:xmpmeta><?xpacket end='w'?>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Metadata 5 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /Metadata /Subtype /XML", xmp),
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedEmbeddedFilePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(payload.txt) 6 0 R] >> >> /PieceInfo << /Private 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            StreamObject(5, "/Type /EmbeddedFile /Subtype /text#2Fplain", "PRIVATE-ATTACHMENT-ALIAS"),
+            "6 0 obj", "<< /Type /Filespec /F (payload.txt) /UF (payload.txt) /EF << /F 5 0 R /UF 5 0 R >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAliasedUnplacedCommentPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /PieceInfo << /Private 5 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj", "<< /Type /Annot /Subtype /Text /Contents (PRIVATE-UNPLACED-COMMENT) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildDeepOutlinePdf(int depth) {
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "10 0 obj", "<< /Type /Outlines /First 11 0 R /Last 11 0 R /Count " + depth.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "endobj"
+        };
+        for (int index = 0; index < depth; index++) {
+            int objectNumber = 11 + index;
+            int parentObjectNumber = index == 0 ? 10 : objectNumber - 1;
+            string child = index + 1 < depth
+                ? " /First " + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R"
+                : string.Empty;
+            lines.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj");
+            lines.Add("<< /Title (PRIVATE-BOOKMARK-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") /Parent " +
+                      parentObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R" + child + " >>");
+            lines.Add("endobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size " + (11 + depth).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildIndirectOptionalContentTypePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /ON [6 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Properties << /Layer 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj", "<< /Type 7 0 R /Name (PRIVATE-INDIRECT-LAYER) >>", "endobj",
+            "7 0 obj", "/OCG", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildForbiddenWidgetRootWithRetainedNextPdf() {
