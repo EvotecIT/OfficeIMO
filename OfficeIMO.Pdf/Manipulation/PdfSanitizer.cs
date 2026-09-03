@@ -2,8 +2,12 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
 internal static partial class PdfSanitizer {
-    internal static PdfSanitizationReport Inspect(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) =>
-        new PdfSanitizationReport(Analyze(pdf, options, readOptions));
+    internal static PdfSanitizationReport Inspect(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
+        IReadOnlyList<PdfSanitizationFinding> findings = Analyze(pdf, policy, readOptions);
+        return BuildReport(pdf, policy, readOptions, findings);
+    }
 
     /// <summary>Returns the forbidden-content inventory that the supplied policy would remove.</summary>
     public static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options = null) {
@@ -42,10 +46,10 @@ internal static partial class PdfSanitizer {
             PdfMutationOperation.Sanitize,
             readOptions,
             cancellationToken: cancellationToken);
-        IReadOnlyList<PdfSanitizationFinding> before = Analyze(pdf, policy, readOptions);
+        PdfSanitizationReport before = BuildReport(pdf, policy, readOptions, Analyze(pdf, policy, readOptions));
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfExtractedAttachment> quarantined;
-        if (policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine) {
+        if (policy.ShouldRemoveEmbeddedFiles && policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine) {
             quarantined = sourceDocument.ExtractAttachments(cancellationToken);
         } else {
             quarantined = Array.Empty<PdfExtractedAttachment>();
@@ -63,7 +67,7 @@ internal static partial class PdfSanitizer {
                 outputEncryption: null,
                 (objects, security) => {
                     cancellationToken.ThrowIfCancellationRequested();
-                    SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
+                    SanitizeObjectGraph(objects, security, policy, maximumActionDepth, maximumActionNodes);
                     return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                         ? security.InfoObjectNumber
                         : null;
@@ -77,20 +81,33 @@ internal static partial class PdfSanitizer {
         }
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
-        IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
+        PdfSanitizationReport remaining = BuildReport(
+            sanitized,
+            policy,
+            rewrittenReadOptions,
+            Analyze(sanitized, policy, rewrittenReadOptions));
         cancellationToken.ThrowIfCancellationRequested();
-        if (remaining.Count > 0) {
+        int remainingCount = Math.Max(remaining.TotalCount, remaining.CategoryCounts.Total);
+        if (remainingCount > 0) {
             throw new InvalidOperationException(
-                "PDF sanitization post-save validation found " + remaining.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "PDF sanitization post-save validation found " + remainingCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " forbidden item(s); the artifact was not returned.");
         }
 
+        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, sourceDocument, cancellationToken);
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
             RewrittenReadOptions = rewrittenReadOptions,
+            PreserveMetadata = !policy.ShouldRemoveUserMetadata,
+            PreserveOutlines = !policy.ShouldRemoveBookmarks,
             PreserveLinkAnnotations = true,
             PreserveAnnotations = true,
-            PreserveEmbeddedFiles = false,
+            PreserveEmbeddedFiles = !policy.ShouldRemoveEmbeddedFiles,
+            PreserveXmpMetadata = !policy.ShouldRemoveUserMetadata,
+            PreserveOptionalContent = !policy.ShouldRemoveOptionalContent,
+            PreserveCatalogViewSettings = !policy.ShouldRemoveBookmarks &&
+                !policy.ShouldRemoveEmbeddedFiles &&
+                !policy.ShouldRemoveOptionalContent,
             PreserveCatalogActions = true,
             PreservePageActions = true,
             PreserveOpenAction = true,
@@ -99,18 +116,24 @@ internal static partial class PdfSanitizer {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !sourceDocument.Security.HasEncryption
         };
-        if (policy.RemoveRichMedia) {
+        if (policy.ShouldRemoveEmbeddedFiles && (policy.ContentKindsToRemove.HasValue || policy.RemoveRichMedia)) {
+            preservationOptions.ExcludedAnnotationSubtypes.Add("FileAttachment");
+        }
+        if (policy.ShouldRemoveCommentsAndMarkup) {
+            foreach (string subtype in originalInfo.AnnotationSubtypeCounts.Keys) {
+                if (policy.ShouldRemoveCommentAnnotation(subtype)) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
+            }
+        } else if (!policy.ContentKindsToRemove.HasValue && policy.RemoveRichMedia) {
             foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
         }
-        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, sourceDocument, cancellationToken);
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;
             if (uri is not null && policy.ShouldRemoveAction("URI", uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
         }
         AddPolicyRetainedActionTypes(originalInfo, policy, preservationOptions.PreservedActionTypes);
-        for (int i = 0; i < before.Count; i++) {
-            if (before[i].ActionKind == PdfSanitizationActionKind.Uri) {
-                preservationOptions.ExcludedActionUris.Add(before[i].Detail);
+        for (int i = 0; i < before.Findings.Count; i++) {
+            if (before.Findings[i].ActionKind == PdfSanitizationActionKind.Uri) {
+                preservationOptions.ExcludedActionUris.Add(before.Findings[i].Detail);
             }
         }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(

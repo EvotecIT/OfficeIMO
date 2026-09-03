@@ -128,6 +128,39 @@ ordinary web links. Leave the property null for the established default policy:
 known active-content actions are removed, allowed `http`, `https`, `mailto`, and
 `tel` links remain, and URI schemes outside `AllowedUriSchemes` are removed.
 
+### Inspect and sanitize before sharing
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+var policy = new PdfSanitizationOptions {
+    ContentKindsToRemove = PdfSanitizationContentKind.All,
+    ActionKindsToRemove = PdfSanitizationActionKind.All
+};
+
+PdfSanitizationReport preview = incoming.InspectSanitization(policy);
+Console.WriteLine($"User metadata: {preview.CategoryCounts.UserMetadata}");
+Console.WriteLine($"Attachments: {preview.CategoryCounts.EmbeddedFiles}");
+Console.WriteLine($"Actions: {preview.CategoryCounts.Actions}");
+Console.WriteLine($"Comments and markup: {preview.CategoryCounts.CommentsAndMarkup}");
+Console.WriteLine($"Bookmarks: {preview.CategoryCounts.Bookmarks}");
+Console.WriteLine($"Layer definitions: {preview.CategoryCounts.OptionalContent}");
+
+PdfSanitizationResult result = incoming.Sanitize(policy);
+File.WriteAllBytes("shared.pdf", result.ToBytes());
+```
+
+`ContentKindsToRemove` is an exact selection of user-authored Info fields and
+XMP, embedded files, actions, comments and markup, bookmarks, and optional-content
+definitions. Unselected categories remain. Link and Widget annotations remain
+when comments are selected; selecting URI actions can still remove a link's URI.
+Producer, creation and modification dates, and trapping status are not classified
+as user metadata and remain in the output.
+
+Selecting optional content removes layer definitions and associations. Drawing
+and text operators that belonged to a layer remain as ordinary page content, so
+they no longer depend on viewer layer state. Use content-safety inspection and
+verified redaction when the page content itself must be removed.
+
 ### Add interactive fields to an existing PDF
 
 ```csharp

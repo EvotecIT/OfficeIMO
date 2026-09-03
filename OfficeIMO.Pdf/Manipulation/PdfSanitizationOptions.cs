@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Explicit policy for removing active content and embedded payloads from a PDF.</summary>
 public sealed class PdfSanitizationOptions {
     private PdfSanitizationActionKind? _actionKindsToRemove;
+    private PdfSanitizationContentKind? _contentKindsToRemove;
 
     /// <summary>Cancellation observed between inventory, object-graph rewrite, and verification stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
@@ -28,6 +29,21 @@ public sealed class PdfSanitizationOptions {
         }
     }
 
+    /// <summary>
+    /// Exact before-sharing content categories to remove. When null, the established sanitizer behavior is
+    /// retained. When set, unselected categories remain. Action selection is further narrowed by
+    /// <see cref="ActionKindsToRemove"/> when the <see cref="PdfSanitizationContentKind.Actions"/> category is selected.
+    /// </summary>
+    public PdfSanitizationContentKind? ContentKindsToRemove {
+        get => _contentKindsToRemove;
+        set {
+            if (value.HasValue && (value.Value & ~PdfSanitizationContentKind.All) != 0) {
+                throw new ArgumentOutOfRangeException(nameof(ContentKindsToRemove), value, "Unsupported PDF sanitization content kind.");
+            }
+            _contentKindsToRemove = value;
+        }
+    }
+
     /// <summary>Absolute URI schemes that may remain. Relative URI targets are preserved.</summary>
     public ISet<string> AllowedUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "http", "https", "mailto", "tel"
@@ -41,7 +57,12 @@ public sealed class PdfSanitizationOptions {
 
     internal bool IsActionAllowed(string actionType) => AllowedActionTypes.Contains(actionType);
 
+    internal bool ShouldRemoveContent(PdfSanitizationContentKind kind) => ContentKindsToRemove.HasValue
+        ? (ContentKindsToRemove.Value & kind) == kind
+        : kind == PdfSanitizationContentKind.EmbeddedFiles || kind == PdfSanitizationContentKind.Actions;
+
     internal bool ShouldRemoveAction(string actionType, string? uri = null) {
+        if (!ShouldRemoveContent(PdfSanitizationContentKind.Actions)) return false;
         PdfSanitizationActionKind kind = GetActionKind(actionType);
         if (ActionKindsToRemove.HasValue) {
             if (IsActionAllowed(actionType)) return false;
@@ -52,9 +73,25 @@ public sealed class PdfSanitizationOptions {
         return PdfActiveContentPolicy.IsUnsafeActionType(actionType);
     }
 
-    internal bool ShouldRemoveCatalogUriBase(string value) => ActionKindsToRemove.HasValue
-        ? (ActionKindsToRemove.Value & PdfSanitizationActionKind.Uri) != 0
-        : !IsUriAllowed(value);
+    internal bool ShouldRemoveCatalogUriBase(string value) =>
+        ShouldRemoveContent(PdfSanitizationContentKind.Actions) &&
+        (ActionKindsToRemove.HasValue
+            ? (ActionKindsToRemove.Value & PdfSanitizationActionKind.Uri) != 0
+            : !IsUriAllowed(value));
+
+    internal bool ShouldRemoveEmbeddedFiles => ShouldRemoveContent(PdfSanitizationContentKind.EmbeddedFiles);
+    internal bool ShouldRemoveUserMetadata => ShouldRemoveContent(PdfSanitizationContentKind.UserMetadata);
+    internal bool ShouldRemoveCommentsAndMarkup => ShouldRemoveContent(PdfSanitizationContentKind.CommentsAndMarkup);
+    internal bool ShouldRemoveBookmarks => ShouldRemoveContent(PdfSanitizationContentKind.Bookmarks);
+    internal bool ShouldRemoveOptionalContent => ShouldRemoveContent(PdfSanitizationContentKind.OptionalContent);
+
+    internal bool ShouldRemoveCommentAnnotation(string subtype) => ShouldRemoveCommentsAndMarkup &&
+        !string.Equals(subtype, "Link", StringComparison.Ordinal) &&
+        !string.Equals(subtype, "Widget", StringComparison.Ordinal) &&
+        !string.Equals(subtype, "FileAttachment", StringComparison.Ordinal);
+
+    internal bool ShouldRemoveLegacyRichAnnotation(string subtype) =>
+        !ContentKindsToRemove.HasValue && RemoveRichMedia && PdfSanitizer.IsRichAnnotationSubtype(subtype);
 
     internal static PdfSanitizationActionKind GetActionKind(string actionType) => actionType switch {
         "JavaScript" => PdfSanitizationActionKind.JavaScript,
