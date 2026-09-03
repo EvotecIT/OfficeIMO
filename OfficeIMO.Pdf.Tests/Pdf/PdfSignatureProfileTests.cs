@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -163,6 +164,79 @@ public class PdfSignatureProfileTests {
                 out _));
     }
 
+    [Fact]
+    public async Task PngChunkCrcValidationHonorsCancellationDuringLargeChunk() {
+        const int chunkLength = 32 * 1024 * 1024;
+        var png = new byte[8 + 12 + chunkLength];
+        new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }.CopyTo(png, 0);
+        png[8] = 2;
+        png[12] = (byte)'I';
+        png[13] = (byte)'D';
+        png[14] = (byte)'A';
+        png[15] = (byte)'T';
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
+            PdfWriter.TryGetPngImageData(
+                png,
+                cancellation.Token,
+                out _,
+                out _)));
+    }
+
+    [Fact]
+    public void WideSingleRowPngTransformationHonorsCancellationInsidePackedExpansion() {
+        const int width = 8193;
+        byte[] png = PdfPngTestImages.CreateWidePackedGrayscalePng(width);
+        var imageInfo = new OfficeImageInfo(OfficeImageFormat.Png, width, 1);
+        using var cancellation = new CancellationTokenSource();
+        var checkpoints = new List<int>();
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind != PngRowLoopKind.PackedGrayscale) return;
+            checkpoints.Add(index);
+            if (index == 4096) cancellation.Cancel();
+        };
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                PdfWriter.TryBuildImageStream(
+                    png,
+                    imageInfo,
+                    width,
+                    1,
+                    cancellation.Token,
+                    out _,
+                    out _));
+            Assert.Equal(new[] { 0, 4096 }, checkpoints);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
+    public void VisibleApprovalProfileUsesAppearanceBoundsForUnidentifiedJpegDimensions() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("JPEG fallback source"))
+            .ToBytes();
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                FieldName = "JpegFallback",
+                VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                    Width = 180,
+                    Height = 72,
+                    ImageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 },
+                    ShowText = false
+                },
+                ReservedSignatureContentsBytes = 512
+            });
+        PdfStream image = FindAppearanceImageStream(preparation.PreparedPdf);
+
+        Assert.Equal(180D, Assert.IsType<PdfNumber>(image.Dictionary.Items["Width"]).Value);
+        Assert.Equal(72D, Assert.IsType<PdfNumber>(image.Dictionary.Items["Height"]).Value);
+    }
+
     [Theory]
     [InlineData(OfficeImageFit.Cover)]
     [InlineData(OfficeImageFit.Stretch)]
@@ -219,5 +293,13 @@ public class PdfSignatureProfileTests {
                 PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName { Name: "Form" } &&
                 PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null) is PdfDictionary resourceDictionary &&
                 resourceDictionary.Items.ContainsKey("XObject"));
+    }
+
+    private static PdfStream FindAppearanceImageStream(byte[] pdf) {
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf).Map;
+        PdfStream appearance = FindImageAppearanceStream(pdf);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, appearance.Dictionary.Items["Resources"]));
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, resources.Items["XObject"]));
+        return Assert.IsType<PdfStream>(PdfObjectLookup.ResolveChain(objects, xObjects.Items["Im1"]));
     }
 }

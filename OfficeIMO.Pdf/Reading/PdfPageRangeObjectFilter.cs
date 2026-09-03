@@ -155,7 +155,9 @@ internal static class PdfPageRangeObjectFilter {
                 field.Quadding,
                 field.Options,
                 field.SelectedIndices,
-                selectedWidgets.AsReadOnly()));
+                selectedWidgets.AsReadOnly(),
+                field.ValueOwnerObjectNumber,
+                field.DefaultValueOwnerObjectNumber));
         }
 
         return selectedFields.Count == 0 ? Array.Empty<PdfFormField>() : selectedFields.AsReadOnly();

@@ -230,8 +230,10 @@ public sealed partial class PdfReadDocument {
         string? fieldType = TryReadName(field, "FT") ?? inherited.FieldType;
         string? value = field.Items.ContainsKey("V") ? TryReadSimpleFieldValue(field, "V") : inherited.Value;
         IReadOnlyList<string> values = field.Items.ContainsKey("V") ? ReadSimpleFieldValues(field, "V") : inherited.Values;
+        int? valueOwnerObjectNumber = field.Items.ContainsKey("V") ? objectNumber : inherited.ValueOwnerObjectNumber;
         string? defaultValue = field.Items.ContainsKey("DV") ? TryReadSimpleFieldValue(field, "DV") : inherited.DefaultValue;
         IReadOnlyList<string> defaultValues = field.Items.ContainsKey("DV") ? ReadSimpleFieldValues(field, "DV") : inherited.DefaultValues;
+        int? defaultValueOwnerObjectNumber = field.Items.ContainsKey("DV") ? objectNumber : inherited.DefaultValueOwnerObjectNumber;
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = field.Items.ContainsKey("Ff") ? TryReadInteger(field, "Ff") : inherited.Flags;
@@ -289,34 +291,38 @@ public sealed partial class PdfReadDocument {
                 quadding: quadding,
                 options: options.Count == 0 ? null : options,
                 selectedIndices: selectedIndices.Count == 0 ? null : selectedIndices,
-                widgets: widgets.Count == 0 ? null : widgets.AsReadOnly()));
+                widgets: widgets.Count == 0 ? null : widgets.AsReadOnly(),
+                valueOwnerObjectNumber: valueOwnerObjectNumber,
+                defaultValueOwnerObjectNumber: defaultValueOwnerObjectNumber));
         }
 
         if (fieldKids.Count == 0) {
             return;
         }
 
-        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, defaultValue, defaultValues, flags, maxLength, defaultAppearance, quadding, options, selectedIndices);
+        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, valueOwnerObjectNumber, defaultValue, defaultValues, defaultValueOwnerObjectNumber, flags, maxLength, defaultAppearance, quadding, options, selectedIndices);
         for (int i = 0; i < fieldKids.Count; i++) {
             ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers, actionBudget, depth + 1);
         }
     }
 
     private sealed class PdfFormFieldInheritedState {
-        internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, null, null, Array.Empty<PdfFormFieldOption>(), Array.Empty<int>());
+        internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, null, Array.Empty<string>(), null, null, null, null, null, Array.Empty<PdfFormFieldOption>(), Array.Empty<int>());
 
         internal static PdfFormFieldInheritedState FromAcroForm(string? defaultAppearance, int? quadding) {
             return string.IsNullOrEmpty(defaultAppearance) && !quadding.HasValue
                 ? Empty
-                : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, defaultAppearance, quadding, Array.Empty<PdfFormFieldOption>(), Array.Empty<int>());
+                : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, null, Array.Empty<string>(), null, null, null, defaultAppearance, quadding, Array.Empty<PdfFormFieldOption>(), Array.Empty<int>());
         }
 
-        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<int> selectedIndices) {
+        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, int? valueOwnerObjectNumber, string? defaultValue, IReadOnlyList<string> defaultValues, int? defaultValueOwnerObjectNumber, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<int> selectedIndices) {
             FieldType = fieldType;
             Value = value;
             Values = values;
+            ValueOwnerObjectNumber = valueOwnerObjectNumber;
             DefaultValue = defaultValue;
             DefaultValues = defaultValues;
+            DefaultValueOwnerObjectNumber = defaultValueOwnerObjectNumber;
             Flags = flags;
             MaxLength = maxLength;
             DefaultAppearance = defaultAppearance;
@@ -331,9 +337,13 @@ public sealed partial class PdfReadDocument {
 
         internal IReadOnlyList<string> Values { get; }
 
+        internal int? ValueOwnerObjectNumber { get; }
+
         internal string? DefaultValue { get; }
 
         internal IReadOnlyList<string> DefaultValues { get; }
+
+        internal int? DefaultValueOwnerObjectNumber { get; }
 
         internal int? Flags { get; }
 

@@ -57,7 +57,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerObjectNumber = null, int? defaultValueOwnerObjectNumber = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -75,10 +75,16 @@ public sealed class PdfFormField {
         Options = options ?? Array.Empty<PdfFormFieldOption>();
         SelectedIndices = selectedIndices ?? Array.Empty<int>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
+        ValueOwnerObjectNumber = valueOwnerObjectNumber;
+        DefaultValueOwnerObjectNumber = defaultValueOwnerObjectNumber;
     }
 
     /// <summary>Indirect object number for the field dictionary, when known.</summary>
     public int? ObjectNumber { get; }
+
+    internal int? ValueOwnerObjectNumber { get; }
+
+    internal int? DefaultValueOwnerObjectNumber { get; }
 
     /// <summary>Fully qualified field name when a name can be read.</summary>
     public string? Name { get; }

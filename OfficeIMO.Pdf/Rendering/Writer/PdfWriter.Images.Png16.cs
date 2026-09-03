@@ -93,6 +93,7 @@ internal static partial class PdfWriter {
 
             int sourceRowStart = row * width * sourceBytesPerPixel;
             for (int pixel = 0; pixel < width; pixel++) {
+                CheckPngLoopCancellation(PngRowLoopKind.SixteenBitExpansion, pixel, cancellationToken);
                 int sourcePixel = sourceRowStart + pixel * sourceBytesPerPixel;
                 int basePixel = baseRowStart + 1 + pixel * baseChannels;
 

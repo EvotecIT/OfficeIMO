@@ -10,6 +10,7 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static readonly AsyncLocal<Action<PngRowLoopKind, int>?> PngRowLoopObserver = new AsyncLocal<Action<PngRowLoopKind, int>?>();
     private const long MaxPngPixelCount = 100_000_000L;
     private const long MaxPngExpandedBytes = 256L * 1024L * 1024L;
     private const int MaxPngDecodedBytes = 256 * 1024 * 1024;
@@ -63,7 +64,7 @@ internal static partial class PdfWriter {
 
             string type = Encoding.ASCII.GetString(data, offset + 4, 4);
             int chunkData = offset + 8;
-            if (!IsPngChunkCrcValid(data, offset, length)) {
+            if (!IsPngChunkCrcValid(data, offset, length, cancellationToken)) {
                 unsupportedReason = "PNG chunk CRC is invalid.";
                 return false;
             }
@@ -339,6 +340,7 @@ internal static partial class PdfWriter {
 
             int sourceRowStart = row * width * sourceChannels;
             for (int pixel = 0; pixel < width; pixel++) {
+                CheckPngLoopCancellation(PngRowLoopKind.TransparencySplit, pixel, cancellationToken);
                 int sourcePixel = sourceRowStart + pixel * sourceChannels;
                 int basePixel = baseRowStart + 1 + pixel * sourceChannels;
                 CopyBytesWithCancellation(rawPixels, sourcePixel, baseRows, basePixel, sourceChannels, cancellationToken);
@@ -424,6 +426,7 @@ internal static partial class PdfWriter {
 
             int sourceRowStart = row * packedRowBytes;
             for (int pixel = 0; pixel < width; pixel++) {
+                CheckPngLoopCancellation(PngRowLoopKind.PackedGrayscale, pixel, cancellationToken);
                 int sample = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
                 int targetOffset = baseRowStart + 1 + pixel;
                 baseRows[targetOffset] = ScalePackedSampleToByte(sample, maxSample);
@@ -504,6 +507,7 @@ internal static partial class PdfWriter {
 
             int sourceRowStart = row * packedRowBytes;
             for (int pixel = 0; pixel < width; pixel++) {
+                CheckPngLoopCancellation(PngRowLoopKind.IndexedExpansion, pixel, cancellationToken);
                 int paletteIndex = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
                 if (paletteIndex >= paletteEntries) {
                     unsupportedReason = "Indexed-color PNG pixel references a palette entry that does not exist.";
@@ -605,6 +609,7 @@ internal static partial class PdfWriter {
 
             int sourceRowStart = row * width * sourceChannels;
             for (int pixel = 0; pixel < width; pixel++) {
+                CheckPngLoopCancellation(PngRowLoopKind.AlphaSplit, pixel, cancellationToken);
                 int sourcePixel = sourceRowStart + pixel * sourceChannels;
                 int basePixel = baseRowStart + 1 + pixel * baseChannels;
                 int alphaPixel = alphaRowStart + 1 + pixel;
@@ -669,6 +674,7 @@ internal static partial class PdfWriter {
             CopyBytesWithCancellation(decoded, sourceRow + 1, current, 0, stride, cancellationToken);
 
             for (int i = 0; i < stride; i++) {
+                CheckPngLoopCancellation(PngRowLoopKind.Unfilter, i, cancellationToken);
                 int left = i >= bytesPerPixel ? current[i - bytesPerPixel] : 0;
                 int up = previous[i];
                 int upLeft = i >= bytesPerPixel ? previous[i - bytesPerPixel] : 0;
@@ -895,6 +901,17 @@ internal static partial class PdfWriter {
         return true;
     }
 
+    private static void CheckPngLoopCancellation(PngRowLoopKind kind, int index, CancellationToken cancellationToken) {
+        if ((index & 0xFFF) != 0) return;
+        PngRowLoopObserver.Value?.Invoke(kind, index);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    internal static Action<PngRowLoopKind, int>? PngRowLoopObserverForTesting {
+        get => PngRowLoopObserver.Value;
+        set => PngRowLoopObserver.Value = value;
+    }
+
     internal static string BuildImageObjectDictionary(PdfImageStream image, int? softMaskObjectId = null) {
         return PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(image, softMaskObjectId);
     }
@@ -903,7 +920,7 @@ internal static partial class PdfWriter {
         return PdfImageXObjectDictionaryBuilder.BuildStreamObject(image, softMaskObjectNumber);
     }
 
-    private static bool IsPngChunkCrcValid(byte[] data, int chunkOffset, int chunkLength) {
+    private static bool IsPngChunkCrcValid(byte[] data, int chunkOffset, int chunkLength, CancellationToken cancellationToken) {
         long crcOffsetLong = (long)chunkOffset + 8L + chunkLength;
         if (crcOffsetLong < 0 || crcOffsetLong + 4L > data.Length) {
             return false;
@@ -911,19 +928,21 @@ internal static partial class PdfWriter {
 
         int crcOffset = (int)crcOffsetLong;
         uint expectedCrc = ReadUInt32BigEndian(data, crcOffset);
-        uint actualCrc = Crc32(data, chunkOffset + 4, chunkLength + 4);
+        uint actualCrc = Crc32(data, chunkOffset + 4, chunkLength + 4, cancellationToken);
         return expectedCrc == actualCrc;
     }
 
-    private static uint Crc32(byte[] data, int offset, int length) {
+    private static uint Crc32(byte[] data, int offset, int length, CancellationToken cancellationToken) {
         uint crc = 0xFFFFFFFF;
         for (int i = 0; i < length; i++) {
+            if ((i & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             crc ^= data[offset + i];
             for (int bit = 0; bit < 8; bit++) {
                 crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xEDB88320U : crc >> 1;
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return ~crc;
     }
 
@@ -947,4 +966,15 @@ internal static partial class PdfWriter {
         offset + 4 <= data.Length
             ? (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]
             : 0;
+}
+
+internal enum PngRowLoopKind {
+    TransparencySplit,
+    PackedGrayscale,
+    IndexedExpansion,
+    AlphaSplit,
+    Unfilter,
+    SixteenBitExpansion,
+    Adam7PackedCopy,
+    Adam7ByteCopy
 }

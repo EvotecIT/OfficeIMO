@@ -228,33 +228,35 @@ public sealed partial class PdfDocument {
         }
 
         IReadOnlyList<PdfFormField> formFields = document.FormFields;
+        var reportedValueOwners = new HashSet<int>();
+        var reportedDefaultValueOwners = new HashSet<int>();
         for (int fieldIndex = 0; builder.Options.IncludeNonPrimaryContent && fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
-            bool allWidgetsHidden = field.Widgets.Count > 0 &&
-                field.Widgets.All(widget =>
-                    widget.IsHidden ||
-                    widget.IsInvisible ||
-                    widget.IsNoView ||
-                    widget.ObjectNumber.HasValue && concealedAnnotationObjectNumbers.Contains(widget.ObjectNumber.Value));
-            if (!allWidgetsHidden) continue;
             string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
             string? currentValues = field.HasValues ? string.Join(" ", field.Values) : null;
-            if (currentValues is not null) {
+            int valueOwnerKey = field.ValueOwnerObjectNumber ?? -(fieldIndex + 1);
+            if (currentValues is not null &&
+                reportedValueOwners.Add(valueOwnerKey) &&
+                !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
                     location + "/HiddenWidgetValue",
-                    "The PDF form value belongs only to widgets concealed by annotation flags or optional-content configuration.",
+                    "The PDF form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
                     currentValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
             string? defaultValues = field.HasDefaultValues ? string.Join(" ", field.DefaultValues) : null;
-            if (defaultValues is not null && !string.Equals(defaultValues, currentValues, StringComparison.Ordinal)) {
+            int defaultValueOwnerKey = field.DefaultValueOwnerObjectNumber ?? -(fieldIndex + 1);
+            if (defaultValues is not null &&
+                !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
+                reportedDefaultValueOwners.Add(defaultValueOwnerKey) &&
+                !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
                     location + "/HiddenWidgetDefaultValue",
-                    "The PDF default form value belongs only to widgets concealed by annotation flags or optional-content configuration.",
+                    "The PDF default form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
                     defaultValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
@@ -266,6 +268,35 @@ public sealed partial class PdfDocument {
             builder.AddDiagnostic("Optional-content metadata and hidden text were inspected using the document's default layer configuration. Hidden optional-content findings are report-only.");
         }
         return builder.Build();
+    }
+
+    private static bool HasVisibleWidgetForValueOwner(
+        IReadOnlyList<PdfFormField> fields,
+        int fieldIndex,
+        bool defaultValue,
+        HashSet<int> concealedAnnotationObjectNumbers) {
+        PdfFormField field = fields[fieldIndex];
+        int? ownerObjectNumber = defaultValue
+            ? field.DefaultValueOwnerObjectNumber
+            : field.ValueOwnerObjectNumber;
+        for (int candidateIndex = 0; candidateIndex < fields.Count; candidateIndex++) {
+            PdfFormField candidate = fields[candidateIndex];
+            int? candidateOwnerObjectNumber = defaultValue
+                ? candidate.DefaultValueOwnerObjectNumber
+                : candidate.ValueOwnerObjectNumber;
+            if (ownerObjectNumber.HasValue
+                    ? candidateOwnerObjectNumber != ownerObjectNumber
+                    : candidateIndex != fieldIndex) continue;
+            for (int widgetIndex = 0; widgetIndex < candidate.Widgets.Count; widgetIndex++) {
+                PdfFormWidget widget = candidate.Widgets[widgetIndex];
+                bool concealed = widget.IsHidden ||
+                    widget.IsInvisible ||
+                    widget.IsNoView ||
+                    widget.ObjectNumber.HasValue && concealedAnnotationObjectNumbers.Contains(widget.ObjectNumber.Value);
+                if (!concealed) return true;
+            }
+        }
+        return false;
     }
 
     private static bool IsPdfSpanOffCanvas(PdfTextSpan span, double pageWidth, double pageHeight) {

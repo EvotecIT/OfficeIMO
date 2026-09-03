@@ -139,8 +139,8 @@ internal static partial class PdfIncrementalUpdater {
             if (!PdfWriter.TryBuildImageStream(
                     prepared.Data,
                     prepared.Info,
-                    Math.Max(1, prepared.Info.Width),
-                    Math.Max(1, prepared.Info.Height),
+                    options.Width,
+                    options.Height,
                     cancellationToken,
                     out PdfWriter.PdfImageStream preparedStream,
                     out string? unsupportedReason)) {
