@@ -1751,6 +1751,7 @@ public sealed partial class PdfReadPage {
             PdfStrokeDashPattern? strokeDashPattern = ReadStrokeDashPattern(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
+            bool hasInvalidFont = !TryReadExtGStateFont(state, out string? fontResource, out double? fontSize);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
                 state,
@@ -1759,9 +1760,10 @@ public sealed partial class PdfReadPage {
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
-                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask" or "RI")) ||
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask" or "RI" or "Font")) ||
                 hasUnsupportedType ||
                 hasInvalidRenderingIntent ||
+                hasInvalidFont ||
                 HasInvalidStrictNumber(state, "ca", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "CA", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
@@ -1771,7 +1773,7 @@ public sealed partial class PdfReadPage {
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
-            bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || HasUnsupportedTextRestampEffect(state);
+            bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
             result[entry.Key] = new PdfPageGraphicsStateResource(
                 fillOpacity,
                 strokeOpacity,
@@ -1787,7 +1789,9 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedBlendMode: hasUnsupportedBlendMode,
                 hasUnsupportedEntries: hasUnsupportedEntries,
                 hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect,
-                strokeDashPattern: strokeDashPattern);
+                strokeDashPattern: strokeDashPattern,
+                fontResource: fontResource,
+                fontSize: fontSize);
         }
 
         return result;
@@ -1824,8 +1828,23 @@ public sealed partial class PdfReadPage {
         return values.Count == 0;
     }
 
+    private bool TryReadExtGStateFont(PdfDictionary state, out string? fontResource, out double? fontSize) {
+        fontResource = null;
+        fontSize = null;
+        if (!state.Items.TryGetValue("Font", out PdfObject? value)) return true;
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return true;
+        if (resolved is not PdfArray font || font.Items.Count != 2 ||
+            ResolveEffectObject(font.Items[0]) is not PdfName name ||
+            ResolveEffectObject(font.Items[1]) is not PdfNumber size ||
+            !IsFinite(size.Value) || size.Value < 0D) return false;
+        fontResource = name.Name;
+        fontSize = size.Value;
+        return true;
+    }
+
     private static bool HasUnsupportedTextRestampEffect(PdfDictionary state) {
-        string[] keys = { "op", "OPM", "Font", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
+        string[] keys = { "op", "OPM", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
         for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
         return false;
     }

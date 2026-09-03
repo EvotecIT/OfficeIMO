@@ -14,7 +14,8 @@ public sealed class PdfDocumentRedactions {
     public PdfRedactionPlan Search(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
         _document.SearchRedactions(search, layoutOptions, options);
 
-    /// <summary>Creates a new PDF with content and annotations removed from the supplied areas.</summary>
+    /// <summary>Creates a new PDF with intersecting content and annotations removed from the supplied areas.</summary>
+    /// <remarks>Text-show operations are rewritten at glyph granularity when the encoded mapping is safe; otherwise the complete PDF text object is removed.</remarks>
     public PdfDocument Apply(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
         _document.ApplyRedactions(areas, applyOptions, layoutOptions, options);
 

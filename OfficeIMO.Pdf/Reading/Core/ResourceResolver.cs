@@ -55,6 +55,17 @@ internal static partial class ResourceResolver {
         return map;
     }
 
+    internal static Dictionary<string, System.Func<byte[], string>> GetFontDecodersForResources(
+        PdfDictionary resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters) {
+        var map = new Dictionary<string, System.Func<byte[], string>>(System.StringComparer.Ordinal);
+        foreach (KeyValuePair<string, PdfFontResource> entry in GetFontsForResources(resources, objects)) {
+            map[entry.Key] = BuildDecoderForFont(entry.Value, maxDecodedTextCharacters);
+        }
+        return map;
+    }
+
     public static Dictionary<string, System.Func<byte[], int, string>> GetBudgetedFontDecoders(
         PdfDictionary page,
         Dictionary<int, PdfIndirectObject> objects) {
@@ -547,11 +558,23 @@ internal static partial class ResourceResolver {
         bool includeEmbeddedTrueTypeFont = true) {
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
         string encoding = GetDefaultEncodingForBaseFont(baseFont);
+        bool isVerticalWriting = false;
         IReadOnlyDictionary<int, string>? differences = null;
         if (fontVal.Items.TryGetValue("Encoding", out var encodingObj)) {
-            if (ResolveObject(encodingObj, objects) is PdfName encodingName) {
+            PdfObject? resolvedEncoding = ResolveObject(encodingObj, objects);
+            if (resolvedEncoding is PdfName encodingName) {
                 encoding = encodingName.Name;
-            } else if (ResolveDict(encodingObj, objects) is PdfDictionary encodingDict) {
+                isVerticalWriting = IsVerticalCMapName(encoding);
+            } else if (resolvedEncoding is PdfStream encodingStream) {
+                encoding = encodingStream.Dictionary.Get<PdfName>("CMapName")?.Name ?? "CustomCMap";
+                byte[]? encodingData = toUnicodeDecoder == null
+                    ? Filters.StreamDecoder.Decode(encodingStream.Dictionary, encodingStream.Data, objects)
+                    : toUnicodeDecoder(encodingStream);
+                isVerticalWriting = ResolveObject(
+                    encodingStream.Dictionary.Items.TryGetValue("WMode", out PdfObject? writingMode) ? writingMode : null,
+                    objects) is PdfNumber { Value: 1D } ||
+                    encodingData != null && DeclaresVerticalWritingMode(encodingData);
+            } else if (resolvedEncoding is PdfDictionary encodingDict) {
                 encoding = encodingDict.Get<PdfName>("BaseEncoding")?.Name ?? encoding;
                 differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects);
             }
@@ -588,8 +611,79 @@ internal static partial class ResourceResolver {
             embeddedTrueTypeFont,
             fontVal.Get<PdfName>("Subtype")?.Name,
             embeddedProgramSubtype,
-            type3);
+            type3,
+            isVerticalWriting);
     }
+
+    private static bool IsVerticalCMapName(string name) =>
+        name.EndsWith("-V", System.StringComparison.Ordinal);
+
+    private static bool DeclaresVerticalWritingMode(byte[] cmapBytes) {
+        string cmap = PdfEncoding.Latin1GetString(cmapBytes);
+        int index = 0;
+        while (TryReadCMapToken(cmap, ref index, out string token)) {
+            if (string.Equals(token, "/WMode", System.StringComparison.Ordinal) &&
+                TryReadCMapToken(cmap, ref index, out string value) &&
+                string.Equals(value, "1", System.StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
+    private static bool TryReadCMapToken(string cmap, ref int index, out string token) {
+        token = string.Empty;
+        while (index < cmap.Length) {
+            char current = cmap[index];
+            if (char.IsWhiteSpace(current)) {
+                index++;
+                continue;
+            }
+            if (current == '%') {
+                while (index < cmap.Length && cmap[index] != '\r' && cmap[index] != '\n') index++;
+                continue;
+            }
+            if (current == '(') {
+                SkipCMapLiteralString(cmap, ref index);
+                continue;
+            }
+            if (current == '<' && (index + 1 >= cmap.Length || cmap[index + 1] != '<')) {
+                index++;
+                while (index < cmap.Length && cmap[index] != '>') index++;
+                if (index < cmap.Length) index++;
+                continue;
+            }
+
+            int start = index++;
+            if (current == '/') {
+                while (index < cmap.Length && !char.IsWhiteSpace(cmap[index]) && !IsCMapDelimiter(cmap[index])) index++;
+            } else if (IsCMapDelimiter(current)) {
+                if (index < cmap.Length && cmap[index] == current && (current == '<' || current == '>')) index++;
+            } else {
+                while (index < cmap.Length && !char.IsWhiteSpace(cmap[index]) && !IsCMapDelimiter(cmap[index])) index++;
+            }
+            token = cmap.Substring(start, index - start);
+            return true;
+        }
+        return false;
+    }
+
+    private static void SkipCMapLiteralString(string cmap, ref int index) {
+        int depth = 0;
+        while (index < cmap.Length) {
+            char current = cmap[index++];
+            if (current == '\\') {
+                if (index < cmap.Length) index++;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')' && --depth == 0) {
+                return;
+            }
+        }
+    }
+
+    private static bool IsCMapDelimiter(char value) =>
+        value == '(' || value == ')' || value == '<' || value == '>' ||
+        value == '[' || value == ']' || value == '{' || value == '}' ||
+        value == '/' || value == '%';
 
     private static PdfType3FontResource? TryCreateType3FontResource(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects) {
         if (!font.Items.TryGetValue("FontMatrix", out PdfObject? matrixObject) ||

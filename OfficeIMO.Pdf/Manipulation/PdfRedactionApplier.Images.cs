@@ -965,6 +965,8 @@ internal static partial class PdfRedactionApplier {
         public static ImageContentOperand ForName(string name, int start, int end) => new ImageContentOperand(name, 0D, start, end);
 
         public static ImageContentOperand ForNumber(double number, int start, int end) => new ImageContentOperand(null, number, start, end);
+
+        public static ImageContentOperand ForOther(int start, int end) => new ImageContentOperand(null, 0D, start, end);
     }
 
     private readonly struct RemovalRange {

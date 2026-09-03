@@ -273,7 +273,8 @@ public sealed partial class PdfDocument {
     internal PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => PdfRedactionPlanner.Search(GetBytesForOperation(), search, layoutOptions, options ?? ReadOptions);
 
     /// <summary>
-    /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
+    /// Creates a new PDF with intersecting text glyphs and annotations removed from the supplied redaction areas.
+    /// Unsupported text mappings fall back to removal of the complete PDF text object.
     /// </summary>
     internal PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options);

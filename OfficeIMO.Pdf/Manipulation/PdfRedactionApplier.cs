@@ -6,7 +6,8 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Applies rectangle-based redactions by removing matched text objects and annotations, then painting redaction marks.
+/// Applies rectangle-based redactions by removing intersecting text glyphs and annotations, then painting redaction marks.
+/// Unsupported text mappings fall back to removal of the complete PDF text object.
 /// </summary>
 internal static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
@@ -88,9 +89,10 @@ internal static partial class PdfRedactionApplier {
     }
 
     /// <summary>
-    /// Removes only text objects intersecting the supplied areas. This is the canonical destructive
-    /// text-rewrite primitive used by existing-document editing; it deliberately leaves images,
-    /// paths, annotations, and document-level residue untouched and does not paint redaction marks.
+    /// Removes text glyphs intersecting the supplied areas while preserving supported encoded glyphs
+    /// outside those areas in their original text-show operations. Unsupported mappings fall back to
+    /// complete text-object removal. This canonical destructive text-rewrite primitive deliberately
+    /// leaves images, paths, annotations, and document-level residue untouched and does not paint marks.
     /// </summary>
     internal static byte[] RemoveTextInAreas(
         byte[] pdf,
@@ -370,7 +372,6 @@ internal static partial class PdfRedactionApplier {
                 pageChanged = RemoveMatchedTextObjects(
                     objects,
                     pageDictionary,
-                    currentMatches,
                     pageAreas ?? Array.Empty<PdfRedactionArea>(),
                     limits,
                     sourceStreamIdentities,

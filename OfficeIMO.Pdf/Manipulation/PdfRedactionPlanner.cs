@@ -45,7 +45,8 @@ internal static partial class PdfRedactionPlanner {
         }
 
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options);
-        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray);
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes = PdfRedactionPlan.CaptureReviewedTextObjectScopes(readDocument, areaArray);
+        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray, reviewedTextObjectScopes);
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
@@ -107,7 +108,8 @@ internal static partial class PdfRedactionPlanner {
             findings.AsReadOnly(),
             searchCriteria: null,
             PdfRedactionPlan.ComputeSourceSha256(pdf),
-            pageIdentities);
+            pageIdentities,
+            reviewedTextObjectScopes);
     }
 
     /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>
@@ -131,6 +133,11 @@ internal static partial class PdfRedactionPlanner {
     private static void AddTextMatches(PdfRedactionArea area, PdfDocumentReadResult document, List<PdfRedactionMatch> matches) {
         foreach (PdfLogicalTextBlock block in document.TextBlocks) {
             if (block.PageNumber != area.PageNumber) {
+                continue;
+            }
+
+            if (block.Spans.Count > 0 && !block.Spans.Any(span =>
+                PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area.X, area.Y, area.Width, area.Height))) {
                 continue;
             }
 
