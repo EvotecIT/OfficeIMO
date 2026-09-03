@@ -95,10 +95,6 @@ internal static class PdfContentStreamTextRewriter {
 
                 if (!IsTextShowOperator(operation.Name)) return true;
                 sawTextShowOperator = true;
-                if (verticalWritingFonts != null && verticalWritingFonts.Contains(currentTextState.FontResource)) {
-                    safe = false;
-                    return false;
-                }
 
                 double effectiveCharacterSpacing = currentTextState.CharacterSpacing;
                 double effectiveWordSpacing = currentTextState.WordSpacing;
@@ -112,6 +108,12 @@ internal static class PdfContentStreamTextRewriter {
                     currentTextState = currentTextState
                         .WithWordSpacing(effectiveWordSpacing)
                         .WithCharacterSpacing(effectiveCharacterSpacing);
+                }
+
+                if (!targets.Any(target => target.MatchesRenderingMode(currentTextState.TextRenderingMode))) return true;
+                if (verticalWritingFonts != null && verticalWritingFonts.Contains(currentTextState.FontResource)) {
+                    safe = false;
+                    return false;
                 }
 
                 if (!TryRewriteShowOperation(
@@ -208,6 +210,7 @@ internal static class PdfContentStreamTextRewriter {
         if (operation.HasInvalidOperands || Math.Abs(fontSize) <= 0.000001D) return false;
 
         if (!TryGetTextItems(operation, out List<object> items, out int byteStringCount)) return false;
+        if (byteStringCount == 0) return true;
         var spansForOperation = new List<IReadOnlyList<PdfTextSpan>>(spansByTransform.Count);
         for (int transformIndex = 0; transformIndex < spansByTransform.Count; transformIndex++) {
             if (!spansByTransform[transformIndex].TryGetValue(operation.OperatorOffset, out List<PdfTextSpan>? spans) ||
@@ -284,7 +287,7 @@ internal static class PdfContentStreamTextRewriter {
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(spans[spanIndex]);
             for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                if (targets[targetIndex].Intersects(bounds)) return true;
+                if (targets[targetIndex].Intersects(bounds, spans[spanIndex].TextRenderingMode)) return true;
             }
         }
         return false;
@@ -347,7 +350,7 @@ internal static class PdfContentStreamTextRewriter {
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
                 PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                    if (targets[targetIndex].Intersects(bounds)) {
+                    if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
                         remove = true;
                         break;
                     }
@@ -478,8 +481,9 @@ internal static class PdfContentStreamTextRewriter {
         object? operand;
         if (operation.Name == "TJ") {
             operand = operation.Operands.Count > 0 ? operation.Operands[operation.Operands.Count - 1] : null;
-            if (operand is not List<object> array) return false;
-            items.AddRange(array);
+            if (operand is List<object> array) items.AddRange(array);
+            else if (operand is double[] numericItems) items.AddRange(numericItems.Cast<object>());
+            else return false;
         } else {
             operand = operation.Operands.Count > 0 ? operation.Operands[operation.Operands.Count - 1] : null;
             if (operand is not byte[] bytes) return false;
@@ -492,7 +496,7 @@ internal static class PdfContentStreamTextRewriter {
             }
             if (items[index] is not double) return false;
         }
-        return byteStringCount > 0;
+        return items.Count > 0;
     }
 
     private static string ApplyEdits(string content, IReadOnlyList<TextShowEdit> edits) {
@@ -590,19 +594,25 @@ internal static class PdfContentStreamTextRewriter {
 }
 
 internal readonly struct PdfContentStreamTextRewriteTarget {
-    internal PdfContentStreamTextRewriteTarget(double x, double y, double width, double height) {
+    internal PdfContentStreamTextRewriteTarget(double x, double y, double width, double height, int? textRenderingMode = null) {
         X = x;
         Y = y;
         Width = width;
         Height = height;
+        TextRenderingMode = textRenderingMode;
     }
 
     internal double X { get; }
     internal double Y { get; }
     internal double Width { get; }
     internal double Height { get; }
+    internal int? TextRenderingMode { get; }
 
-    internal bool Intersects(PdfTextSpanBounds bounds) =>
+    internal bool MatchesRenderingMode(int textRenderingMode) =>
+        !TextRenderingMode.HasValue || TextRenderingMode.Value == textRenderingMode;
+
+    internal bool Intersects(PdfTextSpanBounds bounds, int textRenderingMode) =>
+        MatchesRenderingMode(textRenderingMode) &&
         X < bounds.Right &&
         X + Width > bounds.Left &&
         Y < bounds.Top &&

@@ -33,14 +33,15 @@ internal static partial class PdfTextEditor {
     internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         region = TranslateRegionToSource(pdf, region, readOptions);
-        EnsureRegionIsSafelyEditable(pdf, region, readOptions);
-        PdfRegionText detected = InspectSource(pdf, region, readOptions);
-        EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        EnsureRegionIsSafelyEditable(pdf, region, snapshot.AllowTextRenderingMode3, readOptions);
+        PdfRegionText detected = InspectSource(pdf, region, snapshot.AllowTextRenderingMode3, readOptions);
+        EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
+        EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
         TextRemovalResult removal = detected.Spans.Count == 0
             ? new TextRemovalResult(pdf.ToArray(), Array.Empty<string>(), Array.Empty<PdfStamper.TextStampRequest>())
-            : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions);
+            : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var replacementRequests = new List<PdfStamper.TextStampRequest>();
         if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, PreserveAuthoredEdgeWhitespace(detected.Spans, text), style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
@@ -54,12 +55,13 @@ internal static partial class PdfTextEditor {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
         source = TranslateRegionToSource(pdf, source, readOptions);
-        EnsureRegionIsSafelyEditable(pdf, source, readOptions);
-        PdfRegionText detected = InspectSource(pdf, source, readOptions);
+        PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        EnsureRegionIsSafelyEditable(pdf, source, snapshot.AllowTextRenderingMode3, readOptions);
+        PdfRegionText detected = InspectSource(pdf, source, snapshot.AllowTextRenderingMode3, readOptions);
+        EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
         if (detected.Spans.Count == 0 || detected.Text.Length == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
         EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions);
-        PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
-        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, new[] { source.ToRedactionArea() }, readOptions);
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, new[] { source.ToRedactionArea() }, readOptions, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var movedRequests = new List<PdfStamper.TextStampRequest>();
         var warnings = new List<string>(removal.Warnings);
@@ -89,6 +91,8 @@ internal static partial class PdfTextEditor {
         ValidateFinite(deltaY, nameof(deltaY));
         TextSearchHit hit = ResolveHit(pdf, match, readOptions);
         PdfTextSpan[] targetSpans = hit.Segments.Select(static segment => segment.Span).Distinct().ToArray();
+        PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        EnsureCompatibleRenderingModes(targetSpans, snapshot.AllowTextRenderingMode3);
         EnsureAppendOrderIsSafe(pdf, hit.PageNumber, targetSpans, readOptions);
 
         PageSpanKey[] keys = targetSpans.Select(span => new PageSpanKey(hit.PageNumber, span)).ToArray();
@@ -96,8 +100,7 @@ internal static partial class PdfTextEditor {
             SpanBounds bounds = GetBounds(key.Span);
             return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height);
         }).ToArray();
-        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, keys);
-        PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, keys, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
         var warnings = new List<string>(removal.Warnings);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var movedRequests = new List<PdfStamper.TextStampRequest>();
@@ -131,8 +134,15 @@ internal static partial class PdfTextEditor {
     }
 
     private static TextMutationResult ReplaceHits(byte[] pdf, IReadOnlyList<TextSearchHit> hits, string replacement, PdfTextEditOptions? editOptions, PdfLoadOptions? readOptions) {
+        PdfTextEditOptions snapshot = (editOptions ?? new PdfTextEditOptions()).Snapshot();
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
-            EnsureAppendOrderIsSafe(pdf, pageHits.Key, pageHits.SelectMany(static hit => hit.Segments).Select(static segment => segment.Span).Distinct().ToArray(), readOptions);
+            foreach (TextSearchHit hit in pageHits) {
+                EnsureCompatibleRenderingModes(
+                    hit.Segments.Select(static segment => segment.Span).Distinct().ToArray(),
+                    snapshot.AllowTextRenderingMode3);
+            }
+            PdfTextSpan[] targetSpans = pageHits.SelectMany(static hit => hit.Segments).Select(static segment => segment.Span).Distinct().ToArray();
+            EnsureAppendOrderIsSafe(pdf, pageHits.Key, targetSpans, readOptions);
         }
 
         var rewrites = new Dictionary<PageSpanKey, List<SpanTextEdit>>();
@@ -148,7 +158,7 @@ internal static partial class PdfTextEditor {
                 edits.Add(new SpanTextEdit(segment.Start, segment.Length, segmentIndex == 0 ? replacement : string.Empty));
             }
         }
-        IncludeTrailingFlowSpans(rewrites, hits);
+        IncludeTrailingFlowSpans(rewrites, hits, snapshot.AllowTextRenderingMode3);
 
         PdfRedactionArea[] areas = rewrites.Keys
             .Select(static key => {
@@ -156,8 +166,7 @@ internal static partial class PdfTextEditor {
                 return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height);
             })
             .ToArray();
-        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, rewrites.Keys.ToArray());
-        PdfTextEditOptions snapshot = (editOptions ?? new PdfTextEditOptions()).Snapshot();
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, rewrites.Keys.ToArray(), allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
         var warnings = new List<string>(removal.Warnings);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var rewrittenRequests = new List<PdfStamper.TextStampRequest>();
@@ -279,7 +288,8 @@ internal static partial class PdfTextEditor {
         IReadOnlyList<PdfRedactionArea> areas,
         PdfLoadOptions? readOptions,
         IReadOnlyList<PageSpanKey>? exactTargets = null,
-        bool allowInvisibleTargetRemoval = false) {
+        bool allowInvisibleTargetRemoval = false,
+        bool allowTextRenderingMode3 = false) {
         PdfReadDocument before = PdfReadDocument.Open(pdf, readOptions);
         int[] affectedPages = areas.Select(static area => area.PageNumber).Distinct().ToArray();
         var original = new List<PageTextSpanSnapshot>();
@@ -293,14 +303,21 @@ internal static partial class PdfTextEditor {
                 bool targeted = exactTargets is null
                     ? areas.Any(area => area.PageNumber == pageNumber && Intersects(area, bounds))
                     : exactTargets.Any(target => target.PageNumber == pageNumber && SameTargetSourceSpan(span, target.Span));
-                if (targeted && !allowInvisibleTargetRemoval && !IsSafelyEditableSpan(span)) {
+                if (targeted && !allowInvisibleTargetRemoval && !IsSafelyEditableSpan(span, allowTextRenderingMode3)) {
                     throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
                 }
                 original.Add(new PageTextSpanSnapshot(pageNumber, span, targeted));
             }
         }
 
-        byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, areas, readOptions: readOptions);
+        IReadOnlyList<PdfRedactionArea> removalAreas = exactTargets is null
+            ? areas
+            : exactTargets.Select(static target => {
+                SpanBounds bounds = GetBounds(target.Span);
+                return new PdfRedactionArea(target.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height)
+                    .WithTextRenderingMode(target.Span.TextRenderingMode);
+            }).ToArray();
+        byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, removalAreas, readOptions: readOptions);
         PdfLoadOptions afterReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
         PdfReadDocument after = PdfReadDocument.Open(removed, afterReadOptions);
         var remainingByPage = affectedPages.ToDictionary(
@@ -325,7 +342,7 @@ internal static partial class PdfTextEditor {
         }
         for (int index = 0; index < missing.Count; index++) {
             PageTextSpanSnapshot snapshot = missing[index];
-            if (!IsSafelyEditableSpan(snapshot.Span)) {
+            if (!IsSafelyEditableSpan(snapshot.Span, allowTextRenderingMode3)) {
                 throw new NotSupportedException("The text edit would require recreating invisible or clipped source text without its original rendering state.");
             }
             PdfRegionText detected = BuildRegionText(new[] { snapshot.Span });
@@ -389,7 +406,8 @@ internal static partial class PdfTextEditor {
                 style.FontSize,
                 style.Color,
                 style.RotationDegrees,
-                paintOrder + (index * 0.0000001D)));
+                paintOrder + (index * 0.0000001D),
+                style.TextRenderingMode));
         }
     }
 
@@ -441,7 +459,8 @@ internal static partial class PdfTextEditor {
 
     private static void IncludeTrailingFlowSpans(
         Dictionary<PageSpanKey, List<SpanTextEdit>> rewrites,
-        IReadOnlyList<TextSearchHit> hits) {
+        IReadOnlyList<TextSearchHit> hits,
+        bool allowTextRenderingMode3) {
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
             foreach (IGrouping<PdfTextSpan[], TextSearchHit> lineHits in pageHits.GroupBy(
                          static hit => hit.LineSpans,
@@ -469,6 +488,10 @@ internal static partial class PdfTextEditor {
                         rewrites.Add(key, new List<SpanTextEdit>());
                     }
                 }
+
+                EnsureCompatibleRenderingModes(
+                    lineSpans.Where(span => rewrites.ContainsKey(new PageSpanKey(pageHits.Key, span))).ToArray(),
+                    allowTextRenderingMode3);
             }
         }
     }
@@ -526,7 +549,8 @@ internal static partial class PdfTextEditor {
         options.Font ?? detected?.SuggestedFont ?? PdfStandardFont.Helvetica,
         options.FontSize ?? detected?.FontSize ?? 12D,
         options.Color ?? detected?.Color ?? PdfColor.Black,
-        options.RotationDegrees ?? detected?.RotationDegrees ?? 0D);
+        options.RotationDegrees ?? detected?.RotationDegrees ?? 0D,
+        detected?.Spans.Count > 0 && detected.Spans.All(static span => span.TextRenderingMode == 3) ? 3 : 0);
 
     private static string[] BuildSubstitutionWarnings(PdfRegionText detected, PdfStandardFont targetFont) {
         string source = StripSubsetPrefix(detected.SourceFont);
@@ -717,18 +741,19 @@ internal static partial class PdfTextEditor {
         fragments.Add(new PositionedTextFragment(text, style));
     }
 
-    private static bool IsSafelyEditableSpan(PdfTextSpan span) =>
-        span.IsVisible &&
+    private static bool IsSafelyEditableSpan(PdfTextSpan span, bool allowTextRenderingMode3 = false) =>
+        ((span.IsVisible && span.TextRenderingMode == 0) ||
+         (allowTextRenderingMode3 && !span.IsVisible && span.TextRenderingMode == 3)) &&
+        !(span.TextRenderingMode == 3 && span.IsType3Font) &&
         !span.ClipPath.HasValue &&
-        span.TextRenderingMode == 0 &&
-        (!span.Color.HasValue || span.Color.Value.A == byte.MaxValue) &&
+        (span.TextRenderingMode == 3 || !span.Color.HasValue || span.Color.Value.A == byte.MaxValue) &&
         span.CanRestamp &&
         !string.IsNullOrEmpty(span.Text);
 
-    private static bool IsVisibleSearchSpan(PdfTextSpan span) =>
-        span.IsVisible &&
+    private static bool IsSearchSpan(PdfTextSpan span, bool includeTextRenderingMode3) =>
+        (span.IsVisible || (includeTextRenderingMode3 && span.TextRenderingMode == 3 && !span.IsType3Font)) &&
         !span.ClipPath.HasValue &&
-        (!span.Color.HasValue || span.Color.Value.A > 0) &&
+        (span.TextRenderingMode == 3 || !span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);
 
     private static PdfReadDocument OpenForVisualTextEditing(byte[] pdf, PdfLoadOptions? readOptions) =>
@@ -746,35 +771,55 @@ internal static partial class PdfTextEditor {
     private static PdfPageRegion OffsetRegion(PdfPageRegion region, double deltaX, double deltaY) =>
         new PdfPageRegion(region.PageNumber, region.X + deltaX, region.Y + deltaY, region.Width, region.Height);
 
-    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
+    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) =>
+        InspectSource(pdf, region, includeTextRenderingMode3: false, readOptions);
+
+    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, bool includeTextRenderingMode3, PdfLoadOptions? readOptions) {
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
-        return InspectSource(document.Pages[region.PageNumber - 1], region);
+        return InspectSource(document.Pages[region.PageNumber - 1], region, includeTextRenderingMode3);
     }
 
-    private static PdfRegionText InspectSource(PdfReadPage page, PdfPageRegion region) =>
+    private static PdfRegionText InspectSource(PdfReadPage page, PdfPageRegion region, bool includeTextRenderingMode3 = false) =>
         BuildRegionText(page.GetTextSpans()
-            .Where(span => IsVisibleSearchSpan(span) && Intersects(region, GetBounds(span)))
+            .Where(span => IsSearchSpan(span, includeTextRenderingMode3) && Intersects(region, GetBounds(span)))
             .ToArray());
 
-    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
+    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, bool allowTextRenderingMode3, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         bool containsUnsafeText = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
-            .Any(span => !IsSafelyEditableSpan(span) && Intersects(region, GetBounds(span)));
+            .Any(span => !IsSafelyEditableSpan(span, allowTextRenderingMode3) && Intersects(region, GetBounds(span)));
         if (containsUnsafeText) {
             throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
+        }
+    }
+
+    private static void EnsureCompatibleRenderingModes(IReadOnlyList<PdfTextSpan> spans, bool allowTextRenderingMode3) {
+        for (int index = 0; index < spans.Count; index++) {
+            if (!IsSafelyEditableSpan(spans[index], allowTextRenderingMode3)) {
+                throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
+            }
+        }
+        if (spans.Any(static span => span.TextRenderingMode == 3) &&
+            spans.Any(static span => span.TextRenderingMode != 3)) {
+            throw new NotSupportedException("One text edit cannot combine visible text with rendering-mode-3 OCR text.");
         }
     }
 
     private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfLoadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
         if (spans.Count == 0) return;
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
-        IReadOnlyList<PdfReadPage.PdfAppendedTextBounds>? appendedBounds = appendedRequests?.Select(ToAppendedTextBounds).ToArray();
-        if (document.Pages[pageNumber - 1].WouldAppendingTextChangeVisibleStacking(spans, appendedBounds)) {
+        PdfTextSpan[] visibleSpans = spans.Where(static span => span.TextRenderingMode != 3).ToArray();
+        PdfReadPage.PdfAppendedTextBounds[]? appendedBounds = appendedRequests?
+            .Where(static request => request.TextRenderingMode != 3)
+            .Select(ToAppendedTextBounds)
+            .ToArray();
+        if (visibleSpans.Length == 0 && (appendedBounds == null || appendedBounds.Length == 0)) return;
+        if (document.Pages[pageNumber - 1].WouldAppendingTextChangeVisibleStacking(visibleSpans, appendedBounds)) {
             throw new NotSupportedException("The text edit would change the visible stacking order of overlapping page content.");
         }
     }
@@ -823,14 +868,15 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct PdfResolvedTextStyle : IEquatable<PdfResolvedTextStyle> {
-        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees) { Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees; }
+        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, int textRenderingMode) { Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees; TextRenderingMode = textRenderingMode; }
         internal PdfStandardFont Font { get; }
         internal double FontSize { get; }
         internal PdfColor Color { get; }
         internal double RotationDegrees { get; }
-        public bool Equals(PdfResolvedTextStyle other) => Font == other.Font && FontSize.Equals(other.FontSize) && Color.Equals(other.Color) && RotationDegrees.Equals(other.RotationDegrees);
+        internal int TextRenderingMode { get; }
+        public bool Equals(PdfResolvedTextStyle other) => Font == other.Font && FontSize.Equals(other.FontSize) && Color.Equals(other.Color) && RotationDegrees.Equals(other.RotationDegrees) && TextRenderingMode == other.TextRenderingMode;
         public override bool Equals(object? obj) => obj is PdfResolvedTextStyle other && Equals(other);
-        public override int GetHashCode() { unchecked { int hash = (int)Font; hash = (hash * 397) ^ FontSize.GetHashCode(); hash = (hash * 397) ^ Color.GetHashCode(); return (hash * 397) ^ RotationDegrees.GetHashCode(); } }
+        public override int GetHashCode() { unchecked { int hash = (int)Font; hash = (hash * 397) ^ FontSize.GetHashCode(); hash = (hash * 397) ^ Color.GetHashCode(); hash = (hash * 397) ^ RotationDegrees.GetHashCode(); return (hash * 397) ^ TextRenderingMode; } }
     }
 
     private readonly struct SpanBounds {
@@ -880,13 +926,14 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct RewriteLineKey : IEquatable<RewriteLineKey> {
-        private RewriteLineKey(int pageNumber, double rotation) { PageNumber = pageNumber; Rotation = rotation; }
+        private RewriteLineKey(int pageNumber, double rotation, bool isTextRenderingMode3) { PageNumber = pageNumber; Rotation = rotation; IsTextRenderingMode3 = isTextRenderingMode3; }
         private int PageNumber { get; }
         private double Rotation { get; }
-        internal static RewriteLineKey Create(PositionedRewrite rewrite) => new RewriteLineKey(rewrite.PageNumber, Math.Round(rewrite.Source.RotationDegrees, 1));
-        public bool Equals(RewriteLineKey other) => PageNumber == other.PageNumber && Rotation.Equals(other.Rotation);
+        private bool IsTextRenderingMode3 { get; }
+        internal static RewriteLineKey Create(PositionedRewrite rewrite) => new RewriteLineKey(rewrite.PageNumber, Math.Round(rewrite.Source.RotationDegrees, 1), rewrite.Source.TextRenderingMode == 3);
+        public bool Equals(RewriteLineKey other) => PageNumber == other.PageNumber && Rotation.Equals(other.Rotation) && IsTextRenderingMode3 == other.IsTextRenderingMode3;
         public override bool Equals(object? obj) => obj is RewriteLineKey other && Equals(other);
-        public override int GetHashCode() { unchecked { return (PageNumber * 397) ^ Rotation.GetHashCode(); } }
+        public override int GetHashCode() { unchecked { return ((PageNumber * 397) ^ Rotation.GetHashCode()) * 397 ^ IsTextRenderingMode3.GetHashCode(); } }
     }
 
     private readonly struct SpanTextEdit {

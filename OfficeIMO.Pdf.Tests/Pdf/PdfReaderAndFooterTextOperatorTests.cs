@@ -23,6 +23,16 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_AppliesNumericOnlyTJPositioning() {
+        byte[] bytes = BuildSingleStreamPdf("BT /F1 12 Tf 50 700 Td [-5000] TJ (tail) Tj ET\n");
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("tail", span.Text);
+        Assert.InRange(span.X, 109.99D, 110.01D);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsSingleQuoteOperator() {
         byte[] bytes = BuildPdfWithSingleQuoteOperator();
 

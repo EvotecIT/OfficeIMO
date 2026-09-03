@@ -1245,6 +1245,29 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceRedactsSearchableScanPixelsAndRenderingMode3TextTogether() {
+        byte[] source = BuildSearchableScanRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        var area = new PdfRedactionArea(1, placement.X, placement.Y, placement.Width / 2D, placement.Height);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true,
+                CheckManagedRendering = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(PdfReadDocument.Open(result.Pdf).Pages[0].GetTextSpans());
+        byte[] pixels = DecodeSingleImagePixels(result.Pdf);
+        Assert.True(LeftHalfIsRedacted(pixels, width: 4, height: 2, components: 3));
+        Assert.Contains(pixels.Skip(6), static value => value != 0);
+    }
+
+    [Fact]
     public void Apply_RewritesPartiallyCoveredSoftMaskedSimpleImagePixelsAndMask() {
         byte[] source = BuildSoftMaskedSimpleFlateImageRedactionSource();
         PdfLogicalImage image = GetSingleImage(source);
@@ -1861,6 +1884,44 @@ public class PdfRedactionVerificationTests {
         }) + "\n");
         output.Write(compressed, 0, compressed.Length);
         WriteAscii("\nendstream\nendobj\n6 0 obj\n/ASCIIHexDecode\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildSearchableScanRedactionSource() {
+        const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\nBT /F1 3 Tf 3 Tr 21 36 Td (OCR-SECRET) Tj ET\n";
+        byte[] pixels = CreateSimpleFlateImagePixels();
+        byte[] compressed = Compress(pixels);
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent.TrimEnd('\n'));
+
+        using var output = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImSimple 5 0 R >> /Font << /F1 6 0 R >> >> >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + pageStreamLength.ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream"
+        }) + "\n");
+        output.Write(compressed, 0, compressed.Length);
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 

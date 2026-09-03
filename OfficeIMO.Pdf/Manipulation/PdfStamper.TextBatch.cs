@@ -116,12 +116,16 @@ internal static partial class PdfStamper {
         double radians = request.RotationDegrees * Math.PI / 180D;
         double cos = Math.Cos(radians);
         double sin = Math.Sin(radians);
-        new ContentStreamBuilder(builder)
+        var content = new ContentStreamBuilder(builder)
             .SaveState()
             .FillColor(request.Color)
             .BeginText()
             .Font(font.Name, request.FontSize)
-            .TextMatrix(cos, sin, -sin, cos, request.X, request.Y)
+            .TextMatrix(cos, sin, -sin, cos, request.X, request.Y);
+        if (request.TextRenderingMode != 0) {
+            content.TextRenderingMode(request.TextRenderingMode);
+        }
+        content
             .ShowHexText(hexText)
             .EndText()
             .RestoreState();
@@ -184,7 +188,7 @@ internal static partial class PdfStamper {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal readonly struct TextStampRequest {
-        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, double paintOrder = double.MaxValue) {
+        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, double paintOrder = double.MaxValue, int textRenderingMode = 0) {
             PageNumber = pageNumber;
             Text = text;
             X = x;
@@ -194,6 +198,7 @@ internal static partial class PdfStamper {
             Color = color;
             RotationDegrees = rotationDegrees;
             PaintOrder = paintOrder;
+            TextRenderingMode = textRenderingMode;
         }
 
         internal int PageNumber { get; }
@@ -205,6 +210,7 @@ internal static partial class PdfStamper {
         internal PdfColor Color { get; }
         internal double RotationDegrees { get; }
         internal double PaintOrder { get; }
+        internal int TextRenderingMode { get; }
     }
 
     private readonly struct BatchFontResource {

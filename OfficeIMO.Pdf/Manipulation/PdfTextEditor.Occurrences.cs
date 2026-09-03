@@ -6,7 +6,7 @@ internal static partial class PdfTextEditor {
         IReadOnlyList<TextSearchHit> hits = FindHits(
             pdf,
             match.Text,
-            new PdfTextSearchOptions { MatchCase = true, PageNumbers = new[] { match.PageNumber } },
+            new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = match.IsTextRenderingMode3, PageNumbers = new[] { match.PageNumber } },
             readOptions);
         TextSearchHit[] candidates = hits.Where(hit => SameMatchGeometry(hit.Match, match)).ToArray();
         if (candidates.Length != 1) {
@@ -18,6 +18,7 @@ internal static partial class PdfTextEditor {
     private static bool SameMatchGeometry(PdfTextMatch left, PdfTextMatch right) =>
         left.PageNumber == right.PageNumber &&
         string.Equals(left.Text, right.Text, StringComparison.Ordinal) &&
+        left.IsTextRenderingMode3 == right.IsTextRenderingMode3 &&
         Math.Abs(left.X - right.X) <= 0.01D &&
         Math.Abs(left.Y - right.Y) <= 0.01D &&
         Math.Abs(left.Width - right.Width) <= 0.01D &&

@@ -280,6 +280,7 @@ internal static class TextContentParser {
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
+        System.Func<string, bool>? isType3FontResource = null,
         System.Func<string, string?>? drawingFontFamilyForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
@@ -982,7 +983,7 @@ internal static class TextContentParser {
                 blendMode == OfficeBlendMode.Normal &&
                 !hasSoftMask &&
                 !hasUnsupportedEffect &&
-                isVisibleText &&
+                (isVisibleText || textRenderingMode == 3) &&
                 fillColorResolved &&
                 !HasActiveMcid() &&
                 !HasActiveOptionalContent() &&
@@ -1085,7 +1086,8 @@ internal static class TextContentParser {
                         ? transformedGlyphPaintedAdvances
                         : null,
                     characterAdvanceDirection,
-                    actualTextState is not null));
+                    actualTextState is not null,
+                    isType3FontResource?.Invoke(font) == true));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1200,7 +1202,10 @@ internal static class TextContentParser {
 
         void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
-            var list = arrObj as List<object>;
+            List<object>? list = arrObj as List<object>;
+            if (list == null && arrObj is double[] numericItems) {
+                list = numericItems.Cast<object>().ToList();
+            }
             if (list == null) return;
             bool hasPositioningAdjustment = list.Any(static item => item is double value && Math.Abs(value) > 0.000001D);
             for (int j = 0; j < list.Count; j++) {
