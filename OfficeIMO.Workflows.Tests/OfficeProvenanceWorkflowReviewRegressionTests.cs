@@ -340,6 +340,23 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task InspectReentersTheDetectedHtmlOwnerForAnUnknownExtension() {
+        using var scope = new TempScope();
+        string input = scope.Write("asset.bin", HtmlWithExternalManifest("body"));
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("OfficeIMO.Html", result.OwnerPackage);
+        Assert.Equal(OfficeProvenanceAssetFormat.Html, result.Inspection!.Format);
+        Assert.Equal(OfficeProvenanceCarrierKind.C2paExternalManifest, Assert.Single(result.Inspection.Evidence).Carrier);
+    }
+
+    [Fact]
     public async Task AssessmentWithoutProvidersDoesNotCopyAnOversizedExternalManifest() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
@@ -400,6 +417,27 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         } else {
             Assert.True(result.Succeeded, result.Summary);
         }
+        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+    }
+
+    [Fact]
+    public async Task AssessmentResolvesRelativeManifestAgainstTheHtmlBaseElement() {
+        using var scope = new TempScope();
+        string input = scope.Write(
+            "page.html",
+            "<!doctype html><html><head><base href=\"sub/\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>body</body></html>");
+        Directory.CreateDirectory(Path.Combine(scope.Path, "sub"));
+        File.WriteAllText(Path.Combine(scope.Path, "sub", "claim.c2pa"), "base-relative claim");
+        var verifier = new BaseRelativeManifestVerifier();
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(verifier.SawRelativeManifest);
         Assert.False(Directory.Exists(verifier.ObservedDirectory));
     }
 
@@ -649,6 +687,25 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             }
             return new OfficeProvenanceVerificationResult(
                 OfficeProvenanceVerificationStatus.Valid,
+                Name,
+                Array.Empty<string>());
+        }
+    }
+
+    private sealed class BaseRelativeManifestVerifier : IOfficeProvenanceVerifier {
+        public string Name => "base-relative-manifest";
+        internal bool SawRelativeManifest { get; private set; }
+        internal string? ObservedDirectory { get; private set; }
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) {
+            ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            string manifestPath = Path.Combine(ObservedDirectory!, "sub", "claim.c2pa");
+            SawRelativeManifest = File.Exists(manifestPath) &&
+                                  File.ReadAllText(manifestPath) == "base-relative claim";
+            return new OfficeProvenanceVerificationResult(
+                SawRelativeManifest ? OfficeProvenanceVerificationStatus.Valid : OfficeProvenanceVerificationStatus.Invalid,
                 Name,
                 Array.Empty<string>());
         }

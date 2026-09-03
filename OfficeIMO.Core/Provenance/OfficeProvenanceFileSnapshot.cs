@@ -73,7 +73,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     sourceDirectory,
                     _directoryPath,
                     FilePath,
-                    evidence.Value!,
+                    report.GetExternalManifestReference(evidence)!,
                     out string sourceDependency,
                     out string targetDependency) ||
                 !capturedTargets.Add(targetDependency) ||
@@ -147,13 +147,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string filePath = Path.Combine(directoryPath, "snapshot" + extension);
         try {
             long copiedBytes = 0;
-            using (var source = new FileStream(
-                       fullPath,
-                       FileMode.Open,
-                       FileAccess.Read,
-                       FileShare.Read,
-                       81920,
-                       FileOptions.SequentialScan))
+            string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(
+                Path.GetDirectoryName(fullPath)!);
+            using (FileStream source = OpenSnapshotSource(fullPath, physicalSourceDirectory))
             using (var destination = new FileStream(
                        filePath,
                        FileMode.CreateNew,
@@ -456,6 +452,20 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
 
         public void Dispose() => _lease.Dispose();
+    }
+
+    private static FileStream OpenSnapshotSource(string path, string physicalSourceDirectory) {
+        try {
+            return OfficePathIdentity.OpenRegularFileForRead(path, physicalSourceDirectory, 81920);
+        } catch (InvalidDataException) {
+            throw;
+        } catch (FileNotFoundException) {
+            throw;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            throw new InvalidDataException(
+                "The provenance snapshot source could not be opened as a regular file.",
+                exception);
+        }
     }
 
     private static byte[] ComputeHash(Stream stream, CancellationToken cancellationToken) {

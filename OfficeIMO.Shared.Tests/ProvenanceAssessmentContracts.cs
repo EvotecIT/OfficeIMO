@@ -209,6 +209,24 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void SnapshotRejectsAUnixFifoWithoutBlockingForAWriter() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".fifo");
+        try {
+            Assert.Equal(0, CreateFifoUnix(fifo, 0x180));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                OfficeProvenanceFileSnapshot.Capture(fifo, maximumBytes: 1024));
+
+            Assert.Contains("regular file", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(fifo);
+        }
+#endif
+    }
+
+    [Fact]
     public void AssessmentRejectsProviderMutationOfThePrimarySnapshot() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
@@ -438,6 +456,9 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
 #if NET8_0_OR_GREATER
+    [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true)]
+    private static extern int CreateFifoUnix(string path, uint mode);
+
     private sealed class SnapshotReplacingDetector : IOfficeProvenanceSignalDetector {
         public string Name => "snapshot-replacing";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;

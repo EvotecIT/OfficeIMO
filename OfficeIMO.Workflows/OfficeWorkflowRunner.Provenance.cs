@@ -80,6 +80,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             if (structural.Format == OfficeProvenanceAssetFormat.Unknown) {
                 throw new NotSupportedException("The input is not a supported provenance asset.");
             }
+            if (refinedOwner != validated.Owner) {
+                structural = await Task.Run(
+                    () => OfficeProvenanceWorkflowAdapter.Inspect(refinedOwner, operationInputPath, inspectionOptions),
+                    cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
             validated = validated with { Owner = refinedOwner };
             ownerPackage = GetPackage(refinedOwner);
 

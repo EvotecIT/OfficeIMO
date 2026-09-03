@@ -106,12 +106,20 @@ public sealed class OfficeProvenanceReport {
         OfficeProvenanceAssetFormat format,
         IReadOnlyList<OfficeProvenanceEvidence> evidence,
         IReadOnlyList<string>? diagnostics,
-        long expandedInspectionBytes) {
+        long expandedInspectionBytes,
+        IReadOnlyDictionary<OfficeProvenanceEvidence, string>? resolvedExternalManifestReferences = null) {
         if (expandedInspectionBytes < 0) throw new ArgumentOutOfRangeException(nameof(expandedInspectionBytes));
         Format = format;
         Evidence = new List<OfficeProvenanceEvidence>(evidence ?? throw new ArgumentNullException(nameof(evidence))).AsReadOnly();
         Diagnostics = new List<string>(diagnostics ?? Array.Empty<string>()).AsReadOnly();
         ExpandedInspectionBytes = expandedInspectionBytes;
+        var resolvedReferences = new Dictionary<OfficeProvenanceEvidence, string>();
+        if (resolvedExternalManifestReferences is not null) {
+            foreach (KeyValuePair<OfficeProvenanceEvidence, string> pair in resolvedExternalManifestReferences) {
+                resolvedReferences.Add(pair.Key, pair.Value);
+            }
+        }
+        ResolvedExternalManifestReferences = resolvedReferences;
     }
 
     /// <summary>Gets the identified asset format.</summary>
@@ -122,6 +130,9 @@ public sealed class OfficeProvenanceReport {
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Gets expanded bytes already consumed by structural inspection for shared assessment limits.</summary>
     internal long ExpandedInspectionBytes { get; }
+    private IReadOnlyDictionary<OfficeProvenanceEvidence, string> ResolvedExternalManifestReferences { get; }
+    internal string? GetExternalManifestReference(OfficeProvenanceEvidence evidence) =>
+        ResolvedExternalManifestReferences.TryGetValue(evidence, out string? resolved) ? resolved : evidence.Value;
     /// <summary>Gets whether an embedded C2PA carrier was discovered.</summary>
     public bool HasC2paManifest {
         get {

@@ -19,10 +19,14 @@ public static partial class HtmlProvenance {
     public static OfficeProvenanceReport Inspect(string html, OfficeProvenanceOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         options ??= new OfficeProvenanceOptions();
-        return InspectCore(html, options, enforceUtf8Size: true);
+        return InspectCore(html, options, enforceUtf8Size: true, documentUri: null);
     }
 
-    private static OfficeProvenanceReport InspectCore(string html, OfficeProvenanceOptions options, bool enforceUtf8Size) {
+    private static OfficeProvenanceReport InspectCore(
+        string html,
+        OfficeProvenanceOptions options,
+        bool enforceUtf8Size,
+        Uri? documentUri = null) {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (enforceUtf8Size && Encoding.UTF8.GetByteCount(html) > options.MaxAssetBytes) {
             throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
@@ -32,16 +36,30 @@ public static partial class HtmlProvenance {
         IHtmlDocument document = ParseBoundedDocument(html, options.MaxContainerEntries, ref structuralEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
         var diagnostics = new List<string>();
+        var resolvedExternalManifestReferences = new Dictionary<OfficeProvenanceEvidence, string>();
+        Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, documentUri);
+        Uri? sourceDirectoryUri = documentUri is null ? null : new Uri(documentUri, ".");
         long expandedBytes = 0;
-        InspectManifestCarriers(document, options, evidence, diagnostics, "HTML", ref expandedBytes);
+        InspectManifestCarriers(
+            document,
+            options,
+            evidence,
+            diagnostics,
+            resolvedExternalManifestReferences,
+            effectiveBaseUri,
+            sourceDirectoryUri,
+            "HTML",
+            ref expandedBytes);
         int embeddedAssetCount = 0;
         InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries,
-            ref expandedBytes, "HTML", srcDocDepth: 0);
+            ref expandedBytes, resolvedExternalManifestReferences, effectiveBaseUri, sourceDirectoryUri,
+            "HTML", srcDocDepth: 0);
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Html,
             evidence.AsReadOnly(),
             diagnostics.AsReadOnly(),
-            expandedBytes);
+            expandedBytes,
+            resolvedExternalManifestReferences);
     }
 
     private static void InspectManifestCarriers(
@@ -49,6 +67,9 @@ public static partial class HtmlProvenance {
         OfficeProvenanceOptions options,
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics,
+        Dictionary<OfficeProvenanceEvidence, string> resolvedExternalManifestReferences,
+        Uri? effectiveBaseUri,
+        Uri? sourceDirectoryUri,
         string documentLocation,
         ref long expandedBytes) {
         IElement? head = document.Head;
@@ -81,14 +102,33 @@ public static partial class HtmlProvenance {
             string value = TrimAsciiWhitespace(link.GetAttribute("href"));
             bool safeReference = IsSafeManifestReference(value, out Uri? uri);
             bool valid = manifestElements.Length == 1 && safeReference;
-            AddEvidence(evidence, options, new OfficeProvenanceEvidence(
+            var item = new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paExternalManifest,
                 $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]",
                 valid,
                 0,
-                valid && uri!.IsAbsoluteUri ? uri.AbsoluteUri : value));
+                valid && uri!.IsAbsoluteUri ? uri.AbsoluteUri : value);
+            AddEvidence(evidence, options, item);
+            if (valid) {
+                string resolved = ResolveExternalManifestReference(value, effectiveBaseUri, sourceDirectoryUri);
+                if (!string.Equals(resolved, item.Value, StringComparison.Ordinal)) {
+                    resolvedExternalManifestReferences.Add(item, resolved);
+                }
+            }
         }
 
+    }
+
+    private static string ResolveExternalManifestReference(
+        string reference,
+        Uri? effectiveBaseUri,
+        Uri? sourceDirectoryUri) {
+        if (effectiveBaseUri is null ||
+            !Uri.TryCreate(effectiveBaseUri, reference, out Uri? resolved)) return reference;
+        if (resolved.IsFile && sourceDirectoryUri?.IsFile == true) {
+            return sourceDirectoryUri.MakeRelativeUri(resolved).ToString();
+        }
+        return resolved.IsAbsoluteUri ? resolved.AbsoluteUri : reference;
     }
 
     /// <summary>Inspects a bounded HTML file without resolving external resources.</summary>
@@ -97,7 +137,11 @@ public static partial class HtmlProvenance {
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes);
-        return InspectCore(DecodeHtml(data, out _, out _), options, enforceUtf8Size: false);
+        return InspectCore(
+            DecodeHtml(data, out _, out _),
+            options,
+            enforceUtf8Size: false,
+            new Uri(Path.GetFullPath(filePath)));
     }
 
     /// <summary>Removes selected HTML provenance and provenance in supported embedded image data URIs.</summary>
@@ -232,6 +276,9 @@ public static partial class HtmlProvenance {
         ref int count,
         ref int structuralEntries,
         ref long expandedBytes,
+        Dictionary<OfficeProvenanceEvidence, string> resolvedExternalManifestReferences,
+        Uri? effectiveBaseUri,
+        Uri? sourceDirectoryUri,
         string documentLocation,
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets) {
@@ -289,9 +336,20 @@ public static partial class HtmlProvenance {
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
-            InspectManifestCarriers(nested, options, evidence, diagnostics, location, ref expandedBytes);
+            Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, effectiveBaseUri);
+            InspectManifestCarriers(
+                nested,
+                options,
+                evidence,
+                diagnostics,
+                resolvedExternalManifestReferences,
+                nestedBaseUri,
+                sourceDirectoryUri,
+                location,
+                ref expandedBytes);
             InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries,
-                ref expandedBytes, location, srcDocDepth + 1);
+                ref expandedBytes, resolvedExternalManifestReferences, nestedBaseUri, sourceDirectoryUri,
+                location, srcDocDepth + 1);
         }
     }
 
