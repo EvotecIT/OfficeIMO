@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -20,7 +21,7 @@ public static partial class PdfProvenance {
 
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfLoadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        PdfReadDocument document = OpenReadDocument(pdf, effectiveReadOptions, options.CancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -41,7 +42,8 @@ public static partial class PdfProvenance {
             options.MaxCarriers,
             options.MaxContainerEntries,
             requireSuccessfulDecoding: true,
-            allowedObjectNumbers: reachableObjectNumbers);
+            allowedObjectNumbers: reachableObjectNumbers,
+            cancellationToken: options.CancellationToken);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -107,7 +109,7 @@ public static partial class PdfProvenance {
                 false);
         }
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        PdfReadDocument document = OpenReadDocument(pdf, effectiveReadOptions, options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.Limits.MaxContainerEntries);
         _ = CollectAssociationProfile(
@@ -123,7 +125,8 @@ public static partial class PdfProvenance {
             options.Limits.MaxCarriers,
             options.Limits.MaxContainerEntries,
             requireSuccessfulDecoding: true,
-            allowedObjectNumbers: reachableObjectNumbers);
+            allowedObjectNumbers: reachableObjectNumbers,
+            cancellationToken: options.Limits.CancellationToken);
         var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
@@ -175,6 +178,12 @@ public static partial class PdfProvenance {
         OfficeProvenanceReport after = Inspect(output, outputLimits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
+
+    internal static PdfReadDocument OpenReadDocument(
+        byte[] pdf,
+        PdfLoadOptions readOptions,
+        CancellationToken cancellationToken) =>
+        PdfReadDocument.Open(pdf, readOptions, cancellationToken);
 
     /// <summary>Removes selected provenance and atomically writes the resulting PDF.</summary>
     public static OfficeProvenanceRemovalResult RemoveFile(

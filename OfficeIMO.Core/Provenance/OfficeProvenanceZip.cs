@@ -108,9 +108,13 @@ internal static class OfficeProvenanceZip {
                 context.Diagnostics.Add($"ZIP/{entryName}: embedded asset was preserved because inspection failed: {exception.Message}");
                 continue;
             }
+            ReserveExpandedBytes(ref expandedBytes, nested.ExpandedInspectionBytes, options.MaxExpandedContainerBytes);
             foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entryName, evidence));
             foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entryName}: {diagnostic}");
         }
+        context.ReserveExpandedBytes(
+            expandedBytes,
+            "ZIP package exceeds the configured expanded-byte limit.");
         if (index > 1) context.Diagnostics.Add("The ZIP package contains multiple C2PA manifest entries.");
     }
 

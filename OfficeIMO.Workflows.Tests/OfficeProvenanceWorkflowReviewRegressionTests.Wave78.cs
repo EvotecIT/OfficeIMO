@@ -49,8 +49,40 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
 
         Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.NotEqual(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
         Assert.Contains("expanded-container limit", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void BatchRemovalPlanningUsesPortablePathIdentitiesWhenPhysicalIdentityIsUnavailable() {
+        using var scope = new TempScope();
+        string first = scope.Write("first.html", HtmlWithExternalManifest("first"));
+        string second = scope.Write("second.html", HtmlWithExternalManifest("second"));
+
+        OfficeProvenanceWorkflowRequest[] prepared = OfficeWorkflowRunner.PrepareBatchRemovalPaths([
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = first,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = second,
+                OutputPath = Path.Combine(scope.Path, "second-clean.html"),
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            }
+        ], usePhysicalIdentity: false);
+
+        Assert.Equal(Path.Combine(scope.Path, "first.provenance-cleaned.html"), prepared[0].OutputPath);
+        Assert.NotNull(prepared[0].BatchBlockedOutputIdentities);
+        Assert.Same(prepared[0].BatchBlockedOutputIdentities, prepared[1].BatchBlockedOutputIdentities);
+        Assert.All(prepared, request => Assert.NotNull(request.BatchOwnReservedOutputIdentity));
+        Assert.True(OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(
+            prepared[0].OutputPath!,
+            Path.Combine(scope.Path, ".", "first.provenance-cleaned.html"),
+            usePhysicalIdentity: false));
     }
 
     [Fact]

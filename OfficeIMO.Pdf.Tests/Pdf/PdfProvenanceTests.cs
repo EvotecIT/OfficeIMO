@@ -8,6 +8,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfProvenanceTests {
     [Fact]
+    public void ProvenanceReaderForwardsCancellationIntoPdfParsing() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfProvenance.OpenReadDocument(
+            pdf,
+            new PdfLoadOptions(),
+            cancellation.Token));
+    }
+
+    [Fact]
     public void ProvenanceGraphEditorForwardsCancellationIntoTheFullRewrite() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
         using var cancellation = new CancellationTokenSource();

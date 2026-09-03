@@ -252,7 +252,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated.BatchOwnReservedOutputIdentity,
                 stagedFingerprint,
                 validated.ConflictPolicy == OfficeWorkflowConflictPolicy.Replace &&
-                OfficeWorkflowPathIdentity.AreEquivalent(validated.InputPath, validated.OutputPath!)
+                OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(validated.InputPath, validated.OutputPath!)
                     ? inputSnapshot
                     : null,
                 validated.Limits.MaximumOutputBytes,
@@ -672,7 +672,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
         void EnsureBatchCandidateDoesNotOverlapAnotherRequest(string path) {
             if (blockedOutputIdentities is null) return;
-            string identity = OfficeWorkflowPathIdentity.Normalize(path);
+            string identity = OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(path);
             bool isOwnReservation = string.Equals(identity, ownReservedOutputIdentity, StringComparison.Ordinal);
             bool hasHierarchyCollision = TryFindAncestorOrDescendant(
                 identity,
@@ -690,7 +690,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 cancellationToken.ThrowIfCancellationRequested();
                 string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
                 if (blockedOutputIdentities is not null) {
-                    string identity = OfficeWorkflowPathIdentity.Normalize(candidate);
+                    string identity = OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(candidate);
                     bool isOwnReservation = string.Equals(
                         identity,
                         ownReservedOutputIdentity,

@@ -6,6 +6,16 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
     [Fact]
+    public void ZipInspectionReportsExpandedManifestBytes() {
+        byte[] manifest = CreateManifestStore();
+        byte[] package = CreateZip(("META-INF/content_credential.c2pa", manifest));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(package, "fixture.zip");
+
+        Assert.Equal(manifest.LongLength, report.ExpandedInspectionBytes);
+    }
+
+    [Fact]
     public void StructuredTextDetectionObservesCancellation() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

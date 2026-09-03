@@ -61,7 +61,8 @@ public sealed partial class OfficeWorkflowRunner {
 
     internal static OfficeProvenanceWorkflowRequest[] PrepareBatchRemovalPaths(
         IReadOnlyList<OfficeProvenanceWorkflowRequest> requests,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        bool? usePhysicalIdentity = null) {
         var prepared = new OfficeProvenanceWorkflowRequest[requests.Count];
         for (int index = 0; index < requests.Count; index++) {
             OfficeProvenanceWorkflowRequest request = requests[index] ??
@@ -73,7 +74,7 @@ public sealed partial class OfficeWorkflowRunner {
             return prepared;
         }
 
-        var pathIndex = new BatchPathIndex(cancellationToken);
+        var pathIndex = new BatchPathIndex(cancellationToken, usePhysicalIdentity);
         var inputRequestIndexes = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
@@ -331,7 +332,10 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
-    private sealed class BatchPathIndex(CancellationToken cancellationToken) {
+    private sealed class BatchPathIndex(
+        CancellationToken cancellationToken,
+        bool? usePhysicalIdentity) {
+        private readonly bool _usePhysicalIdentity = usePhysicalIdentity ?? OfficeWorkflowPathIdentity.SupportsPhysicalIdentity;
         private readonly Dictionary<string, string?> _normalizedPaths = new(StringComparer.Ordinal);
         private readonly Dictionary<string, BatchDirectoryIndex> _lexicalDirectories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, BatchDirectoryIndex> _physicalDirectories = new(StringComparer.Ordinal);
@@ -348,7 +352,9 @@ public sealed partial class OfficeWorkflowRunner {
             }
             if (_normalizedPaths.TryGetValue(fullPath, out string? cached)) return cached;
             try {
-                string identity = OfficeWorkflowPathIdentity.Normalize(fullPath);
+                string identity = OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(
+                    fullPath,
+                    _usePhysicalIdentity);
                 _normalizedPaths.Add(fullPath, identity);
                 return identity;
             } catch (ArgumentException) {
@@ -393,9 +399,15 @@ public sealed partial class OfficeWorkflowRunner {
             if (_lexicalDirectories.TryGetValue(directoryPath, out BatchDirectoryIndex? cached)) return cached;
             try {
                 cancellationToken.ThrowIfCancellationRequested();
-                string physicalDirectory = OfficeWorkflowPathIdentity.ResolvePhysicalPath(directoryPath);
+                string physicalDirectory = _usePhysicalIdentity
+                    ? OfficeWorkflowPathIdentity.ResolvePhysicalPath(directoryPath)
+                    : Path.GetFullPath(directoryPath);
                 bool caseInsensitive = OfficeWorkflowPathIdentity.IsCaseInsensitiveFileSystem(physicalDirectory);
-                string physicalIdentity = OfficeWorkflowPathIdentity.Normalize(physicalDirectory, caseInsensitive);
+                string physicalIdentity = _usePhysicalIdentity
+                    ? OfficeWorkflowPathIdentity.Normalize(physicalDirectory, caseInsensitive)
+                    : OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(
+                        physicalDirectory,
+                        usePhysicalIdentity: false);
                 if (_physicalDirectories.TryGetValue(physicalIdentity, out BatchDirectoryIndex? shared)) {
                     _lexicalDirectories.Add(directoryPath, shared);
                     return shared;
