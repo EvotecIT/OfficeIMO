@@ -9,19 +9,21 @@ public sealed class PdfSanitizationResult {
         byte[] pdfBytes,
         PdfMutationPlan mutationPlan,
         PdfRewritePreservationReport preservationReport,
-        IReadOnlyList<PdfSanitizationFinding> removedFindings,
-        IReadOnlyList<PdfSanitizationFinding> remainingFindings,
+        PdfSanitizationReport removedReport,
+        PdfSanitizationReport remainingReport,
         IReadOnlyList<PdfExtractedAttachment> quarantinedAttachments,
         PdfLoadOptions readOptions) {
         _pdfBytes = (byte[])pdfBytes.Clone();
         _readOptions = readOptions;
         MutationPlan = mutationPlan;
         PreservationReport = preservationReport;
-        RemovedFindings = removedFindings;
-        RemainingFindings = remainingFindings;
+        RemovedReport = removedReport;
+        RemainingReport = remainingReport;
+        RemovedFindings = removedReport.Findings;
+        RemainingFindings = remainingReport.Findings;
         QuarantinedAttachments = quarantinedAttachments;
-        RemovedActionCounts = new PdfSanitizationActionCounts(removedFindings);
-        RemainingActionCounts = new PdfSanitizationActionCounts(remainingFindings);
+        RemovedActionCounts = removedReport.ActionCounts;
+        RemainingActionCounts = remainingReport.ActionCounts;
     }
 
     /// <summary>Shared mutation plan used for the full rewrite.</summary>
@@ -36,6 +38,18 @@ public sealed class PdfSanitizationResult {
     /// <summary>Forbidden items found after save. A successful operation always returns an empty list.</summary>
     public IReadOnlyList<PdfSanitizationFinding> RemainingFindings { get; }
 
+    /// <summary>Typed inventory selected before the rewrite.</summary>
+    public PdfSanitizationReport RemovedReport { get; }
+
+    /// <summary>Typed selected inventory found after the rewrite.</summary>
+    public PdfSanitizationReport RemainingReport { get; }
+
+    /// <summary>Logical per-category counts removed by the policy.</summary>
+    public PdfSanitizationCategoryCounts RemovedCategoryCounts => RemovedReport.CategoryCounts;
+
+    /// <summary>Logical per-category counts still selected after the rewrite.</summary>
+    public PdfSanitizationCategoryCounts RemainingCategoryCounts => RemainingReport.CategoryCounts;
+
     /// <summary>Per-kind counts of actions removed by the policy.</summary>
     public PdfSanitizationActionCounts RemovedActionCounts { get; }
 
@@ -46,7 +60,7 @@ public sealed class PdfSanitizationResult {
     public IReadOnlyList<PdfExtractedAttachment> QuarantinedAttachments { get; }
 
     /// <summary>True when post-save inventory proves that no forbidden item remains.</summary>
-    public bool IsSanitized => RemainingFindings.Count == 0;
+    public bool IsSanitized => RemainingReport.TotalCount == 0;
 
     /// <summary>Returns a defensive copy of the sanitized PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdfBytes.Clone();

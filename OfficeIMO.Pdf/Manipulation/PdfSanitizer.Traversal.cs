@@ -5,6 +5,8 @@ internal static partial class PdfSanitizer {
         "RichMedia", "Movie", "Sound", "Screen", "3D", "FileAttachment"
     };
 
+    internal static bool IsRichAnnotationSubtype(string subtype) => RichAnnotationSubtypes.Contains(subtype);
+
     private static IReadOnlyList<PdfSanitizationFinding> Scan(
         Dictionary<int, PdfIndirectObject> objects,
         PdfSanitizationOptions policy,
@@ -71,7 +73,7 @@ internal static partial class PdfSanitizer {
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
             policy.CancellationToken.ThrowIfCancellationRequested();
             string itemPath = path + "/" + item.Key;
-            if (item.Key == "EmbeddedFiles" || item.Key == "AF" || item.Key == "EF") {
+            if (policy.ShouldRemoveEmbeddedFiles && (item.Key == "EmbeddedFiles" || item.Key == "AF" || item.Key == "EF")) {
                 findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.EmbeddedFile, objectNumber, itemPath, item.Key));
             }
 
@@ -106,10 +108,12 @@ internal static partial class PdfSanitizer {
 
     private static void SanitizeObjectGraph(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDocumentSecurityInfo security,
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         int maximumActionNodes) {
         policy.CancellationToken.ThrowIfCancellationRequested();
+        SanitizeDocumentContainers(objects, security, policy);
         var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
             policy.CancellationToken.ThrowIfCancellationRequested();
@@ -152,9 +156,14 @@ internal static partial class PdfSanitizer {
             dictionary.Items.Remove("JavaScript");
         }
 
-        dictionary.Items.Remove("EmbeddedFiles");
-        dictionary.Items.Remove("AF");
-        dictionary.Items.Remove("EF");
+        if (policy.ShouldRemoveEmbeddedFiles) {
+            dictionary.Items.Remove("EmbeddedFiles");
+            dictionary.Items.Remove("AF");
+            dictionary.Items.Remove("EF");
+        }
+        if (policy.ShouldRemoveOptionalContent) {
+            RemoveOptionalContentAssociation(dictionary);
+        }
         bool actionTraversalAlreadyNormalized = actionBudget.WasNormalized(dictionary);
 
         if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
@@ -365,7 +374,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy) {
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
             if (Resolve(objects, annotations.Items[i]) is PdfDictionary annotation &&
-                IsRichAnnotation(objects, annotation, policy, out _)) {
+                ShouldRemoveAnnotation(objects, annotation, policy)) {
                 annotations.Items.RemoveAt(i);
             }
         }
@@ -450,7 +459,8 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         out string? subtype) {
         subtype = null;
-        if (!policy.RemoveRichMedia || Resolve(objects, dictionary.Get<PdfObject>("Subtype")) is not PdfName name) {
+        if (Resolve(objects, dictionary.Get<PdfObject>("Subtype")) is not PdfName name ||
+            !policy.ShouldRemoveLegacyRichAnnotation(name.Name)) {
             return false;
         }
 
