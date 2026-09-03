@@ -4,7 +4,8 @@ internal sealed class PdfRedactionTextObjectScope {
     internal PdfRedactionTextObjectScope(
         PdfContentOrderKey key,
         PdfTextSpan[] spans,
-        IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) {
+        IReadOnlyList<PdfRedactionArea>? reviewedAreas = null,
+        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         Key = key;
         Spans = spans;
         ContentStreamObjectNumber = spans.Select(static span => span.ContentStreamObjectNumber).Distinct().Count() == 1
@@ -17,8 +18,11 @@ internal sealed class PdfRedactionTextObjectScope {
         bool requiresWholeObjectFallback = false;
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
-            if (!TryCreateGlyphIdentities(span, out PdfRedactionTextGlyphIdentity[] glyphs)) {
-                PdfRedactionTextGlyphIdentity aggregate = PdfRedactionTextGlyphIdentity.FromSpan(span);
+            PdfRedactionPaintOrderContext spanPaintOrderContext = paintOrderContext?.Invoke(span.PaintOrder) ?? default;
+            if (!TryCreateGlyphIdentities(span, spanPaintOrderContext, out PdfRedactionTextGlyphIdentity[] glyphs)) {
+                PdfRedactionTextGlyphIdentity aggregate = PdfRedactionTextGlyphIdentity.FromSpan(
+                    span,
+                    spanPaintOrderContext);
                 sourceGlyphs.Add(aggregate);
                 if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.Bounds)) {
                     reviewedIntersection = true;
@@ -64,9 +68,12 @@ internal sealed class PdfRedactionTextObjectScope {
         Key.Equals(candidate.Key) ||
         ContentStreamObjectNumber.HasValue && ContentStreamObjectNumber == candidate.ContentStreamObjectNumber;
 
-    private static bool TryCreateGlyphIdentities(PdfTextSpan span, out PdfRedactionTextGlyphIdentity[] glyphs) {
+    private static bool TryCreateGlyphIdentities(
+        PdfTextSpan span,
+        PdfRedactionPaintOrderContext paintOrderContext,
+        out PdfRedactionTextGlyphIdentity[] glyphs) {
         string text = span.RestampText;
-        if (!TryGetResolvedBoundaries(span, text.Length, out double[] boundaries) ||
+        if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) ||
             boundaries.Length != text.Length + 1) {
             glyphs = Array.Empty<PdfRedactionTextGlyphIdentity>();
             return false;
@@ -82,16 +89,23 @@ internal sealed class PdfRedactionTextObjectScope {
         }
 
         glyphs = new PdfRedactionTextGlyphIdentity[glyphCharacterLengths.Count];
+        bool hasPaintedGlyphAdvances = span.GlyphPaintedAdvances != null &&
+            span.GlyphPaintedAdvances.Count == glyphCharacterLengths.Count &&
+            span.GlyphPaintedAdvances.All(static advance =>
+                !double.IsNaN(advance) && !double.IsInfinity(advance) && advance >= 0D);
         int characterOffset = 0;
         for (int index = 0; index < glyphCharacterLengths.Count; index++) {
             int characterLength = glyphCharacterLengths[index];
             double start = boundaries[characterOffset];
             double end = boundaries[characterOffset + characterLength];
-            double glyphOffset = Math.Min(start, end);
+            double glyphOffset = hasPaintedGlyphAdvances ? start : Math.Min(start, end);
+            double glyphAdvance = hasPaintedGlyphAdvances
+                ? span.GlyphPaintedAdvances![index]
+                : Math.Abs(end - start);
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(
                 span,
                 glyphOffset,
-                Math.Abs(end - start));
+                glyphAdvance);
             glyphs[index] = PdfRedactionTextGlyphIdentity.FromGlyph(
                 span,
                 text.Substring(characterOffset, characterLength),
@@ -99,37 +113,9 @@ internal sealed class PdfRedactionTextObjectScope {
                 span.GlyphBytes != null && span.GlyphBytes.Count == glyphCharacterLengths.Count
                     ? span.GlyphBytes[index]
                     : null,
-                TranslateTextTransform(span, glyphOffset));
+                TranslateTextTransform(span, glyphOffset),
+                paintOrderContext);
             characterOffset += characterLength;
-        }
-        return true;
-    }
-
-    private static bool TryGetResolvedBoundaries(PdfTextSpan span, int characterCount, out double[] boundaries) {
-        IReadOnlyList<double>? advances = span.CharacterAdvances;
-        if (advances is null || advances.Count != characterCount) {
-            boundaries = Array.Empty<double>();
-            return false;
-        }
-
-        double signedTotal = 0D;
-        for (int index = 0; index < advances.Count; index++) {
-            double value = advances[index];
-            if (double.IsNaN(value) || double.IsInfinity(value)) {
-                boundaries = Array.Empty<double>();
-                return false;
-            }
-            signedTotal += value;
-        }
-        if (Math.Abs(signedTotal) <= double.Epsilon || double.IsNaN(signedTotal) || double.IsInfinity(signedTotal)) {
-            boundaries = Array.Empty<double>();
-            return false;
-        }
-
-        double directionSign = signedTotal < 0D ? -1D : 1D;
-        boundaries = new double[advances.Count + 1];
-        for (int index = 0; index < advances.Count; index++) {
-            boundaries[index + 1] = boundaries[index] + advances[index] * directionSign;
         }
         return true;
     }
@@ -201,6 +187,23 @@ internal sealed class PdfRedactionTextObjectScope {
     }
 }
 
+internal readonly struct PdfRedactionPaintOrderContext : IEquatable<PdfRedactionPaintOrderContext> {
+    internal PdfRedactionPaintOrderContext(int pathPaintsBefore, int retainedImagePaintsBefore) {
+        PathPaintsBefore = pathPaintsBefore;
+        RetainedImagePaintsBefore = retainedImagePaintsBefore;
+    }
+
+    internal int PathPaintsBefore { get; }
+    internal int RetainedImagePaintsBefore { get; }
+
+    public bool Equals(PdfRedactionPaintOrderContext other) =>
+        PathPaintsBefore == other.PathPaintsBefore &&
+        RetainedImagePaintsBefore == other.RetainedImagePaintsBefore;
+
+    public override bool Equals(object? obj) => obj is PdfRedactionPaintOrderContext other && Equals(other);
+    public override int GetHashCode() => unchecked((PathPaintsBefore * 397) ^ RetainedImagePaintsBefore);
+}
+
 internal readonly struct PdfRedactionTextGlyphIdentity {
     private const double Tolerance = 0.01D;
 
@@ -209,7 +212,8 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         string text,
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
-        Matrix2D? textToPageTransform) {
+        Matrix2D? textToPageTransform,
+        PdfRedactionPaintOrderContext paintOrderContext) {
         Text = text;
         Bounds = bounds;
         FontResource = span.FontResource;
@@ -224,6 +228,7 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         ClipPath = span.ClipPath;
         TextToPageTransform = textToPageTransform;
         EncodedBytes = encodedBytes?.ToArray();
+        PaintOrderContext = paintOrderContext;
     }
 
     internal string Text { get; }
@@ -240,22 +245,27 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
     internal PdfPageClipPath? ClipPath { get; }
     internal Matrix2D? TextToPageTransform { get; }
     internal byte[]? EncodedBytes { get; }
+    internal PdfRedactionPaintOrderContext PaintOrderContext { get; }
 
     internal static PdfRedactionTextGlyphIdentity FromGlyph(
         PdfTextSpan span,
         string text,
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
-        Matrix2D? textToPageTransform) =>
-        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform);
+        Matrix2D? textToPageTransform,
+        PdfRedactionPaintOrderContext paintOrderContext) =>
+        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform, paintOrderContext);
 
-    internal static PdfRedactionTextGlyphIdentity FromSpan(PdfTextSpan span) =>
+    internal static PdfRedactionTextGlyphIdentity FromSpan(
+        PdfTextSpan span,
+        PdfRedactionPaintOrderContext paintOrderContext) =>
         new PdfRedactionTextGlyphIdentity(
             span,
             span.RestampText,
             PdfTextSpanGeometry.GetAxisAlignedBounds(span),
             span.GlyphBytes?.SelectMany(static bytes => bytes).ToArray(),
-            span.TextToPageTransform);
+            span.TextToPageTransform,
+            paintOrderContext);
 
     internal bool MatchesBounds(PdfTextSpanBounds other) =>
         NearlyEqual(Bounds.Left, other.Left) &&
@@ -273,7 +283,8 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         Nullable.Equals(Color, other.Color) &&
         string.Equals(VisualPaintIdentity, other.VisualPaintIdentity, StringComparison.Ordinal) &&
         MarkedContentId == other.MarkedContentId &&
-        ClipPathsEqual(ClipPath, other.ClipPath);
+        ClipPathsEqual(ClipPath, other.ClipPath) &&
+        PaintOrderContext.Equals(other.PaintOrderContext);
 
     internal bool MatchesTransform(PdfRedactionTextGlyphIdentity other) =>
         TransformsEqual(TextToPageTransform, other.TextToPageTransform);

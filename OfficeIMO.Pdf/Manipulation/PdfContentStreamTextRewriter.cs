@@ -302,7 +302,7 @@ internal static class PdfContentStreamTextRewriter {
                 double[] boundaries = characterBoundariesByTransform[transformIndex];
                 double start = boundaries[characterOffset];
                 double end = boundaries[characterOffset + glyph.Text.Length];
-                double offset = Math.Min(start, end);
+                double offset = start;
                 double baselineScale = span.TextToPageTransform.HasValue
                     ? Math.Sqrt(
                         span.TextToPageTransform.Value.A * span.TextToPageTransform.Value.A +

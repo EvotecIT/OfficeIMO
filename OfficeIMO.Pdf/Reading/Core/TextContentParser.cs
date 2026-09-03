@@ -873,6 +873,7 @@ internal static class TextContentParser {
             var decodedAdvances = new List<double>();
             var decodedGlyphCharacterLengths = new List<int>();
             var decodedGlyphBytes = new List<byte[]>();
+            var decodedGlyphPaintedAdvances = new List<double>();
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
@@ -895,6 +896,7 @@ internal static class TextContentParser {
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
+                    decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
                     double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
                     for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
                 }
@@ -908,6 +910,7 @@ internal static class TextContentParser {
                 decodedAdvances.Clear();
                 decodedGlyphCharacterLengths.Clear();
                 decodedGlyphBytes.Clear();
+                decodedGlyphPaintedAdvances.Clear();
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
             bool hasActiveArtifact = HasActiveArtifact();
@@ -923,7 +926,6 @@ internal static class TextContentParser {
             var textEnd = textMatrix.Transform(advTotal, textRise);
             var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
             double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
-            double rotationDegrees = CalculateRotationDegrees(endX - dx, endY - dy);
             var textUnitX = textMatrix.Transform(1D, textRise);
             var textUnitY = textMatrix.Transform(0D, textRise + 1D);
             var (unitXPageX, unitXPageY) = ctm.Transform(textUnitX.X, textUnitX.Y);
@@ -932,6 +934,10 @@ internal static class TextContentParser {
             double unitYLength = Math.Sqrt(((unitYPageX - dx) * (unitYPageX - dx)) + ((unitYPageY - dy) * (unitYPageY - dy)));
             double unitDot = ((unitXPageX - dx) * (unitYPageX - dx)) + ((unitXPageY - dy) * (unitYPageY - dy));
             double unitDeterminant = ((unitXPageX - dx) * (unitYPageY - dy)) - ((unitXPageY - dy) * (unitYPageX - dx));
+            double characterAdvanceDirection = hScale < 0D ? -1D : 1D;
+            double rotationDegrees = CalculateRotationDegrees(
+                (unitXPageX - dx) * characterAdvanceDirection,
+                (unitXPageY - dy) * characterAdvanceDirection);
             bool canRestamp = unitXLength > 0.000001D &&
                 unitYLength > 0.000001D &&
                 unitDeterminant > 0D &&
@@ -953,6 +959,9 @@ internal static class TextContentParser {
             double restampFontSize = size * unitYLength;
             IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
                 ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
+                : null;
+            double[]? transformedGlyphPaintedAdvances = decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
+                ? decodedGlyphPaintedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
             bool useStrokePaint = !usesVisibleFill && usesVisibleStroke;
             OfficeColor paintColor = useStrokePaint ? strokeColor : fillColor;
@@ -1032,7 +1041,12 @@ internal static class TextContentParser {
                     decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
                         decodedGlyphBytes.Count == decodedGlyphCharacterLengths.Count
                         ? decodedGlyphBytes
-                        : null));
+                        : null,
+                    decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
+                        transformedGlyphPaintedAdvances?.Length == decodedGlyphCharacterLengths.Count
+                        ? transformedGlyphPaintedAdvances
+                        : null,
+                    characterAdvanceDirection));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

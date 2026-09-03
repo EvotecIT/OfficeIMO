@@ -41,6 +41,18 @@ public class PdfRedactionTextObjectScopeTests {
     }
 
     [Fact]
+    public void SurvivorIdentityIncludesRelativeNonTextPaintOrder() {
+        PdfRedactionTextObjectScope reviewed = CreateReviewedScope(
+            owner: 10,
+            paintOrderContext: _ => new PdfRedactionPaintOrderContext(1, 2));
+        PdfRedactionTextObjectScope current = CreateSurvivorScope(
+            owner: 20,
+            paintOrderContext: _ => new PdfRedactionPaintOrderContext(2, 2));
+
+        Assert.False(reviewed.Matches(current));
+    }
+
+    [Fact]
     public void ReviewedScopesMatchCurrentScopesOneToOne() {
         PdfRedactionTextObjectScope first = CreateReviewedScope(owner: 10);
         PdfRedactionTextObjectScope second = CreateReviewedScope(owner: 11);
@@ -53,7 +65,9 @@ public class PdfRedactionTextObjectScopeTests {
         Assert.Equal(new[] { 0, -1 }, matches);
     }
 
-    private static PdfRedactionTextObjectScope CreateReviewedScope(int owner) {
+    private static PdfRedactionTextObjectScope CreateReviewedScope(
+        int owner,
+        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         PdfContentOrderKey key = PdfContentOrderKey.Root.Append(owner);
         PdfTextSpan span = CreateSpan(
             "AB",
@@ -67,14 +81,16 @@ public class PdfRedactionTextObjectScopeTests {
         return new PdfRedactionTextObjectScope(
             key,
             new[] { span },
-            new[] { new PdfRedactionArea(1, 10D, 0D, 5D, 30D, "remove A") });
+            new[] { new PdfRedactionArea(1, 10D, 0D, 5D, 30D, "remove A") },
+            paintOrderContext);
     }
 
     private static PdfRedactionTextObjectScope CreateSurvivorScope(
         int owner,
         byte glyphByte = 0x42,
         PdfPageClipPath? clipPath = null,
-        Matrix2D? transform = null) {
+        Matrix2D? transform = null,
+        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         PdfContentOrderKey key = PdfContentOrderKey.Root.Append(owner);
         PdfTextSpan span = CreateSpan(
             "B",
@@ -86,7 +102,7 @@ public class PdfRedactionTextObjectScopeTests {
             clipPath ?? PdfPageClipPath.Rectangle(0D, 0D, 100D, 100D),
             transform ?? new Matrix2D(1D, 0D, 0D, 1D, 16D, 10D),
             x: 16D);
-        return new PdfRedactionTextObjectScope(key, new[] { span });
+        return new PdfRedactionTextObjectScope(key, new[] { span }, paintOrderContext: paintOrderContext);
     }
 
     private static PdfTextSpan CreateSpan(

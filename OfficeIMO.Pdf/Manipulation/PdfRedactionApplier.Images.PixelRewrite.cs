@@ -320,6 +320,10 @@ internal static partial class PdfRedactionApplier {
             }
 
             switch (op) {
+                case "BI":
+                    SkipInlineImage(content, ref index);
+                    args.Clear();
+                    break;
                 case "q":
                     graphicsState.Stack.Push(graphicsState.Transform);
                     textStateStack.Push(textState);

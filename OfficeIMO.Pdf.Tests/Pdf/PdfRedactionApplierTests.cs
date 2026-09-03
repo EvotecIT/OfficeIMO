@@ -192,10 +192,63 @@ public class PdfRedactionApplierTests {
     public void Apply_DoesNotTreatCharacterSpacingAsPaintedGlyphArea() {
         byte[] source = BuildTextContentRedactionSource("BT /F1 20 Tf 100 Tc 72 700 Td (AB) Tj ET");
         var area = new PdfRedactionArea(1, 90D, 680D, 5D, 30D, "character-spacing gap");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions());
+
+        Assert.DoesNotContain(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.Contains("AB", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.True(verification.IsVerified, string.Join(Environment.NewLine, verification.Issues.Select(issue => issue.Message)));
+    }
+
+    [Fact]
+    public void Apply_DoesNotTreatWordSpacingAsPaintedGlyphArea() {
+        byte[] source = BuildTextContentRedactionSource("BT /F1 20 Tf 100 Tw 72 700 Td (A B) Tj ET");
+        var area = new PdfRedactionArea(1, 100D, 680D, 5D, 30D, "word-spacing gap");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions());
+
+        Assert.DoesNotContain(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.Contains("A B", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.True(verification.IsVerified, string.Join(Environment.NewLine, verification.Issues.Select(issue => issue.Message)));
+    }
+
+    [Fact]
+    public void Apply_UsesPaintedTextDirectionWhenNegativeSpacingReversesTheRunEndpoint() {
+        byte[] source = BuildTextContentRedactionSource("BT /F1 20 Tf -30 Tc 100 700 Td (AB) Tj ET");
+        var area = new PdfRedactionArea(1, 102D, 680D, 5D, 30D, "painted A");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions());
+
+        Assert.Contains(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.Equal("B", PdfTextExtractor.ExtractAllText(redacted).Trim());
+        Assert.True(verification.IsVerified, string.Join(Environment.NewLine, verification.Issues.Select(issue => issue.Message)));
+    }
+
+    [Fact]
+    public void Apply_IgnoresInlineImagePayloadWhileDiscoveringFormText() {
+        byte[] source = BuildInlineImagePayloadBeforeFormRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Visible secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
 
-        Assert.Contains("AB", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Visible secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.Contains("Dormant secret", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -963,6 +1016,24 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 320 60]")
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildInlineImagePayloadBeforeFormRedactionSource() {
+        const string inlinePayload = "q 1 0 0 1 72 700 cm /FmDormant Do Q";
+        string pageContent = $"BI /W {inlinePayload.Length} /H 1 /BPC 8 /CS /G ID {inlinePayload} EI\n" +
+            "q 1 0 0 1 72 700 cm /FmVisible Do Q\n";
+        const string dormantFormContent = "BT /F1 12 Tf 0 0 Td (Dormant secret) Tj ET";
+        const string visibleFormContent = "BT /F1 12 Tf 0 0 Td (Visible secret) Tj ET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /FmDormant 6 0 R /FmVisible 7 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(dormantFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(visibleFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
         return BuildPdf(objects, rootObjectNumber: 1);
     }

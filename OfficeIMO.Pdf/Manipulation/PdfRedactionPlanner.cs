@@ -136,6 +136,11 @@ internal static partial class PdfRedactionPlanner {
                 continue;
             }
 
+            if (block.Spans.Count > 0 && !block.Spans.Any(span =>
+                PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area.X, area.Y, area.Width, area.Height))) {
+                continue;
+            }
+
             PdfTextSpanBounds bounds = GetTextBlockBounds(block, document.Pages[block.PageNumber - 1]);
             if (!Intersects(area.X, area.Y, area.Width, area.Height, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
                 continue;

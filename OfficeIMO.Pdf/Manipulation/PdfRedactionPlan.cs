@@ -125,8 +125,9 @@ public sealed class PdfRedactionPlan {
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             int pageNumber = pageIndex + 1;
             PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
-            IReadOnlyList<PdfTextSpan> spans = document.Pages[pageIndex].GetTextSpansIncludingHiddenOptionalContent();
-            result[pageIndex] = CreateTextObjectScopes(spans, pageAreas)
+            PdfReadPage page = document.Pages[pageIndex];
+            IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
+            result[pageIndex] = CreateTextObjectScopes(page, spans, pageAreas)
                 .Where(static scope => scope.HasReviewedIntersection)
                 .ToArray();
         }
@@ -151,7 +152,7 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
-        PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(spans);
+        PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(page, spans, pageAreas);
         int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);
         for (int reviewedIndex = 0; reviewedIndex < reviewedTextObjectScopes.Count; reviewedIndex++) {
             PdfRedactionTextObjectScope reviewed = reviewedTextObjectScopes[reviewedIndex];
@@ -227,13 +228,29 @@ public sealed class PdfRedactionPlan {
     }
 
     private static PdfRedactionTextObjectScope[] CreateTextObjectScopes(
+        PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
-        IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) =>
-        spans
+        IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) {
+        IReadOnlyList<PdfPageVisualPrimitive> paths = page.GetIdentityVisualPrimitives();
+        PdfImagePlacement[] retainedImages = page.GetImagePlacements()
+            .Where(placement => reviewedAreas == null ||
+                !IntersectsReviewedArea(reviewedAreas, placement.X, placement.Y, placement.Width, placement.Height))
+            .ToArray();
+
+        PdfRedactionPaintOrderContext ResolvePaintOrderContext(double paintOrder) => new(
+            paths.Count(path => path.PaintOrder < paintOrder),
+            retainedImages.Count(image => image.PaintOrder < paintOrder));
+
+        return spans
             .Where(static span => span.TextObjectOrderKey is not null)
             .GroupBy(static span => span.TextObjectOrderKey!)
-            .Select(group => new PdfRedactionTextObjectScope(group.Key, group.ToArray(), reviewedAreas))
+            .Select(group => new PdfRedactionTextObjectScope(
+                group.Key,
+                group.ToArray(),
+                reviewedAreas,
+                ResolvePaintOrderContext))
             .ToArray();
+    }
 
     private static void AppendPageRenderingResourceIdentity(
         System.Text.StringBuilder identity,

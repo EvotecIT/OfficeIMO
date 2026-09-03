@@ -3,8 +3,27 @@ using System;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfTextSpanGeometry {
-    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span) =>
-        GetAxisAlignedBounds(span, 0D, span.Advance);
+    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span) {
+        if (!TryGetPaintedGlyphGeometry(
+            span,
+            out double[] boundaries,
+            out IReadOnlyList<int> glyphCharacterLengths,
+            out IReadOnlyList<double> glyphPaintedAdvances)) {
+            return GetAxisAlignedBounds(span, 0D, span.Advance);
+        }
+
+        PdfTextSpanBounds result = default;
+        int characterOffset = 0;
+        for (int index = 0; index < glyphCharacterLengths.Count; index++) {
+            PdfTextSpanBounds glyphBounds = GetAxisAlignedBounds(
+                span,
+                boundaries[characterOffset],
+                glyphPaintedAdvances[index]);
+            result = index == 0 ? glyphBounds : Union(result, glyphBounds);
+            characterOffset += glyphCharacterLengths[index];
+        }
+        return result;
+    }
 
     internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span, double advanceOffset, double advance) {
 #if NET6_0_OR_GREATER
@@ -44,13 +63,50 @@ internal static class PdfTextSpanGeometry {
             return Intersects(GetAxisAlignedBounds(span), x, y, width, height);
         }
 
-        for (int index = 0; index < boundaries.Length - 1; index++) {
-            double start = Math.Min(boundaries[index], boundaries[index + 1]);
-            double advance = Math.Abs(boundaries[index + 1] - boundaries[index]);
+        bool hasPaintedGlyphGeometry = TryGetPaintedGlyphGeometry(
+            span,
+            out boundaries,
+            out IReadOnlyList<int> glyphCharacterLengths,
+            out IReadOnlyList<double> glyphPaintedAdvances);
+        int itemCount = hasPaintedGlyphGeometry ? glyphCharacterLengths!.Count : boundaries.Length - 1;
+        int characterOffset = 0;
+        for (int index = 0; index < itemCount; index++) {
+            int characterLength = hasPaintedGlyphGeometry ? glyphCharacterLengths![index] : 1;
+            double startBoundary = boundaries[characterOffset];
+            double endBoundary = boundaries[characterOffset + characterLength];
+            double start = hasPaintedGlyphGeometry
+                ? startBoundary
+                : Math.Min(startBoundary, endBoundary);
+            double advance = hasPaintedGlyphGeometry
+                ? glyphPaintedAdvances![index]
+                : Math.Abs(endBoundary - startBoundary);
             if (Intersects(GetAxisAlignedBounds(span, start, advance), x, y, width, height)) return true;
+            characterOffset += characterLength;
         }
         return false;
     }
+
+    private static bool TryGetPaintedGlyphGeometry(
+        PdfTextSpan span,
+        out double[] boundaries,
+        out IReadOnlyList<int> glyphCharacterLengths,
+        out IReadOnlyList<double> glyphPaintedAdvances) {
+        glyphCharacterLengths = span.GlyphCharacterLengths ?? Array.Empty<int>();
+        glyphPaintedAdvances = span.GlyphPaintedAdvances ?? Array.Empty<double>();
+        return PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out boundaries) &&
+            glyphCharacterLengths.Count == glyphPaintedAdvances.Count &&
+            glyphCharacterLengths.Count > 0 &&
+            glyphCharacterLengths.All(static length => length > 0) &&
+            glyphCharacterLengths.Sum() == span.Text.Length &&
+            glyphPaintedAdvances.All(static advance =>
+                !double.IsNaN(advance) && !double.IsInfinity(advance) && advance >= 0D);
+    }
+
+    private static PdfTextSpanBounds Union(PdfTextSpanBounds left, PdfTextSpanBounds right) => new(
+        Math.Min(left.Left, right.Left),
+        Math.Min(left.Bottom, right.Bottom),
+        Math.Max(left.Right, right.Right),
+        Math.Max(left.Top, right.Top));
 
     private static bool Intersects(PdfTextSpanBounds bounds, double x, double y, double width, double height) =>
         x < bounds.Right &&
