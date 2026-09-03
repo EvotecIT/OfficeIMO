@@ -859,8 +859,14 @@ internal static partial class TableDetector {
         List<double> splits) {
         if (band.Count == 0 || splits.Count == 0 || band.Any(static line => !HasEmphasizedText(line))) return false;
         string[] cells = MergeBandCellsBySplits(band, splits);
-        return LooksLikeHeaderRow(cells) && !LooksLikeSummaryRow(cells);
+        return LooksLikeHeaderRow(cells) &&
+               !LooksLikeSummaryRow(cells) &&
+               !LooksLikeEmphasizedDataRow(cells);
     }
+
+    private static bool LooksLikeEmphasizedDataRow(string[] cells) =>
+        cells.Skip(1).Any(static cell => LooksLikeSummaryValue(
+            ContentStructureExtractor.NormalizeShattered(cell).Trim()));
 
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {
         if (a.Count != b.Count) return false;

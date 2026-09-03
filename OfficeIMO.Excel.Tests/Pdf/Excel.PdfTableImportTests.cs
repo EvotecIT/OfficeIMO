@@ -803,6 +803,37 @@ public partial class Excel {
         Assert.Equal(new[] { summaryLabel, summaryValue }, table.Rows[3]);
     }
 
+    [Theory]
+    [InlineData("North", "1250")]
+    [InlineData("Enabled", "Yes")]
+    [InlineData("Central", "N/A")]
+    public void PdfTables_BandGroupingKeepsEmphasizedDataRows(string label, string value) {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
+            string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60, baseFont: baseFont),
+                new(right, "F1", 10, 180, y, 40, baseFont: baseFont)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Row(700, true, "Code", "Qty") },
+            new() { Row(680, false, "A-100", "12") },
+            new() { Row(660, false, "B-200", "14") },
+            new() { Row(640, true, label, value) },
+            new() { Row(620, false, "South", "980") }
+        };
+
+        PdfCore.StructuredTable table = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static candidate => candidate.Kind == "band-group");
+
+        Assert.Equal(5, table.Rows.Count);
+        Assert.Equal(new[] { label, value }, table.Rows[3]);
+        Assert.Equal(new[] { "South", "980" }, table.Rows[4]);
+    }
+
     [Fact]
     public void PdfTables_BandGroupingUsesStableLargeRowRhythmWhileExtending() {
         static PdfCore.TextLayoutEngine.TextLine Row(
