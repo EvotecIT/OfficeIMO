@@ -380,7 +380,8 @@ public static class PdfAdvancedUnderstandingStages {
                         int baseline = second.BaselineY.CompareTo(first.BaselineY);
                         return baseline != 0 ? baseline : first.XStart.CompareTo(second.XStart);
                     });
-                if (sourceLines.Length < 2) continue;
+                if (sourceLines.Length == 0 ||
+                    (sourceLines.Length < 2 && !string.Equals(table.Kind, "leaders", StringComparison.Ordinal))) continue;
 
                 double confidence = PdfInference.Clamp(sourceLines.Average(static line => line.Confidence));
                 result.Add(PdfUnderstandingTableCandidate.FromStructured(

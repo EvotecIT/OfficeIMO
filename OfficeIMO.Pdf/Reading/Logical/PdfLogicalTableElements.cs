@@ -129,7 +129,11 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         var rows = table.Rows
             .Select(static row => (IReadOnlyList<string>)Array.AsReadOnly(row.ToArray()))
             .ToArray();
-        var cells = new List<PdfLogicalTableCell>(rows.Length * columns.Length);
+        int cellCount = 0;
+        for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+            cellCount = checked(cellCount + rows[rowIndex].Count);
+        }
+        var cells = new List<PdfLogicalTableCell>(cellCount);
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
             for (int columnIndex = 0; columnIndex < rows[rowIndex].Count; columnIndex++) {
                 PdfLogicalTableColumn? column = columnIndex < columns.Length ? columns[columnIndex] : null;

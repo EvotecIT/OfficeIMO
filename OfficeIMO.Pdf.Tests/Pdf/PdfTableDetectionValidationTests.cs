@@ -108,6 +108,22 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void PositionedRecovery_RetainsTextOnlyCategoricalTablesFromStructuralEvidence() {
+        TextLayoutEngine.TextLine[] lines = {
+            CreateLine(520D, ("Feature", 50D, 50D, "Helvetica"), ("Enabled", 220D, 52D, "Helvetica")),
+            CreateLine(500D, ("Search", 50D, 42D, "Helvetica"), ("Yes", 220D, 24D, "Helvetica")),
+            CreateLine(480D, ("Export", 50D, 42D, "Helvetica"), ("No", 220D, 18D, "Helvetica")),
+            CreateLine(460D, ("Archive", 50D, 46D, "Helvetica"), ("Yes", 220D, 24D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+
+        Assert.Equal("positioned-cells-bounded", table.Kind);
+        Assert.Equal(4, table.Rows.Count);
+        Assert.Contains("Archive", table.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
     public void TableDetector_RetainsSparseResponseFormsWithShatteredCompactHeaders() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D,

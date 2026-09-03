@@ -461,6 +461,49 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public void EnrichedDocument_PreservesRicherOverlappingOcrTable() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Item", "Value" },
+                new[] { "Alpha", "10" }
+            })
+            .ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
+        PdfUnderstandingTableCandidate native = Assert.Single(page.Analysis.TableCandidates);
+        double left = native.Columns.Min(static column => column.From);
+        double right = native.Columns.Max(static column => column.To);
+        PdfVisualBounds visual = page.TransformBoundsToVisual(
+            left,
+            Math.Min(native.YBottom, native.YTop),
+            right,
+            Math.Max(native.YBottom, native.YTop));
+        var richerRows = native.Rows
+            .Concat(new IReadOnlyList<string>[] { new[] { "Beta", "20" }, new[] { "Gamma", "30" } })
+            .ToArray();
+        PdfUnderstandingTableCandidate ocr = PdfUnderstandingTableCandidate.FromOcr(
+            "OcrAlignedColumns",
+            visual.Top - 2D,
+            visual.Bottom + 40D,
+            new PdfLogicalVisualBounds(visual.Left - 2D, visual.Top - 2D, visual.Right + 2D, visual.Bottom + 40D),
+            native.Columns.Select(column => (column.From, column.To)).ToArray(),
+            richerRows,
+            0.99D,
+            new[] { new PdfInferenceEvidence("test.ocr-richer", "OCR candidate contains additional rows.", 1D) });
+
+        PdfLogicalPage enriched = page.WithOcrContent(
+            Array.Empty<PdfLogicalTextBlock>(),
+            Array.Empty<PdfLogicalHeading>(),
+            Array.Empty<PdfLogicalParagraph>(),
+            Array.Empty<PdfLogicalListItem>(),
+            new[] { ocr });
+
+        PdfLogicalTable ocrTable = Assert.Single(enriched.Tables, table => table.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.Equal(4, ocrTable.Rows.Count);
+        Assert.Contains(ocrTable.Rows, row => row.SequenceEqual(new[] { "Gamma", "30" }));
+        Assert.Equal(2, enriched.Analysis.TableCandidates.Count);
+    }
+
+    [Fact]
     public async Task EnrichedDocument_KeepsAlignedNarrativeColumnsOutOfTableInference() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)

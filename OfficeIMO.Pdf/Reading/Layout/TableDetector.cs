@@ -363,7 +363,35 @@ internal static partial class TableDetector {
                 if (HasManyDigits(value)) return true;
             }
         }
-        return false;
+        return HasTextualGridEvidence(rows);
+    }
+
+    private static bool HasTextualGridEvidence(List<PositionedRow> rows) {
+        // Header plus at least three compact, consistently aligned body rows is
+        // language-neutral evidence for categorical tables without numeric cells.
+        if (rows.Count < 4) return false;
+        int columnCount = rows[0].Cells.Count;
+        if (columnCount < 2 || rows.Any(row => row.Cells.Count != columnCount)) return false;
+
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                string value = ContentStructureExtractor.NormalizeShattered(rows[rowIndex].Cells[columnIndex].Text).Trim();
+                if (value.Length == 0 ||
+                    value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length > 4) {
+                    return false;
+                }
+            }
+        }
+
+        var gaps = new List<double>(rows.Count - 1);
+        for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
+            double gap = rows[rowIndex - 1].Y - rows[rowIndex].Y;
+            if (gap <= 0D) return false;
+            gaps.Add(gap);
+        }
+        double medianGap = Median(gaps);
+        double tolerance = Math.Max(3D, medianGap * 0.35D);
+        return gaps.All(gap => Math.Abs(gap - medianGap) <= tolerance);
     }
 
     private sealed class PositionedRow {

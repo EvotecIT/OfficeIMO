@@ -1131,6 +1131,7 @@ public class PdfUnderstandingPipelineTests {
         options.PageSegmentation = new FirstLineOnlySegmentationStage();
         options.ReadingOrder = new IdentityReadingOrderStage();
         options.SemanticClassification = new ParagraphClassificationStage();
+        options.TableDetection = new CountingTableDetectionStage();
 
         PdfDocumentReadResult result = Read(pdf, options);
         PdfLogicalPage page = Assert.Single(result.Pages);
@@ -1142,6 +1143,46 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains("Retained by segmentation", result.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Excluded", result.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Excluded", result.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LogicalTableProjection_SizesCellsFromSparseAggregateCount() {
+        PdfUnderstandingTableColumn[] columns = Enumerable.Range(0, 50_000)
+            .Select(static index => new PdfUnderstandingTableColumn(index, index + 1D))
+            .ToArray();
+        IReadOnlyList<string>[] rows = Enumerable.Range(0, 50_000)
+            .Select(static index => index == 0
+                ? (IReadOnlyList<string>)new[] { "Only populated cell" }
+                : Array.Empty<string>())
+            .ToArray();
+        var candidate = new PdfUnderstandingTableCandidate(
+            "sparse-capacity-test",
+            700D,
+            680D,
+            columns,
+            rows,
+            Array.Empty<PdfUnderstandingLine>());
+
+        PdfLogicalTable table = PdfLogicalTable.From(1, candidate);
+
+        Assert.Equal(50_000, table.Columns.Count);
+        Assert.Equal(50_000, table.Rows.Count);
+        Assert.Equal("Only populated cell", Assert.Single(table.Cells).Text);
+    }
+
+    [Fact]
+    public void AdvancedTableDetection_PreservesSingleRowLeaderCandidate() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Section").Tab(PdfTabLeaderStyle.Dots).Text("7"))
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, PdfUnderstandingPipelineOptions.Structured()).Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+
+        Assert.Equal("leaders", candidate.DetectionKind);
+        Assert.Single(candidate.Rows);
+        Assert.Equal(new[] { "Section", "7" }, candidate.Rows[0]);
+        Assert.Single(page.Tables);
     }
 
     [Fact]

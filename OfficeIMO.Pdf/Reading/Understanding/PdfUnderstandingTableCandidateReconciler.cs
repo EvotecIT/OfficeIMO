@@ -34,16 +34,37 @@ internal static class PdfUnderstandingTableCandidateReconciler {
 
         double horizontalRatio = horizontalOverlap / narrowerWidth;
         double verticalRatio = verticalOverlap / shorterHeight;
-        if (horizontalRatio >= 0.65D && verticalRatio >= 0.6D) return true;
         if (horizontalRatio < 0.5D || verticalRatio < 0.3D) return false;
 
         HashSet<string> leftCells = GetCellSignatures(left);
         HashSet<string> rightCells = GetCellSignatures(right);
-        if (leftCells.Count == 0 || rightCells.Count == 0) return false;
+        if (HasStrictlyRicherContent(right, left)) return false;
+        if (leftCells.Count == 0 || rightCells.Count == 0) {
+            return horizontalRatio >= 0.65D && verticalRatio >= 0.6D &&
+                   left.Rows.Count == right.Rows.Count;
+        }
         int shared = leftCells.Count <= rightCells.Count
             ? leftCells.Count(rightCells.Contains)
             : rightCells.Count(leftCells.Contains);
         return shared >= 2 && shared * 2 >= Math.Min(leftCells.Count, rightCells.Count);
+    }
+
+    private static bool HasStrictlyRicherContent(
+        PdfUnderstandingTableCandidate candidate,
+        PdfUnderstandingTableCandidate existing) {
+        if (candidate.Rows.Count <= existing.Rows.Count) return false;
+        return CountPopulatedCells(candidate) > CountPopulatedCells(existing);
+    }
+
+    private static int CountPopulatedCells(PdfUnderstandingTableCandidate candidate) {
+        int count = 0;
+        for (int rowIndex = 0; rowIndex < candidate.Rows.Count; rowIndex++) {
+            IReadOnlyList<string> row = candidate.Rows[rowIndex];
+            for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
+                if (!string.IsNullOrWhiteSpace(row[columnIndex])) count++;
+            }
+        }
+        return count;
     }
 
     private static bool TryGetVisualBounds(
