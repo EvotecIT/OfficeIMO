@@ -89,10 +89,83 @@ public sealed class PdfLogicalTableValueAnalysisTests {
             PdfLogicalTableValueAnalysis.Analyze(
                 new[] { "Termin" },
                 rows,
-                System.Globalization.CultureInfo.GetCultureInfo("pl-PL")));
+                new PdfLogicalTableValueAnalysisOptions {
+                    DateTimeCulture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
+                }));
 
         Assert.Equal(PdfLogicalTableValueKind.Text, generic.Kind);
         Assert.Equal(PdfLogicalTableValueKind.DateTime, polish.Kind);
+    }
+
+    [Fact]
+    public void Analyze_KeepsNumericAndDateTimeCulturePoliciesIndependent() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "1 234,50", "01.02.2025" },
+            new[] { "2 345,75", "03.04.2025" }
+        };
+
+        IReadOnlyList<PdfLogicalTableValueProfile> numericOnly = PdfLogicalTableValueAnalysis.Analyze(
+            new[] { "Kwota", "Termin" },
+            rows,
+            new PdfLogicalTableValueAnalysisOptions {
+                NumericCulture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
+            });
+        IReadOnlyList<PdfLogicalTableValueProfile> localizedDates = PdfLogicalTableValueAnalysis.Analyze(
+            new[] { "Kwota", "Termin" },
+            rows,
+            new PdfLogicalTableValueAnalysisOptions {
+                NumericCulture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+                DateTimeCulture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
+            });
+
+        Assert.Equal(PdfLogicalTableValueKind.Number, numericOnly[0].Kind);
+        Assert.Equal(PdfLogicalTableValueKind.Text, numericOnly[1].Kind);
+        Assert.Equal(PdfLogicalTableValueKind.DateTime, localizedDates[1].Kind);
+    }
+
+    [Fact]
+    public void Analyze_DoesNotTreatLocalizedDottedDatesAsGroupedIntegers() {
+        var culture = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "31.12.2026" },
+            new[] { "30.11.2026" }
+        };
+
+        PdfLogicalTableValueProfile numericOnly = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(
+                new[] { "Termin" },
+                rows,
+                new PdfLogicalTableValueAnalysisOptions { NumericCulture = culture }));
+        PdfLogicalTableValueProfile localizedDates = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(
+                new[] { "Termin" },
+                rows,
+                new PdfLogicalTableValueAnalysisOptions {
+                    NumericCulture = culture,
+                    DateTimeCulture = culture
+                }));
+
+        Assert.Equal(PdfLogicalTableValueKind.Text, numericOnly.Kind);
+        Assert.Equal(1D, numericOnly.Confidence);
+        Assert.Equal(PdfLogicalTableValueKind.DateTime, localizedDates.Kind);
+    }
+
+    [Fact]
+    public void Analyze_DoesNotTreatBareYearsAsLocalizedDates() {
+        IReadOnlyList<IReadOnlyList<string>> rows = new[] {
+            (IReadOnlyList<string>) new[] { "2025" },
+            new[] { "2026" }
+        };
+
+        PdfLogicalTableValueProfile profile = Assert.Single(
+            PdfLogicalTableValueAnalysis.Analyze(
+                new[] { "Rok" },
+                rows,
+                new PdfLogicalTableValueAnalysisOptions {
+                    DateTimeCulture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
+                }));
+
+        Assert.Equal(PdfLogicalTableValueKind.Number, profile.Kind);
     }
 
     [Fact]
@@ -154,5 +227,9 @@ public sealed class PdfLogicalTableValueAnalysisTests {
 
         Assert.Equal(PdfLogicalTableValueKind.Percentage, profile.Kind);
         Assert.Equal(1D, profile.Confidence);
+        Assert.True(PdfLogicalTableValueParser.TryParsePercentage("٢٥٪", null, out decimal arabic));
+        Assert.Equal(0.25M, arabic);
+        Assert.True(PdfLogicalTableValueParser.TryParsePercentage("１００％", null, out decimal fullWidth));
+        Assert.Equal(1M, fullWidth);
     }
 }

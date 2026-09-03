@@ -1263,6 +1263,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.Byte[],OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
@@ -2817,6 +2831,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.Byte[],OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
@@ -4371,6 +4399,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.Byte[],OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
@@ -5919,6 +5961,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions.ToMarkdownTables(OfficeIMO.Pdf.PdfLogicalDocument,OfficeIMO.Pdf.PdfLogicalTableTextExportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

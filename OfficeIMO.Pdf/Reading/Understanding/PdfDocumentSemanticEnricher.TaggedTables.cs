@@ -99,7 +99,9 @@ internal static partial class PdfDocumentSemanticEnricher {
                 PdfUnderstandingTableCandidateReconciler.Reconcile(
                     document.Pages[selectedPageNumbers[pageIndex] - 1],
                     existing,
-                    additions);
+                    additions,
+                    workBudget.Consume,
+                    workBudget.ThrowIfCancellationRequested);
             if (reconciled.Count > maximumArtifactsPerPage) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.UnderstandingArtifacts,
@@ -143,43 +145,44 @@ internal static partial class PdfDocumentSemanticEnricher {
         return result;
     }
 
-    private static IReadOnlyList<PdfUnderstandingTableCandidate> RemoveFullyAccountedGeometricTables(
+    internal static IReadOnlyList<PdfUnderstandingTableCandidate> RemoveFullyAccountedGeometricTables(
         IReadOnlyList<PdfUnderstandingTableCandidate> existing,
         List<PdfUnderstandingTableCandidate> taggedTables,
         HashSet<PdfTextSpan> figureRuns,
         PdfUnderstandingWorkBudget workBudget) {
-        var taggedRunSets = new HashSet<PdfTextSpan>[taggedTables.Count];
+        var taggedRuns = new HashSet<PdfTextSpan>();
         for (int index = 0; index < taggedTables.Count; index++) {
             workBudget.Consume();
-            taggedRunSets[index] = PdfUnderstandingTableCandidateReconciler.GetNativeSourceRuns(taggedTables[index]);
+            IReadOnlyList<PdfTextSpan> tableRuns = taggedTables[index].NativeSourceRuns;
+            for (int runIndex = 0; runIndex < tableRuns.Count; runIndex++) {
+                workBudget.Consume();
+                taggedRuns.Add(tableRuns[runIndex]);
+            }
         }
 
         var result = new List<PdfUnderstandingTableCandidate>(existing.Count);
         for (int candidateIndex = 0; candidateIndex < existing.Count; candidateIndex++) {
             workBudget.Consume();
             PdfUnderstandingTableCandidate candidate = existing[candidateIndex];
-            HashSet<PdfTextSpan> candidateRuns =
-                PdfUnderstandingTableCandidateReconciler.GetNativeSourceRuns(candidate);
+            IReadOnlyList<PdfTextSpan> candidateRuns = candidate.NativeSourceRuns;
             if (candidateRuns.Count == 0) {
                 result.Add(candidate);
                 continue;
             }
 
-            bool fullyOwnedByNonTableContent = candidateRuns.All(run =>
-                run.IsArtifactContent || figureRuns.Contains(run));
-            bool fullyAccountedByTableAndFigure = false;
-            for (int tableIndex = 0; tableIndex < taggedRunSets.Length && !fullyAccountedByTableAndFigure; tableIndex++) {
+            bool intersectsTaggedTable = false;
+            bool fullyAccounted = true;
+            bool fullyOwnedByNonTableContent = true;
+            for (int runIndex = 0; runIndex < candidateRuns.Count; runIndex++) {
                 workBudget.Consume();
-                HashSet<PdfTextSpan> tableRuns = taggedRunSets[tableIndex];
-                fullyAccountedByTableAndFigure =
-                    tableRuns.Count > 0 &&
-                    candidateRuns.Any(tableRuns.Contains) &&
-                    candidateRuns.All(run =>
-                        tableRuns.Contains(run) ||
-                        run.IsArtifactContent ||
-                        figureRuns.Contains(run));
+                PdfTextSpan run = candidateRuns[runIndex];
+                bool ownedByTaggedTable = taggedRuns.Contains(run);
+                bool ownedByNonTableContent = run.IsArtifactContent || figureRuns.Contains(run);
+                intersectsTaggedTable |= ownedByTaggedTable;
+                fullyOwnedByNonTableContent &= ownedByNonTableContent;
+                fullyAccounted &= ownedByTaggedTable || ownedByNonTableContent;
             }
-            if (!fullyOwnedByNonTableContent && !fullyAccountedByTableAndFigure) result.Add(candidate);
+            if (!fullyOwnedByNonTableContent && !(intersectsTaggedTable && fullyAccounted)) result.Add(candidate);
         }
         return result.Count == 0
             ? Array.Empty<PdfUnderstandingTableCandidate>()
@@ -298,6 +301,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         var rows = new IReadOnlyList<string>[sourceRows.Length];
         var sourceLines = new List<PdfUnderstandingLine>();
+        var sourceRuns = new HashSet<PdfTextSpan>();
         var columnLeft = Enumerable.Repeat(double.PositiveInfinity, columnCount).ToArray();
         var columnRight = Enumerable.Repeat(double.NegativeInfinity, columnCount).ToArray();
         double yTop = double.NegativeInfinity;
@@ -315,6 +319,10 @@ internal static partial class PdfDocumentSemanticEnricher {
                 if (!contentIndex.TryBuildCell(keys, out TaggedTableCell cell)) return null;
                 cells[columnIndex] = cell.Text;
                 sourceLines.AddRange(cell.SourceLines);
+                for (int runIndex = 0; runIndex < cell.SourceRuns.Count; runIndex++) {
+                    workBudget.Consume();
+                    sourceRuns.Add(cell.SourceRuns[runIndex]);
+                }
                 columnLeft[columnIndex] = Math.Min(columnLeft[columnIndex], cell.Left);
                 columnRight[columnIndex] = Math.Max(columnRight[columnIndex], cell.Right);
                 yTop = Math.Max(yTop, cell.Top);
@@ -341,20 +349,22 @@ internal static partial class PdfDocumentSemanticEnricher {
             .ThenBy(static line => line.XStart)
             .ToArray();
         workBudget.Consume(orderedSourceLines.Length);
-        return new PdfUnderstandingTableCandidate(
-            "tagged-structure",
+        return PdfUnderstandingTableCandidate.FromTagged(
             yTop,
             yBottom,
             Array.AsReadOnly(columns),
             Array.AsReadOnly(rows),
             Array.AsReadOnly(orderedSourceLines),
+            sourceRuns.ToArray(),
             0.99D,
             new[] {
                 new PdfInferenceEvidence(
                     "table.tagged-structure",
                     "A validated reachable Table, row, and cell hierarchy owns every recovered marked-content cell.",
                     0.99D)
-            });
+            },
+            workBudget.Consume,
+            workBudget.ThrowIfCancellationRequested);
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -400,11 +410,17 @@ internal static partial class PdfDocumentSemanticEnricher {
                     selectedRuns.Add(runs[runIndex]);
                 }
             }
-            PdfTextSpan[] orderedRuns = selectedRuns
-                .OrderByDescending(static run => run.Y)
-                .ThenBy(static run => run.X)
-                .ToArray();
-            _workBudget.Consume(orderedRuns.Length);
+            var orderedRuns = new PdfTextSpan[selectedRuns.Count];
+            int orderedRunIndex = 0;
+            foreach (PdfTextSpan run in selectedRuns) {
+                _workBudget.Consume();
+                orderedRuns[orderedRunIndex++] = run;
+            }
+            Array.Sort(orderedRuns, (left, right) => {
+                _workBudget.Consume();
+                int baseline = right.Y.CompareTo(left.Y);
+                return baseline != 0 ? baseline : left.X.CompareTo(right.X);
+            });
             if (orderedRuns.Length == 0) {
                 cell = default;
                 return false;
@@ -425,15 +441,15 @@ internal static partial class PdfDocumentSemanticEnricher {
             for (int lineIndex = 0; lineIndex < _page.Lines.Count; lineIndex++) {
                 _workBudget.Consume();
                 PdfUnderstandingLine line = _page.Lines[lineIndex];
-                PdfUnderstandingWord[] words = line.Words
-                    .Where(word => word.SourceRuns.Any(selectedRuns.Contains))
-                    .ToArray();
-                if (words.Length == 0) continue;
-                _workBudget.Consume(words.Length);
                 double tolerance = Math.Max(2.5D, line.FontSize * 0.35D);
-                PdfTextSpan[] lineRuns = orderedRuns
-                    .Where(run => Math.Abs(run.Y - line.BaselineY) <= tolerance)
-                    .ToArray();
+                var matchingRuns = new List<PdfTextSpan>();
+                for (int runIndex = 0; runIndex < orderedRuns.Length; runIndex++) {
+                    _workBudget.Consume();
+                    PdfTextSpan run = orderedRuns[runIndex];
+                    if (Math.Abs(run.Y - line.BaselineY) <= tolerance) matchingRuns.Add(run);
+                }
+                PdfTextSpan[] lineRuns = matchingRuns.ToArray();
+                if (lineRuns.Length == 0) continue;
                 List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(
                     lineRuns,
                     new TextLayoutEngine.Options { ForceSingleColumn = true },
@@ -441,10 +457,22 @@ internal static partial class PdfDocumentSemanticEnricher {
                     _workBudget.ThrowIfCancellationRequested);
                 string lineText = string.Join(" ", cellLines.Select(static item => item.Text)).Trim();
                 if (lineText.Length == 0) continue;
-                sourceLines.Add(new PdfUnderstandingLine(
-                    Array.AsReadOnly(words),
+                var word = new PdfUnderstandingWord(
                     lineText,
-                    words.Average(static word => word.Confidence),
+                    lineRuns.Min(static run => run.X),
+                    lineRuns.Max(static run => run.X + Math.Max(0D, run.Advance)),
+                    lineRuns.Average(static run => run.Y),
+                    lineRuns.Max(static run => run.FontSize),
+                    lineRuns.Average(static run => run.RotationDegrees),
+                    Array.AsReadOnly(lineRuns),
+                    line.Confidence,
+                    line.Evidence,
+                    lineRuns.Sum(static run => Math.Max(0D, run.Advance)),
+                    sourceSequence: line.SourceSequence);
+                sourceLines.Add(new PdfUnderstandingLine(
+                    new[] { word },
+                    lineText,
+                    line.Confidence,
                     line.Evidence,
                     line.SourceKind,
                     line.SourceSequence,
@@ -463,7 +491,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                 orderedRuns.Max(static run => run.X + Math.Max(0D, run.Advance)),
                 orderedRuns.Max(static run => run.Y),
                 orderedRuns.Min(static run => run.Y),
-                sourceLines.AsReadOnly());
+                sourceLines.AsReadOnly(),
+                Array.AsReadOnly(orderedRuns));
             return true;
         }
 
@@ -505,5 +534,6 @@ internal static partial class PdfDocumentSemanticEnricher {
         double Right,
         double Top,
         double Bottom,
-        IReadOnlyList<PdfUnderstandingLine> SourceLines);
+        IReadOnlyList<PdfUnderstandingLine> SourceLines,
+        IReadOnlyList<PdfTextSpan> SourceRuns);
 }

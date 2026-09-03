@@ -198,14 +198,33 @@ tagged-PDF or caller-supplied semantics remain authoritative.
 Table value profiling no longer treats localized yes/no words as Boolean or
 uses English column names to infer dates. `true` and `false` remain Boolean;
 other natural-language values remain text unless the application applies its
-own locale-aware domain mapping. Date inference without an explicit culture is
-limited to unambiguous invariant forms; passing a culture explicitly enables
-localized date parsing for values that contain a four-digit year. Numeric
-fallback parsing now validates the complete cell instead of deleting unrelated
-letters around digits, and normalizes Unicode decimal digits plus equivalent
-decimal, grouping, sign, parenthesis, and percent characters. Period and comma
-roles follow the explicitly supplied culture, or invariant culture when none is
-supplied; digit counts are no longer used to guess which separator is decimal.
+own locale-aware domain mapping. The culture argument on
+`PdfLogicalTableValueAnalysis.Analyze(...)` was replaced by
+`PdfLogicalTableValueAnalysisOptions`, which separates `NumericCulture` from
+the optional `DateTimeCulture`. Date inference without `DateTimeCulture` is
+limited to unambiguous invariant forms; setting it enables localized date
+parsing for values that contain a four-digit year. Numeric fallback parsing
+now validates the complete cell instead of deleting unrelated letters around
+digits, and normalizes Unicode decimal digits plus equivalent decimal,
+grouping, sign, parenthesis, and percent characters. Period and comma roles
+follow `NumericCulture`, which defaults to invariant culture; digit counts are
+no longer used to guess which separator is decimal.
+
+`PdfExcelTableImportOptions.NumericCulture` now controls only numbers and
+percentages. Set both cultures to preserve the former single-culture behavior
+for localized Excel imports:
+
+```csharp
+var culture = CultureInfo.GetCultureInfo("de-DE");
+var options = new PdfExcelTableImportOptions {
+    NumericCulture = culture,
+    DateTimeCulture = culture
+};
+```
+
+Leaving `DateTimeCulture` null intentionally limits automatic date conversion
+to invariant year-first forms; localized numeric date shapes remain text and
+are never reinterpreted as grouped integers.
 
 `PdfLogicalTableStructure.IsKeyValueTable` and
 `PdfLogicalTableAnalysis.LooksLikeKeyValueTable(...)` were removed. A

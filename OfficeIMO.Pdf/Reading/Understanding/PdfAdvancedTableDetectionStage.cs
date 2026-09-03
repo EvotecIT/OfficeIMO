@@ -107,7 +107,12 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
         if (ocrCandidates.Count == 0) return;
 
         IReadOnlyList<PdfUnderstandingTableCandidate> reconciled =
-            PdfUnderstandingTableCandidateReconciler.Reconcile(context.Page, result, ocrCandidates);
+            PdfUnderstandingTableCandidateReconciler.Reconcile(
+                context.Page,
+                result,
+                ocrCandidates,
+                context.ConsumeWork,
+                context.ThrowIfCancellationRequested);
         if (reconciled.Count > context.MaxTableCandidatesPerPage) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.UnderstandingArtifacts,
