@@ -377,6 +377,50 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentPropagatesCancellationIntoSignalDetectors() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", "<!doctype html><html><body>body</body></html>");
+        using var cancellation = new CancellationTokenSource();
+        var detector = new BlockingCancellationDetector();
+        Task<OfficeProvenanceWorkflowResult> operation = new OfficeWorkflowRunner(
+            provenanceVerifier: null,
+            provenanceSignalDetectors: [detector]).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            },
+            cancellationToken: cancellation.Token);
+        await detector.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        cancellation.Cancel();
+        OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.True(detector.CancellationObserved);
+    }
+
+    [Fact]
+    public async Task AssessmentPropagatesCancellationIntoVerifiers() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        using var cancellation = new CancellationTokenSource();
+        var verifier = new BlockingCancellationVerifier();
+        Task<OfficeProvenanceWorkflowResult> operation = new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            },
+            cancellationToken: cancellation.Token);
+        await verifier.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        cancellation.Cancel();
+        OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.True(verifier.CancellationObserved);
+    }
+
+    [Fact]
     public async Task AssessmentReportsTheLogicalSourcePathWhileReadingTheSnapshot() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", "<!doctype html><html><body>review\u200Bthis</body></html>");
@@ -713,7 +757,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
         internal string? ObservedPath { get; private set; }
 
-        public OfficeProvenanceSignalResult Detect(string filePath) {
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
             ObservedPath = Path.GetFullPath(filePath);
             File.WriteAllText(_originalPath, "<!doctype html><html><body>replacement</body></html>");
             bool detected = File.ReadAllText(filePath).Contains("c2pa-manifest", StringComparison.OrdinalIgnoreCase);
@@ -724,6 +768,38 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
     }
 
+    private sealed class BlockingCancellationDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "blocking-cancellation";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+        internal TaskCompletionSource<bool> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal bool CancellationObserved { get; private set; }
+
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
+            Started.TrySetResult(true);
+            cancellationToken.WaitHandle.WaitOne();
+            CancellationObserved = cancellationToken.IsCancellationRequested;
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("The cancellation-aware detector resumed without cancellation.");
+        }
+    }
+
+    private sealed class BlockingCancellationVerifier : IOfficeProvenanceVerifier {
+        public string Name => "blocking-cancellation";
+        internal TaskCompletionSource<bool> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal bool CancellationObserved { get; private set; }
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            Started.TrySetResult(true);
+            cancellationToken.WaitHandle.WaitOne();
+            CancellationObserved = cancellationToken.IsCancellationRequested;
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("The cancellation-aware verifier resumed without cancellation.");
+        }
+    }
+
     private sealed class RelativeManifestVerifier : IOfficeProvenanceVerifier {
         public string Name => "relative-manifest";
         internal bool SawRelativeManifest { get; private set; }
@@ -731,7 +807,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         public OfficeProvenanceVerificationResult Verify(
             string filePath,
-            OfficeProvenanceVerificationOptions? options = null) {
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
             string manifestPath = Path.Combine(ObservedDirectory!, "claim.c2pa");
             SawRelativeManifest = File.Exists(manifestPath) && File.ReadAllText(manifestPath) == "immutable claim";
@@ -750,7 +827,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         public OfficeProvenanceVerificationResult Verify(
             string filePath,
-            OfficeProvenanceVerificationOptions? options = null) {
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
             string manifestPath = Path.Combine(ObservedDirectory!, "claim.c2pa");
             string replacementPath = manifestPath + ".replacement";
@@ -776,7 +854,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         public OfficeProvenanceVerificationResult Verify(
             string filePath,
-            OfficeProvenanceVerificationOptions? options = null) {
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ObservedDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
             string manifestPath = Path.Combine(ObservedDirectory!, "sub", "claim.c2pa");
             SawRelativeManifest = File.Exists(manifestPath) &&
@@ -820,7 +899,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
         internal bool Replaced { get; private set; }
 
-        public OfficeProvenanceSignalResult Detect(string filePath) {
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
             string replacementPath = filePath + ".replacement";
             File.WriteAllText(replacementPath, "replacement");
             File.Move(replacementPath, filePath, overwrite: true);

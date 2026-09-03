@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -206,6 +207,7 @@ public sealed class OfficeProvenanceRemovalOptions {
     public OfficeProvenanceOptions Limits { get; } = new OfficeProvenanceOptions();
 
     internal long EffectiveMaxOutputBytes => MaxOutputBytes ?? Limits.MaxAssetBytes;
+    internal long EffectiveMaxIntermediateBytes => Math.Max(EffectiveMaxOutputBytes, Limits.MaxAssetBytes);
 }
 
 /// <summary>One format-native provenance mutation.</summary>
@@ -371,5 +373,8 @@ public interface IOfficeProvenanceVerifier {
     /// <summary>Gets the provider name.</summary>
     string Name { get; }
     /// <summary>Verifies provenance carried by an asset file.</summary>
-    OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null);
+    OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options = null,
+        CancellationToken cancellationToken = default);
 }

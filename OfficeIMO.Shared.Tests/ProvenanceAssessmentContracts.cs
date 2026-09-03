@@ -391,7 +391,10 @@ public sealed class ProvenanceAssessmentContracts {
     private sealed class StubVerifier : IOfficeProvenanceVerifier {
         public string Name => "stub-verifier";
         internal OfficeProvenanceVerificationOptions? Options { get; private set; }
-        public OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null) =>
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) =>
             Create(options);
 
         private OfficeProvenanceVerificationResult Create(OfficeProvenanceVerificationOptions? options) {
@@ -405,7 +408,10 @@ public sealed class ProvenanceAssessmentContracts {
 
     private sealed class InconsistentVerifier : IOfficeProvenanceVerifier {
         public string Name => "expected";
-        public OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null) =>
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null,
+            CancellationToken cancellationToken = default) =>
             new OfficeProvenanceVerificationResult(
                 OfficeProvenanceVerificationStatus.Valid,
                 "different",
@@ -421,14 +427,14 @@ public sealed class ProvenanceAssessmentContracts {
         }
         public string Name { get; }
         public OfficeProvenanceSignalKind SignalKind { get; }
-        public OfficeProvenanceSignalResult Detect(string filePath) =>
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) =>
             new OfficeProvenanceSignalResult(Name, SignalKind, _status);
     }
 
     private sealed class InconsistentDetector : IOfficeProvenanceSignalDetector {
         public string Name => "expected";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DurableMediaWatermark;
-        public OfficeProvenanceSignalResult Detect(string filePath) =>
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) =>
             new OfficeProvenanceSignalResult(
                 "different",
                 OfficeProvenanceSignalKind.DurableMediaWatermark,
@@ -444,7 +450,7 @@ public sealed class ProvenanceAssessmentContracts {
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
         internal string? ObservedPath { get; private set; }
 
-        public OfficeProvenanceSignalResult Detect(string filePath) {
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
             ObservedPath = Path.GetFullPath(filePath);
             File.WriteAllText(_originalPath, "replacement", new UTF8Encoding(false));
             bool detected = File.ReadAllText(filePath).Contains("original marker", StringComparison.Ordinal);
@@ -463,7 +469,7 @@ public sealed class ProvenanceAssessmentContracts {
         public string Name => "snapshot-replacing";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
 
-        public OfficeProvenanceSignalResult Detect(string filePath) {
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
             string replacement = filePath + ".replacement";
             File.WriteAllText(replacement, "replacement", new UTF8Encoding(false));
             File.Move(replacement, filePath, overwrite: true);
@@ -483,7 +489,7 @@ public sealed class ProvenanceAssessmentContracts {
         public string Name => "cancelling";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
 
-        public OfficeProvenanceSignalResult Detect(string filePath) {
+        public OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default) {
             _cancellation.Cancel();
             return new OfficeProvenanceSignalResult(Name, SignalKind, OfficeProvenanceSignalStatus.NotDetected);
         }

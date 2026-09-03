@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Provenance;
 
@@ -53,7 +54,11 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     public string Name => "c2patool";
 
     /// <inheritdoc />
-    public OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null) {
+    public OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An asset path is required.", nameof(filePath));
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to verify was not found.", fullPath);
@@ -62,6 +67,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
 
         string settingsPath = Path.Combine(Path.GetTempPath(), ".officeimo-c2pa-" + Guid.NewGuid().ToString("N") + ".json");
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             File.WriteAllText(settingsPath, CreateSettings(options.AllowNetworkAccess), new UTF8Encoding(false));
             string workingDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
             var request = new C2paToolProcessRequest(
@@ -72,7 +78,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 options.MaxReportBytes);
             C2paToolProcessResult processResult;
             try {
-                processResult = _runner.Run(request);
+                processResult = _runner.Run(request, cancellationToken);
             } catch (Win32Exception exception) {
                 return Result(OfficeProvenanceVerificationStatus.ProviderUnavailable, new[] { exception.Message }, null, options);
             } catch (TimeoutException exception) {
@@ -284,7 +290,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
 }
 
 internal interface IC2paToolProcessRunner {
-    C2paToolProcessResult Run(C2paToolProcessRequest request);
+    C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default);
 }
 
 internal sealed class C2paToolProcessRequest {
@@ -321,7 +327,10 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         _useExternalUnixSessionLauncher = useExternalUnixSessionLauncher;
     }
 
-    public C2paToolProcessResult Run(C2paToolProcessRequest request) {
+    public C2paToolProcessResult Run(
+        C2paToolProcessRequest request,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string targetExecutable = ResolveUnixExecutable(request.ExecutablePath, request.WorkingDirectory);
         string executable = targetExecutable;
         string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
@@ -352,6 +361,7 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         Stopwatch timer = Stopwatch.StartNew();
         while (true) {
             if (process.WaitForExit(50)) break;
+            ThrowIfCancellationRequested(process, containment, cancellationToken);
             if (stdout.IsFaulted || stderr.IsFaulted) {
                 Terminate(process, containment);
                 throw stdout.Exception?.GetBaseException() ?? stderr.Exception?.GetBaseException() ?? new InvalidDataException("c2patool output failed.");
@@ -362,15 +372,31 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             }
         }
         try {
-            TimeSpan remaining = request.Timeout - timer.Elapsed;
-            if (remaining <= TimeSpan.Zero || !Task.WaitAll(new Task[] { stdout, stderr }, remaining)) {
-                Terminate(process, containment);
-                throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
+            var outputTasks = new Task[] { stdout, stderr };
+            while (true) {
+                TimeSpan remaining = request.Timeout - timer.Elapsed;
+                if (remaining <= TimeSpan.Zero) {
+                    Terminate(process, containment);
+                    throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
+                }
+                int waitMilliseconds = (int)Math.Min(50D, Math.Ceiling(remaining.TotalMilliseconds));
+                if (Task.WaitAll(outputTasks, waitMilliseconds, CancellationToken.None)) break;
+                ThrowIfCancellationRequested(process, containment, cancellationToken);
             }
         } catch (AggregateException exception) {
             throw exception.GetBaseException();
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new C2paToolProcessResult(process.ExitCode, stdout.Result, stderr.Result);
+    }
+
+    private static void ThrowIfCancellationRequested(
+        Process process,
+        C2paToolProcessContainment containment,
+        CancellationToken cancellationToken) {
+        if (!cancellationToken.IsCancellationRequested) return;
+        Terminate(process, containment);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     internal static Task<string> ReadBoundedAsync(Stream stream, long maximumBytes, string streamName) => Task.Run(() => {

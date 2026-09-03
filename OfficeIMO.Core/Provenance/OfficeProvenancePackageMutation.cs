@@ -96,7 +96,7 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceRemovalOptions previewOptions = Clone(
             options,
             OfficeSignatureMutationPolicy.PreserveSignatureMarkup,
-            Math.Max(options.EffectiveMaxOutputBytes, options.Limits.MaxAssetBytes));
+            options.EffectiveMaxIntermediateBytes);
         OfficeProvenanceRemovalResult preview = OfficeProvenanceRemover.RemoveZipPackage(
             data,
             fileName,

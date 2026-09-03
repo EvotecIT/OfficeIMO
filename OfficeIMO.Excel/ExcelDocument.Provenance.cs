@@ -103,7 +103,7 @@ public partial class ExcelDocument {
         OfficeProvenanceOptions limits = options.Limits;
         if (XlsbPackageDetector.TryFindWorkbookPart(
             data, limits.MaxAssetBytes, limits.MaxAssetBytes, out _)) return StripXlsbPackageSignatures(data, options);
-        using var stream = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
+        using var stream = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxIntermediateBytes, data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
         bool hadSignatures;
@@ -155,9 +155,9 @@ public partial class ExcelDocument {
                 content,
                 signatureEntries,
                 limits,
-                options.EffectiveMaxOutputBytes),
-            Math.Min(limits.MaxAssetBytes, options.EffectiveMaxOutputBytes),
-            options.EffectiveMaxOutputBytes);
+                options.EffectiveMaxIntermediateBytes),
+            Math.Min(limits.MaxAssetBytes, options.EffectiveMaxIntermediateBytes),
+            options.EffectiveMaxIntermediateBytes);
         return new OfficeProvenanceSignatureStripResult(rewritten.Data, hadSignatures: true);
     }
 

@@ -64,7 +64,7 @@ public interface IOfficeProvenanceSignalDetector {
     /// <summary>Gets the signal kind detected by this provider.</summary>
     OfficeProvenanceSignalKind SignalKind { get; }
     /// <summary>Inspects one asset and returns a normalized provider result.</summary>
-    OfficeProvenanceSignalResult Detect(string filePath);
+    OfficeProvenanceSignalResult Detect(string filePath, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Configures a combined provenance assessment.</summary>
@@ -208,7 +208,10 @@ public static class OfficeProvenanceAssessment {
             textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity, logicalFullPath);
             cancellationToken.ThrowIfCancellationRequested();
         }
-        OfficeProvenanceVerificationResult? verification = verifier?.Verify(fullPath, options.Verification);
+        OfficeProvenanceVerificationResult? verification = verifier?.Verify(
+            fullPath,
+            options.Verification,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (verifier != null && verification == null) {
             throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned no result.");
@@ -221,7 +224,7 @@ public static class OfficeProvenanceAssessment {
             foreach (IOfficeProvenanceSignalDetector detector in signalDetectors) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
-                OfficeProvenanceSignalResult result = detector.Detect(fullPath) ??
+                OfficeProvenanceSignalResult result = detector.Detect(fullPath, cancellationToken) ??
                     throw new InvalidDataException($"The '{detector.Name}' signal detector returned no result.");
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(result.ProviderName, detector.Name, StringComparison.Ordinal) || result.SignalKind != detector.SignalKind) {
