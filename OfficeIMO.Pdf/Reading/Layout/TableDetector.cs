@@ -16,6 +16,11 @@ internal static partial class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
+    private static readonly HashSet<string> ReportingPeriodHeaderLabels = new(StringComparer.OrdinalIgnoreCase) {
+        "account", "amount", "category", "code", "date", "department", "description", "id", "item",
+        "fiscal year", "measure", "metric", "month", "name", "period", "project", "quarter", "region",
+        "reporting period", "status", "type", "value", "year"
+    };
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines, double? pageHeight = null) {
         var rows = new List<string[]>();
         foreach (var match in DetectLineRows(lines, pageHeight)) {
@@ -464,11 +469,23 @@ internal static partial class TableDetector {
                 List<TextLayoutEngine.TextLine>? previous = end > start
                     ? bandSplits[end - 1].lines
                     : null;
+                List<TextLayoutEngine.TextLine> rhythmMiddle = current.lines;
+                List<TextLayoutEngine.TextLine>? rhythmPrevious = previous;
+                if (includedBridgeBandIndexes.Contains(current.idx - 1)) {
+                    rhythmPrevious = bands[current.idx - 1];
+                }
+                if (next.idx == current.idx + 2) {
+                    rhythmPrevious = current.lines;
+                    rhythmMiddle = bands[current.idx + 1];
+                }
                 bool hasContinuousAlignedCells = HasEmphasizedText(bandSplits[start].lines[0]) &&
                                                  BandsHaveAlignedCells(current.lines, next.lines) &&
                                                  (BandsHaveCompatibleVerticalGap(current.lines, next.lines) ||
-                                                  (previous is not null &&
-                                                   BandsHaveCompatibleVerticalRhythm(previous, current.lines, next.lines)));
+                                                  (rhythmPrevious is not null &&
+                                                   BandsHaveCompatibleVerticalRhythm(
+                                                       rhythmPrevious,
+                                                       rhythmMiddle,
+                                                       next.lines)));
                 bool splitsAreSimilar = AreSplitsSimilar(baseSplits, next.splits);
                 if (next.idx > current.idx + 2 ||
                     (!splitsAreSimilar &&
@@ -732,7 +749,7 @@ internal static partial class TableDetector {
         if (upperGap <= 0D || lowerGap <= 0D) return false;
         double smaller = Math.Min(upperGap, lowerGap);
         double larger = Math.Max(upperGap, lowerGap);
-        return larger <= 36D && larger <= smaller * 1.75D;
+        return larger <= smaller * 1.75D;
     }
 
     private static bool IsCompactNonNarrativeRow(string text) {
@@ -869,11 +886,23 @@ internal static partial class TableDetector {
                !LooksLikeEmphasizedDataRow(cells);
     }
 
-    private static bool LooksLikeEmphasizedDataRow(string[] cells) =>
-        cells.Skip(1).Any(static cell => {
+    private static bool LooksLikeEmphasizedDataRow(string[] cells) {
+        bool reportingPeriodHeader = LooksLikeColumnHeaderLabel(cells[0]) &&
+                                     cells.Skip(1).Any(static cell => LooksLikeReportingPeriodHeaderValue(
+                                         ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+        return cells.Skip(1).Any(cell => {
             string value = ContentStructureExtractor.NormalizeShattered(cell).Trim();
-            return LooksLikeSummaryValue(value) && !LooksLikeReportingPeriodHeaderValue(value);
+            return LooksLikeSummaryValue(value) &&
+                   (!reportingPeriodHeader || !LooksLikeReportingPeriodHeaderValue(value));
         });
+    }
+
+    private static bool LooksLikeColumnHeaderLabel(string cell) {
+        string value = ContentStructureExtractor.NormalizeShattered(cell)
+            .Trim()
+            .Trim(':', '-', '_', '/', '\\');
+        return ReportingPeriodHeaderLabels.Contains(value);
+    }
 
     private static bool LooksLikeReportingPeriodHeaderValue(string value) {
         string compact = new string(value.Where(static character => !char.IsWhiteSpace(character)).ToArray());
