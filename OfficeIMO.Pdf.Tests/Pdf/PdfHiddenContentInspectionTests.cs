@@ -75,6 +75,37 @@ public sealed class PdfHiddenContentInspectionTests {
             finding.TextPreview.Contains("VISIBLE-SHARED-VALUE", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ContentSafetySurfacesOptionalContentAnnotationPayloadsAndDefaultWidgetValues() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [8 0 R] >> /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R 9 0 R 11 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /Type /OCG /Name (Hidden annotations) >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [20 20 80 50] /OC 6 0 R /RC (<body>RICH-OPTIONAL-SECRET</body>) /Contents (PLAIN-OPTIONAL-SECRET) /F 4 >>\nendobj",
+            "8 0 obj\n<< /FT /Tx /T (DefaultHiddenField) /DV (DEFAULT-HIDDEN-FIELD) /Kids [9 0 R] >>\nendobj",
+            "9 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [90 20 210 50] /P 3 0 R /OC 6 0 R /F 4 >>\nendobj",
+            "10 0 obj\n<< /Type /OCMD /OCGs [6 0 R] /P /AllOn >>\nendobj",
+            "11 0 obj\n<< /Type /Annot /Subtype /Text /Rect [20 70 40 90] /OC 10 0 R /Contents (MEMBERSHIP-OPTIONAL-SECRET) /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 12 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("RICH-OPTIONAL-SECRET", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("PLAIN-OPTIONAL-SECRET", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("MEMBERSHIP-OPTIONAL-SECRET", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("DEFAULT-HIDDEN-FIELD", StringComparison.Ordinal));
+        Assert.All(
+            report.Findings.Where(finding => finding.Kind == OfficeContentConcealmentKind.HiddenByProperty),
+            finding => Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability));
+    }
+
     private static byte[] BuildHiddenOptionalContentPdf() {
         const string pageContent = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET\n/OC /Hidden BDC BT /F1 12 Tf 20 100 Td (HIDDEN-PAGE-CONTENT) Tj ET EMC\n/OuterForm Do";
         const string outerFormContent = "/HiddenForm Do";

@@ -95,6 +95,7 @@ public sealed partial class PdfDocument {
         IDictionary<string, PdfContentSafetyTarget>? targets) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         var builder = new OfficeContentSafetyBuilder("PDF", options);
+        var concealedAnnotationObjectNumbers = new HashSet<int>();
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             PdfReadPage page = document.Pages[pageIndex];
             (double pageWidth, double pageHeight) = page.GetPageSize();
@@ -172,18 +173,50 @@ public sealed partial class PdfDocument {
             IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
             for (int annotationIndex = 0; annotationIndex < annotations.Count; annotationIndex++) {
                 PdfAnnotation annotation = annotations[annotationIndex];
-                if (!annotation.IsHidden && !annotation.IsInvisible && !annotation.IsNoView) continue;
-                string? text = !string.IsNullOrWhiteSpace(annotation.RichContentsPlainText)
-                    ? annotation.RichContentsPlainText
-                    : annotation.Contents;
+                bool hiddenByFlags = annotation.IsHidden || annotation.IsInvisible || annotation.IsNoView;
+                bool hiddenByOptionalContent = page.IsHiddenOptionalContent(annotation.SourceDictionary);
+                if (!hiddenByFlags && !hiddenByOptionalContent) continue;
+                if (annotation.ObjectNumber.HasValue) concealedAnnotationObjectNumbers.Add(annotation.ObjectNumber.Value);
                 string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
-                builder.Add(
-                    OfficeContentConcealmentKind.HiddenByProperty,
-                    OfficeContentSafetyRisk.ContextDependent,
-                    location,
-                    "The PDF annotation is concealed by its Invisible, Hidden, or NoView flag.",
-                    text,
-                    OfficeContentCleanupCapability.ReportOnly);
+                string evidence = hiddenByFlags && hiddenByOptionalContent
+                    ? "The PDF annotation is concealed by its flags and optional-content configuration."
+                    : hiddenByOptionalContent
+                        ? "The PDF annotation is concealed by the document's default optional-content configuration."
+                        : "The PDF annotation is concealed by its Invisible, Hidden, or NoView flag.";
+                string? richText = !string.IsNullOrWhiteSpace(annotation.RichContentsPlainText)
+                    ? annotation.RichContentsPlainText
+                    : annotation.RichContents;
+                bool addedText = false;
+                if (!string.IsNullOrWhiteSpace(richText)) {
+                    builder.Add(
+                        OfficeContentConcealmentKind.HiddenByProperty,
+                        OfficeContentSafetyRisk.ContextDependent,
+                        location + "/RichContents",
+                        evidence,
+                        richText,
+                        OfficeContentCleanupCapability.ReportOnly);
+                    addedText = true;
+                }
+                if (!string.IsNullOrWhiteSpace(annotation.Contents) &&
+                    !string.Equals(annotation.Contents, richText, StringComparison.Ordinal)) {
+                    builder.Add(
+                        OfficeContentConcealmentKind.HiddenByProperty,
+                        OfficeContentSafetyRisk.ContextDependent,
+                        location + "/Contents",
+                        evidence,
+                        annotation.Contents,
+                        OfficeContentCleanupCapability.ReportOnly);
+                    addedText = true;
+                }
+                if (!addedText) {
+                    builder.Add(
+                        OfficeContentConcealmentKind.HiddenByProperty,
+                        OfficeContentSafetyRisk.ContextDependent,
+                        location,
+                        evidence,
+                        text: null,
+                        cleanupCapability: OfficeContentCleanupCapability.ReportOnly);
+                }
             }
         }
 
@@ -191,15 +224,33 @@ public sealed partial class PdfDocument {
         for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
             bool allWidgetsHidden = field.Widgets.Count > 0 &&
-                field.Widgets.All(static widget => widget.IsHidden || widget.IsInvisible || widget.IsNoView);
-            if (!allWidgetsHidden || !field.HasValues) continue;
-            builder.Add(
-                OfficeContentConcealmentKind.HiddenByProperty,
-                OfficeContentSafetyRisk.ContextDependent,
-                "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenWidgetValue",
-                "The PDF form value belongs only to widgets concealed by their Invisible, Hidden, or NoView flags.",
-                string.Join(" ", field.Values),
-                OfficeContentCleanupCapability.ReportOnly);
+                field.Widgets.All(widget =>
+                    widget.IsHidden ||
+                    widget.IsInvisible ||
+                    widget.IsNoView ||
+                    widget.ObjectNumber.HasValue && concealedAnnotationObjectNumbers.Contains(widget.ObjectNumber.Value));
+            if (!allWidgetsHidden) continue;
+            string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
+            string? currentValues = field.HasValues ? string.Join(" ", field.Values) : null;
+            if (currentValues is not null) {
+                builder.Add(
+                    OfficeContentConcealmentKind.HiddenByProperty,
+                    OfficeContentSafetyRisk.ContextDependent,
+                    location + "/HiddenWidgetValue",
+                    "The PDF form value belongs only to widgets concealed by annotation flags or optional-content configuration.",
+                    currentValues,
+                    OfficeContentCleanupCapability.ReportOnly);
+            }
+            string? defaultValues = field.HasDefaultValues ? string.Join(" ", field.DefaultValues) : null;
+            if (defaultValues is not null && !string.Equals(defaultValues, currentValues, StringComparison.Ordinal)) {
+                builder.Add(
+                    OfficeContentConcealmentKind.HiddenByProperty,
+                    OfficeContentSafetyRisk.ContextDependent,
+                    location + "/HiddenWidgetDefaultValue",
+                    "The PDF default form value belongs only to widgets concealed by annotation flags or optional-content configuration.",
+                    defaultValues,
+                    OfficeContentCleanupCapability.ReportOnly);
+            }
         }
 
         if (document.OptionalContent != null) builder.AddDiagnostic("Optional-content metadata and hidden text were inspected using the document's default layer configuration. Hidden optional-content findings are report-only.");

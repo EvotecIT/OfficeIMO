@@ -122,6 +122,33 @@ public class PdfSignatureProfileTests {
         Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
     }
 
+    [Theory]
+    [InlineData(OfficeImageFit.Cover)]
+    [InlineData(OfficeImageFit.Stretch)]
+    public void VisibleApprovalProfilePaintsBorderAfterZeroPaddingImage(OfficeImageFit fit) {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Border ordering source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                FieldName = "BorderOrdering",
+                VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                    Width = 180,
+                    Height = 72,
+                    ImageBytes = PdfPngTestImages.CreateRgbPng(4, 2),
+                    ImageFit = fit,
+                    ImagePadding = 0,
+                    ShowText = false
+                },
+                ReservedSignatureContentsBytes = 512
+            });
+        PdfStream appearance = FindImageAppearanceStream(preparation.PreparedPdf);
+        string content = PdfEncoding.Latin1GetString(appearance.Data);
+
+        Assert.True(content.IndexOf("/Im1 Do", StringComparison.Ordinal) < content.LastIndexOf(" re S", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void DocumentTimestampProfileSelectsRfc3161SubFilter() {
         byte[] source = PdfDocument.Create()
@@ -141,5 +168,15 @@ public class PdfSignatureProfileTests {
         Assert.Equal("ETSI.RFC3161", preparation.SubFilter);
         Assert.Contains("/Type /DocTimeStamp", raw, StringComparison.Ordinal);
         Assert.Contains("/SubFilter /ETSI.RFC3161", raw, StringComparison.Ordinal);
+    }
+
+    private static PdfStream FindImageAppearanceStream(byte[] pdf) {
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf).Map;
+        return Assert.Single(objects.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>(), stream =>
+                PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName { Name: "Form" } &&
+                PdfObjectLookup.ResolveChain(objects, stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null) is PdfDictionary resourceDictionary &&
+                resourceDictionary.Items.ContainsKey("XObject"));
     }
 }

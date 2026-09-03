@@ -246,8 +246,7 @@ internal static partial class PdfIncrementalUpdater {
         var content = new StringBuilder();
         content.Append(
             "q\n" +
-            FormatColor(options.BackgroundColor) + " rg 0 0 " + Format(options.Width) + " " + Format(options.Height) + " re f\n" +
-            FormatColor(options.BorderColor) + " RG 1 w 0.5 0.5 " + Format(Math.Max(0, options.Width - 1)) + " " + Format(Math.Max(0, options.Height - 1)) + " re S\n");
+            FormatColor(options.BackgroundColor) + " rg 0 0 " + Format(options.Width) + " " + Format(options.Height) + " re f\n");
 
         if (imageStream is not null && imageObjectNumber.HasValue) {
             double innerWidth = options.Width - (options.ImagePadding * 2D);
@@ -284,6 +283,9 @@ internal static partial class PdfIncrementalUpdater {
                 .Append(Format(options.FontSize)).Append(" Tf 6 ").Append(Format(textY))
                 .Append(" Td ").Append(PdfSyntaxEscaper.LiteralString(text)).Append(" Tj ET\n");
         }
+        content.Append(FormatColor(options.BorderColor)).Append(" RG 1 w 0.5 0.5 ")
+            .Append(Format(Math.Max(0, options.Width - 1))).Append(' ')
+            .Append(Format(Math.Max(0, options.Height - 1))).Append(" re S\n");
         content.Append("Q\n");
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content.ToString()));
     }

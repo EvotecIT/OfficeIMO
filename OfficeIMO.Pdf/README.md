@@ -730,7 +730,6 @@ Desktop and server applications use platform AES automatically. A host without s
 managed provider included in `OfficeIMO.Core` explicitly; the same provider handles writing and opening the protected PDF.
 
 ```csharp
-using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 
@@ -758,6 +757,7 @@ PDF signature discovery, byte-range inspection, mutation blocking, and caller-de
 `OfficeIMO.Security`. For the built-in CMS adapter, install the optional package and pass its provider explicitly:
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 

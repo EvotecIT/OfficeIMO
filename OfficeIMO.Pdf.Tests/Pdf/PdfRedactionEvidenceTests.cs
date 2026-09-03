@@ -98,6 +98,33 @@ public sealed class PdfRedactionEvidenceTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
+                .Paragraph(paragraph => paragraph.Text("Retained source content"))))
+            .ToBytes();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+        };
+        PdfRedactionArea[] areas = Enumerable.Range(0, 64)
+            .Select(index => new PdfRedactionArea(
+                1,
+                20D + ((index % 8) * 24D),
+                20D + ((index / 8) * 24D),
+                8D,
+                8D,
+                "reviewed area " + index.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+            .ToArray();
+        PdfDocument document = PdfDocument.Load(source, readOptions);
+        PdfRedactionPlan plan = document.Redactions.Plan(areas);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.True(result.Pdf.LongLength > source.LongLength);
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Contains("Retained source content", result.ToDocument().Read().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RedactionPlanningStopsAtSelfReferencingFormXObject() {
         const string formContent = "BT /F1 12 Tf 20 40 Td (CYCLE-MARKER) Tj ET\n/Loop Do";
         byte[] source = BuildPdf(

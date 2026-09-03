@@ -298,7 +298,8 @@ public sealed partial class PdfDocument {
             RequireCompleteStreamInspection = true,
             CheckManagedRendering = true
         };
-        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(output, plan, effectiveVerification, readOptions);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(output, plan, effectiveVerification, outputReadOptions);
         IReadOnlyList<PdfRedactionMatch> residualMatches = verification.Issues.Any(static issue =>
             issue.Feature == "ReviewedRedactionPlanBlocked" ||
             issue.Feature == "RedactionPlanPageCountChanged" ||
@@ -306,13 +307,13 @@ public sealed partial class PdfDocument {
             issue.Feature == "RedactionPlanPageMissing" ||
             issue.Feature == "RedactionPlanInspectionBlocked")
             ? Array.Empty<PdfRedactionMatch>()
-            : PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, readOptions).Matches;
+            : PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, outputReadOptions).Matches;
         var evidence = new PdfRedactionEvidenceReport(
             plan,
             PdfRedactionPlan.ComputeSourceSha256(output),
             residualMatches,
             verification);
-        return new PdfRedactionApplyResult(output, mutationPlan, evidence, readOptions);
+        return new PdfRedactionApplyResult(output, mutationPlan, evidence, outputReadOptions);
     }
 
     /// <summary>
