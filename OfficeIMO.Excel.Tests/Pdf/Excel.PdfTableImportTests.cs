@@ -814,6 +814,8 @@ public partial class Excel {
     [InlineData("North", "FY2025")]
     [InlineData("North", "Q1")]
     [InlineData("North Region", "Q1")]
+    [InlineData("C-300", "Closed")]
+    [InlineData("North", "Closed")]
     [InlineData("Enabled", "Yes")]
     [InlineData("Central", "N/A")]
     public void PdfTables_BandGroupingKeepsEmphasizedDataRows(string label, string value) {
@@ -952,6 +954,71 @@ public partial class Excel {
         Assert.Equal("North America", table.Rows[3][0]);
         Assert.Equal(string.Empty, table.Rows[3][1]);
         Assert.Equal(new[] { "Canada", "350" }, table.Rows[5]);
+    }
+
+    [Fact]
+    public void PdfTables_BandGroupingStopsAtNewHeaderAfterAttachedTwoRowTable() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
+            string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60, baseFont: baseFont),
+                new(right, "F1", 10, 180, y, 40, baseFont: baseFont)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
+
+        var attachedHeaderSpans = new List<PdfCore.PdfTextSpan> {
+            new("Code", "F1", 10, 20, 700, 150, baseFont: "Helvetica-Bold"),
+            new("Qty", "F1", 10, 180, 700, 40, baseFont: "Helvetica-Bold")
+        };
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 220, "Code Qty", attachedHeaderSpans) },
+            new() { Row(680, false, "A-100", "12") },
+            new() { Row(660, true, "Name", "Total") },
+            new() { Row(640, false, "Alpha", "22") },
+            new() { Row(620, false, "Beta", "24") }
+        };
+
+        PdfCore.StructuredTable[] grouped = PdfCore.TableDetector.DetectTablesFromBands(bands)
+            .Where(static table => table.Kind == "band-group")
+            .ToArray();
+
+        Assert.Equal(2, grouped.Length);
+        Assert.Equal(2, grouped[0].Rows.Count);
+        Assert.Equal(new[] { "Code", "Qty" }, grouped[0].Rows[0]);
+        Assert.Equal(new[] { "Name", "Total" }, grouped[1].Rows[0]);
+    }
+
+    [Fact]
+    public void PdfTables_BandGroupingDoesNotBridgeDistantCaptionByProportionAlone() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
+            string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60, baseFont: baseFont),
+                new(right, "F1", 10, 180, y, 40, baseFont: baseFont)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
+
+        var captionSpans = new List<PdfCore.PdfTextSpan> {
+            new("INTERIM RESULTS", "F1", 10, 20, 400, 200, baseFont: "Helvetica-Bold")
+        };
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { Row(700, true, "Code", "Qty") },
+            new() { Row(680, false, "A-100", "12") },
+            new() { Row(660, false, "B-200", "14") },
+            new() { new PdfCore.TextLayoutEngine.TextLine(400, 20, 220, "INTERIM RESULTS", captionSpans) },
+            new() { Row(140, false, "Alpha", "22") },
+            new() { Row(120, false, "Beta", "24") }
+        };
+
+        PdfCore.StructuredTable first = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static table => table.Kind == "band-group" && table.Rows[0][0] == "Code");
+
+        Assert.Equal(3, first.Rows.Count);
+        Assert.DoesNotContain(first.Rows, static row => row.Contains("INTERIM RESULTS", StringComparer.Ordinal));
+        Assert.DoesNotContain(first.Rows, static row => row.Contains("Alpha", StringComparer.Ordinal));
     }
 
     [Fact]

@@ -16,10 +16,10 @@ internal static partial class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
-    private static readonly HashSet<string> ReportingPeriodHeaderLabels = new(StringComparer.OrdinalIgnoreCase) {
-        "account", "amount", "category", "code", "date", "department", "description", "id", "item",
-        "fiscal year", "measure", "metric", "month", "name", "period", "project", "quarter", "region",
-        "reporting period", "status", "type", "value", "year"
+    private static readonly HashSet<string> ColumnHeaderWords = new(StringComparer.OrdinalIgnoreCase) {
+        "account", "amount", "annual", "category", "code", "date", "department", "description", "fiscal",
+        "id", "item", "measure", "metric", "month", "name", "period", "project", "qty", "quantity",
+        "quarter", "region", "reporting", "status", "total", "type", "value", "year"
     };
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines, double? pageHeight = null) {
         var rows = new List<string[]>();
@@ -453,13 +453,20 @@ internal static partial class TableDetector {
             var alignedSplitAccumulator = new AlignedSplitAccumulator(
                 baseSplits.Count + 1,
                 bandSplits[start].lines);
+            int precedingBandIndex = bandSplits[start].idx - 1;
+            List<TextLayoutEngine.TextLine>? headerLines = claimedBandIndexes.Contains(precedingBandIndex)
+                ? null
+                : TryGetPrecedingHeaderLines(
+                    bands,
+                    bandSplits[start].idx,
+                    baseSplits);
             // Extend while splits remain similar. An intervening band without
             // detectable splits is either retained as a strongly evidenced
             // spanning row or skipped when it belongs to an adjacent region.
             while (end + 1 < bandSplits.Count) {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
-                bool startsNewEmphasizedHeader = end > start &&
+                bool startsNewEmphasizedHeader = (end > start || headerLines is not null) &&
                                                   LooksLikeEmphasizedHeaderBand(next.lines, next.splits);
                 if (startsNewEmphasizedHeader) {
                     break;
@@ -497,7 +504,10 @@ internal static partial class TableDetector {
                     bands,
                     current.idx,
                     next.idx,
-                    baseSplits);
+                    baseSplits,
+                    current.idx > bandSplits[start].idx
+                        ? bands[current.idx - 1]
+                        : headerLines);
                 if (bridgeDecision == InterveningBandDecision.Reject) {
                     break;
                 }
@@ -528,13 +538,6 @@ internal static partial class TableDetector {
             }
             // Build table for [start..end], including a compatible header-only band immediately above it.
             var groupLines = new List<TextLayoutEngine.TextLine>();
-            int precedingBandIndex = bandSplits[start].idx - 1;
-            List<TextLayoutEngine.TextLine>? headerLines = claimedBandIndexes.Contains(precedingBandIndex)
-                ? null
-                : TryGetPrecedingHeaderLines(
-                    bands,
-                    bandSplits[start].idx,
-                    baseSplits);
             if (headerLines is not null) {
                 groupLines.AddRange(headerLines);
             }
@@ -599,7 +602,8 @@ internal static partial class TableDetector {
         List<List<TextLayoutEngine.TextLine>> bands,
         int currentBandIndex,
         int nextBandIndex,
-        List<double> splits) {
+        List<double> splits,
+        List<TextLayoutEngine.TextLine>? establishedPreviousBand) {
         if (nextBandIndex == currentBandIndex + 1) return InterveningBandDecision.Skip;
         if (nextBandIndex != currentBandIndex + 2 || splits.Count == 0) {
             return InterveningBandDecision.Reject;
@@ -608,7 +612,11 @@ internal static partial class TableDetector {
         List<TextLayoutEngine.TextLine> intervening = bands[currentBandIndex + 1];
         if (intervening.Count != 1) return InterveningBandDecision.Reject;
         TextLayoutEngine.TextLine line = intervening[0];
-        if (!HasCompatibleRowRhythm(bands[currentBandIndex], line, bands[nextBandIndex])) {
+        if (!HasCompatibleRowRhythm(
+                establishedPreviousBand,
+                bands[currentBandIndex],
+                line,
+                bands[nextBandIndex])) {
             return InterveningBandDecision.Reject;
         }
         if (!HasMeaningfulHorizontalOverlap(line, bands[currentBandIndex], bands[nextBandIndex])) {
@@ -739,6 +747,7 @@ internal static partial class TableDetector {
     }
 
     private static bool HasCompatibleRowRhythm(
+        List<TextLayoutEngine.TextLine>? establishedPreviousBand,
         List<TextLayoutEngine.TextLine> previousBand,
         TextLayoutEngine.TextLine intervening,
         List<TextLayoutEngine.TextLine> nextBand) {
@@ -749,7 +758,16 @@ internal static partial class TableDetector {
         if (upperGap <= 0D || lowerGap <= 0D) return false;
         double smaller = Math.Min(upperGap, lowerGap);
         double larger = Math.Max(upperGap, lowerGap);
-        return larger <= smaller * 1.75D;
+        if (larger > smaller * 1.75D) return false;
+
+        if (establishedPreviousBand is null || establishedPreviousBand.Count == 0) {
+            return larger <= 36D;
+        }
+
+        double establishedPreviousY = establishedPreviousBand.Average(static candidate => candidate.Y);
+        double establishedCurrentY = previousBand.Average(static candidate => candidate.Y);
+        double establishedGap = establishedPreviousY - establishedCurrentY;
+        return establishedGap > 0D && larger <= Math.Max(36D, establishedGap * 1.75D);
     }
 
     private static bool IsCompactNonNarrativeRow(string text) {
@@ -887,21 +905,30 @@ internal static partial class TableDetector {
     }
 
     private static bool LooksLikeEmphasizedDataRow(string[] cells) {
+        string firstValue = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
         bool reportingPeriodHeader = LooksLikeColumnHeaderLabel(cells[0]) &&
                                      cells.Skip(1).Any(static cell => LooksLikeReportingPeriodHeaderValue(
                                          ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+        if (!reportingPeriodHeader &&
+            LooksLikeSummaryValue(firstValue) &&
+            cells.Skip(1).Any(static cell => !string.IsNullOrWhiteSpace(cell))) {
+            return true;
+        }
         return cells.Skip(1).Any(cell => {
             string value = ContentStructureExtractor.NormalizeShattered(cell).Trim();
             return LooksLikeSummaryValue(value) &&
                    (!reportingPeriodHeader || !LooksLikeReportingPeriodHeaderValue(value));
-        });
+        }) || (!reportingPeriodHeader &&
+               !cells.All(static cell => LooksLikeColumnHeaderLabel(cell)));
     }
 
     private static bool LooksLikeColumnHeaderLabel(string cell) {
         string value = ContentStructureExtractor.NormalizeShattered(cell)
             .Trim()
             .Trim(':', '-', '_', '/', '\\');
-        return ReportingPeriodHeaderLabels.Contains(value);
+        string[] words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return words.Length > 0 && words.All(static word => ColumnHeaderWords.Contains(
+            word.Trim(':', '-', '_', '/', '\\')));
     }
 
     private static bool LooksLikeReportingPeriodHeaderValue(string value) {
