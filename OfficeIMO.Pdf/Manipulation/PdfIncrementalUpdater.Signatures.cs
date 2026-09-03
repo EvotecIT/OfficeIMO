@@ -73,7 +73,8 @@ internal static partial class PdfIncrementalUpdater {
             signatureProfile,
             ref nextObjectNumber,
             ref catalogChanged,
-            profileChangedObjects);
+            profileChangedObjects,
+            effectiveOptions.CancellationToken);
         var changedObjects = new HashSet<int> { signatureFieldObjectNumber };
         if (catalogChanged) {
             changedObjects.Add(security.RootObjectNumber.Value);

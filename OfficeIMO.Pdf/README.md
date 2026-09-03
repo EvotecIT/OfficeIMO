@@ -757,6 +757,7 @@ PDF signature discovery, byte-range inspection, mutation blocking, and caller-de
 `OfficeIMO.Security`. For the built-in CMS adapter, install the optional package and pass its provider explicitly:
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 
@@ -767,7 +768,14 @@ PdfExternalSignatureCompletion signed = PdfDocument
     .Load("contract.pdf")
     .Security.SignExternal(
         signer,
-        new PdfExternalSignatureOptions { FieldName = "Approval" });
+        new PdfExternalSignatureOptions {
+            FieldName = "Approval",
+            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                ImageBytes = File.ReadAllBytes("approval-mark.png"),
+                ImageFit = OfficeImageFit.Contain,
+                ShowText = false
+            }
+        });
 
 var cryptography = new PdfCmsSignatureCryptographyProvider(
     security,
@@ -778,6 +786,35 @@ PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSigna
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
+The optional appearance image is visual content only; certificate validation remains the source of signer identity.
+
+### Review, apply, and verify redactions
+
+Build a source-bound plan, review its areas and matches, then apply that exact plan and retain the evidence report with the output:
+
+```csharp
+PdfDocument source = PdfDocument.Load("contract.pdf");
+PdfRedactionPlan plan = source.Redactions.Search(
+    new PdfRedactionSearchOptions().AddLiteral("Account: 123-45-6789"));
+
+// Present plan.Areas and plan.Matches for approval before applying it.
+var verification = new PdfRedactionVerificationOptions {
+    RequireCompleteStreamInspection = true,
+    CheckManagedRendering = true
+}.RequireRemovedText("Account: 123-45-6789");
+
+PdfRedactionApplyResult redacted = source.Redactions.ApplyWithEvidence(
+    plan,
+    verificationOptions: verification);
+
+redacted.ThrowIfUnverified();
+File.WriteAllBytes("contract-redacted.pdf", redacted.Pdf);
+Console.WriteLine(redacted.Evidence.Summary);
+```
+
+`Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
+
+When `verificationOptions` is omitted, `ApplyWithEvidence` requires complete stream inspection and managed-rendering checks by default. Supply explicit options, as above, when the workflow also needs removed/retained markers or an external validator.
 
 ### Stamp and watermark an existing PDF
 
@@ -1026,7 +1063,7 @@ The PDF owner recognizes the standards-defined embedded file with media type `ap
 
 ## Concealed-content inspection and cleanup
 
-`PdfDocument.InspectContentSafety(...)` reports non-painting text render modes, effective transparency, clipping, tiny/zero/off-canvas geometry, paint-order-resolved low contrast, and Unicode evidence from decoded spans. `PdfDocument.RemoveSelectedContent(...)` physically removes exact selected spans and can rewrite reviewed Unicode ranges in ordinary painted or painted low-contrast spans while verifying neighboring text restoration. Unicode sub-findings whose restamp could change concealment remain report-only, while their whole concealed span remains removable. Encrypted and signed PDFs are rejected; hidden optional-content nesting that cannot be mapped to an exact removable span is diagnosed instead of guessed.
+`PdfDocument.InspectContentSafety(...)` reports non-painting text render modes, effective transparency, clipping, tiny/zero/off-canvas geometry, paint-order-resolved low contrast, hidden annotation and form-widget values, text inside layers hidden by the default optional-content configuration, and Unicode evidence from decoded spans. `PdfDocument.RemoveSelectedContent(...)` physically removes exact selected spans and can rewrite reviewed Unicode ranges in ordinary painted or painted low-contrast spans while verifying neighboring text restoration. Hidden layer, annotation, and widget findings remain report-only because their container semantics cannot be safely converted into an exact text edit. Encrypted and signed PDFs are rejected.
 
 ### Generate a formal e-invoice carrier
 

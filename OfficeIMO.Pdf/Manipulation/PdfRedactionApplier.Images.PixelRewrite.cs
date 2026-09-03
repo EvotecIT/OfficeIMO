@@ -84,7 +84,7 @@ internal static partial class PdfRedactionApplier {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             Matrix2D invocationTransform = invocation.Transform;
             if (TryGetImageXObject(objects, xObjects, invocation.Name, out PdfReference imageReference, out PdfStream imageStream)) {
-                if (!TryFindImageTarget(invocation.Name, imageReference.ObjectNumber, invocationTransform, targets, out ImageRedactionTarget target) ||
+                if (!TryFindImageTarget(invocation.Name, imageReference.ObjectNumber, invocationTransform, targets, removedMatches, out ImageRedactionTarget target) ||
                     !CanRewriteImagePlacementPixels(invocationTransform)) {
                     continue;
                 }
@@ -212,10 +212,17 @@ internal static partial class PdfRedactionApplier {
             IsSharedReference(CountIndirectReferenceUsage(objects), reference);
     }
 
-    private static bool TryFindImageTarget(string resourceName, int objectNumber, Matrix2D transform, ImageRedactionTarget[] targets, out ImageRedactionTarget target) {
+    private static bool TryFindImageTarget(
+        string resourceName,
+        int objectNumber,
+        Matrix2D transform,
+        ImageRedactionTarget[] targets,
+        IReadOnlyList<PdfRedactionMatch> removedMatches,
+        out ImageRedactionTarget target) {
         GetUnitRectangleBounds(transform, out double x, out double y, out double width, out double height);
         for (int i = 0; i < targets.Length; i++) {
-            if (string.Equals(targets[i].ResourceName, resourceName, StringComparison.Ordinal) &&
+            if (!removedMatches.Contains(targets[i].Match) &&
+                string.Equals(targets[i].ResourceName, resourceName, StringComparison.Ordinal) &&
                 targets[i].MatchesObjectNumber(objectNumber) &&
                 targets[i].MatchesTransform(transform) &&
                 AreCloseImageCoordinate(targets[i].X, x) &&

@@ -244,6 +244,24 @@ internal static class PdfPngTestImages {
         return ms.ToArray();
     }
 
+    internal static byte[] CreateWidePackedGrayscalePng(int width) {
+        if (width <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        using var ms = CreatePng();
+        var header = new byte[] {
+            0, 0, 0, 0,
+            0, 0, 0, 1,
+            1, 0, 0, 0, 0
+        };
+        WriteInt32BigEndian(header, 0, width);
+        WritePngChunk(ms, "IHDR", header);
+        WritePngChunk(ms, "IDAT", BuildStoredZlibBlocks(new byte[1 + ((width + 7) / 8)]));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
     internal static byte[] CreatePngWithInvalidCrc() {
         byte[] png = Create16BitRgbPng();
         png[png.Length - 1] ^= 0xFF;
@@ -505,6 +523,32 @@ internal static class PdfPngTestImages {
         ms.WriteByte((byte)((nlen >> 8) & 0xFF));
         ms.Write(scanline, 0, scanline.Length);
         uint adler = Adler32(scanline);
+        ms.WriteByte((byte)((adler >> 24) & 0xFF));
+        ms.WriteByte((byte)((adler >> 16) & 0xFF));
+        ms.WriteByte((byte)((adler >> 8) & 0xFF));
+        ms.WriteByte((byte)(adler & 0xFF));
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildStoredZlibBlocks(byte[] data) {
+        using var ms = new MemoryStream();
+        ms.WriteByte(0x78);
+        ms.WriteByte(0x01);
+        int offset = 0;
+        do {
+            int length = Math.Min(65535, data.Length - offset);
+            bool isFinal = offset + length >= data.Length;
+            ms.WriteByte(isFinal ? (byte)0x01 : (byte)0x00);
+            ms.WriteByte((byte)(length & 0xFF));
+            ms.WriteByte((byte)((length >> 8) & 0xFF));
+            int inverseLength = length ^ 0xFFFF;
+            ms.WriteByte((byte)(inverseLength & 0xFF));
+            ms.WriteByte((byte)((inverseLength >> 8) & 0xFF));
+            ms.Write(data, offset, length);
+            offset += length;
+        } while (offset < data.Length);
+
+        uint adler = Adler32(data);
         ms.WriteByte((byte)((adler >> 24) & 0xFF));
         ms.WriteByte((byte)((adler >> 16) & 0xFF));
         ms.WriteByte((byte)((adler >> 8) & 0xFF));

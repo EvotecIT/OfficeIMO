@@ -106,6 +106,7 @@ internal static partial class PdfWriter {
                 int passRow = y * passRowBytes;
                 int fullRow = targetY * fullRowBytes;
                 for (int x = 0; x < passWidth; x++) {
+                    CheckPngLoopCancellation(PngRowLoopKind.Adam7PackedCopy, x, cancellationToken);
                     int targetX = pass.XStart + x * pass.XStep;
                     WritePackedPngSample(fullRows, fullRow, targetX, bitDepth, ReadPackedPngSample(passPixels, passRow, x, bitDepth));
                 }
@@ -121,6 +122,7 @@ internal static partial class PdfWriter {
             int passRow = y * passRowBytes;
             int fullRow = targetY * fullRowBytes;
             for (int x = 0; x < passWidth; x++) {
+                CheckPngLoopCancellation(PngRowLoopKind.Adam7ByteCopy, x, cancellationToken);
                 int targetX = pass.XStart + x * pass.XStep;
                 Buffer.BlockCopy(passPixels, passRow + x * bytesPerPixel, fullRows, fullRow + targetX * bytesPerPixel, bytesPerPixel);
             }

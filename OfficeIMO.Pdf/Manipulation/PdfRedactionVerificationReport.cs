@@ -9,6 +9,7 @@ public sealed class PdfRedactionVerificationReport {
         bool rawPdfBytesChecked,
         bool encodedPdfStringsChecked,
         bool decodedPdfStreamsChecked,
+        bool completeStreamInspectionRequired,
         bool managedRenderingChecked,
         IReadOnlyList<PdfRedactionExternalValidationResult> externalValidationResults,
         IReadOnlyList<PdfRedactionVerificationIssue> issues) {
@@ -16,6 +17,7 @@ public sealed class PdfRedactionVerificationReport {
         RawPdfBytesChecked = rawPdfBytesChecked;
         EncodedPdfStringsChecked = encodedPdfStringsChecked;
         DecodedPdfStreamsChecked = decodedPdfStreamsChecked;
+        CompleteStreamInspectionRequired = completeStreamInspectionRequired;
         ManagedRenderingChecked = managedRenderingChecked;
         ExternalValidationResults = externalValidationResults;
         Issues = issues;
@@ -32,6 +34,9 @@ public sealed class PdfRedactionVerificationReport {
 
     /// <summary>True when decoded PDF stream content was searched for removed markers.</summary>
     public bool DecodedPdfStreamsChecked { get; }
+
+    /// <summary>True when verification required every PDF stream to be decoded and inspected.</summary>
+    public bool CompleteStreamInspectionRequired { get; }
 
     /// <summary>True when all pages were exercised through the managed renderer.</summary>
     public bool ManagedRenderingChecked { get; }

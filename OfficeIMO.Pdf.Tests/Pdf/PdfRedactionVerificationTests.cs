@@ -194,6 +194,142 @@ public class PdfRedactionVerificationTests {
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
+    [Fact]
+    public void ApplyWithEvidenceRejectsResidualVectorPathInsideFormXObject() {
+        byte[] source = BuildNestedFormVectorPathPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 55D, 55D, 10D, 10D, "nested vector")
+        ]);
+
+        PdfRedactionMatch plannedPath = Assert.Single(
+            plan.Matches,
+            static match => match.Kind == PdfRedactionMatchKind.VectorPath);
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath &&
+            match.Area == plannedPath.Area);
+        Assert.Contains(result.Evidence.Verification.Issues, static issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker.StartsWith("VectorPath@page:1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRejectsPagePathThatExplicitlySurvivesRedaction() {
+        byte[] source = BuildDegeneratePageStrokePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, 50D, 30D, 20D, "retained page path")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            new PdfRedactionApplyOptions { RemoveIntersectingPaths = false },
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRejectsPagePathWhoseGraphicsStateCrossesContentStreams() {
+        byte[] source = BuildSplitStreamGraphicsStatePathPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 60D, 64D, 30D, 0.5D, "split stream path")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRemovesIntersectingDegeneratePageStroke() {
+        byte[] source = BuildDegeneratePageStrokePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, 50D, 30D, 20D, "crossing stroke")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.DoesNotContain("10 60 m 190 60 l S", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(10D, 64D)]
+    [InlineData(0D, 60.1D)]
+    public void ApplyWithEvidenceRemovesStrokeIntersectingOnlyItsPaintedWidth(double lineWidth, double areaY) {
+        byte[] source = BuildDegeneratePageStrokePdf(lineWidth);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, areaY, 30D, 0.5D, "painted stroke edge")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.DoesNotContain("10 60 m 190 60 l S", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceUsesExtGStateStrokeWidthAtPaintedEdge() {
+        byte[] source = BuildExtGStateStrokePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 50D, 64D, 30D, 0.5D, "ExtGState stroke edge")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.DoesNotContain("10 60 m 190 60 l S", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceAcceptsClonedAliasForOneRepeatedFormInvocation() {
+        byte[] source = BuildRepeatedFormXObjectTextPdf();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Repeated form secret", occurrenceFromTop: 0);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Equal(1, CountOccurrences(PdfTextExtractor.ExtractAllText(result.Pdf), "Repeated form secret"));
+    }
+
     [Theory]
     [InlineData("0 J 0 j", "2 J 0 j")]
     [InlineData("0 J 0 j", "0 J 2 j")]
@@ -310,6 +446,116 @@ public class PdfRedactionVerificationTests {
 
         Assert.False(report.IsVerified);
         Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanResidual");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationReportsHiddenOptionalContentInsideReviewedArea() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: false);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "hidden layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker.StartsWith("TextBlock@page:1", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("MarkedContent")]
+    [InlineData("ImageXObject")]
+    [InlineData("FormXObject")]
+    public void AppliedPlanVerificationReportsImageInsideHiddenOptionalContent(string association) {
+        byte[] source = BuildHiddenOptionalContentImagePdf(association);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 25D, 50D, 30D, "hidden layer image")
+        ]);
+
+        Assert.DoesNotContain(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker.StartsWith("ImagePlacement@page:1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceDoesNotConsumeCoincidentHiddenImageWithVisibleImageProof() {
+        byte[] source = BuildCoincidentVisibleAndHiddenImagesPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 15D, 25D, 50D, 30D, "coincident images")
+        ]);
+        Assert.Single(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+            match.Kind == PdfRedactionMatchKind.ImagePlacement &&
+            match.ImagePlacement?.IsHiddenOptionalContent == true);
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedOptionalContentConfiguration() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            BuildOptionalContentRedactionPdf(layerIsVisible: false),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationFailsClosedForUnsupportedOptionalContentViewUsage() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: false, unsupportedViewIntent: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "hidden layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanInspectionBlocked");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AppliedPlanVerificationRejectsChangedNestedFormOptionalContentBinding(bool formAssociation) {
+        byte[] source = BuildNestedFormOptionalContentIdentityPdf(formAssociation, groupObjectNumber: 6);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 180D, 150D, 20D, 20D, "reviewed blank area")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            BuildNestedFormOptionalContentIdentityPdf(formAssociation, groupObjectNumber: 7),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
     [Fact]
@@ -639,6 +885,76 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Verify_CompleteStreamInspectionAcceptsOpaqueImageCodecStreams() {
+        byte[] source = BuildJpegImageRedactionSource();
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, report.Summary);
+        Assert.DoesNotContain(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void Verify_CompleteStreamInspectionAcceptsAscii85WrappedJpegStream() {
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(EncodeAscii85(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }));
+        byte[] source = BuildJpegImageRedactionSource("[/ASCII85Decode /DCTDecode]", encodedJpeg);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, report.Summary);
+        Assert.DoesNotContain(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void Verify_CompleteStreamInspectionRejectsOpaqueImageCodecCombinedWithUnknownFilter() {
+        byte[] source = BuildJpegImageRedactionSource("[/DCTDecode /UnknownDecode]");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Theory]
+    [InlineData("[/DCTDecode /JPXDecode]")]
+    [InlineData("[/DCTDecode /DCTDecode]")]
+    [InlineData("[/FlateDecode /DCTDecode]")]
+    public void Verify_CompleteStreamInspectionRejectsMultipleOpaqueImageFilters(string filters) {
+        byte[] source = BuildJpegImageRedactionSource(filters);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceVerifiesTextRedactionAlongsideUntouchedJpeg() {
+        byte[] source = BuildJpegImageRedactionSource();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("REMOVE-JPEG-DOC-TEXT"));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            }.RequireRemovedText("REMOVE-JPEG-DOC-TEXT"));
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Single(PdfImageExtractor.ExtractImages(result.Pdf));
+        Assert.Contains("/DCTDecode", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Plan_ReportsIntersectingImagePlacementsAsRedactionRisk() {
         byte[] source = BuildImageRedactionPlanningSource();
         PdfLogicalImage image = GetSingleImage(source);
@@ -770,6 +1086,162 @@ public class PdfRedactionVerificationTests {
         byte[] pixels = DecodeSingleImagePixels(redacted);
         Assert.Equal(24, pixels.Length);
         AssertRedactedLeftHalf(pixels, width: 4, height: 2, components: 3);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceVerifiesAppliedPartialImagePixelRewrite() {
+        byte[] source = BuildSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        PdfRedactionEvidenceItem item = Assert.Single(
+            result.Evidence.Items,
+            evidence => evidence.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement);
+        Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status);
+        AssertRedactedLeftHalf(DecodeSingleImagePixels(result.Pdf), width: 4, height: 2, components: 3);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceCorrelatesOneResidualWithOneReviewedImagePlacement() {
+        byte[] source = BuildMixedSupportedAndUnsupportedImageRedactionSource();
+        PdfDocument document = PdfDocument.Load(source);
+        var area = new PdfRedactionArea(1, 30D, 30D, 70D, 20D, "mixed image redaction");
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+        Assert.Equal(2, plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            new PdfRedactionApplyOptions { UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.VisualOverlay },
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(1, result.Evidence.ResidualCount);
+        Assert.Equal(1, result.Evidence.InconclusiveCount);
+        PdfRedactionEvidenceItem residual = Assert.Single(
+            result.Evidence.Items,
+            static item => item.Status == PdfRedactionEvidenceStatus.Residual);
+        Assert.Equal("ImJpeg", residual.ReviewedMatch.ResourceName);
+        Assert.Single(residual.ResidualMatches);
+    }
+
+    [Fact]
+    public void VerifyAppliedPlanWithoutMutationProofKeepsPartialImageResidualFailClosed() {
+        byte[] source = BuildSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [area]);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker == "ImagePlacement@page:1");
+    }
+
+    [Fact]
+    public void ApplyWithEvidencePairsOneAppliedRewriteWithOneRepeatedImagePlacement() {
+        byte[] source = BuildRepeatedSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement firstPlacement = image.Placements.OrderBy(placement => placement.X).First();
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, firstPlacement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        PdfImagePlacement[] placements = PdfImageExtractor.ExtractImagePlacements(result.Pdf).ToArray();
+        Assert.Equal(2, placements.Length);
+        byte[][] images = DecodeImagePixelStreams(result.Pdf);
+        Assert.Contains(images, pixels => PixelRowsMatch(pixels, CreateSimpleFlateImagePixels()));
+        Assert.Contains(images, pixels => LeftHalfIsRedacted(pixels, width: 4, height: 2, components: 3));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRecordsEachIdenticalImageInvocationMutation() {
+        byte[] source = BuildRepeatedIdenticalSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+        Assert.Equal(2, plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.ImagePlacement));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        Assert.Equal(2, PdfImageExtractor.ExtractImagePlacements(result.Pdf).Count);
+        byte[][] images = DecodeImagePixelStreams(result.Pdf);
+        Assert.Equal(2, images.Length);
+        Assert.All(images, pixels => Assert.True(LeftHalfIsRedacted(pixels, width: 4, height: 2, components: 3)));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceAccountsForInPlacePageStreamGrowthFromImageAliases() {
+        byte[] source = BuildManyIdenticalSimpleFlateImageRedactionSource();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(source).Map;
+        PdfStream[] sourceStreams = objects.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>()
+            .ToArray();
+        byte[][] decodedStreams = sourceStreams
+            .Select(stream => StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, int.MaxValue))
+            .ToArray();
+        PdfStream pageContentStream = Assert.IsType<PdfStream>(objects[4].Value);
+        int sourcePageContentBytes = StreamDecoder.Decode(pageContentStream.Dictionary, pageContentStream.Data, objects, int.MaxValue).Length;
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = sourceStreams.Max(static stream => stream.Data.Length),
+                MaxDecodedStreamBytes = decodedStreams.Max(static stream => stream.Length),
+                MaxTotalDecodedStreamBytes = decodedStreams.Sum(static stream => (long)stream.LongLength),
+                MaxPageContentBytes = sourcePageContentBytes,
+                MaxRetainedContentBytes = sourcePageContentBytes
+            }
+        };
+        PdfDocument document = PdfDocument.Load(source, readOptions);
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, image.PrimaryPlacement!);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+        Assert.Equal(64, plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.ImagePlacement));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true,
+                CheckManagedRendering = false
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Equal(64, PdfImageExtractor.ExtractImagePlacements(result.Pdf).Count);
+        Assert.DoesNotContain("/ASCIIHexDecode", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1126,6 +1598,99 @@ public class PdfRedactionVerificationTests {
         }));
     }
 
+    private static byte[] BuildNestedFormVectorPathPdf() {
+        const string pageContent = "q 1 0 0 1 50 50 cm /Fm1 Do Q";
+        const string formContent = "1 0 0 rg 0 0 40 40 re f";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", pageContent, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Length {Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", formContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildDegeneratePageStrokePdf(double lineWidth = 2D) {
+        string content = lineWidth.ToString("R", CultureInfo.InvariantCulture) + " w 10 60 m 190 60 l S";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildSplitStreamGraphicsStatePathPdf() {
+        const string firstContent = "q 1 0 0 1 20 0 cm 10 w 10 60 m";
+        const string secondContent = "190 60 l S Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 120] /Contents [4 0 R 5 0 R] >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(firstContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", firstContent, "endstream", "endobj",
+            "5 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(secondContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", secondContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildExtGStateStrokePdf() {
+        const string content = "/Wide gs 10 60 m 190 60 l S";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /Resources << /ExtGState << /Wide << /Type /ExtGState /LW 10 >> >> >> >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildRepeatedFormXObjectTextPdf() {
+        const string formContent = "BT /F1 12 Tf 0 0 Td (Repeated form secret) Tj ET";
+        const string pageContent = "q 1 0 0 1 30 220 cm /Fm1 Do Q q 1 0 0 1 30 80 cm /Fm1 Do Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 6 0 R >>", "endobj",
+            "4 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >> /Length {Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", formContent, "endstream", "endobj",
+            "6 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", pageContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
+        PdfLogicalTextBlock block = PdfDocumentReadResult.Load(pdf)
+            .TextBlocks
+            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
+            .OrderByDescending(item => item.BaselineY)
+            .ElementAt(occurrenceFromTop);
+        double x = Math.Min(block.XStart, block.XEnd) - 2D;
+        return new PdfRedactionArea(
+            block.PageNumber,
+            x,
+            block.BaselineY - 14D,
+            Math.Abs(block.XEnd - block.XStart) + 4D,
+            20D,
+            "repeated form text");
+    }
+
+    private static int CountOccurrences(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += search.Length;
+        }
+        return count;
+    }
+
     private static byte[] BuildVectorStyleIdentityPdf(string styleOperators) {
         string content = $"q {styleOperators} 1 0 0 RG 4 w 20 20 80 60 re S Q";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
@@ -1255,6 +1820,50 @@ public class PdfRedactionVerificationTests {
         return BuildSimpleFlateImagePdf(pageContent);
     }
 
+    private static byte[] BuildRepeatedIdenticalSimpleFlateImageRedactionSource() {
+        const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\nq\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n";
+        return BuildSimpleFlateImagePdf(pageContent);
+    }
+
+    private static byte[] BuildManyIdenticalSimpleFlateImageRedactionSource() {
+        string pageContent = string.Concat(Enumerable.Range(0, 64)
+            .Select(static _ => "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n"));
+        byte[] pixels = CreateSimpleFlateImagePixels();
+        byte[] compressed = Compress(pixels);
+        string encodedPageContent = ToHex(Encoding.ASCII.GetBytes(pageContent.TrimEnd('\n'))) + ">";
+
+        using var output = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImSimple 5 0 R >> >> >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + encodedPageContent.Length.ToString(CultureInfo.InvariantCulture) + " /Filter 6 0 R >>",
+            "stream",
+            encodedPageContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream"
+        }) + "\n");
+        output.Write(compressed, 0, compressed.Length);
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n/ASCIIHexDecode\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
     private static byte[] BuildSoftMaskedSimpleFlateImageRedactionSource() {
         const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSoft Do\nQ\n";
         byte[] pixels = CreateSimpleFlateImagePixels();
@@ -1376,9 +1985,9 @@ public class PdfRedactionVerificationTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildJpegImageRedactionSource() {
-        const string pageContent = "q\n20 0 0 20 20 30 cm\n/ImJpeg Do\nQ\n";
-        byte[] jpegBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
+    private static byte[] BuildJpegImageRedactionSource(string imageFilter = "/DCTDecode", byte[]? encodedImageBytes = null) {
+        const string pageContent = "q\n20 0 0 20 20 30 cm\n/ImJpeg Do\nQ\nBT /F1 12 Tf 20 90 Td (REMOVE-JPEG-DOC-TEXT) Tj ET\n";
+        byte[] jpegBytes = encodedImageBytes ?? new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
         int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent.TrimEnd('\n'));
         using var output = new MemoryStream();
         void WriteAscii(string text) {
@@ -1392,7 +2001,7 @@ public class PdfRedactionVerificationTests {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "endobj",
             "2 0 obj",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImJpeg 5 0 R >> >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImJpeg 5 0 R >> /Font << /F1 6 0 R >> >> >>",
             "endobj",
             "3 0 obj",
             "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>",
@@ -1404,12 +2013,72 @@ public class PdfRedactionVerificationTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpegBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter " + imageFilter + " /Length " + jpegBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>",
             "stream"
         }) + "\n");
         output.Write(jpegBytes, 0, jpegBytes.Length);
-        WriteAscii("\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildMixedSupportedAndUnsupportedImageRedactionSource() {
+        const string pageContent = "q 40 0 0 20 20 30 cm /ImSimple Do Q q 40 0 0 20 80 30 cm /ImJpeg Do Q";
+        byte[] compressed = Compress(CreateSimpleFlateImagePixels());
+        byte[] jpeg = { 0xFF, 0xD8, 0xFF, 0xD9 };
+        using var output = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /ImSimple 5 0 R /ImJpeg 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", pageContent, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length {compressed.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream"
+        }) + "\n");
+        output.Write(compressed, 0, compressed.Length);
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpeg.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(jpeg, 0, jpeg.Length);
+        WriteAscii("\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static string EncodeAscii85(byte[] input) {
+        var builder = new StringBuilder((input.Length * 5 / 4) + 4);
+        int index = 0;
+        while (index + 4 <= input.Length) {
+            uint value =
+                ((uint)input[index] << 24) |
+                ((uint)input[index + 1] << 16) |
+                ((uint)input[index + 2] << 8) |
+                input[index + 3];
+            if (value == 0) {
+                builder.Append('z');
+            } else {
+                AppendTuple(value, 5);
+            }
+            index += 4;
+        }
+        int remaining = input.Length - index;
+        if (remaining > 0) {
+            uint value = 0;
+            for (int i = 0; i < remaining; i++) value |= (uint)input[index + i] << (24 - (8 * i));
+            AppendTuple(value, remaining + 1);
+        }
+        builder.Append("~>");
+        return builder.ToString();
+
+        void AppendTuple(uint value, int count) {
+            char[] encoded = new char[5];
+            for (int i = 4; i >= 0; i--) {
+                encoded[i] = (char)((value % 85) + '!');
+                value /= 85;
+            }
+            for (int i = 0; i < count; i++) builder.Append(encoded[i]);
+        }
     }
 
     private static byte[] CreateSimpleFlateImagePixels() {
@@ -1608,6 +2277,102 @@ public class PdfRedactionVerificationTests {
         }
 
         return output.ToArray();
+    }
+
+    private static byte[] BuildOptionalContentRedactionPdf(bool layerIsVisible, bool unsupportedViewIntent = false) {
+        const string content = "/OC /Layer BDC BT /F1 12 Tf 20 100 Td (OPTIONAL-SECRET) Tj ET EMC";
+        string state = layerIsVisible ? "/ON [6 0 R]" : "/OFF [6 0 R]";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON " + state + " >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> /Properties << /Layer 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /OCG /Name (Review layer)" + (unsupportedViewIntent ? " /Intent /Design" : string.Empty) + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildHiddenOptionalContentImagePdf(string association) {
+        string content;
+        string resources;
+        var additionalObjects = new List<string>();
+        if (string.Equals(association, "ImageXObject", StringComparison.Ordinal)) {
+            content = "q 40 0 0 20 20 30 cm /Im Do Q";
+            resources = "/XObject << /Im 5 0 R >>";
+            additionalObjects.Add("5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /OC 6 0 R /Length 3 >>\nstream\nabc\nendstream\nendobj");
+        } else if (string.Equals(association, "FormXObject", StringComparison.Ordinal)) {
+            const string formContent = "BI /W 1 /H 1 /CS /RGB /BPC 8 ID abc EI";
+            content = "q 40 0 0 20 20 30 cm /Fm Do Q";
+            resources = "/XObject << /Fm 5 0 R >>";
+            additionalObjects.Add("5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /OC 6 0 R /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + formContent + "\nendstream\nendobj");
+        } else {
+            content = "/OC /Layer BDC q 40 0 0 20 20 30 cm BI /W 1 /H 1 /CS /RGB /BPC 8 ID abc EI Q EMC";
+            resources = "/Properties << /Layer 6 0 R >>";
+        }
+
+        var objects = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << " + resources + " >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+        };
+        objects.AddRange(additionalObjects);
+        objects.AddRange(new[] {
+            "6 0 obj", "<< /Type /OCG /Name (Hidden image layer) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(string.Join("\n", objects));
+    }
+
+    private static byte[] BuildCoincidentVisibleAndHiddenImagesPdf() {
+        const string content = "q 40 0 0 20 20 30 cm /Visible Do Q q 40 0 0 20 20 30 cm /Hidden Do Q";
+        byte[] visiblePixels = Compress(CreateSimpleFlateImagePixels());
+        byte[] hiddenPixels = Compress(CreateSimpleFlateImagePixels());
+        using var output = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [7 0 R] /D << /BaseState /ON /OFF [7 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Visible 5 0 R /Hidden 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length " + visiblePixels.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream"
+        }) + "\n");
+        output.Write(visiblePixels, 0, visiblePixels.Length);
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /OC 7 0 R /Length " + hiddenPixels.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(hiddenPixels, 0, hiddenPixels.Length);
+        WriteAscii("\nendstream\nendobj\n7 0 obj\n<< /Type /OCG /Name (Hidden image layer) >>\nendobj\ntrailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildNestedFormOptionalContentIdentityPdf(bool formAssociation, int groupObjectNumber) {
+        const string formText = "BT /F1 12 Tf 20 100 Td (FORM-OPTIONAL-TEXT) Tj ET";
+        string formContent = formAssociation ? formText : "/OC /Local BDC " + formText + " EMC";
+        string formOptionalContent = formAssociation
+            ? " /OC " + groupObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 R"
+            : string.Empty;
+        string formProperties = formAssociation
+            ? string.Empty
+            : " /Properties << /Local " + groupObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 R >>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R 7 0 R] /D << /BaseState /ON /ON [6 0 R] /OFF [7 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Fm 8 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 6 >>", "stream", "/Fm Do", "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /OCG /Name (Visible group) >>", "endobj",
+            "7 0 obj", "<< /Type /OCG /Name (Hidden group) >>", "endobj",
+            "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 240 180]" + formOptionalContent + " /Resources << /Font << /F1 5 0 R >>" + formProperties + " >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
     }
 
     private static string ToHex(byte[] bytes) {

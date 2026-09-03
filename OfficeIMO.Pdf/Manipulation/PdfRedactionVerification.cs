@@ -79,7 +79,7 @@ internal static partial class PdfRedactionVerification {
             if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
         }
 
-        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
+        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.RequireCompleteStreamInspection, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
     }
 
     /// <summary>
@@ -95,7 +95,20 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) =>
+        VerifyAppliedPlan(
+            redactedPdf,
+            reviewedPlan,
+            options,
+            readOptions,
+            Array.Empty<PdfRedactionMatch>());
+
+    internal static PdfRedactionVerificationReport VerifyAppliedPlan(
+        byte[] redactedPdf,
+        PdfRedactionPlan reviewedPlan,
+        PdfRedactionVerificationOptions options,
+        PdfLoadOptions? readOptions,
+        IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions);
@@ -156,7 +169,7 @@ internal static partial class PdfRedactionVerification {
 
         PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0 || !pageIdentityMatches
             ? null
-            : PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
+            : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -172,7 +185,10 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
-        foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in (residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>())
+        IReadOnlyList<PdfRedactionMatch> unverifiedResidualMatches = FilterAppliedImageResiduals(
+            residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
+            appliedImageMatches);
+        foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
             string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             issues.Add(new PdfRedactionVerificationIssue(
@@ -190,9 +206,58 @@ internal static partial class PdfRedactionVerification {
             markerReport.RawPdfBytesChecked,
             markerReport.EncodedPdfStringsChecked,
             markerReport.DecodedPdfStreamsChecked,
+            markerReport.CompleteStreamInspectionRequired,
             markerReport.ManagedRenderingChecked,
             markerReport.ExternalValidationResults,
             issues.AsReadOnly());
+    }
+
+    internal static IReadOnlyList<PdfRedactionMatch> FilterAppliedImageResiduals(
+        IReadOnlyList<PdfRedactionMatch> residualMatches,
+        IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
+        if (residualMatches.Count == 0 || appliedImageMatches.Count == 0) return residualMatches;
+
+        var remainingProofs = appliedImageMatches
+            .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement)
+            .ToList();
+        var result = new List<PdfRedactionMatch>(residualMatches.Count);
+        for (int residualIndex = 0; residualIndex < residualMatches.Count; residualIndex++) {
+            PdfRedactionMatch residual = residualMatches[residualIndex];
+            int proofIndex = remainingProofs.FindIndex(proof => SameAppliedImagePlacement(proof, residual));
+            if (proofIndex >= 0) {
+                remainingProofs.RemoveAt(proofIndex);
+            } else {
+                result.Add(residual);
+            }
+        }
+        return result.AsReadOnly();
+    }
+
+    private static bool SameAppliedImagePlacement(PdfRedactionMatch proof, PdfRedactionMatch residual) {
+        const double tolerance = 0.01D;
+        if (residual.Kind != PdfRedactionMatchKind.ImagePlacement ||
+            proof.PageNumber != residual.PageNumber ||
+            !NearlyEqual(proof.Area.X, residual.Area.X) ||
+            !NearlyEqual(proof.Area.Y, residual.Area.Y) ||
+            !NearlyEqual(proof.Area.Width, residual.Area.Width) ||
+            !NearlyEqual(proof.Area.Height, residual.Area.Height) ||
+            !NearlyEqual(proof.X, residual.X) ||
+            !NearlyEqual(proof.Y, residual.Y) ||
+            !NearlyEqual(proof.Width, residual.Width) ||
+            !NearlyEqual(proof.Height, residual.Height)) return false;
+
+        PdfImagePlacement? expected = proof.ImagePlacement;
+        PdfImagePlacement? actual = residual.ImagePlacement;
+        return expected is not null && actual is not null &&
+            expected.IsHiddenOptionalContent == actual.IsHiddenOptionalContent &&
+            NearlyEqual(expected.A, actual.A) &&
+            NearlyEqual(expected.B, actual.B) &&
+            NearlyEqual(expected.C, actual.C) &&
+            NearlyEqual(expected.D, actual.D) &&
+            NearlyEqual(expected.E, actual.E) &&
+            NearlyEqual(expected.F, actual.F);
+
+        bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= tolerance;
     }
 
     /// <summary>

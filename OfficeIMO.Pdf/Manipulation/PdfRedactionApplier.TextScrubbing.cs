@@ -13,6 +13,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<PdfRedactionMatch> matches,
         IReadOnlyList<PdfRedactionArea> areas,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         RedactionTextTarget[] textTargets = BuildTextTargets(matches, areas);
         if (textTargets.Length == 0 ||
@@ -23,6 +24,7 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects);
         Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
+        Dictionary<string, Func<byte[], double>> fontWidthProviders = ResourceResolver.GetFontWidthProviders(pageDictionary, objects);
         PdfObject currentContentsObject = contentsObject;
         PdfReference[] contentReferences = EnumerateContentReferences(objects, contentsObject).ToArray();
         var contentSegments = new List<string>(contentReferences.Length);
@@ -35,7 +37,7 @@ internal static partial class PdfRedactionApplier {
                 break;
             }
 
-            byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes);
+            byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
             contentSegments.Add(PdfEncoding.Latin1GetString(contentBytes));
         }
 
@@ -45,6 +47,7 @@ internal static partial class PdfRedactionApplier {
                 combinedContent,
                 textTargets,
                 fontDecoders,
+                fontWidthProviders,
                 new[] { Matrix2D.Identity },
                 graphicsState: null,
                 limits);
@@ -75,8 +78,8 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
 
-                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
-                string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, new[] { Matrix2D.Identity }, limits, graphicsState);
+                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
+                string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, fontWidthProviders, new[] { Matrix2D.Identity }, limits, graphicsState);
                 changed = ReplacePageContentStreamIfChanged(
                     objects,
                     pageDictionary,
@@ -90,7 +93,7 @@ internal static partial class PdfRedactionApplier {
             }
         }
 
-        return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, referenceCounts, limits, ref nextObjectNumber) || changed;
+        return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, fontWidthProviders, referenceCounts, limits, sourceStreamIdentities, ref nextObjectNumber) || changed;
     }
 
     private static bool ReplacePageContentStreamIfChanged(
@@ -152,8 +155,10 @@ internal static partial class PdfRedactionApplier {
         PdfObject contentsObject,
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> pageFontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> pageFontWidthProviders,
         IReadOnlyDictionary<int, int> referenceCounts,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         PdfDictionary? resources = GetInheritedDictionary(objects, pageDictionary, "Resources");
         if (resources is null ||
@@ -175,13 +180,13 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
+            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
         }
 
         bool changed = false;
         if (allStreamsDecoded && contentSegments.Length > 0) {
             string combinedContent = string.Concat(contentSegments);
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             if (!string.Equals(result.Content, combinedContent, StringComparison.Ordinal)) {
                 PdfObject currentContentsObject = contentsObject;
                 for (int index = 0; index < contentReferences.Length; index++) {
@@ -209,7 +214,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             changed = result.HasChanges || changed;
             changed = ReplacePageContentStreamIfChanged(
                 objects,
@@ -258,10 +263,11 @@ internal static partial class PdfRedactionApplier {
         string content,
         RedactionTextTarget[] targets,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
         PdfReadLimits limits,
         TextScrubGraphicsState? graphicsState = null) {
-        TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(content, targets, fontDecoders, transforms, graphicsState, limits);
+        TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(content, targets, fontDecoders, fontWidthProviders, transforms, graphicsState, limits);
         return RemoveTextObjectSpans(content, 0, spansToRemove);
     }
 
@@ -269,10 +275,11 @@ internal static partial class PdfRedactionApplier {
         string content,
         RedactionTextTarget[] targets,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
         TextScrubGraphicsState? graphicsState,
         PdfReadLimits limits) {
-        List<RedactionTextObject> textObjects = CollectTextObjects(content, fontDecoders, transforms, graphicsState, limits);
+        List<RedactionTextObject> textObjects = CollectTextObjects(content, fontDecoders, fontWidthProviders, transforms, graphicsState, limits);
         if (textObjects.Count == 0) {
             return Array.Empty<TextObjectSpan>();
         }
@@ -294,6 +301,7 @@ internal static partial class PdfRedactionApplier {
     private static List<RedactionTextObject> CollectTextObjects(
         string content,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
         TextScrubGraphicsState? graphicsState,
         PdfReadLimits limits) {
@@ -307,7 +315,7 @@ internal static partial class PdfRedactionApplier {
             Matrix2D[] effectiveTransforms = transforms
                 .Select(parent => Matrix2D.Multiply(parent, localTransform))
                 .ToArray();
-            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, effectiveTransforms));
+            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, fontWidthProviders, effectiveTransforms));
         }
 
         return textObjects;
@@ -503,11 +511,12 @@ internal static partial class PdfRedactionApplier {
         string textObject,
         string shownText,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         Matrix2D[] transforms) {
         RedactionTextBounds? bounds = null;
         for (int transformIndex = 0; transformIndex < transforms.Length; transformIndex++) {
             string transformedContent = WrapContentWithTransform(textObject, transforms[transformIndex]);
-            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders);
+            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders, fontWidthProviders);
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 bounds = AddSpanBounds(bounds, spans[spanIndex]);
             }
@@ -516,13 +525,18 @@ internal static partial class PdfRedactionApplier {
         return new RedactionTextObject(index, shownText, bounds);
     }
 
-    private static List<PdfTextSpan> ParseTextSpans(string content, IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders) {
+    private static List<PdfTextSpan> ParseTextSpans(
+        string content,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders) {
         string DecodeWithFont(string fontResource, byte[] bytes) =>
             fontDecoders.TryGetValue(fontResource, out Func<byte[], string>? decoder)
                 ? decoder(bytes)
                 : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontResource, byte[] bytes) =>
-            bytes is null ? 0D : bytes.Length * 500D;
+            fontWidthProviders.TryGetValue(fontResource, out Func<byte[], double>? provider)
+                ? provider(bytes)
+                : bytes is null ? 0D : bytes.Length * 500D;
 
         return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000);
     }
@@ -794,6 +808,21 @@ internal static partial class PdfRedactionApplier {
         }
 
         foreach (KeyValuePair<string, Func<byte[], string>> entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
+
+    private static Dictionary<string, Func<byte[], double>> MergeWidthProviders(
+        IReadOnlyDictionary<string, Func<byte[], double>> parent,
+        Dictionary<string, Func<byte[], double>> local) {
+        var merged = new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, Func<byte[], double>> entry in parent) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        foreach (KeyValuePair<string, Func<byte[], double>> entry in local) {
             merged[entry.Key] = entry.Value;
         }
 

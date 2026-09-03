@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -75,6 +76,10 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
+            if (IsOpaqueImageCodecStream(stream, objects, readOptions)) {
+                continue;
+            }
+
             string objectReference = indirect.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (stream.DecodingFailed) {
                 issues.Add(CreateUndecodableStreamIssue(objectReference, stream.DecodingError ?? "PDF parser reported a stream decoding failure."));
@@ -90,6 +95,61 @@ internal static partial class PdfRedactionVerification {
         }
 
         return issues;
+    }
+
+    private static bool IsOpaqueImageCodecStream(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfLoadOptions readOptions) {
+        if (PdfObjectLookup.ResolveChain(
+                objects,
+                stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Image" }) {
+            return false;
+        }
+
+        if (!StreamDecoder.TryGetDeclaredFilterNames(stream.Dictionary, objects, out IReadOnlyList<string> filters) ||
+            filters.Count == 0 ||
+            !IsOpaqueImageCodec(filters[filters.Count - 1])) {
+            return false;
+        }
+
+        if (filters.Count == 1) return true;
+        for (int index = 0; index < filters.Count - 1; index++) {
+            if (!StreamDecoder.IsSupportedFilter(filters[index])) return false;
+        }
+
+        var prefixDictionary = new PdfDictionary();
+        var prefixFilters = new PdfArray();
+        for (int index = 0; index < filters.Count - 1; index++) {
+            prefixFilters.Items.Add(new PdfName(filters[index]));
+        }
+        prefixDictionary.Items["Filter"] = prefixFilters;
+
+        PdfObject? decodeParameters = stream.Dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
+            ? fullName
+            : stream.Dictionary.Items.TryGetValue("DP", out PdfObject? abbreviatedName)
+                ? abbreviatedName
+                : null;
+        PdfObject? resolvedDecodeParameters = PdfObjectLookup.ResolveChain(objects, decodeParameters);
+        if (resolvedDecodeParameters is not null and not PdfNull) {
+            if (resolvedDecodeParameters is not PdfArray decodeParametersArray ||
+                decodeParametersArray.Items.Count != filters.Count) return false;
+            var prefixDecodeParameters = new PdfArray();
+            for (int index = 0; index < filters.Count - 1; index++) {
+                prefixDecodeParameters.Items.Add(decodeParametersArray.Items[index]);
+            }
+            prefixDictionary.Items["DecodeParms"] = prefixDecodeParameters;
+        }
+
+        int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
+        if (!StreamDecoder.TryDecode(prefixDictionary, stream.Data, maximumDecodedBytes, out byte[] opaquePayload, objects)) return false;
+        return filters[filters.Count - 1] is not ("DCTDecode" or "DCT") || OfficeJpegCodec.IsJpeg(opaquePayload);
+
+        static bool IsOpaqueImageCodec(string filter) => filter is
+            "DCTDecode" or "DCT" or
+            "JPXDecode" or
+            "CCITTFaxDecode" or "CCF" or
+            "JBIG2Decode";
     }
 
     private static PdfRedactionVerificationIssue CreateUndecodableStreamIssue(string objectReference, string reason) {

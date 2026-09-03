@@ -593,7 +593,11 @@ internal static partial class PdfRedactionApplier {
             maxNestingDepth: limits.MaxContentNestingDepth,
             maxOperands: limits.MaxContentOperands);
 
-    private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers, PdfReadLimits limits) {
+    private static bool RemoveUnusedImageObjectReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> targetObjectNumbers,
+        PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities) {
         var invokedNames = new HashSet<string>(StringComparer.Ordinal);
         var pageContentStreamNumbers = new HashSet<int>();
         var type3CharProcStreams = new HashSet<PdfStream>();
@@ -642,7 +646,8 @@ internal static partial class PdfRedactionApplier {
             }
             byte[] decoded;
             try {
-                decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes);
+                int maximumDecodedBytes = GetMutationDecodeLimit(stream, limits, sourceStreamIdentities);
+                decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedBytes);
             } catch (InvalidDataException) {
                 hasUnscannableContentOwner = true;
                 return;

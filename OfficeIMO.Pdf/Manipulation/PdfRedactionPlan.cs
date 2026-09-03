@@ -91,6 +91,11 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
             AppendPageRenderingResourceIdentity(identity, document, page);
+            identity.Append("|C:OCProperties:");
+            PdfRedactionImageIdentity.AppendObjectGraph(
+                identity,
+                document.CatalogDictionary?.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) == true ? optionalContent : null,
+                document.Objects);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
@@ -112,7 +117,7 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
+        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
         var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
@@ -167,6 +172,8 @@ public sealed class PdfRedactionPlan {
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects);
                 identity.Append("|R:ExtGState:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
+                identity.Append("|R:Properties:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources);
                 break;
             }
@@ -186,17 +193,18 @@ public sealed class PdfRedactionPlan {
         const int maximumDepth = 64;
         const int maximumContexts = 16384;
         var visited = new HashSet<(PdfStream Form, PdfDictionary Resources)>();
+        var formResourceIdentities = new HashSet<string>(StringComparer.Ordinal);
         int contextCount = 0;
 
         void AppendForms(PdfDictionary resources, int depth) {
             if (depth > maximumDepth) {
-                identity.Append("|R:Form:depth-limit");
+                formResourceIdentities.Add(":depth-limit");
                 return;
             }
             if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
                 PdfObjectLookup.ResolveChain(objects, xObjectValue) is not PdfDictionary xObjects) return;
 
-            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
                 if (PdfObjectLookup.ResolveChain(objects, entry.Value) is not PdfStream form ||
                     PdfObjectLookup.ResolveChain(objects, form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Form" }) continue;
 
@@ -205,20 +213,30 @@ public sealed class PdfRedactionPlan {
                     : null;
                 PdfDictionary effectiveResources = declaredResources ?? resources;
 
-                identity.Append("|R:Form:");
-                AppendIdentityString(identity, entry.Key);
+                var formIdentity = new System.Text.StringBuilder();
+                formIdentity.Append(":OC:");
+                PdfRedactionImageIdentity.AppendObjectGraph(
+                    formIdentity,
+                    form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) ? optionalContent : null,
+                    objects);
+                formIdentity.Append(":Properties:");
+                PdfRedactionImageIdentity.AppendObjectGraph(
+                    formIdentity,
+                    effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
+                    objects);
                 if (declaredResources != null) {
-                    identity.Append(":Font:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
-                    identity.Append(":ExtGState:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
+                    formIdentity.Append(":Font:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
+                    formIdentity.Append(":ExtGState:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
                 } else {
-                    identity.Append(":inherited");
+                    formIdentity.Append(":inherited");
                 }
+                formResourceIdentities.Add(formIdentity.ToString());
 
                 if (!visited.Add((form, effectiveResources))) continue;
                 if (++contextCount > maximumContexts) {
-                    identity.Append("|R:Form:context-limit");
+                    formResourceIdentities.Add(":context-limit");
                     return;
                 }
                 AppendForms(effectiveResources, depth + 1);
@@ -226,6 +244,9 @@ public sealed class PdfRedactionPlan {
         }
 
         AppendForms(pageResources, 0);
+        foreach (string formResourceIdentity in formResourceIdentities.OrderBy(static value => value, StringComparer.Ordinal)) {
+            identity.Append("|R:Form").Append(formResourceIdentity);
+        }
     }
 
     private static void AppendUnredactedPathIdentity(
@@ -479,10 +500,11 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyDictionary<int, string> stablePageReferences) {
-        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
+        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
         for (int i = 0; i < annotations.Count; i++) {
             PdfAnnotation annotation = annotations[i];
-            if (IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+            if (annotation.HasReadableRectangle &&
+                IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);
