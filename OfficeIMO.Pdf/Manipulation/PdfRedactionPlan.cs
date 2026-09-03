@@ -91,6 +91,11 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
             AppendPageRenderingResourceIdentity(identity, document, page);
+            identity.Append("|C:OCProperties:");
+            PdfRedactionImageIdentity.AppendObjectGraph(
+                identity,
+                document.CatalogDictionary?.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) == true ? optionalContent : null,
+                document.Objects);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
@@ -112,7 +117,7 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
+        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
         var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
@@ -167,6 +172,8 @@ public sealed class PdfRedactionPlan {
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects);
                 identity.Append("|R:ExtGState:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
+                identity.Append("|R:Properties:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources);
                 break;
             }
@@ -207,6 +214,16 @@ public sealed class PdfRedactionPlan {
 
                 identity.Append("|R:Form:");
                 AppendIdentityString(identity, entry.Key);
+                identity.Append(":OC:");
+                PdfRedactionImageIdentity.AppendObjectGraph(
+                    identity,
+                    form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) ? optionalContent : null,
+                    objects);
+                identity.Append(":Properties:");
+                PdfRedactionImageIdentity.AppendObjectGraph(
+                    identity,
+                    effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
+                    objects);
                 if (declaredResources != null) {
                     identity.Append(":Font:");
                     PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
@@ -479,10 +496,11 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyDictionary<int, string> stablePageReferences) {
-        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
+        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
         for (int i = 0; i < annotations.Count; i++) {
             PdfAnnotation annotation = annotations[i];
-            if (IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+            if (annotation.HasReadableRectangle &&
+                IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);

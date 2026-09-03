@@ -169,7 +169,7 @@ internal static partial class PdfRedactionVerification {
 
         PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0 || !pageIdentityMatches
             ? null
-            : PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
+            : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)

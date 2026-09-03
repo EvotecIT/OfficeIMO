@@ -44,4 +44,7 @@ public sealed partial class PdfReadPage {
             .Where(span => span.ContentOrderKey is not null && !visibleKeys.Contains(span.ContentOrderKey))
             .ToArray();
     }
+
+    internal IReadOnlyList<PdfTextSpan> GetTextSpansIncludingHiddenOptionalContent() =>
+        GetTextSpans(_includeArtifactText, default, includeHiddenOptionalContent: true);
 }

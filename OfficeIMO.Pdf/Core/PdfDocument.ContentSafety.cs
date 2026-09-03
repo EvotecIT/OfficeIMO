@@ -178,17 +178,20 @@ public sealed partial class PdfDocument {
 
             if (!builder.Options.IncludeNonPrimaryContent) continue;
 
-            IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
+            IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
             for (int annotationIndex = 0; annotationIndex < annotations.Count; annotationIndex++) {
                 PdfAnnotation annotation = annotations[annotationIndex];
                 bool hiddenByFlags = annotation.IsHidden || annotation.IsInvisible || annotation.IsNoView;
                 bool hiddenByOptionalContent = page.IsHiddenOptionalContent(annotation.SourceDictionary);
-                bool degenerateRectangle = HasDegenerateAnnotationRectangle(annotation);
-                bool outsidePage = IsAnnotationOutsidePage(page, annotation);
-                if (!hiddenByFlags && !hiddenByOptionalContent && !degenerateRectangle && !outsidePage) continue;
+                bool unreadableRectangle = !annotation.HasReadableRectangle;
+                bool degenerateRectangle = annotation.HasReadableRectangle && HasDegenerateAnnotationRectangle(annotation);
+                bool outsidePage = annotation.HasReadableRectangle && IsAnnotationOutsidePage(page, annotation);
+                if (!hiddenByFlags && !hiddenByOptionalContent && !unreadableRectangle && !degenerateRectangle && !outsidePage) continue;
                 if (annotation.ObjectNumber.HasValue) concealedAnnotationObjectNumbers.Add(annotation.ObjectNumber.Value);
                 string location = "Page[" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "]/HiddenAnnotation[" + (annotationIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
-                string evidence = degenerateRectangle
+                string evidence = unreadableRectangle
+                    ? "The PDF annotation has no readable rectangle and cannot provide a visible presentation for its stored content."
+                    : degenerateRectangle
                     ? "The PDF annotation rectangle has zero area and cannot present its stored content."
                     : outsidePage
                     ? "The PDF annotation rectangle is outside the page boundary and has no visible presentation."

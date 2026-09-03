@@ -118,6 +118,28 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetySurfacesRichContentsFromHiddenNonFreeTextMarkup() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 6 0 R >> >> /Contents 4 0 R /Annots [5 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (PLAIN-COMMENT) /RC (<body>RICH-TEXT-ANNOTATION-SECRET</body>) /F 2 >>\nendobj",
+            "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("RICH-TEXT-ANNOTATION-SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentSafetyDoesNotClassifyValueAsHiddenWhenAnotherWidgetIsVisible() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
@@ -295,6 +317,32 @@ public sealed class PdfHiddenContentInspectionTests {
         Assert.Contains(report.Findings, finding =>
             finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
             finding.TextPreview.Contains("ZERO-AREA-ANNOTATION-SECRET", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Rect [20 20 invalid 40]")]
+    public void ContentSafetyTreatsAnnotationWithoutReadableRectangleAsConcealed(string rectangleEntry) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [5 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "5 0 obj\n<< /Type /Annot /Subtype /FreeText " + rectangleEntry + " /Contents (UNPLACED-ANNOTATION-SECRET) /RC (<body>UNPLACED-RICH-SECRET</body>) >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+        byte[] source = Encoding.ASCII.GetBytes(pdf);
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(source);
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("UNPLACED-ANNOTATION-SECRET", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.Contains("/HiddenAnnotation[", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("UNPLACED-RICH-SECRET", StringComparison.Ordinal));
     }
 
     [Fact]

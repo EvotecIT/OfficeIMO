@@ -357,6 +357,74 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationReportsHiddenOptionalContentInsideReviewedArea() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: false);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "hidden layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker.StartsWith("TextBlock@page:1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedOptionalContentConfiguration() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            BuildOptionalContentRedactionPdf(layerIsVisible: false),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationFailsClosedForUnsupportedOptionalContentViewUsage() {
+        byte[] source = BuildOptionalContentRedactionPdf(layerIsVisible: false, unsupportedViewIntent: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 15D, 85D, 180D, 35D, "hidden layer text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanInspectionBlocked");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AppliedPlanVerificationRejectsChangedNestedFormOptionalContentBinding(bool formAssociation) {
+        byte[] source = BuildNestedFormOptionalContentIdentityPdf(formAssociation, groupObjectNumber: 6);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 180D, 150D, 20D, 20D, "reviewed blank area")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            BuildNestedFormOptionalContentIdentityPdf(formAssociation, groupObjectNumber: 7),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsARewriteThatDropsAReviewedPage() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Retained first page")))));
@@ -1960,6 +2028,44 @@ public class PdfRedactionVerificationTests {
         }
 
         return output.ToArray();
+    }
+
+    private static byte[] BuildOptionalContentRedactionPdf(bool layerIsVisible, bool unsupportedViewIntent = false) {
+        const string content = "/OC /Layer BDC BT /F1 12 Tf 20 100 Td (OPTIONAL-SECRET) Tj ET EMC";
+        string state = layerIsVisible ? "/ON [6 0 R]" : "/OFF [6 0 R]";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON " + state + " >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> /Properties << /Layer 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /OCG /Name (Review layer)" + (unsupportedViewIntent ? " /Intent /Design" : string.Empty) + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildNestedFormOptionalContentIdentityPdf(bool formAssociation, int groupObjectNumber) {
+        const string formText = "BT /F1 12 Tf 20 100 Td (FORM-OPTIONAL-TEXT) Tj ET";
+        string formContent = formAssociation ? formText : "/OC /Local BDC " + formText + " EMC";
+        string formOptionalContent = formAssociation
+            ? " /OC " + groupObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 R"
+            : string.Empty;
+        string formProperties = formAssociation
+            ? string.Empty
+            : " /Properties << /Local " + groupObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 R >>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R 7 0 R] /D << /BaseState /ON /ON [6 0 R] /OFF [7 0 R] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Fm 8 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 6 >>", "stream", "/Fm Do", "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /OCG /Name (Visible group) >>", "endobj",
+            "7 0 obj", "<< /Type /OCG /Name (Hidden group) >>", "endobj",
+            "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 240 180]" + formOptionalContent + " /Resources << /Font << /F1 5 0 R >>" + formProperties + " >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
     }
 
     private static string ToHex(byte[] bytes) {

@@ -6,6 +6,19 @@ internal static partial class PdfRedactionPlanner {
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
     public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+        return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false);
+    }
+
+    internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options) {
+        return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true);
+    }
+
+    private static PdfRedactionPlan Plan(
+        byte[] pdf,
+        IEnumerable<PdfRedactionArea> areas,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfLoadOptions? options,
+        bool includeHiddenOptionalContentText) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
 
@@ -36,9 +49,29 @@ internal static partial class PdfRedactionPlanner {
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
         var nestedPathPrimitivesByPage = new Dictionary<int, IReadOnlyList<PdfPageVisualPrimitive>>();
+        var hiddenTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
+        var inconclusiveOptionalContentPages = new HashSet<int>();
 
         foreach (PdfRedactionArea area in areaArray) {
             AddTextMatches(area, logical, matches);
+            if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
+                PdfReadPage residualPage = readDocument.Pages[area.PageNumber - 1];
+                if (residualPage.HasUnsupportedOptionalContentViewUsageApplications()) {
+                    if (inconclusiveOptionalContentPages.Add(area.PageNumber)) {
+                        findings.Add(new PdfDiagnosticFinding(
+                            PdfDiagnosticSeverity.Error,
+                            "RedactionPlanOptionalContentInspectionInconclusive",
+                            "Residual redaction inspection cannot determine optional-content visibility because the PDF uses unsupported View usage applications.",
+                            pageNumber: area.PageNumber));
+                    }
+                } else {
+                    if (!hiddenTextSpansByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfTextSpan>? hiddenSpans)) {
+                        hiddenSpans = residualPage.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
+                        hiddenTextSpansByPage.Add(area.PageNumber, hiddenSpans);
+                    }
+                    AddHiddenTextMatches(area, hiddenSpans, matches);
+                }
+            }
             AddImageMatches(area, logical.Images, matches, findings);
             AddAnnotationMatches(area, info.Pages, matches);
             if (area.PageNumber <= readDocument.Pages.Count) {
@@ -205,6 +238,28 @@ internal static partial class PdfRedactionPlanner {
                     placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
                     placement.PageNumber));
             }
+        }
+    }
+
+    private static void AddHiddenTextMatches(
+        PdfRedactionArea area,
+        IReadOnlyList<PdfTextSpan> spans,
+        List<PdfRedactionMatch> matches) {
+        for (int i = 0; i < spans.Count; i++) {
+            PdfTextSpan span = spans[i];
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+            if (!Intersects(area.X, area.Y, area.Width, area.Height, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
+            matches.Add(new PdfRedactionMatch(
+                PdfRedactionMatchKind.TextBlock,
+                area,
+                area.PageNumber,
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Width,
+                bounds.Height,
+                span.Text,
+                null,
+                null));
         }
     }
 
