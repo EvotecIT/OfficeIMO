@@ -98,6 +98,7 @@ public sealed partial class OfficeWorkflowRunner {
             string? outputPath = TryResolveBatchRemovalOutput(request);
             string? identity = pathIndex.TryNormalize(outputPath);
             if (outputPath is null || identity is null) continue;
+            request.OutputPath = outputPath;
             EnsureBatchOutputDoesNotOverlapInput(
                 outputPath,
                 identity,

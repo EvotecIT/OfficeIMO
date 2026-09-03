@@ -267,8 +267,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     Report(progress, validated.Id, "finalize", "Finalizing the verified provenance artifact", 0.98D);
                     stagedFingerprint.VerifyPublishedPath(path, validated.Limits.MaximumOutputBytes, cancellationToken);
                 });
-            inputSnapshot.Dispose();
-            inputSnapshot = null;
+            TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             long outputBytes = stagedFingerprint.Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "AtomicPublication",
