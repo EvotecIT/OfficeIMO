@@ -85,6 +85,8 @@ public sealed class StructuredTable {
     /// <summary>Extracted row values aligned to Columns.</summary>
     public List<string[]> Rows { get; } = new();
     internal IReadOnlyList<PdfTextSpan> SourceRuns { get; set; } = Array.Empty<PdfTextSpan>();
+    internal IReadOnlyList<TextLayoutEngine.TextLine> SourceLines { get; set; } =
+        Array.Empty<TextLayoutEngine.TextLine>();
 }
 
 /// <summary>Column geometry for a detected table.</summary>

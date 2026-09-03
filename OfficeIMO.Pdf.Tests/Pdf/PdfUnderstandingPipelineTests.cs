@@ -1645,45 +1645,6 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void LogicalReadingOrder_ChargesEveryTableOwnershipComparison() {
-        byte[] pdf = PdfDocument.Create()
-            .Table(new[] {
-                new[] { "Metric", "Value" },
-                new[] { "Quality", "Premium" }
-            })
-            .ToBytes();
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
-        var classification = new CapturingParagraphClassificationStage();
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
-        options.SemanticClassification = classification;
-        options.MaxWorkUnitsPerPage = 1_000_000;
-
-        PdfUnderstandingPageResult analysis = Assert.Single(
-            new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options)
-                .RunPages(document, new[] { 1 }));
-        PdfLogicalPage page = PdfLogicalPage.From(
-            document,
-            document.Pages[0],
-            1,
-            new PdfTextLayoutOptions(),
-            analysis: analysis);
-        Assert.NotEmpty(page.TextBlocks);
-        Assert.NotEmpty(page.Tables);
-        PdfUnderstandingPageContext context = Assert.IsType<PdfUnderstandingPageContext>(classification.Context);
-        long tableGeometryWork = page.Tables.Sum(static table => Math.Max(1, table.Columns.Count));
-        long available = context.MaxWorkUnitsPerPage - context.WorkUnitsConsumed;
-        Assert.True(available > tableGeometryWork);
-        context.ConsumeWork(available - tableGeometryWork);
-
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfLogicalReadingOrderAnalysis.Analyze(page));
-
-        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
-        Assert.Equal(context.MaxWorkUnitsPerPage, exception.Limit);
-        Assert.Equal(exception.Limit + 1, exception.Actual);
-    }
-
-    [Fact]
     public void CompletedRead_DoesNotChargeLazyLogicalAnalysisToTheOperationBudget() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {

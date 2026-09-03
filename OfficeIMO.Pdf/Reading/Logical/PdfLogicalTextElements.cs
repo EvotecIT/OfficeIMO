@@ -15,7 +15,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         IReadOnlyList<PdfTextSpan> spans,
         PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
         double confidence = 1D,
-        PdfLogicalVisualBounds? visualBounds = null) {
+        PdfLogicalVisualBounds? visualBounds = null,
+        bool isTableContent = false) {
         PageNumber = pageNumber;
         Kind = kind;
         Text = text;
@@ -28,6 +29,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         SourceKind = sourceKind;
         Confidence = PdfInference.Clamp(confidence);
         VisualBounds = visualBounds;
+        IsTableContent = isTableContent;
     }
 
     /// <inheritdoc />
@@ -71,6 +73,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// Native text normally derives this geometry from PDF user-space spans on demand.
     /// </summary>
     public PdfLogicalVisualBounds? VisualBounds { get; }
+
+    internal bool IsTableContent { get; }
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount => Spans.Count;

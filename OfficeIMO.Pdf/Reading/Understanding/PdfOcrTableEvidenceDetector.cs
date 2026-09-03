@@ -8,6 +8,8 @@ internal static class PdfOcrTableEvidenceDetector {
     private const int MinimumAlignedRows = 3;
     private const double MinimumColumnGapPoints = 18D;
     private const double MinimumColumnTolerancePoints = 12D;
+    private const double MaximumCellWidthInTextHeights = 24D;
+    private const double MaximumAverageCellWidthInTextHeights = 10D;
 
     internal static IReadOnlyList<PdfUnderstandingTableCandidate> Detect(
         PdfUnderstandingPageContext context,
@@ -160,17 +162,18 @@ internal static class PdfOcrTableEvidenceDetector {
         IReadOnlyList<(int RowIndex, IReadOnlyList<VisualCell> Cells)> group,
         IReadOnlyList<VisualRow> rows) {
         long cellCount = 0L;
-        long wordCount = 0L;
+        double occupiedWidthInTextHeights = 0D;
         for (int rowIndex = 0; rowIndex < group.Count; rowIndex++) {
             IReadOnlyList<VisualCell> cells = group[rowIndex].Cells;
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                int words = cells[cellIndex].WordCount;
-                if (words == 0 || words > 4) return false;
+                double compactness = cells[cellIndex].OccupiedWidthInTextHeights;
+                if (compactness <= 0D || compactness > MaximumCellWidthInTextHeights) return false;
                 cellCount++;
-                wordCount += words;
+                occupiedWidthInTextHeights += compactness;
             }
         }
-        if (cellCount == 0L || wordCount > cellCount * 2L) return false;
+        if (cellCount == 0L ||
+            occupiedWidthInTextHeights > cellCount * MaximumAverageCellWidthInTextHeights) return false;
 
         double[] steps = new double[group.Count - 1];
         for (int rowIndex = 1; rowIndex < group.Count; rowIndex++) {
@@ -242,19 +245,19 @@ internal static class PdfOcrTableEvidenceDetector {
     }
 
     private sealed class VisualCell {
-        private VisualCell(double left, double right, double height, string text, int wordCount) {
+        private VisualCell(double left, double right, double height, string text) {
             Left = left;
             Right = right;
             Height = height;
             Text = text;
-            WordCount = wordCount;
         }
 
         internal double Left { get; }
         internal double Right { get; }
         internal double Height { get; }
         internal string Text { get; }
-        internal int WordCount { get; }
+        internal double OccupiedWidthInTextHeights =>
+            Height > 0D ? Math.Max(0D, Right - Left) / Height : double.PositiveInfinity;
 
         internal static VisualCell From(IReadOnlyList<WordBox> words) {
             WordBox[] sourceOrder = words.OrderBy(static word => word.SourceSequence).ToArray();
@@ -262,8 +265,7 @@ internal static class PdfOcrTableEvidenceDetector {
                 words.Min(static word => word.Bounds.Left),
                 words.Max(static word => word.Bounds.Right),
                 words.Max(static word => word.Bounds.Bottom) - words.Min(static word => word.Bounds.Top),
-                string.Join(" ", sourceOrder.Select(static word => word.Word.Text)),
-                words.Count);
+                string.Join(" ", sourceOrder.Select(static word => word.Word.Text)));
         }
     }
 }

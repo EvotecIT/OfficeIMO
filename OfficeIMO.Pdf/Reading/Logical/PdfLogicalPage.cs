@@ -301,6 +301,9 @@ public sealed partial class PdfLogicalPage {
         SemanticElementIndex semanticIndex = SemanticElementIndex.Create(pageAnalysis.Elements);
         var headingSourceRuns = new HashSet<PdfTextSpan>(
             structured.Headings.SelectMany(static heading => heading.Line.Spans));
+        LogicalTableSourceIndex tableSourceIndex = LogicalTableSourceIndex.Create(
+            analysis is null ? structured.TablesDetailed : null,
+            projectedTableCandidates);
 
         foreach (var line in structured.LinesDetailed) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -330,7 +333,8 @@ public sealed partial class PdfLogicalPage {
                 line.Spans,
                 line.SourceKind,
                 line.Confidence,
-                visualBounds: line.VisualBounds);
+                visualBounds: line.VisualBounds,
+                isTableContent: tableSourceIndex.Contains(line));
             textBlocks.Add(block);
             if (semantic is not null) semanticByTextBlock.Add(block, semantic);
             elements.Add(block);
@@ -946,6 +950,57 @@ public sealed partial class PdfLogicalPage {
 
     private static (long BaselineY, long XStart, string Text) CreateStructuredLineKey(StructuredLine line) =>
         (BitConverter.DoubleToInt64Bits(line.Y), BitConverter.DoubleToInt64Bits(line.XStart), line.Text.Trim());
+
+    private sealed class LogicalTableSourceIndex {
+        private readonly HashSet<PdfTextSpan> _sourceRuns = new();
+        private readonly HashSet<(PdfLogicalContentSourceKind SourceKind, long Baseline, long XStart, string Text)> _sourceLines = new();
+
+        private LogicalTableSourceIndex() { }
+
+        internal static LogicalTableSourceIndex Create(
+            List<StructuredTable>? structuredTables,
+            IReadOnlyList<PdfUnderstandingTableCandidate>? candidates) {
+            var index = new LogicalTableSourceIndex();
+            if (structuredTables is not null) {
+                for (int tableIndex = 0; tableIndex < structuredTables.Count; tableIndex++) {
+                    IReadOnlyList<PdfTextSpan> runs = structuredTables[tableIndex].SourceRuns;
+                    for (int runIndex = 0; runIndex < runs.Count; runIndex++) index._sourceRuns.Add(runs[runIndex]);
+                }
+            }
+            if (candidates is not null) {
+                for (int tableIndex = 0; tableIndex < candidates.Count; tableIndex++) {
+                    IReadOnlyList<PdfUnderstandingLine> lines = candidates[tableIndex].SourceLines;
+                    for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                        PdfUnderstandingLine line = lines[lineIndex];
+                        index._sourceLines.Add((
+                            line.SourceKind,
+                            GetBucket(line.BaselineY, 0.25D),
+                            GetBucket(line.XStart, 0.5D),
+                            NormalizeForKindComparison(line.Text)));
+                        for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                            IReadOnlyList<PdfTextSpan> runs = line.Words[wordIndex].SourceRuns;
+                            for (int runIndex = 0; runIndex < runs.Count; runIndex++) index._sourceRuns.Add(runs[runIndex]);
+                        }
+                    }
+                }
+            }
+            return index;
+        }
+
+        internal bool Contains(StructuredLine line) {
+            for (int runIndex = 0; runIndex < line.Spans.Count; runIndex++) {
+                if (_sourceRuns.Contains(line.Spans[runIndex])) return true;
+            }
+            return _sourceLines.Contains((
+                line.SourceKind,
+                GetBucket(line.Y, 0.25D),
+                GetBucket(line.XStart, 0.5D),
+                NormalizeForKindComparison(line.Text)));
+        }
+
+        private static long GetBucket(double value, double width) =>
+            checked((long)Math.Round(value / width, MidpointRounding.AwayFromZero));
+    }
 
     private sealed class SemanticElementIndex {
         private readonly Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>> _byGeometry;

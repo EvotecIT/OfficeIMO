@@ -700,6 +700,40 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task Document_InfersOcrTablesIndependentlyOfProviderWordSegmentation() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "一", 30, 50, 7, 10), At(request, "二", 38, 50, 7, 10), At(request, "三", 46, 50, 7, 10), At(request, "四", 54, 50, 7, 10), At(request, "五", 62, 50, 7, 10),
+            At(request, "甲", 150, 50, 7, 10), At(request, "乙", 158, 50, 7, 10), At(request, "丙", 166, 50, 7, 10), At(request, "丁", 174, 50, 7, 10), At(request, "戊", 182, 50, 7, 10),
+            At(request, "가", 30, 66, 7, 10), At(request, "나", 38, 66, 7, 10), At(request, "다", 46, 66, 7, 10), At(request, "라", 54, 66, 7, 10), At(request, "마", 62, 66, 7, 10),
+            At(request, "10", 150, 66, 16, 10),
+            At(request, "А", 30, 82, 7, 10), At(request, "Б", 38, 82, 7, 10), At(request, "В", 46, 82, 7, 10), At(request, "Г", 54, 82, 7, 10), At(request, "Д", 62, 82, 7, 10),
+            At(request, "20", 150, 82, 16, 10)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
+        PdfLogicalTable table = Assert.Single(result.Document.Tables);
+
+        Assert.Equal(PdfLogicalContentSourceKind.Ocr, table.SourceKind);
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal("一 二 三 四 五", table.Rows[0][0]);
+        Assert.Equal("가 나 다 라 마", table.Rows[1][0]);
+        Assert.Equal("А Б В Г Д", table.Rows[2][0]);
+        PdfLogicalReadingOrderItem[] readingOrder = PdfLogicalReadingOrderAnalysis
+            .Analyze(Assert.Single(result.Document.Pages))
+            .ToArray();
+        Assert.Single(readingOrder, static item => item.Kind == PdfLogicalReadingOrderKind.Table);
+        Assert.DoesNotContain(
+            readingOrder,
+            static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or
+                PdfLogicalReadingOrderKind.Heading or
+                PdfLogicalReadingOrderKind.Paragraph or
+                PdfLogicalReadingOrderKind.ListItem);
+    }
+
+    [Fact]
     public async Task Document_RetainsOcrTablesWhenCallerReplacesStructuralStages() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)

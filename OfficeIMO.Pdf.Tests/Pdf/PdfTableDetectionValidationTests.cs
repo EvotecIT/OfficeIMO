@@ -124,6 +124,23 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void PositionedRecovery_UsesVisualCompactnessInsteadOfWhitespaceWordCounts() {
+        TextLayoutEngine.TextLine[] lines = {
+            CreateLine(520D, ("一 二 三 四 五", 50D, 55D, "Helvetica"), ("甲 乙 丙 丁 戊", 220D, 55D, "Helvetica")),
+            CreateLine(500D, ("가 나 다 라 마", 50D, 55D, "Helvetica"), ("바 사 아 자 차", 220D, 55D, "Helvetica")),
+            CreateLine(480D, ("А Б В Г Д", 50D, 55D, "Helvetica"), ("Е Ж З И К", 220D, 55D, "Helvetica")),
+            CreateLine(460D, ("α β γ δ ε", 50D, 55D, "Helvetica"), ("ζ η θ ι κ", 220D, 55D, "Helvetica"))
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+
+        Assert.Equal("positioned-cells-bounded", table.Kind);
+        Assert.Equal(4, table.Rows.Count);
+        Assert.Equal("一 二 三 四 五", table.Rows[0][0]);
+        Assert.Equal("α β γ δ ε", table.Rows[3][0]);
+    }
+
+    [Fact]
     public void PositionedRecovery_RecognizesSupplementaryPlaneDecimalDigits() {
         TextLayoutEngine.TextLine[] lines = {
             CreateLine(520D, ("Code", 50D, 50D, "Helvetica"), ("Value", 220D, 52D, "Helvetica")),
