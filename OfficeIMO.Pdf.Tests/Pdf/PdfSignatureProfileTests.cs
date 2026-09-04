@@ -165,24 +165,34 @@ public class PdfSignatureProfileTests {
     }
 
     [Fact]
-    public async Task PngChunkCrcValidationHonorsCancellationDuringLargeChunk() {
-        const int chunkLength = 32 * 1024 * 1024;
+    public void PngChunkCrcValidationHonorsCancellationDuringLargeChunk() {
+        const int chunkLength = 8192;
         var png = new byte[8 + 12 + chunkLength];
         new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }.CopyTo(png, 0);
-        png[8] = 2;
+        png[10] = (byte)(chunkLength >> 8);
+        png[11] = (byte)(chunkLength & 0xFF);
         png[12] = (byte)'I';
         png[13] = (byte)'D';
         png[14] = (byte)'A';
         png[15] = (byte)'T';
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
-            PdfWriter.TryGetPngImageData(
-                png,
-                cancellation.Token,
-                out _,
-                out _)));
+        var checkpoints = new List<int>();
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind != PngRowLoopKind.CrcValidation) return;
+            checkpoints.Add(index);
+            if (index == 4096) cancellation.Cancel();
+        };
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                PdfWriter.TryGetPngImageData(
+                    png,
+                    cancellation.Token,
+                    out _,
+                    out _));
+            Assert.Equal(new[] { 0, 4096 }, checkpoints);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
     }
 
     [Fact]
