@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
+using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -88,14 +90,23 @@ public sealed class PdfPublicApiContractTests {
 
         Assert.Null(typeof(PdfDocument).GetProperty("Read", BindingFlags.Public | BindingFlags.Instance));
         Assert.Null(typeof(PdfDocument).GetProperty("Reader", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(PdfDocument).GetProperty("Ocr", BindingFlags.Public | BindingFlags.Instance));
         Assert.Equal(typeof(PdfDocumentRenderer), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Render))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentResources), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Resources))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentImageEditor), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Images))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentAttachments), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Attachments))?.PropertyType);
-        Assert.Equal(typeof(PdfDocumentOcr), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Ocr))?.PropertyType);
+        Assert.Contains(
+            typeof(PdfOcrExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static),
+            method => method.Name == nameof(PdfOcrExtensions.ReadWithOcrAsync) &&
+                method.GetParameters().Length >= 2 &&
+                method.GetParameters()[0].ParameterType == typeof(PdfDocument) &&
+                method.GetParameters()[1].ParameterType == typeof(IOcrEngine));
         Assert.DoesNotContain(
             typeof(PdfDocumentReadResult).GetMethods(BindingFlags.Public | BindingFlags.Static),
             method => method.Name is "Load" or "LoadPageRanges" or "From" or "FromPageRanges");
+        Assert.Null(typeof(PdfDocument).Assembly.GetType("OfficeIMO.Pdf.IPdfOcrProvider"));
+        Assert.Null(typeof(PdfDocument).Assembly.GetType("OfficeIMO.Pdf.PdfOcrRequest"));
+        Assert.Null(typeof(PdfDocument).Assembly.GetType("OfficeIMO.Pdf.PdfOcrResponse"));
         Assert.Equal(typeof(PdfDocumentPages), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Pages))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentForms), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Forms))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentSecurity), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Security))?.PropertyType);

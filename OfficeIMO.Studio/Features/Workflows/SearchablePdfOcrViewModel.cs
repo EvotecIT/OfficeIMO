@@ -2,8 +2,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf;
-using OfficeIMO.Reader.Ocr;
+using OfficeIMO.Pdf.Ocr;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -12,11 +13,17 @@ internal sealed record SearchablePdfOcrOutcome(
     IReadOnlyList<int> ModifiedPages,
     string? Provider);
 
+internal sealed record SearchablePdfOcrOptions(
+    TesseractOcrLanguage Languages,
+    bool ProvisionMissingLanguageData,
+    OfficeConversionFileConflictPolicy OutputConflictPolicy,
+    PdfOcrMergeOptions Pdf);
+
 internal interface ISearchablePdfOcrService {
     Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
         string inputPath,
         string outputPath,
-        OfficeOcrOptions options,
+        SearchablePdfOcrOptions options,
         CancellationToken cancellationToken);
 }
 
@@ -24,10 +31,22 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
     public async Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
         string inputPath,
         string outputPath,
-        OfficeOcrOptions options,
+        SearchablePdfOcrOptions options,
         CancellationToken cancellationToken) {
-        PdfSearchableOcrResult result = await OfficeOcr
-            .MakePdfSearchableAsync(inputPath, outputPath, options, cancellationToken)
+        TesseractOcrSession session = await TesseractOcr
+            .CreateSessionAsync(new TesseractOcrSessionOptions {
+                Languages = options.Languages,
+                ProvisionMissingLanguageData = options.ProvisionMissingLanguageData
+            }, cancellationToken)
+            .ConfigureAwait(false);
+        options.Pdf.Language = options.Languages.ToTesseractExpression();
+        options.Pdf.SourceName = inputPath;
+        PdfDocument source = PdfDocument.Load(inputPath);
+        PdfSearchableOcrResult result = await source
+            .MakeSearchableAsync(session.Engine, options.Pdf, cancellationToken)
+            .ConfigureAwait(false);
+        await result.Document
+            .SaveAsync(outputPath, options.OutputConflictPolicy, cancellationToken)
             .ConfigureAwait(false);
         string? provider = result.Ocr.Pages
             .Select(static page => page.Provider)
@@ -37,13 +56,13 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
 }
 
 public sealed partial class OcrLanguageChoice : ObservableObject {
-    internal OcrLanguageChoice(OfficeOcrLanguage value, string label, bool isSelected = false) {
+    internal OcrLanguageChoice(TesseractOcrLanguage value, string label, bool isSelected = false) {
         Value = value;
         Label = label;
         _isSelected = isSelected;
     }
 
-    internal OfficeOcrLanguage Value { get; }
+    internal TesseractOcrLanguage Value { get; }
 
     public string Label { get; }
 
@@ -71,8 +90,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
         _canPublishPath = canPublishPath ?? (_ => true);
-        Languages = new ObservableCollection<OcrLanguageChoice>(OfficeOcrLanguages.Supported.Select(language => {
-            var choice = new OcrLanguageChoice(language, FormatLanguage(language), language == OfficeOcrLanguage.English);
+        Languages = new ObservableCollection<OcrLanguageChoice>(TesseractOcrLanguages.Supported.Select(language => {
+            var choice = new OcrLanguageChoice(language, FormatLanguage(language), language == TesseractOcrLanguage.English);
             choice.PropertyChanged += OnLanguagePropertyChanged;
             return choice;
         }));
@@ -197,23 +216,22 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 throw new InvalidOperationException(
                     "That PDF is already open in another tab. Close it or choose a different output file name.");
             }
-            OfficeOcrLanguage selectedLanguages = Languages
+            TesseractOcrLanguage selectedLanguages = Languages
                 .Where(static choice => choice.IsSelected)
-                .Aggregate((OfficeOcrLanguage)0, static (current, choice) => current | choice.Value);
-            var options = new OfficeOcrOptions {
-                Languages = selectedLanguages,
-                ProvisionMissingLanguageData = ProvisionMissingLanguageData,
-                OutputConflictPolicy = ReplaceExistingOutput
+                .Aggregate((TesseractOcrLanguage)0, static (current, choice) => current | choice.Value);
+            var options = new SearchablePdfOcrOptions(
+                selectedLanguages,
+                ProvisionMissingLanguageData,
+                ReplaceExistingOutput
                     ? OfficeConversionFileConflictPolicy.Replace
                     : OfficeConversionFileConflictPolicy.FailIfExists,
-                Pdf = new PdfOcrMergeOptions {
+                new PdfOcrMergeOptions {
                     ReadOptions = new PdfReadOptions {
                         PageSelection = string.IsNullOrWhiteSpace(Pages) ? null : PdfPageSelection.Parse(Pages)
                     },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
-                }
-            };
+                });
             SearchablePdfOcrOutcome result = await _service
                 .MakeSearchableAsync(input, output, options, operation.Token)
                 .ConfigureAwait(true);
@@ -272,7 +290,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         return string.Equals(left, right, comparison);
     }
 
-    private static string FormatLanguage(OfficeOcrLanguage language) {
+    private static string FormatLanguage(TesseractOcrLanguage language) {
         string name = language.ToString();
         var label = new System.Text.StringBuilder(name.Length + 4);
         for (int index = 0; index < name.Length; index++) {

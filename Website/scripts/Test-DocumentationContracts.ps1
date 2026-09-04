@@ -312,12 +312,12 @@ if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 216
-    productionComponentCount = 115
+    projectCount = 218
+    productionComponentCount = 117
     testProjectCount = 41
     benchmarkProjectCount = 33
     validationProjectCount = 28
-    apiReferenceCount = 21
+    apiReferenceCount = 26
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)
@@ -373,6 +373,11 @@ $expectedApiDocsHomes = [ordered]@{
     'build-apidocs-mhtml' = '/docs/html/'
     'build-apidocs-email-image' = '/docs/email/'
     'build-apidocs-mhtml-pdf' = '/docs/html/'
+    'build-apidocs-ocr' = '/docs/capabilities/packages/'
+    'build-apidocs-ocr-process' = '/docs/capabilities/packages/'
+    'build-apidocs-ocr-tesseract' = '/docs/capabilities/packages/'
+    'build-apidocs-reader-ocr' = '/docs/reader/'
+    'build-apidocs-pdf-ocr' = '/docs/pdf/'
 }
 foreach ($expectedHome in $expectedApiDocsHomes.GetEnumerator()) {
     $apiDocsStep = @($pipeline.steps | Where-Object id -eq $expectedHome.Key)
@@ -391,10 +396,10 @@ $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 112) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 112."
+if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 114) {
+    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 114."
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 109 -or
+if ($aotMatrix.summary.fullyRootedLibraryCount -ne 111 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.nativeBuildAnalyzerCount -ne 1 -or

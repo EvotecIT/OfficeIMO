@@ -43,11 +43,14 @@
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odp.Pdf\OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Ods.Pdf\OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr\OfficeIMO.Reader.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />

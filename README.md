@@ -50,7 +50,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
-| OCR packages | A caller-supplied executable or an installed Tesseract CLI | Candidate selection, bounded execution, protocol, result model, and diagnostics |
+| Optional OCR providers | A caller-supplied executable or an installed Tesseract CLI | Neutral request/result/geometry contracts, bounded provider execution, and opt-in Reader/PDF integrations |
 | Google Workspace packages | `System.Text.Json` and platform HTTP/cryptography | Credentials abstraction, request/retry logic, Drive placement, translation plans, and reports; no Google client SDK |
 | Converter packages not listed above | Only the OfficeIMO format packages they connect | Feature mapping, limits, loss reports, and destination APIs |
 
@@ -254,7 +254,16 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX mo
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, or cryptographic dependency. Install `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+
+#### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
+
+- [x] Any `IOcrEngine` over bounded rendered PDF pages without a Reader or provider dependency
+- [x] Pixel, point, and normalized geometry projection into cropped and rotated visual PDF coordinates
+- [x] Confidence and native-text overlap filtering followed by the canonical language-neutral PDF understanding pipeline
+- [x] Searchable invisible-text output with per-page provider, model, language, word, rejection, and diagnostic evidence
+
+_Dependency footprint:_ only `OfficeIMO.Ocr` and `OfficeIMO.Pdf`; providers and native runtimes remain explicit application choices.
 
 #### [OfficeIMO.Security](OfficeIMO.Security/README.md)
 
@@ -985,30 +994,38 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core`, OneNote, and OneNote.Markd
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and OpenDocument; no LibreOffice runtime.
 
-#### [OfficeIMO.Reader.Ocr](OfficeIMO.Reader.Ocr/README.md)
+#### [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md)
 
-- [x] One-call image recognition and searchable-PDF creation with a reusable session API
-- [x] Installed Tesseract discovery with explicit runtime and language evidence
-- [x] Checksum-pinned provisioning for 28 typed OCR languages plus orientation data in a versioned user cache
+- [x] Format-neutral `IOcrEngine`, request, result, capability, geometry, hierarchy, confidence, provenance, and diagnostic contracts
+- [x] Explicit pixel, point, and normalized coordinate units for raster, page, slide, worksheet-image, and future source integrations
+- [x] Callback adapter for application-owned native, hosted, or cloud recognition implementations
 
-_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Tesseract` and `OfficeIMO.Reader.Pdf`; the native OCR executable remains external.
+_Dependency footprint:_ none; no Reader, PDF, process, network, or native runtime dependency.
 
-#### [OfficeIMO.Reader.Ocr.Process](OfficeIMO.Reader.Ocr.Process/README.md)
+#### [OfficeIMO.Ocr.Process](OfficeIMO.Ocr.Process/README.md)
 
 - [x] Versioned JSON request/response protocol for caller-configured OCR executables
 - [x] Shell-free process launch, isolated request directories, timeout/output bounds, and process-tree containment
-- [x] Structured OCR results and diagnostics with configurable candidate and concurrency limits
+- [x] Neutral OCR results and diagnostics with configurable input, output, and runtime limits
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core` and `System.Text.Json`; the OCR executable is supplied by the application.
+_Dependency footprint:_ `OfficeIMO.Ocr`, plus `System.Text.Json` on legacy targets; the OCR executable is supplied by the application.
 
-#### [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md)
+#### [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md)
 
-- [x] Optional `IOfficeOcrEngine` for an installed Tesseract CLI
+- [x] Optional `IOcrEngine` for an installed Tesseract CLI
 - [x] Runtime, language, and version discovery; page-segmentation options; and TSV parsing
 - [x] Optional immutable, length- and SHA-256-verified `tessdata_fast` provisioning for the curated catalog
 - [x] Word/line spans with bounds, normalized confidence, timeouts, and structured failures
 
-_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesseract installation; no bundled native binaries or default language payloads.
+_Dependency footprint:_ `OfficeIMO.Ocr.Process` plus an external Tesseract installation; no bundled native binaries or default language payloads.
+
+#### [OfficeIMO.Reader.Ocr](OfficeIMO.Reader.Ocr/README.md)
+
+- [x] Bounded, deterministic OCR execution over image candidates from modular Reader adapters
+- [x] Candidate-to-asset/hash validation, timeouts, concurrency control, result limits, and diagnostic mapping
+- [x] Native-plus-OCR enrichment that retains every neutral provider result and source association
+
+_Dependency footprint:_ only `OfficeIMO.Ocr` and `OfficeIMO.Reader.Core`; no provider, format package, PDF engine, process runner, cloud SDK, or native runtime dependency.
 
 #### [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md)
 

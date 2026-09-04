@@ -32,7 +32,6 @@ public sealed partial class PdfDocument {
         _reader = new PdfDocumentReader(this);
         Render = new PdfDocumentRenderer(this);
         Resources = new PdfDocumentResources(this);
-        Ocr = new PdfDocumentOcr(this);
         Text = new PdfDocumentTextEditor(this);
         Images = new PdfDocumentImageEditor(this);
         Stamp = new PdfDocumentStamper(this);
@@ -152,9 +151,6 @@ public sealed partial class PdfDocument {
 
     /// <summary>Bounded font and raw object-resource inspection.</summary>
     public PdfDocumentResources Resources { get; }
-
-    /// <summary>Caller-provider OCR enrichment over the canonical logical result.</summary>
-    public PdfDocumentOcr Ocr { get; }
 
     /// <summary>Existing-page text search and editing operations.</summary>
     public PdfDocumentTextEditor Text { get; }

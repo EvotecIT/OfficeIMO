@@ -37,12 +37,6 @@
         "resolved": "8.4.2",
         "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
       },
-      "Microsoft.NET.ILLink.Tasks": {
-        "type": "Direct",
-        "requested": "[10.0.11, )",
-        "resolved": "10.0.11",
-        "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
-      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.7.1",
@@ -299,6 +293,22 @@
           "OfficeIMO.Core": "[3.3.0, )"
         }
       },
+      "officeimo.ocr": {
+        "type": "Project"
+      },
+      "officeimo.ocr.process": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )"
+        }
+      },
+      "officeimo.ocr.tesseract": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Ocr.Process": "[3.3.0, )"
+        }
+      },
       "officeimo.opendocument": {
         "type": "Project",
         "dependencies": {
@@ -309,6 +319,13 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.pdf.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
       "officeimo.powerpoint": {
@@ -324,37 +341,6 @@
           "OfficeIMO.Core": "[3.3.0, )",
           "OfficeIMO.Pdf": "[3.3.0, )",
           "OfficeIMO.PowerPoint": "[3.3.0, )"
-        }
-      },
-      "officeimo.reader.core": {
-        "type": "Project"
-      },
-      "officeimo.reader.ocr": {
-        "type": "Project",
-        "dependencies": {
-          "OfficeIMO.Reader.Ocr.Tesseract": "[3.3.0, )",
-          "OfficeIMO.Reader.Pdf": "[3.3.0, )"
-        }
-      },
-      "officeimo.reader.ocr.process": {
-        "type": "Project",
-        "dependencies": {
-          "OfficeIMO.Reader.Core": "[3.3.0, )"
-        }
-      },
-      "officeimo.reader.ocr.tesseract": {
-        "type": "Project",
-        "dependencies": {
-          "OfficeIMO.Reader.Core": "[3.3.0, )",
-          "OfficeIMO.Reader.Ocr.Process": "[3.3.0, )"
-        }
-      },
-      "officeimo.reader.pdf": {
-        "type": "Project",
-        "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )",
-          "OfficeIMO.Pdf": "[3.3.0, )",
-          "OfficeIMO.Reader.Core": "[3.3.0, )"
         }
       },
       "officeimo.security": {

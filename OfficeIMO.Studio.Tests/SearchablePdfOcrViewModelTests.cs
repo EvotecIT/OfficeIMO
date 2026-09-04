@@ -1,4 +1,4 @@
-using OfficeIMO.Reader.Ocr;
+using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Studio.Features.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
@@ -31,7 +31,7 @@ public sealed class SearchablePdfOcrViewModelTests {
         Assert.Equal(input, service.InputPath);
         Assert.Equal(output, service.OutputPath);
         Assert.NotNull(service.Options);
-        Assert.Equal(OfficeOcrLanguage.English | OfficeOcrLanguage.Polish, service.Options!.Languages);
+        Assert.Equal(TesseractOcrLanguage.English | TesseractOcrLanguage.Polish, service.Options!.Languages);
         Assert.Equal("1,3", service.Options.Pdf.ReadOptions.PageSelection!.ToString());
         Assert.Equal(200D, service.Options.Pdf.Dpi);
         Assert.Equal(0.65D, service.Options.Pdf.MinimumConfidence);
@@ -116,13 +116,13 @@ public sealed class SearchablePdfOcrViewModelTests {
 
         internal string? InputPath { get; private set; }
         internal string? OutputPath { get; private set; }
-        internal OfficeOcrOptions? Options { get; private set; }
+        internal SearchablePdfOcrOptions? Options { get; private set; }
         internal int CallCount { get; private set; }
 
         public Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
             string inputPath,
             string outputPath,
-            OfficeOcrOptions options,
+            SearchablePdfOcrOptions options,
             CancellationToken cancellationToken) {
             CallCount++;
             InputPath = inputPath;
