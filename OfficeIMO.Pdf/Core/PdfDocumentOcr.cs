@@ -34,13 +34,16 @@ public sealed class PdfDocumentOcr {
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
-        if (effectiveOptions.Selection != null) {
+        PdfPageSelection? selection = effectiveOptions.ReadOptions.PageSelection;
+        if (selection != null) {
             int pageCount = _document.Inspect(_document.ReadOptions, cancellationToken).PageCount;
-            int[] uniquePages = effectiveOptions.Selection
+            int[] uniquePages = selection
                 .ToPageNumbers(pageCount, nameof(options))
                 .Distinct()
                 .ToArray();
-            effectiveOptions.Selection = PdfPageSelection.From(uniquePages);
+            effectiveOptions.ReadOptions = PdfReadOptions.WithPageSelection(
+                effectiveOptions.ReadOptions,
+                PdfPageSelection.From(uniquePages));
         }
 
         PdfOcrMergeResult ocr = await ReadAsync(provider, effectiveOptions, cancellationToken).ConfigureAwait(false);
@@ -62,7 +65,12 @@ public sealed class PdfDocumentOcr {
             (canvas, context) => {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<PdfRecognizedWord> words = wordsByPage[context.PageNumber];
-                IReadOnlyList<PdfRecognizedWord> logicalWords = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(words, cancellationToken);
+                PdfLogicalPage canonicalPage = ocr.Document.Pages.First(page => page.PageNumber == context.PageNumber);
+                IReadOnlyList<PdfRecognizedWord> logicalWords = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(
+                    words,
+                    canonicalPage,
+                    effectiveOptions.ReadOptions.LayoutOptions.ReadingDirection,
+                    cancellationToken);
                 for (int i = 0; i < logicalWords.Count; i++) {
                     PdfRecognizedWord word = logicalWords[i];
                     canvas.SearchableText(word.Text, word.X, word.Y, word.Width, word.Height);

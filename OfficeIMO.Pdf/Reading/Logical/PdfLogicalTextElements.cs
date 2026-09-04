@@ -15,7 +15,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         IReadOnlyList<PdfTextSpan> spans,
         PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
         double confidence = 1D,
-        PdfLogicalVisualBounds? visualBounds = null) {
+        PdfLogicalVisualBounds? visualBounds = null,
+        bool isTableContent = false) {
         PageNumber = pageNumber;
         Kind = kind;
         Text = text;
@@ -28,6 +29,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         SourceKind = sourceKind;
         Confidence = PdfInference.Clamp(confidence);
         VisualBounds = visualBounds;
+        IsTableContent = isTableContent;
     }
 
     /// <inheritdoc />
@@ -71,6 +73,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// Native text normally derives this geometry from PDF user-space spans on demand.
     /// </summary>
     public PdfLogicalVisualBounds? VisualBounds { get; }
+
+    internal bool IsTableContent { get; }
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount => Spans.Count;
@@ -181,6 +185,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         return string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
+            left.FontWeight == right.FontWeight &&
+            left.FontDescriptorFlags == right.FontDescriptorFlags &&
             Math.Abs(left.FontSize - right.FontSize) <= 0.001D &&
             left.Color == right.Color &&
             left.IsVisible == right.IsVisible;
@@ -205,20 +211,23 @@ public sealed class PdfLogicalTextRun {
     /// <summary>Source PDF base font name, when available.</summary>
     public string? BaseFont => SourceSpan?.BaseFont;
 
+    /// <summary>Source PDF font descriptor weight, when declared.</summary>
+    public int? FontWeight => SourceSpan?.FontWeight;
+
+    /// <summary>Raw source PDF font descriptor flags, when declared.</summary>
+    public int? FontDescriptorFlags => SourceSpan?.FontDescriptorFlags;
+
     /// <summary>Source font size in points, or zero when no source span was aligned.</summary>
     public double FontSize => SourceSpan?.FontSize ?? 0D;
 
     /// <summary>Source text color, when available.</summary>
     public OfficeIMO.Drawing.OfficeColor? Color => SourceSpan?.Color;
 
-    /// <summary>Best-effort bold classification derived from the source PDF base font name.</summary>
-    public bool IsBold => HasFontStyle("Bold") || HasFontStyle("Black") || HasFontStyle("Demi");
+    /// <summary>Bold classification from declared weight, with a legacy font-name fallback.</summary>
+    public bool IsBold => SourceSpan?.IsBold == true;
 
-    /// <summary>Best-effort italic classification derived from the source PDF base font name.</summary>
-    public bool IsItalic => HasFontStyle("Italic") || HasFontStyle("Oblique");
-
-    private bool HasFontStyle(string token) =>
-        BaseFont?.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+    /// <summary>Italic classification from descriptor flags, with a legacy font-name fallback.</summary>
+    public bool IsItalic => SourceSpan?.IsItalic == true;
 }
 
 /// <summary>
@@ -456,21 +465,4 @@ public sealed class PdfLogicalParagraph {
             lines.Min(static line => line.BaselineY));
     }
 
-    internal static PdfLogicalParagraph FromOcr(int pageNumber, PdfLogicalTextBlock line) {
-        Guard.NotNull(line, nameof(line));
-        return FromOcr(pageNumber, new[] { line });
-    }
-
-    internal static PdfLogicalParagraph FromOcr(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
-        Guard.NotNull(lines, nameof(lines));
-        if (lines.Count == 0) throw new ArgumentException("At least one OCR line is required.", nameof(lines));
-        return new PdfLogicalParagraph(
-            pageNumber,
-            string.Join(" ", lines.Select(static line => line.Text)),
-            lines.ToArray(),
-            lines.Min(static line => line.XStart),
-            lines.Max(static line => line.XEnd),
-            lines.Max(static line => line.BaselineY),
-            lines.Min(static line => line.BaselineY));
-    }
 }

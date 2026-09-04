@@ -1,24 +1,23 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Normalized OCR merge result with both native and OCR-enriched logical documents.</summary>
+/// <summary>Normalized OCR merge result with native overlap evidence and the parsed document.</summary>
 public sealed class PdfOcrMergeResult {
-    internal PdfOcrMergeResult(PdfDocumentReadResult nativeDocument, PdfDocumentReadResult enrichedDocument, IReadOnlyList<PdfOcrPageMergeResult> pages) {
+    internal PdfOcrMergeResult(PdfDocumentReadResult nativeDocument, PdfDocumentReadResult document, IReadOnlyList<PdfOcrPageMergeResult> pages) {
         NativeDocument = nativeDocument;
-        EnrichedDocument = enrichedDocument;
+        Document = document;
         Pages = pages;
     }
     /// <summary>Native parser logical model used for overlap decisions.</summary>
     public PdfDocumentReadResult NativeDocument { get; }
     /// <summary>
-    /// Logical model containing accepted OCR text and conservative OCR table inference in addition to native content.
+    /// Canonically parsed logical model containing accepted OCR evidence in addition to native content.
     /// Pass this model directly to the Word, Excel, PowerPoint, HTML, RTF, or OpenDocument reverse converters.
     /// </summary>
-    public PdfDocumentReadResult EnrichedDocument { get; }
+    public PdfDocumentReadResult Document { get; }
     /// <summary>Number of accepted OCR words across all requested pages.</summary>
     public int AcceptedWordCount => Pages.Sum(static page => page.Words.Count);
     /// <summary>
-    /// True when at least one OCR word passed merge filtering. This remains merge evidence when
-    /// <see cref="PdfOcrMergeOptions.BuildEnrichedLogicalDocument"/> disables logical-model projection.
+    /// True when at least one OCR word passed merge filtering and was supplied to the parsed document.
     /// </summary>
     public bool HasAcceptedOcrContent => AcceptedWordCount > 0;
     /// <summary>OCR merge reports in requested page order.</summary>
@@ -51,12 +50,40 @@ public sealed class PdfOcrPageMergeResult {
     public string? Model { get; }
     /// <summary>Detected or requested OCR language reported for this page, when available.</summary>
     public string? Language { get; }
+
+    internal PdfOcrPageMergeResult WithCanonicalText(string text, int maximumCharacters) {
+        Guard.NotNull(text, nameof(text));
+        if (text.Length > maximumCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, text.Length);
+        }
+        return new PdfOcrPageMergeResult(
+            PageNumber,
+            Words,
+            RejectedLowConfidenceCount,
+            RejectedNativeOverlapCount,
+            Diagnostics,
+            text,
+            Provider,
+            Model,
+            Language);
+    }
 }
 
 /// <summary>OCR word normalized to top-left visual PDF-point coordinates after crop and page rotation.</summary>
 public sealed class PdfRecognizedWord {
-    internal PdfRecognizedWord(string text, double x, double y, double width, double height, double confidence, int providerSequence) {
+    internal PdfRecognizedWord(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        double confidence,
+        int providerSequence,
+        string? blockId = null,
+        string? paragraphId = null,
+        string? lineId = null) {
         Text = text; X = x; Y = y; Width = width; Height = height; Confidence = confidence; ProviderSequence = providerSequence;
+        BlockId = blockId; ParagraphId = paragraphId; LineId = lineId;
     }
     /// <summary>Recognized text.</summary>
     public string Text { get; }
@@ -70,6 +97,12 @@ public sealed class PdfRecognizedWord {
     public double Height { get; }
     /// <summary>Provider confidence.</summary>
     public double Confidence { get; }
+    /// <summary>Provider block identifier, when available.</summary>
+    public string? BlockId { get; }
+    /// <summary>Provider paragraph identifier, when available.</summary>
+    public string? ParagraphId { get; }
+    /// <summary>Provider line identifier, when available.</summary>
+    public string? LineId { get; }
     /// <summary>Original logical position in the provider response.</summary>
     internal int ProviderSequence { get; }
 }

@@ -1,5 +1,15 @@
 namespace OfficeIMO.Pdf;
 
+/// <summary>Preferred horizontal reading direction for ambiguous positioned text.</summary>
+public enum PdfReadingDirection {
+    /// <summary>Use the first strong Unicode directional character, falling back to geometric left-to-right order.</summary>
+    Auto,
+    /// <summary>Read horizontal baselines and columns from left to right.</summary>
+    LeftToRight,
+    /// <summary>Read horizontal baselines and columns from right to left.</summary>
+    RightToLeft
+}
+
 /// <summary>
 /// Public options for column-aware text extraction.
 /// </summary>
@@ -18,8 +28,14 @@ public sealed class PdfTextLayoutOptions {
     public double LineMergeMaxPoints { get; set; } = 2.5;
     /// <summary>When true, forces single-column reading order and disables gutter detection. Default: false.</summary>
     public bool ForceSingleColumn { get; set; }
-    /// <summary>When true, joins hyphenated words broken across line ends. Default: true.</summary>
-    public bool JoinHyphenationAcrossLines { get; set; } = true;
+    /// <summary>Horizontal reading direction used for words and column partitions. Default: Auto.</summary>
+    public PdfReadingDirection ReadingDirection { get; set; }
+    /// <summary>
+    /// When true, removes an explicit soft hyphen before a line break. Visible hyphens are
+    /// preserved because PDF layout and letter case cannot prove that they are discretionary.
+    /// Default: false.
+    /// </summary>
+    public bool JoinSoftHyphensAcrossLines { get; set; }
     /// <summary>Height from top of page (points) to ignore as header when emitting text. Default: 0.</summary>
     public double IgnoreHeaderHeight { get; set; }
     /// <summary>Height from bottom of page (points) to ignore as footer when emitting text. Default: 0.</summary>
@@ -37,6 +53,7 @@ public sealed class PdfTextLayoutOptions {
         LineMergeToleranceEm = this.LineMergeToleranceEm,
         LineMergeMaxPoints = this.LineMergeMaxPoints,
         ForceSingleColumn = this.ForceSingleColumn,
+        ReadingDirection = this.ReadingDirection,
         GapSpaceThresholdEm = this.GapSpaceThresholdEm,
         GapGlyphFactor = this.GapGlyphFactor
     };

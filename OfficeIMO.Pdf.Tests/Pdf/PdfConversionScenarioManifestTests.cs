@@ -817,7 +817,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(48D, tallImage.PlacedHeight!.Value, 3);
         Assert.Equal(new[] { "Metric", "Score", "Owner" }, extraction.Data.Columns);
         Assert.True(extraction.Data.Diagnostics.Confidence >= 0.95D);
-        Assert.Equal(1D, extraction.Data.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(0.95D, extraction.Data.Diagnostics.SchemaConfidence, 3);
         Assert.Equal(1D, extraction.Data.Diagnostics.CellCompleteness, 3);
         Assert.Equal(1D, extraction.Data.Diagnostics.ColumnGeometryConfidence, 3);
         Assert.Equal(PdfCore.PdfLogicalTableColumnKind.Numeric, scoreProfile.Kind);
@@ -1329,14 +1329,14 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("Gamma team", text, StringComparison.Ordinal);
 
         PdfCore.PdfLogicalTableExtraction extraction = Assert.Single(extractions);
-        Assert.Equal(new[] { "Column 1", "Column 2", "Column 3" }, extraction.Data.Columns);
+        Assert.Equal(new[] { "", "", "" }, extraction.Data.Columns);
         Assert.Equal(3, extraction.Data.Rows.Count);
         Assert.Contains(extraction.Data.Rows, row => row[0] == "Alpha team" && row[2] == "72");
         Assert.Contains(extraction.Data.Rows, row => row[0] == "Gamma team" && row[2] == "91");
         Assert.True(extraction.Data.Diagnostics.HasGeometry);
-        Assert.True(extraction.Data.Diagnostics.Confidence >= 0.80D);
+        Assert.Equal(0.75D, extraction.Data.Diagnostics.Confidence, 3);
         Assert.True(extraction.Data.Diagnostics.Confidence < 0.95D);
-        Assert.Equal(0.65D, extraction.Data.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(0D, extraction.Data.Diagnostics.SchemaConfidence, 3);
         Assert.Equal(1D, extraction.Data.Diagnostics.CellCompleteness, 3);
         Assert.Equal(1D, extraction.Data.Diagnostics.ColumnGeometryConfidence, 3);
 
@@ -1344,19 +1344,19 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, chunk.Diagnostics!.TableCount);
         Assert.Equal(1, chunk.Diagnostics.TableGeometryCount);
         Assert.Equal(1D, chunk.Diagnostics.TableGeometryCoverage, 3);
-        Assert.True(chunk.Diagnostics.MinTableConfidence >= 0.80D);
+        Assert.Equal(0.75D, chunk.Diagnostics.MinTableConfidence!.Value, 3);
         Assert.True(chunk.Diagnostics.MinTableConfidence < 0.95D);
-        Assert.True(chunk.Diagnostics.AverageTableConfidence >= 0.80D);
+        Assert.Equal(0.75D, chunk.Diagnostics.AverageTableConfidence!.Value, 3);
         Assert.True(chunk.Diagnostics.AverageTableConfidence < 0.95D);
         Assert.Equal(1, chunk.Diagnostics.LowConfidenceTableCount);
         Assert.Equal(1, chunk.Diagnostics.NumericTableColumnCount);
-        Assert.Equal(3, chunk.Diagnostics.FallbackTableColumnNameCount);
+        Assert.Equal(3, chunk.Diagnostics.UnnamedTableColumnCount);
         Assert.Equal(0, chunk.Diagnostics.MissingTableCellCount);
         Assert.NotNull(chunk.Tables);
         ReaderTable table = Assert.Single(chunk.Tables!);
-        Assert.Equal(new[] { "Column 1", "Column 2", "Column 3" }, table.Columns);
+        Assert.Equal(new[] { "", "", "" }, table.Columns);
         Assert.NotNull(table.Diagnostics);
-        Assert.True(table.Diagnostics!.Confidence >= 0.80D);
+        Assert.Equal(0.75D, table.Diagnostics!.Confidence, 3);
         Assert.True(table.Diagnostics.Confidence < 0.95D);
         Assert.Equal(ReaderTableColumnKind.Numeric, table.ColumnProfiles[2].Kind);
 
@@ -1367,7 +1367,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-count" && entry.Value == "1");
         Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-low-confidence-count" && entry.Value == "1");
         Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-numeric-column-count" && entry.Value == "1");
-        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-fallback-column-name-count" && entry.Value == "3");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-unnamed-column-count" && entry.Value == "3");
 
         using JsonDocument chunkJson = JsonDocument.Parse(new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Pdf,
@@ -1376,13 +1376,13 @@ public sealed class PdfConversionScenarioManifestTests {
         JsonElement jsonDiagnostics = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
         Assert.Equal(1, jsonDiagnostics.GetProperty("lowConfidenceTableCount").GetInt32());
         Assert.Equal(1, jsonDiagnostics.GetProperty("numericTableColumnCount").GetInt32());
-        Assert.Equal(3, jsonDiagnostics.GetProperty("fallbackTableColumnNameCount").GetInt32());
+        Assert.Equal(3, jsonDiagnostics.GetProperty("unnamedTableColumnCount").GetInt32());
         Assert.Equal(0, jsonDiagnostics.GetProperty("missingTableCellCount").GetInt32());
 
         var summary = new {
             scenario = "pdf-reader-hostile-table-corpus",
             acceptedDegradations = new[] {
-                "headerless table-like bands are emitted with fallback column names",
+                "headerless table-like bands keep their columns unnamed and preserve every source row",
                 "jittered column positions are accepted as best-effort geometry when confidence remains below perfect-table proof thresholds",
                 "the Reader contract exposes table confidence and numeric-column hints but does not reconstruct an editable spreadsheet"
             },
@@ -1394,7 +1394,7 @@ public sealed class PdfConversionScenarioManifestTests {
                 chunk.Diagnostics.AverageTableConfidence,
                 chunk.Diagnostics.LowConfidenceTableCount,
                 chunk.Diagnostics.NumericTableColumnCount,
-                chunk.Diagnostics.FallbackTableColumnNameCount,
+                chunk.Diagnostics.UnnamedTableColumnCount,
                 chunk.Diagnostics.MissingTableCellCount
             },
             table = new {

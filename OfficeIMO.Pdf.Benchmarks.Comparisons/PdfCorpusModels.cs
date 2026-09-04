@@ -23,7 +23,41 @@ internal sealed class PdfCorpusEntry {
     public double MinimumTokenRecall { get; init; } = 0.75D;
     public List<string> Features { get; init; } = new();
     public List<string> RequiredText { get; init; } = new();
+    public List<string> ExpectedText { get; init; } = new();
+    public List<PdfCorpusPageExpectation> PageExpectations { get; init; } = new();
 }
+
+internal sealed class PdfCorpusPageExpectation {
+    public int PageNumber { get; init; }
+    public int? ExpectedTables { get; init; }
+    public int? ExpectedImages { get; init; }
+    public int? ExpectedImageRegions { get; init; }
+    public int? ExpectedFigures { get; init; }
+    public int? MinimumVectorPrimitives { get; init; }
+    public List<PdfCorpusTableExpectation> Tables { get; init; } = new();
+}
+
+internal sealed class PdfCorpusTableExpectation {
+    public int Rows { get; init; }
+    public int Columns { get; init; }
+    public List<string> RequiredCells { get; init; } = new();
+}
+
+internal sealed record PdfCorpusPageSemanticObservation(
+    int PageNumber,
+    int Tables,
+    int Images,
+    int ImageRegions,
+    int Figures,
+    int VectorPrimitives);
+
+internal sealed record PdfCorpusSemanticObservation(
+    int Tables,
+    int Images,
+    int ImageRegions,
+    int Figures,
+    int VectorPrimitives,
+    IReadOnlyList<PdfCorpusPageSemanticObservation> Pages);
 
 internal sealed record PdfCorpusReadResult(
     bool Success,
@@ -34,7 +68,8 @@ internal sealed record PdfCorpusReadResult(
     double TokenRecall,
     string? Error,
     double ElapsedMilliseconds = 0D,
-    long AllocatedBytes = 0L);
+    long AllocatedBytes = 0L,
+    PdfCorpusSemanticObservation? Semantics = null);
 
 internal sealed record PdfCorpusManipulationResult(
     bool Success,

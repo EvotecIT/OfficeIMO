@@ -57,6 +57,10 @@ public sealed class PdfUnderstandingPageContext {
     public int MaxTextCharactersPerPage { get; }
     /// <summary>Maximum word artifacts accepted for this page.</summary>
     public int MaxWordsPerPage { get; }
+    /// <summary>Maximum table candidates accepted for this page.</summary>
+    public int MaxTableCandidatesPerPage { get; internal set; } = 1_024;
+    /// <summary>Maximum viable image-caption association edges retained before deterministic matching.</summary>
+    public int MaxImageCaptionCandidatesPerPage { get; internal set; } = 100_000;
     /// <summary>Cancellation token observed by built-in and cooperative custom stages.</summary>
     public CancellationToken CancellationToken => _workBudget.CancellationToken;
     /// <summary>Maximum comparison and traversal work units available to this page.</summary>
@@ -71,14 +75,16 @@ public sealed class PdfUnderstandingPageContext {
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
     /// <summary>Table candidates available to page segmentation and later stages.</summary>
     public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; internal set; } = Array.Empty<PdfUnderstandingTableCandidate>();
+    /// <summary>Image placement invocations available to semantic stages in stable paint order.</summary>
+    public IReadOnlyList<PdfImagePlacement> ImagePlacements { get; internal set; } = Array.Empty<PdfImagePlacement>();
 }
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>
 public sealed class PdfUnderstandingWord {
     /// <summary>Creates a positioned word artifact for a custom grouping stage.</summary>
-    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null) {
+    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null, double? advance = null, PdfLogicalVisualBounds? visualBounds = null, int? sourceSequence = null) {
         Guard.NotNull(text, nameof(text)); Guard.NotNull(sourceRuns, nameof(sourceRuns));
-        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence);
+        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); Advance = advance; VisualBounds = visualBounds; SourceSequence = sourceSequence;
     }
     /// <summary>Decoded word text.</summary>
     public string Text { get; }
@@ -92,6 +98,12 @@ public sealed class PdfUnderstandingWord {
     public double FontSize { get; }
     /// <summary>Baseline rotation in degrees.</summary>
     public double RotationDegrees { get; }
+    /// <summary>Distance occupied along the baseline, including vertical and rotated baselines, when known.</summary>
+    public double? Advance { get; }
+    /// <summary>Direct top-left visual bounds, when supplied by a positioned source such as OCR.</summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
+    /// <summary>Original zero-based source order, when supplied by the decoder or positioned provider.</summary>
+    public int? SourceSequence { get; }
     /// <summary>Decoded source runs that produced this word.</summary>
     public IReadOnlyList<PdfTextSpan> SourceRuns { get; }
     /// <summary>Normalized grouping confidence from 0 to 1.</summary>
@@ -107,7 +119,17 @@ public sealed class PdfUnderstandingLine {
         : this(words, JoinWords(words), confidence, evidence) {
     }
 
-    internal PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, string text, double? confidence, IEnumerable<PdfInferenceEvidence>? evidence) {
+    internal PdfUnderstandingLine(
+        IReadOnlyList<PdfUnderstandingWord> words,
+        string text,
+        double? confidence,
+        IEnumerable<PdfInferenceEvidence>? evidence,
+        PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
+        int? sourceSequence = null,
+        string? blockId = null,
+        string? paragraphId = null,
+        string? lineId = null,
+        PdfLogicalVisualBounds? visualBounds = null) {
         Guard.NotNull(words, nameof(words));
         Guard.NotNull(text, nameof(text));
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
@@ -120,6 +142,12 @@ public sealed class PdfUnderstandingLine {
         RotationDegrees = words.Average(static word => word.RotationDegrees);
         Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
         Evidence = PdfInference.Snapshot(evidence);
+        SourceKind = sourceKind;
+        SourceSequence = sourceSequence;
+        BlockId = blockId;
+        ParagraphId = paragraphId;
+        LineId = lineId;
+        VisualBounds = visualBounds;
     }
 
     private static string JoinWords(IReadOnlyList<PdfUnderstandingWord> words) {
@@ -144,6 +172,18 @@ public sealed class PdfUnderstandingLine {
     public double Confidence { get; }
     /// <summary>Evidence supporting this line grouping.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    /// <summary>Whether the line came from native PDF text or accepted OCR geometry.</summary>
+    public PdfLogicalContentSourceKind SourceKind { get; }
+    /// <summary>Original source reading position, when supplied.</summary>
+    public int? SourceSequence { get; }
+    /// <summary>Provider block identifier, when supplied.</summary>
+    public string? BlockId { get; }
+    /// <summary>Provider paragraph identifier, when supplied.</summary>
+    public string? ParagraphId { get; }
+    /// <summary>Provider line identifier, when supplied.</summary>
+    public string? LineId { get; }
+    /// <summary>Direct top-left visual bounds, when supplied.</summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
 }
 
 /// <summary>One page-segmentation region containing related lines.</summary>
@@ -203,6 +243,47 @@ public sealed class PdfUnderstandingSemanticElement {
     public int? Level { get; }
 }
 
+/// <summary>One positioned image region with an optional associated caption.</summary>
+public sealed class PdfUnderstandingImageRegion {
+    /// <summary>Creates an image region for a custom detection stage.</summary>
+    public PdfUnderstandingImageRegion(
+        PdfImagePlacement placement,
+        PdfUnderstandingSemanticElement? caption = null,
+        double confidence = 0.5D,
+        IEnumerable<PdfInferenceEvidence>? evidence = null,
+        bool isFigure = false,
+        string? alternativeText = null) {
+        Guard.NotNull(placement, nameof(placement));
+        if (caption is not null && caption.Kind != PdfUnderstandingSemanticKind.Caption) {
+            throw new ArgumentException("An associated image caption must have Caption semantics.", nameof(caption));
+        }
+        Placement = placement;
+        Caption = caption;
+        IsFigure = isFigure || caption is not null;
+        AlternativeText = string.IsNullOrWhiteSpace(alternativeText) ? null : alternativeText;
+        Confidence = PdfInference.Clamp(confidence);
+        Evidence = PdfInference.Snapshot(evidence);
+    }
+
+    /// <summary>Source image placement represented by this region.</summary>
+    public PdfImagePlacement Placement { get; }
+
+    /// <summary>Caption associated by structural or geometric evidence, when available.</summary>
+    public PdfUnderstandingSemanticElement? Caption { get; }
+
+    /// <summary>True when a caption association or tagged-PDF Figure role establishes a figure.</summary>
+    public bool IsFigure { get; }
+
+    /// <summary>Tagged-PDF alternate text for the figure, when present.</summary>
+    public string? AlternativeText { get; }
+
+    /// <summary>Normalized image-region and association confidence from 0 to 1.</summary>
+    public double Confidence { get; }
+
+    /// <summary>Stable evidence supporting the image region and optional caption association.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+}
+
 /// <summary>Trace record proving which stage implementation produced an artifact set.</summary>
 public sealed class PdfUnderstandingStageTrace {
     internal PdfUnderstandingStageTrace(string stage, Type providerType, int inputCount, int outputCount) { Stage = stage; ProviderType = providerType; InputCount = inputCount; OutputCount = outputCount; }
@@ -235,7 +316,9 @@ public sealed class PdfUnderstandingPageResult {
         Action? completeOperation = null,
         IReadOnlyList<PdfUnderstandingLine>? logicalProjectionLines = null,
         bool restrictLogicalProjectionToReadingOrder = false,
-        IReadOnlyList<PdfUnderstandingTableCandidate>? tableCandidates = null) {
+        IReadOnlyList<PdfUnderstandingTableCandidate>? tableCandidates = null,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
+        IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -246,6 +329,8 @@ public sealed class PdfUnderstandingPageResult {
         Elements = elements;
         Trace = trace;
         TableCandidates = tableCandidates ?? Array.Empty<PdfUnderstandingTableCandidate>();
+        ImagePlacements = imagePlacements ?? Array.Empty<PdfImagePlacement>();
+        ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
@@ -270,6 +355,10 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
     /// <summary>Tables recovered before general page segmentation.</summary>
     public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; }
+    /// <summary>Image placement invocations recovered once for semantic analysis and logical projection.</summary>
+    public IReadOnlyList<PdfImagePlacement> ImagePlacements { get; }
+    /// <summary>Positioned image regions and their evidence-backed caption associations.</summary>
+    public IReadOnlyList<PdfUnderstandingImageRegion> ImageRegions { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
@@ -298,7 +387,9 @@ public sealed class PdfUnderstandingPageResult {
             _completeOperation,
             LogicalProjectionLines,
             RestrictLogicalProjectionToReadingOrder,
-            TableCandidates.Concat(candidates).ToArray());
+            TableCandidates.Concat(candidates).ToArray(),
+            ImagePlacements,
+            ImageRegions);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(
@@ -360,4 +451,11 @@ public interface IPdfReadingOrderStage {
 public interface IPdfSemanticClassificationStage {
     /// <summary>Classifies the ordered regions.</summary>
     IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions);
+}
+/// <summary>Detects positioned image regions and associates classified captions.</summary>
+public interface IPdfImageRegionDetectionStage {
+    /// <summary>Returns one region per image placement invocation with an optional caption association.</summary>
+    IReadOnlyList<PdfUnderstandingImageRegion> Detect(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfUnderstandingSemanticElement> semanticElements);
 }

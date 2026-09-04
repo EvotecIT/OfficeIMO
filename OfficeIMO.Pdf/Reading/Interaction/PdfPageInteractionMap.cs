@@ -85,20 +85,69 @@ public sealed class PdfPageInteractionMap {
         int emitted = 0;
         for (int i = 0; i < placements.Count; i++) {
             PdfImagePlacement placement = placements[i];
-            PdfSelectionQuad quad = FromImagePlacement(page, placement, originX, originY, pageHeight);
-            if (!TryApplyImageClip(page, placement, pageHeight, ref quad)) continue;
-            if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) continue;
+            if (!TryGetVisibleImageGeometry(
+                    page,
+                    placement,
+                    originX,
+                    originY,
+                    pageWidth,
+                    pageHeight,
+                    out PdfSelectionQuad? quad,
+                    out _)) continue;
             if (emitted >= options.MaxImageRegions) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxImageRegions, emitted + 1L);
             }
             regions.Add(new PdfPageInteractionRegion(
                 PdfInteractionKind.Image,
-                quad,
+                quad!,
                 subtype: "Image",
                 objectNumber: placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
                 imagePlacement: placement));
             emitted++;
         }
+    }
+
+    internal static bool TryGetVisibleImageBounds(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        out PdfVisualBounds bounds) {
+        (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        return TryGetVisibleImageGeometry(
+            page,
+            placement,
+            originX,
+            originY,
+            pageWidth,
+            pageHeight,
+            out _,
+            out bounds);
+    }
+
+    private static bool TryGetVisibleImageGeometry(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        double originX,
+        double originY,
+        double pageWidth,
+        double pageHeight,
+        out PdfSelectionQuad? quad,
+        out PdfVisualBounds bounds) {
+        quad = null;
+        bounds = default;
+        double opacity = placement.Opacity;
+        if (opacity <= 0D || double.IsNaN(opacity) || double.IsInfinity(opacity)) return false;
+        PdfSelectionQuad candidate = FromImagePlacement(page, placement, originX, originY, pageHeight);
+        if (!TryApplyImageClip(page, placement, pageHeight, ref candidate) ||
+            !candidate.Intersects(0D, 0D, pageWidth, pageHeight)) return false;
+        double left = Math.Max(0D, candidate.Left);
+        double top = Math.Max(0D, candidate.Top);
+        double right = Math.Min(pageWidth, candidate.Right);
+        double bottom = Math.Min(pageHeight, candidate.Bottom);
+        if (right <= left || bottom <= top) return false;
+        quad = candidate;
+        bounds = new PdfVisualBounds(left, top, right, bottom);
+        return true;
     }
 
     internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page) {

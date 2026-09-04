@@ -1311,7 +1311,7 @@ public sealed partial class PdfDocumentReadResult {
         }
     }
 
-    private static string GetCanonicalPageText(PdfLogicalPage page) {
+    internal static string GetCanonicalPageText(PdfLogicalPage page) {
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
             PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
         var lines = new List<string>(page.TextBlocks.Count);

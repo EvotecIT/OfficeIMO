@@ -5,12 +5,16 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfLogicalImage : IPdfLogicalElement {
     internal PdfLogicalImage(PdfExtractedImage image)
-        : this(image, Array.Empty<PdfImagePlacement>()) {
+        : this(image, Array.Empty<PdfImagePlacement>(), Array.Empty<PdfUnderstandingImageRegion>()) {
     }
 
-    internal PdfLogicalImage(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
+    internal PdfLogicalImage(
+        PdfExtractedImage image,
+        IReadOnlyList<PdfImagePlacement> placements,
+        IReadOnlyList<PdfUnderstandingImageRegion>? regions = null) {
         SourceImage = image;
         Placements = placements ?? Array.Empty<PdfImagePlacement>();
+        Regions = regions ?? Array.Empty<PdfUnderstandingImageRegion>();
     }
 
     /// <inheritdoc />
@@ -25,6 +29,9 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
     /// <summary>Placement invocations for this image resource on the page.</summary>
     public IReadOnlyList<PdfImagePlacement> Placements { get; }
 
+    /// <summary>Semantic regions for this resource's placement invocations.</summary>
+    public IReadOnlyList<PdfUnderstandingImageRegion> Regions { get; }
+
     /// <summary>Number of placement invocations detected for this image resource.</summary>
     public int PlacementCount => Placements.Count;
 
@@ -35,11 +42,20 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
         if (placementIndex < 0 || placementIndex >= Placements.Count) {
             throw new ArgumentOutOfRangeException(nameof(placementIndex));
         }
-        return new PdfLogicalImage(SourceImage, new[] { Placements[placementIndex] });
+        PdfImagePlacement placement = Placements[placementIndex];
+        PdfUnderstandingImageRegion? region = Regions.FirstOrDefault(candidate =>
+            ReferenceEquals(candidate.Placement, placement));
+        return new PdfLogicalImage(
+            SourceImage,
+            new[] { placement },
+            region is null ? Array.Empty<PdfUnderstandingImageRegion>() : new[] { region });
     }
 
     /// <summary>First detected placement invocation for this image resource, or null when placement geometry is unavailable.</summary>
     public PdfImagePlacement? PrimaryPlacement => Placements.Count > 0 ? Placements[0] : null;
+
+    /// <summary>Semantic region for the first placement, when analysis produced one.</summary>
+    public PdfUnderstandingImageRegion? PrimaryRegion => Regions.Count > 0 ? Regions[0] : null;
 
     /// <summary>Left edge of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
     public double? PlacedX => PrimaryPlacement?.X;

@@ -181,7 +181,7 @@ internal static partial class PdfReaderAdapter {
         AppendHashValue(builder, "diagnostics.averageTableConfidence", diagnostics.AverageTableConfidence);
         AppendHashValue(builder, "diagnostics.lowConfidenceTableCount", diagnostics.LowConfidenceTableCount);
         AppendHashValue(builder, "diagnostics.numericTableColumnCount", diagnostics.NumericTableColumnCount);
-        AppendHashValue(builder, "diagnostics.fallbackTableColumnNameCount", diagnostics.FallbackTableColumnNameCount);
+        AppendHashValue(builder, "diagnostics.unnamedTableColumnCount", diagnostics.UnnamedTableColumnCount);
         AppendHashValue(builder, "diagnostics.missingTableCellCount", diagnostics.MissingTableCellCount);
         AppendHashValue(builder, "diagnostics.imageCount", diagnostics.ImageCount);
         AppendHashValue(builder, "diagnostics.imageGeometryCount", diagnostics.ImageGeometryCount);

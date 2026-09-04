@@ -41,7 +41,7 @@ public sealed class PdfLogicalTableDiagnostics {
     /// <summary>Overall confidence score between 0 and 1 based on schema, cell completeness, and column geometry signals.</summary>
     public double Confidence { get; }
 
-    /// <summary>Confidence score between 0 and 1 for inferred table schema, including header and key/value recognition.</summary>
+    /// <summary>Confidence score between 0 and 1 for the reported table schema state.</summary>
     public double SchemaConfidence { get; }
 
     /// <summary>Ratio between 0 and 1 of non-empty cells to expected cells in the detected source table.</summary>
@@ -133,15 +133,7 @@ public sealed class PdfLogicalTableDiagnostics {
     }
 
     private static double GetSchemaConfidence(PdfLogicalTableStructure structure) {
-        if (structure.HasHeaderRow) {
-            return 1D;
-        }
-
-        if (structure.IsKeyValueTable) {
-            return 0.85D;
-        }
-
-        return structure.ColumnCount > 1 && structure.TotalBodyRowCount > 1 ? 0.65D : 0.4D;
+        return structure.SchemaConfidence;
     }
 
     private static double GetColumnGeometryConfidence(PdfLogicalTable table, int columnCount) {

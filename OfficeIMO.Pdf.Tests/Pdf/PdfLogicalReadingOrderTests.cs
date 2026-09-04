@@ -275,18 +275,6 @@ public sealed class PdfLogicalReadingOrderTests {
         AssertInOrder(logical.Text, "Follow-up", "Content below the table");
     }
 
-    [Fact]
-    public void TableOwnership_RecognizesCompleteWordSequencesWithinWrappedCellText() {
-        string longPrefix = string.Join(" ", Enumerable.Range(0, 180).Select(index => "prefix" + index.ToString(CultureInfo.InvariantCulture)));
-        string[] cells = { "this wrapped table cell contains multiple visual lines", longPrefix + " target wrapped suffix" };
-
-        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "this wrapped table cell"));
-        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "contains multiple visual lines"));
-        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "target wrapped suffix"));
-        Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "wrapped table cell contains multiple visual" + "x"));
-        Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "rap"));
-    }
-
     private static void AssertInOrder(string value, params string[] markers) {
         int previous = -1;
         foreach (string marker in markers) {

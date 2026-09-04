@@ -52,7 +52,12 @@ internal static partial class PdfSyntax {
 
     private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference) {
         reference = null!;
-        foreach (var entry in map.Values.OrderByDescending(static item => item.ObjectNumber)) {
+        int highestMatchingObjectNumber = int.MinValue;
+        foreach (var entry in map.Values) {
+            if (entry.ObjectNumber <= highestMatchingObjectNumber) {
+                continue;
+            }
+
             PdfDictionary? dictionary = entry.Value switch {
                 PdfStream stream => stream.Dictionary,
                 PdfDictionary directDictionary => directDictionary,
@@ -66,11 +71,11 @@ internal static partial class PdfSyntax {
                 rootDictionary.Get<PdfName>("Type")?.Name == "Catalog" &&
                 rootReference.Generation >= 0) {
                 reference = rootReference;
-                return true;
+                highestMatchingObjectNumber = entry.ObjectNumber;
             }
         }
 
-        return false;
+        return highestMatchingObjectNumber != int.MinValue;
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> map, PdfObject? value) {

@@ -45,7 +45,7 @@ public sealed partial class PdfReadDocument {
     }
 
     private PdfDictionary? FindCatalog() {
-        return PdfSyntax.FindCatalog(_objects, _trailerRaw);
+        return _catalog;
     }
 
     private string? ExtractCatalogName(string key) {

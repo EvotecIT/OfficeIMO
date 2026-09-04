@@ -81,7 +81,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndFootnoteText() {
+    public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndBottomText() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,
                 PageHeight = 450,
@@ -93,8 +93,10 @@ public partial class Word {
             })
             .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
             .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
-            .Paragraph(paragraph => paragraph.Text("Figure 1. Classified caption"))
-            .Canvas(canvas => canvas.Text("1 Classified footnote", 36D, 415D, 220D, 18D, fontSize: 7D))
+            .Canvas(canvas => canvas
+                .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 36D, 120D, 120D, 60D, alternativeText: "Data visualization")
+                .Text("Kort beskrivning", 36D, 184D, 120D, 18D, fontSize: 9D))
+            .Canvas(canvas => canvas.Text("1 Bottom annotation", 36D, 415D, 220D, 18D, fontSize: 7D))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second page body."))
             .PageBreak()
@@ -104,11 +106,13 @@ public partial class Word {
 
         Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Headers));
         Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Footers));
-        Assert.Contains(logical.Pages.SelectMany(static page => page.Captions), block => block.Text.Contains("Classified caption", StringComparison.Ordinal));
         Assert.True(
-            logical.Pages.SelectMany(static page => page.Footnotes).Any(block => block.Text.Contains("Classified footnote", StringComparison.Ordinal)),
-            string.Join(" | ", logical.Pages.SelectMany(static page => page.TextBlocks).Select(static block =>
-                block.Kind + ":" + block.Text + ":" + block.BaselineY.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            logical.Pages.SelectMany(static page => page.Captions).Any(block => block.Text.Contains("Kort beskrivning", StringComparison.Ordinal)),
+            string.Join(" | ", logical.Pages.SelectMany(static page => page.Captions).Select(static block => block.Text)));
+        Assert.Contains(
+            logical.Pages.SelectMany(static page => page.TextBlocks),
+            block => block.Kind == PdfCore.PdfLogicalElementKind.TextBlock &&
+                block.Text.Contains("Bottom annotation", StringComparison.Ordinal));
 
         using OfficeWordDocument imported = logical.ToWordDocument();
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(imported.ToBytes()), false);
@@ -118,8 +122,8 @@ public partial class Word {
 
         Assert.Contains("Import header", importedText, StringComparison.Ordinal);
         Assert.Contains("Import footer", importedText, StringComparison.Ordinal);
-        Assert.Contains("Figure 1. Classified caption", importedText, StringComparison.Ordinal);
-        Assert.Contains("1 Classified footnote", importedText, StringComparison.Ordinal);
+        Assert.Contains("Kort beskrivning", importedText, StringComparison.Ordinal);
+        Assert.Contains("1 Bottom annotation", importedText, StringComparison.Ordinal);
     }
 
     [Fact]

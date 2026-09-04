@@ -32,6 +32,9 @@ internal static class TesseractTsvParser {
         foreach (IGrouping<(int Page, int Block, int Paragraph, int Line), WordRow> group in groups) {
             WordRow[] lineWords = group.OrderBy(static word => word.SourceIndex).ToArray();
             string lineText = string.Join(" ", lineWords.Select(static word => word.Text));
+            string blockId = BuildBlockId(group.Key.Page, group.Key.Block);
+            string paragraphId = BuildParagraphId(group.Key.Page, group.Key.Block, group.Key.Paragraph);
+            string lineId = BuildLineId(group.Key.Page, group.Key.Block, group.Key.Paragraph, group.Key.Line);
             recognizedLines.Add(lineText);
             spans.Add(new OfficeOcrTextSpan {
                 Sequence = sequence++,
@@ -40,6 +43,9 @@ internal static class TesseractTsvParser {
                 Confidence = AverageConfidence(lineWords),
                 Language = language,
                 PageNumber = group.Key.Page,
+                BlockId = blockId,
+                ParagraphId = paragraphId,
+                LineId = lineId,
                 Region = Union(lineWords),
                 CoordinateUnit = OfficeOcrCoordinateUnit.Pixels
             });
@@ -51,6 +57,9 @@ internal static class TesseractTsvParser {
                     Confidence = word.Confidence,
                     Language = language,
                     PageNumber = word.Page,
+                    BlockId = blockId,
+                    ParagraphId = paragraphId,
+                    LineId = lineId,
                     Region = new OfficeDocumentRegion { X = word.Left, Y = word.Top, Width = word.Width, Height = word.Height },
                     CoordinateUnit = OfficeOcrCoordinateUnit.Pixels
                 });
@@ -82,6 +91,15 @@ internal static class TesseractTsvParser {
             Diagnostics = diagnostics
         };
     }
+
+    private static string BuildBlockId(int page, int block) =>
+        page.ToString(CultureInfo.InvariantCulture) + ":" + block.ToString(CultureInfo.InvariantCulture);
+
+    private static string BuildParagraphId(int page, int block, int paragraph) =>
+        BuildBlockId(page, block) + ":" + paragraph.ToString(CultureInfo.InvariantCulture);
+
+    private static string BuildLineId(int page, int block, int paragraph, int line) =>
+        BuildParagraphId(page, block, paragraph) + ":" + line.ToString(CultureInfo.InvariantCulture);
 
     private static bool TryParseWord(string[] columns, int sourceIndex, out WordRow? word) {
         word = null;

@@ -16,6 +16,13 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             context.ThrowIfCancellationRequested();
             return regions.ToArray();
         }
+        if (regions.All(static region => region.Lines.All(static line =>
+                line.SourceKind == PdfLogicalContentSourceKind.Ocr && line.SourceSequence.HasValue))) {
+            context.ConsumeWork(regions.Count);
+            return regions
+                .OrderBy(static region => region.Lines.Min(static line => line.SourceSequence!.Value))
+                .ToArray();
+        }
 
         (double visualPageWidth, double visualPageHeight) = context.Page.GetVisualPageSize();
         var boxes = new RegionBox[regions.Count];
@@ -26,6 +33,12 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
         double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D);
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            context.LayoutOptions.ReadingDirection,
+            regions.SelectMany(static region => region.Lines)
+                .OrderBy(static line => line.SourceSequence)
+                .Select(static line => line.Text));
+        bool rightToLeft = direction == PdfReadingDirection.RightToLeft;
         var ordered = new List<PdfUnderstandingRegion>(regions.Count);
 
         AppendPartition(
@@ -36,9 +49,33 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             minimumVerticalGap,
             context.LayoutOptions.ForceSingleColumn,
             visualPageWidth,
+            rightToLeft,
             depth: 0);
 
+        PreserveOcrProviderRegionOrder(context, ordered);
+
         return ordered.ToArray();
+    }
+
+    private static void PreserveOcrProviderRegionOrder(
+        PdfUnderstandingPageContext context,
+        List<PdfUnderstandingRegion> ordered) {
+        var slots = new List<int>();
+        var providerOrdered = new List<(int Sequence, PdfUnderstandingRegion Region)>();
+        for (int index = 0; index < ordered.Count; index++) {
+            context.ConsumeWork();
+            PdfUnderstandingRegion region = ordered[index];
+            if (!region.Lines.All(static line => line.SourceKind == PdfLogicalContentSourceKind.Ocr) ||
+                !region.Lines.Any(static line => line.SourceSequence.HasValue)) continue;
+            slots.Add(index);
+            providerOrdered.Add((
+                region.Lines.Where(static line => line.SourceSequence.HasValue)
+                    .Min(static line => line.SourceSequence!.Value),
+                region));
+        }
+        if (slots.Count < 2) return;
+        providerOrdered.Sort(static (left, right) => left.Sequence.CompareTo(right.Sequence));
+        for (int index = 0; index < slots.Count; index++) ordered[slots[index]] = providerOrdered[index].Region;
     }
 
     private static void AppendPartition(
@@ -49,6 +86,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double minimumVerticalGap,
         bool forceSingleColumn,
         double pageWidth,
+        bool rightToLeft,
         int depth) {
         context.ConsumeWork();
         if (boxes.Count == 0) {
@@ -61,7 +99,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
 
         if (depth >= MaximumDepth) {
-            AppendFallback(boxes, ordered);
+            AppendFallback(boxes, ordered, rightToLeft);
             return;
         }
 
@@ -77,12 +115,13 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
                 minimumHorizontalGap,
                 minimumVerticalGap,
                 pageWidth,
+                rightToLeft,
                 depth)) {
             return;
         }
         WhitespaceCut? selected = SelectCut(context, boxes, horizontal, vertical);
         if (!selected.HasValue) {
-            AppendFallback(boxes, ordered);
+            AppendFallback(boxes, ordered, rightToLeft);
             return;
         }
 
@@ -103,16 +142,18 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
 
         if (first.Count == 0 || second.Count == 0) {
-            AppendFallback(boxes, ordered);
+            AppendFallback(boxes, ordered, rightToLeft);
             return;
         }
 
         if (cut.Horizontal) {
-            AppendPartition(context, second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
-            AppendPartition(context, first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
+            AppendPartition(context, second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, rightToLeft, depth + 1);
+            AppendPartition(context, first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, rightToLeft, depth + 1);
         } else {
-            AppendPartition(context, first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
-            AppendPartition(context, second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
+            IReadOnlyList<RegionBox> leading = rightToLeft ? second : first;
+            IReadOnlyList<RegionBox> trailing = rightToLeft ? first : second;
+            AppendPartition(context, leading, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, rightToLeft, depth + 1);
+            AppendPartition(context, trailing, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, rightToLeft, depth + 1);
         }
     }
 
@@ -243,6 +284,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double minimumHorizontalGap,
         double minimumVerticalGap,
         double pageWidth,
+        bool rightToLeft,
         int depth) {
         foreach (RegionBox candidate in boxes.OrderByDescending(static box => box.Top)) {
             context.ConsumeWork(boxes.Count);
@@ -266,7 +308,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             }
 
             if (beforeRemaining) ordered.Add(candidate.Region);
-            AppendPartition(context, remaining, ordered, minimumHorizontalGap, minimumVerticalGap, false, pageWidth, depth + 1);
+            AppendPartition(context, remaining, ordered, minimumHorizontalGap, minimumVerticalGap, false, pageWidth, rightToLeft, depth + 1);
             if (afterRemaining) ordered.Add(candidate.Region);
             return true;
         }
@@ -274,10 +316,13 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         return false;
     }
 
-    private static void AppendFallback(IReadOnlyList<RegionBox> boxes, List<PdfUnderstandingRegion> ordered) {
+    private static void AppendFallback(
+        IReadOnlyList<RegionBox> boxes,
+        List<PdfUnderstandingRegion> ordered,
+        bool rightToLeft) {
         foreach (RegionBox box in boxes
                      .OrderByDescending(static box => box.Top)
-                     .ThenBy(static box => box.Left)
+                     .ThenBy(box => rightToLeft ? -box.Right : box.Left)
                      .ThenByDescending(static box => box.Bottom)) {
             ordered.Add(box.Region);
         }
@@ -321,6 +366,24 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             PdfReadPage page,
             PdfUnderstandingRegion region,
             double visualPageHeight) {
+            PdfLogicalVisualBounds[] directBounds = region.Lines
+                .Select(static line => line.VisualBounds)
+                .Where(static bounds => bounds is not null)
+                .Cast<PdfLogicalVisualBounds>()
+                .ToArray();
+            if (directBounds.Length == region.Lines.Count) {
+                double visualLeft = directBounds.Min(static bounds => bounds.Left);
+                double visualTop = directBounds.Min(static bounds => bounds.Top);
+                double visualRight = directBounds.Max(static bounds => bounds.Right);
+                double visualBottom = directBounds.Max(static bounds => bounds.Bottom);
+                return new RegionBox(
+                    region,
+                    visualLeft,
+                    visualRight,
+                    visualPageHeight - visualBottom,
+                    visualPageHeight - visualTop,
+                    Math.Max(1D, region.Lines.Max(static line => line.FontSize)));
+            }
             (double left, double right, double bottom, double top, double fontSize) = GetSourceBounds(region);
             PdfVisualBounds visual = page.TransformBoundsToVisual(left, bottom, right, top);
             return new RegionBox(
@@ -366,16 +429,21 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         PdfTextSpan? sourceRun,
         double alongX,
         double fontSize) {
+        if (word.Advance is double explicitAdvance && explicitAdvance > 0.001D) {
+            return explicitAdvance;
+        }
         double horizontalExtent = Math.Abs(word.XEnd - word.XStart);
         if (horizontalExtent > 0.001D && Math.Abs(alongX) > 0.05D) {
             return horizontalExtent / Math.Abs(alongX);
         }
 
         if (sourceRun is not null && sourceRun.Advance > 0D && !string.IsNullOrEmpty(sourceRun.Text)) {
-            return sourceRun.Advance * word.Text.Length / sourceRun.Text.Length;
+            int sourceScalars = PdfUnicodeScalarAnalysis.CountScalars(sourceRun.Text);
+            int wordScalars = PdfUnicodeScalarAnalysis.CountScalars(word.Text);
+            return sourceRun.Advance * wordScalars / sourceScalars;
         }
 
-        return word.Text.Length * fontSize * 0.55D;
+        return PdfUnicodeScalarAnalysis.CountScalars(word.Text) * fontSize * 0.55D;
     }
 
     private static void ExpandBounds(

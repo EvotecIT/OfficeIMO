@@ -63,7 +63,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler(new ReaderPdfOptions {
         ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
             MinimumConfidence = 0.85,
-            RejoinLineEndingHyphens = true
+            RejoinSoftHyphens = true
         }
     })
     .Build();
@@ -91,6 +91,10 @@ OfficeDocumentReader largePdfReader = new OfficeDocumentReaderBuilder()
 it for `Profile`, `PageSelection`, `LayoutOptions`, custom stages, and semantic
 work limits; the Reader adapter does not maintain a second set of PDF parsing
 options.
+
+Headerless or otherwise ambiguous PDF tables retain every detected source row
+and expose empty column names. `ReaderChunkDiagnostics.UnnamedTableColumnCount`
+reports that uncertainty; the adapter does not inject English fallback names.
 
 ### Read a stream with input limits
 
@@ -175,7 +179,7 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 - Page-aware chunks with `ReaderLocation.Page`.
 - Native fixed-page membership and geometry compatible with Reader Core location, search, and page-Markdown helpers.
 - Markdown text, logical tables, column profiles, table diagnostics, and confidence signals.
-- Conservative paragraph continuation metadata with page range, confidence, evidence, segment count, and rejoined-hyphen count.
+- Conservative paragraph continuation metadata with page range, confidence, evidence, segment count, and rejoined soft-hyphen count.
 - Source/security/form/catalog-metadata/open-action/active-content counters in `ReaderChunk.Diagnostics`.
 - Document metadata for XMP, output intents, tagged structure, optional content/layers, attachments, security/signatures, navigation, links, forms, annotations, and passive actions.
 - Passive action summaries without executable payloads.

@@ -538,13 +538,15 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
-    public void ContentStructureExtractor_DoesNotTreatUnicodeDigitsAsAsciiPageNumbers() {
+    public void ContentStructureExtractor_RecognizesUnicodeDecimalPageNumbers() {
         const string text = "Contents.... ９";
         var spans = new[] { new PdfTextSpan(text, "F1", 12, 0, 100, text.Length) };
 
         StructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
 
-        Assert.Empty(page.Toc);
+        (string title, int pageNumber) = Assert.Single(page.Toc);
+        Assert.Equal("Contents", title);
+        Assert.Equal(9, pageNumber);
     }
 
     private static string BuildStream(string content, string dictionaryEntries = "") =>

@@ -402,7 +402,7 @@ public partial class Excel {
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
         Assert.Equal("Pending", values[30, 0]);
-        Assert.Equal("TeamA", values[30, 1]);
+        Assert.Equal("Team A", values[30, 1]);
     }
 
     [Fact]
@@ -418,10 +418,10 @@ public partial class Excel {
             })
             .Table(new[] {
                 new[] { "Active", "Completion" },
-                new[] { "Yes", "12.5%" },
-                new[] { "No", "100.0%" },
-                new[] { "Yes", "50.0%" },
-                new[] { "No", "00.0%" }
+                new[] { "true", "12.5%" },
+                new[] { "false", "100.0%" },
+                new[] { "true", "50.0%" },
+                new[] { "false", "00.0%" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
                 ColumnWidthPoints = new List<double?> { 120, 120 }
@@ -617,6 +617,75 @@ public partial class Excel {
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
         Assert.Equal(value, values[1, 0]);
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_ConvertsLocalizedDatesOnlyWithAnExplicitDateTimeCulture() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Termin", "Etap" },
+                new[] { "31.12.2026", "Pierwszy" },
+                new[] { "01.01.2027", "Drugi" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 120 }
+            })
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry entry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                DateTimeCulture = CultureInfo.GetCultureInfo("pl-PL")
+            }).Entries);
+
+        Assert.Equal(PdfExcelTableColumnKind.DateTime, entry.ColumnKinds[0]);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(entry.SheetName).ReadRange(entry.Range);
+        Assert.Equal(new DateTime(2026, 12, 31), Convert.ToDateTime(values[1, 0], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_DoesNotConvertDottedDatesToGroupedIntegers() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Termin", "Etap" },
+                new[] { "31.12.2026", "Erste" },
+                new[] { "30.11.2026", "Zweite" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 120, 120 }
+            })
+            .ToBytes();
+        var culture = CultureInfo.GetCultureInfo("de-DE");
+
+        using var textWorkbook = new MemoryStream();
+        PdfExcelTableImportEntry textEntry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            textWorkbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                NumericCulture = culture
+            }).Entries);
+        Assert.Equal(PdfExcelTableColumnKind.Text, textEntry.ColumnKinds[0]);
+        using (ExcelDocumentReader reader = ExcelDocumentReader.Open(textWorkbook.ToArray())) {
+            object?[,] values = reader.GetSheet(textEntry.SheetName).ReadRange(textEntry.Range);
+            Assert.Equal("31.12.2026", values[1, 0]);
+        }
+
+        using var dateWorkbook = new MemoryStream();
+        PdfExcelTableImportEntry dateEntry = Assert.Single(LoadTables(pdf).SaveTablesAsExcel(
+            dateWorkbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false,
+                NumericCulture = culture,
+                DateTimeCulture = culture
+            }).Entries);
+        Assert.Equal(PdfExcelTableColumnKind.DateTime, dateEntry.ColumnKinds[0]);
+        using (ExcelDocumentReader reader = ExcelDocumentReader.Open(dateWorkbook.ToArray())) {
+            object?[,] values = reader.GetSheet(dateEntry.SheetName).ReadRange(dateEntry.Range);
+            Assert.Equal(new DateTime(2026, 12, 31), Convert.ToDateTime(values[1, 0], CultureInfo.InvariantCulture));
+        }
     }
 
     [Fact]
@@ -1466,7 +1535,8 @@ public partial class Excel {
 
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);
-        Assert.Equal("Key", values[0, 0]);
+        Assert.Equal("Column1", values[0, 0]);
+        Assert.Equal("Column2", values[0, 1]);
         Assert.Equal("InvoiceId", values[1, 0]);
         Assert.Equal("Customer", values[2, 0]);
 

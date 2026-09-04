@@ -57,6 +57,7 @@ public sealed class PdfUnderstandingTableCandidate {
             confidence,
             evidence,
             null,
+            null,
             null) {
     }
 
@@ -73,7 +74,8 @@ public sealed class PdfUnderstandingTableCandidate {
         double confidence,
         IEnumerable<PdfInferenceEvidence>? evidence,
         Action<long>? consumeWork,
-        Action? cancellationCheck) {
+        Action? cancellationCheck,
+        IReadOnlyList<PdfTextSpan>? nativeSourceRuns) {
         cancellationCheck?.Invoke();
         Guard.NotNull(detectionKind, nameof(detectionKind));
         Guard.NotNull(columns, nameof(columns));
@@ -96,6 +98,12 @@ public sealed class PdfUnderstandingTableCandidate {
         Rows = SnapshotRows(rows, consumeWork, cancellationCheck);
         SourceLines = SnapshotSourceLines(sourceLines, consumeWork, cancellationCheck);
         SourceKind = sourceKind;
+        NativeSourceRuns = SnapshotNativeSourceRuns(
+            sourceKind,
+            nativeSourceRuns,
+            SourceLines,
+            consumeWork,
+            cancellationCheck);
         CoordinateSpace = coordinateSpace;
         Confidence = PdfInference.Clamp(confidence);
         Evidence = PdfInference.Snapshot(evidence);
@@ -133,6 +141,7 @@ public sealed class PdfUnderstandingTableCandidate {
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
     internal PdfLogicalVisualBounds? VisualBounds => _visualBounds;
+    internal IReadOnlyList<PdfTextSpan> NativeSourceRuns { get; }
 
     internal static PdfUnderstandingTableCandidate FromStructured(
         StructuredTable table,
@@ -167,8 +176,36 @@ public sealed class PdfUnderstandingTableCandidate {
             confidence,
             evidence,
             consumeWork,
-            cancellationCheck);
+            cancellationCheck,
+            table.SourceRuns);
     }
+
+    internal static PdfUnderstandingTableCandidate FromTagged(
+        double yTop,
+        double yBottom,
+        IReadOnlyList<PdfUnderstandingTableColumn> columns,
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        IReadOnlyList<PdfUnderstandingLine> sourceLines,
+        IReadOnlyList<PdfTextSpan> nativeSourceRuns,
+        double confidence,
+        IEnumerable<PdfInferenceEvidence> evidence,
+        Action<long> consumeWork,
+        Action cancellationCheck) =>
+        new PdfUnderstandingTableCandidate(
+            "tagged-structure",
+            yTop,
+            yBottom,
+            columns,
+            rows,
+            sourceLines,
+            PdfLogicalContentSourceKind.Native,
+            PdfTableCoordinateSpace.PdfUserSpace,
+            null,
+            confidence,
+            evidence,
+            consumeWork,
+            cancellationCheck,
+            nativeSourceRuns);
 
     internal static PdfUnderstandingTableCandidate FromOcr(
         string detectionKind,
@@ -178,7 +215,8 @@ public sealed class PdfUnderstandingTableCandidate {
         IReadOnlyList<(double From, double To)> visualColumnBounds,
         IReadOnlyList<IReadOnlyList<string>> rows,
         double confidence,
-        IEnumerable<PdfInferenceEvidence> evidence) {
+        IEnumerable<PdfInferenceEvidence> evidence,
+        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
         var columns = visualColumnBounds
             .Select(static column => new PdfUnderstandingTableColumn(column.From, column.To))
             .ToArray();
@@ -188,14 +226,15 @@ public sealed class PdfUnderstandingTableCandidate {
             bottom,
             columns,
             rows,
-            Array.Empty<PdfUnderstandingLine>(),
+            sourceLines ?? Array.Empty<PdfUnderstandingLine>(),
             PdfLogicalContentSourceKind.Ocr,
             PdfTableCoordinateSpace.VisualTopLeft,
             visualBounds,
             confidence,
             evidence,
             null,
-            null);
+            null,
+            Array.Empty<PdfTextSpan>());
     }
 
     internal StructuredTable ToStructuredTable(Action<long>? consumeWork = null, Action? cancellationCheck = null) {
@@ -225,6 +264,28 @@ public sealed class PdfUnderstandingTableCandidate {
             table.Rows.Add(cells);
         }
         return table;
+    }
+
+    internal PdfUnderstandingTableCandidate WithAdditionalEvidence(
+        PdfInferenceEvidence evidence,
+        double minimumConfidence) {
+        Guard.NotNull(evidence, nameof(evidence));
+        if (Evidence.Any(item => string.Equals(item.Code, evidence.Code, StringComparison.Ordinal))) return this;
+        return new PdfUnderstandingTableCandidate(
+            DetectionKind,
+            YTop,
+            YBottom,
+            Columns,
+            Rows,
+            SourceLines,
+            SourceKind,
+            CoordinateSpace,
+            _visualBounds,
+            Math.Max(Confidence, minimumConfidence),
+            Evidence.Concat(new[] { evidence }),
+            null,
+            null,
+            NativeSourceRuns);
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -273,5 +334,42 @@ public sealed class PdfUnderstandingTableCandidate {
             result[index] = sourceLines[index] ?? throw new ArgumentException("Source lines cannot contain null values.", nameof(sourceLines));
         }
         return Array.AsReadOnly(result);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextSpan> SnapshotNativeSourceRuns(
+        PdfLogicalContentSourceKind sourceKind,
+        IReadOnlyList<PdfTextSpan>? exactRuns,
+        IReadOnlyList<PdfUnderstandingLine> sourceLines,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        if (sourceKind != PdfLogicalContentSourceKind.Native) {
+            return Array.AsReadOnly(Array.Empty<PdfTextSpan>());
+        }
+
+        var unique = new HashSet<PdfTextSpan>();
+        var result = new List<PdfTextSpan>();
+        if (exactRuns is not null) {
+            for (int runIndex = 0; runIndex < exactRuns.Count; runIndex++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(1);
+                PdfTextSpan run = exactRuns[runIndex]
+                    ?? throw new ArgumentException("Native source runs cannot contain null values.", nameof(exactRuns));
+                if (unique.Add(run)) result.Add(run);
+            }
+            return result.AsReadOnly();
+        }
+
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            IReadOnlyList<PdfUnderstandingWord> words = sourceLines[lineIndex].Words;
+            for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+                IReadOnlyList<PdfTextSpan> runs = words[wordIndex].SourceRuns;
+                for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                    cancellationCheck?.Invoke();
+                    consumeWork?.Invoke(1);
+                    if (unique.Add(runs[runIndex])) result.Add(runs[runIndex]);
+                }
+            }
+        }
+        return result.AsReadOnly();
     }
 }

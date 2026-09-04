@@ -52,7 +52,7 @@ public sealed class PdfExcelTableImportOptions {
         public bool ConvertNumericColumns { get; set; } = true;
 
         /// <summary>
-        /// When true, columns containing only boolean values such as true/false or yes/no are written as boolean Excel cells.
+        /// When true, columns containing only invariant true/false values are written as boolean Excel cells.
         /// </summary>
         public bool ConvertBooleanColumns { get; set; } = true;
 
@@ -70,6 +70,12 @@ public sealed class PdfExcelTableImportOptions {
         /// Culture used when parsing detected numeric PDF table values before writing typed Excel cells.
         /// </summary>
         public CultureInfo NumericCulture { get; set; } = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// Optional culture used when parsing dates, date-times, and clock times. When null, date conversion accepts only
+        /// unambiguous invariant year-first forms and clock times use invariant culture.
+        /// </summary>
+        public CultureInfo? DateTimeCulture { get; set; }
 
         /// <summary>
         /// When true, adjacent page-edge table segments with compatible geometry and schema are imported as one logical table.

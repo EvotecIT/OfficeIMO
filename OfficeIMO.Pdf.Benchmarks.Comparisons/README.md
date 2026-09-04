@@ -32,16 +32,16 @@ Every timed producer/read combination must first pass page-count and complete de
 
 `Corpus/pdf-corpus.json` combines repository fixtures, generated documents, and pinned public files. Downloaded files are opt-in, written under an ignored output directory, and accepted only when their SHA-256 matches the manifest. The corpus currently covers:
 
-- native Microsoft Word, Excel, and PowerPoint exports;
+- native Microsoft Word, Excel, and PowerPoint exports, with an opt-in Windows COM lane that regenerates all three producers;
 - a 25-page OfficeIMO.Word source with tables, chart, SmartArt, image, links, lists, headers, and footers, plus its OfficeIMO PDF and structured conversion diagnostics;
 - a 500-page OfficeIMO.Pdf document;
 - NIST SP 800-53 Rev. 5 and IRS Form W-9;
 - a W3C standards document;
 - CC0 veraPDF Type0/ToUnicode, Type3-font, and large PDF/A fixtures.
 
-The read oracle is PdfPig, with iText fallback when PdfPig cannot read a file. OfficeIMO's canonical structured read is compared by duplicate-aware, per-page token recall. Corpus reading opts into `PdfLoadOptions.IncludeArtifactText` so headers, footers, and chart decorations are included in the same visual-text contract as the comparison readers. The schema-2 corpus report also aggregates read failures, elapsed time, and managed allocations by tier and feature. These single-pass corpus observations diagnose document classes; BenchmarkDotNet remains the statistical performance source.
+The read oracle is PdfPig, with iText fallback when PdfPig cannot read a file. OfficeIMO's canonical structured read is compared by duplicate-aware, per-page token recall. Labelled `expectedText` values independently gate OfficeIMO text instead of inheriting an oracle defect. A `pageExpectations` entry can require exact table, image, image-region, and figure counts plus a minimum vector-primitive count. Each declared table has its own exact row and column shape and exact required cells, so text from unrelated tables cannot satisfy the contract and extra false-positive tables fail validation. Feature labels remain reporting dimensions rather than implicit correctness claims. Corpus reading opts into `PdfLoadOptions.IncludeArtifactText` so headers, footers, and chart decorations are included in the same visual-text contract as the comparison readers. The schema-3 corpus report records the observed semantic counts and also aggregates read failures, elapsed time, and managed allocations by tier and feature. These single-pass corpus observations diagnose document classes; BenchmarkDotNet remains the statistical performance source.
 
-The OfficeIMO.Word source deliberately contains SmartArt. OfficeIMO.Word.Pdf currently reports `NativeBodySmartArtUnsupported`, so the generated OfficeIMO PDF is not labeled as containing SmartArt; its conversion JSON preserves that product gap. The Windows Word COM lane opens the same DOCX, adds a genuine Word-native SmartArt object through `Shapes.AddSmartArt`, and exports it through Microsoft Word. Validation requires the resulting 26-page PDF and independently checks that OfficeIMO recovers the interoperability-page heading plus every SmartArt node label. New, unrecognized conversion-loss diagnostics fail corpus preparation.
+The OfficeIMO.Word source deliberately contains SmartArt. OfficeIMO.Word.Pdf currently reports `NativeBodySmartArtUnsupported`, so the generated OfficeIMO PDF is not labeled as containing SmartArt; its conversion JSON preserves that product gap. The Windows Office COM lane opens the same DOCX, adds a genuine Word-native SmartArt object through `Shapes.AddSmartArt`, and exports it through Microsoft Word. It also creates an Excel workbook with a table, chart, tightly positioned identifiers, and multilingual cells, plus a PowerPoint deck with a table, multilingual text, and a process diagram. Word, Excel, and PowerPoint export their own PDFs; OfficeIMO is only the parser under test. Validation checks producer-specific page counts, independently labelled multilingual text, and producer-specific semantic structures before comparing duplicate-aware token recall with the independent oracle. New, unrecognized Word conversion-loss diagnostics fail corpus preparation.
 
 After a read pass, the corpus selects the last, middle, and first pages, splits that result into single-page documents, merges them again, and independently verifies order and token retention. OfficeIMO intentionally blocks unsafe full rewrites of documents whose forms, signatures, tagged content, active content, outlines, xref streams, or object streams cannot yet be preserved. The JSON report records these as `Blocked` with machine-readable mutation blocker codes, separately from failed output validation. Those blockers identify manipulation work to implement; the runner does not bypass them.
 
@@ -182,12 +182,12 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -PdfCorpusRoot Ignore/Benchmarks/PdfComparisons/corpus/files
 ```
 
-The corpus workload is excluded from `-Workload all` because it requires opt-in downloads. Use `--only id-1,id-2` with the corpus command to rerun selected entries.
+The corpus workload is excluded from `-Workload all` because it requires opt-in downloads. Use `--only id-1,id-2` with the corpus command to rerun selected entries. `--additional-manifest path.json` appends one schema-1 manifest of generated or machine-local entries. Both the base and additional manifests are strict: unknown fields, invalid source combinations, missing local or downloaded SHA-256 hashes, out-of-range recall thresholds, and malformed semantic expectations fail before any document is read.
 
-On Windows with Microsoft Word installed, this command generates the rich DOCX, injects a Word-native SmartArt fixture, exports it through Word COM, and validates OfficeIMO readback of the rendered node labels. COM remains a fixture producer and is not an OfficeIMO dependency:
+On Windows with Microsoft Word, Excel, and PowerPoint installed, this command regenerates all three Office-produced PDFs and validates OfficeIMO readback. COM remains an opt-in fixture producer and is not an OfficeIMO runtime dependency:
 
 ```powershell
-pwsh Build/Run-PdfWordComCorpus.ps1 -Framework net10.0
+pwsh Build/Run-PdfOfficeComCorpus.ps1 -Framework net10.0
 ```
 
 ## Benchmark-only libraries

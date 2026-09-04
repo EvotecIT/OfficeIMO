@@ -871,18 +871,18 @@ public class PowerPointPdfTableImportTests {
         Assert.Equal(2, result.RowCount);
         Assert.Equal(3, result.TotalRowCount);
         Assert.True(result.Truncated);
-        Assert.True(result.HeaderRowIncluded);
+        Assert.False(result.HeaderRowIncluded);
         Assert.True(report.HasLoss);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
 
         using (PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
             A.Table table = GetSingleTable(package);
+            Assert.False(table.TableProperties?.FirstRow?.Value ?? false);
             List<A.TableRow> rows = table.Elements<A.TableRow>().ToList();
-            Assert.Equal(3, rows.Count);
-            Assert.Equal(new[] { "Key", "Value" }, ReadRowText(rows[0]));
-            Assert.Equal(new[] { "InvoiceId", "INV-001" }, ReadRowText(rows[1]));
-            Assert.Equal(new[] { "Customer", "Evotec" }, ReadRowText(rows[2]));
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(new[] { "InvoiceId", "INV-001" }, ReadRowText(rows[0]));
+            Assert.Equal(new[] { "Customer", "Evotec" }, ReadRowText(rows[1]));
         }
 
         using var emptyPresentation = new MemoryStream();
