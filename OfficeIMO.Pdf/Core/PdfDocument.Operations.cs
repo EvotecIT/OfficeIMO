@@ -265,8 +265,8 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
     /// </summary>
-    internal PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
-        return PdfRedactionPlanner.Plan(GetBytesForOperation(), areas, layoutOptions, options ?? ReadOptions);
+    internal PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        return PdfRedactionPlanner.Plan(GetBytesForOperation(cancellationToken), areas, layoutOptions, options ?? ReadOptions, cancellationToken);
     }
 
     /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>
@@ -291,9 +291,12 @@ public sealed partial class PdfDocument {
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? options = null) {
         Guard.NotNull(plan, nameof(plan));
+        CancellationToken applyCancellation = applyOptions?.CancellationToken ?? CancellationToken.None;
+        applyCancellation.ThrowIfCancellationRequested();
         PdfLoadOptions? readOptions = options ?? ReadOptions;
-        byte[] source = GetBytesForOperation();
+        byte[] source = GetBytesForOperation(applyCancellation);
         PdfMutationPlan mutationPlan = PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.Redact, readOptions);
+        applyCancellation.ThrowIfCancellationRequested();
         byte[] output = PdfRedactionApplier.Apply(
             source,
             plan,
@@ -313,6 +316,7 @@ public sealed partial class PdfDocument {
             effectiveVerification,
             outputReadOptions,
             appliedImageMatches);
+        effectiveVerification.CancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfRedactionMatch> residualMatches = plan.Areas.Count == 0 || verification.Issues.Any(static issue =>
             issue.Feature == "ReviewedRedactionPlanBlocked" ||
             issue.Feature == "RedactionPlanPageCountChanged" ||
@@ -321,14 +325,15 @@ public sealed partial class PdfDocument {
             issue.Feature == "RedactionPlanInspectionBlocked")
             ? Array.Empty<PdfRedactionMatch>()
             : PdfRedactionVerification.FilterAppliedImageResiduals(
-                PdfRedactionPlanner.PlanForVerification(output, plan.Areas, outputReadOptions).Matches,
+                PdfRedactionPlanner.PlanForVerification(output, plan.Areas, outputReadOptions, effectiveVerification.CancellationToken).Matches,
                 appliedImageMatches);
         IReadOnlyList<PdfRedactionMatch> inconclusiveMatches = FindWidgetMatchesWithReachableFieldOwners(
             source,
             output,
             plan,
             readOptions,
-            outputReadOptions);
+            outputReadOptions,
+            effectiveVerification.CancellationToken);
         var evidence = new PdfRedactionEvidenceReport(
             plan,
             PdfRedactionPlan.ComputeSourceSha256(output),
@@ -343,21 +348,24 @@ public sealed partial class PdfDocument {
         byte[] output,
         PdfRedactionPlan plan,
         PdfLoadOptions? sourceReadOptions,
-        PdfLoadOptions outputReadOptions) {
+        PdfLoadOptions outputReadOptions,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfRedactionMatch[] widgetMatches = plan.Matches
             .Where(static match => match.Kind == PdfRedactionMatchKind.Annotation &&
                 string.Equals(match.Subtype, "Widget", StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (widgetMatches.Length == 0) return Array.Empty<PdfRedactionMatch>();
 
-        IReadOnlyList<PdfFormField> sourceFields = PdfReadDocument.Open(source, sourceReadOptions).FormFields;
+        IReadOnlyList<PdfFormField> sourceFields = PdfReadDocument.Open(source, sourceReadOptions, cancellationToken).FormFields;
         var outputFieldNames = new HashSet<string>(
-            PdfReadDocument.Open(output, outputReadOptions).FormFields
+            PdfReadDocument.Open(output, outputReadOptions, cancellationToken).FormFields
                 .Where(static field => !string.IsNullOrEmpty(field.Name))
                 .Select(static field => field.Name!),
             StringComparer.Ordinal);
         var inconclusive = new List<PdfRedactionMatch>();
         for (int matchIndex = 0; matchIndex < widgetMatches.Length; matchIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionMatch match = widgetMatches[matchIndex];
             PdfFormField? owner = sourceFields.FirstOrDefault(field =>
                 match.ObjectNumber.HasValue &&

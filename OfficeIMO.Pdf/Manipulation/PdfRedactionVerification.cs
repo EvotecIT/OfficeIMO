@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -13,9 +15,11 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
+        options.CancellationToken.ThrowIfCancellationRequested();
 
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
-        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions).ExtractText();
+        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText();
+        options.CancellationToken.ThrowIfCancellationRequested();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
         var externalResults = new List<PdfRedactionExternalValidationResult>();
@@ -25,10 +29,11 @@ internal static partial class PdfRedactionVerification {
         if (decodedPdfStreamsChecked &&
             failOnUndecodablePdfStreams &&
             (options.RemovedTextMarkers.Count > 0 || options.RequireCompleteStreamInspection)) {
-            issues.AddRange(FindUndecodableStreamIssues(redactedPdf, effectiveReadOptions));
+            issues.AddRange(FindUndecodableStreamIssues(redactedPdf, effectiveReadOptions, options.CancellationToken));
         }
 
         for (int i = 0; i < options.RemovedTextMarkers.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string marker = options.RemovedTextMarkers[i];
             if (ContainsMarker(extractedText, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
@@ -44,14 +49,14 @@ internal static partial class PdfRedactionVerification {
                     "Removed text marker remains in raw rewritten PDF bytes: " + marker));
             }
 
-            if (options.CheckEncodedPdfStrings && ContainsEncodedPdfMarker(redactedPdf, marker, options.MatchCase)) {
+            if (options.CheckEncodedPdfStrings && ContainsEncodedPdfMarker(redactedPdf, marker, options.MatchCase, options.CancellationToken)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedEncodedMarker",
                     marker,
                     "Removed text marker remains in encoded rewritten PDF string bytes: " + marker));
             }
 
-            if (decodedPdfStreamsChecked && ContainsDecodedStreamMarker(redactedPdf, marker, options.MatchCase, effectiveReadOptions)) {
+            if (decodedPdfStreamsChecked && ContainsDecodedStreamMarker(redactedPdf, marker, options.MatchCase, effectiveReadOptions, options.CancellationToken)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedDecodedStreamMarker",
                     marker,
@@ -60,6 +65,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         for (int i = 0; i < options.RetainedTextMarkers.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string marker = options.RetainedTextMarkers[i];
             if (!ContainsMarker(extractedText, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
@@ -70,14 +76,17 @@ internal static partial class PdfRedactionVerification {
         }
 
         if (options.CheckManagedRendering) {
-            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions);
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
             for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
         }
 
         for (int i = 0; i < options.ExternalValidators.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfRedactionExternalValidationResult result = options.ExternalValidators[i].Validate((byte[])redactedPdf.Clone()); externalResults.Add(result);
             if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
         }
+
+        options.CancellationToken.ThrowIfCancellationRequested();
 
         return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.RequireCompleteStreamInspection, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
     }
@@ -110,8 +119,9 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
+        options.CancellationToken.ThrowIfCancellationRequested();
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
-        PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions);
+        PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions, options.CancellationToken);
         var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
         PdfDiagnosticFinding[] reviewedBlockingFindings = reviewedPlan.Findings
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -143,7 +153,7 @@ internal static partial class PdfRedactionVerification {
             reviewedPlan.PageIdentities.Count > 0 &&
             rewrittenPreflight.CanReadLogicalObjects) {
             IReadOnlyList<string> rewrittenPageIdentities = PdfRedactionPlan.CapturePageIdentities(
-                PdfReadDocument.Open(redactedPdf, readOptions),
+                PdfReadDocument.Open(redactedPdf, readOptions, options.CancellationToken),
                 reviewedPlan.Areas,
                 reviewedPlan.ReviewedTextObjectScopes);
             if (!reviewedPlan.PageIdentities.SequenceEqual(rewrittenPageIdentities, StringComparer.Ordinal)) {
@@ -170,10 +180,10 @@ internal static partial class PdfRedactionVerification {
 
         PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0 || !pageIdentityMatches
             ? null
-            : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions);
+            : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions, options.CancellationToken);
         bool hasResidualText = residualPlan is not null &&
             !residualPlan.Matches.Any(static match => match.Kind == PdfRedactionMatchKind.TextBlock) &&
-            HasResidualTextIntersection(redactedPdf, reviewedPlan.Areas, readOptions);
+            HasResidualTextIntersection(redactedPdf, reviewedPlan.Areas, readOptions, options.CancellationToken);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -198,9 +208,11 @@ internal static partial class PdfRedactionVerification {
 
         IReadOnlyList<PdfRedactionMatch> unverifiedResidualMatches = FilterAppliedImageResiduals(
             residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
-            appliedImageMatches);
+            appliedImageMatches,
+            options.CancellationToken);
         foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanResidual",
@@ -225,7 +237,8 @@ internal static partial class PdfRedactionVerification {
 
     internal static IReadOnlyList<PdfRedactionMatch> FilterAppliedImageResiduals(
         IReadOnlyList<PdfRedactionMatch> residualMatches,
-        IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
+        IReadOnlyList<PdfRedactionMatch> appliedImageMatches,
+        CancellationToken cancellationToken = default) {
         if (residualMatches.Count == 0 || appliedImageMatches.Count == 0) return residualMatches;
 
         var remainingProofs = appliedImageMatches
@@ -233,6 +246,7 @@ internal static partial class PdfRedactionVerification {
             .ToList();
         var result = new List<PdfRedactionMatch>(residualMatches.Count);
         for (int residualIndex = 0; residualIndex < residualMatches.Count; residualIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionMatch residual = residualMatches[residualIndex];
             int proofIndex = remainingProofs.FindIndex(proof => SameAppliedImagePlacement(proof, residual));
             if (proofIndex >= 0) {
@@ -274,13 +288,16 @@ internal static partial class PdfRedactionVerification {
     private static bool HasResidualTextIntersection(
         byte[] redactedPdf,
         IReadOnlyList<PdfRedactionArea> areas,
-        PdfLoadOptions? readOptions) {
-        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, readOptions);
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, readOptions, cancellationToken);
         for (int areaIndex = 0; areaIndex < areas.Count; areaIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionArea area = areas[areaIndex];
             if (area.PageNumber < 1 || area.PageNumber > document.Pages.Count) continue;
             IReadOnlyList<PdfTextSpan> spans = document.Pages[area.PageNumber - 1].GetTextSpansIncludingHiddenOptionalContent();
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+                if ((spanIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(
                     spans[spanIndex],
                     area.X,

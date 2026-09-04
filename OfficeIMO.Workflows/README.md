@@ -37,6 +37,49 @@ Console.WriteLine(result.OutputPath);
 
 Every request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
+## Review and apply PDF redactions
+
+Redaction uses a separate versioned plan/review/apply contract. Planning produces privacy-safe candidate identifiers and geometry. Application re-plans the exact source and recipe, requires every current candidate to be explicitly approved or rejected, applies only approved candidates, and publishes only after native and configured OCR verification succeeds.
+
+```csharp
+var recipe = new PdfRedactionRecipe();
+recipe.Rules.Add(new PdfRedactionRule {
+    Kind = PdfRedactionRuleKind.Literal,
+    Value = "Account: 123-45-6789"
+});
+
+var runner = new OfficeWorkflowRunner();
+PdfRedactionWorkflowResult plan = await runner.RunRedactionAsync(
+    new PdfRedactionWorkflowRequest {
+        Mode = PdfRedactionWorkflowMode.PlanOnly,
+        InputPath = "contract.pdf",
+        EvidencePath = "contract.plan.json",
+        Recipe = recipe
+    });
+
+var decisions = new PdfRedactionDecisionManifest {
+    SourceSha256 = plan.SourceSha256,
+    RecipeSha256 = plan.RecipeSha256,
+    ApprovedCandidateIds = plan.Candidates.Select(candidate => candidate.Id).ToList()
+};
+
+PdfRedactionWorkflowResult applied = await runner.RunRedactionAsync(
+    new PdfRedactionWorkflowRequest {
+        Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
+        InputPath = "contract.pdf",
+        OutputPath = "contract-redacted.pdf",
+        EvidencePath = "contract-redacted.evidence.json",
+        Recipe = recipe,
+        Decisions = decisions
+    });
+```
+
+The schemas are `officeimo.pdf.redaction.recipe.v1`, `officeimo.pdf.redaction.plan.v1`, `officeimo.pdf.redaction.decisions.v1`, `officeimo.pdf.redaction.result.v1`, and `officeimo.pdf.redaction.batch.v1`. Persisted `PdfRedactionWorkflowRecord` JSON omits matched text, extracted text, passwords, OCR payloads, provider options, host paths, and caller request identifiers. The in-memory operational result still carries paths and request correlation for host UX. Evidence retains hashes, counts, complete atomic candidate geometry, stable issue codes, provider/model/language identifiers, and OCR confidence. Encrypted input requires an explicit reject, decrypt, or decrypt-and-reencrypt policy with runtime-only owner credentials. Zero-area verification of a re-encrypted output also requires the trusted output SHA-256 from prior apply evidence. Signed input is rejected because permanent redaction cannot be an append-only mutation.
+
+Single-item evidence, per-output bytes, batch items, concurrency, and aggregate prepared output/evidence bytes have independent limits. Batch preparation reserves each in-flight item's configured worst-case size and fails before publication when the aggregate ceiling cannot be honored; successful items are reclassified as unpublished if any sibling fails.
+
+`RunRedactionBatchAsync` prepares every bounded item before publication with configurable concurrency, stages every file beside its destination, and rolls back already published files if an ordinary publication failure occurs. Batch destinations must be unique and share one fail-or-replace conflict policy. This is an in-process publication transaction, not a filesystem-wide crash transaction.
+
 ## Inspect and remove provenance
 
 The provenance workflow keeps format logic in its owning package. `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Visio`, `OfficeIMO.OpenDocument`, `OfficeIMO.Epub`, `OfficeIMO.Pdf`, `OfficeIMO.Html`, and `OfficeIMO.Markdown` handle their formats; `OfficeIMO.Core` handles supported images and structured text. Consumers can discover the exact extension-to-owner map through `OfficeProvenanceWorkflowCatalog.All`.

@@ -69,6 +69,11 @@ officeimo provenance assess page.html
 
 # Remove selected, structurally valid carriers through the owning format package
 officeimo provenance remove report.docx --output report.cleaned.docx
+
+# Plan and apply source-bound PDF redactions through reusable JSON contracts
+officeimo pdf redact plan contract.pdf --recipe redaction.recipe.json --evidence contract.plan.json
+officeimo pdf redact apply contract.pdf --recipe redaction.recipe.json --decisions contract.decisions.json `
+    --output contract-redacted.pdf --evidence contract-redacted.evidence.json
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -84,6 +89,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
+- `officeimo pdf redact` plans, applies, and verifies source-bound PDF redaction recipes with privacy-safe JSON evidence. Passwords are accepted only through named environment variables; OCR providers are supplied by API hosts rather than becoming a default tool dependency. Output and evidence can never replace the PDF, recipe, or decisions input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.

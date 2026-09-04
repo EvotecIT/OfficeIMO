@@ -926,6 +926,24 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Review surfaces can also author standard PDF `/Redact` annotations and plan them later:
+
+```csharp
+PdfDocument annotated = source.Redactions.AddAnnotation(new PdfRedactionAnnotationOptions(
+    PdfRedactionRegion.Polygon(1, new[] {
+        new PdfRedactionPoint(72, 680),
+        new PdfRedactionPoint(260, 680),
+        new PdfRedactionPoint(250, 710),
+        new PdfRedactionPoint(72, 706)
+    })) {
+    Contents = "Reviewed for removal"
+});
+
+PdfRedactionPlan annotationPlan = annotated.Redactions.PlanAnnotations();
+```
+
+Rectangle, quadrilateral, polygon, freehand, and grouped review geometry normalize to the same `PdfRedactionArea` collection used by planning, application, and evidence. Standard `/Redact` annotations honor each valid `/QuadPoints` quadrilateral instead of collapsing separated marks into the annotation `/Rect`; `/Rect` is the fallback when quad geometry is absent or invalid. Non-rectangular regions currently use conservative axis-aligned or segment bounds: this can remove extra surrounding content, but it does not understate the declared coverage. Annotation authoring defaults to 16 and permits at most 64 normalized rectangles because the current existing-page annotation writer performs one bounded full rewrite per rectangle.
+
 Text redaction rewrites native text-show operations at glyph granularity. Encoded glyphs outside the reviewed areas retain their original font resource and position; removed glyph advances become `TJ` displacements so adjacent text does not reflow. When a glyph mapping cannot be proven safe, the complete PDF text object is removed instead.
 
 When `verificationOptions` is omitted, `ApplyWithEvidence` requires complete stream inspection and managed-rendering checks by default. Supply explicit options, as above, when the workflow also needs removed/retained markers or an external validator.

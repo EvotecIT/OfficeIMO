@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -38,6 +40,9 @@ public sealed class PdfRedactionVerificationOptions {
 
     /// <summary>Render every page through the managed renderer and fail when a page cannot produce output.</summary>
     public bool CheckManagedRendering { get; set; }
+
+    /// <summary>Cooperatively cancels parsing, marker inspection, managed rendering, and external validation boundaries.</summary>
+    public CancellationToken CancellationToken { get; set; }
 
     /// <summary>Optional development-time external validators.</summary>
     public IList<IPdfRedactionExternalValidator> ExternalValidators => _externalValidators;

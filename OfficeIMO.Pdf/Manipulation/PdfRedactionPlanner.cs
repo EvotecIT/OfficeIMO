@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builds redaction impact previews without modifying the PDF.</summary>
@@ -5,12 +7,12 @@ internal static partial class PdfRedactionPlanner {
     private const double DefaultTextHeight = 12D;
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
-    public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
-        return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false);
+    public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false, cancellationToken);
     }
 
-    internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options) {
-        return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true, excludeGeneratedRedactionMarks: true);
+    internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options, CancellationToken cancellationToken = default) {
+        return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true, excludeGeneratedRedactionMarks: true, cancellationToken);
     }
 
     private static PdfRedactionPlan Plan(
@@ -19,16 +21,20 @@ internal static partial class PdfRedactionPlanner {
         PdfTextLayoutOptions? layoutOptions,
         PdfLoadOptions? options,
         bool includeHiddenOptionalContentText,
-        bool excludeGeneratedRedactionMarks) {
+        bool excludeGeneratedRedactionMarks,
+        CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
+        cancellationToken.ThrowIfCancellationRequested();
 
         PdfRedactionArea[] areaArray = areas.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
         if (areaArray.Length == 0) {
             throw new ArgumentException("At least one redaction area is required.", nameof(areas));
         }
 
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<PdfDiagnosticFinding>();
         if (!preflight.CanReadLogicalObjects) {
             foreach (string message in preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)) {
@@ -44,10 +50,14 @@ internal static partial class PdfRedactionPlanner {
                 PdfRedactionPlan.ComputeSourceSha256(pdf));
         }
 
-        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options);
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes = PdfRedactionPlan.CaptureReviewedTextObjectScopes(readDocument, areaArray);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray, reviewedTextObjectScopes);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
         var nestedPathPrimitivesByPage = new Dictionary<int, IReadOnlyList<PdfPageVisualPrimitive>>();
@@ -56,6 +66,7 @@ internal static partial class PdfRedactionPlanner {
         var inconclusiveOptionalContentPages = new HashSet<int>();
 
         foreach (PdfRedactionArea area in areaArray) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddTextMatches(area, logical, matches);
             if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage residualPage = readDocument.Pages[area.PageNumber - 1];
@@ -100,6 +111,7 @@ internal static partial class PdfRedactionPlanner {
             PdfDiagnosticSeverity.Info,
             "RedactionPlanOnly",
             "This plan reports rectangle intersections only. It does not remove or rewrite PDF content."));
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfRedactionPlan(
             preflight,
@@ -113,21 +125,26 @@ internal static partial class PdfRedactionPlanner {
     }
 
     /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>
-    public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Plan(File.ReadAllBytes(path), areas, layoutOptions, options);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] pdf = File.ReadAllBytes(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Plan(pdf, areas, layoutOptions, options, cancellationToken);
     }
 
     /// <summary>Plans rectangle-based redaction impact for a readable PDF stream.</summary>
-    public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
         using var buffer = new MemoryStream();
+        cancellationToken.ThrowIfCancellationRequested();
         stream.CopyTo(buffer);
-        return Plan(buffer.ToArray(), areas, layoutOptions, options);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Plan(buffer.ToArray(), areas, layoutOptions, options, cancellationToken);
     }
 
     private static void AddTextMatches(PdfRedactionArea area, PdfDocumentReadResult document, List<PdfRedactionMatch> matches) {

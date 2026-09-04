@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Additional document-level residue removed by an explicit redaction policy.</summary>
@@ -33,6 +35,9 @@ public enum PdfRedactionUnsupportedImagePolicy {
 /// Options controlling how planned PDF redaction areas are applied.
 /// </summary>
 public sealed class PdfRedactionApplyOptions {
+    /// <summary>Cooperative cancellation checked between destructive rewrite stages and pages.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>
     /// Fill color used for the visible redaction mark. Defaults to black.
     /// </summary>

@@ -35,6 +35,8 @@ internal static partial class PdfRedactionApplier {
         out PdfGeneratedOutputGrowth generatedGrowth,
         out IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(plan, nameof(plan));
+        PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!plan.IsReviewable) {
             throw new InvalidOperationException("The reviewed redaction plan is blocked and cannot be applied.");
         }
@@ -49,14 +51,15 @@ internal static partial class PdfRedactionApplier {
         string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
         byte[] working = pdf;
         if (fieldNames.Length > 0) {
-            var existing = new HashSet<string>(PdfReadDocument.Open(pdf, readOptions).FormFields.Where(static field => field.Name is not null).Select(static field => field.Name!), StringComparer.Ordinal);
+            var existing = new HashSet<string>(PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken).FormFields.Where(static field => field.Name is not null).Select(static field => field.Name!), StringComparer.Ordinal);
             string[] removable = fieldNames.Where(existing.Contains).ToArray();
             if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
+            effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         }
         return ApplyCore(
             working,
             plan.Areas,
-            applyOptions,
+            effectiveOptions,
             layoutOptions,
             readOptions,
             RedactionMutationScope.All,
@@ -222,26 +225,31 @@ internal static partial class PdfRedactionApplier {
         }
 
         PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Maximum decoded image bytes must be positive.");
-        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, effectiveOptions.CancellationToken);
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!plan.Preflight.CanReadLogicalObjects) {
             throw new InvalidOperationException("PDF redaction cannot be applied because logical content cannot be read. " + string.Join(" ", plan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         HashSet<PdfStream> sourceStreamIdentities = CollectStreamIdentities(objects);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfStream> sourceStreams = document.Objects
             .Where(static item => item.Value.Value is PdfStream)
             .ToDictionary(static item => item.Key, static item => (PdfStream)item.Value.Value);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, sourceStreamIdentities, mutationScope, paintMarks, imageTargets);
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
@@ -336,6 +344,7 @@ internal static partial class PdfRedactionApplier {
             .Select(static field => field.ObjectNumber!.Value));
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageIndex + 1;
             PdfReadPage readPage = document.Pages[pageIndex];
             if (!objects.TryGetValue(readPage.ObjectNumber, out PdfIndirectObject? pageObject) ||

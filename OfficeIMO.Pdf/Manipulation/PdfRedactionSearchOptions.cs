@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -9,11 +10,17 @@ public sealed class PdfRedactionSearchOptions {
     private readonly List<string> _formFieldNames = new List<string>();
     private readonly HashSet<PdfLogicalElementKind> _logicalElementKinds = new HashSet<PdfLogicalElementKind>();
 
+    /// <summary>Cooperative cancellation checked while deriving candidates.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>Case-sensitive literal matching when true.</summary>
     public bool MatchCase { get; set; }
 
     /// <summary>Timeout applied independently to every regular-expression match.</summary>
     public TimeSpan RegexTimeout { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Maximum candidate rectangles produced before planning stops fail-closed.</summary>
+    public int MaximumCandidates { get; set; } = 100_000;
 
     /// <summary>Regular-expression options. CultureInvariant is recommended for reproducible plans.</summary>
     public RegexOptions RegexOptions { get; set; } = RegexOptions.CultureInvariant;
