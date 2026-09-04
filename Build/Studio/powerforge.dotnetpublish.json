@@ -15,7 +15,8 @@
     },
     "EnvironmentVariables": {
       "NUGET_PACKAGES": {
-        "Value": ".nuget/packages"
+        "FromEnvironmentVariable": "NUGET_PACKAGES",
+        "Required": true
       }
     },
     "TrustedBuildPackages": [ "Avalonia", "CommunityToolkit.Mvvm" ],

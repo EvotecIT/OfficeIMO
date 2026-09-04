@@ -24,6 +24,8 @@ if ($Runtime) {
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $configPath = Join-Path $PSScriptRoot 'powerforge.dotnetpublish.json'
+$previousNuGetPackages = $env:NUGET_PACKAGES
+$env:NUGET_PACKAGES = Join-Path $repositoryRoot '.nuget/packages'
 
 Import-Module PSPublishModule -MinimumVersion 3.0.131 -Force
 
@@ -42,4 +44,5 @@ try {
     Invoke-DotNetPublish @parameters
 } finally {
     Pop-Location
+    $env:NUGET_PACKAGES = $previousNuGetPackages
 }
