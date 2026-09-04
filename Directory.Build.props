@@ -8,7 +8,7 @@
     <!-- Windows adds net472 to supported libraries while Unix builds do not. Keep a
          lock file for each evaluated framework graph so locked restore stays valid
          and reproducible on every supported Studio host. -->
-    <NuGetLockFilePath Condition="!$([MSBuild]::IsOsPlatform('Windows'))">packages.nonwindows.lock.json</NuGetLockFilePath>
+    <NuGetLockFilePath Condition="!$([MSBuild]::IsOsPlatform('Windows')) and Exists('$(MSBuildProjectDirectory)/packages.nonwindows.lock.json')">packages.nonwindows.lock.json</NuGetLockFilePath>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">
