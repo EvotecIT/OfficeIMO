@@ -20,7 +20,11 @@
     <script type="importmap"></script>
 </head>
 
-<body class="imo-body officeimo-converter-standalone">
+<body class="imo-body officeimo-converter-standalone"
+      data-webmcp-page-tool
+      data-webmcp-tool-name="convert_selected_document"
+      data-webmcp-tool-description="Convert the document already selected in the visible OfficeIMO workspace using the current browser-local route and settings."
+      data-webmcp-read-only="false">
     <div id="app">
         <main class="ocx-shell">
             <div class="ocx-container">
@@ -34,6 +38,7 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">x</span>
     </div>
+    <script type="module" src="Components/ConverterWorkspace.razor.js" data-powerforge-webmcp data-webmcp-tool-name="convert_selected_document"></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>
 
