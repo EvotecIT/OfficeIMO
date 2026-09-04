@@ -9,6 +9,7 @@
     "NoRestoreInPublish": true,
     "NoBuildInPublish": true,
     "MsBuildProperties": {
+      "DisableImplicitLibraryPacksFolder": "true",
       "RestoreLockedMode": "true",
       "RuntimeIdentifiers": "win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64"
     },
