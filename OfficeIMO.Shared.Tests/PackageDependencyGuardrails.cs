@@ -521,9 +521,12 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
-    [InlineData("OfficeIMO.Reader.Ocr.Process")]
-    [InlineData("OfficeIMO.Reader.Ocr.Tesseract")]
-    public void ReaderOcrPackages_AreIncludedInProjectBuildVersionMap(string packageId) {
+    [InlineData("OfficeIMO.Ocr")]
+    [InlineData("OfficeIMO.Ocr.Process")]
+    [InlineData("OfficeIMO.Ocr.Tesseract")]
+    [InlineData("OfficeIMO.Pdf.Ocr")]
+    [InlineData("OfficeIMO.Reader.Ocr")]
+    public void OcrPackages_AreIncludedInProjectBuildVersionMap(string packageId) {
         var projectBuildPath = GetRepositoryPath("Build/project.build.json");
         Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
 
@@ -532,6 +535,38 @@ public sealed class PackageDependencyGuardrailTests {
         JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
 
         Assert.Equal(expectedVersion, expectedVersionMap.GetProperty(packageId).GetString());
+    }
+
+    [Fact]
+    public void OcrProjects_KeepFormatAndProviderDependenciesSeparated() {
+        Assert.Empty(GetProjectReferences(GetRepositoryPath("OfficeIMO.Ocr/OfficeIMO.Ocr.csproj")));
+        Assert.Empty(GetPackageReferences(GetRepositoryPath("OfficeIMO.Ocr/OfficeIMO.Ocr.csproj")));
+
+        AssertProjectReferences(
+            "OfficeIMO.Ocr.Process/OfficeIMO.Ocr.Process.csproj",
+            "OfficeIMO.Ocr");
+        AssertProjectReferences(
+            "OfficeIMO.Ocr.Tesseract/OfficeIMO.Ocr.Tesseract.csproj",
+            "OfficeIMO.Ocr",
+            "OfficeIMO.Ocr.Process");
+        AssertProjectReferences(
+            "OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
+            "OfficeIMO.Ocr",
+            "OfficeIMO.Reader.Core");
+        AssertProjectReferences(
+            "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
+            "OfficeIMO.Ocr",
+            "OfficeIMO.Pdf");
+    }
+
+    [Fact]
+    public void ReaderAggregate_DoesNotForceOptionalOcrPackages() {
+        string[] references = GetProjectReferences(GetRepositoryPath("OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj"));
+
+        Assert.DoesNotContain(references, reference =>
+            reference.Contains("OfficeIMO.Ocr", StringComparison.OrdinalIgnoreCase) ||
+            reference.Contains("OfficeIMO.Reader.Ocr", StringComparison.OrdinalIgnoreCase) ||
+            reference.Contains("OfficeIMO.Pdf.Ocr", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -1214,6 +1249,18 @@ public sealed class PackageDependencyGuardrailTests {
             .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
             .Where(static include => !string.IsNullOrWhiteSpace(include))
             .ToArray();
+    }
+
+    private static void AssertProjectReferences(string relativeProjectPath, params string[] expectedProjectNames) {
+        string[] actual = GetProjectReferences(GetRepositoryPath(relativeProjectPath))
+            .Select(static reference => Path.GetFileNameWithoutExtension(reference))
+            .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        string[] expected = expectedProjectNames
+            .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        Assert.Equal(expected, actual, StringComparer.OrdinalIgnoreCase);
     }
 
     private static string[] GetPackageReferences(string projectPath) {

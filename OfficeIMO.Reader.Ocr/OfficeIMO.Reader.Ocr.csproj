@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Easy local OCR facade for OfficeIMO images and searchable PDFs.</Description>
+    <Description>Optional OCR execution and enrichment for normalized OfficeIMO.Reader documents.</Description>
     <AssemblyName>OfficeIMO.Reader.Ocr</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Ocr</AssemblyTitle>
     <VersionPrefix>3.3.0</VersionPrefix>
@@ -12,7 +12,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader.Ocr</PackageId>
-    <PackageTags>reader;ocr;tesseract;pdf;searchable;officeimo</PackageTags>
+    <PackageTags>reader;ocr;ingestion;enrichment;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -24,8 +24,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

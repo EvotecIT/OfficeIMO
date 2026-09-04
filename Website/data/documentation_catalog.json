@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 216,
-    "productionComponentCount": 115,
+    "projectCount": 218,
+    "productionComponentCount": 117,
     "testProjectCount": 41,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
-    "apiReferenceCount": 21,
+    "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42338
+    "conceptualWordCount": 42472
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 30
+      "componentCount": 28
     },
     {
       "name": "Formats and interoperability",
@@ -22,7 +22,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 11
+      "componentCount": 14
     },
     {
       "name": "Google Workspace",
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 18
+      "componentCount": 19
     },
     {
       "name": "Rendering surfaces",
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 498,
+      "sourceFileCount": 503,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -710,6 +710,45 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Mhtml.Pdf"
     },
     {
+      "name": "OfficeIMO.Ocr",
+      "packageId": "OfficeIMO.Ocr",
+      "category": "Foundations and integrations",
+      "description": "Dependency-light OCR contracts shared by OfficeIMO document formats and providers.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": "/api/ocr/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr"
+    },
+    {
+      "name": "OfficeIMO.Ocr.Process",
+      "packageId": "OfficeIMO.Ocr.Process",
+      "category": "Foundations and integrations",
+      "description": "Optional process-protocol provider for the engine-neutral OfficeIMO OCR contract.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Ocr.Process/OfficeIMO.Ocr.Process.csproj",
+      "sourceFileCount": 9,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": "/api/ocr-process/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Process"
+    },
+    {
+      "name": "OfficeIMO.Ocr.Tesseract",
+      "packageId": "OfficeIMO.Ocr.Tesseract",
+      "category": "Foundations and integrations",
+      "description": "Optional Tesseract CLI provider for the engine-neutral OfficeIMO OCR contract.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Ocr.Tesseract/OfficeIMO.Ocr.Tesseract.csproj",
+      "sourceFileCount": 13,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": "/api/ocr-tesseract/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Tesseract"
+    },
+    {
       "name": "OfficeIMO.OneNote",
       "packageId": "OfficeIMO.OneNote",
       "category": "Formats and interoperability",
@@ -833,11 +872,24 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1089,
+      "sourceFileCount": 1110,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
+    },
+    {
+      "name": "OfficeIMO.Pdf.Ocr",
+      "packageId": "OfficeIMO.Pdf.Ocr",
+      "category": "Publishing and conversion",
+      "description": "Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/pdf/",
+      "apiUrl": "/api/pdf-ocr/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Ocr"
     },
     {
       "name": "OfficeIMO.PowerPoint",
@@ -924,7 +976,7 @@
       "description": "Optional c2patool process adapter for C2PA Content Credential signing and verification with OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -963,7 +1015,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 114,
+      "sourceFileCount": 106,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -1116,40 +1168,14 @@
       "name": "OfficeIMO.Reader.Ocr",
       "packageId": "OfficeIMO.Reader.Ocr",
       "category": "Extraction and ingestion",
-      "description": "Easy local OCR facade for OfficeIMO images and searchable PDFs.",
+      "description": "Optional OCR execution and enrichment for normalized OfficeIMO.Reader documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
-      "sourceFileCount": 5,
-      "referencingTestProjectCount": 1,
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-ocr/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr"
-    },
-    {
-      "name": "OfficeIMO.Reader.Ocr.Process",
-      "packageId": "OfficeIMO.Reader.Ocr.Process",
-      "category": "Extraction and ingestion",
-      "description": "Optional process-protocol OCR engine for OfficeIMO.Reader.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Reader.Ocr.Process/OfficeIMO.Reader.Ocr.Process.csproj",
-      "sourceFileCount": 9,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/reader/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr.Process"
-    },
-    {
-      "name": "OfficeIMO.Reader.Ocr.Tesseract",
-      "packageId": "OfficeIMO.Reader.Ocr.Tesseract",
-      "category": "Extraction and ingestion",
-      "description": "Optional Tesseract CLI OCR engine for OfficeIMO.Reader.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Reader.Ocr.Tesseract/OfficeIMO.Reader.Ocr.Tesseract.csproj",
-      "sourceFileCount": 8,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/reader/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr.Tesseract"
     },
     {
       "name": "OfficeIMO.Reader.OneNote",
@@ -1197,7 +1223,7 @@
       "description": "PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "sourceFileCount": 18,
+      "sourceFileCount": 17,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1376,10 +1402,10 @@
       "name": "OfficeIMO.Tool",
       "packageId": "OfficeIMO.Tool",
       "category": "Specialized components",
-      "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, output, intake, and capability discovery.",
+      "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 36,
+      "sourceFileCount": 39,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1519,10 +1545,10 @@
       "name": "OfficeIMO.Workflows",
       "packageId": "OfficeIMO.Workflows",
       "category": "Specialized components",
-      "description": "Typed local document workflows that compose first-party OfficeIMO conversion and PDF capabilities.",
+      "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 15,
+      "sourceFileCount": 20,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

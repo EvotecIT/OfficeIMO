@@ -935,7 +935,7 @@ internal static partial class PdfWriter {
     private static uint Crc32(byte[] data, int offset, int length, CancellationToken cancellationToken) {
         uint crc = 0xFFFFFFFF;
         for (int i = 0; i < length; i++) {
-            if ((i & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            CheckPngLoopCancellation(PngRowLoopKind.CrcValidation, i, cancellationToken);
             crc ^= data[offset + i];
             for (int bit = 0; bit < 8; bit++) {
                 crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xEDB88320U : crc >> 1;
@@ -976,5 +976,6 @@ internal enum PngRowLoopKind {
     Unfilter,
     SixteenBitExpansion,
     Adam7PackedCopy,
-    Adam7ByteCopy
+    Adam7ByteCopy,
+    CrcValidation
 }

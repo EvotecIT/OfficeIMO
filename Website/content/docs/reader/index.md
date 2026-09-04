@@ -147,17 +147,18 @@ The result includes deterministic leaf IDs and hashes, exact source spans, overl
 
 ## Optional OCR
 
-The core `IOfficeOcrEngine` contract executes OCR candidates with bounded count, bytes, concurrency, duration, recognized text, and geometry spans. OCR output is merged as an additional source layer without replacing native text.
+`OfficeIMO.Ocr` owns the format-neutral `IOcrEngine` request, result, geometry, capability, and diagnostic contracts. `OfficeIMO.Reader.Ocr` executes Reader candidates with bounded count, bytes, concurrency, duration, recognized text, and geometry spans, then merges OCR output as an additional source layer without replacing native text.
 
-- `OfficeIMO.Reader.Ocr.Process` bridges a configured executable or service through a versioned JSON protocol.
-- `OfficeIMO.Reader.Ocr.Tesseract` uses a separately installed Tesseract CLI and exposes TSV line/word geometry.
-- Hosts can implement `IOfficeOcrEngine` or use `DelegateOfficeOcrEngine` for another local or cloud provider.
+- `OfficeIMO.Ocr.Process` bridges a configured executable or service through a versioned JSON protocol.
+- `OfficeIMO.Ocr.Tesseract` uses a separately installed Tesseract CLI and exposes TSV line/word geometry.
+- Hosts can implement `IOcrEngine` or use `DelegateOcrEngine` for another local or cloud provider.
 
-Neither provider is a transitive dependency of `OfficeIMO.Reader.Core` or `OfficeIMO.Reader.All`.
+Neither the Reader OCR integration nor either provider is a transitive dependency of `OfficeIMO.Reader.Core` or `OfficeIMO.Reader.All`. The same engine can be reused with `OfficeIMO.Pdf.Ocr` or a future format integration.
 
 ## Package and ownership boundaries
 
-- `OfficeIMO.Reader.Core` owns the shared result, routing, limits, diagnostics, processing, structured extraction, and hierarchy contracts.
+- `OfficeIMO.Reader.Core` owns the shared result, routing, reader limits, diagnostics, processing, structured extraction, and hierarchy contracts. It only carries OCR candidate metadata.
+- `OfficeIMO.Ocr` owns recognition contracts; `OfficeIMO.Reader.Ocr` owns optional Reader execution and enrichment.
 - Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, and other format packages own their parsing and inspection models.
 - Modular Reader packages adapt those models into the shared result.
 - Storage, vector databases, AI clients, and platform-specific services belong in the consuming application or an opt-in provider.

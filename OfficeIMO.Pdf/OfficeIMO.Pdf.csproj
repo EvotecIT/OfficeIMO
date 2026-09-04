@@ -66,6 +66,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Ocr" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
