@@ -27,7 +27,7 @@ The website publishes two API surfaces.
 
 Generated from compiled XML docs and assemblies during the website pipeline.
 
-Current packages wired into [`Website/pipeline.json`](../Website/pipeline.json):
+The generated API surface includes the main document packages and their optional integrations. OCR is published as five separate API routes so consumers can see the neutral contract, providers, and format adapters independently:
 
 - `OfficeIMO.Word`
 - `OfficeIMO.Excel`
@@ -36,6 +36,13 @@ Current packages wired into [`Website/pipeline.json`](../Website/pipeline.json):
 - `OfficeIMO.CSV`
 - `OfficeIMO.Visio`
 - `OfficeIMO.Reader`
+- `OfficeIMO.Ocr`
+- `OfficeIMO.Ocr.Process`
+- `OfficeIMO.Ocr.Tesseract`
+- `OfficeIMO.Reader.Ocr`
+- `OfficeIMO.Pdf.Ocr`
+
+[`Website/pipeline.json`](../Website/pipeline.json) is the complete source of truth for every generated API route.
 
 The merged cross-reference map is committed at [`Website/data/xrefmap.json`](../Website/data/xrefmap.json).
 

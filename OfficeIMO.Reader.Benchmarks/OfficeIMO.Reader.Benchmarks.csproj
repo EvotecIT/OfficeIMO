@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Ocr.Process\OfficeIMO.Ocr.Process.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />

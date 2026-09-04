@@ -7,7 +7,7 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.3 contains intentional PDF and OCR API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
 
 Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `OfficeIMO.Word.Legacy` or `OfficeIMO.Excel.Legacy`. Their public namespaces and types now ship from `OfficeIMO.Word` and `OfficeIMO.Excel`; there are no separate 3.3 legacy packages. Do not retain an earlier preview package alongside the 3.3 main package because the duplicate fully qualified types can cause `CS0433` compile errors.
 
@@ -24,6 +24,53 @@ Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `Of
 Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
 
 Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
+
+## OfficeIMO 3.3: reusable OCR packages
+
+OCR contracts no longer belong to Reader, and PDF no longer owns a second provider interface. Applications can configure one `OfficeIMO.Ocr.IOcrEngine` and reuse it for Reader candidates, PDF pages, direct images, and future format integrations.
+
+Add only the integrations and providers the application uses:
+
+```powershell
+dotnet add package OfficeIMO.Ocr                 # contracts or a custom provider
+dotnet add package OfficeIMO.Reader.Ocr          # Reader candidate execution
+dotnet add package OfficeIMO.Pdf.Ocr             # PDF page OCR/searchable output
+dotnet add package OfficeIMO.Ocr.Process         # optional executable provider
+dotnet add package OfficeIMO.Ocr.Tesseract       # optional Tesseract provider
+```
+
+`OfficeIMO.Reader.Core`, `OfficeIMO.Reader.All`, and `OfficeIMO.Pdf` do not bring an OCR integration, process runner, Tesseract provider, native executable, language data, or cloud SDK transitively.
+
+| OfficeIMO 3.2 | OfficeIMO 3.3 |
+| --- | --- |
+| `OfficeIMO.Reader.IOfficeOcrEngine` | `OfficeIMO.Ocr.IOcrEngine` |
+| `DelegateOfficeOcrEngine` | `DelegateOcrEngine` |
+| `OfficeOcrEngineRequest` / `OfficeOcrEngineResult` | `OcrRequest` / `OcrResult` |
+| `OfficeOcrEngineCapabilities` | `OcrEngineCapabilities` |
+| `OfficeOcrTextSpan`, `OfficeOcrTextSpanLevel`, `OfficeOcrCoordinateUnit` | `OcrTextSpan`, `OcrTextSpanLevel`, `OcrCoordinateUnit` |
+| Reader-owned `OfficeDocumentRegion` in provider results | Format-neutral `OcrRegion` |
+| `ValueTask<OfficeOcrEngineResult> RecognizeAsync(...)` | `Task<OcrResult> RecognizeAsync(...)` |
+| `OfficeIMO.Reader.Ocr.Process` package and namespace | `OfficeIMO.Ocr.Process` |
+| `ProcessOfficeOcrEngine` / `ProcessOfficeOcrEngineOptions` | `ProcessOcrEngine` / `ProcessOcrEngineOptions` |
+| `OfficeIMO.Reader.Ocr.Tesseract` package and namespace | `OfficeIMO.Ocr.Tesseract` |
+| `OfficeOcr`, `OfficeOcrSession`, `OfficeOcrOptions` | `TesseractOcr`, `TesseractOcrSession`, `TesseractOcrSessionOptions` |
+| `OfficeOcrLanguage` / `OfficeOcrRuntimeEvidence` | `TesseractOcrLanguage` / `TesseractOcrRuntimeEvidence` |
+| `IPdfOcrProvider`, `PdfOcrRequest`, `PdfOcrResponse`, `PdfOcrWord` | Use `IOcrEngine`, `OcrRequest`, `OcrResult`, and `OcrTextSpan` directly |
+| `OfficeOcrEnginePdfProvider` | Removed; `OfficeIMO.Pdf.Ocr` accepts the configured engine directly |
+| `pdf.Ocr.ReadAsync(provider, options)` | `pdf.ReadWithOcrAsync(engine, options)` |
+| `pdf.Ocr.MakeSearchableAsync(provider, options)` | `pdf.MakeSearchableAsync(engine, options)` |
+
+Reader-specific candidate and asset objects are no longer passed to providers. `OcrRequest` exposes neutral payload, media type, file/source/candidate identifiers, candidate kind, page number, pixel dimensions, source region, language, and scalar provider options. `OcrResult.Diagnostics` now uses the neutral `OcrDiagnostic` type; `OfficeIMO.Reader.Ocr` maps those diagnostics into Reader results.
+
+Reader and PDF integrations invoke engines through `OcrEngineRunner.RecognizeAsync`. The runner applies a total per-call timeout and one process-wide per-instance gate when `SupportsConcurrentRequests` is `false`; a provider that ignores cancellation keeps that gate until its task settles. Custom integrations should use the runner too. Direct calls to `IOcrEngine.RecognizeAsync` are raw provider calls and do not receive shared serialization or timeout supervision.
+
+`OfficeDocumentOcrExecutionOptions` now separately bounds top-level text, total spans, aggregate span text/metadata, result metadata, provider diagnostic count/text, and provider diagnostic attribute count/text. `PdfOcrMergeOptions.ProviderTimeout` bounds each rendered-page call, while `MaxOcrSpansPerPage`, `MaxOcrHierarchyCharactersPerPage`, and `MaxProviderMetadataCharactersPerPage` bound provider-controlled collections, hierarchy identifiers, and provenance before PDF projection.
+
+The former all-in-one `OfficeOcrOptions` is intentionally split. Move Tesseract language, engine, language-data, and provisioning settings to `TesseractOcrSessionOptions`; pass PDF rendering and merge settings through `PdfOcrMergeOptions`. `OutputConflictPolicy` is no longer hidden in an OCR facade: call `PdfDocument.SaveAsync(...)` with the required `OfficeConversionFileConflictPolicy` after `MakeSearchableAsync(...)`. Direct image recognition is now `TesseractOcr.RecognizeFileAsync(...)` or `TesseractOcrSession.RecognizeAsync(...)`.
+
+The process protocol is intentionally incompatible with the Reader-owned version. Update bridges to request schema `officeimo.ocr.process-request`, response schema `officeimo.ocr.process-response`, and schema version `2`. The payload contains neutral request/result objects rather than Reader models.
+
+PDF OCR providers should return span bounds in pixels relative to the supplied raster, points relative to the request region, or normalized `0..1` coordinates. `OfficeIMO.Pdf.Ocr` projects each unit into cropped and rotated visual PDF points. Provider sequence and optional block/paragraph/line identifiers carry logical order; language settings are recognition configuration and are not structure-classification hints.
 
 ## OfficeIMO 3.3: one PDF load and semantic read contract
 
@@ -99,7 +146,7 @@ intentionally larger inputs.
 | `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
 | `pdf.Read.ExportImages(...)` | `pdf.Render.ExportImages(...)` |
 | `pdf.Read.LayoutDebugOverlay(...)` / `pdf.Read.RenderCapabilityDiagnostics(...)` | `pdf.Render.LayoutDebugOverlay(...)` / `pdf.Render.CapabilityDiagnostics(...)` |
-| `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
+| `pdf.Read.OcrAsync(...)` | Add `OfficeIMO.Pdf.Ocr`, then call `pdf.ReadWithOcrAsync(engine, options)` |
 | `pdf.Read.Attachments()` / `TryAttachments()` | `pdf.Attachments.Extract()` / `pdf.Attachments.TryExtract()`; metadata remains on `result.Attachments` |
 | `pdf.Read.JavaScripts()` | `pdf.JavaScript.List()` |
 | `pdf.Read.TryJavaScripts()` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.JavaScript.List()` inside the application's existing exception or result boundary |
@@ -245,7 +292,7 @@ cell text instead of rejecting valid source schemas.
 HTML table export omits `<thead>` when schema is unknown; Markdown emits the
 empty header row required by Markdown table syntax without inventing labels.
 
-`OfficeOcrTextSpan`, `PdfOcrWord`, and `PdfRecognizedWord` can now carry optional
+`OcrTextSpan` and `PdfRecognizedWord` can carry optional
 block, paragraph, and line identifiers. OCR adapters should preserve the
 provider's logical sequence and hierarchy, particularly for right-to-left and
 mixed-direction text. Line identifiers are scoped by their block and paragraph
@@ -267,12 +314,12 @@ hierarchy-free OCR word order, line order, and recursive column traversal.
 not enough. `PdfLogicalPage.Text` and searchable OCR output now use the same
 canonical semantic order as the document result rather than a separate
 left-to-right reconstruction.
-`OfficeOcrEnginePdfProviderOptions.ConfidenceWhenUnavailable` now defaults to
-zero instead of treating missing confidence as certain. Set an explicit
-fallback only when the selected OCR provider's missing-confidence contract is
-known and trusted. Selecting an OCR language or script is still valid recognition
-configuration; it must not be used as a shortcut for table, list, paragraph, or
-caption classification.
+`PdfOcrMergeOptions.ConfidenceWhenUnavailable` now defaults to zero instead of
+treating missing confidence as certain. Set an explicit fallback only when the
+selected OCR provider's missing-confidence contract is known and trusted.
+Selecting an OCR language or script is still valid recognition configuration;
+it must not be used as a shortcut for table, list, paragraph, or caption
+classification.
 
 ## OfficeIMO 3.2: aggregate Reader legacy-format registrations
 

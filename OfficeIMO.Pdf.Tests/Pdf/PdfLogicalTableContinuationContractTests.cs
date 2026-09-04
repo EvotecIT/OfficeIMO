@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Threading;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
 using Xunit;
 
 namespace OfficeIMO.Pdf.Tests;

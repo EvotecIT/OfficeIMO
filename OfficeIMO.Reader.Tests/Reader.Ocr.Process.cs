@@ -1,5 +1,6 @@
+using OfficeIMO.Ocr;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Ocr.Process;
+using OfficeIMO.Ocr.Process;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -10,17 +11,17 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrProcessTests {
     [Fact]
-    public void OfficeOcrTemporaryStorage_CreatesOwnerOnlyUnixDirectoryAndFile() {
+    public void OcrTemporaryStorage_CreatesOwnerOnlyUnixDirectoryAndFile() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string root = Path.Combine(Path.GetTempPath(), "officeimo-private-ocr-test-" + Guid.NewGuid().ToString("N"));
         try {
-            string requestDirectory = OfficeOcrTemporaryStorage.CreateRequestDirectory(root, "request-");
+            string requestDirectory = OcrTemporaryStorage.CreateRequestDirectory(root, "request-");
             string payloadPath = Path.Combine(requestDirectory, "payload.bin");
             string outputPath = Path.Combine(requestDirectory, "result.json");
-            OfficeOcrTemporaryStorage.WriteAllBytes(payloadPath, new byte[] { 1, 2, 3 });
+            OcrTemporaryStorage.WriteAllBytes(payloadPath, new byte[] { 1, 2, 3 });
             File.WriteAllText(outputPath, "{}");
-            OfficeOcrTemporaryStorage.EnsurePrivateFile(outputPath);
+            OcrTemporaryStorage.EnsurePrivateFile(outputPath);
 
             const UnixFileMode allPermissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
                 | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute
@@ -41,32 +42,51 @@ public sealed class ReaderOcrProcessTests {
     }
 
     [Fact]
-    public void ProcessOfficeOcrProtocol_RejectsIncompatibleResponseVersion() {
-        const string json = "{\"schemaId\":\"officeimo.reader.ocr.process-response\",\"schemaVersion\":2,\"result\":{\"text\":\"late\"}}";
+    public void ProcessOcrProtocol_RejectsIncompatibleResponseVersion() {
+        const string json = "{\"schemaId\":\"officeimo.ocr.process-response\",\"schemaVersion\":999,\"result\":{\"text\":\"late\"}}";
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOfficeOcrProtocol.DeserializeResult(json));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOcrProtocol.DeserializeResult(json));
 
         Assert.Contains("version", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ProcessOcrProtocol_SerializesTheNeutralVersionTwoRequest() {
+        string json = ProcessOcrProtocol.SerializeRequest(new ProcessOcrRequest {
+            CandidateId = "image-4",
+            CandidateKind = "worksheet-image",
+            SourceId = "workbook-2",
+            PageNumber = 3,
+            MediaType = "image/png",
+            InputPath = "input.png",
+            OutputPath = "result.json"
+        });
+
+        Assert.Contains("\"schemaId\":\"officeimo.ocr.process-request\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":2", json, StringComparison.Ordinal);
+        Assert.Contains("\"candidateKind\":\"worksheet-image\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"sourceId\":\"workbook-2\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"assetId\"", json, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("{\"schemaVersion\":1,\"result\":{\"text\":\"unversioned\"}}", "schemaId")]
-    [InlineData("{\"schemaId\":\"officeimo.reader.ocr.process-response\",\"result\":{\"text\":\"unversioned\"}}", "schemaVersion")]
-    public void ProcessOfficeOcrProtocol_RejectsMissingResponseSchemaFields(string json, string field) {
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOfficeOcrProtocol.DeserializeResult(json));
+    [InlineData("{\"schemaId\":\"officeimo.ocr.process-response\",\"result\":{\"text\":\"unversioned\"}}", "schemaVersion")]
+    public void ProcessOcrProtocol_RejectsMissingResponseSchemaFields(string json, string field) {
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOcrProtocol.DeserializeResult(json));
 
         Assert.Contains(field, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task OfficeOcrProcessRunner_DrainsAndBoundsStandardOutput() {
+    public async Task OcrProcessRunner_DrainsAndBoundsStandardOutput() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-runner-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
             bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             string scriptPath = Path.Combine(directory, windows ? "output.cmd" : "output.sh");
             File.WriteAllText(scriptPath, windows ? "@echo 1234567890\r\n" : "printf 1234567890\n");
-            OfficeOcrProcessResult result = await OfficeOcrProcessRunner.RunAsync(new OfficeOcrProcessCommand {
+            OcrProcessResult result = await OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = windows ? Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe" : "/bin/sh",
                 Arguments = windows ? new[] { "/d", "/c", scriptPath } : new[] { scriptPath },
                 MaxStandardOutputCharacters = 5,
@@ -82,7 +102,7 @@ public sealed class ReaderOcrProcessTests {
     }
 
     [Fact]
-    public async Task OfficeOcrProcessRunner_TerminatesWrapperDescendantsAfterTimeout() {
+    public async Task OcrProcessRunner_TerminatesWrapperDescendantsAfterTimeout() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-runner-pipe-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -93,7 +113,7 @@ public sealed class ReaderOcrProcessTests {
             File.WriteAllText(scriptPath, "(trap '' HUP; sleep 30) &\necho $! > \"$1\"\nexit 0\n");
             var stopwatch = Stopwatch.StartNew();
 
-            await Assert.ThrowsAsync<TimeoutException>(() => OfficeOcrProcessRunner.RunAsync(new OfficeOcrProcessCommand {
+            await Assert.ThrowsAsync<TimeoutException>(() => OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = "/bin/sh",
                 Arguments = new[] { scriptPath, childProcessPath },
                 Timeout = TimeSpan.FromMilliseconds(100)
@@ -112,18 +132,18 @@ public sealed class ReaderOcrProcessTests {
     }
 
     [Fact]
-    public async Task ProcessOfficeOcrEngine_RoundTripsVersionedJsonProtocolWithoutShellExpansion() {
+    public async Task ProcessOcrEngine_RoundTripsVersionedJsonProtocolWithoutShellExpansion() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-process-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
             string responsePath = Path.Combine(directory, "fixture result.json");
-            File.WriteAllText(responsePath, ProcessOfficeOcrProtocol.SerializeResult(new OfficeOcrEngineResult {
+            File.WriteAllText(responsePath, ProcessOcrProtocol.SerializeResult(new OcrResult {
                 Text = "Invoice 1042",
                 Confidence = 0.97,
                 Language = "eng",
                 Provider = "fixture-process",
                 Spans = new[] {
-                    new OfficeOcrTextSpan { Sequence = 0, Level = OfficeOcrTextSpanLevel.Character, Text = "I", Confidence = 0.99 }
+                    new OcrTextSpan { Sequence = 0, Level = OcrTextSpanLevel.Character, Text = "I", Confidence = 0.99 }
                 }
             }));
             bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -132,7 +152,7 @@ public sealed class ReaderOcrProcessTests {
             var arguments = windows
                 ? new[] { "/d", "/c", scriptPath, responsePath, "{output}" }
                 : new[] { scriptPath, responsePath, "{output}" };
-            var engine = new ProcessOfficeOcrEngine(new ProcessOfficeOcrEngineOptions {
+            var engine = new ProcessOcrEngine(new ProcessOcrEngineOptions {
                 FileName = windows ? Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe" : "/bin/sh",
                 Arguments = arguments,
                 Id = "fixture-process",
@@ -140,17 +160,19 @@ public sealed class ReaderOcrProcessTests {
             });
             byte[] payload = new byte[] { 1, 2, 3 };
 
-            OfficeOcrEngineResult result = await engine.RecognizeAsync(new OfficeOcrEngineRequest {
-                Candidate = new OfficeDocumentOcrCandidate { Id = "ocr-1", Kind = "image", AssetId = "asset-1" },
-                Asset = new OfficeDocumentAsset { Id = "asset-1", Kind = "image", MediaType = "image/png", Extension = ".png" },
+            OcrResult result = await engine.RecognizeAsync(new OcrRequest {
                 Payload = payload,
+                MediaType = "image/png",
+                FileName = "asset-1.png",
+                CandidateId = "ocr-1",
+                CandidateKind = "image",
                 Language = "eng",
-                Source = new OfficeDocumentSource { Path = "scan.pdf" }
+                SourceName = "scan.pdf"
             });
 
             Assert.Equal("Invoice 1042", result.Text);
             Assert.Equal("fixture-process", result.Provider);
-            Assert.Equal(OfficeOcrTextSpanLevel.Character, Assert.Single(result.Spans).Level);
+            Assert.Equal(OcrTextSpanLevel.Character, Assert.Single(result.Spans).Level);
             Assert.Empty(Directory.EnumerateDirectories(directory, "officeimo-ocr-*"));
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);

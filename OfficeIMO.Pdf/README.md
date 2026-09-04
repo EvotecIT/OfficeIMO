@@ -20,6 +20,8 @@ signatures:
 dotnet add package OfficeIMO.Security
 ```
 
+Install `OfficeIMO.Pdf.Ocr` plus a provider only when the application recognizes scanned pages or creates searchable PDFs. The base PDF package has no OCR runtime dependency.
+
 ## Quick start
 
 ```csharp
@@ -600,18 +602,22 @@ IReadOnlyList<string> visualTextByPage = visual.Pages
     .ToArray();
 ```
 
-Image-only and mixed pages can be parsed through a caller-owned OCR provider
-without adding an OCR runtime to `OfficeIMO.Pdf`. Accepted words are normalized
-to cropped, rotated visual page coordinates, de-duplicated against native text,
-and projected into the same logical model used by reverse converters:
+Image-only and mixed pages use the optional `OfficeIMO.Pdf.Ocr` integration with
+any `OfficeIMO.Ocr.IOcrEngine`. This keeps OCR contracts, process execution,
+Tesseract, cloud SDKs, and native runtimes outside the base PDF graph. Accepted
+words are normalized to cropped, rotated visual page coordinates,
+de-duplicated against native text, and projected into the same logical model
+used by reverse converters:
 
 ```csharp
+using OfficeIMO.Ocr;
+using OfficeIMO.Pdf.Ocr;
+
 static async Task<PdfDocumentReadResult> ReadWithOcrAsync(
     string path,
-    IPdfOcrProvider provider) {
-    PdfOcrMergeResult ocr = await PdfDocument
-        .Load(path)
-        .Ocr.ReadAsync(provider, new PdfOcrMergeOptions {
+    IOcrEngine engine) {
+    PdfOcrMergeResult ocr = await PdfDocument.Load(path)
+        .ReadWithOcrAsync(engine, new PdfOcrMergeOptions {
             MinimumConfidence = 0.75
         });
 
@@ -626,8 +632,10 @@ retains provider confidence and direct visual bounds. OCR table evidence require
 repeated aligned columns, compact cell content, and stable row rhythm, so ordinary
 two-column prose remains separate reading-order content. The work is bounded by
 the OCR merge budgets and the shared `ReadOptions` pipeline limits. Word, Excel,
-PowerPoint, HTML, RTF, ODT, ODS, and ODP packages consume
-`Document` directly through their existing logical-PDF overloads.
+PowerPoint, HTML, RTF, ODT, ODS, and ODP packages consume `Document` directly
+through their existing logical-PDF overloads. See the
+[`OfficeIMO.Pdf.Ocr` README](../OfficeIMO.Pdf.Ocr/README.md) for installation,
+searchable output, providers, and resource limits.
 
 Native and hierarchy-free OCR text use the same direction policy. Automatic
 mode selects the page's first strong Unicode direction; set an explicit policy

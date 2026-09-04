@@ -1,5 +1,6 @@
+using OfficeIMO.Ocr;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Ocr.Tesseract;
+using OfficeIMO.Ocr.Tesseract;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -19,16 +20,16 @@ public sealed class ReaderOcrTesseractTests {
             + "5\t1\t1\t1\t1\t2\t55\t20\t30\t10\t80\t1042\n"
             + "5\t1\t1\t1\t2\t1\t10\t40\t50\t12\t100\tTotal\n";
 
-        OfficeOcrEngineResult result = TesseractTsvParser.Parse(tsv, "eng");
+        OcrResult result = TesseractTsvParser.Parse(tsv, "eng");
 
         Assert.Equal("Invoice 1042" + Environment.NewLine + "Total", result.Text);
         Assert.Equal(0.9D, result.Confidence!.Value, precision: 6);
-        Assert.Equal(2, result.Spans.Count(span => span.Level == OfficeOcrTextSpanLevel.Line));
-        Assert.Equal(3, result.Spans.Count(span => span.Level == OfficeOcrTextSpanLevel.Word));
-        OfficeOcrTextSpan firstLine = Assert.Single(result.Spans, span => span.Level == OfficeOcrTextSpanLevel.Line && span.Text == "Invoice 1042");
+        Assert.Equal(2, result.Spans.Count(span => span.Level == OcrTextSpanLevel.Line));
+        Assert.Equal(3, result.Spans.Count(span => span.Level == OcrTextSpanLevel.Word));
+        OcrTextSpan firstLine = Assert.Single(result.Spans, span => span.Level == OcrTextSpanLevel.Line && span.Text == "Invoice 1042");
         Assert.Equal(10D, firstLine.Region!.X);
         Assert.Equal(75D, firstLine.Region.Width);
-        Assert.Equal(OfficeOcrCoordinateUnit.Pixels, firstLine.CoordinateUnit);
+        Assert.Equal(OcrCoordinateUnit.Pixels, firstLine.CoordinateUnit);
         Assert.Equal("1:1", firstLine.BlockId);
         Assert.Equal("1:1:1", firstLine.ParagraphId);
         Assert.Equal("1:1:1:1", firstLine.LineId);

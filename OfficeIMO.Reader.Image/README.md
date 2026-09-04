@@ -15,6 +15,6 @@ Console.WriteLine(result.Markdown);
 Console.WriteLine(result.Assets[0].MediaType);
 ```
 
-PNG, JPEG, GIF, BMP, TIFF, SVG, EMF, WMF, ICO, PCX, and WebP extensions are registered. Identification is local and header-only. OCR execution remains an explicit host choice through the core `IOfficeOcrEngine` contract.
+PNG, JPEG, GIF, BMP, TIFF, SVG, EMF, WMF, ICO, PCX, and WebP extensions are registered. Identification is local and header-only. OCR execution remains an explicit host choice through `OfficeIMO.Reader.Ocr` and the shared `OfficeIMO.Ocr.IOcrEngine` contract.
 
 The handler applies a 128 MiB default input ceiling when `ReaderOptions.MaxInputBytes` is not set. Set `IncludePayload = false` together with `CreateOcrCandidate = false` when only metadata is required.
