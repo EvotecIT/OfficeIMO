@@ -520,7 +520,8 @@ internal sealed class HtmlInlineRun {
         IElement? ownerElement = null,
         IElement? positionedMarkerElement = null,
         string? logicalText = null,
-        bool textTransformPending = false) {
+        bool textTransformPending = false,
+        string? leaderPattern = null) {
         Text = text;
         LogicalText = logicalText ?? text;
         Style = style;
@@ -532,6 +533,7 @@ internal sealed class HtmlInlineRun {
         PositionedMarkerElement = positionedMarkerElement;
         SemanticRole = style.SemanticRole;
         TextTransformPending = textTransformPending;
+        LeaderPattern = leaderPattern;
     }
 
     internal HtmlInlineRun(
@@ -607,6 +609,7 @@ internal sealed class HtmlInlineRun {
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
     internal bool TextTransformPending { get; private set; }
+    internal string? LeaderPattern { get; }
 
     internal void CompleteTextTransform(string text) {
         Text = text;

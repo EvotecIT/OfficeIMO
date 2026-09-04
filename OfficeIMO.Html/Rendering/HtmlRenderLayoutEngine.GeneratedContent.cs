@@ -103,12 +103,39 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlGeneratedContentFragment fragment = content.Fragments[index];
             string fragmentSource = fragment.Kind == HtmlGeneratedContentFragmentKind.Text
                 ? source
-                : source + ":content-image[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
+                : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()
+                    + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
                 string text = ApplyTextTransform(fragment.Value, style);
                 if (text.Length > 0) {
                     runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
                 }
+                continue;
+            }
+
+            if (fragment.Kind == HtmlGeneratedContentFragmentKind.Leader) {
+                runs.Add(new HtmlInlineRun(
+                    string.Empty,
+                    style,
+                    link,
+                    fragmentSource,
+                    paintOffsetX,
+                    paintOffsetY,
+                    element,
+                    logicalText: string.Empty,
+                    leaderPattern: fragment.Value));
+                continue;
+            }
+
+            if (fragment.Kind == HtmlGeneratedContentFragmentKind.TargetPage) {
+                int pageNumber = _generatedContent.TryGetTargetPage(fragment.Value, out int resolvedPage) ? resolvedPage : 8888;
+                string counterStyle = string.IsNullOrWhiteSpace(fragment.Format) ? "decimal" : fragment.Format!;
+                string pageText = _counterStyles.TryFormat(pageNumber, counterStyle, out string custom, out _)
+                    ? custom
+                    : HtmlCounterStyleFormatter.TryFormat(pageNumber, counterStyle, out string standard, out _)
+                        ? standard
+                        : pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                runs.Add(new HtmlInlineRun(pageText, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
                 continue;
             }
 

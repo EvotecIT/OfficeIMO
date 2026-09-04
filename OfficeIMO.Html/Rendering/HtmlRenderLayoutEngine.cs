@@ -11,7 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
-    private readonly HtmlGeneratedContentSet _generatedContent;
+    private HtmlGeneratedContentSet _generatedContent;
     private readonly HtmlCounterStyleRegistry _counterStyles;
     private readonly HtmlResourceSession _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
@@ -157,6 +157,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     internal HtmlRenderDocument Render() {
         CheckCancellation();
         IdentifyStaticRadioGroups();
+        HtmlRenderDocument rendered = RenderSinglePass();
+        if (_options.Mode != HtmlRenderMode.Paged || !_generatedContent.HasTargetPageReferences) return rendered;
+
+        for (int pass = 0; pass < 3; pass++) {
+            IReadOnlyDictionary<string, int> targetPages = ResolveTargetPages(rendered);
+            if (_generatedContent.TargetPagesEqual(targetPages)) break;
+            _generatedContent = _generatedContent.WithTargetPages(targetPages);
+            ResetLayoutPassState();
+            rendered = RenderSinglePass();
+        }
+        return rendered;
+    }
+
+    private HtmlRenderDocument RenderSinglePass() {
+        CheckCancellation();
         IElement root = _document.Body ?? _document.DocumentElement ?? throw new InvalidOperationException("The parsed HTML document has no renderable root element.");
         HtmlCssPageGeometry initialGeometry = _options.Mode == HtmlRenderMode.Paged
             ? _pageRules.ResolveGeometry(1, null, _options)
@@ -207,6 +222,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return rendered;
     }
 
+    private IReadOnlyDictionary<string, int> ResolveTargetPages(HtmlRenderDocument rendered) {
+        var targetPages = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (string id in _generatedContent.TargetPageIds) {
+            IElement? target = _document.GetElementById(id);
+            if (target == null) continue;
+            string targetSource = HtmlRenderStyleResolver.DescribeSource(target);
+            string anchorSource = HtmlRenderStyleResolver.DescribeSource(target) + ":target-page-anchor";
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                if (!ContainsVisualSource(page.Scene, targetSource)) continue;
+                targetPages[id] = page.PageNumber;
+                break;
+            }
+            if (targetPages.ContainsKey(id)) continue;
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                if (!ContainsVisualSource(page.Scene, anchorSource)) continue;
+                targetPages[id] = page.PageNumber;
+                break;
+            }
+        }
+        return targetPages;
+    }
+
+    private static bool ContainsVisualSource(IEnumerable<HtmlRenderVisual> visuals, string source) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (string.Equals(visual.Source, source, StringComparison.Ordinal)) return true;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderSemanticGroup semantic ? semantic.Visuals
+                : visual is HtmlRenderLogicalTextGroup logical ? logical.Visuals
+                : visual is HtmlRenderClipGroup clip ? clip.Visuals
+                : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
+                : visual is HtmlRenderEffectGroup effect ? effect.Visuals
+                : visual is HtmlRenderLayoutRegion region ? region.Visuals
+                : visual is HtmlRenderFormField form ? form.Visuals
+                : null;
+            if (children != null && ContainsVisualSource(children, source)) return true;
+        }
+        return false;
+    }
+
     private static bool SamePageGeometry(HtmlCssPageGeometry left, HtmlCssPageGeometry right) =>
         Math.Abs(left.Width - right.Width) <= 0.0001D
         && Math.Abs(left.Height - right.Height) <= 0.0001D
@@ -216,10 +269,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
 
     private void ResetLayoutPassState() {
+        _surfaceRootElement = null;
+        _surfaceRootStyle = null;
+        _viewportOverflowElement = null;
+        _viewportOverflowStyle = null;
         _paintOrder = 0;
         _positionedSourceOrder = 0;
+        _nextLogicalTextOrder = 0;
         _nextSemanticNodeId = 0;
         _backgroundImageTileCount = 0;
+        _layoutOperationCount = 0;
         _fixedPositionedElements.Clear();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();
@@ -228,14 +287,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _inlineContainingRects.Clear();
         _inlineStaticPositions.Clear();
         _inlineStackingElements.Clear();
+        _suppressedEditableLayoutRegionMarkers.Clear();
         _layoutStyles.Clear();
         _containsInFlowFloatCache.Clear();
         _rootStackingPaintOrders.Clear();
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
+        _flattenedSemanticBoundaries.Clear();
         _bookmarkDefinitions.Clear();
+        _runningStringValues.Clear();
         _runningElementSnapshots.Clear();
+        _currentPageRunningStringAssignments.Clear();
         _nextRunningElementSnapshotId = 0;
+        _currentRunningStringPage = null;
         _formFieldNames.Clear();
         _formFieldNamesByElement.Clear();
         _radioFieldNames.Clear();

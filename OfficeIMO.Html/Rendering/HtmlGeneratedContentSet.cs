@@ -4,9 +4,13 @@ namespace OfficeIMO.Html;
 
 internal sealed class HtmlGeneratedContentSet {
     private readonly IReadOnlyDictionary<IElement, HtmlGeneratedPseudoContentPair> _content;
+    private readonly IReadOnlyDictionary<string, int> _targetPages;
 
-    internal HtmlGeneratedContentSet(IReadOnlyDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
+    internal HtmlGeneratedContentSet(
+        IReadOnlyDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
+        IReadOnlyDictionary<string, int>? targetPages = null) {
         _content = content ?? throw new ArgumentNullException(nameof(content));
+        _targetPages = targetPages ?? new Dictionary<string, int>(StringComparer.Ordinal);
     }
 
     internal bool TryGet(IElement element, HtmlPseudoElementKind kind, out string content) {
@@ -41,6 +45,34 @@ internal sealed class HtmlGeneratedContentSet {
         kind == HtmlPseudoElementKind.Marker
         && _content.TryGetValue(element, out HtmlGeneratedPseudoContentPair? pair)
         && pair.SuppressMarker;
+
+    internal bool HasTargetPageReferences => _content.Values.Any(pair =>
+        ContainsTargetPage(pair.Before) || ContainsTargetPage(pair.After) || ContainsTargetPage(pair.Marker));
+
+    internal IReadOnlyCollection<string> TargetPageIds => _content.Values
+        .SelectMany(pair => EnumerateTargetPageIds(pair.Before)
+            .Concat(EnumerateTargetPageIds(pair.After))
+            .Concat(EnumerateTargetPageIds(pair.Marker)))
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
+
+    internal HtmlGeneratedContentSet WithTargetPages(IReadOnlyDictionary<string, int> targetPages) =>
+        new HtmlGeneratedContentSet(_content, targetPages);
+
+    internal bool TryGetTargetPage(string id, out int pageNumber) => _targetPages.TryGetValue(id, out pageNumber);
+
+    internal bool TargetPagesEqual(IReadOnlyDictionary<string, int> targetPages) =>
+        _targetPages.Count == targetPages.Count
+        && _targetPages.All(pair => targetPages.TryGetValue(pair.Key, out int page) && page == pair.Value);
+
+    private static bool ContainsTargetPage(HtmlGeneratedContent? content) =>
+        content != null && content.Fragments.Any(fragment => fragment.Kind == HtmlGeneratedContentFragmentKind.TargetPage);
+
+    private static IEnumerable<string> EnumerateTargetPageIds(HtmlGeneratedContent? content) =>
+        content?.Fragments
+            .Where(fragment => fragment.Kind == HtmlGeneratedContentFragmentKind.TargetPage)
+            .Select(fragment => fragment.Value)
+        ?? Enumerable.Empty<string>();
 }
 
 internal sealed class HtmlGeneratedPseudoContentPair {
@@ -62,7 +94,12 @@ internal sealed class HtmlGeneratedContent {
 
 internal enum HtmlGeneratedContentFragmentKind {
     Text,
-    Image
+    Image,
+    Leader,
+    TargetPage
 }
 
-internal readonly record struct HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind Kind, string Value);
+internal readonly record struct HtmlGeneratedContentFragment(
+    HtmlGeneratedContentFragmentKind Kind,
+    string Value,
+    string? Format = null);

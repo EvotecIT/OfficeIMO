@@ -329,6 +329,67 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_ResolvesTargetTextListCountersAndLeaders() {
+        const string html = """
+            <style>
+              ol { margin:0; padding:0 0 0 24px; }
+              .xref::before { content:target-text(attr(href)) " " target-counter(attr(href), list-item, upper-roman) leader(solid); }
+            </style>
+            <ol><li id="first">Referenced item</li><li>Other item</li></ol>
+            <a class="xref" href="#first">Index</a>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 260D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> generated = rendered.Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Source == "a.xref::before")
+            .ToList();
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        HtmlRenderShape leader = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source != null && shape.Source.StartsWith("a.xref::before:content-leader", StringComparison.Ordinal));
+
+        Assert.Contains(generated, text => text.Text == "Referenced item I");
+        Assert.Equal(OfficeStrokeDashStyle.Solid, leader.Shape.StrokeDashStyle);
+        Assert.True(leader.Width > 40D);
+        Assert.DoesNotContain("_", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_ResolvesTargetPagesAfterBoundedPagedReflow() {
+        const string html = """
+            <style>
+              @page { size:240px 90px; margin:10px; }
+              body, p, h1 { margin:0; }
+              .toc::before { content:target-text(url(#chapter)) leader(dotted) target-counter(url(#chapter), page, upper-roman); }
+              h1 { break-before:page; font-size:14px; line-height:18px; }
+            </style>
+            <p class="toc">Index</p><h1 id="chapter">Chapter One</h1>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        HtmlRenderText pageCounter = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text =>
+            text.Source != null && text.Source.StartsWith("p.toc::before:content-targetpage", StringComparison.Ordinal));
+        HtmlRenderShape leader = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source != null && shape.Source.StartsWith("p.toc::before:content-leader", StringComparison.Ordinal));
+
+        Assert.True(rendered.Pages.Count >= 2);
+        HtmlRenderPage targetPage = Assert.Single(rendered.Pages, page =>
+            page.PageNumber > 1 && page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text == "Chapter One"));
+        Assert.Equal(targetPage.PageNumber == 2 ? "II" : targetPage.PageNumber == 3 ? "III" : targetPage.PageNumber.ToString(), pageCounter.Text);
+        Assert.Equal(OfficeStrokeDashStyle.Dot, leader.Shape.StrokeDashStyle);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Chapter One" && text.Source == "p.toc::before");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_UsesTheSharedLayoutDepthLimit() {
         string html = "<style>div::before{content:'x'}</style>"
             + string.Concat(Enumerable.Repeat("<div>", 8))

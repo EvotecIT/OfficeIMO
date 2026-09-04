@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private const string RevertLayerSentinel = "var(--officeimo-internal-revert-layer)";
     private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
+    private const string GeneratedContentSentinelPrefix = "__officeimo_generated_content_";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
         IHtmlDocument document,
@@ -37,6 +38,7 @@ public static partial class HtmlComputedStyleEngine {
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
             string parseCss = ExpandNestedConditionalRules(css);
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
+            parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectMarkerPseudoElements(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
@@ -271,7 +273,78 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static string RestoreProtectedDeclarationValue(string value) =>
-        RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value));
+        RestoreGeneratedContentFunctions(RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value)));
+
+    private static string ProtectGeneratedContentFunctions(string css) {
+        if (string.IsNullOrEmpty(css)
+            || css.IndexOf("target-text", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("target-counter", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("leader", StringComparison.OrdinalIgnoreCase) < 0) return css;
+
+        var output = new System.Text.StringBuilder(css.Length);
+        int copied = 0;
+        for (int index = 0; index + 7 <= css.Length; index++) {
+            if (string.Compare(css, index, "content", 0, 7, StringComparison.OrdinalIgnoreCase) != 0
+                || index > 0 && IsCssIdentifierCharacter(css[index - 1])
+                || index + 7 < css.Length && IsCssIdentifierCharacter(css[index + 7])) continue;
+            int before = SkipCssWhitespaceAndCommentsBackward(css, index - 1);
+            if (before < 0 || css[before] != '{' && css[before] != ';') continue;
+            int colon = SkipCssWhitespaceAndCommentsForward(css, index + 7);
+            if (colon >= css.Length || css[colon] != ':') continue;
+            int valueStart = colon + 1;
+            int valueEnd = FindDeclarationValueEnd(css, valueStart);
+            if (valueEnd <= valueStart) continue;
+            string value = css.Substring(valueStart, valueEnd - valueStart);
+            if (value.IndexOf("target-text", StringComparison.OrdinalIgnoreCase) < 0
+                && value.IndexOf("target-counter", StringComparison.OrdinalIgnoreCase) < 0
+                && value.IndexOf("leader", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            string raw = StripTrailingImportant(value.Trim(), out bool important);
+            string encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
+            output.Append(css, copied, valueStart - copied)
+                .Append('"').Append(GeneratedContentSentinelPrefix).Append(encoded).Append('"');
+            if (important) output.Append(" !important");
+            copied = valueEnd;
+            index = valueEnd - 1;
+        }
+        if (copied == 0) return css;
+        output.Append(css, copied, css.Length - copied);
+        return output.ToString();
+    }
+
+    private static int FindDeclarationValueEnd(string css, int start) {
+        int parentheses = 0;
+        char quote = '\0';
+        for (int index = start; index < css.Length; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') quote = current;
+            else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                index = close < 0 ? css.Length : close + 1;
+            } else if (current == '(') parentheses++;
+            else if (current == ')' && parentheses > 0) parentheses--;
+            else if (parentheses == 0 && (current == ';' || current == '}')) return index;
+        }
+        return css.Length;
+    }
+
+    private static string RestoreGeneratedContentFunctions(string value) {
+        string trimmed = value.Trim();
+        if (trimmed.Length < GeneratedContentSentinelPrefix.Length + 2
+            || trimmed[0] != trimmed[trimmed.Length - 1]
+            || trimmed[0] != '\'' && trimmed[0] != '"') return value;
+        string payload = trimmed.Substring(1, trimmed.Length - 2);
+        if (!payload.StartsWith(GeneratedContentSentinelPrefix, StringComparison.Ordinal)) return value;
+        try {
+            byte[] bytes = Convert.FromBase64String(payload.Substring(GeneratedContentSentinelPrefix.Length));
+            return System.Text.Encoding.UTF8.GetString(bytes);
+        } catch (FormatException) {
+            return value;
+        }
+    }
 
     private static string ProtectMarkerPseudoElements(string css) {
         if (string.IsNullOrEmpty(css) || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0) return css;

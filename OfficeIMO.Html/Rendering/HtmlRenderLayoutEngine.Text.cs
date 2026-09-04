@@ -530,6 +530,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 previousWasCollapsibleSpace = false;
                 continue;
             }
+            if (run.LeaderPattern != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
+                continue;
+            }
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
                 double atomicWidth = run.AtomicBlock.Width;
@@ -679,6 +683,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
+        ExpandLeaderSegments(lines, width);
         int completeLogicalProgress = lines
             .SelectMany(candidate => candidate.Segments)
             .Select(segment => segment.LogicalEndProgress)
@@ -705,6 +710,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             formattingContainer,
             supportsContinuationReflow: supportsContinuationReflow,
             isInlineContinuation: skipLogicalCharacters > 0);
+    }
+
+    private void ExpandLeaderSegments(IEnumerable<InlineLine> lines, double width) {
+        foreach (InlineLine line in lines) {
+            List<int> leaders = line.Segments
+                .Select((segment, index) => new { segment, index })
+                .Where(item => item.segment.Run.LeaderPattern != null)
+                .Select(item => item.index)
+                .ToList();
+            if (leaders.Count == 0) continue;
+            double availableWidth = line.HasExplicitPlacement ? line.AvailableWidth : width;
+            double share = Math.Max(0D, availableWidth - line.Width) / leaders.Count;
+            foreach (int index in leaders) line.SetSegmentWidth(index, share);
+        }
     }
 
     private static bool HasInlineBoxPaint(HtmlRenderBoxStyle style) =>
@@ -1422,6 +1441,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Segments.RemoveAt(index);
         }
 
+        internal void SetSegmentWidth(int index, double width) {
+            double normalized = Math.Max(0D, width);
+            Width += normalized - Segments[index].Width;
+            Segments[index].SetWidth(normalized);
+        }
+
         internal double ResolveLineHeight(double fallback) {
             if (!HasFlowContent) return 0D;
             double height = fallback;
@@ -1501,10 +1526,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal string Text { get; }
         internal string LogicalText { get; }
-        internal double Width { get; }
+        internal double Width { get; private set; }
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal int LogicalEndProgress { get; }
+        internal void SetWidth(double width) => Width = Math.Max(0D, width);
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
