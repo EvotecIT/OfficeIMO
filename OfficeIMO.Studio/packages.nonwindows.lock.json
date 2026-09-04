@@ -37,6 +37,12 @@
         "resolved": "8.4.2",
         "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "U5RAeZrH+PDrQb1R8C4q2oNZc7H6dsLQD17kISdcXqtqE3f1o7CAMNKaCb25kLh8mfxZaLNX21gAxJ+2EjdiRA=="
+      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.7.1",

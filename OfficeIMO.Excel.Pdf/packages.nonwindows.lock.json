@@ -151,6 +151,12 @@
     ".NETStandard,Version=v2.0/win-arm64": {},
     ".NETStandard,Version=v2.0/win-x64": {},
     "net10.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "U5RAeZrH+PDrQb1R8C4q2oNZc7H6dsLQD17kISdcXqtqE3f1o7CAMNKaCb25kLh8mfxZaLNX21gAxJ+2EjdiRA=="
+      },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
         "resolved": "3.5.1",
@@ -196,6 +202,12 @@
     "net10.0/win-arm64": {},
     "net10.0/win-x64": {},
     "net8.0": {
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.30, )",
+        "resolved": "8.0.30",
+        "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
+      },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
         "resolved": "3.5.1",

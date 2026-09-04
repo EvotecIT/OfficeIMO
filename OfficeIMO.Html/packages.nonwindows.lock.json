@@ -96,6 +96,12 @@
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "U5RAeZrH+PDrQb1R8C4q2oNZc7H6dsLQD17kISdcXqtqE3f1o7CAMNKaCb25kLh8mfxZaLNX21gAxJ+2EjdiRA=="
+      },
       "System.Text.Encoding.CodePages": {
         "type": "Direct",
         "requested": "[8.0.0, )",
@@ -169,6 +175,12 @@
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.30, )",
+        "resolved": "8.0.30",
+        "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
       },
       "System.Text.Encoding.CodePages": {
         "type": "Direct",
