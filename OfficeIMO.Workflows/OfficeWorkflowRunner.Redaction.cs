@@ -41,7 +41,16 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     public async Task<PdfRedactionBatchResult> RunRedactionBatchAsync(
         IEnumerable<PdfRedactionWorkflowRequest> requests,
         IProgress<OfficeWorkflowProgress>? progress = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        await RunAtomicRedactionBatchAsync(requests, manifestPath: null, maximumManifestBytes: 0L, manifestConflictPolicy: null, progress, cancellationToken).ConfigureAwait(false);
+
+    private async Task<PdfRedactionBatchResult> RunAtomicRedactionBatchAsync(
+        IEnumerable<PdfRedactionWorkflowRequest> requests,
+        string? manifestPath,
+        long maximumManifestBytes,
+        OfficeWorkflowConflictPolicy? manifestConflictPolicy,
+        IProgress<OfficeWorkflowProgress>? progress,
+        CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(requests);
         const int absoluteMaximumBatchItems = 10_000;
         var snapshots = new List<PdfRedactionWorkflowRequest>();
@@ -58,7 +67,23 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         }
         PdfRedactionWorkflowRequest[] batch = snapshots.ToArray();
         if (batch.Any(static request => request.Limits is null || request.Limits.MaximumBatchItems <= 0 || request.Limits.MaximumConcurrency <= 0 || request.Limits.MaximumConcurrency > 32 || request.Limits.MaximumBatchPreparedBytes <= 0)) throw new ArgumentException("Every batch request requires valid positive batch limits and MaximumConcurrency from 1 through 32.", nameof(requests));
-        if (batch.Length == 0) return new PdfRedactionBatchResult(OfficeWorkflowStatus.Completed, Array.Empty<PdfRedactionWorkflowResult>(), true, "The redaction batch was empty.");
+        if (batch.Length == 0) {
+            var emptyResult = new PdfRedactionBatchResult(OfficeWorkflowStatus.Completed, Array.Empty<PdfRedactionWorkflowResult>(), true, "The redaction batch was empty.");
+            if (manifestPath is null) return emptyResult;
+            if (manifestConflictPolicy is not OfficeWorkflowConflictPolicy.Fail and not OfficeWorkflowConflictPolicy.Replace) throw new ArgumentException("An empty atomic redaction batch requires a Fail or Replace manifest conflict policy.", nameof(manifestConflictPolicy));
+            byte[] emptyManifest = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(emptyResult), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
+            if (emptyManifest.LongLength > maximumManifestBytes) throw new RedactionWorkflowException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
+            try {
+                PublishPreparedFiles(new[] { new PreparedFile(Path.GetFullPath(manifestPath), emptyManifest) }, manifestConflictPolicy.Value, cancellationToken);
+                return emptyResult;
+            } catch (RedactionBackupCleanupException) {
+                return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, Array.Empty<PdfRedactionWorkflowResult>(), true, "The empty batch manifest was published, but prior-destination rollback data could not be removed. Host cleanup is required.");
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                return new PdfRedactionBatchResult(OfficeWorkflowStatus.Cancelled, Array.Empty<PdfRedactionWorkflowResult>(), false, "The empty batch was cancelled and no manifest was published.");
+            } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+                return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, Array.Empty<PdfRedactionWorkflowResult>(), false, "The empty batch manifest could not be published: " + exception.GetType().Name + ".");
+            }
+        }
         OfficeWorkflowConflictPolicy batchConflictPolicy = batch[0].ConflictPolicy;
         if (batchConflictPolicy == OfficeWorkflowConflictPolicy.Rename || batch.Any(request => request.ConflictPolicy != batchConflictPolicy)) throw new ArgumentException("An atomic redaction batch requires one shared Fail or Replace conflict policy.", nameof(requests));
 
@@ -104,22 +129,34 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             return new PdfRedactionBatchResult(status, results, false, "No batch artifacts were published because one or more items did not prepare successfully.");
         }
         PreparedRedactionResult[] completedPreparations = prepared.Select(static item => item!).ToArray();
+        PreparedByteReservation? manifestReservation = null;
 
         try {
             List<PreparedFile> files = completedPreparations.SelectMany(static item => item.Files).ToList();
+            if (manifestPath is not null) {
+                var projectedResult = new PdfRedactionBatchResult(OfficeWorkflowStatus.Completed, completedPreparations.Select(static item => item.Result).ToArray(), true, $"Published {batch.Length} redaction workflow item(s) atomically.");
+                byte[] manifestBytes = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(projectedResult), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
+                if (manifestBytes.LongLength > maximumManifestBytes) throw new RedactionWorkflowException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
+                manifestReservation = preparedBudget.Reserve(manifestBytes.LongLength);
+                files.Add(new PreparedFile(Path.GetFullPath(manifestPath), manifestBytes));
+            }
             EnsureUniqueDestinations(files);
             EnsureDestinationsDoNotReplaceReviewedInputs(files, batch);
             PublishPreparedFiles(files, batchConflictPolicy, cancellationToken);
+            manifestReservation?.Dispose();
             DisposeReservations(reservations);
             return new PdfRedactionBatchResult(OfficeWorkflowStatus.Completed, completedPreparations.Select(static item => item.Result).ToArray(), true, $"Published {batch.Length} redaction workflow item(s) atomically.");
         } catch (RedactionBackupCleanupException exception) {
+            manifestReservation?.Dispose();
             DisposeReservations(reservations);
             PdfRedactionWorkflowResult[] affected = completedPreparations.Select(item => MarkPublishedWithCleanupFailure(item.Result, exception)).ToArray();
             return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, affected, true, "The atomic batch was published, but prior-destination rollback data could not be removed. Host cleanup is required.");
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            manifestReservation?.Dispose();
             DisposeReservations(reservations);
             return new PdfRedactionBatchResult(OfficeWorkflowStatus.Cancelled, completedPreparations.Select(static item => MarkNotPublished(item.Result, OfficeWorkflowStatus.Cancelled, "The atomic batch was cancelled; no artifact was published.")).ToArray(), false, "The batch was cancelled and publication was rolled back.");
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            manifestReservation?.Dispose();
             DisposeReservations(reservations);
             PdfRedactionWorkflowResult[] failed = completedPreparations.Select(item => MarkNotPublished(item.Result, OfficeWorkflowStatus.Failed, "Atomic batch publication failed; no artifact was committed.", exception)).ToArray();
             return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, failed, false, "Atomic batch publication failed and published files were rolled back.");
@@ -288,44 +325,52 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static async Task<CandidatePlan> BuildCandidatePlanAsync(PdfDocument document, PdfRedactionWorkflowRequest request, string sourceSha, CancellationToken cancellationToken) {
-        PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, request.Limits.MaximumCandidates, cancellationToken);
         var candidateAreaSets = new List<IReadOnlyList<PdfRedactionArea>>();
         var origins = new List<CandidateOrigin>();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
-        bool hasSearch = search.LiteralText.Count > 0 || search.RegularExpressions.Count > 0 || search.FormFieldNames.Count > 0 || search.LogicalElementKinds.Count > 0;
-        bool runNative = hasSearch && request.Recipe.DetectionMode != PdfRedactionDetectionMode.OcrOnly;
-        int nativeCount = 0;
-        if (runNative) {
-            PdfRedactionPlan nativePlan = document.Redactions.Search(search);
-            foreach (PdfRedactionArea area in nativePlan.Areas) { candidateAreaSets.Add(new[] { area }); origins.Add(new CandidateOrigin("native", null, null, null, null)); }
-            nativeCount = nativePlan.Areas.Count;
+        bool ocrUsed = false;
+        foreach (PdfRedactionRule rule in request.Recipe.Rules) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (rule.Kind == PdfRedactionRuleKind.RedactAnnotations) {
+                foreach (PdfAnnotation annotation in document.Reader.AnnotationsBySubtype("Redact")
+                    .Where(static annotation => annotation.PageNumber.HasValue && (annotation.QuadPoints.Count >= 8 || annotation.Width > 0D && annotation.Height > 0D))) {
+                    IReadOnlyList<PdfRedactionArea> areas = ApplyPolicies(PdfRedactionRegion.FromRedactAnnotation(annotation).Areas, rule.ContentScope, rule.AppearanceMode);
+                    candidateAreaSets.Add(areas);
+                    origins.Add(new CandidateOrigin("annotation", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
+                }
+                continue;
+            }
+
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, request.Limits.MaximumCandidates, cancellationToken);
+            int nativeCount = 0;
+            if (request.Recipe.DetectionMode != PdfRedactionDetectionMode.OcrOnly) {
+                PdfRedactionPlan nativePlan = document.Redactions.Search(search);
+                foreach (PdfRedactionArea area in nativePlan.Areas) {
+                    candidateAreaSets.Add(new[] { area.WithPolicies(rule.ContentScope, rule.AppearanceMode) });
+                    origins.Add(new CandidateOrigin("native", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
+                }
+                nativeCount = nativePlan.Areas.Count;
+            }
+
+            bool runOcr = rule.Kind is PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex &&
+                (request.Recipe.DetectionMode == PdfRedactionDetectionMode.OcrOnly ||
+                 request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeAndOcr ||
+                 request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeThenOcr && nativeCount == 0);
+            if (!runOcr) continue;
+            if (request.OcrEngine is null) throw new RedactionWorkflowException("The recipe requires OCR but no runtime OCR engine was supplied.");
+            PdfOcrRedactionSearchResult ocr = await document.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
+            foreach (PdfOcrRedactionCandidate candidate in ocr.Candidates) {
+                candidateAreaSets.Add(new[] { candidate.Area.WithPolicies(rule.ContentScope, rule.AppearanceMode) });
+                origins.Add(new CandidateOrigin("ocr", rule.Name, rule.ContentScope, rule.AppearanceMode, candidate.MinimumConfidence, candidate.Provider, candidate.Model, candidate.Language));
+            }
+            ocrUsed = true;
+            diagnostics.Add(new OfficeWorkflowDiagnostic("OcrCandidateDiscovery", $"OCR contributed {ocr.Candidates.Count} privacy-safe candidate(s) for rule '{rule.Name}'.", details: new Dictionary<string, string> { ["provider"] = request.OcrEngine.Id, ["rule"] = rule.Name, ["candidateCount"] = ocr.Candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
         }
 
         foreach (PdfRedactionRecipeRegion region in request.Recipe.Regions) {
             PdfRedactionRegion normalized = ConvertRegion(region);
-            candidateAreaSets.Add(normalized.Areas);
-            origins.Add(new CandidateOrigin("region:" + normalized.Kind, null, null, null, null));
-        }
-
-        bool runOcr = request.Recipe.DetectionMode == PdfRedactionDetectionMode.OcrOnly ||
-            request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeAndOcr ||
-            request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeThenOcr && nativeCount == 0;
-        if (runOcr) {
-            if (request.OcrEngine is null) throw new RedactionWorkflowException("The recipe requires OCR but no runtime OCR engine was supplied.");
-            PdfOcrRedactionSearchResult ocr = await document.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
-            foreach (PdfOcrRedactionCandidate candidate in ocr.Candidates) {
-                candidateAreaSets.Add(new[] { candidate.Area });
-                origins.Add(new CandidateOrigin("ocr", candidate.MinimumConfidence, candidate.Provider, candidate.Model, candidate.Language));
-            }
-            diagnostics.Add(new OfficeWorkflowDiagnostic("OcrCandidateDiscovery", $"OCR contributed {ocr.Candidates.Count} privacy-safe candidate(s).", details: new Dictionary<string, string> { ["provider"] = request.OcrEngine.Id, ["candidateCount"] = ocr.Candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
-        }
-
-        if (request.Recipe.Rules.Any(static rule => rule.Kind == PdfRedactionRuleKind.RedactAnnotations)) {
-            foreach (PdfAnnotation annotation in document.Reader.AnnotationsBySubtype("Redact")
-                .Where(static annotation => annotation.PageNumber.HasValue && (annotation.QuadPoints.Count >= 8 || annotation.Width > 0D && annotation.Height > 0D))) {
-                candidateAreaSets.Add(PdfRedactionRegion.FromRedactAnnotation(annotation).Areas);
-                origins.Add(new CandidateOrigin("annotation", null, null, null, null));
-            }
+            candidateAreaSets.Add(ApplyPolicies(normalized.Areas, region.ContentScope, region.AppearanceMode));
+            origins.Add(new CandidateOrigin("region:" + normalized.Kind, region.Name, region.ContentScope, region.AppearanceMode, null, null, null, null));
         }
 
         var candidateAreas = new List<IReadOnlyList<PdfRedactionArea>>();
@@ -335,40 +380,39 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfRedactionArea> areas = candidateAreaSets[index];
             CandidateOrigin origin = origins[index];
-            string originIdentity = string.Join("|", origin.Origin, origin.Provider ?? string.Empty, origin.Model ?? string.Empty, origin.Language ?? string.Empty, origin.Confidence?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+            string originIdentity = string.Join("|", origin.Origin, origin.RuleName, origin.ContentScope, origin.AppearanceMode, origin.Provider ?? string.Empty, origin.Model ?? string.Empty, origin.Language ?? string.Empty, origin.Confidence?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
             string id = ComputeCandidateId(sourceSha, originIdentity, areas);
             if (!seen.Add(id)) continue;
             candidateAreas.Add(areas);
-            candidates.Add(new PdfRedactionWorkflowCandidate(id, origin.Origin, areas, origin.Confidence, origin.Provider, origin.Model, origin.Language));
+            candidates.Add(new PdfRedactionWorkflowCandidate(id, origin.Origin, origin.RuleName, origin.ContentScope, origin.AppearanceMode, areas, origin.Confidence, origin.Provider, origin.Model, origin.Language));
         }
-        return new CandidatePlan(candidateAreas, candidates, diagnostics, runOcr);
+        return new CandidatePlan(candidateAreas, candidates, diagnostics, ocrUsed);
     }
 
-    private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, int maximumCandidates, CancellationToken cancellationToken) {
+    private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, PdfRedactionRule rule, int maximumCandidates, CancellationToken cancellationToken) {
         var search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
-        foreach (PdfRedactionRule rule in recipe.Rules) {
-            switch (rule.Kind) {
-                case PdfRedactionRuleKind.Literal:
-                    search.AddLiteral(rule.Value!);
-                    break;
-                case PdfRedactionRuleKind.Regex:
-                    search.AddRegex(rule.Value!);
-                    break;
-                case PdfRedactionRuleKind.FormField:
-                    search.AddFormField(rule.Value!);
-                    break;
-                case PdfRedactionRuleKind.LogicalKind:
-                    if (!Enum.TryParse(rule.Value!, ignoreCase: true, out PdfLogicalElementKind kind) || !Enum.IsDefined(kind)) throw new ArgumentException("Unknown logical element kind in redaction recipe.");
-                    search.AddLogicalKind(kind);
-                    break;
-                case PdfRedactionRuleKind.RedactAnnotations:
-                    break;
-                default:
-                    throw new ArgumentException("Unknown redaction rule kind.");
-            }
+        switch (rule.Kind) {
+            case PdfRedactionRuleKind.Literal:
+                search.AddLiteral(rule.Value!);
+                break;
+            case PdfRedactionRuleKind.Regex:
+                search.AddRegex(rule.Value!);
+                break;
+            case PdfRedactionRuleKind.FormField:
+                search.AddFormField(rule.Value!);
+                break;
+            case PdfRedactionRuleKind.LogicalKind:
+                if (!Enum.TryParse(rule.Value!, ignoreCase: true, out PdfLogicalElementKind kind) || !Enum.IsDefined(kind)) throw new ArgumentException("Unknown logical element kind in redaction recipe.");
+                search.AddLogicalKind(kind);
+                break;
+            default:
+                throw new ArgumentException("The supplied rule cannot be represented as a text search.");
         }
         return search;
     }
+
+    private static IReadOnlyList<PdfRedactionArea> ApplyPolicies(IReadOnlyList<PdfRedactionArea> areas, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
+        areas.Select(area => area.WithPolicies(contentScope, appearanceMode)).ToArray();
 
     private static PdfRedactionRegion ConvertRegion(PdfRedactionRecipeRegion region) {
         if (region is null) throw new ArgumentException("Recipe regions cannot contain null entries.");
@@ -407,14 +451,17 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         if (request.Recipe.Rules.Count > request.Limits.MaximumRules) throw new RedactionWorkflowException("Recipe rule count exceeds the configured limit.");
         if (request.Limits.MaximumInputBytes <= 0 || request.Limits.MaximumOutputBytes <= 0 || request.Limits.MaximumEvidenceBytes <= 0 || request.Limits.MaximumBatchPreparedBytes <= 0 || request.Limits.MaximumRules <= 0 || request.Limits.MaximumRuleCharacters <= 0 || request.Limits.MaximumAreas <= 0 || request.Limits.MaximumGeometryPoints <= 0 || request.Limits.MaximumCandidates <= 0 || request.Limits.MaximumBatchItems <= 0 || request.Limits.MaximumConcurrency <= 0 || request.Limits.MaximumConcurrency > 32) throw new ArgumentOutOfRangeException(nameof(request.Limits));
         long ruleCharacters = 0;
+        var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfRedactionRule rule in request.Recipe.Rules) {
             if (rule is null || !Enum.IsDefined(rule.Kind)) throw new ArgumentException("Recipe rules require known kinds.");
+            ValidateRecipeName(rule.Name, "rule", names);
+            if (!Enum.IsDefined(rule.ContentScope) || !Enum.IsDefined(rule.AppearanceMode)) throw new ArgumentException("Recipe rules require known content and appearance policies.");
             if (rule.Kind != PdfRedactionRuleKind.RedactAnnotations && string.IsNullOrWhiteSpace(rule.Value)) throw new ArgumentException("Literal, Regex, FormField, and LogicalKind rules require non-empty values.");
             if (rule.Kind == PdfRedactionRuleKind.RedactAnnotations && !string.IsNullOrEmpty(rule.Value)) throw new ArgumentException("RedactAnnotations does not accept a value.");
-            ruleCharacters += rule.Kind.ToString().Length + (rule.Value?.Length ?? 0);
+            ruleCharacters += rule.Name.Length + rule.Kind.ToString().Length + (rule.Value?.Length ?? 0);
             if (ruleCharacters > request.Limits.MaximumRuleCharacters) throw new RedactionWorkflowException("Recipe rule text exceeds the configured character limit.");
         }
-        ValidateRegionComplexity(request.Recipe.Regions, request.Limits);
+        ValidateRegionComplexity(request.Recipe.Regions, request.Limits, names);
         if (request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify && string.IsNullOrWhiteSpace(request.OutputPath)) throw new ArgumentException("ApplyAndVerify requires an output path.");
         if (request.Mode == PdfRedactionWorkflowMode.VerifyExistingOutput && (string.IsNullOrWhiteSpace(request.OutputPath) || !File.Exists(request.OutputPath))) throw new FileNotFoundException("VerifyExistingOutput requires an existing output PDF.", request.OutputPath);
         ValidateArtifactPaths(request);
@@ -448,7 +495,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         }
     }
 
-    private static void ValidateRegionComplexity(IEnumerable<PdfRedactionRecipeRegion> regions, PdfRedactionWorkflowLimits limits) {
+    private static void ValidateRegionComplexity(IEnumerable<PdfRedactionRecipeRegion> regions, PdfRedactionWorkflowLimits limits, HashSet<string> names) {
         var stack = new Stack<(PdfRedactionRecipeRegion Region, int Depth)>();
         foreach (PdfRedactionRecipeRegion region in regions) stack.Push((region, 1));
         var visited = new HashSet<PdfRedactionRecipeRegion>(ReferenceEqualityComparer.Instance);
@@ -460,15 +507,26 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             if (region.Points is null || region.Areas is null) throw new ArgumentException("Recipe region point and area collections cannot be null.");
             if (!visited.Add(region)) throw new ArgumentException("Recipe region groups cannot contain cycles or reuse the same mutable region instance.");
             if (depth > 16) throw new RedactionWorkflowException("Recipe region nesting exceeds the supported depth of 16.");
+            ValidateRecipeName(region.Name, "region", names);
             geometryEntries += region.Points.Count;
             geometryEntries += region.Areas.Count;
-            if (!Enum.IsDefined(region.Kind)) throw new ArgumentException("Recipe regions require a known geometry kind.");
+            if (!Enum.IsDefined(region.Kind) || !Enum.IsDefined(region.ContentScope) || !Enum.IsDefined(region.AppearanceMode)) throw new ArgumentException("Recipe regions require known geometry, content, and appearance policies.");
             normalizedAreas += region.Kind == PdfRedactionRegionKind.Freehand ? Math.Max(0, region.Points.Count - 1) : region.Kind == PdfRedactionRegionKind.Group ? 0 : 1;
             if (geometryEntries > limits.MaximumGeometryPoints) throw new RedactionWorkflowException("Recipe geometry exceeds the configured point limit.");
             if (normalizedAreas > limits.MaximumAreas) throw new RedactionWorkflowException("Recipe geometry exceeds the configured normalized-area limit.");
             if (region.Label?.Length > 1_024) throw new RedactionWorkflowException("Recipe region labels cannot exceed 1,024 characters.");
             foreach (PdfRedactionRecipeRegion child in region.Areas) stack.Push((child, depth + 1));
         }
+    }
+
+    private static void ValidateRecipeName(string? name, string kind, HashSet<string> names) {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 128 || !IsRecipeNameStart(name[0]) || name.Any(static character => !IsRecipeNameCharacter(character))) {
+            throw new ArgumentException($"Redaction {kind} names must be 1 through 128 characters and contain only letters, digits, dot, underscore, or hyphen, beginning with a letter.");
+        }
+        if (!names.Add(name)) throw new ArgumentException($"Redaction rule and region names must be unique; '{name}' is duplicated.");
+
+        static bool IsRecipeNameStart(char value) => value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+        static bool IsRecipeNameCharacter(char value) => IsRecipeNameStart(value) || value is >= '0' and <= '9' or '.' or '_' or '-';
     }
 
     private static void ValidateDecisions(PdfRedactionDecisionManifest decisions, string sourceSha, string recipeSha, IReadOnlyList<PdfRedactionWorkflowCandidate> candidates) {
@@ -495,11 +553,15 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         new(sourceSha, outputSha, recipeSha, 0, request.Decisions!.RejectedCandidateIds.Count, 0, 0, 0, true, Array.Empty<int>(), Array.Empty<PdfRedactionEvidenceIssue>(), encryptionPolicy, candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), sourceSignatureCount: signature.SourceCount, outputSignatureCount: signature.OutputCount, signaturePolicy: request.Recipe.SignaturePolicy.ToString(), outputSigner: signature.SignerName, signatureCryptographicallyVerified: signature.CryptographicallyVerified, externalValidators: externalValidators);
 
     private static async Task<int> CountOcrResidualsAsync(PdfDocument output, PdfRedactionWorkflowRequest request, IReadOnlyList<PdfRedactionArea> approvedAreas, CancellationToken cancellationToken) {
-        PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, request.Limits.MaximumCandidates, cancellationToken);
-        PdfOcrRedactionSearchResult post = await output.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine!, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
-        return post.Candidates.Count(candidate => approvedAreas.Any(area =>
-            area.PageNumber == candidate.Area.PageNumber &&
-            area.IntersectsRectangle(candidate.Area.X, candidate.Area.Y, candidate.Area.Width, candidate.Area.Height)));
+        int residualCount = 0;
+        foreach (PdfRedactionRule rule in request.Recipe.Rules.Where(static rule => rule.Kind is PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex)) {
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, request.Limits.MaximumCandidates, cancellationToken);
+            PdfOcrRedactionSearchResult post = await output.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine!, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
+            residualCount += post.Candidates.Count(candidate => approvedAreas.Any(area =>
+                area.PageNumber == candidate.Area.PageNumber &&
+                area.IntersectsRectangle(candidate.Area.X, candidate.Area.Y, candidate.Area.Width, candidate.Area.Height)));
+        }
+        return residualCount;
     }
 
     private static PdfLoadOptions GetOutputLoadOptions(PdfRedactionWorkflowRequest request) {
@@ -727,7 +789,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         }
     }
 
-    private sealed record CandidateOrigin(string Origin, double? Confidence, string? Provider, string? Model, string? Language);
+    private sealed record CandidateOrigin(string Origin, string RuleName, PdfRedactionContentScope ContentScope, PdfRedactionAppearanceMode AppearanceMode, double? Confidence, string? Provider, string? Model, string? Language);
     private sealed class RedactionWorkflowException : InvalidOperationException { internal RedactionWorkflowException(string message) : base(message) { } }
     private sealed class RedactionBackupCleanupException : IOException {
         internal RedactionBackupCleanupException(IReadOnlyCollection<Exception> failures)

@@ -214,7 +214,10 @@ internal static partial class PdfRedactionVerification {
         IReadOnlyList<PdfRedactionMatch> unverifiedResidualMatches = FilterAppliedImageResiduals(
             residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
             appliedImageMatches,
-            options.CancellationToken);
+            options.CancellationToken)
+            .Where(static match => match.Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
+                match.Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation)
+            .ToArray();
         foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
             options.CancellationToken.ThrowIfCancellationRequested();

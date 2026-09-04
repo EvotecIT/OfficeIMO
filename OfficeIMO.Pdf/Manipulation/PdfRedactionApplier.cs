@@ -227,6 +227,8 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Maximum decoded image bytes must be positive.");
+        if (!IsFiniteNonNegative(effectiveOptions.AppearanceMergeDistance)) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Appearance merge distance must be finite and non-negative.");
+        if (!IsFinitePositive(effectiveOptions.AppearanceWidthQuantum)) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Appearance width quantum must be finite and positive.");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, effectiveOptions.CancellationToken);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!plan.Preflight.CanReadLogicalObjects) {
@@ -360,9 +362,13 @@ internal static partial class PdfRedactionApplier {
             }
 
             PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
+            PdfRedactionArea[] currentAreas = pageAreas ?? Array.Empty<PdfRedactionArea>();
+            PdfRedactionArea[] underlayAreas = currentAreas
+                .Where(static area => area.ContentScope == PdfRedactionContentScope.TextAndUnderlay)
+                .ToArray();
             PdfRedactionMatch[] selectedImageMatches = imageTargets is null
-                ? currentMatches
-                : currentMatches.Where(match => imageTargets.Any(target => MatchesExactImagePlacement(match, target))).ToArray();
+                ? currentMatches.Where(static match => match.Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay).ToArray()
+                : currentMatches.Where(match => match.Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay && imageTargets.Any(target => MatchesExactImagePlacement(match, target))).ToArray();
             ImageRedactionMutation imageMutation = (mutationScope & RedactionMutationScope.Images) != 0
                 ? RemoveMatchedImageObjects(
                     objects,
@@ -381,16 +387,16 @@ internal static partial class PdfRedactionApplier {
                 pageChanged = RemoveMatchedTextObjects(
                     objects,
                     pageDictionary,
-                    pageAreas ?? Array.Empty<PdfRedactionArea>(),
+                    currentAreas,
                     limits,
                     sourceStreamIdentities,
                     ref nextObjectNumber) || pageChanged;
             }
-            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits, sourceStreamIdentities, ref nextObjectNumber) || pageChanged;
+            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths && underlayAreas.Length > 0) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, underlayAreas, limits, sourceStreamIdentities, ref nextObjectNumber) || pageChanged;
             if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches, formFieldObjectNumbers) || pageChanged;
 
             PdfRedactionArea[] paintAreas = paintMarks
-                ? SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options)
+                ? BuildPrivacyAppearanceAreas(SelectPaintAreas(currentAreas, currentMatches, options), readPage.GetGeometry(), options)
                 : Array.Empty<PdfRedactionArea>();
             if (paintAreas.Length > 0) {
                 generatedPageContentBytes = SaturatingAdd(
@@ -462,6 +468,9 @@ internal static partial class PdfRedactionApplier {
 
     private static long SaturatingAdd(long value, long added) =>
         value > long.MaxValue - added ? long.MaxValue : value + added;
+
+    private static bool IsFinitePositive(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value > 0D;
+    private static bool IsFiniteNonNegative(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0D;
 
     private static int GetMutationDecodeLimit(PdfStream stream, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) =>
         sourceStreamIdentities.Contains(stream) ? limits.MaxDecodedStreamBytes : int.MaxValue;

@@ -109,6 +109,49 @@ public class PdfIncrementalAnnotationEditorTests {
     }
 
     [Fact]
+    public void AnnotationCreationAndUpdateRoundTripRicherVisualStyles() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled annotation")).ToBytes();
+        PdfAnnotationEditResult created = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Square",
+            Rectangle = new[] { 20D, 30D, 140D, 80D },
+            InteriorColor = new[] { 0.2D, 0.4D, 0.6D },
+            Opacity = 0.65D,
+            BorderWidth = 3D,
+            BorderStyle = PdfAnnotationBorderStyle.Dashed,
+            BorderDashPattern = new[] { 5D, 2D }
+        });
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(created.Bytes).GetAnnotationsBySubtype("Square"));
+
+        Assert.Equal(new[] { 0.2D, 0.4D, 0.6D }, annotation.InteriorColor);
+        Assert.Equal(0.65D, annotation.Opacity);
+        Assert.Equal(3D, annotation.BorderWidth);
+        Assert.Equal("Dashed", annotation.BorderStyle);
+        Assert.Equal(new[] { 5D, 2D }, annotation.BorderDashPattern);
+
+        PdfAnnotationEditResult updated = PdfDocument.Load(created.Bytes).Annotations.Update(annotation.ObjectNumber!.Value, new PdfAnnotationUpdateOptions {
+            InteriorColor = new[] { 0.8D },
+            Opacity = 0.4D,
+            BorderWidth = 1.5D,
+            BorderStyle = PdfAnnotationBorderStyle.Underline
+        });
+        PdfAnnotation readback = Assert.Single(PdfInspector.Inspect(updated.Bytes).GetAnnotationsBySubtype("Square"));
+
+        Assert.Equal(new[] { 0.8D }, readback.InteriorColor);
+        Assert.Equal(0.4D, readback.Opacity);
+        Assert.Equal(1.5D, readback.BorderWidth);
+        Assert.Equal("Underline", readback.BorderStyle);
+        Assert.Empty(readback.BorderDashPattern);
+        Assert.DoesNotContain("/D [5 2]", PdfEncoding.Latin1GetString(updated.Bytes), StringComparison.Ordinal);
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Square",
+            Rectangle = new[] { 20D, 30D, 140D, 80D },
+            BorderStyle = PdfAnnotationBorderStyle.Dashed,
+            BorderDashPattern = new[] { 0D, 0D }
+        }));
+    }
+
+    [Fact]
     public void CertifiedP3GeometryAndAppearanceUpdateUsesAppendOnlyRevision() {
         (byte[] signedPdf, int annotationObjectNumber) = BuildCertifiedHighlightPdf();
 

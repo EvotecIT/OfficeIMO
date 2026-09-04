@@ -926,6 +926,8 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Each `PdfRedactionArea` carries two independent policies. `TextOnly` removes selected text while preserving intersecting images and paths; `TextAndUnderlay` also removes supported intersecting underlay content and fails closed when that cannot be done safely. The appearance can remain exact, merge nearby reviewed marks, round widths to a configured quantum, or cover the effective page line. Verification evaluates residue against the selected content scope rather than treating a deliberately preserved underlay as a failure.
+
 Review surfaces can also author standard PDF `/Redact` annotations and plan them later. Quadrilateral geometry is written as `/QuadPoints` and round-trips as exact destructive geometry:
 
 ```csharp
@@ -1047,7 +1049,9 @@ PdfRegionText current = document.Text.Inspect(region);
 Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
 
 PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
-    Color = PdfColor.FromRgb(25, 110, 55)
+    Color = PdfColor.FromRgb(25, 110, 55),
+    RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit,
+    MinimumFontSize = 8
 });
 
 edited.Document.Text.Add(
@@ -1063,6 +1067,9 @@ text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
 keeps wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
+Region-based add and replace operations preserve the resolved font size by
+default. Select `RejectOverflow` to reject an over-wide line before mutation,
+or `ShrinkToFit` to reduce it no lower than `MinimumFontSize`.
 Unmatched glyphs remain encoded in their original font; newly inserted replacement text uses the closest standard PDF font unless the caller selects one.
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
@@ -1139,6 +1146,25 @@ PdfDocument.Load("application-form.pdf")
     })
     .Save("application-form-filled.pdf");
 ```
+
+To make both readable form fields and supported visual annotations static in one
+artifact, use the combined operation and retain its separate affected counts:
+
+```csharp
+PdfInteractiveContentFlattenResult flattened = PdfDocument
+    .Load("application-reviewed.pdf")
+    .FlattenInteractiveContent();
+
+Console.WriteLine($"Fields: {flattened.FlattenedFormFieldCount}");
+Console.WriteLine($"Annotations: {flattened.FlattenedAnnotationCount}");
+flattened.ToDocument().Save("application-static.pdf");
+```
+
+Annotation creation and updates accept gray, RGB, or CMYK interior colors,
+opacity, border width, solid/dashed/beveled/inset/underline styles, and bounded
+dash patterns. Creation generates supported appearances by default. Updates
+remove a stale appearance when visual properties change and can explicitly
+regenerate it with `RegenerateAppearance`.
 
 ### Generate and assess validator-backed PDF/A
 

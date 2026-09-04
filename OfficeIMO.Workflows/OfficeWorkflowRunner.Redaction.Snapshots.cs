@@ -20,7 +20,7 @@ public sealed partial class OfficeWorkflowRunner {
             SignaturePolicy = request.Recipe.SignaturePolicy,
             Rules = request.Recipe.Rules?.Select(static rule => rule is null
                 ? throw new ArgumentException("Recipe rules cannot contain null entries.")
-                : new PdfRedactionRule { Kind = rule.Kind, Value = rule.Value }).ToList()
+                : new PdfRedactionRule { Name = rule.Name, Kind = rule.Kind, Value = rule.Value, ContentScope = rule.ContentScope, AppearanceMode = rule.AppearanceMode }).ToList()
                 ?? throw new ArgumentException("Recipe rules cannot be null."),
             Regions = request.Recipe.Regions?.Select(region => SnapshotRegion(region, visited, 1)).ToList()
                 ?? throw new ArgumentException("Recipe regions cannot be null.")
@@ -111,6 +111,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (!visited.Add(region)) throw new ArgumentException("Recipe region groups cannot contain cycles or reuse the same mutable region instance.");
         if (region.Points is null || region.Areas is null) throw new ArgumentException("Recipe region point and area collections cannot be null.");
         return new PdfRedactionRecipeRegion {
+            Name = region.Name,
             Kind = region.Kind,
             PageNumber = region.PageNumber,
             X = region.X,
@@ -119,6 +120,8 @@ public sealed partial class OfficeWorkflowRunner {
             Height = region.Height,
             StrokeWidth = region.StrokeWidth,
             Label = region.Label,
+            ContentScope = region.ContentScope,
+            AppearanceMode = region.AppearanceMode,
             Points = region.Points.Select(static point => point is null
                 ? throw new ArgumentException("Recipe region points cannot contain null entries.")
                 : new PdfRedactionRecipePoint { X = point.X, Y = point.Y }).ToList(),

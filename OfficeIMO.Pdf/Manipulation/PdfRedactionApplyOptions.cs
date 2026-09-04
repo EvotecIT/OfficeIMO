@@ -62,6 +62,12 @@ public sealed class PdfRedactionApplyOptions {
     /// <summary>Remove intersecting painted vector paths and rectangles from page content before applying the redaction mark.</summary>
     public bool RemoveIntersectingPaths { get; set; } = true;
 
+    /// <summary>Maximum horizontal gap, in PDF user-space units, merged by <see cref="PdfRedactionAppearanceMode.MergeNearby"/>. Defaults to 4.</summary>
+    public double AppearanceMergeDistance { get; set; } = 4D;
+
+    /// <summary>Width quantum, in PDF user-space units, used by <see cref="PdfRedactionAppearanceMode.QuantizedWidth"/>. Defaults to 24.</summary>
+    public double AppearanceWidthQuantum { get; set; } = 24D;
+
     /// <summary>Optional decoder used for image codecs, such as JPEG, that are intentionally not dependencies of the PDF core.</summary>
     public IPdfRedactionImageDecoder? ImageDecoder { get; set; }
 

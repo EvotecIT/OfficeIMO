@@ -6,7 +6,11 @@ namespace OfficeIMO.Workflows;
     WriteIndented = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    UseStringEnumConverter = true)]
+    UseStringEnumConverter = true,
+    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(PdfRedactionRecipe))]
+[JsonSerializable(typeof(PdfRedactionDecisionManifest))]
 [JsonSerializable(typeof(PdfRedactionWorkflowRecord))]
+[JsonSerializable(typeof(PdfRedactionBatchRequest))]
+[JsonSerializable(typeof(PdfRedactionBatchRecord))]
 internal sealed partial class PdfRedactionWorkflowJsonContext : JsonSerializerContext;

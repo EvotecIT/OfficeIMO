@@ -478,11 +478,12 @@ public sealed class PdfRedactionWorkflowTests {
         PdfDocument.Create().Paragraph(paragraph => paragraph.Text("group region")) .Save(input);
         var recipe = new PdfRedactionRecipe();
         recipe.Regions.Add(new PdfRedactionRecipeRegion {
+            Name = "group",
             Kind = PdfRedactionRegionKind.Group,
             PageNumber = 1,
             Areas = {
-                new PdfRedactionRecipeRegion { Kind = PdfRedactionRegionKind.Rectangle, PageNumber = 1, X = 20, Y = 20, Width = 30, Height = 10 },
-                new PdfRedactionRecipeRegion { Kind = PdfRedactionRegionKind.Rectangle, PageNumber = 1, X = 100, Y = 100, Width = 40, Height = 20 }
+                new PdfRedactionRecipeRegion { Name = "group-first", Kind = PdfRedactionRegionKind.Rectangle, PageNumber = 1, X = 20, Y = 20, Width = 30, Height = 10 },
+                new PdfRedactionRecipeRegion { Name = "group-second", Kind = PdfRedactionRegionKind.Rectangle, PageNumber = 1, X = 100, Y = 100, Width = 40, Height = 20 }
             }
         });
 
@@ -629,9 +630,155 @@ public sealed class PdfRedactionWorkflowTests {
         Assert.Contains("CollisionSecret", PdfDocument.Load(input).Reader.Text(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task NamedPolicyChangesAreBoundIntoCandidateAndRecipeIdentity() {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("source.pdf");
+        const string sensitive = "PolicyIdentitySecret";
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfRedactionRecipe firstRecipe = CreateRecipe(sensitive);
+        firstRecipe.Rules[0].Name = "account-id";
+        firstRecipe.Rules[0].ContentScope = PdfRedactionContentScope.TextOnly;
+        firstRecipe.Rules[0].AppearanceMode = PdfRedactionAppearanceMode.QuantizedWidth;
+
+        PdfRedactionWorkflowResult first = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            Recipe = firstRecipe
+        });
+        PdfRedactionWorkflowCandidate candidate = Assert.Single(first.Candidates);
+
+        Assert.Equal("account-id", candidate.RuleName);
+        Assert.Equal(PdfRedactionContentScope.TextOnly, candidate.ContentScope);
+        Assert.Equal(PdfRedactionAppearanceMode.QuantizedWidth, candidate.AppearanceMode);
+
+        PdfRedactionRecipe secondRecipe = CreateRecipe(sensitive);
+        secondRecipe.Rules[0].Name = "account-id";
+        secondRecipe.Rules[0].ContentScope = PdfRedactionContentScope.TextOnly;
+        secondRecipe.Rules[0].AppearanceMode = PdfRedactionAppearanceMode.FullLine;
+        PdfRedactionWorkflowResult second = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            Recipe = secondRecipe
+        });
+
+        Assert.NotEqual(first.RecipeSha256, second.RecipeSha256);
+        Assert.NotEqual(candidate.Id, Assert.Single(second.Candidates).Id);
+    }
+
+    [Fact]
+    public async Task DirectoryBatchPlansDeterministicallyAndPublishesPrivacySafeManifest() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string nested = Path.Combine(inputRoot, "nested");
+        string evidenceRoot = scope.PathFor("evidence");
+        string manifest = scope.PathFor("batch.json");
+        Directory.CreateDirectory(nested);
+        const string sensitive = "BatchPlanSecret";
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(Path.Combine(nested, "b.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(Path.Combine(inputRoot, "a.pdf"));
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = evidenceRoot,
+            ManifestPath = manifest,
+            Recipe = CreateRecipe(sensitive)
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+        Assert.True(result.PublishedAtomically);
+        Assert.Equal(2, result.Items.Count);
+        Assert.EndsWith(Path.Combine("evidence", "a.redaction.json"), result.Items[0].EvidencePath, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith(Path.Combine("evidence", "nested", "b.redaction.json"), result.Items[1].EvidencePath, StringComparison.OrdinalIgnoreCase);
+        Assert.All(result.Items, item => Assert.Equal("literal", Assert.Single(item.Candidates).RuleName));
+        string persisted = await File.ReadAllTextAsync(manifest);
+        Assert.DoesNotContain(sensitive, persisted, StringComparison.Ordinal);
+        Assert.DoesNotContain(scope.DirectoryPath, persisted, StringComparison.OrdinalIgnoreCase);
+        using JsonDocument json = JsonDocument.Parse(persisted);
+        Assert.Equal(PdfRedactionBatchResult.CurrentSchema, json.RootElement.GetProperty("schema").GetString());
+        Assert.Equal(2, json.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task EmptyAtomicDirectoryBatchStillPublishesItsManifest() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string manifest = scope.PathFor("batch.json");
+        Directory.CreateDirectory(inputRoot);
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = scope.PathFor("evidence"),
+            ManifestPath = manifest,
+            Recipe = CreateRecipe("not-present")
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+        Assert.True(result.PublishedAtomically);
+        Assert.Empty(result.Items);
+        using JsonDocument json = JsonDocument.Parse(await File.ReadAllTextAsync(manifest));
+        Assert.Equal(0, json.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task AtomicDirectoryBatchManifestConflictPublishesNoItemEvidence() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string evidenceRoot = scope.PathFor("evidence");
+        string manifest = scope.PathFor("batch.json");
+        Directory.CreateDirectory(inputRoot);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("AtomicBatchSecret")).Save(Path.Combine(inputRoot, "one.pdf"));
+        await File.WriteAllTextAsync(manifest, "sentinel");
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = evidenceRoot,
+            ManifestPath = manifest,
+            Recipe = CreateRecipe("AtomicBatchSecret")
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.False(result.PublishedAtomically);
+        Assert.Equal("sentinel", await File.ReadAllTextAsync(manifest));
+        Assert.False(File.Exists(Path.Combine(evidenceRoot, "one.redaction.json")));
+    }
+
+    [Fact]
+    public async Task ContinuePerItemBatchPublishesValidPlansAndRecordsFailures() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string evidenceRoot = scope.PathFor("evidence");
+        string manifest = scope.PathFor("batch.json");
+        Directory.CreateDirectory(inputRoot);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("ContinueBatchSecret")).Save(Path.Combine(inputRoot, "good.pdf"));
+        await File.WriteAllBytesAsync(Path.Combine(inputRoot, "invalid.pdf"), new byte[2 * 1024 * 1024]);
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = evidenceRoot,
+            ManifestPath = manifest,
+            PublicationPolicy = PdfRedactionBatchPublicationPolicy.ContinuePerItem,
+            Recipe = CreateRecipe("ContinueBatchSecret"),
+            Limits = new PdfRedactionWorkflowLimits { MaximumConcurrency = 2, MaximumInputBytes = 1024 * 1024 }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.False(result.PublishedAtomically);
+        Assert.Equal(2, result.Items.Count);
+        Assert.Single(result.Items, static item => item.Succeeded);
+        Assert.Single(result.Items, static item => !item.Succeeded);
+        Assert.True(File.Exists(Path.Combine(evidenceRoot, "good.redaction.json")));
+        Assert.False(File.Exists(Path.Combine(evidenceRoot, "invalid.redaction.json")));
+        Assert.True(File.Exists(manifest));
+    }
+
     private static PdfRedactionRecipe CreateRecipe(string value) {
         var recipe = new PdfRedactionRecipe();
-        recipe.Rules.Add(new PdfRedactionRule { Kind = PdfRedactionRuleKind.Literal, Value = value });
+        recipe.Rules.Add(new PdfRedactionRule { Name = "literal", Kind = PdfRedactionRuleKind.Literal, Value = value });
         return recipe;
     }
 

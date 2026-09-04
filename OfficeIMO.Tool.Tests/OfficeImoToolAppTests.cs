@@ -63,7 +63,7 @@ public sealed class OfficeImoToolAppTests {
             await File.WriteAllTextAsync(recipe, """
                 {
                   "schema": "officeimo.pdf.redaction.recipe.v1",
-                  "rules": [ { "kind": "Literal", "value": "CliSecret-881" } ]
+                  "rules": [ { "name": "cli-secret", "kind": "Literal", "value": "CliSecret-881" } ]
                 }
                 """);
             await using var input = new MemoryStream();
@@ -106,7 +106,7 @@ public sealed class OfficeImoToolAppTests {
         const string recipeJson = """
             {
               "schema": "officeimo.pdf.redaction.recipe.v1",
-              "rules": [ { "kind": "Literal", "value": "protected recipe" } ]
+              "rules": [ { "name": "protected-recipe", "kind": "Literal", "value": "protected recipe" } ]
             }
             """;
         try {
@@ -122,6 +122,62 @@ public sealed class OfficeImoToolAppTests {
             Assert.Equal(recipeJson, await File.ReadAllTextAsync(recipe));
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfRedactionBatchCliRunsStrictRequestAndPublishesManifest() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.RedactionBatch.Tests", Guid.NewGuid().ToString("N"));
+        string inputRoot = Path.Combine(directory, "input");
+        string evidenceRoot = Path.Combine(directory, "evidence");
+        string request = Path.Combine(directory, "batch-request.json");
+        string manifest = Path.Combine(directory, "batch-result.json");
+        Directory.CreateDirectory(inputRoot);
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("BatchCliSecret")))))).Save(Path.Combine(inputRoot, "source.pdf"));
+            await File.WriteAllTextAsync(request, JsonSerializer.Serialize(new {
+                schema = "officeimo.pdf.redaction.batch-request.v1",
+                mode = "PlanOnly",
+                inputRoot,
+                evidenceRoot,
+                manifestPath = manifest,
+                recipe = new {
+                    schema = "officeimo.pdf.redaction.recipe.v1",
+                    rules = new[] { new { name = "batch-cli", kind = "Literal", value = "BatchCliSecret" } }
+                }
+            }));
+            await using var input = new MemoryStream();
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "batch", "--request", request], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.True(File.Exists(Path.Combine(evidenceRoot, "source.redaction.json")));
+            Assert.True(File.Exists(manifest));
+            Assert.DoesNotContain("BatchCliSecret", await File.ReadAllTextAsync(manifest), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfRedactionBatchCliRejectsUnknownJsonMembers() {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.RedactionBatch.Tests-" + Guid.NewGuid().ToString("N") + ".json");
+        try {
+            await File.WriteAllTextAsync(path, "{\"schema\":\"officeimo.pdf.redaction.batch-request.v1\",\"unexpected\":true}");
+            await using var input = new MemoryStream();
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "batch", "--request", path], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("Invalid redaction JSON", error.ToString(), StringComparison.Ordinal);
+            Assert.Contains("unexpected", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
         }
     }
 

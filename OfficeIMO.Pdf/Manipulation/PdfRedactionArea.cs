@@ -3,11 +3,19 @@ namespace OfficeIMO.Pdf;
 /// <summary>Rectangle requested for redaction planning, using PDF point coordinates from the page bottom-left.</summary>
 public sealed class PdfRedactionArea {
     /// <summary>Creates a redaction area.</summary>
-    public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label = null)
-        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null) {
+    public PdfRedactionArea(
+        int pageNumber,
+        double x,
+        double y,
+        double width,
+        double height,
+        string? label = null,
+        PdfRedactionContentScope contentScope = PdfRedactionContentScope.TextAndUnderlay,
+        PdfRedactionAppearanceMode appearanceMode = PdfRedactionAppearanceMode.Exact)
+        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, contentScope, appearanceMode) {
     }
 
-    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry) {
+    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be greater than zero.");
         }
@@ -27,6 +35,8 @@ public sealed class PdfRedactionArea {
         if (!IsFinite(height) || height <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(height), "Height must be finite and greater than zero.");
         }
+        if (contentScope is < PdfRedactionContentScope.TextOnly or > PdfRedactionContentScope.TextAndUnderlay) throw new ArgumentOutOfRangeException(nameof(contentScope));
+        if (appearanceMode is < PdfRedactionAppearanceMode.Exact or > PdfRedactionAppearanceMode.FullLine) throw new ArgumentOutOfRangeException(nameof(appearanceMode));
 
         PageNumber = pageNumber;
         X = x;
@@ -34,6 +44,8 @@ public sealed class PdfRedactionArea {
         Width = width;
         Height = height;
         Label = label;
+        ContentScope = contentScope;
+        AppearanceMode = appearanceMode;
         TextRenderingMode = textRenderingMode;
         ExactGeometry = exactGeometry;
     }
@@ -55,6 +67,12 @@ public sealed class PdfRedactionArea {
 
     /// <summary>Optional caller label.</summary>
     public string? Label { get; }
+
+    /// <summary>Intersecting content removal policy for this reviewed area.</summary>
+    public PdfRedactionContentScope ContentScope { get; }
+
+    /// <summary>Visible privacy-appearance policy for this reviewed area.</summary>
+    public PdfRedactionAppearanceMode AppearanceMode { get; }
 
     /// <summary>Right coordinate in PDF points.</summary>
     public double Right => X + Width;
@@ -86,10 +104,13 @@ public sealed class PdfRedactionArea {
         PdfRedactionGeometry.RectangleIntersectsQuadrilateral(X, Y, Width, Height, first, second, third, fourth);
 
     internal PdfRedactionArea WithExactGeometry(PdfRedactionGeometry exactGeometry) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode);
 
     internal PdfRedactionArea WithTextRenderingMode(int textRenderingMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode);
+
+    internal PdfRedactionArea WithPolicies(PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, contentScope, appearanceMode);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

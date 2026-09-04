@@ -25,9 +25,10 @@ internal static partial class PdfTextEditor {
         region = TranslateRegionToSource(pdf, region, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected: null);
+        style = FitStyleToRegion(style, text, region, snapshot, out string? fitWarning);
         double baselineY = region.Top - style.FontSize;
         byte[] output = StampLines(pdf, region.PageNumber, region.X, baselineY, text, style, readOptions);
-        return new TextMutationResult(output, 1, Array.Empty<string>());
+        return new TextMutationResult(output, 1, fitWarning is null ? Array.Empty<string>() : new[] { fitWarning });
     }
 
     internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
@@ -39,16 +40,20 @@ internal static partial class PdfTextEditor {
         EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
+        string replacementText = PreserveAuthoredEdgeWhitespace(detected.Spans, text);
+        style = FitStyleToRegion(style, replacementText, region, snapshot, out string? fitWarning);
         TextRemovalResult removal = detected.Spans.Count == 0
             ? new TextRemovalResult(pdf.ToArray(), Array.Empty<string>(), Array.Empty<PdfStamper.TextStampRequest>())
             : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions, allowTextRenderingMode3: snapshot.AllowTextRenderingMode3);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var replacementRequests = new List<PdfStamper.TextStampRequest>();
-        if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, PreserveAuthoredEdgeWhitespace(detected.Spans, text), style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
+        if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, replacementText, style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions, replacementRequests);
         requests.AddRange(replacementRequests);
         byte[] output = ApplyStampRequests(removal.Bytes, requests, readOptions);
-        return new TextMutationResult(output, detected.Spans.Count, removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style.Font)));
+        IEnumerable<string> warnings = removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style.Font));
+        if (fitWarning is not null) warnings = warnings.Append(fitWarning);
+        return new TextMutationResult(output, detected.Spans.Count, warnings);
     }
 
     internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
@@ -552,6 +557,30 @@ internal static partial class PdfTextEditor {
         options.RotationDegrees ?? detected?.RotationDegrees ?? 0D,
         detected?.Spans.Count > 0 && detected.Spans.All(static span => span.TextRenderingMode == 3) ? 3 : 0);
 
+    private static PdfResolvedTextStyle FitStyleToRegion(
+        PdfResolvedTextStyle style,
+        string text,
+        PdfPageRegion region,
+        PdfTextEditOptions options,
+        out string? warning) {
+        warning = null;
+        if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.PreserveFontSize || text.Length == 0) return style;
+        string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        double widestLine = lines.Max(line => PdfWriter.EstimateSimpleTextWidth(line, style.Font, style.FontSize));
+        double radians = style.RotationDegrees * Math.PI / 180D;
+        double availableWidth = Math.Abs(Math.Cos(radians)) * region.Width + Math.Abs(Math.Sin(radians)) * region.Height;
+        if (widestLine <= availableWidth + 0.01D) return style;
+        if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.RejectOverflow) {
+            throw new NotSupportedException("The replacement text exceeds the selected region's baseline extent under the RejectOverflow width policy.");
+        }
+        double fittedSize = style.FontSize * availableWidth / widestLine;
+        if (fittedSize + 0.001D < options.MinimumFontSize) {
+            throw new NotSupportedException("The replacement text cannot fit the selected region without reducing the font below MinimumFontSize.");
+        }
+        warning = "The replacement font size was reduced from " + style.FontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " to " + fittedSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " points to fit the selected region.";
+        return style.WithFontSize(fittedSize);
+    }
+
     private static string[] BuildSubstitutionWarnings(PdfRegionText detected, PdfStandardFont targetFont) {
         string source = StripSubsetPrefix(detected.SourceFont);
         if (source.Length == 0 || string.Equals(source, targetFont.ToBaseFontName(), StringComparison.OrdinalIgnoreCase)) return Array.Empty<string>();
@@ -874,6 +903,7 @@ internal static partial class PdfTextEditor {
         internal PdfColor Color { get; }
         internal double RotationDegrees { get; }
         internal int TextRenderingMode { get; }
+        internal PdfResolvedTextStyle WithFontSize(double fontSize) => new PdfResolvedTextStyle(Font, fontSize, Color, RotationDegrees, TextRenderingMode);
         public bool Equals(PdfResolvedTextStyle other) => Font == other.Font && FontSize.Equals(other.FontSize) && Color.Equals(other.Color) && RotationDegrees.Equals(other.RotationDegrees) && TextRenderingMode == other.TextRenderingMode;
         public override bool Equals(object? obj) => obj is PdfResolvedTextStyle other && Equals(other);
         public override int GetHashCode() { unchecked { int hash = (int)Font; hash = (hash * 397) ^ FontSize.GetHashCode(); hash = (hash * 397) ^ Color.GetHashCode(); hash = (hash * 397) ^ RotationDegrees.GetHashCode(); return (hash * 397) ^ TextRenderingMode; } }

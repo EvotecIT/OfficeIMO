@@ -13,6 +13,7 @@ OfficeIMO.Tool - PDF workflows
 
 Usage:
   officeimo pdf redact providers [--ocr-provider-assembly <provider.dll>]
+  officeimo pdf redact batch --request <batch.json> [--force]
   officeimo pdf redact plan <input.pdf> --recipe <recipe.json> --evidence <plan.json>
   officeimo pdf redact apply <input.pdf> --recipe <recipe.json> --decisions <decisions.json>
              --output <output.pdf> --evidence <evidence.json> [--force]
@@ -27,6 +28,7 @@ Recipe and result schemas:
   officeimo.pdf.redaction.recipe.v1
   officeimo.pdf.redaction.plan.v1 / officeimo.pdf.redaction.result.v1
   officeimo.pdf.redaction.decisions.v1
+  officeimo.pdf.redaction.batch-request.v1 / officeimo.pdf.redaction.batch.v1
 
 The CLI does not accept passwords as command-line values and never writes matched or extracted text to evidence.
 API hosts can supply IOcrEngine directly through the reusable OfficeIMO.Workflows contract.
@@ -45,8 +47,6 @@ for non-secret scalar configuration; provider secrets should be referenced throu
                 await output.WriteLineAsync(JsonSerializer.Serialize(catalog.Discover(), PdfRedactionCliJsonContext.Default.IReadOnlyListOcrEngineDescriptor)).ConfigureAwait(false);
                 return (int)OfficeImoToolExitCode.Success;
             }
-            PdfRedactionRecipe recipe = await ReadJsonAsync(parsed.RecipePath!, PdfRedactionCliJsonContext.Default.PdfRedactionRecipe, cancellationToken).ConfigureAwait(false);
-            PdfRedactionDecisionManifest? decisions = parsed.DecisionsPath is null ? null : await ReadJsonAsync(parsed.DecisionsPath, PdfRedactionCliJsonContext.Default.PdfRedactionDecisionManifest, cancellationToken).ConfigureAwait(false);
             string? ownerPassword = ReadSecret(parsed.PasswordEnvironmentVariable);
             string? outputPassword = ReadSecret(parsed.OutputPasswordEnvironmentVariable);
             IOcrEngine? ocrEngine = parsed.OcrProviderId is null ? null : catalog.Create(parsed.OcrProviderId, parsed.OcrProviderOptions);
@@ -55,6 +55,25 @@ for non-secret scalar configuration; provider secrets should be referenced throu
                 MinimumConfidence = parsed.OcrMinimumConfidence ?? 0.5D,
                 ProviderOptions = new Dictionary<string, string>(parsed.OcrProviderOptions, StringComparer.Ordinal)
             };
+            IPdfRedactionWorkflowRunner workflowRunner = runner ?? new OfficeWorkflowRunner();
+            if (parsed.BatchRequestPath is not null) {
+                PdfRedactionBatchRequest batch = await ReadJsonAsync(parsed.BatchRequestPath, PdfRedactionCliJsonContext.Default.PdfRedactionBatchRequest, cancellationToken).ConfigureAwait(false);
+                batch.ProtectedInputPaths.Add(Path.GetFullPath(parsed.BatchRequestPath));
+                batch.OcrEngine = ocrEngine;
+                batch.OcrOptions = ocrOptions;
+                batch.OwnerPassword = ownerPassword;
+                batch.OutputEncryption = outputPassword is null ? null : new PdfStandardEncryptionOptions(outputPassword);
+                if (parsed.Force) batch.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+                PdfRedactionBatchResult batchResult = await workflowRunner.RunRedactionBatchAsync(batch, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await output.WriteLineAsync(JsonSerializer.Serialize(batchResult, PdfRedactionCliJsonContext.Default.PdfRedactionBatchResult)).ConfigureAwait(false);
+                if (batchResult.Status == OfficeWorkflowStatus.Completed) return (int)OfficeImoToolExitCode.Success;
+                foreach (PdfRedactionWorkflowResult item in batchResult.Items) {
+                    foreach (OfficeWorkflowDiagnostic diagnostic in item.Diagnostics) await error.WriteLineAsync(diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);
+                }
+                return batchResult.Status == OfficeWorkflowStatus.Cancelled ? (int)OfficeImoToolExitCode.Cancelled : (int)OfficeImoToolExitCode.OperationFailed;
+            }
+            PdfRedactionRecipe recipe = await ReadJsonAsync(parsed.RecipePath!, PdfRedactionCliJsonContext.Default.PdfRedactionRecipe, cancellationToken).ConfigureAwait(false);
+            PdfRedactionDecisionManifest? decisions = parsed.DecisionsPath is null ? null : await ReadJsonAsync(parsed.DecisionsPath, PdfRedactionCliJsonContext.Default.PdfRedactionDecisionManifest, cancellationToken).ConfigureAwait(false);
             var request = new PdfRedactionWorkflowRequest {
                 Mode = parsed.Mode,
                 InputPath = Path.GetFullPath(parsed.InputPath!),
@@ -72,7 +91,7 @@ for non-secret scalar configuration; provider secrets should be referenced throu
                 ExpectedOutputSha256 = parsed.ExpectedOutputSha256,
                 ConflictPolicy = parsed.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
             };
-            PdfRedactionWorkflowResult result = await (runner ?? new OfficeWorkflowRunner()).RunRedactionAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
+            PdfRedactionWorkflowResult result = await workflowRunner.RunRedactionAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
             await output.WriteLineAsync(JsonSerializer.Serialize(result, PdfRedactionCliJsonContext.Default.PdfRedactionWorkflowResult)).ConfigureAwait(false);
             if (result.Succeeded) return (int)OfficeImoToolExitCode.Success;
             foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics) await error.WriteLineAsync(diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);
@@ -136,6 +155,7 @@ internal sealed class PdfArguments {
     internal string? ExpectedOutputSha256 { get; private set; }
     internal bool Force { get; private set; }
     internal bool ListProviders { get; private set; }
+    internal string? BatchRequestPath { get; private set; }
     internal string? OcrProviderId { get; private set; }
     internal string? OcrLanguage { get; private set; }
     internal double? OcrMinimumConfidence { get; private set; }
@@ -147,12 +167,14 @@ internal sealed class PdfArguments {
         if (!string.Equals(args[0], "redact", StringComparison.OrdinalIgnoreCase)) throw new PdfUsageException("Unknown PDF command '" + args[0] + "'.");
         if (args.Length < 2 || IsHelp(args[1])) return new PdfArguments { Help = true };
         bool listProviders = string.Equals(args[1], "providers", StringComparison.OrdinalIgnoreCase);
+        bool batch = string.Equals(args[1], "batch", StringComparison.OrdinalIgnoreCase);
         var parsed = new PdfArguments {
             ListProviders = listProviders,
             Mode = args[1].ToLowerInvariant() switch {
                 "plan" => PdfRedactionWorkflowMode.PlanOnly,
                 "apply" => PdfRedactionWorkflowMode.ApplyAndVerify,
                 "verify" => PdfRedactionWorkflowMode.VerifyExistingOutput,
+                "batch" => PdfRedactionWorkflowMode.PlanOnly,
                 "providers" => PdfRedactionWorkflowMode.PlanOnly,
                 _ => throw new PdfUsageException("Unknown PDF redaction command '" + args[1] + "'.")
             }
@@ -162,6 +184,7 @@ internal sealed class PdfArguments {
             if (IsHelp(token)) return new PdfArguments { Help = true };
             switch (token) {
                 case "--recipe": parsed.RecipePath = ReadValue(args, ref index, token); break;
+                case "--request": parsed.BatchRequestPath = ReadValue(args, ref index, token); break;
                 case "--decisions": parsed.DecisionsPath = ReadValue(args, ref index, token); break;
                 case "--output": parsed.OutputPath = ReadValue(args, ref index, token); break;
                 case "--evidence": parsed.EvidencePath = ReadValue(args, ref index, token); break;
@@ -185,11 +208,19 @@ internal sealed class PdfArguments {
         if (parsed.ListProviders) {
             if (parsed.OcrProviderId is not null || parsed.OcrLanguage is not null || parsed.OcrMinimumConfidence.HasValue || parsed.OcrProviderOptions.Count > 0 ||
                 parsed.RecipePath is not null || parsed.DecisionsPath is not null || parsed.OutputPath is not null || parsed.EvidencePath is not null ||
-                parsed.PasswordEnvironmentVariable is not null || parsed.OutputPasswordEnvironmentVariable is not null || parsed.ExpectedOutputSha256 is not null || parsed.Force) {
+                parsed.BatchRequestPath is not null || parsed.PasswordEnvironmentVariable is not null || parsed.OutputPasswordEnvironmentVariable is not null || parsed.ExpectedOutputSha256 is not null || parsed.Force) {
                 throw new PdfUsageException("The provider discovery command accepts only --ocr-provider-assembly options.");
             }
             return parsed;
         }
+        if (batch) {
+            if (parsed.BatchRequestPath is null) throw new PdfUsageException("The batch command requires --request <batch.json>.");
+            if (parsed.InputPath is not null || parsed.RecipePath is not null || parsed.DecisionsPath is not null || parsed.OutputPath is not null || parsed.EvidencePath is not null || parsed.ExpectedOutputSha256 is not null) {
+                throw new PdfUsageException("The batch command reads input, recipe, decisions, output, evidence, and mode from its request file.");
+            }
+            return parsed;
+        }
+        if (parsed.BatchRequestPath is not null) throw new PdfUsageException("--request is accepted only by the batch command.");
         if (parsed.InputPath is null) throw new PdfUsageException("PDF redaction requires an input PDF.");
         if (parsed.RecipePath is null) throw new PdfUsageException("PDF redaction requires --recipe <recipe.json>.");
         if (parsed.EvidencePath is null) throw new PdfUsageException("PDF redaction requires --evidence <path>.");
@@ -222,9 +253,11 @@ internal sealed class PdfArguments {
 
 internal sealed class PdfUsageException : Exception { internal PdfUsageException(string message) : base(message) { } }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, UseStringEnumConverter = true)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, UseStringEnumConverter = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(PdfRedactionRecipe))]
 [JsonSerializable(typeof(PdfRedactionDecisionManifest))]
 [JsonSerializable(typeof(PdfRedactionWorkflowResult))]
+[JsonSerializable(typeof(PdfRedactionBatchRequest))]
+[JsonSerializable(typeof(PdfRedactionBatchResult))]
 [JsonSerializable(typeof(IReadOnlyList<OcrEngineDescriptor>))]
 internal sealed partial class PdfRedactionCliJsonContext : JsonSerializerContext;

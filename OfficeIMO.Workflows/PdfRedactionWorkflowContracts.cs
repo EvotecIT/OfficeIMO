@@ -61,10 +61,16 @@ public enum PdfRedactionRuleKind {
 
 /// <summary>One serializable redaction search rule.</summary>
 public sealed class PdfRedactionRule {
+    /// <summary>Stable non-sensitive identifier included in review evidence. Use letters, digits, dot, underscore, or hyphen.</summary>
+    public required string Name { get; set; }
     /// <summary>Typed rule behavior.</summary>
     public PdfRedactionRuleKind Kind { get; set; }
     /// <summary>Rule value. Required except for <see cref="PdfRedactionRuleKind.RedactAnnotations"/>; omitted from result evidence.</summary>
     public string? Value { get; set; }
+    /// <summary>Intersecting content removal policy for candidates produced by this rule.</summary>
+    public PdfRedactionContentScope ContentScope { get; set; } = PdfRedactionContentScope.TextAndUnderlay;
+    /// <summary>Visible privacy-appearance policy for candidates produced by this rule.</summary>
+    public PdfRedactionAppearanceMode AppearanceMode { get; set; } = PdfRedactionAppearanceMode.Exact;
 }
 
 /// <summary>Serializable point used by recipe geometry.</summary>
@@ -77,6 +83,8 @@ public sealed class PdfRedactionRecipePoint {
 
 /// <summary>Serializable review geometry in a reusable recipe.</summary>
 public sealed class PdfRedactionRecipeRegion {
+    /// <summary>Stable non-sensitive identifier included in review evidence. Use letters, digits, dot, underscore, or hyphen.</summary>
+    public required string Name { get; set; }
     /// <summary>Typed review geometry.</summary>
     public PdfRedactionRegionKind Kind { get; set; } = PdfRedactionRegionKind.Rectangle;
     /// <summary>One-based page number.</summary>
@@ -97,6 +105,10 @@ public sealed class PdfRedactionRecipeRegion {
     public double StrokeWidth { get; set; } = 6D;
     /// <summary>Optional review label. Do not place sensitive matched text in labels.</summary>
     public string? Label { get; set; }
+    /// <summary>Intersecting content removal policy for this explicit region.</summary>
+    public PdfRedactionContentScope ContentScope { get; set; } = PdfRedactionContentScope.TextAndUnderlay;
+    /// <summary>Visible privacy-appearance policy for this explicit region.</summary>
+    public PdfRedactionAppearanceMode AppearanceMode { get; set; } = PdfRedactionAppearanceMode.Exact;
 }
 
 /// <summary>Versioned, reusable PDF redaction recipe.</summary>
@@ -198,9 +210,9 @@ public sealed class PdfRedactionWorkflowArea {
 
 /// <summary>One privacy-safe, atomically reviewable redaction candidate.</summary>
 public sealed class PdfRedactionWorkflowCandidate {
-    internal PdfRedactionWorkflowCandidate(string id, string origin, IReadOnlyList<PdfRedactionArea> areas, double? confidence, string? provider, string? model, string? language) {
+    internal PdfRedactionWorkflowCandidate(string id, string origin, string ruleName, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode, IReadOnlyList<PdfRedactionArea> areas, double? confidence, string? provider, string? model, string? language) {
         if (areas.Count == 0) throw new ArgumentException("A candidate requires at least one area.", nameof(areas));
-        Id = id; Origin = origin; Areas = areas.Select(static area => new PdfRedactionWorkflowArea(area)).ToArray();
+        Id = id; Origin = origin; RuleName = ruleName; ContentScope = contentScope; AppearanceMode = appearanceMode; Areas = areas.Select(static area => new PdfRedactionWorkflowArea(area)).ToArray();
         PageNumber = areas[0].PageNumber;
         X = areas.Min(static area => area.X); Y = areas.Min(static area => area.Y);
         double right = areas.Max(static area => area.Right); double top = areas.Max(static area => area.Top);
@@ -211,6 +223,12 @@ public sealed class PdfRedactionWorkflowCandidate {
     public string Id { get; }
     /// <summary>Native, OCR, region, or annotation origin.</summary>
     public string Origin { get; }
+    /// <summary>Stable rule or explicit-region name without matched content.</summary>
+    public string RuleName { get; }
+    /// <summary>Reviewed intersecting-content removal policy.</summary>
+    public PdfRedactionContentScope ContentScope { get; }
+    /// <summary>Reviewed visible privacy-appearance policy.</summary>
+    public PdfRedactionAppearanceMode AppearanceMode { get; }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
     /// <summary>Left coordinate.</summary>
@@ -281,4 +299,6 @@ public interface IPdfRedactionWorkflowRunner {
     Task<PdfRedactionWorkflowResult> RunRedactionAsync(PdfRedactionWorkflowRequest request, IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default);
     /// <summary>Runs a bounded all-or-nothing publication batch.</summary>
     Task<PdfRedactionBatchResult> RunRedactionBatchAsync(IEnumerable<PdfRedactionWorkflowRequest> requests, IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default);
+    /// <summary>Resolves and runs a deterministic file-set batch.</summary>
+    Task<PdfRedactionBatchResult> RunRedactionBatchAsync(PdfRedactionBatchRequest request, IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default);
 }

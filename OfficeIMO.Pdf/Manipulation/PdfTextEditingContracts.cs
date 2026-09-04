@@ -44,10 +44,22 @@ public sealed class PdfPageRegion {
     }
 }
 
-/// <summary>Style overrides for existing-page text editing. Null values preserve detected style when possible.</summary>
+/// <summary>Controls horizontal fitting for text added to or replacing a bounded page region.</summary>
+public enum PdfTextRegionWidthPolicy {
+    /// <summary>Preserves the resolved font size even when a line exceeds the region's baseline extent.</summary>
+    PreserveFontSize,
+    /// <summary>Rejects the edit before mutation when a line exceeds the region's baseline extent.</summary>
+    RejectOverflow,
+    /// <summary>Reduces the resolved font size to fit every line, subject to <see cref="PdfTextEditOptions.MinimumFontSize"/>.</summary>
+    ShrinkToFit
+}
+
+/// <summary>Style and bounded-layout overrides for existing-page text editing. Null style values preserve detected style when possible.</summary>
 public sealed class PdfTextEditOptions {
     private PdfStandardFont? _font;
     private double? _fontSize;
+    private double _minimumFontSize = 6D;
+    private PdfTextRegionWidthPolicy _regionWidthPolicy;
     private double? _rotationDegrees;
 
     /// <summary>Standard PDF font. Null preserves the detected family/style or uses Helvetica for new text.</summary>
@@ -86,12 +98,35 @@ public sealed class PdfTextEditOptions {
     /// </summary>
     public bool AllowTextRenderingMode3 { get; set; }
 
+    /// <summary>
+    /// Horizontal width policy for <c>Add(region, ...)</c> and <c>Replace(region, ...)</c>.
+    /// Match-based replacement keeps its existing local text-flow reflow behavior.
+    /// </summary>
+    public PdfTextRegionWidthPolicy RegionWidthPolicy {
+        get => _regionWidthPolicy;
+        set {
+            if (value is < PdfTextRegionWidthPolicy.PreserveFontSize or > PdfTextRegionWidthPolicy.ShrinkToFit) throw new ArgumentOutOfRangeException(nameof(RegionWidthPolicy), "Text region width policy is undefined.");
+            _regionWidthPolicy = value;
+        }
+    }
+
+    /// <summary>Smallest font size permitted when <see cref="RegionWidthPolicy"/> is <see cref="PdfTextRegionWidthPolicy.ShrinkToFit"/>.</summary>
+    public double MinimumFontSize {
+        get => _minimumFontSize;
+        set {
+            if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(MinimumFontSize), "Minimum text edit font size must be finite and greater than zero.");
+            _minimumFontSize = value;
+        }
+    }
+
     internal PdfTextEditOptions Snapshot() => new PdfTextEditOptions {
         Font = Font,
         FontSize = FontSize,
         Color = Color,
         RotationDegrees = RotationDegrees,
-        AllowTextRenderingMode3 = AllowTextRenderingMode3
+        AllowTextRenderingMode3 = AllowTextRenderingMode3,
+        RegionWidthPolicy = RegionWidthPolicy,
+        MinimumFontSize = MinimumFontSize
     };
 }
 

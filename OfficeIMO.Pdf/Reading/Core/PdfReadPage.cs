@@ -125,13 +125,9 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageBox GetPageBoundaryBox() {
-        if (TryReadPageBox("CropBox", out PdfPageBox? cropBox) && cropBox != null) {
-            return cropBox;
-        }
-
-        if (TryReadPageBox("MediaBox", out PdfPageBox? mediaBox) && mediaBox != null) {
-            return mediaBox;
-        }
+        PdfPageGeometry geometry = GetGeometry();
+        if (geometry.EffectiveBox is PdfPageBox effectiveBox) return effectiveBox;
+        if (geometry.HasEmptyEffectiveBoxIntersection) throw new InvalidOperationException("The page CropBox does not intersect its MediaBox; visual and interaction geometry cannot be mapped safely.");
 
         return new PdfPageBox("MediaBox", 0D, 0D, 612D, 792D);
     }
