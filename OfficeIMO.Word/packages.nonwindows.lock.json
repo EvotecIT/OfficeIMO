@@ -107,7 +107,7 @@
         "type": "Direct",
         "requested": "[10.0.11, )",
         "resolved": "10.0.11",
-        "contentHash": "U5RAeZrH+PDrQb1R8C4q2oNZc7H6dsLQD17kISdcXqtqE3f1o7CAMNKaCb25kLh8mfxZaLNX21gAxJ+2EjdiRA=="
+        "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
       },
       "DocumentFormat.OpenXml.Framework": {
         "type": "Transitive",
