@@ -530,15 +530,25 @@ internal static partial class HtmlPdfRenderedConverter {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
         drawing.AddShape(visual.Shape.Clone(), 0D, 0D);
         if (TryAddTranslucentGradient(canvas, visual, drawing, conversionReport, cancellationToken)) return;
-        canvas.Drawing(
+        double x = visual.X * PointsPerCssPixel;
+        double y = visual.Y * PointsPerCssPixel;
+        double drawingX = Math.Max(0D, x);
+        double drawingY = Math.Max(0D, y);
+        OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
+        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
-            visual.X * PointsPerCssPixel,
-            visual.Y * PointsPerCssPixel,
+            drawingX,
+            drawingY,
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
             linkUri: visual.LinkUri,
             linkContents: visual.LinkUri == null ? null : visual.Source);
+        if (transform == OfficeTransform.Identity) {
+            addDrawing(canvas);
+        } else {
+            canvas.Effect(transform, 1D, addDrawing);
+        }
     }
 
     private static void AddText(

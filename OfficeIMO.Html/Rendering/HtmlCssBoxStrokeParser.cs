@@ -316,7 +316,8 @@ internal static class HtmlCssBoxStrokeParser {
 
     private static bool TryStrokeStyle(string value, out string style) {
         style = value.Trim().ToLowerInvariant();
-        return style == "none" || style == "hidden" || style == "solid" || style == "dashed" || style == "dotted" || style == "double";
+        return style == "none" || style == "hidden" || style == "solid" || style == "dashed" || style == "dotted" || style == "double"
+            || style == "groove" || style == "ridge" || style == "inset" || style == "outset";
     }
 
     private static bool TryStrokeColor(string value, OfficeColor currentColor, out OfficeColor color) {
