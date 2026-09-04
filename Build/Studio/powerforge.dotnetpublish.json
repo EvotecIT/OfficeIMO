@@ -188,7 +188,8 @@
         "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx" ],
         "CodesignIdentity": "-",
         "HardenedRuntime": true,
-        "Timestamp": false
+        "Timestamp": false,
+        "EntitlementsPath": "Build/Studio/Apple/Direct.entitlements"
       }
     }
   ],
