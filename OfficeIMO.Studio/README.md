@@ -37,7 +37,7 @@ Crash diagnostics stay local, bounded, and privacy-safe. They record stable even
 
 ## Distribution
 
-PowerForge owns the release matrix, signing, archives, generated Windows MSI, checksums, and artifact manifests. Validate or inspect the repository-local product configuration with:
+PowerForge owns the release matrix, signing, archives, generated Windows MSI, Debian package, macOS `.app`, checksums, and artifact manifests. Validate or inspect the repository-local product configuration with:
 
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate

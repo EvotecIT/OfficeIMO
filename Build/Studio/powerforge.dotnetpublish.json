@@ -165,6 +165,31 @@
         "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
         "IconSize": 1024
       }
+    },
+    {
+      "Id": "OfficeIMO.Studio.macOS.App",
+      "Kind": "MacApp",
+      "PrepareFromTarget": "Studio.macOS",
+      "Runtimes": [ "osx-x64", "osx-arm64" ],
+      "Frameworks": [ "net10.0" ],
+      "Styles": [ "PortableCompat" ],
+      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
+      "OutputName": "OfficeIMO-Studio-{version}-{rid}.zip",
+      "MacApp": {
+        "BundleIdentifier": "com.evotec.officeimo.studio",
+        "BundleName": "OfficeIMO Studio",
+        "Version": "0.1.0",
+        "BuildNumber": "1",
+        "Executable": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "MinimumSystemVersion": "13.0",
+        "Category": "public.app-category.productivity",
+        "Copyright": "Copyright © Evotec",
+        "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx" ],
+        "CodesignIdentity": "-",
+        "HardenedRuntime": true,
+        "Timestamp": false
+      }
     }
   ],
   "Outputs": {
