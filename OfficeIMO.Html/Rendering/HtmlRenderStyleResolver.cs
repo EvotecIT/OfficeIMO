@@ -58,7 +58,11 @@ internal sealed partial class HtmlRenderStyleResolver {
             return false;
         }
 
-        string semanticRole = kind == HtmlPseudoElementKind.Before ? "generated-before" : "generated-after";
+        string semanticRole = kind switch {
+            HtmlPseudoElementKind.Before => "generated-before",
+            HtmlPseudoElementKind.After => "generated-after",
+            _ => "list-marker"
+        };
         style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
         return true;
     }
@@ -149,6 +153,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
+            ListStylePosition = ResolveListStylePosition(computed),
+            ListStyleImage = ResolveListStyleImage(computed),
             FontVariant = fontVariantCaps,
             TextTransform = textTransform,
             ApproximateSmallCaps = approximateSmallCaps,
@@ -609,9 +615,31 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (type.Length > 0) return type;
         foreach (string token in HtmlRenderCssValues.SplitWhitespace(computed.GetValue("list-style"))) {
             if (string.Equals(token, "none", StringComparison.OrdinalIgnoreCase)) return "none";
+            if (!string.Equals(token, "inside", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(token, "outside", StringComparison.OrdinalIgnoreCase)
+                && !token.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return token;
         }
 
         return string.Empty;
+    }
+
+    private static string ResolveListStylePosition(HtmlComputedStyle computed) {
+        string position = computed.GetValue("list-style-position").Trim().ToLowerInvariant();
+        if (position == "inside" || position == "outside") return position;
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(computed.GetValue("list-style"))) {
+            if (string.Equals(token, "inside", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "outside", StringComparison.OrdinalIgnoreCase)) return token.ToLowerInvariant();
+        }
+        return "outside";
+    }
+
+    private static string ResolveListStyleImage(HtmlComputedStyle computed) {
+        string image = computed.GetValue("list-style-image").Trim();
+        if (image.Length > 0) return image;
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(computed.GetValue("list-style"))) {
+            if (token.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return token;
+        }
+        return "none";
     }
 
     private static bool IsDefaultBlockTag(string tagName) {

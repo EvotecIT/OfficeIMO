@@ -120,6 +120,11 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
+        if (TryTrimPseudoElement(value, "::marker", out hostSelector)) {
+            kind = HtmlPseudoElementKind.Marker;
+            return true;
+        }
+
         hostSelector = string.Empty;
         kind = HtmlPseudoElementKind.Before;
         return false;
@@ -200,7 +205,8 @@ public static partial class HtmlComputedStyleEngine {
                     }
 
                     if (string.Equals(pseudoName, "before", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(pseudoName, "after", StringComparison.OrdinalIgnoreCase)) {
+                        || string.Equals(pseudoName, "after", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(pseudoName, "marker", StringComparison.OrdinalIgnoreCase)) {
                         elements++;
                         i = nameEnd;
                         continue;

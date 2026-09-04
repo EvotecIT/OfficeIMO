@@ -6,6 +6,7 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     private const string RevertLayerSentinel = "var(--officeimo-internal-revert-layer)";
+    private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
         IHtmlDocument document,
@@ -36,6 +37,7 @@ public static partial class HtmlComputedStyleEngine {
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
             string parseCss = ExpandNestedConditionalRules(css);
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
+            parseCss = ProtectMarkerPseudoElements(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
@@ -105,7 +107,8 @@ public static partial class HtmlComputedStyleEngine {
 
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
-            IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(styleRule.SelectorText ?? string.Empty, parentSelectors);
+            IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(
+                RestoreMarkerPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
             AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
             foreach (var childRule in styleRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
@@ -269,6 +272,48 @@ public static partial class HtmlComputedStyleEngine {
 
     private static string RestoreProtectedDeclarationValue(string value) =>
         RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value));
+
+    private static string ProtectMarkerPseudoElements(string css) {
+        if (string.IsNullOrEmpty(css) || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
+        var result = new System.Text.StringBuilder(css.Length + 16);
+        char quote = '\0';
+        for (int index = 0; index < css.Length;) {
+            char current = css[index];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                index++;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                result.Append(current);
+                index++;
+                continue;
+            }
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                int end = close < 0 ? css.Length : close + 2;
+                result.Append(css, index, end - index);
+                index = end;
+                continue;
+            }
+            const string marker = "::marker";
+            if (index + marker.Length <= css.Length
+                && string.Compare(css, index, marker, 0, marker.Length, StringComparison.OrdinalIgnoreCase) == 0
+                && (index + marker.Length == css.Length || !IsCssIdentifierCharacter(css[index + marker.Length]))) {
+                result.Append(MarkerPseudoSentinel);
+                index += marker.Length;
+                continue;
+            }
+            result.Append(current);
+            index++;
+        }
+        return result.ToString();
+    }
+
+    private static string RestoreMarkerPseudoElements(string selector) =>
+        selector.Replace(MarkerPseudoSentinel, "::marker");
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";

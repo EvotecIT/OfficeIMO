@@ -55,6 +55,7 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
+        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles);
         ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles);
 
         int childLevel = counters.EnterLevel();
@@ -81,13 +82,23 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        string pseudoName = kind == HtmlPseudoElementKind.Before ? "::before" : "::after";
+        string pseudoName = kind switch {
+            HtmlPseudoElementKind.Before => "::before",
+            HtmlPseudoElementKind.After => "::after",
+            _ => "::marker"
+        };
         string pseudoSource = HtmlRenderStyleResolver.DescribeSource(element) + pseudoName;
         ApplyCounterProperties(pseudoStyle, level, counters, diagnostics, pseudoSource);
         string expression = pseudoStyle.GetValue("content");
+        string normalizedExpression = expression.Trim();
+        if (kind == HtmlPseudoElementKind.Marker
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressMarker = true;
+            return;
+        }
         if (string.IsNullOrWhiteSpace(expression)
-            || string.Equals(expression.Trim(), "none", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(expression.Trim(), "normal", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalizedExpression, "normal", StringComparison.OrdinalIgnoreCase)) {
             return;
         }
 
@@ -127,13 +138,21 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         if (generated.Length == 0) return;
+        HtmlGeneratedPseudoContentPair pair = GetOrCreateContentPair(element, content);
+
+        if (kind == HtmlPseudoElementKind.Before) pair.Before = generated;
+        else if (kind == HtmlPseudoElementKind.After) pair.After = generated;
+        else pair.Marker = generated;
+    }
+
+    private static HtmlGeneratedPseudoContentPair GetOrCreateContentPair(
+        IElement element,
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
         if (!content.TryGetValue(element, out HtmlGeneratedPseudoContentPair? pair)) {
             pair = new HtmlGeneratedPseudoContentPair();
             content[element] = pair;
         }
-
-        if (kind == HtmlPseudoElementKind.Before) pair.Before = generated;
-        else pair.After = generated;
+        return pair;
     }
 
     private static void ApplyCounterProperties(
@@ -277,7 +296,11 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!TryFormatCounter(counters.Get(name), style, counterStyles, out string formatted, out bool limited)) {
+                int counterValue = string.Equals(name, "list-item", StringComparison.OrdinalIgnoreCase)
+                    && HtmlListSemantics.TryResolveOrdinal(element, out int listOrdinal)
+                    ? listOrdinal
+                    : counters.Get(name);
+                if (!TryFormatCounter(counterValue, style, counterStyles, out string formatted, out bool limited)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;

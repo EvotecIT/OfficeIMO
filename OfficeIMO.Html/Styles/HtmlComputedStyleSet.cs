@@ -4,7 +4,8 @@ namespace OfficeIMO.Html;
 
 internal enum HtmlPseudoElementKind {
     Before,
-    After
+    After,
+    Marker
 }
 
 internal sealed class HtmlComputedStyleSet {
@@ -23,7 +24,11 @@ internal sealed class HtmlComputedStyleSet {
 
     internal bool TryGetPseudoStyle(IElement element, HtmlPseudoElementKind kind, out HtmlComputedStyle style) {
         if (_pseudoElements.TryGetValue(element, out HtmlPseudoElementStylePair? pair)) {
-            HtmlComputedStyle? found = kind == HtmlPseudoElementKind.Before ? pair.Before : pair.After;
+            HtmlComputedStyle? found = kind switch {
+                HtmlPseudoElementKind.Before => pair.Before,
+                HtmlPseudoElementKind.After => pair.After,
+                _ => pair.Marker
+            };
             if (found != null) {
                 style = found;
                 return true;
@@ -38,4 +43,5 @@ internal sealed class HtmlComputedStyleSet {
 internal sealed class HtmlPseudoElementStylePair {
     internal HtmlComputedStyle? Before { get; set; }
     internal HtmlComputedStyle? After { get; set; }
+    internal HtmlComputedStyle? Marker { get; set; }
 }

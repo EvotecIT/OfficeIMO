@@ -119,7 +119,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string DescribePseudoSource(IElement element, HtmlPseudoElementKind kind) =>
         HtmlRenderStyleResolver.DescribeSource(element)
-        + (kind == HtmlPseudoElementKind.Before ? "::before" : "::after");
+        + (kind switch {
+            HtmlPseudoElementKind.Before => "::before",
+            HtmlPseudoElementKind.After => "::after",
+            _ => "::marker"
+        });
 
     private void ReportUnsupportedGeneratedLayout(HtmlRenderBoxStyle style, string source) {
         string display = style.Display;

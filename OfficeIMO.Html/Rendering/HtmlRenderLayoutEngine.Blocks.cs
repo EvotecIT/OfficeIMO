@@ -416,11 +416,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
-            string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
+            HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
             int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
                 ? continuationLogicalCharacters
                 : 0;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element, inlineSkipLogicalCharacters);
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, marker, element, inlineSkipLogicalCharacters);
             inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
@@ -734,23 +734,86 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.MaxLayoutDepth);
     }
 
-    private string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
-        if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
+    private HtmlListMarker? ResolveListMarker(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
+        bool hasPseudoStyle = _styleResolver.TryResolvePseudo(
+            element, HtmlPseudoElementKind.Marker, containingWidth, style, out HtmlRenderBoxStyle markerStyle);
+        if (_generatedContent.Suppresses(element, HtmlPseudoElementKind.Marker)) return null;
+
+        string? markerContent = null;
+        if (_generatedContent.TryGet(element, HtmlPseudoElementKind.Marker, out string generatedMarker)) {
+            markerContent = ApplyTextTransform(generatedMarker, markerStyle);
+        }
+        if (markerContent == null && TryCreateListImageMarker(element, style, hasPseudoStyle ? markerStyle : style, containingWidth, out HtmlRenderFlowBlock imageMarker)) {
+            return new HtmlListMarker(string.Empty, hasPseudoStyle ? markerStyle : style, style.ListStylePosition, imageMarker);
+        }
+        if (markerContent == null && string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
-        if (parent == null) return "• ";
-        bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
+        if (markerContent == null && parent == null) markerContent = "• ";
+        bool ordered = parent != null && string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
         int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
-        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
+        if (markerContent == null && _counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
             if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            return customMarker.Length == 0 ? null : customMarker;
+            markerContent = customMarker.Length == 0 ? null : customMarker;
         }
-        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
-            marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+        if (markerContent == null) {
+            if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
+                marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+            }
+            if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
+            if (marker.Length > 0) markerContent = marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
         }
-        if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
-        if (marker.Length == 0) return null;
-        return marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
+        if (string.IsNullOrEmpty(markerContent)) return null;
+        return new HtmlListMarker(markerContent!, hasPseudoStyle ? markerStyle : style, style.ListStylePosition);
+    }
+
+    private bool TryCreateListImageMarker(
+        IElement element,
+        HtmlRenderBoxStyle listStyle,
+        HtmlRenderBoxStyle markerStyle,
+        double containingWidth,
+        out HtmlRenderFlowBlock marker) {
+        marker = null!;
+        if (string.Equals(listStyle.ListStyleImage, "none", StringComparison.OrdinalIgnoreCase)) return false;
+        IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractCssUrls(listStyle.ListStyleImage);
+        if (sources.Count != 1) return false;
+        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element) + "::marker:list-style-image";
+        if (!TryResolveImageSource(sources[0], sourceDescription, out byte[]? bytes, out _, out OfficeImageInfo? imageInfo)
+            || bytes == null || imageInfo == null) return false;
+        IDocument? owner = element.Owner;
+        if (owner == null) return false;
+        IElement imageElement = owner.CreateElement("img");
+        imageElement.SetAttribute("src", sources[0]);
+        var imageStyle = new HtmlRenderBoxStyle {
+            Display = "inline",
+            PaintVisible = markerStyle.PaintVisible,
+            Font = markerStyle.Font,
+            Color = markerStyle.Color,
+            LineHeight = markerStyle.LineHeight,
+            SemanticRole = "list-marker",
+            ApplyEmbeddedImageOrientation = listStyle.ApplyEmbeddedImageOrientation,
+            ImageResolutionDpi = listStyle.ImageResolutionDpi
+        };
+        double imageWidth = ResolveFloatingImageOuterWidth(imageElement, imageStyle);
+        HtmlRenderFlowBlock image = LayoutImage(imageElement, imageWidth, imageStyle);
+        var markerVisual = new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.ListLabel,
+            0D,
+            0D,
+            Math.Max(0.01D, image.Width),
+            Math.Max(0.01D, image.Height),
+            image.Visuals,
+            0,
+            "list-marker");
+        marker = new HtmlRenderFlowBlock(
+            image.Width,
+            image.Height,
+            new[] { markerVisual },
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            true,
+            sourceDescription);
+        return true;
     }
 
     private void ReportCounterRepresentationLimit(IElement element, string style) {

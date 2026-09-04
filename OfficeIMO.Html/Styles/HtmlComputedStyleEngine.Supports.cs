@@ -386,6 +386,13 @@ public static partial class HtmlComputedStyleEngine {
                 return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
                     : IsNonNegativeCssLength(normalized);
+            case "list-style-position":
+                return IsKnownKeyword(normalized, "inside", "outside");
+            case "list-style-image":
+                return normalized == "none"
+                    || normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)
+                    && normalized.EndsWith(")", StringComparison.Ordinal)
+                    && HtmlResourcePipeline.ExtractCssUrls(value).Count == 1;
             case "letter-spacing":
             case "word-spacing":
                 return normalized == "normal"

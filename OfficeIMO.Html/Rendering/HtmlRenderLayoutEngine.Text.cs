@@ -11,13 +11,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        string? prefix,
+        HtmlListMarker? marker,
         IElement? generatedContentOwner,
         int skipLogicalCharacters = 0) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
-        if (!string.IsNullOrEmpty(prefix)) {
-            runs.Add(new HtmlInlineRun(prefix!, parentStyle, null, "list-marker"));
+        if (marker != null && !marker.IsOutside) {
+            runs.Add(CreateListMarkerRun(marker, generatedContentOwner));
         }
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
@@ -42,8 +42,62 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AssignSemanticFragmentOrders(runs);
 
-        return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+        if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
+            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+        }
+
+        HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
+        outsideMarkerStyle.PreserveWhitespace = true;
+        outsideMarkerStyle.BreakSpaces = true;
+        var markerRuns = new List<HtmlInlineRun> {
+            marker.IsImage
+                ? new HtmlInlineRun(marker.Image!, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner, isReplacedImage: true)
+                : new HtmlInlineRun(marker.Content, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner)
+        };
+        ApplyPendingInlineTextTransforms(markerRuns);
+        markerRuns = ApplyScopedFontFallbacks(markerRuns);
+        double gap = Math.Max(2D, parentStyle.Font.Size * 0.25D);
+        double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
+        double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
+        HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters);
+        return CombineOutsideListMarker(markerLayout, bodyLayout, width, gutter, gap, parentStyle);
     }
+
+    private static HtmlInlineLayout CombineOutsideListMarker(
+        HtmlInlineLayout marker,
+        HtmlInlineLayout body,
+        double width,
+        double gutter,
+        double gap,
+        HtmlRenderBoxStyle style) {
+        var visuals = new List<HtmlRenderVisual>(marker.Visuals.Count + body.Visuals.Count);
+        if (marker.Visuals.Count > 0) {
+            (double markerX, _, double markerWidth, _) = ResolveSemanticBounds(marker.Visuals, width, Math.Max(marker.Height, style.LineHeight));
+            double offsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? width - markerX - markerWidth
+                : Math.Max(0D, gutter - gap - markerX - markerWidth);
+            foreach (HtmlRenderVisual visual in marker.Visuals) {
+                visuals.Add(visual.Translate(offsetX, 0D, visuals.Count));
+            }
+        }
+        foreach (HtmlRenderVisual visual in body.Visuals) {
+            double bodyOffsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase) ? 0D : gutter;
+            visuals.Add(visual.Translate(bodyOffsetX, 0D, visuals.Count));
+        }
+        return new HtmlInlineLayout(
+            visuals,
+            Math.Max(marker.Height, body.Height),
+            body.BreakOffsets,
+            body.RunningStringAssignments,
+            body.BreakProgress,
+            body.SupportsContinuationReflow);
+    }
+
+    private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
+        marker.IsImage
+            ? new HtmlInlineRun(marker.Image!, marker.Style, null, "list-marker", ownerElement: owner, isReplacedImage: true)
+            : new HtmlInlineRun(marker.Content, marker.Style, null, "list-marker", ownerElement: owner);
 
     private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
         var resolvedRuns = new List<HtmlInlineRun>();

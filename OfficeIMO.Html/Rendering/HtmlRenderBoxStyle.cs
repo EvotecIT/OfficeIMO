@@ -148,6 +148,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TextOverflow = "clip";
     internal int? LineClamp;
     internal string ListStyleType = string.Empty;
+    internal string ListStylePosition = "outside";
+    internal string ListStyleImage = "none";
     internal string FontVariant = "normal";
     internal string TextTransform = "none";
     internal bool ApproximateSmallCaps;

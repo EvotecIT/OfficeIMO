@@ -32,6 +32,8 @@ public static partial class HtmlComputedStyleEngine {
         "line-height",
         "letter-spacing",
         "list-style",
+        "list-style-image",
+        "list-style-position",
         "list-style-type",
         "tab-size",
         "orphans",
@@ -162,6 +164,8 @@ public static partial class HtmlComputedStyleEngine {
         "letter-spacing",
         "line-height",
         "list-style",
+        "list-style-image",
+        "list-style-position",
         "list-style-type",
         "justify-content",
         "justify-items",
@@ -421,8 +425,9 @@ public static partial class HtmlComputedStyleEngine {
         MediaEnvironment environment) {
         HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
         HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
-        if (before == null && after == null) return;
-        pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after };
+        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment);
+        if (before == null && after == null && marker == null) return;
+        pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after, Marker = marker };
     }
 
     private static HtmlComputedStyle? ComputePseudoElementStyle(

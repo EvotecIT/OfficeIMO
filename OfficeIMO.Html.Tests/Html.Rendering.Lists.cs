@@ -1,9 +1,108 @@
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Drawing;
+using OfficeIMO.Tests.Pdf;
+using System.Text;
+using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRendering_MarkerPseudoElementUsesListOrdinalStyleAndOutsideGeometryAcrossBackends() {
+        const string html = "<style>ol{list-style-position:outside}li::marker{content:'[' counter(list-item,upper-roman) '] ';color:#ff0000;font-size:10px}</style>"
+            + "<ol start='4'><li id='first'>First</li><li value='7'>SecondPdf</li></ol>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            ViewportHeight = 70D,
+            Margins = HtmlRenderMargins.All(20D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+        HtmlRenderText first = Assert.Single(texts, text => text.Text == "First");
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.Equal(new[] { "[IV] ", "[VII] " }, markers.Select(marker => marker.Text));
+        Assert.All(markers, marker => Assert.Equal(OfficeColor.Red, marker.Color));
+        Assert.True(markers[0].X < first.X);
+        Assert.Contains("#FF0000", svg, StringComparison.Ordinal);
+        Assert.Contains("SecondPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-position:outside)"));
+        Assert.True(HtmlComputedStyleEngine.TryParsePseudoElementSelector("li::marker", out string host, out HtmlPseudoElementKind kind));
+        Assert.Equal("li", host);
+        Assert.Equal(HtmlPseudoElementKind.Marker, kind);
+    }
+
+    [Fact]
+    public void HtmlRendering_ListStylePositionSeparatesInsideAndOutsideMarkersAndContentNoneSuppressesMarker() {
+        const string html = "<style>#suppressed::marker{content:none}</style>"
+            + "<ol><li id='outside' style='list-style-position:outside'>Outside</li>"
+            + "<li id='inside' style='list-style-position:inside'>Inside</li>"
+            + "<li id='suppressed'>Suppressed</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(20D)
+        });
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText outsideBody = Assert.Single(texts, text => text.Text == "Outside");
+        HtmlRenderText insideBody = Assert.Single(texts, text => text.Text == "Inside");
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+
+        Assert.Equal(2, markers.Length);
+        Assert.True(markers[0].X < outsideBody.X);
+        Assert.True(markers[1].X < insideBody.X);
+        Assert.DoesNotContain(rendered.Text.Split('\n'), text => text == "3. ");
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-position:hanging)"));
+    }
+
+    [Fact]
+    public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
+        string source = "data:image/png;base64," + imageData;
+        string html = "<ul style=\"list-style-type:none;list-style-image:url('" + source + "');list-style-position:outside\"><li>ImagePdf</li></ul>"
+            + "<ul style=\"list-style-image:url('data:image/png;base64,not-valid')\"><li>Fallback</li></ul>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            ViewportHeight = 70D,
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
+        HtmlRenderText fallback = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Source == "list-marker");
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.Equal(6D, image.Width, 3);
+        Assert.Equal(4D, image.Height, 3);
+        Assert.Equal("• ", fallback.Text);
+        Assert.Contains("data:image/png;base64", svg, StringComparison.Ordinal);
+        Assert.Contains("ImagePdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:url('marker.png'))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:linear-gradient(red,blue))"));
+    }
+
+    [Fact]
+    public void HtmlRendering_MarkerPseudoElementParticipatesInLayerCascade() {
+        const string html = "<style>@layer base,theme;@layer base{li::marker{content:'A ';color:red}}"
+            + "@layer theme{li::marker{content:'B ';color:blue}}</style><ul><li>Layered</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        HtmlRenderText marker = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Source == "list-marker");
+        Assert.Equal("B ", marker.Text);
+        Assert.Equal(OfficeColor.Blue, marker.Color);
+    }
+
     [Fact]
     public void HtmlRendering_UsesCanonicalHtmlListOrdinals() {
         const string html = "<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>";
