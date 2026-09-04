@@ -296,7 +296,7 @@ namespace OfficeIMO.Word.Pdf {
                 : text.Replace(placeholder, value);
         }
 
-        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section, WordPdfSaveOptions? options) {
+        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageBuilder page, WordSection section, WordPdfSaveOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
                 WordWatermark? defaultWatermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                 NativeAppliedWatermark defaultApplied = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
@@ -320,8 +320,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeAppliedWatermark ApplyNativeWatermark(
-            Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageCompose> applyText,
-            Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageCompose> applyImage,
+            Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageBuilder> applyText,
+            Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageBuilder> applyImage,
             WordWatermark? watermark,
             WordPdfSaveOptions? options,
             string source) {
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeAppliedWatermark(textWatermark != null, imageWatermark != null);
         }
 
-        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark firstWatermark) {
+        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageBuilder page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark firstWatermark) {
             if (defaultWatermark.HasText && !firstWatermark.HasText) {
                 page.SuppressFirstPageTextWatermark();
             }
@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark evenWatermark) {
+        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageBuilder page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark evenWatermark) {
             if (defaultWatermark.HasText && !evenWatermark.HasText) {
                 page.SuppressEvenPagesTextWatermark();
             }

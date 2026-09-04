@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.Pdf {
                         .Text("You can also place links ")
                         .Link("inside panels", "https://officeimo.net/", PdfColor.FromRgb(20, 90, 180))
                         .Text("."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         BorderWidth = 0.5,

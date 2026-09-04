@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageCompose page, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelPdfSaveOptions options) {
+        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageBuilder page, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelPdfSaveOptions options) {
             if (headerFooter == null) {
                 return;
             }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void AddHeaderImage(PdfCore.PdfHeaderCompose header, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+        private static void AddHeaderImage(PdfCore.PdfHeaderBuilder header, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void AddFooterImage(PdfCore.PdfFooterCompose footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+        private static void AddFooterImage(PdfCore.PdfFooterBuilder footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);
@@ -404,7 +404,7 @@ namespace OfficeIMO.Excel.Pdf {
             return shared;
         }
 
-        private static void ApplyHeaderFooterStyle(PdfCore.PdfHeaderCompose header, HeaderFooterLineStyle? style) {
+        private static void ApplyHeaderFooterStyle(PdfCore.PdfHeaderBuilder header, HeaderFooterLineStyle? style) {
             if (style == null) {
                 return;
             }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void ApplyHeaderFooterStyle(PdfCore.PdfFooterCompose footer, HeaderFooterLineStyle? style) {
+        private static void ApplyHeaderFooterStyle(PdfCore.PdfFooterBuilder footer, HeaderFooterLineStyle? style) {
             if (style == null) {
                 return;
             }

@@ -203,7 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
+            PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
                 pdf.PanelParagraph(builder => {
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
@@ -623,7 +623,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Dictionary<long, int> footnoteNumbersById, WordPdfSaveOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
             if (!string.IsNullOrWhiteSpace(fallbackText)) {
-                PdfCore.PanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
+                PdfCore.PdfPanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
                 pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, PdfCore.PdfAlign.Left);
                 return;
             }
@@ -633,7 +633,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PanelStyle style = CreateNativeTextBoxPanelStyle(textBox);
+            PdfCore.PdfPanelStyle style = CreateNativeTextBoxPanelStyle(textBox);
             PdfCore.PdfAlign defaultTextAlign = MapNativeTextBoxTextAlign(paragraphs);
             pdf.PanelParagraph(builder => {
                 for (int index = 0; index < paragraphs.Count; index++) {
@@ -682,8 +682,8 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static PdfCore.PanelStyle CreateNativeTextBoxPanelStyle(WordTextBox textBox) {
-            var style = new PdfCore.PanelStyle {
+        private static PdfCore.PdfPanelStyle CreateNativeTextBoxPanelStyle(WordTextBox textBox) {
+            var style = new PdfCore.PdfPanelStyle {
                 BorderColor = PdfCore.PdfColor.Black,
                 BorderWidth = 0.75D,
                 PaddingX = 6D,

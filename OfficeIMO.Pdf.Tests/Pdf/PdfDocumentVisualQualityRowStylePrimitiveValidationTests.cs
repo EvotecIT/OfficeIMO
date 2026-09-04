@@ -46,8 +46,8 @@ public partial class PdfDocumentVisualQualityTests {
                         content
                             .Column(column => column.Item().Paragraph(p => p.Text("BeforeRow"), style: tightParagraph))
                             .Row(row => row
-                                .Column(50, column => column.Paragraph(p => p.Text("LeftDefaultGap"), style: tightParagraph))
-                                .Column(50, column => column.Paragraph(p => p.Text("RightDefaultGap"), style: tightParagraph)))
+                                .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftDefaultGap"), style: tightParagraph))
+                                .PercentColumn(50, column => column.Paragraph(p => p.Text("RightDefaultGap"), style: tightParagraph)))
                             .Column(column => column.Item().Paragraph(p => p.Text("AfterRow"), style: tightParagraph)))))
             .ToBytes();
 
@@ -98,8 +98,8 @@ public partial class PdfDocumentVisualQualityTests {
                                 }
                             })
                             .Row(row => row
-                                .Column(50, column => column.Paragraph(p => p.Text("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
-                                .Column(50, column => column.Paragraph(p => p.Text("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
+                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
+                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -132,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Paragraph(p => p.Text(longText)))))))
                 .ToBytes());
 
@@ -165,7 +165,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.HR(thickness: double.NaN)))))));
 
         Assert.Contains("Horizontal rule thickness must be a positive finite value.", columnException.Message, StringComparison.Ordinal);

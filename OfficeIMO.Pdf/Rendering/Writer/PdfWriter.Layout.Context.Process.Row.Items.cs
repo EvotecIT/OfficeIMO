@@ -172,7 +172,7 @@ internal static partial class PdfWriter {
                     double leading = size * 1.4;
                     var panelFont = ChooseNormal(currentOpts.DefaultFont);
                     double firstBaselineOffset = GetAscenderForOptions(panelFont, size, currentOpts);
-                    PanelStyle panelStyle = ResolvePanelStyle(ppb2, currentOpts);
+                    PdfPanelStyle panelStyle = ResolvePanelStyle(ppb2, currentOpts);
                     double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(colWs[i], panelStyle.MaxWidth.Value) : colWs[i];
                     ValidatePanelStyle(panelStyle, innerWidth);
                     double textWidthAvail = innerWidth - 2 * panelStyle.PaddingX;
@@ -286,10 +286,14 @@ internal static partial class PdfWriter {
                     items.Add(new ColDrawing { Block = db2 });
                 } else if (cb is TextFieldBlock || cb is CheckBoxBlock || cb is ChoiceFieldBlock || cb is RadioButtonGroupBlock) {
                     items.Add(new ColForm { Block = cb });
+                } else if (cb is TextAnnotationBlock || cb is FreeTextAnnotationBlock || cb is HighlightAnnotationBlock) {
+                    items.Add(new ColAnnotation { Block = cb });
                 } else if (cb is BookmarkBlock bookmark2) {
                     items.Add(new ColBookmark { Block = bookmark2 });
                 } else if (cb is SpacerBlock spacer2) {
                     items.Add(new ColSpacer { Block = spacer2 });
+                } else {
+                    throw new NotSupportedException("Row columns do not support nested block type " + cb.GetType().Name + ". Move that block outside the row.");
                 }
             }
             colItems.Add(items);
@@ -438,6 +442,10 @@ internal static partial class PdfWriter {
                 return ResolveColumnSpacingBefore(GetFormFieldSpacingBefore(form.Block), consumedBefore) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
             }
 
+            if (item is ColAnnotation annotation) {
+                return ResolveColumnSpacingBefore(GetAnnotationSpacingBefore(annotation.Block), consumedBefore) + GetAnnotationHeight(annotation.Block) + GetAnnotationSpacingAfter(annotation.Block);
+            }
+
             if (item is ColSpacer spacerItem) {
                 return spacerItem.Block.Height;
             }
@@ -492,12 +500,51 @@ internal static partial class PdfWriter {
                 return GetFormFieldSpacingBefore(form.Block) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
             }
 
+            if (item is ColAnnotation annotation) {
+                return GetAnnotationSpacingBefore(annotation.Block) + GetAnnotationHeight(annotation.Block) + GetAnnotationSpacingAfter(annotation.Block);
+            }
+
             if (item is ColSpacer spacerItem) {
                 return spacerItem.Block.Height;
             }
 
             return 0D;
         }
+
+        private static double GetAnnotationWidth(IPdfBlock block) => block switch {
+            TextAnnotationBlock annotation => annotation.Width,
+            FreeTextAnnotationBlock annotation => annotation.Width,
+            HighlightAnnotationBlock annotation => annotation.Width,
+            _ => throw new ArgumentException("Unsupported annotation block.", nameof(block))
+        };
+
+        private static double GetAnnotationHeight(IPdfBlock block) => block switch {
+            TextAnnotationBlock annotation => annotation.Height,
+            FreeTextAnnotationBlock annotation => annotation.Height,
+            HighlightAnnotationBlock annotation => annotation.Height,
+            _ => throw new ArgumentException("Unsupported annotation block.", nameof(block))
+        };
+
+        private static double GetAnnotationSpacingBefore(IPdfBlock block) => block switch {
+            TextAnnotationBlock annotation => annotation.SpacingBefore,
+            FreeTextAnnotationBlock annotation => annotation.SpacingBefore,
+            HighlightAnnotationBlock annotation => annotation.SpacingBefore,
+            _ => throw new ArgumentException("Unsupported annotation block.", nameof(block))
+        };
+
+        private static double GetAnnotationSpacingAfter(IPdfBlock block) => block switch {
+            TextAnnotationBlock annotation => annotation.SpacingAfter,
+            FreeTextAnnotationBlock annotation => annotation.SpacingAfter,
+            HighlightAnnotationBlock annotation => annotation.SpacingAfter,
+            _ => throw new ArgumentException("Unsupported annotation block.", nameof(block))
+        };
+
+        private static PdfAlign GetAnnotationAlign(IPdfBlock block) => block switch {
+            TextAnnotationBlock annotation => annotation.Align,
+            FreeTextAnnotationBlock annotation => annotation.Align,
+            HighlightAnnotationBlock annotation => annotation.Align,
+            _ => throw new ArgumentException("Unsupported annotation block.", nameof(block))
+        };
 
     }
 }

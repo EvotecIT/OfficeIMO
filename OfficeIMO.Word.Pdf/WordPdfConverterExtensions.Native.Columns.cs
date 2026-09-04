@@ -12,7 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static bool TryRenderNativeSectionColumns(
-            PdfCore.PdfPageCompose page,
+            PdfCore.PdfPageBuilder page,
             WordSection section,
             IReadOnlyList<WordElement> elements,
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
@@ -43,7 +43,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     IReadOnlyList<WordElement> columnElements = columns[columnIndex];
-                    row.Column(columnWidthPercents[columnIndex], column => {
+                    row.PercentColumn(columnWidthPercents[columnIndex], column => {
                         INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column));
                         double columnContentWidth = availableColumnWidth * columnWidthPercents[columnIndex] / 100D;
                         bool hasContent = false;

@@ -170,9 +170,23 @@ string workflowRoot = System.IO.Path.Combine(
 System.IO.Directory.CreateDirectory(workflowRoot);
 try {
     string sourcePdf = System.IO.Path.Combine(workflowRoot, "source.pdf");
-    PdfDocument.Create(compose => compose.Page(page => page.Content(content => content
-        .Item(item => item.Paragraph(paragraph => paragraph.Text("Native workflow source"))))))
+    PdfDocument.Create(compose => compose
+        .Settings(options => options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers)
+        .Page(page => page.Content(content => content
+            .Element(element => element
+                .Semantic(PdfSemanticRole.Article)
+                .Padding(6)
+                .Content(article => article
+                    .Paragraph(paragraph => paragraph.Text("Native workflow source"))
+                    .Row(row => row
+                        .FixedColumn(36, cell => cell.Text("AOT"))
+                        .RelativeColumn(cell => cell.Text("layout"))))))))
         .Save(sourcePdf);
+
+    PdfTaggedContentInfo? nativeTags = PdfDocument.Load(sourcePdf).Read().TaggedContent;
+    if (nativeTags == null || !nativeTags.StructureElements.Any(element => element.StructureType == "Art")) {
+        throw new InvalidOperationException("The PDF authoring structure did not survive NativeAOT.");
+    }
 
     PdfPrintPlan printPlan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
         InputPath = sourcePdf,
@@ -193,9 +207,12 @@ try {
         throw new InvalidOperationException("The PDF page export workflow did not survive NativeAOT: " + export.Summary);
     }
 
+    string assemblySourcePdf = System.IO.Path.Combine(workflowRoot, "assembly-source.pdf");
+    PdfDocument.Create(compose => compose.Content(content => content.Text("Native assembly source")))
+        .Save(assemblySourcePdf);
     string assembledPdf = System.IO.Path.Combine(workflowRoot, "assembled.pdf");
     PdfAssemblyResult assembly = await workflowRunner.AssemblePdfAsync(new PdfAssemblyRequest {
-        Sources = new[] { sourcePdf, export.Files[0].Path },
+        Sources = new[] { assemblySourcePdf, export.Files[0].Path },
         OutputPath = assembledPdf
     });
     if (!assembly.Succeeded || assembly.PageCount != 2) {

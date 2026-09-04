@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static bool DrawPanelBorder(StringBuilder sb, PanelStyle style, double x, double y, double w, double h, bool artifact = false) {
+    private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false) {
         if (!style.HasSideBorders) {
             if (style.BorderColor.HasValue && style.BorderWidth > 0) {
                 DrawRowRect(sb, style.BorderColor.Value, style.BorderWidth, x, y, w, h, artifact);
@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
         return drawn;
     }
 
-    private static PdfPanelBorder? ResolvePanelSideBorder(PdfPanelBorder? sideBorder, PanelStyle style) {
+    private static PdfPanelBorder? ResolvePanelSideBorder(PdfPanelBorder? sideBorder, PdfPanelStyle style) {
         if (sideBorder != null) {
             return sideBorder;
         }

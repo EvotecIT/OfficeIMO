@@ -115,7 +115,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
-        PdfCore.PanelStyle? panelStyle = figureStyle.PanelStyleSnapshot;
+        PdfCore.PdfPanelStyle? panelStyle = figureStyle.PanelStyleSnapshot;
         Action<PdfCore.PdfParagraphBuilder> render = builder => builder
             .Italic(true)
             .Color(figureStyle.PlaceholderColorSnapshot)

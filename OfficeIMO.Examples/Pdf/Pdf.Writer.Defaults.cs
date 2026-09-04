@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Paragraph(p => p.Text("This sample uses document-level defaults for text color, headers, footers, and the light table preset."))
                 .PanelParagraph(
                     p => p.Text("The default table style should be good enough for a simple business report without every caller hand-tuning colors and padding."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         PaddingX = 9,

@@ -18,7 +18,7 @@ public class PdfDocumentImageValidationTests {
         Assert.DoesNotContain(
             typeof(PdfDocument).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
             method => method.Name == "Image");
-        Assert.NotNull(typeof(PdfItemCompose).GetMethod(nameof(PdfItemCompose.Image), new[] {
+        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
             typeof(byte[]),
             typeof(double),
             typeof(double),
@@ -31,7 +31,7 @@ public class PdfDocumentImageValidationTests {
             typeof(string),
             typeof(string)
         }));
-        Assert.NotNull(typeof(PdfElementCompose).GetMethod(nameof(PdfElementCompose.Image), new[] {
+        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
             typeof(byte[]),
             typeof(double),
             typeof(double),
@@ -44,7 +44,7 @@ public class PdfDocumentImageValidationTests {
             typeof(string),
             typeof(string)
         }));
-        Assert.NotNull(typeof(PdfRowColumnCompose).GetMethod(nameof(PdfRowColumnCompose.Image), new[] {
+        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
             typeof(byte[]),
             typeof(double),
             typeof(double),
@@ -57,14 +57,14 @@ public class PdfDocumentImageValidationTests {
             typeof(string),
             typeof(string)
         }));
-        Assert.NotNull(typeof(PdfHeaderCompose).GetMethod(nameof(PdfHeaderCompose.Image), new[] {
+        Assert.NotNull(typeof(PdfHeaderBuilder).GetMethod(nameof(PdfHeaderBuilder.Image), new[] {
             typeof(byte[]),
             typeof(double),
             typeof(double),
             typeof(PdfAlign),
             typeof(OfficeImageFit)
         }));
-        Assert.NotNull(typeof(PdfFooterCompose).GetMethod(nameof(PdfFooterCompose.Image), new[] {
+        Assert.NotNull(typeof(PdfFooterBuilder).GetMethod(nameof(PdfFooterBuilder.Image), new[] {
             typeof(byte[]),
             typeof(double),
             typeof(double),
@@ -235,7 +235,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.WithImages(
@@ -467,7 +467,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(null!, 24, 24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
@@ -482,7 +482,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(Array.Empty<byte>(), 24, 24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
@@ -500,7 +500,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, invalidWidth, 24)))))));
 
         Assert.Equal("width", exception.ParamName);
@@ -517,7 +517,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, 24, invalidHeight)))))));
 
         Assert.Equal("height", exception.ParamName);
@@ -531,7 +531,7 @@ public class PdfDocumentImageValidationTests {
             compose.Page(page =>
                 page.Content(content =>
                     content.Row(row =>
-                        row.Column(100, column =>
+                        row.PercentColumn(100, column =>
                             column.Image(CreateMinimalGif(), 24, 24))))));
 
         Assert.Single(PdfImageExtractor.ExtractImages(doc.ToBytes()));
@@ -1038,7 +1038,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(png, 24, 24))))))
             .ToBytes();
 
@@ -1063,7 +1063,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true }))))))
             .ToBytes();
 
@@ -1081,7 +1081,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(60, column =>
+                            row.PercentColumn(60, column =>
                                 column.Image(png, 24, 24, clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
             .ToBytes();
 

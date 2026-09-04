@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
+            PageStructElement? semanticParent = parentElementIndex.HasValue ? null : ResolveFlowSemanticParent();
             int elementIndex = currentPage.StructElements.Count;
             currentPage.StructElements.Add(new PageStructElement {
                 StructureType = structureType,
@@ -14,7 +15,8 @@ internal static partial class PdfWriter {
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
-                AlternativeText = alternativeText ?? string.Empty
+                AlternativeText = alternativeText ?? string.Empty,
+                ParentElement = semanticParent
             });
             return elementIndex;
         }
@@ -26,7 +28,7 @@ internal static partial class PdfWriter {
 
             var element = new PageStructElement {
                 StructureType = structureType,
-                ParentElement = parentElement,
+                ParentElement = parentElement ?? ResolveFlowSemanticParent(),
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
@@ -54,6 +56,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
+            PageStructElement? semanticParent = parentElementIndex.HasValue ? null : ResolveFlowSemanticParent();
             int markedContentId = currentPage.NextMarkedContentId++;
             currentPage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
@@ -61,7 +64,8 @@ internal static partial class PdfWriter {
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
-                ParentElementIndex = parentElementIndex
+                ParentElementIndex = parentElementIndex,
+                ParentElement = semanticParent
             });
             return markedContentId;
         }
@@ -75,7 +79,7 @@ internal static partial class PdfWriter {
             currentPage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = structureType,
-                ParentElement = parentElement,
+                ParentElement = parentElement ?? ResolveFlowSemanticParent(),
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan
@@ -88,12 +92,14 @@ internal static partial class PdfWriter {
                 return null;
             }
 
+            PageStructElement? semanticParent = parentElementIndex.HasValue ? null : ResolveFlowSemanticParent();
             int markedContentId = currentPage.NextMarkedContentId++;
             currentPage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
                 AlternativeText = alternativeText,
-                ParentElementIndex = parentElementIndex
+                ParentElementIndex = parentElementIndex,
+                ParentElement = semanticParent
             });
             return markedContentId;
         }
@@ -108,9 +114,37 @@ internal static partial class PdfWriter {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
                 AlternativeText = alternativeText,
-                ParentElement = parentElement
+                ParentElement = parentElement ?? ResolveFlowSemanticParent()
             });
             return markedContentId;
+        }
+
+        private PageStructElement? ResolveFlowSemanticParent() {
+            if (!emitGeneratedStructure || currentPage == null || flowSemanticScopes.Count == 0) {
+                return null;
+            }
+
+            PageStructElement? parent = null;
+            for (int index = 0; index < flowSemanticScopes.Count; index++) {
+                FlowSemanticScope scope = flowSemanticScopes[index];
+                PageStructElement? element = scope.Element;
+                if (element == null) {
+                    element = new PageStructElement {
+                        StructureType = MapSemanticStructureType(scope.Role),
+                        AlternativeText = scope.AlternativeText ?? string.Empty,
+                        ParentElement = parent
+                    };
+                    currentPage.StructElements.Add(element);
+                    scope.Element = element;
+                    scope.ElementPage = currentPage;
+                } else if (!ReferenceEquals(scope.ElementPage, currentPage)) {
+                    element.SpansPages = true;
+                }
+
+                parent = element;
+            }
+
+            return parent;
         }
     }
 }

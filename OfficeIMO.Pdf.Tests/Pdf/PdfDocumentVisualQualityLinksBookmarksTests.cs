@@ -104,7 +104,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Image(CreateMinimalRgbPng(), 24, 24, PdfAlign.Right, linkUri: "https://evotec.xyz/column-image", linkContents: "Column image"))))))
             .ToBytes();
 
@@ -194,8 +194,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content => content
                         .Item(item => item.Rectangle(40, 20, align: PdfAlign.Center, linkUri: "https://evotec.xyz/item-rectangle", linkContents: "Item rectangle"))
-                        .Item(item => item.Element(element =>
-                            element.Ellipse(30, 18, align: PdfAlign.Right, spacingBefore: 4, linkUri: "https://evotec.xyz/element-ellipse", linkContents: "Element ellipse"))))))
+                        .Item(item => item.Element(element => element.Content(nested =>
+                            nested.Ellipse(30, 18, align: PdfAlign.Right, spacingBefore: 4, linkUri: "https://evotec.xyz/element-ellipse", linkContents: "Element ellipse")))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -260,7 +260,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Rectangle(24, 18, align: PdfAlign.Right, linkUri: "https://evotec.xyz/column-rectangle", linkContents: "Column rectangle")
                                 .Ellipse(24, 18, align: PdfAlign.Right, spacingBefore: 4, linkUri: "https://evotec.xyz/column-ellipse", linkContents: "Column ellipse"))))))
             .ToBytes();
@@ -299,7 +299,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Shape(OfficeShape.Rectangle(24, 18), PdfAlign.Right, linkUri: "https://evotec.xyz/column-shape", linkContents: "Column shape")
                                 .Drawing(drawing, PdfAlign.Right, spacingBefore: 4, linkUri: "https://evotec.xyz/column-drawing", linkContents: "Column drawing"))))))
             .ToBytes();
@@ -369,7 +369,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.H3("ColumnHead", PdfAlign.Right, linkUri: "https://evotec.xyz/right-heading", linkContents: "Right heading"))))))
             .ToBytes();
 
@@ -397,7 +397,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.H3("Column heading", linkUri: "https://evotec.xyz/column-heading", linkContents: "Column heading metadata"))))))
             .ToBytes();
 
@@ -422,7 +422,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.TableWithLinks(
                                     new[] {
                                         new[] { "Name", "Url" },
@@ -467,7 +467,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
@@ -628,7 +628,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Bookmark("ColumnStart")
                                 .H3("Column heading")
                                 .Paragraph(p => p.Text("Column body.")))))))
@@ -659,7 +659,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Bookmark("InvisibleColumnAnchor"))))))
             .ToBytes();
 

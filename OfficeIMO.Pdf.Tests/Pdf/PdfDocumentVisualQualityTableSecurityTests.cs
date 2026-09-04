@@ -44,7 +44,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -91,7 +91,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -137,7 +137,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }

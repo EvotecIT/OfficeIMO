@@ -1,9 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Visual style of a panel box used by panel paragraphs.
+/// Visual style shared by panel paragraphs and decorated flow elements.
 /// </summary>
-public class PanelStyle {
+public class PdfPanelStyle {
     private PdfAlign _align = PdfAlign.Left;
     private double _borderWidth = 0.5;
     private double _paddingY = 6;
@@ -107,8 +107,8 @@ public class PanelStyle {
     public bool KeepWithNext { get; set; }
 
     /// <summary>Creates a copy of this panel style.</summary>
-    public PanelStyle Clone() {
-        return new PanelStyle {
+    public PdfPanelStyle Clone() {
+        return new PdfPanelStyle {
             Background = Background,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,

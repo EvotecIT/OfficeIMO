@@ -494,7 +494,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         IReadOnlyList<IMarkdownBlock> children = callout.ChildBlocks;
         bool canRenderChildrenInsidePanel = children.Count > 0 && CanRenderBlocksInsidePanel(children);
-        PdfCore.PanelStyle panelStyle = visualTheme.CreateCalloutPanelStyle(callout.Kind);
+        PdfCore.PdfPanelStyle panelStyle = visualTheme.CreateCalloutPanelStyle(callout.Kind);
         if (canRenderChildrenInsidePanel) {
             pdf.Panel(panel => {
                 panel.Paragraph(builder => {

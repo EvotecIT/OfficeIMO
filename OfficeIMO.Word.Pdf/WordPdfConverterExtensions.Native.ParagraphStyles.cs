@@ -298,7 +298,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfTabAlignment MapNativeTabAlignment(WordTabAlignment alignment) =>
             MapNativeTabAlignment(alignment.ToOpenXml());
 
-        private static PdfCore.PanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
+        private static PdfCore.PdfPanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
             PdfCore.PdfColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
             (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
@@ -314,7 +314,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             bool backgroundOnly = background.HasValue && border == null && !hasParagraphBorder;
-            var style = new PdfCore.PanelStyle {
+            var style = new PdfCore.PdfPanelStyle {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,

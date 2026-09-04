@@ -181,7 +181,7 @@ public class MarkdownSaveAsPdfVisualTests {
 > Outro text.
 """;
         MarkdownPdfStyle visualTheme = MarkdownPdfStyle.Plain();
-        visualTheme.QuotePanelStyle = new PdfCore.PanelStyle {
+        visualTheme.QuotePanelStyle = new PdfCore.PdfPanelStyle {
             Background = PdfCore.PdfColor.FromRgb(0xff, 0, 0),
             PaddingX = 8,
             PaddingY = 6

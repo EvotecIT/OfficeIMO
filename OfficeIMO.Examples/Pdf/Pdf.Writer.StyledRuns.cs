@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Pdf {
                     p => p
                         .Bold("Inline styles")
                         .Text(" should remain readable in normal business-report text, not only in synthetic text extraction checks."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         PaddingX = 9,

@@ -12,7 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void ApplyNativeHeaderFooterPageNumberStyle(PdfCore.PdfPageCompose page, params NativeHeaderFooterText?[] parts) {
+        private static void ApplyNativeHeaderFooterPageNumberStyle(PdfCore.PdfPageBuilder page, params NativeHeaderFooterText?[] parts) {
             PdfCore.PdfPageNumberStyle? style = null;
             foreach (NativeHeaderFooterText? part in parts) {
                 if (part?.PageNumberStyle == null) {

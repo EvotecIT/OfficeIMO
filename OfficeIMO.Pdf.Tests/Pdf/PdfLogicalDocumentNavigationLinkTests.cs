@@ -182,11 +182,11 @@ public partial class PdfDocumentReadResultTests {
     public void Load_ExposesHeadingBookmarkLinksAsLogicalElements() {
         byte[] pdf = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
-                .Element(element => element.H2(
+                .Element(element => element.Content(nested => nested.H2(
                     "Nested jump to details",
                     PdfAlign.Left,
                     linkContents: "Nested heading jump metadata",
-                    linkDestinationName: "Details"))
+                    linkDestinationName: "Details")))
                 .Spacer(18)
                 .Bookmark("Details")
                 .H2("Details")), new PdfOptions {

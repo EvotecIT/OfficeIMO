@@ -179,8 +179,8 @@ internal static partial class PdfWriter {
         return style?.GetItemSpacing(leading) ?? leading * 0.15D;
     }
 
-    private static PanelStyle ResolvePanelStyle(PanelParagraphBlock block, PdfOptions options) {
-        return block.Style ?? options.DefaultPanelStyleSnapshot ?? new PanelStyle();
+    private static PdfPanelStyle ResolvePanelStyle(PanelParagraphBlock block, PdfOptions options) {
+        return block.Style ?? options.DefaultPanelStyleSnapshot ?? new PdfPanelStyle();
     }
 
     private static PdfHorizontalRuleStyle ResolveHorizontalRuleStyle(HorizontalRuleBlock block, PdfOptions options) {

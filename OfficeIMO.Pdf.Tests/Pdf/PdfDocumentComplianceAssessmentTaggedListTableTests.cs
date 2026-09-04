@@ -101,7 +101,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Numbered(new[] { "First item", "Second item" }))))))
             .ToBytes();
 
@@ -222,7 +222,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { PdfTableCell.TextCell("Resource", linkUri: "https://officeimo.net/row-table", linkContents: "Linked row table resource") }
                                 }, style: style))))))
@@ -311,7 +311,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Name", "Status" },
                                     new[] { "Alpha", "Ready" }
@@ -412,7 +412,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Name", "Status" },
                                     new[] { "Alpha", "Ready" }

@@ -8,7 +8,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void PageBackground_RendersBeforePageContent() {
             byte[] pdfBytes = PdfDocument.Create()
@@ -114,9 +114,9 @@ namespace OfficeIMO.Tests.Pdf {
                         .Column(column => column
                             .Item(item => item
                                 .Paragraph(paragraph => paragraph.Text("NestedPageOne"))
-                                .Element(element => element
+                                .Element(element => element.Content(nested => nested
                                     .PageBreak()
-                                    .Paragraph(paragraph => paragraph.Text("NestedPageTwo"))))))))
+                                    .Paragraph(paragraph => paragraph.Text("NestedPageTwo")))))))))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));

@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .H1("Style Cheatsheet", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .PanelParagraph(
                     p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         PaddingX = 9,

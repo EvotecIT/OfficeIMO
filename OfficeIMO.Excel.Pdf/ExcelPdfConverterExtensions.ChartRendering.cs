@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
             seriesLegendWidthRatio: 0.0001D,
             categoryLegendWidthRatio: 0.0001D);
 
-        private static void AddWorksheetChart(PdfCore.PdfItemCompose item, WorksheetChartExportData chart, string sheetName, ExcelPdfSaveOptions options) {
+        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelPdfSaveOptions options) {
             ExcelChartSnapshot snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
                 item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));

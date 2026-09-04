@@ -327,8 +327,8 @@ public partial class PdfDocumentVisualQualityTests {
                             });
                         });
                         content.Row(row => row
-                            .Column(50, column => column.Paragraph(p => p.Text("RowLeftBody")))
-                            .Column(50, column => column.Paragraph(p => p.Text("RowRightBody"))));
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowLeftBody")))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowRightBody"))));
                     })))
             .ToBytes();
 
@@ -545,7 +545,7 @@ public partial class PdfDocumentVisualQualityTests {
                 SpacingAfter = 70
             })
             .H3("PanelSignalHeading")
-            .PanelParagraph(p => p.Text("PanelSignalBody"), new PanelStyle {
+            .PanelParagraph(p => p.Text("PanelSignalBody"), new PdfPanelStyle {
                 PaddingY = 5,
                 SpacingAfter = 0
             })
@@ -577,7 +577,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 61
             })
-            .PanelParagraph(p => p.Text("PanelKeepWithNext"), new PanelStyle {
+            .PanelParagraph(p => p.Text("PanelKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
                 PaddingY = 5,
                 SpacingAfter = 0
@@ -611,7 +611,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 56
             })
-            .PanelParagraph(p => p.Text("PanelChainKeepWithNext"), new PanelStyle {
+            .PanelParagraph(p => p.Text("PanelChainKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
                 PaddingY = 5,
                 SpacingAfter = 0
@@ -691,8 +691,8 @@ public partial class PdfDocumentVisualQualityTests {
                             column.Item().H3("RowSignalHeading");
                         });
                         content.Row(row => row
-                            .Column(50, column => column.Paragraph(p => p.Text("RowSignalLeft")))
-                            .Column(50, column => column.Paragraph(p => p.Text("RowSignalRight"))));
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowSignalLeft")))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowSignalRight"))));
                     })))
             .ToBytes();
 

@@ -97,7 +97,7 @@ public sealed partial class MarkdownPdfStyle {
         return style;
     }
 
-    private static PdfCore.PanelStyle Panel(int backgroundR, int backgroundG, int backgroundB, int borderR, int borderG, int borderB, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PanelStyle {
+    private static PdfCore.PdfPanelStyle Panel(int backgroundR, int backgroundG, int backgroundB, int borderR, int borderG, int borderB, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PdfPanelStyle {
         Background = Color(backgroundR, backgroundG, backgroundB),
         BorderColor = Color(borderR, borderG, borderB),
         BorderWidth = borderWidth,
@@ -108,8 +108,8 @@ public sealed partial class MarkdownPdfStyle {
         KeepTogether = true
     };
 
-    private static PdfCore.PanelStyle PanelWithLeftRule(int backgroundR, int backgroundG, int backgroundB, int borderR, int borderG, int borderB, int leftR, int leftG, int leftB, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
-        PdfCore.PanelStyle style = Panel(backgroundR, backgroundG, backgroundB, borderR, borderG, borderB, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
+    private static PdfCore.PdfPanelStyle PanelWithLeftRule(int backgroundR, int backgroundG, int backgroundB, int borderR, int borderG, int borderB, int leftR, int leftG, int leftB, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
+        PdfCore.PdfPanelStyle style = Panel(backgroundR, backgroundG, backgroundB, borderR, borderG, borderB, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
         style.LeftBorder = new PdfCore.PdfPanelBorder {
             Color = Color(leftR, leftG, leftB),
             Width = leftWidth

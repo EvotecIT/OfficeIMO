@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
             ValidateHorizontalRule(ruleStyle);
             if (ruleStyle.KeepWithNext && nextBlock != null) {
                 double needed = ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
             if (shapeStyle.KeepWithNext && nextBlock != null) {
                 double needed = shapeStyle.SpacingBefore + sbk.Shape.Height + shapeStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
@@ -34,7 +34,7 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
             if (drawingStyle.KeepWithNext && nextBlock != null) {
                 double needed = drawingStyle.SpacingBefore + dbk.Drawing.Height + drawingStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
@@ -54,7 +54,7 @@ internal static partial class PdfWriter {
             else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
             EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, contentWidth);
             if (imageStyle.KeepWithNext && nextBlock != null) {
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                 double keepHeight = needed + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
             var panelFont = ChooseNormal(currentOpts.DefaultFont);
             double firstBaselineOffset = GetAscenderForOptions(panelFont, size, currentOpts);
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            PanelStyle panelStyle = ResolvePanelStyle(ppb, currentOpts);
+            PdfPanelStyle panelStyle = ResolvePanelStyle(ppb, currentOpts);
             double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(contentWidth, panelStyle.MaxWidth.Value) : contentWidth;
             ValidatePanelStyle(panelStyle, innerWidth);
             double textWidthAvail = innerWidth - 2 * panelStyle.PaddingX;
@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
 
             if (panelStyle.KeepWithNext && nextBlock != null && lines.Count > 0) {
                 double panelHeight = panelSpacingBefore + panelStyle.PaddingY + lineHeights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, panelHeight);
                 double keepHeight = panelHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {

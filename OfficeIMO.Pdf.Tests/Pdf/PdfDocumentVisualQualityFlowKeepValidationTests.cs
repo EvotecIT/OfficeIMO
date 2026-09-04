@@ -75,7 +75,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "panel" + i.ToString("000")));
 
         byte[] bytes = PdfDocument.Create(options)
-            .PanelParagraph(p => p.Text(longText), new PanelStyle {
+            .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
                 KeepTogether = true,
                 PaddingY = 8
             })

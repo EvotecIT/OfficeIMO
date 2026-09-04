@@ -32,9 +32,9 @@ internal static partial class PdfWriter {
 
             double columnAreaWidth = contentWidth - totalGap;
             double[] colXs = new double[ncols];
-            double[] colWs = new double[ncols];
+            double[] colWs = ResolveRowColumnWidths(rb, columnAreaWidth);
             double xAcc = currentOpts.MarginLeft;
-            for (int i = 0; i < ncols; i++) { double wCol = Math.Max(0, columnAreaWidth * (rb.Columns[i].WidthPercent / 100.0)); colXs[i] = xAcc; colWs[i] = wCol; xAcc += wCol + rowGap; }
+            for (int i = 0; i < ncols; i++) { colXs[i] = xAcc; xAcc += colWs[i] + rowGap; }
 
             void DrawRowColumnSeparators(double topY, double bottomY) {
                 if (ncols <= 1 || rowStyle?.ColumnSeparatorColor == null || rowStyle.ColumnSeparatorWidth <= 0D || topY - bottomY <= 0.001D) {
@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
             if (rowStyle?.KeepWithNext == true && nextBlock != null) {
                 double rowContentHeight = GetRowContentHeight();
                 double rowHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, rowHeight);
                 double keepHeight = rowHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -1184,6 +1184,32 @@ internal static partial class PdfWriter {
                             AddFormFieldAnnotation(form.Block, xField, yCol);
                             pageDirty = true;
                             yCol -= fieldHeight + spacingAfter;
+                            remain -= needed;
+                            consumed += needed;
+                            idx++;
+                        } else if (it is ColAnnotation annotation) {
+                            double spacingBefore = ResolveColumnSpacingBefore(GetAnnotationSpacingBefore(annotation.Block), consumed);
+                            double annotationWidth = GetAnnotationWidth(annotation.Block);
+                            double annotationHeight = GetAnnotationHeight(annotation.Block);
+                            double spacingAfter = GetAnnotationSpacingAfter(annotation.Block);
+                            double needed = spacingBefore + annotationHeight + spacingAfter;
+                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol);
+                            if (needed > remain && consumed > 0) break;
+                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (spacingBefore > 0) yCol -= spacingBefore;
+                            double xAnnotation = GetAlignedObjectX(xCol, wCol, annotationWidth, GetAnnotationAlign(annotation.Block));
+                            double bottomY = yCol - annotationHeight;
+                            if (annotation.Block is TextAnnotationBlock textAnnotation) {
+                                AddTextAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, textAnnotation.Contents, textAnnotation.Icon, textAnnotation.Color, textAnnotation.Open);
+                            } else if (annotation.Block is FreeTextAnnotationBlock freeTextAnnotation) {
+                                AddFreeTextAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, freeTextAnnotation.Contents, freeTextAnnotation.FontSize, freeTextAnnotation.TextColor, freeTextAnnotation.BorderColor, freeTextAnnotation.BorderWidth, freeTextAnnotation.FillColor, freeTextAnnotation.TextAlign, freeTextAnnotation.Padding, freeTextAnnotation.LineHeight);
+                            } else if (annotation.Block is HighlightAnnotationBlock highlightAnnotation) {
+                                AddHighlightAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, highlightAnnotation.Contents, highlightAnnotation.Color);
+                            }
+
+                            DrawDebugFlowObjectBox(xAnnotation, bottomY, annotationWidth, annotationHeight);
+                            pageDirty = true;
+                            yCol -= annotationHeight + spacingAfter;
                             remain -= needed;
                             consumed += needed;
                             idx++;

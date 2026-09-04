@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = fontSize
             })
-            .PanelParagraph(p => p.Text("PanelMarker"), new PanelStyle {
+            .PanelParagraph(p => p.Text("PanelMarker"), new PdfPanelStyle {
                 PaddingY = 6,
                 BorderWidth = 0.5
             })
@@ -65,8 +65,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
-                                .PanelParagraph(p => p.Text("PanelMarker"), new PanelStyle {
+                            row.PercentColumn(100, column => column
+                                .PanelParagraph(p => p.Text("PanelMarker"), new PdfPanelStyle {
                                     PaddingY = 6,
                                     BorderWidth = 0.5
                                 })
@@ -100,7 +100,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         };
-        var style = new PanelStyle {
+        var style = new PdfPanelStyle {
             Background = PdfColor.FromRgb(240, 248, 255),
             PaddingX = 16,
             MaxWidth = 120,
@@ -113,7 +113,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .PanelParagraph(p => p.Text("ColumnPanel")))))))
             .ToBytes();
 
@@ -138,12 +138,12 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = 10
         };
 
-        byte[] defaultBytes = CreatePanelSpacingProbe(options, new PanelStyle {
+        byte[] defaultBytes = CreatePanelSpacingProbe(options, new PdfPanelStyle {
             PaddingY = 6,
             SpacingBefore = 0,
             SpacingAfter = 0
         });
-        byte[] spacedBytes = CreatePanelSpacingProbe(options, new PanelStyle {
+        byte[] spacedBytes = CreatePanelSpacingProbe(options, new PdfPanelStyle {
             PaddingY = 6,
             SpacingBefore = 12,
             SpacingAfter = 18
@@ -166,42 +166,42 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PanelParagraph_RejectsInvalidStyleValues() {
         var invalidBorderException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 BorderWidth = -0.5
             });
 
         Assert.Contains("Panel border width must be a non-negative finite value.", invalidBorderException.Message, StringComparison.Ordinal);
 
         var invalidHorizontalPaddingException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 PaddingX = double.PositiveInfinity
             });
 
         Assert.Contains("Panel horizontal padding must be a non-negative finite value.", invalidHorizontalPaddingException.Message, StringComparison.Ordinal);
 
         var invalidVerticalPaddingException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 PaddingY = -1
             });
 
         Assert.Contains("Panel vertical padding must be a non-negative finite value.", invalidVerticalPaddingException.Message, StringComparison.Ordinal);
 
         var invalidMaxWidthException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 MaxWidth = 0
             });
 
         Assert.Contains("Panel maximum width must be a positive finite value.", invalidMaxWidthException.Message, StringComparison.Ordinal);
 
         var invalidSpacingBeforeException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 SpacingBefore = -1
             });
 
         Assert.Contains("Panel spacing before must be a non-negative finite value.", invalidSpacingBeforeException.Message, StringComparison.Ordinal);
 
         var invalidSpacingAfterException = Assert.Throws<ArgumentException>(() =>
-            new PanelStyle {
+            new PdfPanelStyle {
                 SpacingAfter = double.NaN
             });
 
@@ -213,7 +213,7 @@ public partial class PdfDocumentVisualQualityTests {
                     MarginLeft = 20,
                     MarginRight = 20
                 })
-                .PanelParagraph(p => p.Text("No text frame"), new PanelStyle {
+                .PanelParagraph(p => p.Text("No text frame"), new PdfPanelStyle {
                     PaddingX = 40
                 })
                 .ToBytes());
@@ -236,7 +236,7 @@ public partial class PdfDocumentVisualQualityTests {
             .PanelParagraph(p => p
                 .Text("FirstSegment")
                 .LineBreak()
-                .Text("SecondSegment"), new PanelStyle {
+                .Text("SecondSegment"), new PdfPanelStyle {
                     PaddingY = 56,
                     BorderWidth = 0,
                     SpacingAfter = 0
@@ -271,7 +271,7 @@ public partial class PdfDocumentVisualQualityTests {
 
                     paragraph.Text("PanelLine" + index.ToString(CultureInfo.InvariantCulture));
                 }
-            }, new PanelStyle {
+            }, new PdfPanelStyle {
                 KeepTogether = true,
                 PaddingY = 6,
                 BorderWidth = 0.5,
@@ -300,7 +300,7 @@ public partial class PdfDocumentVisualQualityTests {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10
                 })
-                .PanelParagraph(p => p.Text("CannotFit"), new PanelStyle {
+                .PanelParagraph(p => p.Text("CannotFit"), new PdfPanelStyle {
                     PaddingY = 70,
                     BorderWidth = 0
                 })
@@ -322,7 +322,7 @@ public partial class PdfDocumentVisualQualityTests {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10
                 })
-                .PanelParagraph(p => p.Text("CannotFitWithBottomPadding"), new PanelStyle {
+                .PanelParagraph(p => p.Text("CannotFitWithBottomPadding"), new PdfPanelStyle {
                     KeepTogether = true,
                     PaddingY = 36,
                     BorderWidth = 0
@@ -349,8 +349,8 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column
-                                    .PanelParagraph(p => p.Text("CannotFit"), new PanelStyle {
+                                row.PercentColumn(100, column => column
+                                    .PanelParagraph(p => p.Text("CannotFit"), new PdfPanelStyle {
                                         PaddingY = 70,
                                         BorderWidth = 0
                                     }))))))
@@ -379,7 +379,7 @@ public partial class PdfDocumentVisualQualityTests {
                     })
                     .HR()
                     .PanelParagraph(p => p.Bold("Nested note").Text(": still uses panel text rendering.")),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(37, 99, 235),
                     BorderWidth = 0.8,
@@ -428,28 +428,27 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void ElementCompose_CanComposePanel() {
+    public void ElementBuilder_AppliesLayoutDecoratorsToComposedContent() {
         byte[] pdf = PdfDocument.Create()
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Item(item =>
-                            item.Element(element =>
-                                element.Panel(panel => panel
-                                        .H3("Element Panel")
-                                        .Paragraph(p => p.Text("Nested element groups can use composed panels.")),
-                                    new PanelStyle {
-                                        Background = PdfColor.FromRgb(248, 250, 252),
-                                        BorderColor = PdfColor.FromRgb(148, 163, 184),
-                                        PaddingX = 8,
-                                        PaddingY = 6
-                                    }))))))
+                            item.Element(element => element
+                                .Background(PdfColor.FromRgb(248, 250, 252))
+                                .Border(PdfColor.FromRgb(148, 163, 184))
+                                .Padding(vertical: 6, horizontal: 8)
+                                .MaxWidth(320)
+                                .Align(PdfAlign.Center)
+                                .Content(nested => nested
+                                    .H3("Element Panel")
+                                    .Paragraph(p => p.Text("Nested elements retain structured flow content."))))))))
             .ToBytes();
 
         string text = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Element Panel", text, StringComparison.Ordinal);
-        Assert.Contains("Nested element groups can use composed panels.", text, StringComparison.Ordinal);
+        Assert.Contains("Nested elements retain structured flow content.", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -459,7 +458,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Item(item =>
-                            item.Element(element => element
+                            item.Element(element => element.Content(nested => nested
                                 .RichBullets(new[] {
                                     PdfListItem.Rich(new[] {
                                         PdfTextRun.Bolded("Rich"),
@@ -472,7 +471,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     })
                                 })
                                 .HR()
-                                .PanelParagraph(p => p.Bold("Element note").Text(": composed in a grouped flow.")))))))
+                                .PanelParagraph(p => p.Bold("Element note").Text(": composed in a grouped flow."))))))))
             .ToBytes();
 
         string text = PdfReadDocument.Open(pdf).ExtractText();
@@ -493,7 +492,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_SnapshotsStyleBeforeRendering() {
-        var style = new PanelStyle {
+        var style = new PdfPanelStyle {
             Background = PdfColor.FromRgb(26, 51, 77),
             BorderColor = PdfColor.FromRgb(40, 80, 120),
             BorderWidth = 2,
@@ -533,7 +532,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(block.Style.KeepTogether);
         Assert.True(block.Style.KeepWithNext);
 
-        var renderStyle = new PanelStyle {
+        var renderStyle = new PdfPanelStyle {
             Background = PdfColor.FromRgb(26, 51, 77),
             BorderColor = PdfColor.FromRgb(40, 80, 120),
             BorderWidth = 2,

@@ -1,28 +1,28 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for default text styling applied to page content.</summary>
-public sealed class PdfTextStyleCompose {
+public sealed class PdfTextStyleBuilder {
     private readonly PdfOptions _opts;
-    internal PdfTextStyleCompose(PdfOptions opts) { _opts = opts; }
+    internal PdfTextStyleBuilder(PdfOptions opts) { _opts = opts; }
     /// <summary>Sets the default font size (points).</summary>
-    public PdfTextStyleCompose FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.DefaultFontSize = size; return this; }
+    public PdfTextStyleBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.DefaultFontSize = size; return this; }
     /// <summary>Sets the default text color.</summary>
-    public PdfTextStyleCompose Color(PdfColor color) { _opts.DefaultTextColor = color; return this; }
+    public PdfTextStyleBuilder Color(PdfColor color) { _opts.DefaultTextColor = color; return this; }
     /// <summary>Sets the default standard font family.</summary>
-    public PdfTextStyleCompose Font(PdfStandardFont font) {
+    public PdfTextStyleBuilder Font(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF default font must be one of the supported standard PDF fonts.");
         _opts.DefaultFont = font;
         return this;
     }
 
     /// <summary>Uses a caller-supplied TrueType font family for the default generated text style.</summary>
-    public PdfTextStyleCompose FontFamily(PdfEmbeddedFontFamily fontFamily) {
+    public PdfTextStyleBuilder FontFamily(PdfEmbeddedFontFamily fontFamily) {
         _opts.UseDefaultTextFontFamily(fontFamily);
         return this;
     }
 
     /// <summary>Uses caller-supplied TrueType font files for the default generated text style.</summary>
-    public PdfTextStyleCompose FontFamily(
+    public PdfTextStyleBuilder FontFamily(
         string familyName,
         byte[] regular,
         byte[]? bold = null,
@@ -33,7 +33,7 @@ public sealed class PdfTextStyleCompose {
     }
 
     /// <summary>Uses caller-supplied TrueType font files for the default generated text style.</summary>
-    public PdfTextStyleCompose FontFamily(
+    public PdfTextStyleBuilder FontFamily(
         string familyName,
         string regularPath,
         string? boldPath = null,

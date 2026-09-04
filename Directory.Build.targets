@@ -33,8 +33,8 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
-  <!-- PDF 3.3 intentionally removes the parallel 3.2 read surfaces. Keep those reviewed breaks in
-       explicit suppression files so any additional public API regression fails package validation. -->
+  <!-- PDF 3.4 intentionally redesigns the 3.3 authoring surface. Keep reviewed breaks in explicit
+       suppression files so any additional public API regression fails package validation. -->
   <PropertyGroup Condition="
       '$(PackageId)' == 'OfficeIMO.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Reader.Pdf'
@@ -43,7 +43,7 @@
       Or '$(PackageId)' == 'OfficeIMO.PowerPoint.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Rtf.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'">
-    <PackageValidationBaselineVersion>3.2.7</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>3.3.0</PackageValidationBaselineVersion>
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>
 

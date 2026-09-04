@@ -40,7 +40,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.Gap(gutter)
-                                .Column(50, column => column
+                                .PercentColumn(50, column => column
                                     .H2("LeftFlow")
                                     .Paragraph(p => p.Text("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
                                     .Bullets(new[] {
@@ -49,14 +49,14 @@ public partial class PdfDocumentVisualQualityTests {
                                     })
                                     .PanelParagraph(
                                         p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             BorderColor = PdfColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
                                             PaddingY = 5,
                                             Background = PdfColor.FromRgb(248, 250, 252)
                                         }))
-                                .Column(50, column => column
+                                .PercentColumn(50, column => column
                                     .H2("RightFlow")
                                     .Paragraph(p => p.Text("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
                                     .Numbered(new[] {
@@ -65,7 +65,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     })
                                     .PanelParagraph(
                                         p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             BorderColor = PdfColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
@@ -129,8 +129,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row => row
-                            .Column(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
-                            .Column(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -173,7 +173,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 10,
             LineHeight = 1.25
         };
-        var panelStyle = new PanelStyle {
+        var panelStyle = new PdfPanelStyle {
             Background = PdfColor.FromRgb(248, 250, 252),
             BorderColor = PdfColor.FromRgb(191, 191, 191),
             BorderWidth = 0.5,
@@ -241,11 +241,11 @@ public partial class PdfDocumentVisualQualityTests {
                                 SpacingBefore = 4,
                                 SpacingAfter = 0
                             })
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .H2("LeftMixed")
                                 .Paragraph(p => p.Text("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
                                 .Bullets(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .H2("RightMixed")
                                 .Paragraph(p => p.Text("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
                                 .Numbered(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));

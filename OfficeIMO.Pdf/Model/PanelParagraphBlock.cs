@@ -4,8 +4,8 @@ internal sealed class PanelParagraphBlock : IPdfBlock {
     public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs { get; }
     public PdfAlign Align { get; }
     public PdfColor? DefaultColor { get; }
-    public PanelStyle? Style { get; }
-    public PanelParagraphBlock(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfAlign align, PdfColor? defaultColor, PanelStyle? style = null) {
+    public PdfPanelStyle? Style { get; }
+    public PanelParagraphBlock(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfAlign align, PdfColor? defaultColor, PdfPanelStyle? style = null) {
         Guard.NotNull(runs, nameof(runs));
         Guard.ParagraphAlign(align, nameof(align), "Panel paragraph");
         var snapshot = new System.Collections.Generic.List<PdfTextRun>();

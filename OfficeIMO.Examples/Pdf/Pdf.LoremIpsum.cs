@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Pdf {
             // 2) Inside panel
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
-                .PanelParagraph(p => p.Text(longText), new PanelStyle {
+                .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
                     Background = new PdfColor(0.96, 0.96, 0.98),
                     BorderColor = PdfColor.FromRgb(210, 210, 210),
                     BorderWidth = 0.5,
@@ -44,8 +44,8 @@ namespace OfficeIMO.Examples.Pdf {
                     p.Content(c => c
                         .Column(col => col.Item().H1("Lorem Ipsum — Two Columns"))
                         .Row(row => {
-                            row.Column(50, col => col.Paragraph(pr => pr.Text(longText)));
-                            row.Column(50, col => col.Paragraph(pr => pr.Text(longText)));
+                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
+                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
                         })
                     );
                 });

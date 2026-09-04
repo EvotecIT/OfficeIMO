@@ -7,7 +7,75 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.3 contains intentional PDF and OCR API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.4 completes the PDF authoring-model cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.4: one PDF content builder
+
+PDF creation still starts at `PdfDocument.Create(...)`, and existing-document
+loading, reading, inspection, and manipulation APIs are unchanged. The breaking
+change is limited to authoring: every flow boundary now receives the same
+`PdfContentBuilder`, builder names describe their roles, row widths are explicit,
+and document defaults are configured through `PdfOptions`.
+
+| OfficeIMO 3.3 | OfficeIMO 3.4 |
+| --- | --- |
+| `PdfCompose` | `PdfDocumentBuilder` |
+| `PdfPageCompose` | `PdfPageBuilder` |
+| `PdfItemCompose`, `PdfContentCompose`, `PdfColumnCompose`, `PdfElementCompose`, `PdfRowColumnCompose` | `PdfContentBuilder` |
+| `PdfRowCompose` | `PdfRowBuilder` |
+| `PdfHeaderCompose` / `PdfFooterCompose` | `PdfHeaderBuilder` / `PdfFooterBuilder` |
+| `PdfTextStyleCompose` | `PdfTextStyleBuilder` |
+| `PanelStyle` | `PdfPanelStyle` |
+| `row.Column(40, content => ...)` | `row.PercentColumn(40, content => ...)` |
+| `content.Container(content => ..., style)` | `content.Element(element => element...Content(content => ...))` |
+| `compose.Defaults(page => ...)` | `compose.Settings(options => ...)` |
+
+The content callback has one type at document, page, grouping, component, and
+row-column boundaries:
+
+```csharp
+PdfDocument.Create(document => document
+    .Settings(options => {
+        options.PageSize = PageSizes.A4;
+        options.Margins = PageMargins.Uniform(36);
+    })
+    .Content(content => content
+        .H1("Service report")
+        .Text("Ready")
+        .Row(row => row
+            .FixedColumn(72, cell => cell.Text("ID"))
+            .AutoColumn(cell => cell.Text("Owner"), maximum: 120)
+            .RelativeColumn(cell => cell.Text("Description")))));
+```
+
+Use `FixedColumn` for points, `AutoColumn` for measured content with optional
+bounds, `RelativeColumn` for a weighted share of remaining width, and
+`PercentColumn` for an explicit percentage. The general `Column` overload accepts
+a `PdfColumnWidth` value when sizing is computed or shared. Percent-only rows keep
+their previous proportional fill behavior when the declared total is below 100%.
+Mixed rows retain literal percentages and assign only the uncommitted width to
+relative columns. Committed widths that cannot fit fail during layout instead of
+overlapping adjacent content, and a mixed row with no positive width left for a
+relative column now fails instead of rendering a zero-width column. Automatic
+columns include panel text and horizontal padding in their preferred width.
+
+`Item(...)` and `Column(...)` are zero-cost logical grouping conveniences on
+`PdfContentBuilder`. `Element(...)` is the uniform visual and semantic envelope:
+configure its background, border, padding, width, alignment, keep rules, or tagged
+role, then provide the same `PdfContentBuilder` through `Content(...)`. An element
+without decorators or semantics is also a zero-cost group and can contain a page
+break. Layout blocks whose pagination contract cannot be nested directly inside a
+row fail during composition. Use `Panel(...)` for grouped row content, or place
+page, section, decorated-element, multi-column, layer, deferred-flow, and nested-row
+layouts outside the row.
+
+`KeepTogether` and `KeepWithNext` now fail closed when the complete constrained
+content cannot be measured before rendering. Dynamic page callbacks, automatic
+multi-column flow, deferred tables, generated tables of contents, canvases, and
+explicit page boundaries should be moved outside that constraint. This replaces
+earlier best-effort behavior that could silently split a promised group.
+
+OfficeIMO 3.3 contains intentional PDF and OCR API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Applications upgrading through 3.3 must also apply the following changes.
 
 Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `OfficeIMO.Word.Legacy` or `OfficeIMO.Excel.Legacy`. Their public namespaces and types now ship from `OfficeIMO.Word` and `OfficeIMO.Excel`; there are no separate 3.3 legacy packages. Do not retain an earlier preview package alongside the 3.3 main package because the duplicate fully qualified types can cause `CS0433` compile errors.
 

@@ -85,7 +85,7 @@ public class PdfFontFamilyTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .RichNumbered(new[] { new PdfListItem("Top item", marker: "1.") }, style: listStyle)
-            .Row(row => row.Column(100, column =>
+            .Row(row => row.PercentColumn(100, column =>
                 column.RichBullets(new[] { new PdfListItem("Column item", marker: "*") }, style: listStyle)))
             .ToBytes();
 
@@ -2410,7 +2410,7 @@ public class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column.H3("Łódź"))))))
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.H3("Łódź"))))))
             .ToBytes();
 
         string topLevelRaw = Encoding.ASCII.GetString(topLevelBytes);
@@ -2485,7 +2485,7 @@ public class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column.Table(new[] {
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.Table(new[] {
                 new[] { "Name", "Value" },
                 new[] { "Beta", "2" }
             }, style: rowColumnStyle))))))

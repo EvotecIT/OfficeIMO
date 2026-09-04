@@ -31,7 +31,7 @@ public class PdfContainerAndColumnTests {
             .Container(content => {
                 content.H2("Container title");
                 content.Paragraph(paragraph => paragraph.Text("Container body"));
-            }, new PanelStyle {
+            }, new PdfPanelStyle {
                 Background = new PdfColor(0.9D, 0.95D, 1D),
                 BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
                 BorderWidth = 1.5D,
@@ -68,7 +68,7 @@ public class PdfContainerAndColumnTests {
                 int marker = index;
                 content.Paragraph(paragraph => paragraph.Text("Decorated fragment line " + marker));
             }
-        }, new PanelStyle {
+        }, new PdfPanelStyle {
             Background = new PdfColor(0.9D, 0.95D, 1D),
             BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
             BorderWidth = 1.5D,
@@ -89,9 +89,24 @@ public class PdfContainerAndColumnTests {
     }
 
     [Fact]
-    public void Container_RejectsUnsupportedNestedPageBreak() {
-        PdfDocument document = PdfDocument.Create().Container(content => content.PageBreak());
-        Assert.Throws<NotSupportedException>(() => document.ToBytes());
+    public void Container_ContinuesDecorationAcrossExplicitPageBreaks() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Container(content => content
+                .Text("Before break")
+                .PageBreak()
+                .Text("After break"), new PdfPanelStyle {
+                    Background = new PdfColor(0.9D, 0.95D, 1D),
+                    PaddingX = 6D,
+                    PaddingY = 6D
+                })
+            .ToBytes();
+
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        Assert.Equal(2, read.Pages.Count);
+        Assert.Contains("Before break", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("After break", read.ExtractText(), StringComparison.Ordinal);
+        Assert.True(CountOccurrences(raw, "0.9 0.95 1 rg") >= 2);
     }
 
     [Fact]

@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Shape(CreateAccentRibbon(), spacingBefore: 12, spacingAfter: 10)
                 .PanelParagraph(
                     p => p.Text("Operator note: long values should wrap cleanly, tables should stay inside the page, and reusable drawing primitives should remain available to Word, Excel, PowerPoint, and PDF exporters."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         PaddingX = 9,
@@ -67,8 +67,8 @@ namespace OfficeIMO.Examples.Pdf {
             }
         }
 
-        private static PanelStyle CreateStatusPanelStyle() {
-            return new PanelStyle {
+        private static PdfPanelStyle CreateStatusPanelStyle() {
+            return new PdfPanelStyle {
                 Background = PdfColor.FromRgb(230, 247, 238),
                 BorderColor = PdfColor.FromRgb(42, 132, 82),
                 BorderWidth = 1.2,

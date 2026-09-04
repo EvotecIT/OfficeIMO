@@ -27,11 +27,11 @@ namespace OfficeIMO.Examples.Pdf {
                         page.Content(content => {
                             content.Column(column => {
                                 column.Item().H1("Row Columns");
-                                column.Item().Paragraph(p => p.Text("A compact visual gate for composed columns with first-class gutters and independent column flow."));
+                                column.Item().Paragraph(p => p.Text("A compact visual gate for explicit fixed, content-sized, and relative columns with first-class gutters."));
                             });
                             content.Row(row => {
                                 row.Gap(18);
-                                row.Column(50, column => column
+                                row.FixedColumn(112, column => column
                                     .H2("Status")
                                     .Paragraph(p => p
                                         .Text("The left column carries operational copy with comfortable wrapping, spacing, and no collision with the neighboring column."))
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Pdf {
                                     }, color: PdfColor.FromRgb(55, 65, 81))
                                     .PanelParagraph(
                                         p => p.Bold("Callout: ").Text("column panels can hold emphasis without leaving the row flow."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             Background = PdfColor.FromRgb(248, 250, 252),
                                             BorderColor = PdfColor.FromRgb(183, 194, 207),
                                             PaddingX = 7,
@@ -52,7 +52,10 @@ namespace OfficeIMO.Examples.Pdf {
                                     .Paragraph(p => p
                                         .Bold("Ready: ")
                                         .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
-                                row.Column(50, column => column
+                                row.AutoColumn(column => column
+                                    .H2("Owner")
+                                    .Text("Operations"), maximum: 82);
+                                row.RelativeColumn(column => column
                                     .H2("Next")
                                     .Paragraph(p => p
                                         .Text("The right column uses the same page flow but starts after an explicit gutter, giving report layouts a professional reading rhythm."))
@@ -63,7 +66,7 @@ namespace OfficeIMO.Examples.Pdf {
                                     }, color: PdfColor.FromRgb(55, 65, 81))
                                     .Table(new[] {
                                         new[] { "Metric", "Value" },
-                                        new[] { "Gutter", "18 pt" },
+                                        new[] { "Sizing", "Relative" },
                                         new[] { "Panels", "Yes" }
                                     }, style: new PdfTableStyle {
                                         HeaderFill = PdfColor.FromRgb(25, 55, 85),

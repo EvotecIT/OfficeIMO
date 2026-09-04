@@ -11,7 +11,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void ConfigureNativePageNumbering(PdfCore.PdfPageCompose page, WordSection section) {
+        private static void ConfigureNativePageNumbering(PdfCore.PdfPageBuilder page, WordSection section) {
             W.PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<W.PageNumberType>();
             if (pageNumberType?.Start?.Value is int start && start > 0) {
                 page.PageNumberStart(start);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, WordPdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordPdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -233,7 +233,7 @@ namespace OfficeIMO.Word.Pdf {
             return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
         }
 
-        private static void AddNativeHeaderImages(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
                     header.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
                 if (variant == W.HeaderFooterValues.First) {
                     header.FirstPageShape(shape.Shape, shape.Align);
@@ -257,7 +257,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterImages(PdfCore.PdfFooterCompose footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterImages(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
                     footer.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterShapes(PdfCore.PdfFooterCompose footer, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterShapes(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
                 if (variant == W.HeaderFooterValues.First) {
                     footer.FirstPageShape(shape.Shape, shape.Align);

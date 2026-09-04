@@ -123,8 +123,8 @@ public static class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Renders and adds a ChartForgeX artifact to PDF flow content through the OfficeDrawing composition path.</summary>
-    public static PdfContentCompose AddVisualArtifact(
-        this PdfContentCompose content,
+    public static PdfContentBuilder AddVisualArtifact(
+        this PdfContentBuilder content,
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
@@ -139,8 +139,8 @@ public static class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Adds a converted ChartForgeX artifact to PDF flow content through the OfficeDrawing composition path.</summary>
-    public static PdfContentCompose AddVisualArtifact(
-        this PdfContentCompose content,
+    public static PdfContentBuilder AddVisualArtifact(
+        this PdfContentBuilder content,
         OfficeVisualConversionResult conversion,
         PdfAlign? align = null,
         double? spacingBefore = null,
@@ -160,44 +160,6 @@ public static class OfficeVisualPlacementExtensions {
             linkUri,
             linkContents));
         return content;
-    }
-
-    /// <summary>Renders and adds a ChartForgeX artifact to top-level PDF flow through the OfficeDrawing composition path.</summary>
-    public static PdfItemCompose AddVisualArtifact(
-        this PdfItemCompose item,
-        VisualArtifact artifact,
-        out OfficeVisualConversionResult conversion,
-        OfficeVisualConversionOptions? options = null,
-        PdfAlign? align = null,
-        double? spacingBefore = null,
-        double? spacingAfter = null,
-        PdfDrawingStyle? style = null,
-        string? linkUri = null,
-        string? linkContents = null) {
-        conversion = artifact.ToOfficeVisual(options);
-        return item.AddVisualArtifact(conversion, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
-    }
-
-    /// <summary>Adds a converted ChartForgeX artifact to top-level PDF flow through the OfficeDrawing composition path.</summary>
-    public static PdfItemCompose AddVisualArtifact(
-        this PdfItemCompose item,
-        OfficeVisualConversionResult conversion,
-        PdfAlign? align = null,
-        double? spacingBefore = null,
-        double? spacingAfter = null,
-        PdfDrawingStyle? style = null,
-        string? linkUri = null,
-        string? linkContents = null) {
-        if (item == null) throw new ArgumentNullException(nameof(item));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        return item.Drawing(
-            OfficeVisualPdfDrawingResolver.Resolve(conversion),
-            align,
-            spacingBefore,
-            spacingAfter,
-            ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative),
-            linkUri,
-            linkContents);
     }
 
     /// <summary>Renders and adds a ChartForgeX artifact to an existing PDF document.</summary>

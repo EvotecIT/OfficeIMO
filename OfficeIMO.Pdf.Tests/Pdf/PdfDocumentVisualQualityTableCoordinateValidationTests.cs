@@ -44,7 +44,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
@@ -206,7 +206,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
@@ -274,7 +274,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
@@ -322,7 +322,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }

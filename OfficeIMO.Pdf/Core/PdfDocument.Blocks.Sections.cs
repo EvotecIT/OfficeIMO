@@ -11,7 +11,7 @@ public sealed partial class PdfDocument {
     /// <summary>Adds a semantic section backed by an outline entry and named destination.</summary>
     internal PdfDocument Section(
         string title,
-        Action<PdfItemCompose> compose,
+        Action<PdfContentBuilder> compose,
         PdfSectionOptions? options = null) {
         Guard.NotNullOrWhiteSpace(title, nameof(title));
         Guard.NotNull(compose, nameof(compose));
@@ -21,7 +21,7 @@ public sealed partial class PdfDocument {
             : requested.DestinationName!.Trim();
         var blocks = new List<IPdfBlock>();
         using (PushBlockScope(blocks.Add)) {
-            compose(new PdfItemCompose(this));
+            compose(new PdfContentBuilder(this));
         }
 
         AddBlock(new SectionBlock(title, blocks, requested.Clone(destinationName)));

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds a paragraph inside a simple panel (background + optional border).</summary>
-    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         Guard.ParagraphAlign(align, nameof(align), "Panel paragraph");
         var builder = new PdfParagraphBuilder(align, defaultColor);
@@ -16,19 +16,19 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Adds a styled panel from common flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.
     /// </summary>
-    internal PdfDocument Panel(System.Action<PdfItemCompose> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument Panel(System.Action<PdfContentBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         Guard.ParagraphAlign(align, nameof(align), "Panel");
         var blocks = new System.Collections.Generic.List<IPdfBlock>();
         using (PushBlockScope(blocks.Add)) {
-            compose(new PdfItemCompose(this));
+            compose(new PdfContentBuilder(this));
         }
 
         AddBlock(CreatePanelParagraphBlock(blocks, style, align, defaultColor));
         return this;
     }
 
-    internal static PanelParagraphBlock CreatePanelParagraphBlock(System.Collections.Generic.IEnumerable<IPdfBlock> blocks, PanelStyle? style, PdfAlign align, PdfColor? defaultColor) {
+    internal static PanelParagraphBlock CreatePanelParagraphBlock(System.Collections.Generic.IEnumerable<IPdfBlock> blocks, PdfPanelStyle? style, PdfAlign align, PdfColor? defaultColor) {
         Guard.NotNull(blocks, nameof(blocks));
         var runs = new System.Collections.Generic.List<PdfTextRun>();
         bool wroteContent = false;

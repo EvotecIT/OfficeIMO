@@ -274,7 +274,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.H3("ColumnHead", PdfAlign.Right, PdfColor.FromRgb(10, 20, 30)))))))
             .ToBytes();
 
@@ -365,7 +365,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.H3("WWWWWWWW"))))))
             .ToBytes();
 
@@ -402,7 +402,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.H3(new string('i', 20)))))))
             .ToBytes();
 

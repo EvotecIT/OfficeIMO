@@ -10,11 +10,14 @@ public sealed partial class PdfDocument {
         configure(_options);
     }
 
-    /// <summary>Updates document-wide page defaults through the canonical page builder.</summary>
-    internal void ConfigureDefaults(System.Action<PdfPageCompose> configure) {
-        Guard.NotNull(configure, nameof(configure));
-        EnsureGeneratedDocument();
-        configure(new PdfPageCompose(this, _options));
+    internal void ConfigureTypography(
+        OfficeIMO.Drawing.OfficeRenderingProfile profile,
+        OfficeIMO.Drawing.OfficeRenderingProfileApplyMode mode) {
+        Guard.NotNull(profile, nameof(profile));
+        ConfigureSettings(options => options.UseRenderingProfile(profile, mode));
+        foreach (PageBlock page in _blocks.OfType<PageBlock>()) {
+            page.Options.UseRenderingProfile(profile, mode);
+        }
     }
 
     /// <summary>Adds a level-1 heading.</summary>
@@ -46,13 +49,13 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Configures a page-scoped flow with its own page setup and default styles.</summary>
-    internal PdfDocument Page(System.Action<PdfPageCompose> configure) {
+    internal PdfDocument Page(System.Action<PdfPageBuilder> configure) {
         AddComposedPage(configure);
         return this;
     }
 
     /// <summary>Configures a section-scoped flow with its own page setup and default styles.</summary>
-    internal PdfDocument Section(System.Action<PdfPageCompose> configure) {
+    internal PdfDocument Section(System.Action<PdfPageBuilder> configure) {
         AddComposedPage(configure);
         return this;
     }
@@ -235,17 +238,17 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Defines the document-wide default header layout and content.</summary>
-    internal PdfDocument Header(System.Action<PdfHeaderCompose> build) {
+    internal PdfDocument Header(System.Action<PdfHeaderBuilder> build) {
         Guard.NotNull(build, nameof(build));
-        var header = new PdfHeaderCompose(_options);
+        var header = new PdfHeaderBuilder(_options);
         build(header);
         return this;
     }
 
     /// <summary>Defines the document-wide default footer layout and content.</summary>
-    internal PdfDocument Footer(System.Action<PdfFooterCompose> build) {
+    internal PdfDocument Footer(System.Action<PdfFooterBuilder> build) {
         Guard.NotNull(build, nameof(build));
-        var footer = new PdfFooterCompose(_options);
+        var footer = new PdfFooterBuilder(_options);
         build(footer);
         return this;
     }
@@ -567,9 +570,9 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets document-wide default text styling used by following page-flow content.</summary>
-    internal PdfDocument DefaultTextStyle(System.Action<PdfTextStyleCompose> style) {
+    internal PdfDocument DefaultTextStyle(System.Action<PdfTextStyleBuilder> style) {
         Guard.NotNull(style, nameof(style));
-        var compose = new PdfTextStyleCompose(_options);
+        var compose = new PdfTextStyleBuilder(_options);
         style(compose);
         return this;
     }

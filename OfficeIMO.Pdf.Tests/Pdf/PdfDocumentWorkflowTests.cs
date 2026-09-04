@@ -287,7 +287,7 @@ public class PdfDocumentWorkflowTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Alpha", longValue }

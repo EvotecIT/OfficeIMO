@@ -924,15 +924,15 @@ public class PdfFormCreationTests {
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item
                     .TextField("Item.Name", width: 120, height: 20, value: "Ada", spacingAfter: 8)
-                    .Element(element => element.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10)));
+                    .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10))));
 
                 content.Row(row => row
                     .Gap(24)
-                    .Column(50, column => column
+                    .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Left column"))
                         .TextField("Left.Email", width: 120, height: 20, value: "left@example.com", spacingAfter: 8)
                         .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: 120, height: 20))
-                    .Column(50, column => column
+                    .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Right column"))
                         .CheckBox("Right.Enabled", isChecked: true, size: 14, align: PdfAlign.Center, spacingAfter: 8)
                         .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: 120, height: 44)

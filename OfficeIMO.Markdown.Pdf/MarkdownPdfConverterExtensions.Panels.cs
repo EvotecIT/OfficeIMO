@@ -30,8 +30,8 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownDoc document,
         MarkdownPdfSaveOptions options,
         MarkdownPdfStyle visualTheme,
-        PdfCore.PanelStyle panelStyle,
-        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader = null) {
+        PdfCore.PdfPanelStyle panelStyle,
+        Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader = null) {
         var panelBlocks = new List<IMarkdownBlock>();
         bool renderedHeader = false;
 
@@ -60,8 +60,8 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownDoc document,
         MarkdownPdfSaveOptions options,
         MarkdownPdfStyle visualTheme,
-        PdfCore.PanelStyle panelStyle,
-        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader,
+        PdfCore.PdfPanelStyle panelStyle,
+        Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader,
         ref bool renderedHeader) {
         if (panelBlocks.Count == 0) {
             return;
@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         IMarkdownBlock[] batch = panelBlocks.ToArray();
         panelBlocks.Clear();
-        Action<PdfCore.PdfItemCompose>? header = !renderedHeader ? renderFirstPanelHeader : null;
+        Action<PdfCore.PdfContentBuilder>? header = !renderedHeader ? renderFirstPanelHeader : null;
 
         pdf.Panel(panel => {
             if (header != null) {

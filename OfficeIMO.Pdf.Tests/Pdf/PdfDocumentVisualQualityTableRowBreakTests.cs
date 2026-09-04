@@ -120,7 +120,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { PdfTableCell.TextCell("Type"), PdfTableCell.TextCell("Description") },
                                     new[] { PdfTableCell.TextCell("Finding"), PdfTableCell.RichTextCell(richRuns) }
@@ -164,7 +164,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
@@ -308,7 +308,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Spacer(94)
                                 .Table(new[] {
                                     new[] { "Name", "Value" },
@@ -340,7 +340,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(rows, style: style))))))
             .ToBytes();
 
@@ -460,7 +460,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
@@ -496,7 +496,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }
@@ -530,7 +530,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }

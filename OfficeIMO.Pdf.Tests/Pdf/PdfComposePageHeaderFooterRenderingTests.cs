@@ -8,7 +8,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void PdfDocumentCreate_SnapshotsInputOptionsBeforeRendering() {
             var options = new PdfOptions {

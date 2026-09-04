@@ -1,12 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Reusable typed PDF content that composes through the canonical <see cref="PdfItemCompose"/> surface.
+/// Reusable typed PDF content that composes through the canonical <see cref="PdfContentBuilder"/> surface.
 /// Components own structure and data binding while the document engine continues to own layout and rendering.
 /// </summary>
 public interface IPdfComponent {
     /// <summary>Composes this component into the supplied document content.</summary>
-    void Compose(PdfItemCompose content);
+    void Compose(PdfContentBuilder content);
 }
 
 /// <summary>
@@ -19,5 +19,5 @@ public interface IPdfComponent {
 /// </remarks>
 public interface IPdfContextComponent {
     /// <summary>Composes this component for the supplied live page context.</summary>
-    void Compose(PdfItemCompose content, PdfFlowContext context);
+    void Compose(PdfContentBuilder content, PdfFlowContext context);
 }

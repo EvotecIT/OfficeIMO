@@ -252,7 +252,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepWithNext = true,
             WidowControl = true
         };
-        var panelStyle = new PanelStyle();
+        var panelStyle = new PdfPanelStyle();
 
         var paragraph = new RichParagraphBlock(runs, PdfAlign.Left, null, paragraphStyle);
         var panel = new PanelParagraphBlock(runs, PdfAlign.Left, null, panelStyle);

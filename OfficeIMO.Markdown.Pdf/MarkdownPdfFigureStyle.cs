@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// Markdown-aware figure styling for images and generated visuals in PDF export.
 /// </summary>
 public sealed class MarkdownPdfFigureStyle {
-    private PdfCore.PanelStyle? _panelStyle;
+    private PdfCore.PdfPanelStyle? _panelStyle;
     private PdfCore.PdfImageStyle? _imageStyle;
     private PdfCore.PdfDrawingStyle? _drawingStyle;
     private PdfCore.PdfColor? _captionColor;
@@ -15,7 +15,7 @@ public sealed class MarkdownPdfFigureStyle {
     private PdfCore.PdfAlign _captionAlign = PdfCore.PdfAlign.Center;
 
     /// <summary>Optional panel chrome used for unresolved visual placeholders. Media figures render directly in document flow.</summary>
-    public PdfCore.PanelStyle? PanelStyle {
+    public PdfCore.PdfPanelStyle? PdfPanelStyle {
         get => _panelStyle?.Clone();
         set => _panelStyle = value?.Clone();
     }
@@ -64,7 +64,7 @@ public sealed class MarkdownPdfFigureStyle {
 
     /// <summary>Creates a copy of this figure style.</summary>
     public MarkdownPdfFigureStyle Clone() => new MarkdownPdfFigureStyle {
-        PanelStyle = _panelStyle,
+        PdfPanelStyle = _panelStyle,
         ImageStyle = _imageStyle,
         DrawingStyle = _drawingStyle,
         CaptionColor = _captionColor,
@@ -73,7 +73,7 @@ public sealed class MarkdownPdfFigureStyle {
         PlaceholderColor = _placeholderColor
     };
 
-    internal PdfCore.PanelStyle? PanelStyleSnapshot => _panelStyle?.Clone();
+    internal PdfCore.PdfPanelStyle? PanelStyleSnapshot => _panelStyle?.Clone();
     internal PdfCore.PdfImageStyle ImageStyleSnapshot => (_imageStyle ?? CreateDefaultImageStyle()).Clone();
     internal PdfCore.PdfDrawingStyle DrawingStyleSnapshot => (_drawingStyle ?? CreateDefaultDrawingStyle()).Clone();
     internal PdfCore.PdfColor CaptionColorSnapshot => _captionColor ?? PdfCore.PdfColor.FromRgb(71, 85, 105);
@@ -96,7 +96,7 @@ public sealed class MarkdownPdfFigureStyle {
         PdfCore.PdfColor caption,
         PdfCore.PdfColor placeholder,
         double borderWidth = 0.5D) => new MarkdownPdfFigureStyle {
-            PanelStyle = new PdfCore.PanelStyle {
+            PdfPanelStyle = new PdfCore.PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
                 BorderWidth = borderWidth,

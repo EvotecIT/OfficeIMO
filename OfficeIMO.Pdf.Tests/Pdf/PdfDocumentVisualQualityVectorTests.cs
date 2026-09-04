@@ -920,7 +920,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Drawing(drawing, spacingAfter: -1)))))));
 
         Assert.Contains("Drawing spacing after must be a non-negative finite value.", drawingSpacingAfterException.Message, StringComparison.Ordinal);
