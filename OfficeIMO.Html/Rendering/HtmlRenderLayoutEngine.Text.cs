@@ -34,6 +34,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         ApplyPendingInlineTextTransforms(runs);
+        ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
+        ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
@@ -278,6 +280,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             AssignInlineSemanticGroup(controlRun, style, controlNodeId);
             runs.Add(controlRun);
+            return;
+        }
+
+        if (tag == "ruby") {
+            AssignLogicalTextOrders(runs);
+            AddInlineRubyRun(
+                element,
+                width,
+                inheritedStyle,
+                depth,
+                style,
+                link,
+                inheritedPaintOffsetX,
+                inheritedPaintOffsetY,
+                runs);
             return;
         }
 

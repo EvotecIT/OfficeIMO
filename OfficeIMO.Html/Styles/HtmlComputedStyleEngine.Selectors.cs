@@ -135,6 +135,18 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
+        if (TryTrimPseudoElement(value, "::first-letter", out hostSelector)
+            || TryTrimPseudoElement(value, ":first-letter", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FirstLetter;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::first-line", out hostSelector)
+            || TryTrimPseudoElement(value, ":first-line", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FirstLine;
+            return true;
+        }
+
         hostSelector = string.Empty;
         kind = HtmlPseudoElementKind.Before;
         return false;

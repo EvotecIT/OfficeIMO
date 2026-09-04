@@ -63,7 +63,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             HtmlPseudoElementKind.After => "generated-after",
             HtmlPseudoElementKind.Marker => "list-marker",
             HtmlPseudoElementKind.FootnoteCall => "footnote-call",
-            _ => "footnote-marker"
+            HtmlPseudoElementKind.FootnoteMarker => "footnote-marker",
+            HtmlPseudoElementKind.FirstLetter => "first-letter",
+            _ => "first-line"
         };
         style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
         return true;
@@ -71,6 +73,10 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     internal bool IsPseudoPropertySpecified(IElement element, HtmlPseudoElementKind kind, string propertyName) =>
         _computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)
+        && computed.IsSpecifiedValue(propertyName);
+
+    internal bool IsPropertySpecified(IElement element, string propertyName) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
 
     private HtmlRenderBoxStyle ResolveCore(
@@ -103,6 +109,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
+        string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
+        string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
         string language = ResolveLanguage(element, parent?.Language);
 
         string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
@@ -168,6 +176,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             ApproximateSmallCaps = approximateSmallCaps,
             Language = language,
             Direction = direction,
+            WritingMode = writingMode,
+            TextOrientation = textOrientation,
+            RubyPosition = ResolveRubyPosition(computed.GetValue("ruby-position"), parent?.RubyPosition),
+            RubyAlign = ResolveRubyAlign(computed.GetValue("ruby-align"), parent?.RubyAlign),
             OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
             Hyphens = ResolveHyphens(computed.GetValue("hyphens"), parent?.Hyphens),
@@ -201,9 +213,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.ContainerUnitWidth = _activeContainerWidth;
         style.ContainerUnitHeight = _activeContainerHeight;
 
+        HtmlComputedStyle physicalComputed = PhysicalizeLogicalProperties(computed, writingMode, direction);
         if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
-        ApplyBoxValues(computed, containingWidth, fontSize, style);
-        ApplyDimensions(element, computed, containingWidth, fontSize, parent, style, !pseudoElement);
+        ApplyBoxValues(physicalComputed, containingWidth, fontSize, style);
+        ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);
         if (style.OutlineColorInvert) {
@@ -212,7 +225,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
-        ApplyPositioning(computed, style);
+        ApplyPositioning(physicalComputed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
         ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);

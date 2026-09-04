@@ -420,7 +420,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
                 ? continuationLogicalCharacters
                 : 0;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, marker, element, inlineSkipLogicalCharacters);
+            double inlineExtent = IsVerticalWritingMode(style.WritingMode)
+                ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
+                : contentWidth;
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, inlineExtent, style, depth, marker, element, inlineSkipLogicalCharacters);
+            if (IsVerticalWritingMode(style.WritingMode)) {
+                inline = TransformSidewaysVerticalInlineLayout(inline, style, element);
+            }
             inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;

@@ -610,6 +610,7 @@ internal sealed class HtmlInlineRun {
     internal string ClearSide { get; } = "none";
     internal bool TextTransformPending { get; private set; }
     internal string? LeaderPattern { get; }
+    internal bool IsFirstLetter { get; private set; }
 
     internal void CompleteTextTransform(string text) {
         Text = text;
@@ -631,6 +632,31 @@ internal sealed class HtmlInlineRun {
     internal void AssignInlineSemanticGroup(HtmlRenderSemanticGroupRole role, string structureElementKey) {
         InlineSemanticGroupRole = role;
         InlineSemanticGroupKey = structureElementKey;
+    }
+
+    internal HtmlInlineRun CloneText(string text, string logicalText, HtmlRenderBoxStyle style, bool isFirstLetter = false) {
+        var clone = new HtmlInlineRun(
+            text,
+            style,
+            LinkUri,
+            Source,
+            PaintOffsetX,
+            PaintOffsetY,
+            OwnerElement,
+            PositionedMarkerElement,
+            logicalText,
+            TextTransformPending,
+            LeaderPattern) {
+            SemanticRole = SemanticRole,
+            SemanticNodeId = SemanticNodeId,
+            SemanticFragmentOrder = SemanticFragmentOrder,
+            LogicalTextOrder = LogicalTextOrder,
+            InlineSemanticGroupRole = InlineSemanticGroupRole,
+            InlineSemanticGroupKey = InlineSemanticGroupKey,
+            BookmarkAnchorText = BookmarkAnchorText,
+            IsFirstLetter = isFirstLetter
+        };
+        return clone;
     }
 }
 

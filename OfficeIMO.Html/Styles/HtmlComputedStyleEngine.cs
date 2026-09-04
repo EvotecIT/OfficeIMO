@@ -44,7 +44,11 @@ public static partial class HtmlComputedStyleEngine {
         "visibility",
         "widows",
         "white-space",
-        "word-spacing"
+        "word-spacing",
+        "writing-mode",
+        "text-orientation",
+        "ruby-position",
+        "ruby-align"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
@@ -173,6 +177,12 @@ public static partial class HtmlComputedStyleEngine {
         "justify-self",
         "margin",
         "margin-bottom",
+        "margin-block",
+        "margin-block-end",
+        "margin-block-start",
+        "margin-inline",
+        "margin-inline-end",
+        "margin-inline-start",
         "margin-left",
         "margin-right",
         "margin-top",
@@ -201,6 +211,12 @@ public static partial class HtmlComputedStyleEngine {
         "page-break-inside",
         "padding",
         "padding-bottom",
+        "padding-block",
+        "padding-block-end",
+        "padding-block-start",
+        "padding-inline",
+        "padding-inline-end",
+        "padding-inline-start",
         "padding-left",
         "padding-right",
         "padding-top",
@@ -224,6 +240,46 @@ public static partial class HtmlComputedStyleEngine {
         "transform",
         "transform-origin",
         "top",
+        "inset-block",
+        "inset-block-end",
+        "inset-block-start",
+        "inset-inline",
+        "inset-inline-end",
+        "inset-inline-start",
+        "block-size",
+        "inline-size",
+        "min-block-size",
+        "min-inline-size",
+        "max-block-size",
+        "max-inline-size",
+        "border-block",
+        "border-block-color",
+        "border-block-end",
+        "border-block-end-color",
+        "border-block-end-style",
+        "border-block-end-width",
+        "border-block-start",
+        "border-block-start-color",
+        "border-block-start-style",
+        "border-block-start-width",
+        "border-block-style",
+        "border-block-width",
+        "border-inline",
+        "border-inline-color",
+        "border-inline-end",
+        "border-inline-end-color",
+        "border-inline-end-style",
+        "border-inline-end-width",
+        "border-inline-start",
+        "border-inline-start-color",
+        "border-inline-start-style",
+        "border-inline-start-width",
+        "border-inline-style",
+        "border-inline-width",
+        "border-end-end-radius",
+        "border-end-start-radius",
+        "border-start-end-radius",
+        "border-start-start-radius",
         "vertical-align",
         "visibility",
         "white-space",
@@ -231,6 +287,10 @@ public static partial class HtmlComputedStyleEngine {
         "widows",
         "word-break",
         "word-spacing",
+        "writing-mode",
+        "text-orientation",
+        "ruby-position",
+        "ruby-align",
         "line-clamp",
         "-webkit-line-clamp",
         "-officeimo-pdf-tag-type",
@@ -430,13 +490,18 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment);
         HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment);
         HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment);
-        if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null) return;
+        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment);
+        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment);
+        if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null
+            && firstLetter == null && firstLine == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair {
             Before = before,
             After = after,
             Marker = marker,
             FootnoteCall = footnoteCall,
-            FootnoteMarker = footnoteMarker
+            FootnoteMarker = footnoteMarker,
+            FirstLetter = firstLetter,
+            FirstLine = firstLine
         };
     }
 
