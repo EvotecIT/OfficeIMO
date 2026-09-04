@@ -137,7 +137,16 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
                 confidence = _options.ConfidenceWhenUnavailable;
                 usedFallbackConfidence = true;
             }
-            words.Add(new PdfOcrWord(span.Text, x, y, width, height, confidence));
+            words.Add(new PdfOcrWord(
+                span.Text,
+                x,
+                y,
+                width,
+                height,
+                confidence,
+                span.BlockId,
+                span.ParagraphId,
+                span.LineId));
         }
     }
 
@@ -220,8 +229,11 @@ public sealed class OfficeOcrEnginePdfProviderOptions {
     /// <summary>Uses line spans when the engine does not return word spans.</summary>
     public bool UseLineSpansWhenWordsUnavailable { get; set; } = true;
 
-    /// <summary>Confidence assigned when neither a span nor the overall result reports confidence.</summary>
-    public double ConfidenceWhenUnavailable { get; set; } = 1D;
+    /// <summary>
+    /// Confidence assigned when neither a span nor the overall result reports confidence.
+    /// Default: 0, so unknown-confidence OCR remains excluded by the default merge threshold.
+    /// </summary>
+    public double ConfidenceWhenUnavailable { get; set; }
 
     /// <summary>Provider-specific scalar options forwarded to the OCR engine.</summary>
     public IReadOnlyDictionary<string, string> ProviderOptions { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);

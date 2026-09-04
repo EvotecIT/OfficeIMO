@@ -11,7 +11,7 @@ public static class PdfLogicalTableAnalysis {
     private const int MaximumScopeComparisonTextCharacters = 512;
     private const int MaximumScopeSourceCharactersPerValue = 2048;
     /// <summary>
-    /// Infers structured extraction metadata for a logical PDF table.
+    /// Establishes structured extraction metadata for a logical PDF table from structural evidence.
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
     /// <returns>Column names, body-row boundary, and table-shape flags for structured consumers.</returns>
@@ -27,14 +27,18 @@ public static class PdfLogicalTableAnalysis {
         int columnCount = GetColumnCount(table, cancellationToken);
         string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
         bool hasHeader = headerColumns != null && headerColumns.Length == columnCount;
-        bool isKeyValueTable = LooksLikeKeyValueTable(table, cancellationToken);
         int bodyStartRowIndex = hasHeader ? 1 : 0;
         int totalBodyRowCount = Math.Max(0, table.Rows.Count - bodyStartRowIndex);
         IReadOnlyList<string> columns = hasHeader
             ? headerColumns!
-            : isKeyValueTable
-                ? KeyValueColumns
-                : BuildFallbackColumns(columnCount);
+            : BuildUnnamedColumns(columnCount);
+        PdfLogicalTableSchemaKind schemaKind = hasHeader
+            ? PdfLogicalTableSchemaKind.HeaderRow
+            : PdfLogicalTableSchemaKind.Unknown;
+        IReadOnlyList<PdfInferenceEvidence> schemaEvidence = BuildSchemaEvidence(table, hasHeader);
+        double schemaConfidence = hasHeader
+            ? table.Evidence.Any(static evidence => evidence.Code == "table.tagged-header-row") ? 0.99D : 0.95D
+            : 0D;
 
         return new PdfLogicalTableStructure(
             columnCount,
@@ -42,7 +46,9 @@ public static class PdfLogicalTableAnalysis {
             bodyStartRowIndex,
             totalBodyRowCount,
             hasHeader,
-            isKeyValueTable);
+            schemaKind,
+            schemaConfidence,
+            schemaEvidence);
     }
 
     /// <summary>
@@ -261,10 +267,10 @@ public static class PdfLogicalTableAnalysis {
         string.Equals(subtype, "3D", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Detects a simple header row from the first logical table row.
+    /// Detects a header row only when the PDF supplies explicit tagged or typographic structure.
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
-    /// <returns>Header column names when the first row looks like distinct text headers; otherwise null.</returns>
+    /// <returns>Header column names when structural evidence establishes the first row as a header; otherwise null.</returns>
     public static IReadOnlyList<string>? DetectHeaderColumns(PdfLogicalTable table) =>
         DetectHeaderColumns(table, CancellationToken.None);
 
@@ -275,41 +281,27 @@ public static class PdfLogicalTableAnalysis {
         cancellationToken.ThrowIfCancellationRequested();
 
         int columnCount = GetColumnCount(table, cancellationToken);
-        if (table.Rows.Count <= 1 || columnCount <= 1) {
+        if (table.Rows.Count == 0 || columnCount == 0) {
+            return null;
+        }
+
+        bool hasExplicitHeaderEvidence = table.Evidence.Any(static evidence =>
+            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal) ||
+            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
+        if (!hasExplicitHeaderEvidence) {
             return null;
         }
 
         IReadOnlyList<string> firstRow = table.Rows[0];
-        if (firstRow.Count < columnCount) {
-            return null;
-        }
-
         var headers = new string[columnCount];
-        var seenHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int nonNumericCount = 0;
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            string header = firstRow[columnIndex].Trim();
-            if (header.Length == 0 || !seenHeaders.Add(header)) {
-                return null;
-            }
-
-            if (!LooksLikeNumericValue(header)) {
-                nonNumericCount++;
-            }
-
-            headers[columnIndex] = header;
+            headers[columnIndex] = columnIndex < firstRow.Count
+                ? firstRow[columnIndex].Trim()
+                : string.Empty;
         }
 
-        if (columnCount == 2 &&
-            !LooksLikeKeyValueHeader(headers) &&
-            !IsValueHeader(headers[1]) &&
-            LooksLikeHeaderlessKeyValueFirstRow(headers) &&
-            LooksLikeKeyValueBody(table, startRow: 0, cancellationToken)) {
-            return null;
-        }
-
-        return nonNumericCount == columnCount ? headers : null;
+        return headers;
     }
 
     private static ScopeRepresentation IsTextBlockRepresentedByAnyTable(
@@ -431,53 +423,6 @@ public static class PdfLogicalTableAnalysis {
 #else
         return value.Contains(candidate, StringComparison.Ordinal);
 #endif
-    }
-
-    /// <summary>
-    /// Reports whether a two-column logical table looks like label/value facts instead of a general data grid.
-    /// </summary>
-    /// <param name="table">Logical table to inspect.</param>
-    /// <returns>True when the table has two visible columns and body rows look like non-numeric labels with values.</returns>
-    public static bool LooksLikeKeyValueTable(PdfLogicalTable table) =>
-        LooksLikeKeyValueTable(table, CancellationToken.None);
-
-    private static bool LooksLikeKeyValueTable(
-        PdfLogicalTable table,
-        CancellationToken cancellationToken) {
-        Guard.NotNull(table, nameof(table));
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (GetColumnCount(table, cancellationToken) != 2 || table.Rows.Count == 0) {
-            return false;
-        }
-
-        string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
-        bool hasHeader = headerColumns != null && headerColumns.Length == 2;
-        if (hasHeader && !LooksLikeKeyValueHeader(headerColumns!)) {
-            return false;
-        }
-
-        return LooksLikeKeyValueBody(table, hasHeader ? 1 : 0, cancellationToken);
-    }
-
-    private static bool LooksLikeKeyValueBody(
-        PdfLogicalTable table,
-        int startRow,
-        CancellationToken cancellationToken = default) {
-        int bodyRowCount = 0;
-        for (int rowIndex = startRow; rowIndex < table.Rows.Count; rowIndex++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            IReadOnlyList<string> row = table.Rows[rowIndex];
-            string key = row.Count > 0 ? row[0].Trim() : string.Empty;
-            string value = row.Count > 1 ? row[1].Trim() : string.Empty;
-            if (key.Length == 0 || value.Length == 0 || LooksLikeNumericValue(key)) {
-                return false;
-            }
-
-            bodyRowCount++;
-        }
-
-        return bodyRowCount > 0;
     }
 
     /// <summary>
@@ -652,18 +597,24 @@ public static class PdfLogicalTableAnalysis {
         }
 
         bool hasDigit = false;
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (char.IsDigit(c)) {
+        for (int index = 0; index < value.Length;) {
+            int digit = CharUnicodeInfo.GetDecimalDigitValue(value, index);
+            if (digit >= 0) {
                 hasDigit = true;
+                index += char.IsSurrogatePair(value, index) ? 2 : 1;
                 continue;
             }
 
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, index);
+            char c = value[index];
             if (char.IsWhiteSpace(c) || c == '.' || c == ',' || c == '-' || c == '+' || c == '(' || c == ')' || c == '%') {
+                index++;
                 continue;
             }
 
-            if (char.GetUnicodeCategory(c) == UnicodeCategory.CurrencySymbol) {
+            if (category == UnicodeCategory.CurrencySymbol ||
+                IsEquivalentNumericPunctuation(c)) {
+                index += char.IsSurrogatePair(value, index) ? 2 : 1;
                 continue;
             }
 
@@ -694,7 +645,13 @@ public static class PdfLogicalTableAnalysis {
             return true;
         }
 
-        return TryParseNormalizedNumericValue(source, out value);
+        if (!LooksLikeNumericValue(source)) {
+            return false;
+        }
+
+        return TryParseNormalizedNumericValue(source, effectiveCulture, out value) ||
+            (!ReferenceEquals(effectiveCulture, CultureInfo.InvariantCulture) &&
+             TryParseNormalizedNumericValue(source, CultureInfo.InvariantCulture, out value));
     }
 
     private static bool CanParseNumericColumn(IReadOnlyList<IReadOnlyList<string>> rows, int columnIndex, CultureInfo culture) {
@@ -718,7 +675,7 @@ public static class PdfLogicalTableAnalysis {
 
     private static bool ContainsPercent(string value) {
         for (int i = 0; i < value.Length; i++) {
-            if (value[i] == '%') {
+            if (IsPercentSign(value[i])) {
                 return true;
             }
         }
@@ -726,17 +683,66 @@ public static class PdfLogicalTableAnalysis {
         return false;
     }
 
-    private static bool TryParseNormalizedNumericValue(string source, out decimal value) {
+    private static bool TryParseNormalizedNumericValue(string source, CultureInfo culture, out decimal value) {
         value = 0m;
-        bool negative = source.Length > 2 && source[0] == '(' && source[source.Length - 1] == ')';
+        bool negative = source.Length > 2 && IsOpenParenthesis(source[0]) && IsCloseParenthesis(source[source.Length - 1]);
         int start = negative ? 1 : 0;
         int end = negative ? source.Length - 1 : source.Length;
         var chars = new char[source.Length];
         int count = 0;
-        for (int i = start; i < end; i++) {
-            char c = source[i];
-            if (char.IsDigit(c) || c == '.' || c == ',' || c == '-' || c == '+') {
-                chars[count++] = c;
+        for (int index = start; index < end;) {
+            int digit = CharUnicodeInfo.GetDecimalDigitValue(source, index);
+            if (digit >= 0) {
+                chars[count++] = (char)('0' + digit);
+                index += char.IsSurrogatePair(source, index) ? 2 : 1;
+                continue;
+            }
+
+            char c = source[index];
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(source, index);
+            int scalarLength = char.IsSurrogatePair(source, index) ? 2 : 1;
+            index += scalarLength;
+            if (char.IsWhiteSpace(c) || category == UnicodeCategory.CurrencySymbol) {
+                continue;
+            }
+            switch (c) {
+                case '-':
+                case '+':
+                    chars[count++] = c;
+                    break;
+                case '\u066B': // Arabic decimal separator
+                    chars[count++] = '.';
+                    break;
+                case '\u066C': // Arabic thousands separator
+                    break;
+                case '.':
+                case ',':
+                case '\uFF0E': // fullwidth full stop
+                case '\uFF0C': // fullwidth comma
+                    char separator = c == '\uFF0E' ? '.' : c == '\uFF0C' ? ',' : c;
+                    if (MatchesNumberSeparator(separator, culture.NumberFormat.NumberDecimalSeparator)) {
+                        chars[count++] = '.';
+                    } else if (!MatchesNumberSeparator(separator, culture.NumberFormat.NumberGroupSeparator)) {
+                        return false;
+                    }
+                    break;
+                case '\u2212':
+                case '\uFE63':
+                case '\uFF0D':
+                    chars[count++] = '-';
+                    break;
+                case '\uFE62':
+                case '\uFF0B':
+                    chars[count++] = '+';
+                    break;
+                case '\'':
+                case '\u02BC':
+                case '\u2019':
+                    break;
+                default:
+                    // Parentheses are valid only as one matched outer pair. Any other permitted
+                    // punctuation is not part of the normalized numeric grammar.
+                    return false;
             }
         }
 
@@ -744,7 +750,7 @@ public static class PdfLogicalTableAnalysis {
             return false;
         }
 
-        string normalized = NormalizeNumberSeparators(new string(chars, 0, count));
+        string normalized = new string(chars, 0, count);
         if (negative && normalized.Length > 0 && normalized[0] != '-') {
             normalized = "-" + normalized;
         }
@@ -752,93 +758,40 @@ public static class PdfLogicalTableAnalysis {
         return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
     }
 
-    private static string NormalizeNumberSeparators(string value) {
-        int lastDot = value.LastIndexOf('.');
-        int lastComma = value.LastIndexOf(',');
-        char decimalSeparator = lastDot >= 0 && lastComma >= 0
-            ? lastDot > lastComma ? '.' : ','
-            : lastDot >= 0
-                ? GetSingleSeparatorRole(value, '.') == NumberSeparatorRole.Decimal ? '.' : '\0'
-                : lastComma >= 0 && GetSingleSeparatorRole(value, ',') == NumberSeparatorRole.Decimal ? ',' : '\0';
+    private static bool MatchesNumberSeparator(char value, string separator) =>
+        separator.Length == 1 && separator[0] == value;
 
-        var chars = new char[value.Length];
-        int count = 0;
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (c == '.' || c == ',') {
-                if (c == decimalSeparator) {
-                    chars[count++] = '.';
-                }
+    private static bool IsEquivalentNumericPunctuation(char value) =>
+        value == '\u066B' || value == '\u066C' ||
+        value == '\uFF0E' || value == '\uFF0C' ||
+        value == '\u2212' || value == '\uFE63' || value == '\uFF0D' ||
+        value == '\uFE62' || value == '\uFF0B' ||
+        value == '\'' || value == '\u02BC' || value == '\u2019' ||
+        IsOpenParenthesis(value) || IsCloseParenthesis(value) || IsPercentSign(value);
 
-                continue;
-            }
+    private static bool IsOpenParenthesis(char value) => value == '(' || value == '\uFF08';
 
-            chars[count++] = c;
+    private static bool IsCloseParenthesis(char value) => value == ')' || value == '\uFF09';
+
+    internal static bool IsPercentSign(char value) =>
+        value == '%' || value == '\u066A' || value == '\uFE6A' || value == '\uFF05';
+
+    private static PdfInferenceEvidence[] BuildSchemaEvidence(PdfLogicalTable table, bool hasHeader) {
+        if (!hasHeader) {
+            return new[] { new PdfInferenceEvidence(
+                "table.schema-unknown",
+                "No tagged or structural evidence is strong enough to promote a row to table schema.",
+                -0.5D) };
         }
-
-        return new string(chars, 0, count);
+        PdfInferenceEvidence? tagged = table.Evidence.FirstOrDefault(static evidence =>
+            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
+        if (tagged is not null) return new[] { tagged };
+        PdfInferenceEvidence? emphasis = table.Evidence.FirstOrDefault(static evidence =>
+            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal));
+        return emphasis is not null ? new[] { emphasis } : Array.Empty<PdfInferenceEvidence>();
     }
 
-    private static NumberSeparatorRole GetSingleSeparatorRole(string value, char separator) {
-        int first = value.IndexOf(separator);
-        if (first < 0 || first != value.LastIndexOf(separator)) {
-            return NumberSeparatorRole.Group;
-        }
-
-        int digitsAfter = 0;
-        for (int i = first + 1; i < value.Length; i++) {
-            if (char.IsDigit(value[i])) {
-                digitsAfter++;
-            }
-        }
-
-        return digitsAfter == 3 ? NumberSeparatorRole.Group : NumberSeparatorRole.Decimal;
-    }
-
-    private static bool LooksLikeKeyValueHeader(string[] headerColumns) {
-        string keyHeader = headerColumns[0].Trim();
-        string valueHeader = headerColumns[1].Trim();
-
-        return IsKeyHeader(keyHeader) && IsValueHeader(valueHeader);
-    }
-
-    private static bool LooksLikeHeaderlessKeyValueFirstRow(string[] firstRow) {
-        string key = firstRow[0].Trim();
-        string value = firstRow[1].Trim();
-
-        return !IsKeyHeader(key) && value.Any(static c => char.IsDigit(c));
-    }
-
-    private static bool IsKeyHeader(string header) {
-        return string.Equals(header, "Key", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Field", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Item", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Label", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Name", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Property", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsValueHeader(string header) {
-        return string.Equals(header, "Value", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Amount", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Price", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Qty", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Quantity", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Total", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Text", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(header, "Description", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static readonly IReadOnlyList<string> KeyValueColumns = new[] { "Key", "Value" };
-
-    private enum NumberSeparatorRole {
-        Group,
-        Decimal
-    }
-
-    private static string[] BuildFallbackColumns(int columnCount) {
-        return Enumerable.Range(1, columnCount)
-            .Select(static column => "Column " + column.ToString(CultureInfo.InvariantCulture))
-            .ToArray();
+    private static string[] BuildUnnamedColumns(int columnCount) {
+        return new string[columnCount];
     }
 }

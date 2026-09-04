@@ -14,25 +14,25 @@ internal static class PdfOcr {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(provider, nameof(provider));
-        PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
+        PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
+        PdfReadOptions semanticOptions = effectiveOptions.ReadOptions;
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         PdfReadDocument overlapReadDocument = readOptions?.IncludeArtifactText == true
             ? readDocument
             : PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
-        int[] selectedPages = effectiveOptions.Selection?.ToPageNumbers(
+        int[] selectedPages = semanticOptions.PageSelection?.ToPageNumbers(
             readDocument.Pages.Count,
-            nameof(effectiveOptions.Selection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
+            nameof(semanticOptions.PageSelection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
         if (selectedPages.Length > effectiveOptions.MaxPages) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
         }
+        PdfTextLayoutOptions layoutOptions = semanticOptions.LayoutOptions;
+        PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(semanticOptions.Pipeline);
         PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(
             readDocument,
-            new PdfReadOptions {
-                Profile = PdfReadProfile.Structured,
-                PageSelection = effectiveOptions.Selection,
-                Pipeline = CreateUnderstandingPipelineOptions(effectiveOptions)
-            },
+            semanticOptions,
+            out IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
             cancellationToken);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
@@ -41,7 +41,7 @@ internal static class PdfOcr {
             MaxPixelsPerPage = effectiveOptions.MaxPixelsPerPage,
             ContinueOnError = false
         };
-        IReadOnlyList<PdfPageRenderResult> rendered = PdfPageImageRenderer.RenderPages(pdf, effectiveOptions.Selection, renderOptions, readOptions, cancellationToken);
+        IReadOnlyList<PdfPageRenderResult> rendered = PdfPageImageRenderer.RenderPages(pdf, semanticOptions.PageSelection, renderOptions, readOptions, cancellationToken);
         var pages = new List<PdfOcrPageMergeResult>(rendered.Count);
         for (int i = 0; i < rendered.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -55,24 +55,39 @@ internal static class PdfOcr {
             var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, visualWidth, visualHeight, scale);
             PdfOcrResponse response = await provider.RecognizeAsync(request, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("OCR provider returned a null response.");
-            pages.Add(MergePage(nativePage, nativeTextBounds, readPage, response, request, effectiveOptions, cancellationToken));
+            pages.Add(MergePage(nativePage, nativeTextBounds, response, request, effectiveOptions, cancellationToken));
         }
 
-        IReadOnlyList<PdfOcrPageMergeResult> mergedPages = pages.AsReadOnly();
+        var mergedPages = pages.AsReadOnly();
         PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
+            readDocument,
             logical,
+            pageAnalyses,
             mergedPages,
-            effectiveOptions,
+            layoutOptions,
+            pipelineOptions,
             cancellationToken);
-        return new PdfOcrMergeResult(logical, enriched, mergedPages);
+        var canonicalTextByPage = new Dictionary<int, Queue<string>>();
+        for (int pageIndex = 0; pageIndex < enriched.Pages.Count; pageIndex++) {
+            PdfLogicalPage page = enriched.Pages[pageIndex];
+            if (!canonicalTextByPage.TryGetValue(page.PageNumber, out Queue<string>? texts)) {
+                texts = new Queue<string>();
+                canonicalTextByPage.Add(page.PageNumber, texts);
+            }
+            texts.Enqueue(PdfDocumentReadResult.GetCanonicalPageText(page));
+        }
+        var canonicalPages = new PdfOcrPageMergeResult[mergedPages.Count];
+        for (int pageIndex = 0; pageIndex < mergedPages.Count; pageIndex++) {
+            PdfOcrPageMergeResult page = mergedPages[pageIndex];
+            string text = canonicalTextByPage.TryGetValue(page.PageNumber, out Queue<string>? texts) && texts.Count > 0
+                ? texts.Dequeue()
+                : string.Empty;
+            canonicalPages[pageIndex] = page.WithCanonicalText(text, effectiveOptions.MaxMergedTextCharactersPerPage);
+        }
+        return new PdfOcrMergeResult(logical, enriched, Array.AsReadOnly(canonicalPages));
     }
 
-    internal static PdfUnderstandingPipelineOptions CreateUnderstandingPipelineOptions(PdfOcrMergeOptions options) {
-        Guard.NotNull(options, nameof(options));
-        return new PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages };
-    }
-
-    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, IReadOnlyList<PdfSelectionQuad> nativeTextBounds, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
+    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, IReadOnlyList<PdfSelectionQuad> nativeTextBounds, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
         ValidateProviderResponse(nativePage, response, options);
         var diagnostics = new List<string>(response.Diagnostics);
         var accepted = new List<PdfRecognizedWord>();
@@ -92,7 +107,17 @@ internal static class PdfOcr {
                 continue;
             }
 
-            var normalized = new PdfRecognizedWord(word.Text, word.X / request.Scale, word.Y / request.Scale, word.Width / request.Scale, word.Height / request.Scale, word.Confidence, i);
+            var normalized = new PdfRecognizedWord(
+                word.Text,
+                word.X / request.Scale,
+                word.Y / request.Scale,
+                word.Width / request.Scale,
+                word.Height / request.Scale,
+                word.Confidence,
+                i,
+                word.BlockId,
+                word.ParagraphId,
+                word.LineId);
             if (OverlapsNativeText(
                     normalized,
                     nativeTextBounds,
@@ -111,8 +136,7 @@ internal static class PdfOcr {
             int y = left.Y.CompareTo(right.Y);
             return y != 0 ? y : left.X.CompareTo(right.X);
         });
-        string text = BuildMergedText(nativePage, readPage, accepted, options.MaxMergedTextCharactersPerPage, cancellationToken);
-        return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text, response.Provider, response.Model, response.Language);
+        return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), string.Empty, response.Provider, response.Model, response.Language);
     }
 
     private static bool IsValid(PdfOcrWord word, PdfOcrRequest request) =>
@@ -267,39 +291,6 @@ internal static class PdfOcr {
         internal double Top { get; }
         internal double Right { get; }
         internal double Bottom { get; }
-    }
-
-    private static string BuildMergedText(
-        PdfLogicalPage page,
-        PdfReadPage readPage,
-        List<PdfRecognizedWord> words,
-        int maximumCharacters,
-        CancellationToken cancellationToken) {
-        IReadOnlyList<PdfOcrLogicalTextLine> ocrLines = PdfOcrLogicalDocumentBuilder.BuildTextLines(words, cancellationToken);
-        var items = new List<(double Y, double X, string Text)>(page.TextBlocks.Count + ocrLines.Count);
-        for (int i = 0; i < page.TextBlocks.Count; i++) {
-            PdfLogicalTextBlock block = page.TextBlocks[i];
-            double blockHeight = Math.Max(block.FontSize, 1D);
-            PdfVisualBounds bounds = readPage.TransformBoundsToVisual(
-                Math.Min(block.XStart, block.XEnd),
-                block.BaselineY,
-                Math.Max(block.XStart, block.XEnd),
-                block.BaselineY + blockHeight);
-            items.Add((bounds.Top, bounds.Left, block.Text));
-        }
-
-        for (int i = 0; i < ocrLines.Count; i++) items.Add((ocrLines[i].Top, ocrLines[i].Left, ocrLines[i].Text));
-        var builder = new System.Text.StringBuilder(Math.Min(maximumCharacters, 4096));
-        foreach ((double _, double _, string text) in items.OrderBy(static item => item.Y).ThenBy(static item => item.X)) {
-            int separatorLength = builder.Length == 0 ? 0 : Environment.NewLine.Length;
-            long projected = (long)builder.Length + separatorLength + text.Length;
-            if (projected > maximumCharacters) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, projected);
-            }
-            if (separatorLength > 0) builder.AppendLine();
-            builder.Append(text);
-        }
-        return builder.ToString();
     }
 
     private static void ValidateProviderResponse(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrMergeOptions options) {

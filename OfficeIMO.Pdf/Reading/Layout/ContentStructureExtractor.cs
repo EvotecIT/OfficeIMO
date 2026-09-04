@@ -85,6 +85,8 @@ public sealed class StructuredTable {
     /// <summary>Extracted row values aligned to Columns.</summary>
     public List<string[]> Rows { get; } = new();
     internal IReadOnlyList<PdfTextSpan> SourceRuns { get; set; } = Array.Empty<PdfTextSpan>();
+    internal IReadOnlyList<TextLayoutEngine.TextLine> SourceLines { get; set; } =
+        Array.Empty<TextLayoutEngine.TextLine>();
 }
 
 /// <summary>Column geometry for a detected table.</summary>
@@ -211,8 +213,11 @@ public sealed class StructuredLine {
     public string Text { get; set; } = string.Empty;
     /// <summary>Representative font size in points.</summary>
     public double FontSize { get; set; }
+    /// <summary>Normalized source-extraction confidence from 0 through 1.</summary>
+    public double Confidence { get; internal set; } = 1D;
     /// <summary>Immutable snapshot of the positioned text spans grouped into this line.</summary>
     public IReadOnlyList<PdfTextSpan> Spans { get; internal set; } = Array.Empty<PdfTextSpan>();
+    internal PdfLogicalContentSourceKind SourceKind { get; set; } = PdfLogicalContentSourceKind.Native;
     internal PdfLogicalVisualBounds? VisualBounds { get; set; }
     /// <summary>Number of underlying spans grouped into this line.</summary>
     public int SpanCount => Spans.Count;
@@ -233,17 +238,36 @@ internal static class ContentStructureExtractor {
         internal double Right { get; }
     }
 
-    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)](?=\s|[^\d\s])\s*(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])(?:\s+|(?![\-\*])(?!(?:\p{Sc}\s*)?(?:\d|[\.,]\d))(?=[^\d\s])))(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s*(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
-        "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",
-        "ability", "ality", "able", "ible", "ance", "ence", "al", "ally",
-        "er", "ers", "ed", "ly", "ology", "ologies"
-    };
+    private const RegexOptions StructuralRegexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u2023\u2043\u2219\u25AA\u25AB\u25CF\u25CB\u25E6])\s*|(?<mark>[\-\*])(?:\s+|(?![\-\*])(?!(?:\p{Sc}\s*)?(?:\p{Nd}|[\.,]\p{Nd}))(?=[^\p{Nd}\s])))(?<text>.+)$", StructuralRegexOptions);
 
     internal static bool IsListItemText(string text) =>
         TryParseListItemText(text, out _, out _, out _);
+
+    internal static bool IsSentenceTerminal(char value) => value is
+        '.' or '!' or '?' or ':' or
+        '\u0589' or // Armenian full stop
+        '\u061F' or '\u06D4' or // Arabic question mark and full stop
+        '\u0964' or '\u0965' or // danda and double danda
+        '\u1362' or '\u1367' or '\u1368' or // Ethiopic sentence punctuation
+        '\u166E' or '\u1803' or '\u1809' or
+        '\u203C' or '\u2047' or '\u2048' or '\u2049' or '\u2E2E' or
+        '\u3002' or '\uFE52' or '\uFE56' or '\uFE57' or
+        '\uFF01' or '\uFF0E' or '\uFF1A' or '\uFF1F';
+
+    internal static bool EndsWithSentenceTerminal(string text) {
+        for (int index = text.Length - 1; index >= 0; index--) {
+            char value = text[index];
+            if (char.IsWhiteSpace(value)) continue;
+            if (IsSentenceTerminal(value)) return true;
+
+            System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(value);
+            if (category == System.Globalization.UnicodeCategory.ClosePunctuation ||
+                category == System.Globalization.UnicodeCategory.FinalQuotePunctuation) continue;
+            return false;
+        }
+        return false;
+    }
 
     internal static bool TryParseListItemText(
         string text,
@@ -255,13 +279,7 @@ internal static class ContentStructureExtractor {
         level = 1;
         if (string.IsNullOrWhiteSpace(text)) return false;
 
-        Match numbered = NumberListRegex.Match(text);
-        if (numbered.Success) {
-            marker = numbered.Groups["mark"].Value;
-            body = numbered.Groups["text"].Value.Trim();
-            level = Math.Max(1, marker.Count(static value => value == '.') + 1);
-            return body.Length > 0;
-        }
+        if (TryParseNumberedListItem(text, out marker, out body, out level)) return true;
 
         Match bullet = BulletRegex.Match(text);
         if (bullet.Success) {
@@ -270,11 +288,113 @@ internal static class ContentStructureExtractor {
             return body.Length > 0;
         }
 
-        Match parenthesized = ParenRegex.Match(text);
-        if (!parenthesized.Success) return false;
-        marker = "(" + parenthesized.Groups["mark"].Value + ")";
-        body = parenthesized.Groups["text"].Value.Trim();
+        if (TryParseParenthesizedListItem(text, out marker, out body)) return true;
+        return TryParseIdeographicListItem(text, out marker, out body);
+    }
+
+    private static bool TryParseNumberedListItem(
+        string text,
+        out string marker,
+        out string body,
+        out int level) {
+        marker = string.Empty;
+        body = string.Empty;
+        level = 1;
+        int index = SkipWhitespace(text, 0);
+        int markerStart = index;
+        if (!TryConsumeDecimalDigits(text, ref index)) return false;
+
+        int markerEnd = -1;
+        while (index < text.Length && text[index] is '.' or '\uFF0E') {
+            int separator = index++;
+            if (TryConsumeDecimalDigits(text, ref index)) {
+                level++;
+                continue;
+            }
+
+            markerEnd = separator;
+            break;
+        }
+
+        if (markerEnd < 0) {
+            if (index >= text.Length || text[index] is not (')' or '\u3001' or '\uFF09')) return false;
+            markerEnd = index++;
+        }
+        if (index < text.Length && TryGetDecimalDigit(text, index, out _, out _)) return false;
+        marker = text.Substring(markerStart, markerEnd - markerStart);
+        body = text.Substring(SkipWhitespace(text, index)).Trim();
         return body.Length > 0;
+    }
+
+    private static bool TryParseParenthesizedListItem(
+        string text,
+        out string marker,
+        out string body) {
+        marker = string.Empty;
+        body = string.Empty;
+        int index = SkipWhitespace(text, 0);
+        if (index >= text.Length || text[index] is not ('(' or '\uFF08')) return false;
+        int markerStart = index++;
+        int scalarCount = 0;
+        bool allDigits = true;
+        while (index < text.Length && text[index] is not (')' or '\uFF09')) {
+            System.Globalization.UnicodeCategory category =
+                System.Globalization.CharUnicodeInfo.GetUnicodeCategory(text, index);
+            bool isDigit = System.Globalization.CharUnicodeInfo.GetDecimalDigitValue(text, index) >= 0;
+            bool isLetter = category is
+                System.Globalization.UnicodeCategory.UppercaseLetter or
+                System.Globalization.UnicodeCategory.LowercaseLetter or
+                System.Globalization.UnicodeCategory.TitlecaseLetter or
+                System.Globalization.UnicodeCategory.ModifierLetter or
+                System.Globalization.UnicodeCategory.OtherLetter or
+                System.Globalization.UnicodeCategory.LetterNumber;
+            if (!isDigit && !isLetter) return false;
+            allDigits &= isDigit;
+            scalarCount++;
+            index += char.IsSurrogatePair(text, index) ? 2 : 1;
+            if (scalarCount > 4) return false;
+        }
+        if (index >= text.Length || scalarCount == 0 || (!allDigits && scalarCount != 1)) return false;
+        index++;
+        marker = text.Substring(markerStart, index - markerStart);
+        body = text.Substring(SkipWhitespace(text, index)).Trim();
+        return body.Length > 0;
+    }
+
+    private static bool TryParseIdeographicListItem(
+        string text,
+        out string marker,
+        out string body) {
+        marker = string.Empty;
+        body = string.Empty;
+        int index = SkipWhitespace(text, 0);
+        if (index >= text.Length) return false;
+        int markerStart = index;
+        System.Globalization.UnicodeCategory category =
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(text, index);
+        bool isMarker = System.Globalization.CharUnicodeInfo.GetDecimalDigitValue(text, index) >= 0 ||
+            category is
+                System.Globalization.UnicodeCategory.UppercaseLetter or
+                System.Globalization.UnicodeCategory.LowercaseLetter or
+                System.Globalization.UnicodeCategory.TitlecaseLetter or
+                System.Globalization.UnicodeCategory.ModifierLetter or
+                System.Globalization.UnicodeCategory.OtherLetter or
+                System.Globalization.UnicodeCategory.LetterNumber;
+        if (!isMarker) return false;
+        index += char.IsSurrogatePair(text, index) ? 2 : 1;
+        int markerEnd = index;
+        if (index >= text.Length || text[index++] != '\u3001') return false;
+        marker = text.Substring(markerStart, markerEnd - markerStart);
+        body = text.Substring(SkipWhitespace(text, index)).Trim();
+        return body.Length > 0;
+    }
+
+    private static bool TryConsumeDecimalDigits(string text, ref int index) {
+        int start = index;
+        while (index < text.Length && TryGetDecimalDigit(text, index, out _, out int consumed)) {
+            index += consumed;
+        }
+        return index > start;
     }
 
     public static StructuredPage Extract(
@@ -361,30 +481,12 @@ internal static class ContentStructureExtractor {
         if (tables.Count > 0) {
             // Clean leaders and add
             foreach (var t in tables) {
+                NormalizeDetectedTable(t);
                 if (string.Equals(t.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
-                    for (int r = 0; r < t.Rows.Count; r++) if (t.Rows[r].Length >= 2) {
-                        t.Rows[r][0] = NormalizeShattered(t.Rows[r][0]);
-                        t.Rows[r][1] = NormalizeLeaderValue(t.Rows[r][1]);
-                    }
                     // add only to detailed + LeaderRows; do NOT mix into generic Tables
                     page.TablesDetailed.Add(t);
                     foreach (var r in t.Rows) AddLeaderRow(page, r[0], r[1]);
                     continue;
-                }
-                // Clean generic band/group tables to remove micro-token shattering and dot runs
-                for (int r = 0; r < t.Rows.Count; r++) {
-                    var row = t.Rows[r];
-                    for (int c = 0; c < row.Length; c++) {
-                        string cell = NormalizeShattered(row[c]);
-                        // Normalize spacing around dots and collapse leader dot runs
-                        cell = System.Text.RegularExpressions.Regex.Replace(cell, "\\s*\\.\\s*", ".");
-                        int dotCount = 0; for (int k = 0; k < cell.Length; k++) if (cell[k] == '.') dotCount++;
-                        if (dotCount >= 3) {
-                            // Likely a leader run in this cell, drop the dots entirely
-                            cell = cell.Replace(".", string.Empty).Trim();
-                        }
-                        t.Rows[r][c] = cell;
-                    }
                 }
                 page.TablesDetailed.Add(t);
                 page.Tables.AddRange(t.Rows);
@@ -553,7 +655,7 @@ internal static class ContentStructureExtractor {
             consumeWork?.Invoke(1);
             string text = line.Text.Trim();
             if (text.Length == 0 ||
-                text.Length > 160 ||
+                PdfUnicodeScalarAnalysis.CountScalars(text) > 160 ||
                 IsListItemText(text) ||
                 IsInsideTable(line, tableBounds, consumeWork, cancellationCheck)) {
                 continue;
@@ -718,7 +820,28 @@ internal static class ContentStructureExtractor {
         return (values[middle - 1] + values[middle]) / 2D;
     }
 
-    private static void AddLeaderRow(StructuredPage page, string label, string value) {
+    internal static void NormalizeDetectedTable(StructuredTable table) {
+        if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                string[] row = table.Rows[rowIndex];
+                if (row.Length < 2) continue;
+                row[0] = NormalizeShattered(row[0]);
+                row[1] = NormalizeLeaderValue(row[1]);
+            }
+            return;
+        }
+
+        // Preserve punctuation and decoded word boundaries. Structural detection must not rewrite
+        // cell content such as version identifiers, decimal values, ellipses, or abbreviations.
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            string[] row = table.Rows[rowIndex];
+            for (int columnIndex = 0; columnIndex < row.Length; columnIndex++) {
+                row[columnIndex] = NormalizeShattered(row[columnIndex]);
+            }
+        }
+    }
+
+    internal static void AddLeaderRow(StructuredPage page, string label, string value) {
         label = NormalizeShattered(label ?? string.Empty).Trim();
         value = NormalizeLeaderValue(value);
         if (label.Length == 0 || value.Length == 0) {
@@ -753,18 +876,22 @@ internal static class ContentStructureExtractor {
 
             int digitStart = SkipWhitespace(text, index);
             int digitEnd = digitStart;
-            while (digitEnd < trailingContentEnd && digitEnd - digitStart < 6 && text[digitEnd] is >= '0' and <= '9') {
-                digitEnd++;
+            int digitCount = 0;
+            while (digitEnd < trailingContentEnd && digitCount < 6 &&
+                   TryGetDecimalDigit(text, digitEnd, out _, out int consumed)) {
+                digitEnd += consumed;
+                digitCount++;
             }
 
-            int digitCount = digitEnd - digitStart;
             if (digitCount is < 1 or > 5 || digitEnd != trailingContentEnd) {
                 continue;
             }
 
             label = text.Substring(0, runStart);
-            for (int digitIndex = digitStart; digitIndex < digitEnd; digitIndex++) {
-                pageNumber = checked((pageNumber * 10) + (text[digitIndex] - '0'));
+            for (int digitIndex = digitStart; digitIndex < digitEnd;) {
+                if (!TryGetDecimalDigit(text, digitIndex, out int digit, out int consumed)) return false;
+                pageNumber = checked((pageNumber * 10) + digit);
+                digitIndex += consumed;
             }
 
             return true;
@@ -800,7 +927,7 @@ internal static class ContentStructureExtractor {
             }
 
             if (valueStart >= text.Length ||
-                !char.IsLetterOrDigit(text[valueStart]) ||
+                !IsUnicodeLetterOrDigit(text, valueStart) ||
                 valueStart < validValueSuffixStart) {
                 continue;
             }
@@ -814,17 +941,17 @@ internal static class ContentStructureExtractor {
     }
 
     private static int FindValidLeaderValueSuffixStart(string text) {
-        for (int index = text.Length - 1; index >= 0; index--) {
+        int suffixStart = 0;
+        for (int index = 0; index < text.Length;) {
+            int scalarLength = char.IsSurrogatePair(text, index) ? 2 : 1;
             char character = text[index];
-            bool allowed = char.IsLetterOrDigit(character) ||
+            bool allowed = IsUnicodeLetterOrDigit(text, index) ||
                            char.IsWhiteSpace(character) ||
                            character is '.' or ',' or '\'' or '/' or '%' or '+' or '-' or '(' or ')';
-            if (!allowed) {
-                return index + 1;
-            }
+            if (!allowed) suffixStart = index + scalarLength;
+            index += scalarLength;
         }
-
-        return 0;
+        return suffixStart;
     }
 
     private static int SkipWhitespace(string text, int index) {
@@ -835,56 +962,38 @@ internal static class ContentStructureExtractor {
         return index;
     }
 
-    private static bool IsLeaderCurrency(char value) => value is '$' or '€' or '£';
-
-    private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
-    private static bool IsAllLetters(string s) { for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return s.Length > 0; }
-    private static bool IsShortAbbrev(string s) {
-        if (s.Length == 0 || s.Length > 3) return false;
-        for (int i = 0; i < s.Length; i++) if (!char.IsUpper(s[i])) return false; return true;
+    private static bool TryGetDecimalDigit(
+        string text,
+        int index,
+        out int digit,
+        out int consumed) {
+        digit = System.Globalization.CharUnicodeInfo.GetDecimalDigitValue(text, index);
+        consumed = index + 1 < text.Length && char.IsSurrogatePair(text, index) ? 2 : 1;
+        return digit >= 0;
     }
+
+    private static bool IsUnicodeLetterOrDigit(string text, int index) {
+        if (System.Globalization.CharUnicodeInfo.GetDecimalDigitValue(text, index) >= 0) return true;
+        System.Globalization.UnicodeCategory category =
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(text, index);
+        return category is
+            System.Globalization.UnicodeCategory.UppercaseLetter or
+            System.Globalization.UnicodeCategory.LowercaseLetter or
+            System.Globalization.UnicodeCategory.TitlecaseLetter or
+            System.Globalization.UnicodeCategory.ModifierLetter or
+            System.Globalization.UnicodeCategory.OtherLetter or
+            System.Globalization.UnicodeCategory.LetterNumber or
+            System.Globalization.UnicodeCategory.OtherNumber;
+    }
+
+    private static bool IsLeaderCurrency(char value) =>
+        char.GetUnicodeCategory(value) == System.Globalization.UnicodeCategory.CurrencySymbol;
+
     internal static string NormalizeShattered(string s) {
         if (string.IsNullOrEmpty(s)) return s;
-        // Collapse runs of spaces
-        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-        var parts = s.Split(' ');
-        if (parts.Length <= 2) {
-            if (parts.Length == 2 && IsAllLetters(parts[0]) && IsAllLetters(parts[1])) {
-                if (parts[0].Length == 1 && parts[1].Length >= 3) return parts[0] + parts[1];
-                if (parts[1].Length <= 2 || parts[0].Length <= 2) return parts[0] + parts[1];
-            }
-            return s;
-        }
-        int shortCount = parts.Count(p => p.Length <= 2 && IsAllLetters(p));
-        // Heuristic: only join when there are multiple micro tokens
-        if (shortCount < 2) return s; // mostly healthy
-        var sb = new System.Text.StringBuilder(s.Length);
-        sb.Append(parts[0]);
-        for (int i = 1; i < parts.Length; i++) {
-            string prev = parts[i - 1]; string cur = parts[i];
-            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
-                                    && (i + 1 < parts.Length && parts[i + 1].Length == 1 && char.IsUpper(parts[i + 1][0]));
-            bool leadingLetterJoin = IsAllLetters(prev) && IsAllLetters(cur) && prev.Length == 1 && cur.Length >= 3;
-            bool lettersJoin = IsAllLetters(prev) && IsAllLetters(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(IsShortAbbrev(prev) && IsShortAbbrev(cur) && !upperSinglesJoin);
-            // lookahead to aggressively join runs of short tokens
-            bool nextShort = (i + 1 < parts.Length) && parts[i + 1].Length <= 2 && IsAllLetters(parts[i + 1]) && !IsShortAbbrev(parts[i + 1]);
-            if (lettersJoin || (IsAllLetters(cur) && cur.Length <= 2 && nextShort)) sb.Append(cur);
-            else sb.Append(' ').Append(cur);
-        }
-        string joined = sb.ToString().Replace("  ", " ");
-        // Secondary pass: join common suffix fragments (e.g., "Except ions" -> "Exceptions")
-        var toks = joined.Split(' ');
-        if (toks.Length > 1) {
-            var sb2 = new System.Text.StringBuilder(joined.Length);
-            sb2.Append(toks[0]);
-            for (int i = 1; i < toks.Length; i++) {
-                string prev = toks[i - 1]; string cur = toks[i];
-                if (IsAllLetters(prev) && IsAllLetters(cur) && CommonSuffixes.Contains(cur)) sb2.Append(cur);
-                else sb2.Append(' ').Append(cur);
-            }
-            joined = sb2.ToString();
-        }
-        return joined;
+        // Retain decoded word boundaries. Only the positioned-content stage can decide whether
+        // separately painted runs are adjacent glyphs or distinct words.
+        return System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
     }
 
     private static string NormalizeLeaderValue(string? value) {
@@ -893,16 +1002,14 @@ internal static class ContentStructureExtractor {
         }
 
         string normalized = Regex.Replace(value!.Trim(), "\\s+", " ");
-        normalized = Regex.Replace(normalized, "\\s*([.,])\\s*", "$1");
-        normalized = Regex.Replace(normalized, "([$€£])\\s+", "$1");
-        normalized = normalized.Trim('.');
 
         bool hasDigit = false;
-        for (int i = 0; i < normalized.Length; i++) {
-            if (char.IsDigit(normalized[i])) {
+        for (int index = 0; index < normalized.Length;) {
+            if (TryGetDecimalDigit(normalized, index, out _, out int consumed)) {
                 hasDigit = true;
                 break;
             }
+            index += char.IsSurrogatePair(normalized, index) ? 2 : 1;
         }
 
         return hasDigit ? normalized : string.Empty;

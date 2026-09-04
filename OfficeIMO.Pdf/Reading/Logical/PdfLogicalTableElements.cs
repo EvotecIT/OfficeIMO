@@ -155,31 +155,6 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.Evidence);
     }
 
-    internal static PdfLogicalTable FromOcr(
-        int pageNumber,
-        double top,
-        double bottom,
-        IReadOnlyList<(double From, double To)> columnBounds,
-        IReadOnlyList<IReadOnlyList<string>> sourceRows) {
-        double left = columnBounds.Min(static column => column.From);
-        double right = columnBounds.Max(static column => column.To);
-        PdfUnderstandingTableCandidate candidate = PdfUnderstandingTableCandidate.FromOcr(
-            "OcrAlignedColumns",
-            top,
-            bottom,
-            new PdfLogicalVisualBounds(left, top, right, bottom),
-            columnBounds,
-            sourceRows,
-            0.8D,
-            new[] {
-                new PdfInferenceEvidence(
-                    "table.ocr-aligned-geometry",
-                    "Accepted OCR words form repeated aligned columns.",
-                    0.8D)
-            });
-        return From(pageNumber, candidate);
-    }
-
 }
 
 /// <summary>

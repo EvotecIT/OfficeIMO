@@ -237,7 +237,13 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             glyphs.Add(new PdfGlyphInfo(glyphId, scalar, scalarStart, GetGlyphWidth1000(glyphId)));
         }
 
-        return new PdfGlyphRun(glyphs);
+        // The scalar fallback does not perform bidirectional layout. Preserve the
+        // caller's logical string as ActualText so readers do not have to guess
+        // whether the emitted glyph order is logical or visual.
+        string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
+            ? text
+            : null;
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText);
     }
 
     public double GetAscender(double fontSize) =>

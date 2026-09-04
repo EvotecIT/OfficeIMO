@@ -1,4 +1,7 @@
 using System;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
@@ -6,6 +9,8 @@ using System.Threading;
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class FlateDecoder {
+    private const int CopyBufferSize = 81920;
+
     public static byte[] Decode(byte[] data) {
         // Try zlib (RFC1950) first when available in this target
 #if NET6_0_OR_GREATER
@@ -129,9 +134,12 @@ internal static class FlateDecoder {
         out byte[]? output,
         out bool limitExceeded,
         CancellationToken cancellationToken = default) {
+#if NET8_0_OR_GREATER
+        return TryCopyToPooledByteArray(source, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+#else
         limitExceeded = false;
         using var msOut = new MemoryStream();
-        var buffer = new byte[81920];
+        var buffer = new byte[CopyBufferSize];
         int read;
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -148,8 +156,65 @@ internal static class FlateDecoder {
 
         output = msOut.ToArray();
         return true;
+#endif
     }
 
+#if NET8_0_OR_GREATER
+    private static bool TryCopyToPooledByteArray(
+        Stream source,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken) {
+        limitExceeded = false;
+        byte[] readBuffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
+        byte[]? accumulated = null;
+        int accumulatedLength = 0;
+        try {
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(readBuffer, 0, CopyBufferSize);
+                if (read <= 0) break;
+                long requiredLength = (long)accumulatedLength + read;
+                if (requiredLength > int.MaxValue ||
+                    maxOutputBytes.HasValue && requiredLength > maxOutputBytes.Value) {
+                    output = null;
+                    limitExceeded = maxOutputBytes.HasValue && requiredLength > maxOutputBytes.Value;
+                    return false;
+                }
+
+                EnsurePooledCapacity(ref accumulated, (int)requiredLength, accumulatedLength);
+                Buffer.BlockCopy(readBuffer, 0, accumulated!, accumulatedLength, read);
+                accumulatedLength += read;
+            }
+
+            if (accumulatedLength == 0) {
+                output = Array.Empty<byte>();
+                return true;
+            }
+
+            output = new byte[accumulatedLength];
+            Buffer.BlockCopy(accumulated!, 0, output, 0, accumulatedLength);
+            return true;
+        } finally {
+            ArrayPool<byte>.Shared.Return(readBuffer);
+            if (accumulated != null) ArrayPool<byte>.Shared.Return(accumulated);
+        }
+    }
+
+    private static void EnsurePooledCapacity(ref byte[]? buffer, int requiredLength, int dataLength) {
+        if (buffer != null && buffer.Length >= requiredLength) return;
+        int requestedLength = buffer == null
+            ? Math.Max(CopyBufferSize, requiredLength)
+            : Math.Max(requiredLength, buffer.Length <= int.MaxValue / 2 ? buffer.Length * 2 : requiredLength);
+        byte[] expanded = ArrayPool<byte>.Shared.Rent(requestedLength);
+        if (buffer != null) {
+            if (dataLength > 0) Buffer.BlockCopy(buffer, 0, expanded, 0, dataLength);
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+        buffer = expanded;
+    }
+#endif
 
     private static bool IsLikelyZlib(byte[] d) {
         // RFC1950: first byte CMF low 4 bits = 8 for deflate; checksum of first two bytes mod 31 == 0

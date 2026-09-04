@@ -15,6 +15,7 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this);
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
             CollectVisualPrimitivesAndForms(
                 content,
                 pageResources,
@@ -39,7 +40,8 @@ public sealed partial class PdfReadPage {
                 type3ImageVisitor: static (_, _, _) => { },
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                invokedResourceNames: invokedResources);
         }
 
         return (totalCount, unrepresentedCount);

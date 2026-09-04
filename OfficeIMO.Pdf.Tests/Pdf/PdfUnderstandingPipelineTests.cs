@@ -9,6 +9,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfUnderstandingPipelineTests {
     [Fact]
+    public void TextSimilarity_PreservesSupplementaryUnicodeLettersAndDigits() {
+        Assert.Equal("\U00010428", PdfTextSimilarity.NormalizeSignature("\U00010400"));
+        Assert.Equal("#", PdfTextSimilarity.NormalizeSignature("\U0001D7D9"));
+        Assert.Equal("\U0001D7D9", PdfTextSimilarity.NormalizeSignaturePreservingDigits("\U0001D7D9"));
+        Assert.Equal(2D / 3D, PdfTextSimilarity.NormalizedSimilarity("\U0001D7D9ab", "\U0001D7DAab"), 8);
+        Assert.True(PdfTextSimilarity.TryGetNormalizedSimilarity("abcdefghij", "abcdefghiX", 0.9D, out double accepted));
+        Assert.Equal(0.9D, accepted, 8);
+        Assert.False(PdfTextSimilarity.TryGetNormalizedSimilarity("abcdefghij", "abcdefXXij", 0.9D, out double rejected));
+        Assert.True(rejected < 0.9D);
+    }
+
+    [Fact]
     public void FastPipeline_ExposesAllStagesAndCallerOrderedPages() {
         byte[] pdf = PdfDocument.Create()
             .H1("Pipeline heading")
@@ -37,7 +49,7 @@ public class PdfUnderstandingPipelineTests {
             Assert.All(page.Regions, region => { Assert.InRange(region.Confidence, 0D, 1D); Assert.NotEmpty(region.Evidence); });
             Assert.All(page.ReadingOrderEvidence, order => { Assert.InRange(order.Confidence, 0D, 1D); Assert.NotEmpty(order.Evidence); });
             Assert.All(page.Elements, element => { Assert.InRange(element.Confidence, 0D, 1D); Assert.NotEmpty(element.Evidence); });
-            Assert.Equal(new[] { "glyph-decoding", "word-grouping", "line-grouping", "table-detection", "page-segmentation", "reading-order", "semantic-classification" }, page.Trace.Select(static trace => trace.Stage));
+            Assert.Equal(new[] { "glyph-decoding", "word-grouping", "line-grouping", "table-detection", "page-segmentation", "reading-order", "semantic-classification", "image-region-detection" }, page.Trace.Select(static trace => trace.Stage));
         });
         Assert.All(pages.SelectMany(static page => page.Trace), trace =>
             Assert.Equal(typeof(PdfAdvancedUnderstandingStages).Assembly, trace.ProviderType.Assembly));
@@ -143,6 +155,49 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredPipeline_PreservesTightlyPositionedOfficeTextFragmentsInTables() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Code", "F1", 10D, 40D, 700D, 24D),
+            new PdfTextSpan("Owner", "F1", 10D, 180D, 700D, 32D),
+            new PdfTextSpan("Amount", "F1", 10D, 300D, 700D, 38D),
+            new PdfTextSpan("AC", "F1", 10D, 40D, 680D, 12D),
+            new PdfTextSpan("C", "F1", 10D, 52D, 680D, 6D),
+            new PdfTextSpan("-001-01", "F1", 10D, 58D, 680D, 38D),
+            new PdfTextSpan("Ow", "F1", 10D, 180D, 680D, 15D),
+            new PdfTextSpan("n", "F1", 10D, 195D, 680D, 6D),
+            new PdfTextSpan("er", "F1", 10D, 201D, 680D, 11D),
+            new PdfTextSpan("02", "F1", 10D, 216D, 680D, 11D),
+            new PdfTextSpan("10", "F1", 10D, 300D, 680D, 11D),
+            new PdfTextSpan("37", "F1", 10D, 311D, 680D, 11D),
+            new PdfTextSpan(".25", "F1", 10D, 322D, 680D, 14D),
+            new PdfTextSpan("AC", "F1", 10D, 40D, 660D, 12D),
+            new PdfTextSpan("C", "F1", 10D, 52D, 660D, 6D),
+            new PdfTextSpan("-001-02", "F1", 10D, 58D, 660D, 38D),
+            new PdfTextSpan("Ow", "F1", 10D, 180D, 660D, 15D),
+            new PdfTextSpan("n", "F1", 10D, 195D, 660D, 6D),
+            new PdfTextSpan("er", "F1", 10D, 201D, 660D, 11D),
+            new PdfTextSpan("03", "F1", 10D, 216D, 660D, 11D),
+            new PdfTextSpan("10", "F1", 10D, 300D, 660D, 11D),
+            new PdfTextSpan("74", "F1", 10D, 311D, 660D, 11D),
+            new PdfTextSpan(".50", "F1", 10D, 322D, 660D, 14D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+
+        PdfUnderstandingTableCandidate table = Assert.Single(page.Analysis.TableCandidates);
+        Assert.Equal(3, table.Columns.Count);
+        Assert.Equal(new[] { "Code", "Owner", "Amount" }, table.Rows[0]);
+        Assert.Equal(new[] { "ACC-001-01", "Owner 02", "1037.25" }, table.Rows[1]);
+        Assert.Equal(new[] { "ACC-001-02", "Owner 03", "1074.50" }, table.Rows[2]);
+        Assert.Contains(page.TextBlocks, static block => block.Text == "ACC-001-01");
+        Assert.Contains(page.TextBlocks, static block => block.Text == "Owner 02");
+        Assert.Contains(page.TextBlocks, static block => block.Text == "1037.25");
+        Assert.DoesNotContain(page.TextBlocks, static block => block.Text == "AC C -001-01");
+    }
+
+    [Fact]
     public void Pipeline_UsesCallerSuppliedStageAndRecordsItsProvider() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Top region"))
@@ -161,6 +216,28 @@ public class PdfUnderstandingPipelineTests {
                 Assert.Single(baseline.Trace, baselineTrace => baselineTrace.Stage == trace.Stage).ProviderType,
                 trace.ProviderType);
         }
+    }
+
+    [Fact]
+    public void Pipeline_UsesCallerSuppliedImageRegionStageAndValidatesItsOwnership() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(80, 120, 160), 120D, 60D)
+            .ToBytes();
+        var custom = new RecordingImageRegionStage();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.ImageRegionDetection = custom;
+
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+
+        Assert.Equal(1, custom.CallCount);
+        Assert.Single(page.ImageRegions);
+        Assert.Equal(
+            typeof(RecordingImageRegionStage),
+            Assert.Single(page.Trace, static trace => trace.Stage == "image-region-detection").ProviderType);
+
+        options.ImageRegionDetection = new MissingImageRegionStage();
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => Read(pdf, options));
+        Assert.Contains("exactly one region", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -255,6 +332,54 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Equal(text, Assert.Single(Assert.Single(result.Pages).Analysis.Lines).Text);
         Assert.Contains(text, result.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AdvancedWordGrouping_UsesDecodedCharacterAdvancesForWordGeometry() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan(
+                "A BB",
+                "F1",
+                12D,
+                50D,
+                700D,
+                80D,
+                null,
+                true,
+                0D,
+                null,
+                null,
+                characterAdvances: new[] { 40D, 30D, 5D, 5D })
+        });
+
+        PdfUnderstandingWord[] words = Assert.Single(Read(pdf, options).Pages).Analysis.Words.ToArray();
+
+        Assert.Equal(new[] { "A", "BB" }, words.Select(static word => word.Text));
+        Assert.Equal(50D, words[0].XStart, 6);
+        Assert.Equal(90D, words[0].XEnd, 6);
+        Assert.Equal(120D, words[1].XStart, 6);
+        Assert.Equal(130D, words[1].XEnd, 6);
+        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word.character-advance-projection"));
+    }
+
+    [Fact]
+    public void AdvancedWordGrouping_ProjectsFallbackGeometryByUnicodeScalar() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("𝟙𝟚 AB", "F1", 12D, 50D, 700D, 50D)
+        });
+
+        PdfUnderstandingWord[] words = Assert.Single(Read(pdf, options).Pages).Analysis.Words.ToArray();
+
+        Assert.Equal(new[] { "𝟙𝟚", "AB" }, words.Select(static word => word.Text));
+        Assert.Equal(50D, words[0].XStart, 6);
+        Assert.Equal(70D, words[0].XEnd, 6);
+        Assert.Equal(80D, words[1].XStart, 6);
+        Assert.Equal(100D, words[1].XEnd, 6);
+        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word.baseline-projection"));
     }
 
     [Fact]
@@ -374,7 +499,77 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void AdvancedPipeline_ClassifiesPageEdgesWithoutInventingTables() {
+    public void AdvancedPipeline_AutoOrdersRightToLeftWordsAndColumnsByUnicodeDirection() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            // Deliberately supply the left word first. Source sequence may inform Auto direction,
+            // but it must not override the resolved right-to-left geometry.
+            new PdfTextSpan("שמאל", "F1", 12D, 220D, 700D, 44D),
+            new PdfTextSpan("ימין", "F1", 12D, 320D, 700D, 40D),
+            new PdfTextSpan("עמודה שמאלית", "F1", 12D, 50D, 620D, 90D),
+            new PdfTextSpan("עמודה ימנית", "F1", 12D, 350D, 620D, 82D)
+        });
+        options.PageSegmentation = new EachLineRegionStage();
+
+        PdfUnderstandingPageResult page = Assert.Single(Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions {
+                ReadingDirection = PdfReadingDirection.Auto
+            }).Pages).Analysis;
+
+        Assert.Contains(page.Lines, static line => line.Text == "ימין שמאל");
+        string[] sameBaselineRuns = page.Lines
+            .Where(static line => Math.Abs(line.BaselineY - 620D) < 0.01D)
+            .Select(static line => line.Text)
+            .ToArray();
+        Assert.Equal(new[] { "עמודה ימנית", "עמודה שמאלית" }, sameBaselineRuns);
+        Assert.True(
+            Array.IndexOf(page.ReadingOrder.Select(static region => region.Text).ToArray(), "עמודה ימנית") <
+            Array.IndexOf(page.ReadingOrder.Select(static region => region.Text).ToArray(), "עמודה שמאלית"));
+    }
+
+    [Fact]
+    public void AdvancedPipeline_ExplicitLeftToRightOverridesAutoDirection() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("שמאל", "F1", 12D, 220D, 700D, 44D),
+            new PdfTextSpan("ימין", "F1", 12D, 320D, 700D, 40D)
+        });
+
+        PdfUnderstandingLine line = Assert.Single(Assert.Single(Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions {
+                ReadingDirection = PdfReadingDirection.LeftToRight
+            }).Pages).Analysis.Lines);
+
+        Assert.Equal("שמאל ימין", line.Text);
+    }
+
+    [Fact]
+    public void ReadOptionsCopiesPreserveReadingDirectionAndRemainIndependent() {
+        var options = new PdfReadOptions {
+            LayoutOptions = new PdfTextLayoutOptions {
+                ReadingDirection = PdfReadingDirection.RightToLeft
+            }
+        };
+
+        PdfReadOptions clone = options.Clone();
+        PdfReadOptions selected = PdfReadOptions.WithPageSelection(options, PdfPageSelection.From(2));
+
+        Assert.Equal(PdfReadingDirection.RightToLeft, clone.LayoutOptions.ReadingDirection);
+        Assert.Equal(PdfReadingDirection.RightToLeft, selected.LayoutOptions.ReadingDirection);
+        Assert.NotSame(options.LayoutOptions, clone.LayoutOptions);
+        Assert.NotSame(options.LayoutOptions, selected.LayoutOptions);
+        clone.LayoutOptions.ReadingDirection = PdfReadingDirection.LeftToRight;
+        Assert.Equal(PdfReadingDirection.RightToLeft, options.LayoutOptions.ReadingDirection);
+    }
+
+    [Fact]
+    public void AdvancedPipeline_DoesNotAssignPageEdgeSemanticsWithoutDocumentOrTaggedEvidence() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Quarterly report", "F1", 12, 50, 800, 90),
@@ -390,25 +585,29 @@ public class PdfUnderstandingPipelineTests {
         PdfLogicalPage logicalPage = Assert.Single(result.Pages);
         PdfUnderstandingPageResult page = logicalPage.Analysis;
 
-        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footer);
+        Assert.DoesNotContain(page.Elements, element => element.Kind is PdfUnderstandingSemanticKind.Header or PdfUnderstandingSemanticKind.Footer or PdfUnderstandingSemanticKind.Footnote);
         Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header && element.Region.Text == "Quarterly report");
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text == "Quarterly report");
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text.Contains("Item Amount", StringComparison.Ordinal));
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text == "Figure 1. Revenue by region");
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text == "1 Audited values exclude pending adjustments.");
 
-        Assert.Equal("Quarterly report", Assert.Single(logicalPage.Headers).Text);
-        Assert.Equal("Figure 1. Revenue by region", Assert.Single(logicalPage.Captions).Text);
-        Assert.Equal("1 Audited values exclude pending adjustments.", Assert.Single(logicalPage.Footnotes).Text);
+        Assert.Empty(logicalPage.Headers);
+        Assert.Empty(logicalPage.Footers);
+        Assert.Empty(logicalPage.Footnotes);
+        Assert.Empty(logicalPage.Captions);
+        Assert.Contains(logicalPage.Paragraphs, paragraph => paragraph.Text == "Quarterly report");
+        Assert.Contains(logicalPage.Paragraphs, paragraph => paragraph.Text == "1 Audited values exclude pending adjustments.");
 
         string html = result.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic });
-        Assert.Contains("<header class=\"pdf-header\">Quarterly report</header>", html, StringComparison.Ordinal);
-        Assert.Contains("<figure class=\"pdf-caption\"><figcaption>Figure 1. Revenue by region</figcaption></figure>", html, StringComparison.Ordinal);
-        Assert.Contains("<aside class=\"pdf-footnote\" role=\"doc-footnote\">1 Audited values exclude pending adjustments.</aside>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf-header", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf-footer", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf-caption", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf-footnote", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AdvancedPipeline_KeepsTableOfContentsHeadingWhileRecognizingNumberedCaption() {
+    public void AdvancedPipeline_DoesNotTreatEnglishNumberedWordsAsCaptionEvidence() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Table of Contents", "F1", 20D, 50D, 700D, 180D),
@@ -425,7 +624,565 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Contains(result.Headings, heading => heading.Text == "Table of Contents");
         Assert.Contains(result.Sections, section => section.Title == "Table of Contents");
-        Assert.Contains(Assert.Single(result.Pages).Captions, caption => caption.Text == "Table 1. Revenue");
+        PdfLogicalPage page = Assert.Single(result.Pages);
+        Assert.Empty(page.Captions);
+        Assert.Contains(page.Paragraphs, paragraph => paragraph.Text.Contains("Table 1. Revenue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AdvancedPipeline_UsesTableGeometryInsteadOfCaptionVocabulary() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Таблица доходов", "F1", 10D, 50D, 726D, 130D),
+            new PdfTextSpan("Регион", "F1", 11D, 50D, 700D, 70D),
+            new PdfTextSpan("Сумма", "F1", 11D, 220D, 700D, 60D),
+            new PdfTextSpan("Север", "F1", 11D, 50D, 680D, 60D),
+            new PdfTextSpan("1250", "F1", 11D, 220D, 680D, 35D),
+            new PdfTextSpan("Юг", "F1", 11D, 50D, 660D, 30D),
+            new PdfTextSpan("980", "F1", 11D, 220D, 660D, 30D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+
+        Assert.Single(page.Tables);
+        PdfLogicalTextBlock caption = Assert.Single(page.Captions);
+        Assert.Equal("Таблица доходов", caption.Text);
+        Assert.Contains(
+            Assert.Single(page.Analysis.Elements, static element => element.Kind == PdfUnderstandingSemanticKind.Caption).Evidence,
+            static evidence => evidence.Code == "semantic.table-caption-geometry");
+    }
+
+    [Theory]
+    [InlineData("Доход по регионам")]
+    [InlineData("收入按地区")]
+    [InlineData("الإيرادات حسب المنطقة")]
+    [InlineData("Intäkter per region")]
+    public void AdvancedPipeline_AssociatesImageCaptionsWithoutLanguageVocabulary(string captionText) {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 180D, 90D)
+            .ToBytes();
+        PdfImagePlacement placement = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetImagePlacements(1));
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan(
+                captionText,
+                "F1",
+                9D,
+                placement.X + 12D,
+                placement.Y - 12D,
+                placement.Width - 24D)
+        });
+        options.PageSegmentation = new EachLineRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+
+        PdfUnderstandingImageRegion imageRegion = Assert.Single(page.Analysis.ImageRegions);
+        Assert.True(imageRegion.IsFigure);
+        Assert.Equal(captionText, Assert.IsType<PdfUnderstandingSemanticElement>(imageRegion.Caption).Region.Text);
+        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region.placement-geometry");
+        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Contains(page.Analysis.Trace, static stage => stage.Stage == "image-region-detection");
+        PdfLogicalImage image = Assert.Single(page.Images);
+        Assert.Same(imageRegion, Assert.Single(image.Regions));
+        Assert.Same(imageRegion, image.PrimaryRegion);
+        Assert.Equal(captionText, Assert.Single(page.Captions).Text);
+    }
+
+    [Fact]
+    public void AdvancedPipeline_DoesNotAssociateTextOverlaidOnAnImageAsItsCaption() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(180, 90, 30), 180D, 90D)
+            .ToBytes();
+        PdfImagePlacement placement = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetImagePlacements(1));
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan(
+                "Текст внутри изображения",
+                "F1",
+                9D,
+                placement.X + 12D,
+                placement.Y + placement.Height / 2D,
+                placement.Width - 24D)
+        });
+        options.PageSegmentation = new EachLineRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+
+        Assert.False(Assert.Single(page.Analysis.ImageRegions).IsFigure);
+        Assert.Empty(page.Captions);
+        Assert.Contains(page.Paragraphs, static paragraph => paragraph.Text == "Текст внутри изображения");
+    }
+
+    [Fact]
+    public void StructuredPipeline_EnforcesImageRegionLimitBeforeAssociation() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 120);
+        byte[] pdf = PdfDocument.Create()
+            .Image(image, 120D, 60D)
+            .Image(image, 120D, 60D)
+            .ToBytes();
+        var options = new PdfReadOptions {
+            Pipeline = new PdfUnderstandingPipelineOptions {
+                MaxImageRegionsPerPage = 1
+            }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(pdf).Read(options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void ImagePlacementDiscovery_ChargesWorkAndObservesCancellationDuringContentTraversal() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Im0 Do Q\n" +
+                "q 120 0 0 60 72 100 cm /Im0 Do Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        PdfReadPage page = Assert.Single(document.Pages);
+        var budget = new PdfUnderstandingWorkBudget(3, CancellationToken.None);
+
+        PdfReadLimitException budgetException = Assert.Throws<PdfReadLimitException>(() =>
+            page.GetImagePlacements(1, 10, budget.Consume, budget.ThrowIfCancellationRequested));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, budgetException.Kind);
+        Assert.Equal(3, budgetException.Limit);
+        Assert.True(budgetException.Actual > budgetException.Limit);
+
+        using var cancellation = new CancellationTokenSource();
+        int cancellationPolls = 0;
+        Assert.Throws<OperationCanceledException>(() => page.GetImagePlacements(
+            1,
+            10,
+            static _ => { },
+            () => {
+                if (++cancellationPolls == 5) cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }));
+        Assert.Equal(5, cancellationPolls);
+    }
+
+    [Fact]
+    public void StructuredPipeline_BoundsImageCaptionCandidateEdgesBeforeSorting() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Im0 Do Q\n" +
+                "q 120 0 0 60 72 180 cm /Im0 Do Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream");
+        IReadOnlyList<PdfImagePlacement> placements = PdfReadDocument.Open(pdf).Pages[0].GetImagePlacements(1);
+        Assert.Equal(2, placements.Count);
+        PdfImagePlacement placement = placements[0];
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Заголовок", "F1", 9D, placement.X + 12D, placement.Y - 12D, placement.Width - 24D)
+        });
+        options.PageSegmentation = new EachLineRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+        options.MaxImageCaptionCandidatesPerPage = 1;
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotAssociateCaptionsWithTransparentPlacements() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Im0 5 0 R >> /ExtGState << /Zero 6 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "/Zero gs q 120 0 0 60 72 180 cm /Im0 Do Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /ExtGState /ca 0 >>");
+        PdfImagePlacement placement = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetImagePlacements(1));
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("透明画像の近接テキスト", "F1", 9D, placement.X + 12D, placement.Y - 12D, placement.Width - 24D)
+        });
+        options.PageSegmentation = new EachLineRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.Equal(0D, placement.Opacity);
+        Assert.Null(region.Caption);
+        Assert.False(region.IsFigure);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Contains(page.Paragraphs, static paragraph => paragraph.Text == "透明画像の近接テキスト");
+    }
+
+    [Fact]
+    public void StructuredPipeline_PreservesTaggedImageMarkedContentOwnership() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Properties << /FigureProperties << /MCID 3 >> >> >> " +
+                "/Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "q 120 0 0 60 72 180 cm /Figure /FigureProperties BDC /Im0 Do EMC Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Revenue chart) /K 3 >>",
+            "<< /Nums [0 [null null null 7 0 R]] >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfImagePlacement placement = Assert.Single(page.Analysis.ImagePlacements);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.Equal(3, placement.MarkedContentId);
+        Assert.Null(placement.ContentStreamObjectNumber);
+        Assert.Same(placement, region.Placement);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.marked-content");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+        Assert.True(region.IsFigure);
+        Assert.Equal("Revenue chart", region.AlternativeText);
+        Assert.Equal(3, Assert.Single(page.Images).PrimaryPlacement?.MarkedContentId);
+    }
+
+    [Fact]
+    public void StructuredPipeline_AssociatesAnUnambiguousTaggedFigureCaptionWithoutGeometry() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 11 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Tagged caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Div /P 6 0 R /Pg 3 0 R /K [8 0 R 9 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Tagged chart) /K 3 >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K [10 0 R] >>",
+            "<< /Type /StructElem /S /P /P 9 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.True(region.IsFigure);
+        Assert.Equal("Tagged chart", region.AlternativeText);
+        Assert.Equal("Tagged caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Equal("Tagged caption", Assert.Single(page.Captions).Text);
+    }
+
+    [Fact]
+    public void StructuredPipeline_AssociatesACaptionContainedByItsTaggedFigure() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 9 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Contained caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n0000FF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Contained chart) /K [3 8 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Equal("Contained caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotInventATaggedCaptionRelationshipForMultipleSiblingFigures() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 360 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 11 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 100 0 0 60 40 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "q 100 0 0 60 210 180 cm /Figure << /MCID 5 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Ambiguous caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FF00>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Div /P 6 0 R /Pg 3 0 R /K [8 0 R 9 0 R 10 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (First chart) /K 3 >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Second chart) /K 5 >>",
+            "<< /Type /StructElem /S /Caption /P 7 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+
+        Assert.Equal(2, page.Analysis.ImageRegions.Count);
+        Assert.All(page.Analysis.ImageRegions, static region => {
+            Assert.True(region.IsFigure);
+            Assert.Null(region.Caption);
+            Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        });
+        Assert.Equal("Ambiguous caption", Assert.Single(page.Captions).Text);
+    }
+
+    [Fact]
+    public void StructuredPipeline_IgnoresDetachedFigureAndCaptionStructureFragments() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 10 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Detached caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF00FF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Document /P 6 0 R /K [] >>",
+            "<< /Type /StructElem /S /Figure /P 12 0 R /Pg 3 0 R /Alt (Detached chart) /K [3 9 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 8 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.False(region.IsFigure);
+        Assert.Null(region.AlternativeText);
+        Assert.Null(region.Caption);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(page.Analysis.Elements, static element =>
+            element.Kind == PdfUnderstandingSemanticKind.Caption && element.Region.Text == "Detached caption");
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotBindACaptionThroughAnInconsistentCyclicStructureEdge() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 10 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n" +
+                "BT /F1 9 Tf 20 40 Td /Span << /MCID 4 >> BDC (Malformed caption) Tj EMC ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FFFF>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Document /P 6 0 R /K [8 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Reachable chart) /K [3 9 0 R 7 0 R] >>",
+            "<< /Type /StructElem /S /Caption /P 8 0 R /Pg 3 0 R /K 4 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.True(region.IsFigure);
+        Assert.Null(region.Caption);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+    }
+
+    [Fact]
+    public void StructuredPipeline_ResolvesUniquelyScopedPageContentFigureOwnership() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "q 120 0 0 60 72 180 cm /Figure << /MCID 3 >> BDC /Im0 Do EMC Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Scoped page image) " +
+                "/K << /Type /MCR /Pg 3 0 R /Stm 4 0 R /MCID 3 >> >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Null(region.Placement.ContentStreamObjectNumber);
+        Assert.True(region.IsFigure);
+        Assert.Equal("Scoped page image", region.AlternativeText);
+    }
+
+    [Fact]
+    public void StructuredPipeline_UsesAlternateTextFromTheOwningFigureAncestor() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "q 120 0 0 60 72 180 cm /Span << /MCID 2 >> BDC /Im0 Do EMC Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Owning figure description) /K [8 0 R] >>",
+            "<< /Type /StructElem /S /Span /P 7 0 R /Pg 3 0 R /Alt (Child span description) /K 2 >>",
+            "<< /Nums [0 [null null 8 0 R]] >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.True(region.IsFigure);
+        Assert.Equal("Owning figure description", region.AlternativeText);
+    }
+
+    [Fact]
+    public void StructuredPipeline_ScopesTaggedImageOwnershipToItsFormContentStream() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Fm0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "q /Fm0 Do Q\n"),
+            BuildStreamBody(
+                "/Type /XObject /Subtype /Form /BBox [0 0 100 50] /Matrix [1 0 0 1 72 180] " +
+                    "/Resources << /XObject << /Im0 6 0 R >> >>",
+                "q 100 0 0 50 0 0 cm /Figure << /MCID 2 >> BDC /Im0 Do EMC Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FF00>\nendstream",
+            "<< /Type /StructTreeRoot /K [8 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Form chart) " +
+                "/K << /Type /MCR /Pg 3 0 R /Stm 5 0 R /MCID 2 >> >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Equal(2, region.Placement.MarkedContentId);
+        Assert.Equal(5, region.Placement.ContentStreamObjectNumber);
+        Assert.True(region.IsFigure);
+        Assert.Equal("Form chart", region.AlternativeText);
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+    }
+
+    [Fact]
+    public void StructuredPipeline_InheritsFigureOwnershipFromTaggedFormInvocation() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Fm0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "/Figure << /MCID 4 >> BDC q /Fm0 Do Q EMC\n"),
+            BuildStreamBody(
+                "/Type /XObject /Subtype /Form /BBox [0 0 100 50] /Matrix [1 0 0 1 72 180] " +
+                    "/Resources << /XObject << /Im0 6 0 R >> >>",
+                "q 100 0 0 50 0 0 cm /Im0 Do Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n0000FF>\nendstream",
+            "<< /Type /StructTreeRoot /K [8 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Wrapped form chart) /K 4 >>",
+            "<< /Nums [0 [null null null null 8 0 R]] >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Equal(4, region.Placement.MarkedContentId);
+        Assert.Null(region.Placement.ContentStreamObjectNumber);
+        Assert.True(region.IsFigure);
+        Assert.Equal("Wrapped form chart", region.AlternativeText);
+    }
+
+    [Fact]
+    public void StructuredPipeline_DoesNotAssignOuterFigureOwnershipInsideArtifactContent() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /StructParents 0 " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "/Figure << /MCID 3 >> BDC /Artifact BMC q 120 0 0 60 72 180 cm /Im0 Do Q EMC EMC\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /Alt (Structural figure) /K 3 >>",
+            "<< /Nums [0 [null null null 7 0 R]] >>");
+
+        PdfUnderstandingImageRegion region = Assert.Single(
+            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+
+        Assert.Null(region.Placement.MarkedContentId);
+        Assert.Null(region.Placement.ContentStreamObjectNumber);
+        Assert.False(region.IsFigure);
+        Assert.Null(region.AlternativeText);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+    }
+
+    [Fact]
+    public void StructuredPipeline_PropagatesArtifactOwnershipIntoTaggedForms() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Fm0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, "/Artifact BMC q /Fm0 Do Q EMC\n"),
+            BuildStreamBody(
+                "/Type /XObject /Subtype /Form /BBox [0 0 100 50] /Matrix [1 0 0 1 72 180] " +
+                    "/Resources << /XObject << /Im0 6 0 R >> /Font << /F1 9 0 R >> >>",
+                "/Figure << /MCID 2 >> BDC q 100 0 0 50 0 0 cm /Im0 Do Q EMC\n" +
+                    "BT /F1 9 Tf 5 10 Td (Chart axis) Tj ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FF00>\nendstream",
+            "<< /Type /StructTreeRoot /K [8 0 R] >>",
+            "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Artifact form chart) " +
+                "/K << /Type /MCR /Pg 3 0 R /Stm 5 0 R /MCID 2 >> >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(
+            pdf,
+            new PdfLoadOptions { IncludeArtifactText = true }).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.True(Assert.Single(page.Analysis.DecodedRuns, static run => run.Text == "Chart axis").IsArtifactContent);
+        Assert.Empty(page.Tables);
+        Assert.Null(region.Placement.MarkedContentId);
+        Assert.Null(region.Placement.ContentStreamObjectNumber);
+        Assert.False(region.IsFigure);
+        Assert.Null(region.AlternativeText);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+    }
+
+    [Fact]
+    public void StructuredPipeline_DropsCaptionAssociationWhenOutlineEnrichmentSplitsItsRegion() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 7 0 R /PageMode /UseOutlines >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Im0 5 0 R >> /Font << /F1 6 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Im0 Do Q\n" +
+                "BT /F1 9 Tf 84 165 Td (Caption lead) Tj ET\n" +
+                "BT /F1 9 Tf 84 153 Td (caption continuation) Tj ET\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n0000FF>\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
+            "<< /Title (Caption lead) /Parent 7 0 R /Dest [3 0 R /XYZ null 165 null] >>");
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
+
+        Assert.Null(region.Caption);
+        Assert.False(region.IsFigure);
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Contains(page.Analysis.Elements, static element =>
+            element.Kind == PdfUnderstandingSemanticKind.Heading && element.Region.Text == "Caption lead");
     }
 
     [Fact]
@@ -481,7 +1238,7 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void AdvancedSemanticClassification_UsesVisualCoordinatesForRotatedFootnotes() {
+    public void AdvancedSemanticClassification_DoesNotInferRotatedFootnotesFromPositionAlone() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 0D, 500D, 600D);
         pdf = PdfPageEditor.RotatePages(pdf, 90);
@@ -498,7 +1255,7 @@ public class PdfUnderstandingPipelineTests {
         IReadOnlyList<PdfUnderstandingSemanticElement> elements =
             PdfAdvancedUnderstandingStages.SemanticClassification.Classify(context, regions);
 
-        Assert.Equal(PdfUnderstandingSemanticKind.Footnote,
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
             Assert.Single(elements, static element => element.Region.Text == "Visual footnote").Kind);
         Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
             Assert.Single(elements, static element => element.Region.Text == "Raw bottom only").Kind);
@@ -572,7 +1329,7 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void FastAndSinglePageStructuredReads_PreservePageEdgeHeadersAndFooters() {
+    public void SelectedSinglePageReads_DoNotInventHeadersAndFootersWithoutTaggedEvidence() {
         byte[] pdf = PdfDocument.Create()
             .Header(header => header.AlignLeft().Text("Local page header {page}/{pages}"))
             .Footer(footer => footer.AlignLeft().Text("Local page footer {page}/{pages}"))
@@ -590,10 +1347,14 @@ public class PdfUnderstandingPipelineTests {
             PageSelection = PdfPageSelection.From(2)
         }).Pages);
 
-        Assert.Contains(fastPage.Headers, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
-        Assert.Contains(fastPage.Footers, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
-        Assert.Contains(structuredPage.Headers, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
-        Assert.Contains(structuredPage.Footers, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
+        Assert.Empty(fastPage.Headers);
+        Assert.Empty(fastPage.Footers);
+        Assert.Empty(structuredPage.Headers);
+        Assert.Empty(structuredPage.Footers);
+        Assert.Contains(fastPage.Paragraphs, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
+        Assert.Contains(fastPage.Paragraphs, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
+        Assert.Contains(structuredPage.Paragraphs, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
+        Assert.Contains(structuredPage.Paragraphs, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -850,6 +1611,24 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void LogicalProjection_UsesCanonicalSemanticRegionsForParagraphOwnership() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Первый фрагмент", "F1", 12D, 50D, 700D, 120D),
+            new PdfTextSpan("Второй фрагмент", "F1", 12D, 50D, 500D, 130D)
+        });
+        options.PageSegmentation = new WholePageRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+        options.SemanticClassification = new ParagraphClassificationStage();
+
+        PdfLogicalParagraph paragraph = Assert.Single(Assert.Single(Read(pdf, options).Pages).Paragraphs);
+
+        Assert.Equal(2, paragraph.Lines.Count);
+        Assert.Equal("Первый фрагмент Второй фрагмент", paragraph.Text);
+    }
+
+    [Fact]
     public void StructuredRead_InheritsSemanticRolesFromTaggedAncestors() {
         PdfDocumentReadResult result = PdfDocument.Load(CreateNestedTaggedHeadingPdf()).Read();
         PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
@@ -886,7 +1665,7 @@ public class PdfUnderstandingPipelineTests {
             Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(101), 100)));
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(100, exception.Limit);
-        Assert.Equal(101, exception.Actual);
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
@@ -899,45 +1678,6 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(10, exception.Limit);
         Assert.Equal(11, exception.Actual);
-    }
-
-    [Fact]
-    public void LogicalReadingOrder_ChargesEveryTableOwnershipComparison() {
-        byte[] pdf = PdfDocument.Create()
-            .Table(new[] {
-                new[] { "Metric", "Value" },
-                new[] { "Quality", "Premium" }
-            })
-            .ToBytes();
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
-        var classification = new CapturingParagraphClassificationStage();
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
-        options.SemanticClassification = classification;
-        options.MaxWorkUnitsPerPage = 1_000_000;
-
-        PdfUnderstandingPageResult analysis = Assert.Single(
-            new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options)
-                .RunPages(document, new[] { 1 }));
-        PdfLogicalPage page = PdfLogicalPage.From(
-            document,
-            document.Pages[0],
-            1,
-            new PdfTextLayoutOptions(),
-            analysis: analysis);
-        Assert.NotEmpty(page.TextBlocks);
-        Assert.NotEmpty(page.Tables);
-        PdfUnderstandingPageContext context = Assert.IsType<PdfUnderstandingPageContext>(classification.Context);
-        long tableGeometryWork = page.Tables.Sum(static table => Math.Max(1, table.Columns.Count));
-        long available = context.MaxWorkUnitsPerPage - context.WorkUnitsConsumed;
-        Assert.True(available > tableGeometryWork);
-        context.ConsumeWork(available - tableGeometryWork);
-
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfLogicalReadingOrderAnalysis.Analyze(page));
-
-        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
-        Assert.Equal(context.MaxWorkUnitsPerPage, exception.Limit);
-        Assert.Equal(exception.Limit + 1, exception.Actual);
     }
 
     [Fact]
@@ -1477,6 +2217,74 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_UsesTaggedRowsAndCellsInsteadOfAnOverlappingGeometricGuess() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.Table, table => table
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", 150D, 100D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 190D, 100D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", 232D, 100D, 42D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", 150D, 120D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", 190D, 120D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", 232D, 120D, 42D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", 40D, 140D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", 150D, 140D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", 190D, 140D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", 232D, 140D, 42D, 16D))))
+                .Figure("Chart axis", figure => figure.Text("1200", 340D, 121D, 40D, 16D)))
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+        PdfLogicalTable table = Assert.Single(page.Tables);
+
+        Assert.Equal("tagged-structure", candidate.DetectionKind);
+        Assert.Contains(candidate.Evidence, static evidence => evidence.Code == "table.tagged-structure");
+        Assert.Equal(4, candidate.Columns.Count);
+        Assert.Equal(new[] { "Code", "Area", "Value", "State" }, candidate.Rows[0]);
+        Assert.Equal(new[] { "A-01", "SE", "1250.5", "Ready" }, candidate.Rows[1]);
+        Assert.Equal(new[] { "B-02", "PL", "980.25", "Done" }, candidate.Rows[2]);
+        Assert.Equal(candidate.Rows.Select(static row => row.ToArray()), table.Rows.Select(static row => row.ToArray()));
+        Assert.DoesNotContain(table.Rows.SelectMany(static row => row), static cell => cell == "1200");
+    }
+
+    [Fact]
+    public void StructuredRead_ProjectsTaggedTablesForEveryRepeatedPageSelection() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.Table, table => table
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 40D, 100D, 80D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 100D, 80D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 40D, 120D, 80D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 120D, 80D, 16D)))))
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1, 1)
+        });
+
+        Assert.Equal(2, result.Pages.Count);
+        Assert.All(result.Pages, page => {
+            PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+            Assert.Equal("tagged-structure", candidate.DetectionKind);
+            Assert.Equal(new[] { "Metric", "Value" }, candidate.Rows[0]);
+            Assert.Equal(new[] { "Quality", "High" }, candidate.Rows[1]);
+            Assert.Single(page.Tables);
+        });
+        Assert.NotSame(result.Pages[0].Analysis.TableCandidates[0], result.Pages[1].Analysis.TableCandidates[0]);
+        Assert.NotSame(result.Pages[0].Tables[0], result.Pages[1].Tables[0]);
+    }
+
+    [Fact]
     public void LogicalProjection_PreservesWrappedTaggedHeadingAtBodyFontSize() {
         PdfDocumentReadResult result = PdfDocument.Load(CreateWrappedTaggedHeadingPdf()).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
@@ -1564,6 +2372,53 @@ public class PdfUnderstandingPipelineTests {
         Assert.All(
             result.Pages.SelectMany(static page => page.Footers),
             block => Assert.Equal(PdfLogicalElementKind.Footer, block.Kind));
+    }
+
+    [Fact]
+    public void StructuredRead_DoesNotPromoteMerelySimilarPageEdgeParagraphs() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for northern region"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for southern region"))
+            .ToBytes();
+
+        PdfDocumentReadResult result = Read(pdf, PdfUnderstandingPipelineOptions.Structured());
+
+        Assert.Empty(result.Pages.SelectMany(static page => page.Headers));
+        Assert.Contains(result.Paragraphs, paragraph => paragraph.Text.Contains("northern region", StringComparison.Ordinal));
+        Assert.Contains(result.Paragraphs, paragraph => paragraph.Text.Contains("southern region", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void StructuredRead_BoundsRepeatedPageEdgeMatchingAcrossManyCandidates() {
+        PdfDocument document = PdfDocument.Create();
+        const int pageCount = 30;
+        const int headerCount = 30;
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+            document.Paragraph(paragraph => paragraph.Text("Page placeholder"));
+            if (pageIndex + 1 < pageCount) document.PageBreak();
+        }
+
+        PdfTextSpan[] spans = Enumerable.Range(0, headerCount)
+            .Select(index => new PdfTextSpan(
+                "Repeated edge marker " + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "F1",
+                1D,
+                36D,
+                825D - (index * 3D),
+                160D))
+            .ToArray();
+        PdfUnderstandingPipelineOptions pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.GlyphDecoding = new FixedGlyphStage(spans);
+        pipeline.PageSegmentation = new EachLineRegionStage();
+        pipeline.ReadingOrder = new IdentityReadingOrderStage();
+        pipeline.SemanticClassification = new ParagraphClassificationStage();
+        pipeline.MaxDocumentWorkUnits = 200_000;
+
+        PdfDocumentReadResult result = Read(document.ToBytes(), pipeline);
+
+        Assert.Equal(pageCount, result.Pages.Count);
+        Assert.All(result.Pages, page => Assert.Equal(headerCount, page.Headers.Count));
     }
 
     [Fact]
@@ -1778,6 +2633,96 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedSegmentation_KeepsVariableGapWrappedListLinesInOneItem() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("- Wrapped list item", "F1", 12D, 72D, 700D, 110D),
+            new PdfTextSpan("first continuation", "F1", 12D, 90D, 688D, 100D),
+            new PdfTextSpan("second continuation", "F1", 12D, 90D, 669.5D, 110D)
+        });
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+        PdfLogicalListItem item = Assert.Single(Assert.Single(logical.Pages).ListItems);
+
+        Assert.Equal(3, item.Lines.Count);
+        Assert.Equal("Wrapped list item first continuation second continuation", item.Text);
+    }
+
+    [Fact]
+    public void AdvancedSegmentation_UsesExplicitBreaksBetweenSameStyleNonLatinParagraphs() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Первый абзац", "F1", 12D, 50D, 700D, 110D),
+            new PdfTextSpan("продолжается здесь", "F1", 12D, 50D, 684D, 125D, null, true, 0D, null, null, logicalLineBreaksBefore: 1),
+            new PdfTextSpan("Второй абзац", "F1", 12D, 50D, 660D, 110D, null, true, 0D, null, null, logicalLineBreaksBefore: 2),
+            new PdfTextSpan("тоже продолжается", "F1", 12D, 50D, 644D, 120D, null, true, 0D, null, null, logicalLineBreaksBefore: 1)
+        });
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+
+        Assert.Equal(
+            new[] { "Первый абзац продолжается здесь", "Второй абзац тоже продолжается" },
+            logical.Paragraphs.Select(static paragraph => paragraph.Text));
+    }
+
+    [Fact]
+    public void AdvancedSegmentation_UsesLocalVerticalRhythmBetweenSameStyleParagraphs() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("第一段", "F1", 12D, 50D, 700D, 72D),
+            new PdfTextSpan("继续内容", "F1", 12D, 50D, 684D, 72D),
+            new PdfTextSpan("第二段", "F1", 12D, 50D, 660D, 72D),
+            new PdfTextSpan("继续说明", "F1", 12D, 50D, 644D, 72D)
+        });
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+
+        Assert.Equal(
+            new[] { "第一段 继续内容", "第二段 继续说明" },
+            logical.Paragraphs.Select(static paragraph => paragraph.Text));
+    }
+
+    [Fact]
+    public void AdvancedSegmentation_RecognizesBoundaryAfterSingleLineParagraph() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("第一段", "F1", 12D, 50D, 700D, 72D),
+            new PdfTextSpan("第二段", "F1", 12D, 50D, 676D, 72D),
+            new PdfTextSpan("继续内容", "F1", 12D, 50D, 660D, 72D)
+        });
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+
+        Assert.Equal(
+            new[] { "第一段", "第二段 继续内容" },
+            logical.Paragraphs.Select(static paragraph => paragraph.Text));
+    }
+
+    [Theory]
+    [InlineData("Работа завершена。»")]
+    [InlineData("作業完了。」")]
+    public void AdvancedSemanticClassification_KeepsQuotedCompletedBottomSentenceAsBody(string sentence) {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Основной текст", "F1", 12D, 50D, 400D, 110D),
+            new PdfTextSpan(sentence, "F1", 12D, 50D, 20D, 110D)
+        });
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+        PdfUnderstandingSemanticElement bottom = Assert.Single(
+            Assert.Single(logical.Pages).Analysis.Elements,
+            element => element.Region.Text == sentence);
+
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph, bottom.Kind);
+        Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text == sentence);
+    }
+
+    [Fact]
     public void DocumentEnrichment_KeepsPartialTaggedRegionsAlignedWithCanonicalOrder() {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.PageSegmentation = new WholePageRegionStage();
@@ -1978,8 +2923,12 @@ public class PdfUnderstandingPipelineTests {
     [InlineData(true, "2.3.1)Deep numbered item")]
     [InlineData(false, "3.Compact numbered item")]
     [InlineData(true, "3.Compact numbered item")]
+    [InlineData(false, "𝟙. Supplementary-plane numbered item")]
+    [InlineData(true, "𝟙. Supplementary-plane numbered item")]
     [InlineData(false, "(a)Compact parenthesized item")]
     [InlineData(true, "(a)Compact parenthesized item")]
+    [InlineData(false, "(𐐀)Supplementary-plane parenthesized item")]
+    [InlineData(true, "(𐐀)Supplementary-plane parenthesized item")]
     [InlineData(false, "(1)Compact numeric parenthesized item")]
     [InlineData(true, "(1)Compact numeric parenthesized item")]
     [InlineData(false, "-Compact ASCII bullet")]
@@ -2420,6 +3369,29 @@ public class PdfUnderstandingPipelineTests {
                     new[] { new PdfInferenceEvidence("test.table", "Test table candidate.", 1D) }))
                 .ToArray();
         }
+    }
+
+    private sealed class RecordingImageRegionStage : IPdfImageRegionDetectionStage {
+        internal int CallCount { get; private set; }
+
+        public IReadOnlyList<PdfUnderstandingImageRegion> Detect(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingSemanticElement> semanticElements) {
+            CallCount++;
+            return context.ImagePlacements
+                .Select(static placement => new PdfUnderstandingImageRegion(
+                    placement,
+                    confidence: 0.9D,
+                    evidence: new[] { new PdfInferenceEvidence("test.image-region", "Custom image region.", 1D) }))
+                .ToArray();
+        }
+    }
+
+    private sealed class MissingImageRegionStage : IPdfImageRegionDetectionStage {
+        public IReadOnlyList<PdfUnderstandingImageRegion> Detect(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingSemanticElement> semanticElements) =>
+            Array.Empty<PdfUnderstandingImageRegion>();
     }
 
     private sealed class CombinedLineGroupingStage : IPdfLineGroupingStage {

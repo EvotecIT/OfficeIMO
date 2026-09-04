@@ -4,6 +4,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private readonly object _rootInvokedResourceNamesSync = new();
+    private PdfPageInvokedResourceNames? _rootInvokedResourceNames;
+    private bool _rootInvokedResourceNamesInitialized;
+
     internal bool WouldAppendingTextChangeVisibleStacking(IReadOnlyList<PdfTextSpan> sourceSpans, IReadOnlyList<PdfAppendedTextBounds>? appendedBounds = null) {
         if (sourceSpans.Count == 0) return false;
         if (HasUnboundedUnsupportedPaint()) return true;
@@ -150,7 +154,12 @@ public sealed partial class PdfReadPage {
 
         foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
             if (font.EmbeddedTrueTypeFont == null) continue;
-            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D, font.DrawingFontFamily);
+            OfficeFontInfo info = ToOfficeFontInfo(
+                font.BaseFont,
+                12D,
+                font.DrawingFontFamily,
+                font.IsBold,
+                font.IsItalic);
             drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style);
         }
 
@@ -651,7 +660,8 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
-        PdfStrokeDashPattern? initialStrokeDashPattern = null) {
+        PdfStrokeDashPattern? initialStrokeDashPattern = null,
+        PdfPageInvokedResourceNames? invokedResourceNames = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
@@ -659,7 +669,7 @@ public sealed partial class PdfReadPage {
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
@@ -1929,7 +1939,8 @@ public sealed partial class PdfReadPage {
 
     private PdfPageInvokedResourceNames GetInvokedResourceNames(
         string content,
-        PdfDictionary? resources) {
+        PdfDictionary? resources,
+        Action? operationCheck = null) {
         var names = new PdfPageInvokedResourceNames();
         Dictionary<string, PdfPageColorSpace> placeholders = GetColorSpaceResourcePlaceholders(resources);
         (double Width, double Height) pageSize = GetVisualPageSize();
@@ -1955,8 +1966,23 @@ public sealed partial class PdfReadPage {
                     : PdfType3PaintChannels.Visible;
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name));
+            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name),
+            operationCheck: operationCheck);
         return names;
+    }
+
+    private PdfPageInvokedResourceNames GetRootInvokedResourceNames(
+        string content,
+        PdfDictionary? resources,
+        Action? operationCheck = null) {
+        lock (_rootInvokedResourceNamesSync) {
+            if (!_rootInvokedResourceNamesInitialized) {
+                _rootInvokedResourceNames = GetInvokedResourceNames(content, resources, operationCheck);
+                _rootInvokedResourceNamesInitialized = true;
+            }
+
+            return _rootInvokedResourceNames!;
+        }
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResourcePlaceholders(PdfDictionary? resources) {
@@ -2570,7 +2596,7 @@ public sealed partial class PdfReadPage {
                 y,
                 width,
                 height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
         } else {
@@ -2580,7 +2606,7 @@ public sealed partial class PdfReadPage {
                 y,
                 width,
                 height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
@@ -2647,7 +2673,7 @@ public sealed partial class PdfReadPage {
                 clip.X,
                 clip.Y,
                 officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
         } else {
@@ -2660,7 +2686,7 @@ public sealed partial class PdfReadPage {
                 clip.X,
                 clip.Y,
                 officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
@@ -2680,21 +2706,16 @@ public sealed partial class PdfReadPage {
         return span.CanScaleAggregateAdvance && advance > 0D && !double.IsNaN(advance) && !double.IsInfinity(advance);
     }
 
-    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size, string? drawingFontFamily = null) {
+    private static OfficeFontInfo ToOfficeFontInfo(
+        string? baseFont,
+        double size,
+        string? drawingFontFamily,
+        bool isBold,
+        bool isItalic) {
         string normalized = StripSubsetPrefix(baseFont);
         OfficeFontStyle style = OfficeFontStyle.Regular;
-        if (ContainsFontStyleToken(normalized, "Bold") ||
-            ContainsFontStyleToken(normalized, "Black") ||
-            ContainsFontStyleToken(normalized, "Heavy") ||
-            ContainsFontStyleToken(normalized, "Demi") ||
-            ContainsFontStyleToken(normalized, "SemiBold")) {
-            style |= OfficeFontStyle.Bold;
-        }
-
-        if (ContainsFontStyleToken(normalized, "Italic") ||
-            ContainsFontStyleToken(normalized, "Oblique")) {
-            style |= OfficeFontStyle.Italic;
-        }
+        if (isBold) style |= OfficeFontStyle.Bold;
+        if (isItalic) style |= OfficeFontStyle.Italic;
 
         string family = string.IsNullOrWhiteSpace(drawingFontFamily)
             ? ResolveOfficeFontFamily(normalized)
@@ -2759,9 +2780,6 @@ public sealed partial class PdfReadPage {
 
         return value;
     }
-
-    private static bool ContainsFontStyleToken(string fontName, string token) =>
-        System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(fontName, token, System.Globalization.CompareOptions.IgnoreCase) >= 0;
 
     private static string RemoveFontSuffix(string value, string suffix) =>
         value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)

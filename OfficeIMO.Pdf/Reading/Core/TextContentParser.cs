@@ -229,6 +229,7 @@ internal static class TextContentParser {
         public PdfPaintColorSelection? FillColorSelection { get; }
         public PdfPaintColorSelection? StrokeColorSelection { get; }
         public PdfTextStateSnapshot TextState { get; }
+        public bool IsArtifactContent { get; }
 
         public FormInvocation(
             string name,
@@ -248,7 +249,8 @@ internal static class TextContentParser {
             OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
             PdfPaintColorSelection? fillColorSelection = null,
             PdfPaintColorSelection? strokeColorSelection = null,
-            PdfTextStateSnapshot? textState = null) {
+            PdfTextStateSnapshot? textState = null,
+            bool isArtifactContent = false) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -267,6 +269,7 @@ internal static class TextContentParser {
             FillColorSelection = fillColorSelection;
             StrokeColorSelection = strokeColorSelection;
             TextState = textState ?? PdfTextStateSnapshot.Default.WithTextRenderingMode(textRenderingMode);
+            IsArtifactContent = isArtifactContent;
         }
     }
 
@@ -282,6 +285,8 @@ internal static class TextContentParser {
         System.Func<string, string?>? baseFontForResource = null,
         System.Func<string, bool>? isType3FontResource = null,
         System.Func<string, string?>? drawingFontFamilyForResource = null,
+        System.Func<string, int?>? fontWeightForResource = null,
+        System.Func<string, int?>? fontDescriptorFlagsForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
         double paintOrderBase = 0D,
@@ -316,6 +321,7 @@ internal static class TextContentParser {
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         int? contentStreamObjectNumber = null,
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
+        bool initialArtifactContent = false,
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null) {
 #if NET8_0_OR_GREATER
@@ -909,6 +915,9 @@ internal static class TextContentParser {
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
+            int decodedGlyphCount = 0;
+            bool eachDecodedGlyphIsOneTextElement = true;
+            bool usedWholeDecodedText = false;
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
@@ -925,6 +934,8 @@ internal static class TextContentParser {
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)) * hScale;
                 if (ch != '\0') {
+                    decodedGlyphCount++;
+                    eachDecodedGlyphIsOneTextElement &= OfficeTextElements.Split(t).Count == 1;
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
@@ -945,9 +956,10 @@ internal static class TextContentParser {
                 decodedGlyphCharacterLengths.Clear();
                 decodedGlyphBytes.Clear();
                 decodedGlyphPaintedAdvances.Clear();
+                usedWholeDecodedText = true;
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool hasActiveArtifact = HasActiveArtifact();
+            bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
             bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
@@ -1087,7 +1099,16 @@ internal static class TextContentParser {
                         : null,
                     characterAdvanceDirection,
                     actualTextState is not null,
-                    isType3FontResource?.Invoke(font) == true));
+                    isType3FontResource?.Invoke(font) == true,
+                    glyphSequenceProgressesLeftToRight: actualTextState is null &&
+                        !usedWholeDecodedText &&
+                        decodedGlyphCount >= 2 &&
+                        eachDecodedGlyphIsOneTextElement &&
+                        decodedGlyphCount == OfficeTextElements.Split(normalizedText).Count &&
+                        endX - dx > Math.Max(0.000001D, Math.Abs(endY - dy)),
+                    isArtifactContent: hasActiveArtifact,
+                    fontWeight: fontWeightForResource?.Invoke(font),
+                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font)));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1104,9 +1125,15 @@ internal static class TextContentParser {
             double descent = Math.Max(0.001D, size * 0.25D);
             double height = Math.Max(0.001D, size + descent);
             Matrix2D textToPage = Matrix2D.Multiply(ctm, textMatrix);
-            var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
-            textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
-            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+            if (PdfPageClipPathBuilder.TryCreateTransformedRectangle(
+                    textToPage,
+                    left,
+                    textRise - descent,
+                    width,
+                    height,
+                    pageHeight,
+                    OfficeFillRule.NonZero,
+                    out PdfPageClipPath textClipPath)) {
                 textClippingBudget.ChargePath();
                 pendingTextClipPaths.Add(textClipPath);
             }
@@ -1463,6 +1490,7 @@ internal static class TextContentParser {
         var textStateStack = new Stack<PdfTextStateSnapshot>();
         var hiddenContentStack = new Stack<bool>();
         var unsupportedRestampContentStack = new Stack<bool>();
+        var artifactContentStack = new Stack<bool>();
         var args = new List<object>(8);
 
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
@@ -1783,7 +1811,8 @@ internal static class TextContentParser {
                                 renderingIntent,
                                 fillColorSelection,
                                 strokeColorSelection,
-                                textState));
+                                textState: textState,
+                                isArtifactContent: HasArtifactContent()));
                         }
                     }
                     args.Clear();
@@ -1798,11 +1827,17 @@ internal static class TextContentParser {
                         operation.HasInvalidOperands ||
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null) ||
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null).HasValue);
+                    artifactContentStack.Push(
+                        operation.HasInvalidOperands ||
+                        IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null));
                     args.Clear();
                     break;
                 case "BMC":
                     hiddenContentStack.Push(operation.HasInvalidOperands);
                     unsupportedRestampContentStack.Push(operation.HasInvalidOperands);
+                    artifactContentStack.Push(
+                        operation.HasInvalidOperands ||
+                        IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null));
                     args.Clear();
                     break;
                 case "EMC":
@@ -1810,6 +1845,7 @@ internal static class TextContentParser {
                         hiddenContentStack.Pop();
                     }
                     if (unsupportedRestampContentStack.Count > 0) unsupportedRestampContentStack.Pop();
+                    if (artifactContentStack.Count > 0) artifactContentStack.Pop();
 
                     args.Clear();
                     break;
@@ -1838,6 +1874,11 @@ internal static class TextContentParser {
             return false;
         }
 
+        bool HasArtifactContent() {
+            foreach (bool artifact in artifactContentStack) if (artifact) return true;
+            return false;
+        }
+
         int? GetMcid(object? propertyObject) {
             if (propertyObject is string propertyName) return mcidForProperty?.Invoke(propertyName);
             if (propertyObject is not PdfContentDictionary dictionary || !dictionary.Items.TryGetValue("MCID", out object? value)) return null;
@@ -1846,6 +1887,9 @@ internal static class TextContentParser {
 
         static bool IsOptionalContentTag(object? tag) =>
             tag is string name && string.Equals(name, "OC", StringComparison.Ordinal);
+
+        static bool IsArtifactTag(object? tag) =>
+            tag is string name && string.Equals(name, "Artifact", StringComparison.Ordinal);
 
         bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 
 namespace OfficeIMO.Pdf;
 
@@ -13,9 +12,9 @@ public enum PdfLogicalTableValueKind {
     Number,
     /// <summary>Values are percentages with an explicit percent marker.</summary>
     Percentage,
-    /// <summary>Values are true/false or yes/no booleans.</summary>
+    /// <summary>Values are invariant true/false Boolean literals.</summary>
     Boolean,
-    /// <summary>Values are unambiguous dates or date-times with explicit years.</summary>
+    /// <summary>Values are unambiguous dates or date-times, or dates parsed under an explicitly supplied culture.</summary>
     DateTime,
     /// <summary>Values are clock times without a date component.</summary>
     Time
@@ -48,149 +47,75 @@ public sealed class PdfLogicalTableValueProfile {
 
 /// <summary>Culture-aware typed-value inference shared by reverse-conversion adapters.</summary>
 public static class PdfLogicalTableValueAnalysis {
-    private static readonly string[] DateHeaderHints = {
-        "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end"
-    };
-
-    private static readonly string[] UnambiguousDateTimeFormats = {
-        "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",
-        "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",
-        "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH:mm:ss",
-        "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
-        "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
-    };
-
     /// <summary>Infers typed value profiles for normalized table data.</summary>
-    public static IReadOnlyList<PdfLogicalTableValueProfile> Analyze(PdfLogicalTableData data, CultureInfo? culture = null) {
+    public static IReadOnlyList<PdfLogicalTableValueProfile> Analyze(
+        PdfLogicalTableData data,
+        PdfLogicalTableValueAnalysisOptions? options = null) {
         Guard.NotNull(data, nameof(data));
-        return Analyze(data.Columns, data.Rows, culture);
+        return Analyze(data.Columns, data.Rows, options);
     }
 
     /// <summary>Infers typed value profiles for normalized columns and body rows.</summary>
     public static IReadOnlyList<PdfLogicalTableValueProfile> Analyze(
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyList<string>> rows,
-        CultureInfo? culture = null) {
+        PdfLogicalTableValueAnalysisOptions? options = null) {
         Guard.NotNull(columns, nameof(columns));
         Guard.NotNull(rows, nameof(rows));
-        CultureInfo parsingCulture = culture ?? CultureInfo.InvariantCulture;
+        CultureInfo numericCulture = options?.NumericCulture ?? CultureInfo.InvariantCulture;
+        CultureInfo? dateTimeCulture = options?.DateTimeCulture;
         var profiles = new PdfLogicalTableValueProfile[columns.Count];
         for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
             List<string> values = rows
                 .Select(row => columnIndex < row.Count ? row[columnIndex].Trim() : string.Empty)
                 .Where(static value => value.Length > 0)
                 .ToList();
-            PdfLogicalTableValueKind kind = InferKind(columns[columnIndex], values, parsingCulture);
-            int matches = values.Count(value => Matches(kind, value, parsingCulture));
+            PdfLogicalTableValueKind kind = InferKind(values, numericCulture, dateTimeCulture);
+            int matches = values.Count(value => Matches(kind, value, numericCulture, dateTimeCulture));
             profiles[columnIndex] = new PdfLogicalTableValueProfile(columnIndex, columns[columnIndex], kind, values.Count, matches);
         }
         return Array.AsReadOnly(profiles);
     }
 
-    private static PdfLogicalTableValueKind InferKind(string columnName, List<string> values, CultureInfo culture) {
+    private static PdfLogicalTableValueKind InferKind(
+        List<string> values,
+        CultureInfo numericCulture,
+        CultureInfo? dateTimeCulture) {
         if (values.Count == 0) return PdfLogicalTableValueKind.Empty;
-        if (values.All(static value => TryParseBoolean(value, out _))) return PdfLogicalTableValueKind.Boolean;
-        if (values.All(value => TryParsePercentage(value, culture, out _))) return PdfLogicalTableValueKind.Percentage;
-        if (values.All(value => TryParseTime(value, culture, out _))) return PdfLogicalTableValueKind.Time;
-        if (!values.Any(static value => LooksLikeAmbiguousNumericDate(value)) &&
+        if (values.All(static value => PdfLogicalTableValueParser.TryParseBoolean(value, out _))) return PdfLogicalTableValueKind.Boolean;
+        if (values.All(value => PdfLogicalTableValueParser.TryParsePercentage(value, numericCulture, out _))) return PdfLogicalTableValueKind.Percentage;
+        if (values.All(value => PdfLogicalTableValueParser.TryParseTime(value, dateTimeCulture, out _))) return PdfLogicalTableValueKind.Time;
+        if (values.All(value => PdfLogicalTableValueParser.TryParseDateTime(value, dateTimeCulture, out _))) return PdfLogicalTableValueKind.DateTime;
+        if (!values.Any(static value => PdfLogicalTableValueParser.LooksLikePlausibleNumericDate(value)) &&
             values.All(PdfLogicalTableAnalysis.LooksLikeNumericValue) &&
-            values.All(value => PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out _))) return PdfLogicalTableValueKind.Number;
-        if (HasDateSignal(columnName, values) &&
-            values.All(static value => HasExplicitYear(value)) &&
-            values.All(value => DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out _))) return PdfLogicalTableValueKind.DateTime;
+            values.All(value => PdfLogicalTableAnalysis.TryParseNumericValue(value, numericCulture, out _))) return PdfLogicalTableValueKind.Number;
         return PdfLogicalTableValueKind.Text;
     }
 
-    private static bool Matches(PdfLogicalTableValueKind kind, string value, CultureInfo culture) => kind switch {
+    private static bool Matches(
+        PdfLogicalTableValueKind kind,
+        string value,
+        CultureInfo numericCulture,
+        CultureInfo? dateTimeCulture) => kind switch {
         PdfLogicalTableValueKind.Empty => false,
-        PdfLogicalTableValueKind.Text => !LooksLikeTypedValue(value, culture),
-        PdfLogicalTableValueKind.Boolean => TryParseBoolean(value, out _),
-        PdfLogicalTableValueKind.Percentage => TryParsePercentage(value, culture, out _),
-        PdfLogicalTableValueKind.Time => TryParseTime(value, culture, out _),
-        PdfLogicalTableValueKind.Number => PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out _),
-        PdfLogicalTableValueKind.DateTime => DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out _),
+        PdfLogicalTableValueKind.Text => !LooksLikeTypedValue(value, numericCulture, dateTimeCulture),
+        PdfLogicalTableValueKind.Boolean => PdfLogicalTableValueParser.TryParseBoolean(value, out _),
+        PdfLogicalTableValueKind.Percentage => PdfLogicalTableValueParser.TryParsePercentage(value, numericCulture, out _),
+        PdfLogicalTableValueKind.Time => PdfLogicalTableValueParser.TryParseTime(value, dateTimeCulture, out _),
+        PdfLogicalTableValueKind.Number => PdfLogicalTableAnalysis.TryParseNumericValue(value, numericCulture, out _),
+        PdfLogicalTableValueKind.DateTime => PdfLogicalTableValueParser.TryParseDateTime(value, dateTimeCulture, out _),
         _ => false
     };
 
-    private static bool LooksLikeTypedValue(string value, CultureInfo culture) =>
-        TryParseBoolean(value, out _) ||
-        TryParsePercentage(value, culture, out _) ||
-        TryParseTime(value, culture, out _) ||
-        PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out _) ||
-        (HasExplicitYear(value) && DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out _));
+    private static bool LooksLikeTypedValue(
+        string value,
+        CultureInfo numericCulture,
+        CultureInfo? dateTimeCulture) =>
+        PdfLogicalTableValueParser.TryParseBoolean(value, out _) ||
+        PdfLogicalTableValueParser.TryParsePercentage(value, numericCulture, out _) ||
+        PdfLogicalTableValueParser.TryParseTime(value, dateTimeCulture, out _) ||
+        PdfLogicalTableValueParser.TryParseDateTime(value, dateTimeCulture, out _) ||
+        (!PdfLogicalTableValueParser.LooksLikePlausibleNumericDate(value) &&
+         PdfLogicalTableAnalysis.TryParseNumericValue(value, numericCulture, out _));
 
-    private static bool TryParseBoolean(string value, out bool result) {
-        string normalized = value.Trim();
-        if (string.Equals(normalized, "true", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "yes", StringComparison.OrdinalIgnoreCase)) { result = true; return true; }
-        if (string.Equals(normalized, "false", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "no", StringComparison.OrdinalIgnoreCase)) { result = false; return true; }
-        result = false;
-        return false;
-    }
-
-    private static bool TryParsePercentage(string value, CultureInfo culture, out decimal result) {
-        string normalized = value.Trim();
-        if (normalized.Length == 0 || normalized[normalized.Length - 1] != '%') { result = 0M; return false; }
-        if (PdfLogicalTableAnalysis.TryParseNumericValue(normalized.Substring(0, normalized.Length - 1), culture, out decimal number)) { result = number / 100M; return true; }
-        result = 0M;
-        return false;
-    }
-
-    private static bool TryParseTime(string value, CultureInfo culture, out TimeSpan result) {
-        string normalized = value.Trim();
-        if (normalized.Length == 0 || normalized.IndexOf(':') < 0) { result = default; return false; }
-        foreach (char current in normalized) {
-            if (char.IsDigit(current) || char.IsWhiteSpace(current) || current is ':' or '.') continue;
-            char upper = char.ToUpperInvariant(current);
-            if (upper is 'A' or 'P' or 'M') continue;
-            result = default;
-            return false;
-        }
-        if (DateTime.TryParse(normalized, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime parsed)) { result = parsed.TimeOfDay; return true; }
-        result = default;
-        return false;
-    }
-
-    private static bool HasDateSignal(string columnName, IReadOnlyList<string> values) {
-        if (TokenizeHeaderWords(columnName).Any(word => DateHeaderHints.Contains(word, StringComparer.Ordinal))) return true;
-        return values.All(static value => DateTime.TryParseExact(value.Trim(), UnambiguousDateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out _));
-    }
-
-    private static bool LooksLikeAmbiguousNumericDate(string value) {
-        string normalized = value.Trim();
-        char separator = normalized.Contains('/') ? '/' : normalized.Contains('-') ? '-' : normalized.Contains('.') ? '.' : '\0';
-        if (separator == '\0') return false;
-        string[] parts = normalized.Split(separator);
-        return parts.Length == 3 && parts[2].Length == 4 &&
-            int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int first) &&
-            int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int second) &&
-            int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out _) &&
-            first is >= 1 and <= 12 && second is >= 1 and <= 12;
-    }
-
-    private static bool HasExplicitYear(string value) {
-        int digitCount = 0;
-        int number = 0;
-        for (int index = 0; index <= value.Length; index++) {
-            bool isDigit = index < value.Length && char.IsDigit(value[index]);
-            if (isDigit) { digitCount++; number = digitCount <= 4 ? number * 10 + (value[index] - '0') : number; continue; }
-            if (digitCount == 4 && number >= 1000) return true;
-            digitCount = 0;
-            number = 0;
-        }
-        return false;
-    }
-
-    private static IEnumerable<string> TokenizeHeaderWords(string value) {
-        var word = new StringBuilder();
-        for (int index = 0; index < value.Length; index++) {
-            char current = value[index];
-            if (!char.IsLetterOrDigit(current)) {
-                if (word.Length > 0) { yield return word.ToString().ToLowerInvariant(); word.Clear(); }
-                continue;
-            }
-            if (word.Length > 0 && char.IsUpper(current) && char.IsLower(value[index - 1])) { yield return word.ToString().ToLowerInvariant(); word.Clear(); }
-            word.Append(current);
-        }
-        if (word.Length > 0) yield return word.ToString().ToLowerInvariant();
-    }
 }

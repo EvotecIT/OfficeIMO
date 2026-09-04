@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -66,8 +67,8 @@ public sealed class PdfLogicalTableContinuationContractTests {
     [Fact]
     public void TableContinuations_UseBoundedFuzzyHeaderSignatures() {
         Assert.True(PdfLogicalTableContinuations.HeadersEqual(
-            new[] { "Transaction description", "Amount page 1" },
-            new[] { "Transaction descripton", "Amount page 2" }));
+            new[] { "Transaction description", "Amount" },
+            new[] { "Transaction descripton", "Amount" }));
         Assert.False(PdfLogicalTableContinuations.HeadersEqual(
             new[] { "Transaction description", "Amount" },
             new[] { "Customer identifier", "Status" }));
@@ -81,17 +82,12 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     [Theory]
     [InlineData("Amount page 1", "Amount page 2")]
-    [InlineData("Amount page 1 of 2", "Amount page 2 of 2")]
-    [InlineData("Amount page 1/2", "Amount page 2/2")]
-    [InlineData("Amount pg. 1", "Amount pg. 2")]
-    [InlineData("Amount p 1", "Amount p 2")]
-    [InlineData("Page 1", "Page 2")]
-    [InlineData("Page 1 of 2", "Page 2 of 2")]
-    [InlineData("Page 1/2", "Page 2/2")]
-    [InlineData("Pg. 1", "Pg. 2")]
-    [InlineData("P 1", "P 2")]
-    public void TableContinuations_RecognizeBoundedPaginationSuffixes(string previous, string current) {
-        Assert.True(PdfLogicalTableContinuations.HeadersEqual(
+    [InlineData("Kwota strona 1 z 2", "Kwota strona 2 z 2")]
+    [InlineData("Belopp sida 1/2", "Belopp sida 2/2")]
+    [InlineData("Сумма страница 1", "Сумма страница 2")]
+    [InlineData("金额 第1页", "金额 第2页")]
+    public void TableContinuations_DoNotEraseNumericSuffixesBasedOnVocabulary(string previous, string current) {
+        Assert.False(PdfLogicalTableContinuations.HeadersEqual(
             new[] { "Transaction description", previous },
             new[] { "Transaction description", current }));
     }
@@ -103,12 +99,21 @@ public sealed class PdfLogicalTableContinuationContractTests {
             new[] { "Region", "Revenue 2024 page 2/2" }));
     }
 
+    [Theory]
+    [InlineData("Amount 1", "Amount ١")]
+    [InlineData("Amount 3", "Amount ３")]
+    public void TableContinuations_NormalizeEquivalentUnicodeDecimalDigits(string previous, string current) {
+        Assert.True(PdfLogicalTableContinuations.HeadersEqual(
+            new[] { "Description", previous },
+            new[] { "Description", current }));
+    }
+
     [Fact]
-    public void TableContinuations_GroupAdjacentTablesWithSlashPaginationSuffixes() {
+    public void TableContinuations_DoNotMergeTablesWhoseHeaderNumbersDiffer() {
         PdfDocumentReadResult document = PdfDocumentReadResult.Load(BuildSlashPaginationTablePdf());
 
         IReadOnlyList<PdfLogicalTableContinuationGroup> groups = document.GetTableContinuationGroups();
-        Assert.True(groups.Count == 1, string.Join(" | ", PdfLogicalTableAnalysis.ExtractTables(document, 0).Select(extraction =>
+        Assert.True(groups.Count == 2, string.Join(" | ", PdfLogicalTableAnalysis.ExtractTables(document, 0).Select(extraction =>
             "page=" + extraction.PageNumber.ToString(CultureInfo.InvariantCulture) +
             ",kind=" + extraction.DetectionKind +
             ",top=" + extraction.Table.YTop.ToString(CultureInfo.InvariantCulture) +
@@ -117,12 +122,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
             ",columns=" + string.Join("/", extraction.Data.Columns) +
             ",geometry=" + string.Join("/", extraction.Table.Columns.Select(column =>
                 column.From.ToString(CultureInfo.InvariantCulture) + "-" + column.To.ToString(CultureInfo.InvariantCulture))))));
-        PdfLogicalTableContinuationGroup group = groups[0];
-
-        Assert.True(group.SpansPages);
-        Assert.Equal(new[] { 1, 2 }, group.Segments.Select(static segment => segment.PageNumber));
-        Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.CompatibleHeaders));
-        Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.RepeatedHeaders));
+        Assert.All(groups, static group => Assert.False(group.SpansPages));
     }
 
     [Fact]
@@ -186,18 +186,8 @@ public sealed class PdfLogicalTableContinuationContractTests {
             userUnit: 2D)).Pages);
         PdfLogicalPage unscaledPage = Assert.Single(PdfDocumentReadResult.Load(BuildSinglePageTablePdf(30D)).Pages);
         IReadOnlyList<IReadOnlyList<string>> rows = [new[] { "Description", "Amount" }];
-        PdfLogicalTable scaledTable = PdfLogicalTable.FromOcr(
-            1,
-            top: 20D,
-            bottom: 80D,
-            [(20D, 80D), (80D, 140D)],
-            rows);
-        PdfLogicalTable unscaledTable = PdfLogicalTable.FromOcr(
-            1,
-            top: 20D,
-            bottom: 80D,
-            [(20D, 80D), (80D, 140D)],
-            rows);
+        PdfLogicalTable scaledTable = CreateOcrTable(rows);
+        PdfLogicalTable unscaledTable = CreateOcrTable(rows);
 
         Assert.True(PdfLogicalTableContinuations.HasCompatibleColumns(
             scaledTable,
@@ -209,14 +199,13 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     [Fact]
     public void TableContinuations_UseOcrVisualBoundsForPageEdgeInference() {
-        PdfDocumentReadResult source = PdfDocumentReadResult.Load(
-            PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("First page"))
-                .PageBreak()
-                .Paragraph(paragraph => paragraph.Text("Second page"))
-                .ToBytes());
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        PdfDocumentReadResult source = PdfDocumentReadResult.Load(pdf);
         PdfLogicalPage firstSource = source.Pages[0];
-        PdfLogicalPage secondSource = source.Pages[1];
         double firstHeight = firstSource.GetVisualPageSize().Height;
         IReadOnlyList<IReadOnlyList<string>> firstRows = [
             new[] { "Code", "Amount" },
@@ -228,11 +217,23 @@ public sealed class PdfLogicalTableContinuationContractTests {
             new[] { "A-3", "30" },
             new[] { "A-4", "40" }
         ];
-        PdfUnderstandingTableCandidate firstCandidate = CreateOcrCandidate(firstHeight - 90D, firstHeight - 10D, firstRows);
-        PdfUnderstandingTableCandidate secondCandidate = CreateOcrCandidate(10D, 90D, secondRows);
-        PdfLogicalPage first = AddOcrTable(firstSource, firstCandidate);
-        PdfLogicalPage second = AddOcrTable(secondSource, secondCandidate);
-        PdfDocumentReadResult enriched = source.WithPages(new[] { first, second });
+        var pages = new[] {
+            new PdfOcrPageMergeResult(
+                1,
+                CreateOcrTableWords(firstRows, firstHeight - 55D),
+                0,
+                0,
+                Array.Empty<string>(),
+                string.Empty),
+            new PdfOcrPageMergeResult(
+                2,
+                CreateOcrTableWords(secondRows, 5D),
+                0,
+                0,
+                Array.Empty<string>(),
+                string.Empty)
+        };
+        PdfDocumentReadResult enriched = BuildOcrDocument(pdf, pages);
 
         PdfLogicalTableContinuationGroup group = Assert.Single(enriched.GetTableContinuationGroups());
 
@@ -241,29 +242,131 @@ public sealed class PdfLogicalTableContinuationContractTests {
         Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.PageEdges));
     }
 
-    private static PdfLogicalPage AddOcrTable(
-        PdfLogicalPage page,
-        PdfUnderstandingTableCandidate candidate) =>
-        page.WithOcrContent(
-            Array.Empty<PdfLogicalTextBlock>(),
-            Array.Empty<PdfLogicalHeading>(),
-            Array.Empty<PdfLogicalParagraph>(),
-            Array.Empty<PdfLogicalListItem>(),
-            new[] { candidate });
+    [Fact]
+    public void TableContinuations_CanCrossNativeAndOcrDetectionBoundaries() {
+        byte[] pdf = BuildNativeTableThenBlankPagePdf();
+        PdfDocumentReadResult native = PdfDocumentReadResult.Load(pdf);
+        PdfLogicalTable firstTable = Assert.Single(native.Pages[0].Tables);
+        Assert.Empty(native.Pages[1].Tables);
+        IReadOnlyList<IReadOnlyList<string>> rows = [
+            new[] { "Code", "Amount" },
+            new[] { "A-3", "30" },
+            new[] { "A-4", "40" }
+        ];
+        var words = new List<PdfRecognizedWord>();
+        int sequence = 0;
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < firstTable.Columns.Count; columnIndex++) {
+                PdfLogicalTableColumn column = firstTable.Columns[columnIndex];
+                words.Add(new PdfRecognizedWord(
+                    rows[rowIndex][columnIndex],
+                    column.From,
+                    5D + (rowIndex * 20D),
+                    Math.Min(20D, column.To - column.From),
+                    10D,
+                    0.9D,
+                    sequence++,
+                    "table",
+                    "row-" + rowIndex.ToString(CultureInfo.InvariantCulture),
+                    "line-" + rowIndex.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
+        PdfDocumentReadResult enriched = BuildOcrDocument(pdf, new[] {
+            new PdfOcrPageMergeResult(
+                2,
+                words.AsReadOnly(),
+                0,
+                0,
+                Array.Empty<string>(),
+                string.Empty)
+        });
 
-    private static PdfUnderstandingTableCandidate CreateOcrCandidate(
-        double top,
-        double bottom,
-        IReadOnlyList<IReadOnlyList<string>> rows) =>
-        PdfUnderstandingTableCandidate.FromOcr(
-            "OcrAlignedColumns",
-            top,
-            bottom,
-            new PdfLogicalVisualBounds(30D, top, 230D, bottom),
-            [(30D, 130D), (130D, 230D)],
-            rows,
-            0.9D,
-            new[] { new PdfInferenceEvidence("test.ocr-table", "Test OCR table geometry.", 1D) });
+        Assert.Single(enriched.Pages[0].Tables);
+        Assert.Single(enriched.Pages[1].Tables);
+        PdfLogicalTable enrichedFirst = enriched.Pages[0].Tables[0];
+        PdfLogicalTable enrichedSecond = enriched.Pages[1].Tables[0];
+        Assert.True(
+            PdfLogicalTableContinuations.HasCompatibleColumns(
+                enrichedFirst,
+                enriched.Pages[0],
+                enrichedSecond,
+                enriched.Pages[1],
+                tolerance: 4D),
+            "native=" + string.Join("/", enrichedFirst.Columns.Select(static column => column.From + "-" + column.To)) +
+            "; ocr=" + string.Join("/", enrichedSecond.Columns.Select(static column => column.From + "-" + column.To)) +
+            "; nativeY=" + enrichedFirst.YTop + "-" + enrichedFirst.YBottom +
+            "; ocrY=" + enrichedSecond.YTop + "-" + enrichedSecond.YBottom);
+
+        PdfLogicalTableContinuationGroup group = Assert.Single(
+            enriched.GetTableContinuationGroups(), static candidate => candidate.SpansPages);
+
+        Assert.Equal(2, group.Segments.Count);
+        Assert.NotEqual(group.Segments[0].DetectionKind, group.Segments[1].DetectionKind);
+        Assert.False(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.MatchingDetectionKind));
+        Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.CompatibleGeometry));
+    }
+
+    private static IReadOnlyList<PdfRecognizedWord> CreateOcrTableWords(
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        double top) {
+        var words = new List<PdfRecognizedWord>(rows.Count * 2);
+        int sequence = 0;
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            double y = top + (rowIndex * 20D);
+            for (int columnIndex = 0; columnIndex < 2; columnIndex++) {
+                string text = rows[rowIndex][columnIndex];
+                words.Add(new PdfRecognizedWord(
+                    text,
+                    columnIndex == 0 ? 30D : 150D,
+                    y,
+                    50D,
+                    10D,
+                    0.9D,
+                    sequence++,
+                    "table",
+                    "row-" + rowIndex.ToString(CultureInfo.InvariantCulture),
+                    "line-" + rowIndex.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
+        return words.AsReadOnly();
+    }
+
+    private static PdfLogicalTable CreateOcrTable(IReadOnlyList<IReadOnlyList<string>> rows) =>
+        PdfLogicalTable.From(
+            1,
+            PdfUnderstandingTableCandidate.FromOcr(
+                "ocr-aligned-geometry",
+                20D,
+                80D,
+                new PdfLogicalVisualBounds(20D, 20D, 140D, 80D),
+                [(20D, 80D), (80D, 140D)],
+                rows,
+                0.8D,
+                new[] { new PdfInferenceEvidence("test.ocr-table", "Test OCR table geometry.", 1D) }));
+
+    private static PdfDocumentReadResult BuildOcrDocument(
+        byte[] pdf,
+        IReadOnlyList<PdfOcrPageMergeResult> pages) {
+        PdfReadDocument source = PdfReadDocument.Open(pdf, null, CancellationToken.None);
+        var layoutOptions = new PdfTextLayoutOptions();
+        var pipelineOptions = new PdfUnderstandingPipelineOptions();
+        PdfDocumentReadResult native = PdfDocumentReadEngine.Read(
+            source,
+            new PdfReadOptions {
+                Profile = PdfReadProfile.Structured,
+                LayoutOptions = layoutOptions,
+                Pipeline = pipelineOptions
+            },
+            out IReadOnlyList<PdfUnderstandingPageResult> nativePageAnalyses);
+        return PdfOcrLogicalDocumentBuilder.Build(
+            source,
+            native,
+            nativePageAnalyses,
+            pages,
+            layoutOptions,
+            pipelineOptions,
+            CancellationToken.None);
+    }
 
     private static byte[] BuildMultiPageTablePdf() {
         var rows = new List<string[]> {
@@ -335,6 +438,35 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 CellPaddingX = 4,
                 CellPaddingY = 2
             })
+            .ToBytes();
+    }
+
+    private static byte[] BuildNativeTableThenBlankPagePdf() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 20,
+            MarginBottom = 20,
+            DefaultFontSize = 9
+        });
+        for (int index = 0; index < 7; index++) {
+            document.Paragraph(paragraph => paragraph.Text("Lead line " + index.ToString(CultureInfo.InvariantCulture)));
+        }
+        return document
+            .Table(new[] {
+                new[] { "Code", "Amount" },
+                new[] { "A-1", "10" },
+                new[] { "A-2", "20" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 100D, 100D },
+                CellPaddingX = 4D,
+                CellPaddingY = 2D
+            })
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Scanned page placeholder."))
             .ToBytes();
     }
 

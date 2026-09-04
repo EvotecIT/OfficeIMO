@@ -126,6 +126,15 @@ public sealed class OfficeOcrTextSpan {
     /// <summary>One-based source page within a multi-page payload, when applicable.</summary>
     public int? PageNumber { get; set; }
 
+    /// <summary>Provider-stable block identifier of at most 256 characters, when the engine exposes layout hierarchy. Longer identifiers are ignored with an OCR diagnostic.</summary>
+    public string? BlockId { get; set; }
+
+    /// <summary>Provider-stable paragraph identifier of at most 256 characters, when the engine exposes layout hierarchy. Longer identifiers are ignored with an OCR diagnostic.</summary>
+    public string? ParagraphId { get; set; }
+
+    /// <summary>Provider-stable line identifier of at most 256 characters, scoped by its block and paragraph identifiers when supplied. Longer identifiers are ignored with an OCR diagnostic.</summary>
+    public string? LineId { get; set; }
+
     /// <summary>Bounding region in <see cref="CoordinateUnit"/> when available.</summary>
     public OfficeDocumentRegion? Region { get; set; }
 

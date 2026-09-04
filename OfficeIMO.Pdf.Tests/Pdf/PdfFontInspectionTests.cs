@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -7,6 +8,49 @@ using Xunit;
 namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfFontInspectionTests {
+    [Fact]
+    public void TextSpanConstructors_PreserveLegacyAbiAndExposeExplicitFontDescriptorEvidence() {
+        Type[] legacySignature = {
+            typeof(string),
+            typeof(string),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(OfficeColor?),
+            typeof(bool),
+            typeof(double),
+            typeof(string)
+        };
+        Type[] descriptorSignature = legacySignature
+            .Concat(new[] { typeof(int?), typeof(int?) })
+            .ToArray();
+
+        Assert.NotNull(typeof(PdfTextSpan).GetConstructor(legacySignature));
+        Assert.NotNull(typeof(PdfTextSpan).GetConstructor(descriptorSignature));
+
+        var legacy = new PdfTextSpan("Legacy", "F1", 12D, 10D, 20D);
+        var descriptor = new PdfTextSpan(
+            "Declared",
+            "F1",
+            12D,
+            10D,
+            20D,
+            24D,
+            null,
+            true,
+            0D,
+            "NeutralFamily",
+            700,
+            96);
+
+        Assert.Null(legacy.FontWeight);
+        Assert.Equal(700, descriptor.FontWeight);
+        Assert.Equal(96, descriptor.FontDescriptorFlags);
+        Assert.True(descriptor.IsBold);
+        Assert.True(descriptor.IsItalic);
+    }
+
     [Fact]
     public void FontInspectionDiagnosticCodes_PreserveStableLegacyValues() {
         Assert.Equal(0, (int)PdfFontInspectionDiagnosticCode.MissingBaseFont);
@@ -37,6 +81,10 @@ public sealed class PdfFontInspectionTests {
         Assert.True(font.IsSubset);
         Assert.Equal("Type1", font.Subtype);
         Assert.Equal("WinAnsiEncoding", font.Encoding);
+        Assert.Null(font.FontWeight);
+        Assert.Equal(32, font.FontDescriptorFlags);
+        Assert.False(font.IsBold);
+        Assert.False(font.IsItalic);
         Assert.True(font.HasToUnicode);
         Assert.True(font.HasReadableToUnicodeMap);
         Assert.Equal(1, font.ToUnicodeMappingCount);
@@ -336,6 +384,87 @@ public sealed class PdfFontInspectionTests {
         Assert.Equal(1, inventory.FontCount);
         Assert.True(attempt.Succeeded);
         Assert.Equal(1, attempt.RequireValue().FontCount);
+    }
+
+    [Fact]
+    public void TextSpans_PreferDeclaredFontDescriptorStyleOverBaseFontNames() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 10 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /NeutralDeclared /Encoding /WinAnsiEncoding /FontDescriptor 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Misleading-BoldItalic /Encoding /WinAnsiEncoding /FontDescriptor 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /NeutralForced /Encoding /WinAnsiEncoding /FontDescriptor 9 0 R >>",
+            "<< /Type /FontDescriptor /FontName /NeutralDeclared /Flags 96 /FontWeight 700 /FontBBox [0 -200 1000 900] /ItalicAngle -12 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 120 >>",
+            "<< /Type /FontDescriptor /FontName /Misleading-BoldItalic /Flags 32 /FontWeight 400 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
+            "<< /Type /FontDescriptor /FontName /NeutralForced /Flags 262176 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 120 >>",
+            StreamObject("BT /F1 12 Tf 10 240 Td (Declared) Tj /F2 12 Tf 0 -20 Td (Normal) Tj /F3 12 Tf 0 -20 Td (Forced) Tj ET"));
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan declared = Assert.Single(spans, static span => span.Text == "Declared");
+        PdfTextSpan normal = Assert.Single(spans, static span => span.Text == "Normal");
+        PdfTextSpan forced = Assert.Single(spans, static span => span.Text == "Forced");
+
+        Assert.Equal(700, declared.FontWeight);
+        Assert.Equal(96, declared.FontDescriptorFlags);
+        Assert.True(declared.IsBold);
+        Assert.True(declared.IsItalic);
+        Assert.Equal(400, normal.FontWeight);
+        Assert.False(normal.IsBold);
+        Assert.False(normal.IsItalic);
+        Assert.Null(forced.FontWeight);
+        Assert.Equal(262176, forced.FontDescriptorFlags);
+        Assert.False(forced.IsBold);
+
+        PdfFontInfo declaredFont = Assert.Single(
+            PdfDocument.Load(pdf).Resources.Fonts().Fonts,
+            static font => font.BaseFontName == "NeutralDeclared");
+        Assert.Equal(700, declaredFont.FontWeight);
+        Assert.Equal(96, declaredFont.FontDescriptorFlags);
+        Assert.True(declaredFont.IsBold);
+        Assert.True(declaredFont.IsItalic);
+
+        PdfLogicalTextRun normalRun = Assert.Single(
+            Assert.Single(PdfDocumentReadResult.Load(pdf).Pages).TextBlocks
+                .SelectMany(static block => block.Runs),
+            static run => run.Text == "Normal");
+        Assert.Equal(400, normalRun.FontWeight);
+        Assert.False(normalRun.IsBold);
+        Assert.False(normalRun.IsItalic);
+    }
+
+    [Fact]
+    public void FontInspection_ResolvesCompositeFontDescriptorStyleFromDescendantFont() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>",
+            "<< /Type /Font /Subtype /Type0 /BaseFont /CompositeStyle /Encoding /Identity-H /DescendantFonts [5 0 R] >>",
+            "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /CompositeStyle /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R >>",
+            "<< /Type /FontDescriptor /FontName /CompositeStyle /Flags 96 /FontWeight 700 /FontBBox [0 -200 1000 900] /ItalicAngle -12 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 120 >>");
+
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts().Fonts);
+
+        Assert.Equal("CompositeStyle", font.BaseFontName);
+        Assert.Equal(700, font.FontWeight);
+        Assert.Equal(96, font.FontDescriptorFlags);
+        Assert.True(font.IsBold);
+        Assert.True(font.IsItalic);
+    }
+
+    [Theory]
+    [InlineData("ABCDEF+Helvetica-BoldOblique", true, true)]
+    [InlineData("Family-Demi", true, false)]
+    [InlineData("BoldFamily-Regular", false, false)]
+    [InlineData("ItalicFamily-Regular", false, false)]
+    public void TextSpans_ConstrainLegacyStyleFallbackToTheFontStyleSuffix(
+        string baseFont,
+        bool expectedBold,
+        bool expectedItalic) {
+        var span = new PdfTextSpan("text", "F1", 12D, 0D, 0D, baseFont: baseFont);
+
+        Assert.Equal(expectedBold, span.IsBold);
+        Assert.Equal(expectedItalic, span.IsItalic);
     }
 
     private static byte[] BuildFontPdf() {

@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel.Pdf {
                     IReadOnlyList<string> sourceRow = rows[rowIndex];
                     for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
                         string value = columnIndex < sourceRow.Count ? sourceRow[columnIndex] : string.Empty;
-                        row[columnIndex] = ConvertValue(value, columnKinds[columnIndex], options.NumericCulture);
+                        row[columnIndex] = ConvertValue(value, columnKinds[columnIndex], options);
                     }
 
                     table.Rows.Add(row);
@@ -304,7 +304,13 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<IReadOnlyList<string>> rows,
             PdfExcelTableImportOptions options) {
             IReadOnlyList<PdfCore.PdfLogicalTableValueProfile> profiles =
-                PdfCore.PdfLogicalTableValueAnalysis.Analyze(columns, rows, options.NumericCulture);
+                PdfCore.PdfLogicalTableValueAnalysis.Analyze(
+                    columns,
+                    rows,
+                    new PdfCore.PdfLogicalTableValueAnalysisOptions {
+                        NumericCulture = options.NumericCulture,
+                        DateTimeCulture = options.DateTimeCulture
+                    });
             var kinds = new PdfExcelTableColumnKind[profiles.Count];
             for (int columnIndex = 0; columnIndex < profiles.Count; columnIndex++) {
                 kinds[columnIndex] = profiles[columnIndex].Kind switch {
@@ -341,70 +347,20 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static object ConvertValue(string value, PdfExcelTableColumnKind kind, CultureInfo culture) {
+        private static object ConvertValue(
+            string value,
+            PdfExcelTableColumnKind kind,
+            PdfExcelTableImportOptions options) {
             if (kind == PdfExcelTableColumnKind.Text) return value;
             if (string.IsNullOrWhiteSpace(value)) return DBNull.Value;
             return kind switch {
-                PdfExcelTableColumnKind.Number when PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, culture, out decimal number) => number,
-                PdfExcelTableColumnKind.Percentage when TryParsePercentage(value, culture, out decimal percentage) => percentage,
-                PdfExcelTableColumnKind.Boolean when TryParseBoolean(value, out bool boolean) => boolean,
-                PdfExcelTableColumnKind.Time when TryParseTimeOnly(value, culture, out TimeSpan time) => time,
-                PdfExcelTableColumnKind.DateTime when DateTime.TryParse(value, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime) => dateTime,
+                PdfExcelTableColumnKind.Number when PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out decimal number) => number,
+                PdfExcelTableColumnKind.Percentage when PdfCore.PdfLogicalTableValueParser.TryParsePercentage(value, options.NumericCulture, out decimal percentage) => percentage,
+                PdfExcelTableColumnKind.Boolean when PdfCore.PdfLogicalTableValueParser.TryParseBoolean(value, out bool boolean) => boolean,
+                PdfExcelTableColumnKind.Time when PdfCore.PdfLogicalTableValueParser.TryParseTime(value, options.DateTimeCulture, out TimeSpan time) => time,
+                PdfExcelTableColumnKind.DateTime when PdfCore.PdfLogicalTableValueParser.TryParseDateTime(value, options.DateTimeCulture, out DateTime dateTime) => dateTime,
                 _ => DBNull.Value
             };
-        }
-
-        private static bool TryParseBoolean(string value, out bool result) {
-            string normalized = value.Trim();
-            if (string.Equals(normalized, "true", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalized, "yes", StringComparison.OrdinalIgnoreCase)) {
-                result = true;
-                return true;
-            }
-            if (string.Equals(normalized, "false", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalized, "no", StringComparison.OrdinalIgnoreCase)) {
-                result = false;
-                return true;
-            }
-            result = false;
-            return false;
-        }
-
-        private static bool TryParsePercentage(string value, CultureInfo culture, out decimal result) {
-            string normalized = value.Trim();
-            if (!normalized.EndsWith("%", StringComparison.Ordinal)) {
-                result = 0m;
-                return false;
-            }
-
-            if (PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(normalized.Substring(0, normalized.Length - 1), culture, out decimal number)) {
-                result = number / 100m;
-                return true;
-            }
-
-            result = 0m;
-            return false;
-        }
-
-        private static bool TryParseTimeOnly(string value, CultureInfo culture, out TimeSpan result) {
-            string normalized = value.Trim();
-            if (normalized.Length == 0 || normalized.IndexOf(':') < 0) {
-                result = default;
-                return false;
-            }
-            foreach (char current in normalized) {
-                if (char.IsDigit(current) || char.IsWhiteSpace(current) || current is ':' or '.') continue;
-                char upper = char.ToUpperInvariant(current);
-                if (upper is 'A' or 'P' or 'M') continue;
-                result = default;
-                return false;
-            }
-            if (DateTime.TryParse(normalized, culture, DateTimeStyles.AllowWhiteSpaces, out DateTime parsed)) {
-                result = parsed.TimeOfDay;
-                return true;
-            }
-            result = default;
-            return false;
         }
 
         private static string GetUniqueColumnName(string? value, int index, ISet<string> usedColumns) {

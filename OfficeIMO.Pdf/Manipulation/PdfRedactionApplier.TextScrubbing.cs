@@ -832,10 +832,9 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects) =>
         resources == null
             ? new HashSet<string>(StringComparer.Ordinal)
-            : ResourceResolver.GetFontsForResources(resources, objects)
+            : new HashSet<string>(ResourceResolver.GetFontsForResources(resources, objects)
                 .Where(static entry => entry.Value.IsVerticalWriting)
-                .Select(static entry => entry.Key)
-                .ToHashSet(StringComparer.Ordinal);
+                .Select(static entry => entry.Key), StringComparer.Ordinal);
 
     private static PdfDictionary? GetInheritedDictionary(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         PdfDictionary? current = dictionary;

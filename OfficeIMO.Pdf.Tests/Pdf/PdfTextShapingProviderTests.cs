@@ -78,8 +78,10 @@ public class PdfTextShapingProviderTests {
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
+        string raw = Encoding.ASCII.GetString(bytes);
 
         Assert.True(provider.CallCount >= 1);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");

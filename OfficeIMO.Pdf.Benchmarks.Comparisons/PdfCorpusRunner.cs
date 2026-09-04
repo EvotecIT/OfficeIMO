@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 using OfficePdfDocument = OfficeIMO.Pdf.PdfDocument;
@@ -12,6 +13,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static partial class PdfCorpusRunner {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNameCaseInsensitive = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         WriteIndented = true
     };
 
@@ -25,33 +27,14 @@ internal static partial class PdfCorpusRunner {
             Path.Combine(repositoryRoot, "Ignore", "Benchmarks", "PdfComparisons", "corpus"));
         bool download = HasOption(args, "--download");
         bool skipManipulation = HasOption(args, "--skip-manipulation");
-        string? comPdfPath = GetOption(args, "--com-pdf");
+        string? additionalManifestPath = GetOption(args, "--additional-manifest");
 
-        PdfCorpusManifest manifest = JsonSerializer.Deserialize<PdfCorpusManifest>(
-            await File.ReadAllTextAsync(manifestPath).ConfigureAwait(false),
-            JsonOptions) ?? throw new InvalidDataException("PDF corpus manifest is empty.");
-        if (manifest.SchemaVersion != 1) {
-            throw new InvalidDataException($"Unsupported PDF corpus schema {manifest.SchemaVersion}; expected 1.");
-        }
+        PdfCorpusManifest manifest = await ReadManifestAsync(manifestPath).ConfigureAwait(false);
         var entries = new List<PdfCorpusEntry>(manifest.Entries);
-        if (!string.IsNullOrWhiteSpace(comPdfPath)) {
-            entries.Add(new PdfCorpusEntry {
-                Id = "microsoft-word-com-rich",
-                SourceKind = "local",
-                SourcePath = Path.GetFullPath(comPdfPath),
-                Producer = "Microsoft Word COM export",
-                License = "Generated local fixture",
-                Tier = "large",
-                ExpectedPages = 26,
-                MinimumTokenRecall = 0.90D,
-                Features = new List<string> { "tables", "chart", "native-word-smartart", "image", "links", "headers-footers", "office-com-export" },
-                RequiredText = new List<string> {
-                    "COM SMARTART INTEROPERABILITY PAGE",
-                    "Collect",
-                    "Validate",
-                    "Publish"
-                }
-            });
+        if (!string.IsNullOrWhiteSpace(additionalManifestPath)) {
+            PdfCorpusManifest additionalManifest = await ReadManifestAsync(Path.GetFullPath(additionalManifestPath!))
+                .ConfigureAwait(false);
+            entries.AddRange(additionalManifest.Entries);
         }
         ValidateEntryIds(entries);
 
@@ -64,10 +47,19 @@ internal static partial class PdfCorpusRunner {
             var selectedIds = new HashSet<string>(
                 only.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
                 StringComparer.OrdinalIgnoreCase);
-            entries = entries.Where(entry => selectedIds.Contains(entry.Id)).ToList();
-            if (entries.Count == 0) {
-                throw new ArgumentException($"No corpus entries matched --only {only}.", nameof(args));
+            if (selectedIds.Count == 0) {
+                throw new ArgumentException("--only requires at least one corpus entry ID.", nameof(args));
             }
+            string[] missingIds = selectedIds
+                .Where(selectedId => !entries.Any(entry => string.Equals(entry.Id, selectedId, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(static id => id, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (missingIds.Length > 0) {
+                throw new ArgumentException(
+                    $"Unknown corpus entries requested by --only: {string.Join(", ", missingIds)}.",
+                    nameof(args));
+            }
+            entries = entries.Where(entry => selectedIds.Contains(entry.Id)).ToList();
         }
 
         var results = new List<PdfCorpusResult>(entries.Count);
@@ -109,13 +101,19 @@ internal static partial class PdfCorpusRunner {
             if (!result.Read.Success) {
                 Console.WriteLine("  read: " + result.Read.Error);
             }
+            if (result.Read.Semantics is PdfCorpusSemanticObservation semantics) {
+                Console.WriteLine(
+                    $"  semantics: tables={semantics.Tables:N0} images={semantics.Images:N0} " +
+                    $"regions={semantics.ImageRegions:N0} figures={semantics.Figures:N0} " +
+                    $"vectors={semantics.VectorPrimitives:N0}");
+            }
             if (!result.Manipulation.Success) {
                 Console.WriteLine($"  manipulation [{result.Manipulation.Status}]: {result.Manipulation.Error}");
             }
         }
 
         var report = new PdfCorpusReport(
-            2,
+            3,
             DateTimeOffset.UtcNow,
             RuntimeInformation.FrameworkDescription,
             RuntimeInformation.OSDescription,
@@ -144,21 +142,28 @@ internal static partial class PdfCorpusRunner {
                 $"{entry.Id} SHA-256 mismatch. Expected {entry.Sha256}, observed {sha256}.");
         }
 
-        IReadOnlyList<string> oraclePages;
-        IReadOnlyList<string> officePages;
-        string oracle;
+        IReadOnlyList<string> oraclePages = Array.Empty<string>();
+        IReadOnlyList<string> officePages = Array.Empty<string>();
+        string oracle = "unavailable";
+        OfficeIMO.Pdf.PdfDocumentReadResult? officeDocument = null;
+        PdfCorpusSemanticObservation? semanticObservation = null;
+        OfficeIMO.Pdf.PdfLoadOptions readOptions = new() {
+            IncludeArtifactText = true
+        };
         PdfCorpusReadResult read;
+        double recall = 0D;
         double readElapsedMilliseconds = 0D;
         long readAllocatedBytes = 0L;
         try {
             (oraclePages, oracle) = ReadOracleByPage(bytes);
-            OfficeIMO.Pdf.PdfLoadOptions readOptions = new() {
-                IncludeArtifactText = true
-            };
             long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             try {
-                officePages = PdfDocumentReaders.ExtractOfficeImoTextByPage(bytes, readOptions);
+                officeDocument = PdfDocumentReaders.ReadOfficeImoStructured(bytes, readOptions);
+                officePages = officeDocument.Pages
+                    .Select(static page => string.Join('\n', page.TextBlocks.Select(static block => block.Text)))
+                    .ToArray();
+                semanticObservation = CreateSemanticObservation(officeDocument);
             } finally {
                 stopwatch.Stop();
                 readElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
@@ -178,9 +183,11 @@ internal static partial class PdfCorpusRunner {
                 throw new InvalidDataException(
                     $"OfficeIMO observed {officePages.Count} pages while PdfPig observed {oraclePages.Count}.");
             }
+            recall = TokenRecall(oraclePages, officePages);
             ValidateRequiredText(entry, oraclePages, officePages);
+            ValidateExpectedText(entry, officePages);
+            ValidatePageExpectations(entry, officeDocument);
 
-            double recall = TokenRecall(oraclePages, officePages);
             if (recall < entry.MinimumTokenRecall) {
                 WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
                 File.WriteAllText(
@@ -198,7 +205,8 @@ internal static partial class PdfCorpusRunner {
                     recall,
                     $"OfficeIMO token recall {recall:P2} is below the {entry.MinimumTokenRecall:P2} corpus threshold.",
                     readElapsedMilliseconds,
-                    readAllocatedBytes);
+                    readAllocatedBytes,
+                    semanticObservation);
                 return CreateResult(entry, path, bytes.Length, sha256, read,
                     new PdfCorpusManipulationResult(false, "NotRun", 0, 0, 0, Array.Empty<string>(), "Read validation failed."));
             }
@@ -212,18 +220,23 @@ internal static partial class PdfCorpusRunner {
                 recall,
                 null,
                 readElapsedMilliseconds,
-                readAllocatedBytes);
+                readAllocatedBytes,
+                semanticObservation);
         } catch (Exception exception) {
+            if (officeDocument is not null) {
+                WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
+            }
             read = new PdfCorpusReadResult(
                 false,
-                "unavailable",
-                0,
-                0,
-                0,
-                0,
+                oracle,
+                officePages.Count,
+                officePages.Sum(static text => text.Length),
+                oraclePages.Sum(static text => text.Length),
+                recall,
                 exception.ToString(),
                 readElapsedMilliseconds,
-                readAllocatedBytes);
+                readAllocatedBytes,
+                semanticObservation);
             return CreateResult(entry, path, bytes.Length, sha256, read,
                 new PdfCorpusManipulationResult(false, "NotRun", 0, 0, 0, Array.Empty<string>(), "Read validation failed."));
         }
@@ -625,4 +638,7 @@ internal static partial class PdfCorpusRunner {
 
     [GeneratedRegex(@"\A[A-Za-z0-9][A-Za-z0-9._-]{0,127}\z", RegexOptions.CultureInvariant)]
     private static partial Regex CorpusIdRegex();
+
+    [GeneratedRegex(@"\A[0-9A-Fa-f]{64}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex Sha256Regex();
 }

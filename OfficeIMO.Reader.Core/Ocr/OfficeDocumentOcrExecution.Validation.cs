@@ -152,6 +152,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         result.Provider = string.IsNullOrWhiteSpace(result.Provider) ? engineId : result.Provider!.Trim();
         result.Language = string.IsNullOrWhiteSpace(result.Language) ? options.Language : result.Language!.Trim();
         bool adjustedConfidence = false;
+        bool discardedHierarchyId = false;
         result.Confidence = NormalizeConfidence(result.Confidence, ref adjustedConfidence);
         OfficeOcrTextSpan[] sourceSpans = (result.Spans ?? Array.Empty<OfficeOcrTextSpan>())
             .Where(static span => span != null)
@@ -169,12 +170,19 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             span.Sequence = index;
             span.Text = span.Text?.Trim() ?? string.Empty;
             span.Language = string.IsNullOrWhiteSpace(span.Language) ? result.Language : span.Language!.Trim();
+            span.BlockId = NormalizeHierarchyId(span.BlockId, ref discardedHierarchyId);
+            span.ParagraphId = NormalizeHierarchyId(span.ParagraphId, ref discardedHierarchyId);
+            span.LineId = NormalizeHierarchyId(span.LineId, ref discardedHierarchyId);
             span.Confidence = NormalizeConfidence(span.Confidence, ref adjustedConfidence);
         }
         result.Spans = spans;
         if (adjustedConfidence) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
                 "ocr-confidence-out-of-range", "One or more OCR confidence values were normalized; non-finite values were removed and out-of-range values were clamped.", true));
+        }
+        if (discardedHierarchyId) {
+            executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
+                "ocr-hierarchy-id-limit", "One or more OCR hierarchy identifiers exceeded 256 characters and were discarded.", true));
         }
 
         OfficeDocumentDiagnostic[] providerDiagnostics = (result.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>())
@@ -186,6 +194,14 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             if (diagnostic.Location == null) diagnostic.Location = candidate.Location;
         }
         result.Diagnostics = providerDiagnostics;
+    }
+
+    private static string? NormalizeHierarchyId(string? value, ref bool discarded) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        string normalized = value!.Trim();
+        if (normalized.Length <= 256) return normalized;
+        discarded = true;
+        return null;
     }
 
     private static double? NormalizeConfidence(double? value, ref bool adjusted) {

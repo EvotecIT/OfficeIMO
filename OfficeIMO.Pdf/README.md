@@ -495,6 +495,36 @@ work-budget context. `PdfUnderstandingPipelineOptions.MaxWorkUnitsPerPage` and
 document-wide evidence; over-complex input fails with
 `PdfReadLimitKind.UnderstandingWork` instead of continuing unbounded work.
 
+Each page result exposes `ImagePlacements` and one `ImageRegion` per placement
+invocation. Regions retain placement geometry and paint order, associate nearby
+caption elements through vertical proximity and horizontal alignment only when
+the image has a non-transparent, clipped intersection with the page, and expose
+confidence plus stable evidence codes. Structured reads also use tagged-PDF
+Figure ownership, including marked content inside Form XObjects, and retain the
+owning Figure's alternate text. An unambiguous tagged structure relationship
+also binds a direct child caption, or a boundary caption under a parent that has
+exactly one Figure, without depending on caption wording or page proximity.
+Multi-figure structures remain unassociated unless their ownership is explicit.
+Artifact-marked images remain extractable but do not inherit structural Figure
+ownership.
+
+```csharp
+foreach (PdfLogicalPage page in result.Pages) {
+    foreach (PdfUnderstandingImageRegion region in page.Analysis.ImageRegions) {
+        Console.WriteLine(
+            $"{region.Placement.X}, {region.Placement.Y}: " +
+            $"figure={region.IsFigure}, caption={region.Caption?.Region.Text}");
+    }
+}
+```
+
+Set `PdfUnderstandingPipelineOptions.ImageRegionDetection` to replace the
+association stage. A custom stage must return exactly one region for each input
+placement and may associate captions only from the semantic-stage result. The
+built-in stage does not inspect language-specific caption words.
+`MaxImageCaptionCandidatesPerPage` bounds viable image-caption edges before
+matching and sorting, so adversarial overlap fails with a typed read limit.
+
 ### Inspect fonts, image paint, and cross-page continuations
 
 The font inventory reports every unique declared font dictionary and every page
@@ -570,7 +600,7 @@ IReadOnlyList<string> visualTextByPage = visual.Pages
     .ToArray();
 ```
 
-Image-only and mixed pages can be enriched through a caller-owned OCR provider
+Image-only and mixed pages can be parsed through a caller-owned OCR provider
 without adding an OCR runtime to `OfficeIMO.Pdf`. Accepted words are normalized
 to cropped, rotated visual page coordinates, de-duplicated against native text,
 and projected into the same logical model used by reverse converters:
@@ -582,23 +612,40 @@ static async Task<PdfDocumentReadResult> ReadWithOcrAsync(
     PdfOcrMergeResult ocr = await PdfDocument
         .Load(path)
         .Ocr.ReadAsync(provider, new PdfOcrMergeOptions {
-            MinimumConfidence = 0.75,
-            DetectAlignedTables = true
+            MinimumConfidence = 0.75
         });
 
     Console.WriteLine(ocr.AcceptedWordCount);
-    return ocr.EnrichedDocument;
+    return ocr.Document;
 }
 ```
 
-`NativeDocument` retains the parser-only view for comparison. Every enriched
-text block and inferred table exposes native-or-OCR provenance; OCR text also
-retains provider confidence and direct visual bounds. Table inference requires
-repeated aligned rows plus typed-value evidence (or a wider repeated grid), so
-ordinary two-column prose remains separate reading-order content. The work is
-bounded by the merge options. Word, Excel,
+`NativeDocument` retains the native-only view for overlap evidence and comparison.
+Every parsed text block and inferred table exposes native-or-OCR provenance; OCR text also
+retains provider confidence and direct visual bounds. OCR table evidence requires
+repeated aligned columns, compact cell content, and stable row rhythm, so ordinary
+two-column prose remains separate reading-order content. The work is bounded by
+the OCR merge budgets and the shared `ReadOptions` pipeline limits. Word, Excel,
 PowerPoint, HTML, RTF, ODT, ODS, and ODP packages consume
-`EnrichedDocument` directly through their existing logical-PDF overloads.
+`Document` directly through their existing logical-PDF overloads.
+
+Native and hierarchy-free OCR text use the same direction policy. Automatic
+mode selects the page's first strong Unicode direction; set an explicit policy
+when a page is ambiguous or its dominant direction is known:
+
+```csharp
+PdfDocumentReadResult rtl = PdfDocument.Load("arabic-report.pdf").Read(
+    new PdfReadOptions {
+        LayoutOptions = new PdfTextLayoutOptions {
+            ReadingDirection = PdfReadingDirection.RightToLeft
+        }
+    });
+```
+
+Table schema remains evidence-based. Tagged header roles or distinct header
+typography can establish the first row as a header. Otherwise `SchemaKind` is
+`Unknown`, every source row remains data, and `Columns` contains empty names;
+the parser does not invent translated or English column labels.
 
 ### Split and extract pages
 

@@ -101,11 +101,20 @@ public sealed class ReaderOcrCoreTests {
     [Fact]
     public async Task ApplyOcrAsync_BoundsProviderTextSpansAndConfidenceDiagnostics() {
         OfficeDocumentReadResult source = CreateDocument(1);
+        string oversizedHierarchyId = new string('x', 257);
         var engine = new DelegateOfficeOcrEngine("bounded-fixture", (request, cancellationToken) => new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult {
             Text = "1234567890",
             Confidence = 1.5,
             Spans = new[] {
-                new OfficeOcrTextSpan { Sequence = 0, Level = OfficeOcrTextSpanLevel.Line, Text = "1234567890", Confidence = -0.5 },
+                new OfficeOcrTextSpan {
+                    Sequence = 0,
+                    Level = OfficeOcrTextSpanLevel.Line,
+                    Text = "1234567890",
+                    Confidence = -0.5,
+                    BlockId = oversizedHierarchyId,
+                    ParagraphId = oversizedHierarchyId,
+                    LineId = oversizedHierarchyId
+                },
                 new OfficeOcrTextSpan { Sequence = 1, Level = OfficeOcrTextSpanLevel.Word, Text = "12345" },
                 new OfficeOcrTextSpan { Sequence = 2, Level = OfficeOcrTextSpanLevel.Character, Text = "1" }
             }
@@ -120,10 +129,14 @@ public sealed class ReaderOcrCoreTests {
         OfficeOcrEngineResult result = Assert.Single(execution.Recognitions).Result;
         Assert.Equal(1D, result.Confidence);
         Assert.Equal(0D, result.Spans[0].Confidence);
+        Assert.Null(result.Spans[0].BlockId);
+        Assert.Null(result.Spans[0].ParagraphId);
+        Assert.Null(result.Spans[0].LineId);
         Assert.Equal(2, result.Spans.Count);
         Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-text-limit");
         Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-span-limit");
         Assert.Single(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-confidence-out-of-range");
+        Assert.Single(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-hierarchy-id-limit");
     }
 
     [Fact]

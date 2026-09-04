@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfPageOptionalContentVisibility {
+internal sealed partial class PdfPageOptionalContentVisibility {
     private readonly Dictionary<string, bool> _hiddenProperties;
     private readonly HashSet<string> _knownProperties;
     private readonly HashSet<string> _invalidProperties;
@@ -8,6 +8,8 @@ internal sealed class PdfPageOptionalContentVisibility {
     private readonly Dictionary<int, bool> _groupVisibility;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxExpressionDepth;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, bool> _objectHiddenCache =
+        new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (bool Success, bool Visible)> _inlineVisibilityExpressionCache =
         new System.Collections.Concurrent.ConcurrentDictionary<string, (bool Success, bool Visible)>(StringComparer.Ordinal);
 
@@ -28,8 +30,20 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
         int maxExpressionDepth) {
-        int effectiveMaxExpressionDepth = System.Math.Min(maxExpressionDepth, PdfReadLimits.DefaultMaxContentNestingDepth);
-        Dictionary<int, bool> groupVisibility = ReadGroupVisibility(objects, out bool hasUnsupportedViewUsageApplications);
+        DocumentState documentState = CreateDocumentState(
+            PdfSyntax.FindCatalog(objects),
+            objects,
+            maxExpressionDepth);
+        return Create(resources, documentState);
+    }
+
+    internal static PdfPageOptionalContentVisibility? Create(
+        PdfDictionary? resources,
+        DocumentState documentState) {
+        Dictionary<int, PdfIndirectObject> objects = documentState.Objects;
+        Dictionary<int, bool> groupVisibility = documentState.GroupVisibility;
+        int effectiveMaxExpressionDepth = documentState.MaxExpressionDepth;
+        bool hasUnsupportedViewUsageApplications = documentState.HasUnsupportedViewUsageApplications;
         bool hasPropertiesDeclaration = resources != null && resources.Items.ContainsKey("Properties");
         PdfDictionary? properties = resources != null &&
             resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject)
@@ -37,23 +51,6 @@ internal sealed class PdfPageOptionalContentVisibility {
                 : null;
         if (groupVisibility.Count == 0 && !hasUnsupportedViewUsageApplications && !hasPropertiesDeclaration) {
             return null;
-        }
-
-        var hiddenObjectNumbers = new HashSet<int>();
-        foreach (KeyValuePair<int, bool> entry in groupVisibility) {
-            if (!entry.Value) {
-                hiddenObjectNumbers.Add(entry.Key);
-            }
-        }
-
-        foreach (KeyValuePair<int, PdfIndirectObject> entry in objects) {
-            if (hiddenObjectNumbers.Contains(entry.Key)) {
-                continue;
-            }
-
-            if (IsOptionalContentObjectHidden(entry.Value.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
-                hiddenObjectNumbers.Add(entry.Key);
-            }
         }
 
         var hiddenProperties = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -71,7 +68,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
         }
 
-        return new PdfPageOptionalContentVisibility(hiddenProperties, knownProperties, invalidProperties, hiddenObjectNumbers, groupVisibility, objects, effectiveMaxExpressionDepth, hasUnsupportedViewUsageApplications);
+        return new PdfPageOptionalContentVisibility(hiddenProperties, knownProperties, invalidProperties, documentState.HiddenObjectNumbers, groupVisibility, objects, effectiveMaxExpressionDepth, hasUnsupportedViewUsageApplications);
     }
 
     public bool IsHidden(string propertyName) =>
@@ -82,13 +79,26 @@ internal sealed class PdfPageOptionalContentVisibility {
 
     public bool IsHiddenAny(IReadOnlyList<int> objectNumbers) {
         for (int i = 0; i < objectNumbers.Count; i++) {
-            if (_hiddenObjectNumbers.Contains(objectNumbers[i])) {
+            int objectNumber = objectNumbers[i];
+            if (_hiddenObjectNumbers.Contains(objectNumber) ||
+                (!_groupVisibility.ContainsKey(objectNumber) &&
+                 _objectHiddenCache.GetOrAdd(objectNumber, IsIndirectOptionalContentObjectHidden))) {
                 return true;
             }
         }
 
         return false;
     }
+
+    private bool IsIndirectOptionalContentObjectHidden(int objectNumber) =>
+        _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
+        IsOptionalContentObjectHidden(
+            indirect.Value,
+            _groupVisibility,
+            _objects,
+            new HashSet<int> { objectNumber },
+            _maxExpressionDepth,
+            depth: 0);
 
     public bool IsHidden(PdfInlineOptionalContentReferences references) {
         if (references.IsMembershipDictionary) {
@@ -399,10 +409,14 @@ internal sealed class PdfPageOptionalContentVisibility {
         return !visibleByPolicy;
     }
 
-    private static Dictionary<int, bool> ReadGroupVisibility(Dictionary<int, PdfIndirectObject> objects, out bool hasUnsupportedViewUsageApplications) {
+    private static Dictionary<int, bool> ReadGroupVisibility(
+        PdfDictionary? catalog,
+        Dictionary<int, PdfIndirectObject> objects,
+        System.Threading.CancellationToken cancellationToken,
+        out bool hasUnsupportedViewUsageApplications) {
+        cancellationToken.ThrowIfCancellationRequested();
         hasUnsupportedViewUsageApplications = false;
         var result = new Dictionary<int, bool>();
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects);
         if (catalog == null ||
             !catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContentObject) ||
             ResolveObject(optionalContentObject, objects) is not PdfDictionary optionalContent ||
@@ -420,11 +434,12 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
         }
         bool validBaseState = TryReadBaseState(defaultConfiguration, objects, out string? baseState);
-        HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects, out bool invalidOnGroups);
-        HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects, out bool invalidOffGroups);
+        HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects, cancellationToken, out bool invalidOnGroups);
+        HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects, cancellationToken, out bool invalidOffGroups);
         hasUnsupportedViewUsageApplications = invalidDefaultConfiguration || !validBaseState || invalidOnGroups || invalidOffGroups;
 
         for (int i = 0; i < groups.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (groups.Items[i] is not PdfReference reference) {
                 hasUnsupportedViewUsageApplications = true;
                 continue;
@@ -449,8 +464,8 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         hasUnsupportedViewUsageApplications |=
-            HasUnsupportedOptionalContentIntent(defaultConfiguration, groups, objects) ||
-            ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
+            HasUnsupportedOptionalContentIntent(defaultConfiguration, groups, objects, cancellationToken) ||
+            ApplyViewUsageApplications(defaultConfiguration, groups, result, objects, cancellationToken);
 
         return result;
     }
@@ -479,10 +494,12 @@ internal sealed class PdfPageOptionalContentVisibility {
     private static bool HasUnsupportedOptionalContentIntent(
         PdfDictionary? defaultConfiguration,
         PdfArray groups,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        System.Threading.CancellationToken cancellationToken) {
         if (!HasDefaultViewIntent(defaultConfiguration, objects)) return true;
 
         for (int index = 0; index < groups.Items.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(groups.Items[index], objects) is PdfDictionary group &&
                 !HasDefaultViewIntent(group, objects)) return true;
         }
@@ -502,7 +519,9 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfDictionary? defaultConfiguration,
         PdfArray groups,
         Dictionary<int, bool> visibility,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (defaultConfiguration == null ||
             !defaultConfiguration.Items.TryGetValue("AS", out PdfObject? applicationsObject)) {
             return false;
@@ -513,6 +532,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         var declaredGroups = new HashSet<long>();
         for (int groupIndex = 0; groupIndex < groups.Items.Count; groupIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (groups.Items[groupIndex] is PdfReference declaredReference) {
                 declaredGroups.Add(GetReferenceKey(declaredReference));
             }
@@ -520,6 +540,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         bool hasUnsupportedViewUsageApplications = false;
         for (int applicationIndex = 0; applicationIndex < applications.Items.Count; applicationIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(applications.Items[applicationIndex], objects) is not PdfDictionary application) {
                 hasUnsupportedViewUsageApplications = true;
                 continue;
@@ -550,6 +571,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 }
             }
             for (int targetIndex = 0; targetIndex < targets.Items.Count; targetIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (targets.Items[targetIndex] is not PdfReference reference ||
                     !declaredGroups.Contains(GetReferenceKey(reference))) {
                     hasUnsupportedViewUsageApplications = true;
@@ -601,6 +623,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfDictionary? dictionary,
         string key,
         Dictionary<int, PdfIndirectObject> objects,
+        System.Threading.CancellationToken cancellationToken,
         out bool invalid) {
         var result = new HashSet<int>();
         invalid = false;
@@ -617,6 +640,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         for (int i = 0; i < array.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (array.Items[i] is not PdfReference reference ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
                 ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||

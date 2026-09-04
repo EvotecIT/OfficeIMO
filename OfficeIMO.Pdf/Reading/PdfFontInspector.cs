@@ -388,6 +388,8 @@ internal static class PdfFontInspector {
             _subsetTag,
             _resource.FontSubtype,
             _resource.Encoding,
+            _resource.FontWeight,
+            _resource.FontDescriptorFlags,
             _resource.HasToUnicode,
             _resource.CMap is not null,
             _resource.CMap?.MappingCount ?? 0,

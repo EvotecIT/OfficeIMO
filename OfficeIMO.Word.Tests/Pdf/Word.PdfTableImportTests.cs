@@ -97,10 +97,9 @@ public partial class Word {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
             Table table = Assert.Single(GetBody(package).Descendants<Table>());
             List<TableRow> rows = table.Elements<TableRow>().ToList();
-            Assert.Equal(3, rows.Count);
-            Assert.Equal(new[] { "Key", "Value" }, ReadRowText(rows[0]));
-            Assert.Equal(new[] { "InvoiceId", "INV-001" }, ReadRowText(rows[1]));
-            Assert.Equal(new[] { "Customer", "Evotec" }, ReadRowText(rows[2]));
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(new[] { "InvoiceId", "INV-001" }, ReadRowText(rows[0]));
+            Assert.Equal(new[] { "Customer", "Evotec" }, ReadRowText(rows[1]));
         }
 
         using var emptyDocument = new MemoryStream();

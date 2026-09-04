@@ -118,9 +118,25 @@ public sealed class PdfOcrResponse {
 /// <summary>One OCR word in rendered pixel coordinates.</summary>
 public sealed class PdfOcrWord {
     /// <summary>Creates a recognized pixel-space word.</summary>
-    public PdfOcrWord(string text, double x, double y, double width, double height, double confidence) {
+    public PdfOcrWord(string text, double x, double y, double width, double height, double confidence)
+        : this(text, x, y, width, height, confidence, null, null, null) {
+    }
+    /// <summary>Creates a recognized pixel-space word with optional provider layout hierarchy.</summary>
+    public PdfOcrWord(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        double confidence,
+        string? blockId,
+        string? paragraphId,
+        string? lineId) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Text = text; X = x; Y = y; Width = width; Height = height; Confidence = confidence;
+        BlockId = NormalizeHierarchyId(blockId);
+        ParagraphId = NormalizeHierarchyId(paragraphId);
+        LineId = NormalizeHierarchyId(lineId);
     }
     /// <summary>Recognized text.</summary>
     public string Text { get; }
@@ -134,4 +150,16 @@ public sealed class PdfOcrWord {
     public double Height { get; }
     /// <summary>Provider confidence from 0 through 1.</summary>
     public double Confidence { get; }
+    /// <summary>Provider block identifier, when available. Values longer than 256 characters are ignored.</summary>
+    public string? BlockId { get; }
+    /// <summary>Provider paragraph identifier, when available. Values longer than 256 characters are ignored.</summary>
+    public string? ParagraphId { get; }
+    /// <summary>Provider line identifier, scoped by its block and paragraph identifiers when supplied. Values longer than 256 characters are ignored.</summary>
+    public string? LineId { get; }
+
+    private static string? NormalizeHierarchyId(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        string normalized = value!.Trim();
+        return normalized.Length <= 256 ? normalized : null;
+    }
 }

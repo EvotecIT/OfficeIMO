@@ -77,7 +77,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                     .Text(rightTwo + " right middle", 340D, 164D, 206D, 24D, fontSize: 11D)
                     .Text(rightThree + " right closing", 340D, 216D, 206D, 24D, fontSize: 11D)
                     .Text("1. " + list + " classified list item", 36D, 292D, 510D, 24D, fontSize: 11D)
-                    .Text("Table 1. " + caption + " classified table caption", 36D, 350D, 510D, 24D, fontSize: 10D)
+                    .Text(CaptionLabel(pageNumber) + " 1. " + caption + " classified table caption", 36D, 370D, 510D, 18D, fontSize: 9D)
                     .Table(new[] {
                         new[] { table, ownerHeader, amountHeader, statusHeader },
                         new[] { accountOne, ownerOne, amountOne, statusOne },
@@ -111,7 +111,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         [rightTwo] = rightTwo + " right middle",
                         [rightThree] = rightThree + " right closing",
                         [list] = "1. " + list + " classified list item",
-                        [caption] = "Table 1. " + caption + " classified table caption",
+                        [caption] = CaptionLabel(pageNumber) + " 1. " + caption + " classified table caption",
                         [table] = tableRegionText,
                         [footer] = footer + " semantic benchmark running footer"
                     },
@@ -189,4 +189,11 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
         if (value != 0) throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "The benchmark page token supports at most 17,576 pages.");
         return new string(characters);
     }
+
+    private static string CaptionLabel(int pageNumber) => ((pageNumber - 1) % 4) switch {
+        0 => "Tabell",
+        1 => "Tabela",
+        2 => "Tabelle",
+        _ => "Cuadro"
+    };
 }

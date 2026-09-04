@@ -1228,7 +1228,21 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableAnalysis.LooksLikeKeyValueTable(OfficeIMO.Pdf.PdfLogicalTable)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(OfficeIMO.Pdf.PdfLogicalDocument,System.Int32,System.Boolean,System.Boolean,System.Int32,System.Double)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableStructure.get_IsKeyValueTable</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -1243,6 +1257,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions.ToMarkdownTables(OfficeIMO.Pdf.PdfLogicalDocument,OfficeIMO.Pdf.PdfLogicalTableTextExportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -1264,6 +1292,104 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.String,System.String,OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_BuildEnrichedLogicalDocument</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_DetectAlignedTables</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MaxInferredTablesPerPage</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumAlignedTableRows</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumTableColumnGapPoints</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_Selection</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_TableColumnTolerancePoints</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_BuildEnrichedLogicalDocument(System.Boolean)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_DetectAlignedTables(System.Boolean)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MaxInferredTablesPerPage(System.Int32)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumAlignedTableRows(System.Int32)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumTableColumnGapPoints(System.Double)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_Selection(OfficeIMO.Pdf.PdfPageSelection)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_TableColumnTolerancePoints(System.Double)</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -1529,6 +1655,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.get_JoinHyphenationAcrossLines</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.set_JoinHyphenationAcrossLines(System.Boolean)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.Advanced(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
@@ -1544,6 +1684,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.set_Layout(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfUnderstandingWord.#ctor(System.String,System.Double,System.Double,System.Double,System.Double,System.Double,System.Collections.Generic.IReadOnlyList{OfficeIMO.Pdf.PdfTextSpan},System.Double,System.Collections.Generic.IEnumerable{OfficeIMO.Pdf.PdfInferenceEvidence})</Target>
     <Left>lib/net10.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -2649,7 +2796,21 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableAnalysis.LooksLikeKeyValueTable(OfficeIMO.Pdf.PdfLogicalTable)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(OfficeIMO.Pdf.PdfLogicalDocument,System.Int32,System.Boolean,System.Boolean,System.Int32,System.Double)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableStructure.get_IsKeyValueTable</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -2664,6 +2825,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions.ToMarkdownTables(OfficeIMO.Pdf.PdfLogicalDocument,OfficeIMO.Pdf.PdfLogicalTableTextExportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -2685,6 +2860,104 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.String,System.String,OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_BuildEnrichedLogicalDocument</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_DetectAlignedTables</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MaxInferredTablesPerPage</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumAlignedTableRows</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumTableColumnGapPoints</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_Selection</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_TableColumnTolerancePoints</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_BuildEnrichedLogicalDocument(System.Boolean)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_DetectAlignedTables(System.Boolean)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MaxInferredTablesPerPage(System.Int32)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumAlignedTableRows(System.Int32)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumTableColumnGapPoints(System.Double)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_Selection(OfficeIMO.Pdf.PdfPageSelection)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_TableColumnTolerancePoints(System.Double)</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -2950,6 +3223,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.get_JoinHyphenationAcrossLines</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.set_JoinHyphenationAcrossLines(System.Boolean)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.Advanced(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
@@ -2965,6 +3252,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.set_Layout(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfUnderstandingWord.#ctor(System.String,System.Double,System.Double,System.Double,System.Double,System.Double,System.Collections.Generic.IReadOnlyList{OfficeIMO.Pdf.PdfTextSpan},System.Double,System.Collections.Generic.IEnumerable{OfficeIMO.Pdf.PdfInferenceEvidence})</Target>
     <Left>lib/net472/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -4070,7 +4364,21 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableAnalysis.LooksLikeKeyValueTable(OfficeIMO.Pdf.PdfLogicalTable)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(OfficeIMO.Pdf.PdfLogicalDocument,System.Int32,System.Boolean,System.Boolean,System.Int32,System.Double)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableStructure.get_IsKeyValueTable</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -4085,6 +4393,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions.ToMarkdownTables(OfficeIMO.Pdf.PdfLogicalDocument,OfficeIMO.Pdf.PdfLogicalTableTextExportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -4106,6 +4428,104 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.String,System.String,OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_BuildEnrichedLogicalDocument</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_DetectAlignedTables</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MaxInferredTablesPerPage</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumAlignedTableRows</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumTableColumnGapPoints</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_Selection</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_TableColumnTolerancePoints</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_BuildEnrichedLogicalDocument(System.Boolean)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_DetectAlignedTables(System.Boolean)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MaxInferredTablesPerPage(System.Int32)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumAlignedTableRows(System.Int32)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumTableColumnGapPoints(System.Double)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_Selection(OfficeIMO.Pdf.PdfPageSelection)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_TableColumnTolerancePoints(System.Double)</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -4371,6 +4791,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.get_JoinHyphenationAcrossLines</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.set_JoinHyphenationAcrossLines(System.Boolean)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.Advanced(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
@@ -4386,6 +4820,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.set_Layout(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfUnderstandingWord.#ctor(System.String,System.Double,System.Double,System.Double,System.Double,System.Double,System.Collections.Generic.IReadOnlyList{OfficeIMO.Pdf.PdfTextSpan},System.Double,System.Collections.Generic.IEnumerable{OfficeIMO.Pdf.PdfInferenceEvidence})</Target>
     <Left>lib/net8.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -5491,7 +5932,21 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableAnalysis.LooksLikeKeyValueTable(OfficeIMO.Pdf.PdfLogicalTable)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(OfficeIMO.Pdf.PdfLogicalDocument,System.Int32,System.Boolean,System.Boolean,System.Int32,System.Double)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableStructure.get_IsKeyValueTable</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -5506,6 +5961,20 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions.ToMarkdownTables(OfficeIMO.Pdf.PdfLogicalDocument,OfficeIMO.Pdf.PdfLogicalTableTextExportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(OfficeIMO.Pdf.PdfLogicalTableData,System.Globalization.CultureInfo)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis.Analyze(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.Collections.Generic.IReadOnlyList{System.String}},System.Globalization.CultureInfo)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -5527,6 +5996,104 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfLongTermValidationEnricher.Enrich(System.String,System.String,OfficeIMO.Pdf.PdfLongTermValidationEvidence,OfficeIMO.Pdf.IPdfSignatureCryptographyProvider,OfficeIMO.Pdf.PdfReadOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_BuildEnrichedLogicalDocument</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_DetectAlignedTables</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MaxInferredTablesPerPage</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumAlignedTableRows</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_MinimumTableColumnGapPoints</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_Selection</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.get_TableColumnTolerancePoints</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_BuildEnrichedLogicalDocument(System.Boolean)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_DetectAlignedTables(System.Boolean)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MaxInferredTablesPerPage(System.Int32)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumAlignedTableRows(System.Int32)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_MinimumTableColumnGapPoints(System.Double)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_Selection(OfficeIMO.Pdf.PdfPageSelection)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfOcrMergeOptions.set_TableColumnTolerancePoints(System.Double)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -5792,6 +6359,20 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.get_JoinHyphenationAcrossLines</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfTextLayoutOptions.set_JoinHyphenationAcrossLines(System.Boolean)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.Advanced(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
@@ -5807,6 +6388,13 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfUnderstandingPipelineOptions.set_Layout(OfficeIMO.Pdf.PdfTextLayoutOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Pdf.PdfUnderstandingWord.#ctor(System.String,System.Double,System.Double,System.Double,System.Double,System.Double,System.Collections.Generic.IReadOnlyList{OfficeIMO.Pdf.PdfTextSpan},System.Double,System.Collections.Generic.IEnumerable{OfficeIMO.Pdf.PdfInferenceEvidence})</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
