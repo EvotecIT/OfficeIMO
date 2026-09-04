@@ -18,10 +18,11 @@ internal static class HtmlGeneratedContentResolver {
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();
+        var quotes = new QuoteState();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content, counterStyles);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
             counters.ExitLevel(level);
         }
 
@@ -36,6 +37,7 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
+        QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles) {
         if (depth > maximumDepth) {
@@ -53,15 +55,15 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content, counterStyles);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles);
     }
 
     private static void ResolvePseudo(
@@ -71,6 +73,7 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
+        QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
@@ -88,7 +91,19 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail, out bool counterRepresentationLimited)) {
+        if (!HtmlCssQuotes.TryParse(pseudoStyle.GetValue("quotes"), out HtmlCssQuotes quotePairs)) {
+            diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                "A CSS quotes declaration could not be represented and used the default quote pairs.",
+                HtmlDiagnosticSeverity.Warning,
+                pseudoSource,
+                "quotes=" + pseudoStyle.GetValue("quotes"),
+                OfficeConversionLossKind.Approximation);
+            quotePairs = HtmlCssQuotes.Default;
+        }
+
+        if (!TryEvaluate(expression, element, counters, counterStyles, quotes, quotePairs, out string generated, out string detail, out bool counterRepresentationLimited)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -188,10 +203,13 @@ internal static class HtmlGeneratedContentResolver {
         IElement element,
         CounterState counters,
         HtmlCounterStyleRegistry counterStyles,
+        QuoteState quotes,
+        HtmlCssQuotes quotePairs,
         out string generated,
         out string detail,
         out bool counterRepresentationLimited) {
         counterRepresentationLimited = false;
+        int quoteDepth = quotes.Depth;
         var text = new StringBuilder();
         int cursor = 0;
         while (cursor < expression.Length) {
@@ -207,6 +225,31 @@ internal static class HtmlGeneratedContentResolver {
 
                 text.Append(literal);
                 continue;
+            }
+
+            if (TryReadKeyword(expression, ref cursor, out string keyword)) {
+                if (string.Equals(keyword, "open-quote", StringComparison.OrdinalIgnoreCase)) {
+                    text.Append(quotePairs.OpeningAt(quoteDepth));
+                    if (quoteDepth < int.MaxValue) quoteDepth++;
+                    continue;
+                }
+                if (string.Equals(keyword, "close-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth > 0) quoteDepth--;
+                    text.Append(quotePairs.ClosingAt(quoteDepth));
+                    continue;
+                }
+                if (string.Equals(keyword, "no-open-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth < int.MaxValue) quoteDepth++;
+                    continue;
+                }
+                if (string.Equals(keyword, "no-close-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth > 0) quoteDepth--;
+                    continue;
+                }
+
+                generated = string.Empty;
+                detail = "unsupported content token " + keyword;
+                return false;
             }
 
             if (!TryReadFunction(expression, ref cursor, out string functionName, out string arguments)) {
@@ -270,6 +313,7 @@ internal static class HtmlGeneratedContentResolver {
             }
         }
 
+        quotes.Depth = quoteDepth;
         generated = text.ToString();
         detail = string.Empty;
         return true;
@@ -336,6 +380,19 @@ internal static class HtmlGeneratedContentResolver {
         arguments = string.Empty;
         cursor = nameStart;
         return false;
+    }
+
+    private static bool TryReadKeyword(string value, ref int cursor, out string keyword) {
+        int start = cursor;
+        while (cursor < value.Length && (char.IsLetter(value[cursor]) || value[cursor] == '-')) cursor++;
+        if (cursor == start || cursor < value.Length && value[cursor] == '(') {
+            cursor = start;
+            keyword = string.Empty;
+            return false;
+        }
+
+        keyword = value.Substring(start, cursor - start);
+        return true;
     }
 
     private static IReadOnlyList<string> SplitArguments(string value) {
@@ -510,6 +567,10 @@ internal static class HtmlGeneratedContentResolver {
 
             return values;
         }
+    }
+
+    private sealed class QuoteState {
+        internal int Depth { get; set; }
     }
 
     private sealed class CounterValue {

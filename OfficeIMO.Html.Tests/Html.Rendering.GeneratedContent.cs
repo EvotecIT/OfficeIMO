@@ -188,7 +188,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlGeneratedContent_DiagnosesUnsupportedContentFunctions() {
+    public void HtmlGeneratedContent_RendersQuotesAndDiagnosesUnsupportedImages() {
         const string html = """
             <style>
               .image::before { content:url('data:image/png;base64,AA=='); }
@@ -203,14 +203,39 @@ public sealed partial class HtmlRenderingTests {
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported)
             .ToList();
 
-        Assert.Equal(2, diagnostics.Count);
+        Assert.Single(diagnostics);
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "p.image::before" && diagnostic.Detail!.Contains("url", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "p.quote::after" && diagnostic.Detail!.Contains("open-quote", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.quote::after" && text.Text == "\u201c");
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.flex::before" && text.Text == "FlexFallback");
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text =>
-            text.Source == "p.image::before" || text.Source == "p.quote::after");
+            text.Source == "p.image::before");
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedContentUnsupported, out _));
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_TracksNestedAuthoredQuotePairsAndNoQuoteDepthTokens() {
+        const string html = """
+            <style>
+              body { quotes: "«" "»" "‹" "›"; }
+              q::before { content:open-quote; }
+              q::after { content:close-quote; }
+              .silent::before { content:no-open-quote; }
+              .silent::after { content:no-close-quote; }
+            </style>
+            <q>outer <q>inner</q></q><span class="silent">silent</span><q>again</q>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument
+            .Open(HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions()))
+            .ExtractText()
+            .Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal("«outer ‹inner›»silent«again»", rendered.Text.Replace("\r", string.Empty).Replace("\n", string.Empty));
+        Assert.Contains("«outer‹inner›»silent«again»", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
     }
 
     [Fact]

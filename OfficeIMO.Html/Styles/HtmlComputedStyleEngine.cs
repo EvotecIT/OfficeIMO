@@ -36,6 +36,7 @@ public static partial class HtmlComputedStyleEngine {
         "tab-size",
         "orphans",
         "page",
+        "quotes",
         "text-align",
         "text-transform",
         "visibility",
@@ -45,8 +46,11 @@ public static partial class HtmlComputedStyleEngine {
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
+        "background-attachment",
+        "background-clip",
         "background-color",
         "background-image",
+        "background-origin",
         "background-position",
         "background-repeat",
         "background-size",
@@ -196,6 +200,7 @@ public static partial class HtmlComputedStyleEngine {
         "padding-right",
         "padding-top",
         "position",
+        "quotes",
         "place-content",
         "place-items",
         "place-self",

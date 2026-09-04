@@ -833,6 +833,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         IReadOnlyList<string> positionLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-position"));
         IReadOnlyList<string> repeatLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-repeat"));
         IReadOnlyList<string> sizeLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-size"));
+        IReadOnlyList<string> originLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-origin"));
+        IReadOnlyList<string> clipLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-clip"));
+        IReadOnlyList<string> attachmentLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-attachment"));
+        (string shorthandOrigin, string shorthandClip) = ExtractBackgroundBoxes(backgroundShorthand);
+        style.BackgroundColorClip = HtmlRenderBackgroundLayer.NormalizeBox(
+            clipLayers.Count > 0 ? clipLayers[clipLayers.Count - 1] : shorthandClip,
+            "border-box");
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;
         bool hasDeclaredBackgroundImage = false;
@@ -853,22 +860,25 @@ internal sealed partial class HtmlRenderStyleResolver {
             string position = GetLayerValue(positionLayers, index, ExtractBackgroundPosition(sourceLayer), "0% 0%");
             string repeat = GetLayerValue(repeatLayers, index, ExtractBackgroundRepeat(sourceLayer), "repeat");
             string size = GetLayerValue(sizeLayers, index, ExtractBackgroundSize(sourceLayer), "auto");
+            string origin = GetLayerValue(originLayers, index, shorthandOrigin, "padding-box");
+            string clip = GetLayerValue(clipLayers, index, shorthandClip, "border-box");
+            string attachment = GetLayerValue(attachmentLayers, index, ExtractBackgroundAttachment(sourceLayer), "scroll");
             if (urls.Count == 0) {
                 if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linearGradient, out bool linearStopLimitExceeded)
                     && linearGradient != null) {
-                    layers.Add(new HtmlRenderBackgroundLayer(linearGradient, position, repeat, size));
+                    layers.Add(new HtmlRenderBackgroundLayer(linearGradient, position, repeat, size, origin, clip, attachment));
                     continue;
                 }
 
                 if (HtmlCssRadialGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssRadialGradientDefinition? radialGradient, out bool radialStopLimitExceeded)
                     && radialGradient != null) {
-                    layers.Add(new HtmlRenderBackgroundLayer(radialGradient, position, repeat, size));
+                    layers.Add(new HtmlRenderBackgroundLayer(radialGradient, position, repeat, size, origin, clip, attachment));
                     continue;
                 }
 
                 if (HtmlCssConicGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssConicGradientDefinition? conicGradient, out bool conicStopLimitExceeded)
                     && conicGradient != null) {
-                    layers.Add(new HtmlRenderBackgroundLayer(conicGradient, position, repeat, size));
+                    layers.Add(new HtmlRenderBackgroundLayer(conicGradient, position, repeat, size, origin, clip, attachment));
                     continue;
                 }
 
@@ -881,7 +891,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 continue;
             }
 
-            layers.Add(new HtmlRenderBackgroundLayer(urls[0], position, repeat, size));
+            layers.Add(new HtmlRenderBackgroundLayer(urls[0], position, repeat, size, origin, clip, attachment));
         }
 
         style.BackgroundImageLayerCount = declaredLayerCount;
@@ -915,6 +925,28 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
 
         return string.Join(" ", values);
+    }
+
+    private static string ExtractBackgroundAttachment(string shorthand) {
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
+            string value = token.Trim().TrimEnd(',').ToLowerInvariant();
+            if (value == "scroll" || value == "fixed" || value == "local") return value;
+        }
+        return string.Empty;
+    }
+
+    private static (string Origin, string Clip) ExtractBackgroundBoxes(string shorthand) {
+        var boxes = new List<string>(2);
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
+            string value = token.Trim().TrimEnd(',').ToLowerInvariant();
+            if (value == "border-box" || value == "padding-box" || value == "content-box") {
+                boxes.Add(value);
+                if (boxes.Count == 2) break;
+            }
+        }
+
+        if (boxes.Count == 0) return ("padding-box", "border-box");
+        return boxes.Count == 1 ? (boxes[0], boxes[0]) : (boxes[0], boxes[1]);
     }
 
     private static string ExtractBackgroundSize(string shorthand) {

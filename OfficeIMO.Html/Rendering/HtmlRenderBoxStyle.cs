@@ -108,6 +108,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string BorderBottomRightRadius = string.Empty;
     internal string BorderBottomLeftRadius = string.Empty;
     internal OfficeColor? BackgroundColor;
+    internal string BackgroundColorClip = "border-box";
     internal int BackgroundImageLayerCount;
     internal bool HasDeclaredBackgroundImage;
     internal int UnsupportedBackgroundImageLayerCount;
