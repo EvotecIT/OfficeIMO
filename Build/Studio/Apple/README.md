@@ -4,7 +4,7 @@ OfficeIMO Studio keeps direct macOS distribution and the Mac App Store as separa
 
 ## Direct download
 
-The active `powerforge.dotnetpublish.json` lane produces architecture-specific `.app` bundles and `ditto` ZIP archives. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
+The active `powerforge.dotnetpublish.json` lane produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
 
 Local proof uses explicit ad-hoc signing. A public artifact requires all of the following on a trusted macOS builder:
 

@@ -63,7 +63,7 @@
       "Publish": {
         "Framework": "net10.0",
         "Runtimes": [ "osx-x64", "osx-arm64" ],
-        "Style": "PortableCompat",
+        "Style": "SelfContained",
         "UseStaging": true,
         "ClearOutput": true,
         "KeepSymbols": false,
@@ -172,7 +172,7 @@
       "PrepareFromTarget": "Studio.macOS",
       "Runtimes": [ "osx-x64", "osx-arm64" ],
       "Frameworks": [ "net10.0" ],
-      "Styles": [ "PortableCompat" ],
+      "Styles": [ "SelfContained" ],
       "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
       "OutputName": "OfficeIMO-Studio-{version}-{rid}.zip",
       "MacApp": {
