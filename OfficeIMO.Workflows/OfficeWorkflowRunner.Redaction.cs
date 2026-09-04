@@ -1,20 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
 
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
-    private static readonly JsonSerializerOptions RedactionJsonOptions = new() {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     /// <inheritdoc />
     public async Task<PdfRedactionWorkflowResult> RunRedactionAsync(
         PdfRedactionWorkflowRequest request,
@@ -145,8 +137,16 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         string recipeSha = ComputeRecipeSha256(request.Recipe);
         PdfLoadOptions loadOptions = new() { Password = request.OwnerPassword };
         PdfDocumentPreflight originalPreflight = PdfInspector.Preflight(originalSource, loadOptions);
-        if (originalPreflight.Probe.HasSignatures) {
-            throw new RedactionWorkflowException("Signed PDFs are rejected: permanent redaction requires a full rewrite that invalidates signatures. Create an explicitly unsigned copy first.");
+        int sourceSignatureCount = Math.Max(
+            originalPreflight.Probe.Security.SignatureCount,
+            originalPreflight.Probe.HasSignatures ? 1 : 0);
+        if (originalPreflight.Probe.HasSignatures && request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.RejectSignedSource) {
+            throw new RedactionWorkflowException("The recipe rejects signed sources because permanent redaction invalidates their signatures. Select an explicit derivative policy.");
+        }
+        if (request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify &&
+            request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative &&
+            request.OutputSigner is null) {
+            throw new RedactionWorkflowException("CreateAndSignDerivative requires a runtime output signer.");
         }
 
         byte[] planningSource = originalSource;
@@ -157,12 +157,19 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             }
             if (string.IsNullOrWhiteSpace(request.OwnerPassword)) throw new RedactionWorkflowException("An owner password is required by the encrypted-document policy.");
             if (!originalPreflight.Probe.Security.HasOwnerAuthorization) throw new RedactionWorkflowException("The supplied credential did not authenticate as the PDF owner password.");
-            if (request.Recipe.EncryptedDocumentPolicy is PdfRedactionEncryptedDocumentPolicy.Decrypt or PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt) {
+            if (originalPreflight.Probe.HasSignatures) {
+                planningSource = PdfDocument.Load(originalSource, loadOptions).Security.CreateUnsignedDerivative(cancellationToken).Pdf;
+                planningOptions = PdfLoadOptions.Default;
+            } else if (request.Recipe.EncryptedDocumentPolicy is PdfRedactionEncryptedDocumentPolicy.Decrypt or PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt) {
                 planningSource = PdfDocument.Load(originalSource, loadOptions).Security.Decrypt(request.OwnerPassword).Pdf;
                 planningOptions = PdfLoadOptions.Default;
             }
         } else if (request.Recipe.EncryptedDocumentPolicy != PdfRedactionEncryptedDocumentPolicy.Reject) {
             throw new RedactionWorkflowException("Decrypt and DecryptAndReencrypt policies require an encrypted source PDF.");
+        }
+        if (originalPreflight.Probe.HasSignatures && !originalPreflight.Probe.HasEncryption) {
+            planningSource = PdfDocument.Load(originalSource, loadOptions).Security.CreateUnsignedDerivative(cancellationToken).Pdf;
+            planningOptions = PdfLoadOptions.Default;
         }
         if (request.Mode != PdfRedactionWorkflowMode.PlanOnly && request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt && request.OutputEncryption is null) {
             throw new RedactionWorkflowException("DecryptAndReencrypt apply and verification require runtime OutputEncryption settings.");
@@ -199,8 +206,12 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 if (output.LongLength > request.Limits.MaximumOutputBytes) throw new RedactionWorkflowException("Redacted output exceeds the configured output-byte limit.");
                 PdfLoadOptions finalOutputOptions = GetOutputLoadOptions(request);
                 ValidateFinalArtifactEncryptionPolicy(output, request, finalOutputOptions, cancellationToken);
+                (output, RedactionSignatureEvidence signature) = ApplyDerivativeSignature(output, request, finalOutputOptions, sourceSignatureCount, cancellationToken);
+                if (output.LongLength > request.Limits.MaximumOutputBytes) throw new RedactionWorkflowException("Redacted output exceeds the configured output-byte limit after signing.");
+                ValidateFinalArtifactEncryptionPolicy(output, request, finalOutputOptions, cancellationToken);
+                IReadOnlyList<string> externalValidators = ValidateExternalArtifact(output, request, finalOutputOptions, cancellationToken);
                 evidence = CreateEmptyEvidence(originalSourceSha, ComputeSha256(output), recipeSha, request, candidatePlan,
-                    originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite");
+                    originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite", signature, externalValidators);
             } else {
                 PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
                 var applyOptions = new PdfRedactionApplyOptions {
@@ -224,38 +235,45 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                     approvedPlan,
                     new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true, CancellationToken = cancellationToken });
                 if (!finalVerification.IsVerified) throw new RedactionWorkflowException("The final protected-document artifact failed redaction verification; no artifact will be published.");
+                (output, RedactionSignatureEvidence signature) = ApplyDerivativeSignature(output, request, finalOutputOptions, sourceSignatureCount, cancellationToken);
+                ValidateFinalArtifactEncryptionPolicy(output, request, finalOutputOptions, cancellationToken);
+                IReadOnlyList<string> externalValidators = ValidateExternalArtifact(output, request, finalOutputOptions, cancellationToken);
                 int ocrResidualCount = candidatePlan.OcrUsed
                     ? await CountOcrResidualsAsync(PdfDocument.Load(output, finalOutputOptions), request, approvedAreas, cancellationToken).ConfigureAwait(false)
                     : 0;
                 if (output.LongLength > request.Limits.MaximumOutputBytes) throw new RedactionWorkflowException("Redacted output exceeds the configured output-byte limit.");
-                evidence = CreateEvidence(originalSourceSha, ComputeSha256(output), recipeSha, request, candidatePlan, applied.Evidence, ocrResidualCount);
+                evidence = CreateEvidence(originalSourceSha, ComputeSha256(output), recipeSha, request, candidatePlan, applied.Evidence, ocrResidualCount, signature, externalValidators);
                 if (!evidence.Verified) throw new RedactionWorkflowException("Redaction verification was inconclusive or found residual content; no artifact will be published.");
             }
         } else {
             byte[] existingOutput = await ReadFileBoundedAsync(request.OutputPath!, request.Limits.MaximumOutputBytes, cancellationToken).ConfigureAwait(false);
             PdfLoadOptions outputOptions = GetOutputLoadOptions(request);
             ValidateFinalArtifactEncryptionPolicy(existingOutput, request, outputOptions, cancellationToken);
+            RedactionSignatureEvidence signature = InspectDerivativeSignature(existingOutput, outputOptions, request, sourceSignatureCount);
+            IReadOnlyList<string> externalValidators = ValidateExternalArtifact(existingOutput, request, outputOptions, cancellationToken);
+            (byte[] verificationOutput, PdfLoadOptions verificationOptions) = CreateSignatureFreeVerificationArtifact(existingOutput, outputOptions, request, cancellationToken);
             if (approvedAreas.Length == 0) {
                 string existingOutputSha = ComputeSha256(existingOutput);
-                if (request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt) {
+                if (request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt ||
+                    request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative) {
                     if (string.IsNullOrWhiteSpace(request.ExpectedOutputSha256) || !string.Equals(request.ExpectedOutputSha256, existingOutputSha, StringComparison.OrdinalIgnoreCase)) {
                         throw new RedactionWorkflowException("Zero-area verification of a re-encrypted artifact requires its trusted expected output SHA-256 from prior apply evidence.");
                     }
                 } else {
                     byte[] expected = originalPreflight.Probe.HasEncryption ? planningSource : originalSource;
-                    if (!expected.AsSpan().SequenceEqual(existingOutput)) throw new RedactionWorkflowException("With no approved candidates, existing-output verification requires the exact policy-transformed source artifact.");
+                    if (!expected.AsSpan().SequenceEqual(verificationOutput)) throw new RedactionWorkflowException("With no approved candidates, existing-output verification requires the exact policy-transformed source artifact.");
                 }
                 evidence = CreateEmptyEvidence(originalSourceSha, existingOutputSha, recipeSha, request, candidatePlan,
-                    originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite");
+                    originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite", signature, externalValidators);
             } else {
                 PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
-                PdfRedactionVerificationReport verification = PdfDocument.Load(existingOutput, outputOptions).Redactions.VerifyAppliedPlan(
+                PdfRedactionVerificationReport verification = PdfDocument.Load(verificationOutput, verificationOptions).Redactions.VerifyAppliedPlan(
                     approvedPlan,
                     new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true, CancellationToken = cancellationToken });
                 int ocrResidualCount = candidatePlan.OcrUsed
-                    ? await CountOcrResidualsAsync(PdfDocument.Load(existingOutput, outputOptions), request, approvedAreas, cancellationToken).ConfigureAwait(false)
+                    ? await CountOcrResidualsAsync(PdfDocument.Load(verificationOutput, verificationOptions), request, approvedAreas, cancellationToken).ConfigureAwait(false)
                     : 0;
-                evidence = CreateVerificationEvidence(originalSourceSha, ComputeSha256(existingOutput), recipeSha, request, candidatePlan, approvedPlan, verification, ocrResidualCount);
+                evidence = CreateVerificationEvidence(originalSourceSha, ComputeSha256(existingOutput), recipeSha, request, candidatePlan, approvedPlan, verification, ocrResidualCount, signature, externalValidators);
             }
             output = Array.Empty<byte>();
             if (!evidence.Verified) throw new RedactionWorkflowException("Existing-output verification was inconclusive or found residual content.");
@@ -366,19 +384,23 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static void ValidateRedactionRequest(PdfRedactionWorkflowRequest request) {
+        ArgumentNullException.ThrowIfNull(request.Recipe);
+        ArgumentNullException.ThrowIfNull(request.Limits);
+        ArgumentNullException.ThrowIfNull(request.ExternalValidators);
         if (!Enum.IsDefined(request.Mode)) throw new ArgumentException("Redaction workflow mode is not defined.");
         if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentException("Redaction conflict policy is not defined.");
         if (!Enum.IsDefined(request.Recipe.DetectionMode) ||
             (request.Recipe.CleanupScope & ~PdfRedactionCleanupScope.All) != 0 ||
-            !Enum.IsDefined(request.Recipe.UnsupportedImagePolicy) || !Enum.IsDefined(request.Recipe.EncryptedDocumentPolicy)) {
+            !Enum.IsDefined(request.Recipe.UnsupportedImagePolicy) || !Enum.IsDefined(request.Recipe.EncryptedDocumentPolicy) ||
+            !Enum.IsDefined(request.Recipe.SignaturePolicy)) {
             throw new ArgumentException("The redaction recipe contains an undefined policy value.");
         }
         if (request.OutputEncryption is not null && !Enum.IsDefined(request.OutputEncryption.Algorithm)) throw new ArgumentException("Output encryption algorithm is not defined.");
         if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.");
         if (string.IsNullOrWhiteSpace(request.InputPath) || !File.Exists(request.InputPath)) throw new FileNotFoundException("Redaction input PDF was not found.", request.InputPath);
         if (!string.Equals(Path.GetExtension(request.InputPath), ".pdf", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Redaction input must be a PDF.");
-        ArgumentNullException.ThrowIfNull(request.Recipe);
-        ArgumentNullException.ThrowIfNull(request.Limits);
+        if (request.ExternalValidators.Count > 16 || request.ExternalValidators.Any(static validator => validator is null)) throw new ArgumentException("External validator collections accept at most 16 non-null validators.");
+        if (request.Recipe.SignaturePolicy != PdfRedactionSignaturePolicy.CreateAndSignDerivative && (request.OutputSigner is not null || request.OutputSignatureOptions is not null)) throw new ArgumentException("Output signer settings require CreateAndSignDerivative.");
         if (request.Recipe.Rules is null || request.Recipe.Regions is null) throw new ArgumentException("Recipe rule and region collections cannot be null.");
         if (!string.Equals(request.Recipe.Schema, PdfRedactionRecipe.CurrentSchema, StringComparison.Ordinal)) throw new ArgumentException("Unsupported redaction recipe schema.");
         if (request.Recipe.RegexTimeoutMilliseconds <= 0) throw new ArgumentOutOfRangeException(nameof(request.Recipe.RegexTimeoutMilliseconds));
@@ -463,23 +485,22 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         if (!expected.SetEquals(decided)) throw new RedactionWorkflowException("The decision manifest must explicitly approve or reject every current candidate and cannot contain stale candidate ids.");
     }
 
-    private static PdfRedactionWorkflowEvidence CreateEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, PdfRedactionEvidenceReport report, int ocrResidualCount) =>
-        new(sourceSha, outputSha, recipeSha, request.Decisions!.ApprovedCandidateIds.Count, request.Decisions.RejectedCandidateIds.Count, report.VerifiedAbsentCount, report.ResidualCount + ocrResidualCount, report.InconclusiveCount, report.IsVerified && ocrResidualCount == 0, report.AffectedPageNumbers, report.Verification.Issues.Select(static issue => new PdfRedactionEvidenceIssue(issue.Feature)).Concat(ocrResidualCount == 0 ? Array.Empty<PdfRedactionEvidenceIssue>() : new[] { new PdfRedactionEvidenceIssue("OcrRedactionResidual") }).ToArray(), request.Recipe.EncryptedDocumentPolicy.ToString(), candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), candidates.OcrUsed, ocrResidualCount);
+    private static PdfRedactionWorkflowEvidence CreateEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, PdfRedactionEvidenceReport report, int ocrResidualCount, RedactionSignatureEvidence signature, IReadOnlyList<string> externalValidators) =>
+        new(sourceSha, outputSha, recipeSha, request.Decisions!.ApprovedCandidateIds.Count, request.Decisions.RejectedCandidateIds.Count, report.VerifiedAbsentCount, report.ResidualCount + ocrResidualCount, report.InconclusiveCount, report.IsVerified && ocrResidualCount == 0, report.AffectedPageNumbers, report.Verification.Issues.Select(static issue => new PdfRedactionEvidenceIssue(issue.Feature)).Concat(ocrResidualCount == 0 ? Array.Empty<PdfRedactionEvidenceIssue>() : new[] { new PdfRedactionEvidenceIssue("OcrRedactionResidual") }).ToArray(), request.Recipe.EncryptedDocumentPolicy.ToString(), candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), candidates.OcrUsed, ocrResidualCount, signature.SourceCount, signature.OutputCount, request.Recipe.SignaturePolicy.ToString(), signature.SignerName, signature.CryptographicallyVerified, externalValidators);
 
-    private static PdfRedactionWorkflowEvidence CreateVerificationEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, PdfRedactionPlan plan, PdfRedactionVerificationReport report, int ocrResidualCount) =>
-        new(sourceSha, outputSha, recipeSha, request.Decisions!.ApprovedCandidateIds.Count, request.Decisions.RejectedCandidateIds.Count, report.IsVerified && ocrResidualCount == 0 ? plan.Matches.Count : 0, report.Issues.Count(static issue => issue.Feature == "RedactionPlanResidual") + ocrResidualCount, report.IsVerified ? 0 : plan.Matches.Count, report.IsVerified && ocrResidualCount == 0, plan.Areas.Select(static area => area.PageNumber).Distinct().OrderBy(static page => page).ToArray(), report.Issues.Select(static issue => new PdfRedactionEvidenceIssue(issue.Feature)).Concat(ocrResidualCount == 0 ? Array.Empty<PdfRedactionEvidenceIssue>() : new[] { new PdfRedactionEvidenceIssue("OcrRedactionResidual") }).ToArray(), request.Recipe.EncryptedDocumentPolicy.ToString(), candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), candidates.OcrUsed, ocrResidualCount);
+    private static PdfRedactionWorkflowEvidence CreateVerificationEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, PdfRedactionPlan plan, PdfRedactionVerificationReport report, int ocrResidualCount, RedactionSignatureEvidence signature, IReadOnlyList<string> externalValidators) =>
+        new(sourceSha, outputSha, recipeSha, request.Decisions!.ApprovedCandidateIds.Count, request.Decisions.RejectedCandidateIds.Count, report.IsVerified && ocrResidualCount == 0 ? plan.Matches.Count : 0, report.Issues.Count(static issue => issue.Feature == "RedactionPlanResidual") + ocrResidualCount, report.IsVerified ? 0 : plan.Matches.Count, report.IsVerified && ocrResidualCount == 0, plan.Areas.Select(static area => area.PageNumber).Distinct().OrderBy(static page => page).ToArray(), report.Issues.Select(static issue => new PdfRedactionEvidenceIssue(issue.Feature)).Concat(ocrResidualCount == 0 ? Array.Empty<PdfRedactionEvidenceIssue>() : new[] { new PdfRedactionEvidenceIssue("OcrRedactionResidual") }).ToArray(), request.Recipe.EncryptedDocumentPolicy.ToString(), candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), candidates.OcrUsed, ocrResidualCount, signature.SourceCount, signature.OutputCount, request.Recipe.SignaturePolicy.ToString(), signature.SignerName, signature.CryptographicallyVerified, externalValidators);
 
-    private static PdfRedactionWorkflowEvidence CreateEmptyEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, string encryptionPolicy) =>
-        new(sourceSha, outputSha, recipeSha, 0, request.Decisions!.RejectedCandidateIds.Count, 0, 0, 0, true, Array.Empty<int>(), Array.Empty<PdfRedactionEvidenceIssue>(), encryptionPolicy, candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray());
+    private static PdfRedactionWorkflowEvidence CreateEmptyEvidence(string sourceSha, string outputSha, string recipeSha, PdfRedactionWorkflowRequest request, CandidatePlan candidates, string encryptionPolicy, RedactionSignatureEvidence signature, IReadOnlyList<string> externalValidators) =>
+        new(sourceSha, outputSha, recipeSha, 0, request.Decisions!.RejectedCandidateIds.Count, 0, 0, 0, true, Array.Empty<int>(), Array.Empty<PdfRedactionEvidenceIssue>(), encryptionPolicy, candidates.OcrUsed, candidates.Candidates.Where(static item => item.Provider is not null).Select(static item => item.Provider!).Distinct(StringComparer.Ordinal).ToArray(), sourceSignatureCount: signature.SourceCount, outputSignatureCount: signature.OutputCount, signaturePolicy: request.Recipe.SignaturePolicy.ToString(), outputSigner: signature.SignerName, signatureCryptographicallyVerified: signature.CryptographicallyVerified, externalValidators: externalValidators);
 
     private static async Task<int> CountOcrResidualsAsync(PdfDocument output, PdfRedactionWorkflowRequest request, IReadOnlyList<PdfRedactionArea> approvedAreas, CancellationToken cancellationToken) {
         PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, request.Limits.MaximumCandidates, cancellationToken);
         PdfOcrRedactionSearchResult post = await output.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine!, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
-        return post.Candidates.Count(candidate => approvedAreas.Any(area => Intersects(area, candidate.Area)));
+        return post.Candidates.Count(candidate => approvedAreas.Any(area =>
+            area.PageNumber == candidate.Area.PageNumber &&
+            area.IntersectsRectangle(candidate.Area.X, candidate.Area.Y, candidate.Area.Width, candidate.Area.Height)));
     }
-
-    private static bool Intersects(PdfRedactionArea left, PdfRedactionArea right) =>
-        left.PageNumber == right.PageNumber && left.X < right.Right && left.Right > right.X && left.Y < right.Top && left.Top > right.Y;
 
     private static PdfLoadOptions GetOutputLoadOptions(PdfRedactionWorkflowRequest request) {
         string? password = request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt
@@ -523,7 +544,9 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         var files = new List<PreparedFile>();
         if (outputBytes is not null && outputPath is not null) files.Add(new PreparedFile(Path.GetFullPath(outputPath), outputBytes));
         if (!string.IsNullOrWhiteSpace(evidencePath)) {
-            byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionWorkflowRecord(result), RedactionJsonOptions);
+            byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(
+                new PdfRedactionWorkflowRecord(result),
+                PdfRedactionWorkflowJsonContext.Default.PdfRedactionWorkflowRecord);
             if (evidenceBytes.LongLength > limits.MaximumEvidenceBytes) throw new RedactionWorkflowException("Privacy-safe redaction evidence exceeds the configured evidence-byte limit.");
             files.Add(new PreparedFile(Path.GetFullPath(evidencePath), evidenceBytes));
         }
@@ -558,7 +581,9 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         return output.ToArray();
     }
 
-    private static string ComputeRecipeSha256(PdfRedactionRecipe recipe) => ComputeSha256(JsonSerializer.SerializeToUtf8Bytes(recipe, RedactionJsonOptions));
+    private static string ComputeRecipeSha256(PdfRedactionRecipe recipe) => ComputeSha256(JsonSerializer.SerializeToUtf8Bytes(
+        recipe,
+        PdfRedactionWorkflowJsonContext.Default.PdfRedactionRecipe));
     private static string ComputeSha256(byte[] bytes) => System.Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static string ComputeCandidateId(string sourceSha, string origin, IReadOnlyList<PdfRedactionArea> areas) {
         var identity = new StringBuilder(sourceSha).Append('|').Append(origin);
@@ -569,6 +594,14 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 .Append('|').Append(area.Width.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
                 .Append('|').Append(area.Height.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
                 .Append('|').Append(area.Label ?? string.Empty);
+            if (area.ExactGeometry is PdfRedactionGeometry geometry) {
+                identity.Append('|').Append(geometry.Kind).Append('|')
+                    .Append(geometry.StrokeWidth.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                foreach (PdfRedactionPoint point in geometry.Points) {
+                    identity.Append('|').Append(point.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+                        .Append(',').Append(point.Y.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
         }
         return ComputeSha256(Encoding.UTF8.GetBytes(identity.ToString()));
     }

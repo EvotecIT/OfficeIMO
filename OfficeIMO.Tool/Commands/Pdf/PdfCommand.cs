@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Ocr;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Pdf;
@@ -10,6 +12,7 @@ internal static class PdfCommand {
 OfficeIMO.Tool - PDF workflows
 
 Usage:
+  officeimo pdf redact providers [--ocr-provider-assembly <provider.dll>]
   officeimo pdf redact plan <input.pdf> --recipe <recipe.json> --evidence <plan.json>
   officeimo pdf redact apply <input.pdf> --recipe <recipe.json> --decisions <decisions.json>
              --output <output.pdf> --evidence <evidence.json> [--force]
@@ -26,17 +29,32 @@ Recipe and result schemas:
   officeimo.pdf.redaction.decisions.v1
 
 The CLI does not accept passwords as command-line values and never writes matched or extracted text to evidence.
-OCR recipes require a host-provided IOcrEngine through the reusable OfficeIMO.Workflows API.
+API hosts can supply IOcrEngine directly through the reusable OfficeIMO.Workflows contract.
+The CLI can load optional provider packages explicitly with --ocr-provider-assembly and select one with
+--ocr-provider <id>. Use --ocr-language, --ocr-min-confidence, and repeated --ocr-option <key=value>
+for non-secret scalar configuration; provider secrets should be referenced through provider-owned environment options.
 """;
 
-    internal static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken cancellationToken = default, IPdfRedactionWorkflowRunner? runner = null) {
+    internal static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken cancellationToken = default, IPdfRedactionWorkflowRunner? runner = null, OcrEngineCatalog? ocrCatalog = null) {
         try {
             PdfArguments parsed = PdfArguments.Parse(args);
             if (parsed.Help) { await output.WriteLineAsync(Usage).ConfigureAwait(false); return (int)OfficeImoToolExitCode.Success; }
+            OcrEngineCatalog catalog = ocrCatalog ?? new OcrEngineCatalog();
+            PdfOcrProviderLoader.LoadExplicitAssemblies(catalog, parsed.OcrProviderAssemblyPaths);
+            if (parsed.ListProviders) {
+                await output.WriteLineAsync(JsonSerializer.Serialize(catalog.Discover(), PdfRedactionCliJsonContext.Default.IReadOnlyListOcrEngineDescriptor)).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Success;
+            }
             PdfRedactionRecipe recipe = await ReadJsonAsync(parsed.RecipePath!, PdfRedactionCliJsonContext.Default.PdfRedactionRecipe, cancellationToken).ConfigureAwait(false);
             PdfRedactionDecisionManifest? decisions = parsed.DecisionsPath is null ? null : await ReadJsonAsync(parsed.DecisionsPath, PdfRedactionCliJsonContext.Default.PdfRedactionDecisionManifest, cancellationToken).ConfigureAwait(false);
             string? ownerPassword = ReadSecret(parsed.PasswordEnvironmentVariable);
             string? outputPassword = ReadSecret(parsed.OutputPasswordEnvironmentVariable);
+            IOcrEngine? ocrEngine = parsed.OcrProviderId is null ? null : catalog.Create(parsed.OcrProviderId, parsed.OcrProviderOptions);
+            PdfOcrMergeOptions? ocrOptions = ocrEngine is null ? null : new PdfOcrMergeOptions {
+                Language = parsed.OcrLanguage,
+                MinimumConfidence = parsed.OcrMinimumConfidence ?? 0.5D,
+                ProviderOptions = new Dictionary<string, string>(parsed.OcrProviderOptions, StringComparer.Ordinal)
+            };
             var request = new PdfRedactionWorkflowRequest {
                 Mode = parsed.Mode,
                 InputPath = Path.GetFullPath(parsed.InputPath!),
@@ -47,6 +65,8 @@ OCR recipes require a host-provided IOcrEngine through the reusable OfficeIMO.Wo
                     : new List<string> { Path.GetFullPath(parsed.RecipePath!), Path.GetFullPath(parsed.DecisionsPath) },
                 Recipe = recipe,
                 Decisions = decisions,
+                OcrEngine = ocrEngine,
+                OcrOptions = ocrOptions,
                 OwnerPassword = ownerPassword,
                 OutputEncryption = outputPassword is null ? null : new PdfStandardEncryptionOptions(outputPassword),
                 ExpectedOutputSha256 = parsed.ExpectedOutputSha256,
@@ -115,16 +135,25 @@ internal sealed class PdfArguments {
     internal string? OutputPasswordEnvironmentVariable { get; private set; }
     internal string? ExpectedOutputSha256 { get; private set; }
     internal bool Force { get; private set; }
+    internal bool ListProviders { get; private set; }
+    internal string? OcrProviderId { get; private set; }
+    internal string? OcrLanguage { get; private set; }
+    internal double? OcrMinimumConfidence { get; private set; }
+    internal IList<string> OcrProviderAssemblyPaths { get; } = new List<string>();
+    internal Dictionary<string, string> OcrProviderOptions { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
     internal static PdfArguments Parse(string[] args) {
         if (args.Length == 0 || IsHelp(args[0])) return new PdfArguments { Help = true };
         if (!string.Equals(args[0], "redact", StringComparison.OrdinalIgnoreCase)) throw new PdfUsageException("Unknown PDF command '" + args[0] + "'.");
         if (args.Length < 2 || IsHelp(args[1])) return new PdfArguments { Help = true };
+        bool listProviders = string.Equals(args[1], "providers", StringComparison.OrdinalIgnoreCase);
         var parsed = new PdfArguments {
+            ListProviders = listProviders,
             Mode = args[1].ToLowerInvariant() switch {
                 "plan" => PdfRedactionWorkflowMode.PlanOnly,
                 "apply" => PdfRedactionWorkflowMode.ApplyAndVerify,
                 "verify" => PdfRedactionWorkflowMode.VerifyExistingOutput,
+                "providers" => PdfRedactionWorkflowMode.PlanOnly,
                 _ => throw new PdfUsageException("Unknown PDF redaction command '" + args[1] + "'.")
             }
         };
@@ -139,13 +168,27 @@ internal sealed class PdfArguments {
                 case "--password-env": parsed.PasswordEnvironmentVariable = ReadValue(args, ref index, token); break;
                 case "--output-password-env": parsed.OutputPasswordEnvironmentVariable = ReadValue(args, ref index, token); break;
                 case "--expected-output-sha256": parsed.ExpectedOutputSha256 = ReadValue(args, ref index, token); break;
+                case "--ocr-provider": parsed.OcrProviderId = ReadValue(args, ref index, token); break;
+                case "--ocr-provider-assembly": parsed.OcrProviderAssemblyPaths.Add(ReadValue(args, ref index, token)); break;
+                case "--ocr-language": parsed.OcrLanguage = ReadValue(args, ref index, token); break;
+                case "--ocr-min-confidence": parsed.OcrMinimumConfidence = ReadRatio(args, ref index, token); break;
+                case "--ocr-option": AddOcrOption(parsed, ReadValue(args, ref index, token)); break;
                 case "--force": parsed.Force = true; break;
                 default:
                     if (token.StartsWith("-", StringComparison.Ordinal)) throw new PdfUsageException("Unknown PDF redaction option '" + token + "'.");
+                    if (parsed.ListProviders) throw new PdfUsageException("The provider discovery command accepts only OCR provider assembly options.");
                     if (parsed.InputPath is not null) throw new PdfUsageException("PDF redaction accepts exactly one input PDF.");
                     parsed.InputPath = token;
                     break;
             }
+        }
+        if (parsed.ListProviders) {
+            if (parsed.OcrProviderId is not null || parsed.OcrLanguage is not null || parsed.OcrMinimumConfidence.HasValue || parsed.OcrProviderOptions.Count > 0 ||
+                parsed.RecipePath is not null || parsed.DecisionsPath is not null || parsed.OutputPath is not null || parsed.EvidencePath is not null ||
+                parsed.PasswordEnvironmentVariable is not null || parsed.OutputPasswordEnvironmentVariable is not null || parsed.ExpectedOutputSha256 is not null || parsed.Force) {
+                throw new PdfUsageException("The provider discovery command accepts only --ocr-provider-assembly options.");
+            }
+            return parsed;
         }
         if (parsed.InputPath is null) throw new PdfUsageException("PDF redaction requires an input PDF.");
         if (parsed.RecipePath is null) throw new PdfUsageException("PDF redaction requires --recipe <recipe.json>.");
@@ -159,6 +202,21 @@ internal sealed class PdfArguments {
         if (++index >= args.Length || string.IsNullOrWhiteSpace(args[index])) throw new PdfUsageException(option + " requires a value.");
         return args[index];
     }
+    private static double ReadRatio(string[] args, ref int index, string option) {
+        string value = ReadValue(args, ref index, option);
+        if (!double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double result) || result < 0D || result > 1D || double.IsNaN(result)) {
+            throw new PdfUsageException(option + " requires a number from 0 through 1.");
+        }
+        return result;
+    }
+    private static void AddOcrOption(PdfArguments parsed, string value) {
+        int separator = value.IndexOf('=');
+        if (separator <= 0) throw new PdfUsageException("--ocr-option requires key=value.");
+        string key = value[..separator];
+        string optionValue = value[(separator + 1)..];
+        if (parsed.OcrProviderOptions.ContainsKey(key)) throw new PdfUsageException("OCR provider option '" + key + "' was supplied more than once.");
+        parsed.OcrProviderOptions.Add(key, optionValue);
+    }
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
 }
 
@@ -168,4 +226,5 @@ internal sealed class PdfUsageException : Exception { internal PdfUsageException
 [JsonSerializable(typeof(PdfRedactionRecipe))]
 [JsonSerializable(typeof(PdfRedactionDecisionManifest))]
 [JsonSerializable(typeof(PdfRedactionWorkflowResult))]
+[JsonSerializable(typeof(IReadOnlyList<OcrEngineDescriptor>))]
 internal sealed partial class PdfRedactionCliJsonContext : JsonSerializerContext;

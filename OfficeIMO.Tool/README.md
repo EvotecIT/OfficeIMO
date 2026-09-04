@@ -71,9 +71,11 @@ officeimo provenance assess page.html
 officeimo provenance remove report.docx --output report.cleaned.docx
 
 # Plan and apply source-bound PDF redactions through reusable JSON contracts
+officeimo pdf redact providers --ocr-provider-assembly ./providers/MyOcr.Provider.dll
 officeimo pdf redact plan contract.pdf --recipe redaction.recipe.json --evidence contract.plan.json
 officeimo pdf redact apply contract.pdf --recipe redaction.recipe.json --decisions contract.decisions.json `
-    --output contract-redacted.pdf --evidence contract-redacted.evidence.json
+    --output contract-redacted.pdf --evidence contract-redacted.evidence.json `
+    --ocr-provider my-provider --ocr-language en --ocr-option model=document
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -89,7 +91,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
-- `officeimo pdf redact` plans, applies, and verifies source-bound PDF redaction recipes with privacy-safe JSON evidence. Passwords are accepted only through named environment variables; OCR providers are supplied by API hosts rather than becoming a default tool dependency. Output and evidence can never replace the PDF, recipe, or decisions input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence.
+- `officeimo pdf redact` plans, applies, and verifies source-bound PDF redaction recipes with privacy-safe JSON evidence. Framework-dependent tool builds load optional provider assemblies only from explicit `--ocr-provider-assembly` paths and select one with `--ocr-provider`; NativeAOT hosts must register a statically linked provider through `OcrEngineCatalog`. The default tool still includes no OCR runtime or model. Use `--ocr-language`, `--ocr-min-confidence`, and repeated `--ocr-option key=value` values for non-secret configuration. Passwords are accepted only through named environment variables, and provider credentials should remain behind environment or secret-store references. Output and evidence can never replace the PDF, recipe, or decisions input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.

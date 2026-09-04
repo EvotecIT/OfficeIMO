@@ -86,6 +86,32 @@ internal static class PdfTextSpanGeometry {
         return false;
     }
 
+    internal static bool IntersectsAreaAtCharacterLevel(PdfTextSpan span, PdfRedactionArea area) {
+        if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
+            PdfTextSpanBounds bounds = GetAxisAlignedBounds(span);
+            return area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+        }
+
+        bool hasPaintedGlyphGeometry = TryGetPaintedGlyphGeometry(
+            span,
+            out boundaries,
+            out IReadOnlyList<int> glyphCharacterLengths,
+            out IReadOnlyList<double> glyphPaintedAdvances);
+        int itemCount = hasPaintedGlyphGeometry ? glyphCharacterLengths.Count : boundaries.Length - 1;
+        int characterOffset = 0;
+        for (int index = 0; index < itemCount; index++) {
+            int characterLength = hasPaintedGlyphGeometry ? glyphCharacterLengths[index] : 1;
+            double startBoundary = boundaries[characterOffset];
+            double endBoundary = boundaries[characterOffset + characterLength];
+            double start = hasPaintedGlyphGeometry ? startBoundary : Math.Min(startBoundary, endBoundary);
+            double advance = hasPaintedGlyphGeometry ? glyphPaintedAdvances[index] : Math.Abs(endBoundary - startBoundary);
+            PdfTextSpanBounds bounds = GetAxisAlignedBounds(span, start, advance);
+            if (area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) return true;
+            characterOffset += characterLength;
+        }
+        return false;
+    }
+
     private static bool TryGetPaintedGlyphGeometry(
         PdfTextSpan span,
         out double[] boundaries,

@@ -100,7 +100,131 @@ public sealed class PdfRedactionWorkflowTests {
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Signed PDFs are rejected", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("rejects signed sources", StringComparison.Ordinal));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task SignedSourceCanBeRedactedIntoAResignedDerivativeWithIndependentEvidence() {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("signed-source.pdf");
+        string output = scope.PathFor("signed-redacted.pdf");
+        const string sensitive = "SignedWorkflowSecret-884";
+        byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).ToBytes();
+        PdfExternalSignaturePreparation sourcePreparation = PdfIncrementalUpdater.PrepareExternalSignature(unsigned, new PdfExternalSignatureOptions {
+            FieldName = "SourceSignature",
+            ReservedSignatureContentsBytes = 512
+        });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(sourcePreparation, Enumerable.Repeat((byte)0x33, 128).ToArray());
+        await File.WriteAllBytesAsync(input, signed);
+        PdfRedactionRecipe recipe = CreateRecipe(sensitive);
+        recipe.SignaturePolicy = PdfRedactionSignaturePolicy.CreateAndSignDerivative;
+        var runner = new OfficeWorkflowRunner();
+
+        PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            Recipe = recipe
+        });
+        PdfRedactionWorkflowCandidate candidate = Assert.Single(planned.Candidates);
+        var decisions = new PdfRedactionDecisionManifest {
+            SourceSha256 = planned.SourceSha256,
+            RecipeSha256 = planned.RecipeSha256,
+            ApprovedCandidateIds = { candidate.Id }
+        };
+
+        PdfRedactionWorkflowResult applied = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
+            InputPath = input,
+            OutputPath = output,
+            Recipe = recipe,
+            Decisions = decisions,
+            OutputSigner = new FixedSignatureSigner(),
+            OutputSignatureOptions = new PdfExternalSignatureOptions { FieldName = "DerivativeSignature", ReservedSignatureContentsBytes = 512 },
+            ExternalValidators = { new HeaderExternalValidator() }
+        });
+
+        Assert.True(applied.Succeeded, string.Join(Environment.NewLine, applied.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+        Assert.Equal(1, applied.Evidence?.SourceSignatureCount);
+        Assert.Equal(1, applied.Evidence?.OutputSignatureCount);
+        Assert.Equal(nameof(PdfRedactionSignaturePolicy.CreateAndSignDerivative), applied.Evidence?.SignaturePolicy);
+        Assert.Equal("fixed-test-signer", applied.Evidence?.OutputSigner);
+        Assert.Contains("header-validator", applied.Evidence!.ExternalValidators);
+        PdfDocument derivative = PdfDocument.Load(output);
+        Assert.True(derivative.Security.ValidateSignatures().IsStructurallyValid);
+        Assert.DoesNotContain(sensitive, derivative.Reader.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IndependentValidatorRejectionPreventsPublication() {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("validator-source.pdf");
+        string output = scope.PathFor("validator-redacted.pdf");
+        const string sensitive = "ValidatorSecret-219";
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfRedactionRecipe recipe = CreateRecipe(sensitive);
+        var runner = new OfficeWorkflowRunner();
+        PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            Recipe = recipe
+        });
+        var decisions = new PdfRedactionDecisionManifest {
+            SourceSha256 = planned.SourceSha256,
+            RecipeSha256 = planned.RecipeSha256,
+            ApprovedCandidateIds = { Assert.Single(planned.Candidates).Id }
+        };
+
+        PdfRedactionWorkflowResult applied = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
+            InputPath = input,
+            OutputPath = output,
+            Recipe = recipe,
+            Decisions = decisions,
+            ExternalValidators = { new RejectingExternalValidator() }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, applied.Status);
+        Assert.False(File.Exists(output));
+        Assert.Contains(applied.Diagnostics, static diagnostic => diagnostic.Message.Contains("independent validators rejected", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task CancellationStopsRunningIndependentValidatorWithoutPublication() {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("validator-cancellation-source.pdf");
+        string output = scope.PathFor("validator-cancellation-redacted.pdf");
+        const string sensitive = "ValidatorCancellationSecret-220";
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfRedactionRecipe recipe = CreateRecipe(sensitive);
+        var runner = new OfficeWorkflowRunner();
+        PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            Recipe = recipe
+        });
+        var decisions = new PdfRedactionDecisionManifest {
+            SourceSha256 = planned.SourceSha256,
+            RecipeSha256 = planned.RecipeSha256,
+            ApprovedCandidateIds = { Assert.Single(planned.Candidates).Id }
+        };
+        using var validator = new BlockingExternalValidator();
+        using var cancellation = new CancellationTokenSource();
+
+        Task<PdfRedactionWorkflowResult> running = runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
+            InputPath = input,
+            OutputPath = output,
+            Recipe = recipe,
+            Decisions = decisions,
+            ExternalValidators = { validator }
+        }, cancellationToken: cancellation.Token);
+
+        Assert.True(validator.WaitUntilStarted(TimeSpan.FromSeconds(10)), "The independent validator did not start.");
+        cancellation.Cancel();
+        PdfRedactionWorkflowResult result = await running;
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(output));
     }
 
@@ -529,5 +653,48 @@ public sealed class PdfRedactionWorkflowTests {
 
     private sealed class MutatingProgress<T>(Action<T> callback) : IProgress<T> {
         public void Report(T value) => callback(value);
+    }
+
+    private sealed class FixedSignatureSigner : IPdfExternalSigner {
+        public string Name => "fixed-test-signer";
+        public byte[] Sign(PdfExternalSignatureRequest request) => Enumerable.Repeat((byte)0x44, 128).ToArray();
+    }
+
+    private sealed class HeaderExternalValidator : IPdfRedactionCancellationAwareExternalValidator {
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf) =>
+            new("header-validator", redactedPdf.AsSpan().StartsWith("%PDF-"u8));
+
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Validate(redactedPdf);
+        }
+    }
+
+    private sealed class RejectingExternalValidator : IPdfRedactionCancellationAwareExternalValidator {
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf) =>
+            new("rejecting-validator", false, "fixture rejection");
+
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Validate(redactedPdf);
+        }
+    }
+
+    private sealed class BlockingExternalValidator : IPdfRedactionCancellationAwareExternalValidator, IDisposable {
+        private readonly ManualResetEventSlim _started = new(false);
+
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf) =>
+            throw new InvalidOperationException("The workflow must use the cancellation-aware validator contract.");
+
+        public PdfRedactionExternalValidationResult Validate(byte[] redactedPdf, CancellationToken cancellationToken) {
+            _started.Set();
+            cancellationToken.WaitHandle.WaitOne();
+            cancellationToken.ThrowIfCancellationRequested();
+            return new PdfRedactionExternalValidationResult("blocking-validator", true);
+        }
+
+        internal bool WaitUntilStarted(TimeSpan timeout) => _started.Wait(timeout);
+
+        public void Dispose() => _started.Dispose();
     }
 }

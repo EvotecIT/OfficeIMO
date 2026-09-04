@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Applies rectangle-based redactions by removing intersecting text glyphs and annotations, then painting redaction marks.
+/// Applies reviewed redaction areas by removing intersecting content and annotations, then painting matching redaction marks.
 /// Unsupported text mappings fall back to removal of the complete PDF text object.
 /// </summary>
 internal static partial class PdfRedactionApplier {
@@ -71,7 +71,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     /// <summary>
-    /// Applies rectangle-based redactions to a PDF byte array and returns rewritten PDF bytes.
+    /// Applies redaction areas to a PDF byte array and returns rewritten PDF bytes.
     /// </summary>
     public static byte[] Apply(
         byte[] pdf,
@@ -257,15 +257,15 @@ internal static partial class PdfRedactionApplier {
             return pdf.ToArray();
         }
 
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, effectiveOptions.CancellationToken);
         generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
-        return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, effectiveOptions.CancellationToken);
     }
 
     /// <summary>
-    /// Applies rectangle-based redactions from the current position of a readable stream.
+    /// Applies redaction areas from the current position of a readable stream.
     /// </summary>
     public static byte[] Apply(
         Stream stream,
@@ -277,7 +277,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     /// <summary>
-    /// Applies rectangle-based redactions to a PDF and writes the rewritten bytes to a stream.
+    /// Applies redaction areas to a PDF and writes the rewritten bytes to a stream.
     /// </summary>
     public static void Apply(
         byte[] pdf,
@@ -290,7 +290,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     /// <summary>
-    /// Applies rectangle-based redactions to a PDF file and writes a new PDF file.
+    /// Applies redaction areas to a PDF file and writes a new PDF file.
     /// </summary>
     public static void Apply(
         string inputPath,
@@ -306,7 +306,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     /// <summary>
-    /// Applies rectangle-based redactions to a PDF file and returns rewritten PDF bytes.
+    /// Applies redaction areas to a PDF file and returns rewritten PDF bytes.
     /// </summary>
     public static byte[] ApplyToBytes(
         string inputPath,
@@ -809,10 +809,26 @@ internal static partial class PdfRedactionApplier {
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder)
             .SaveState()
-            .FillColor(fillColor);
+            .FillColor(fillColor)
+            .StrokeColor(fillColor);
         for (int i = 0; i < areas.Length; i++) {
-            content.Rectangle(areas[i].X, areas[i].Y, areas[i].Width, areas[i].Height)
-                .FillPath();
+            PdfRedactionArea area = areas[i];
+            PdfRedactionGeometry? geometry = area.ExactGeometry;
+            if (geometry is null) {
+                content.Rectangle(area.X, area.Y, area.Width, area.Height).FillPath();
+            } else if (geometry.Kind == PdfRedactionRegionKind.Freehand) {
+                content.LineWidth(geometry.StrokeWidth)
+                    .LineCap(1)
+                    .MoveTo(geometry.Points[0].X, geometry.Points[0].Y)
+                    .LineTo(geometry.Points[1].X, geometry.Points[1].Y)
+                    .StrokePath();
+            } else {
+                content.MoveTo(geometry.Points[0].X, geometry.Points[0].Y);
+                for (int point = 1; point < geometry.Points.Count; point++) {
+                    content.LineTo(geometry.Points[point].X, geometry.Points[point].Y);
+                }
+                content.ClosePath().FillPath();
+            }
         }
 
         content.RestoreState();
@@ -1075,24 +1091,33 @@ internal static partial class PdfRedactionApplier {
     private static bool SameReference(PdfReference left, PdfReference right) =>
         left.ObjectNumber == right.ObjectNumber && left.Generation == right.Generation;
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
+    private static byte[] RewriteAllObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        int catalogObjectNumber,
+        PdfMetadata metadata,
+        byte[] sourcePdf,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int[] sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
+            if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             numberMap[sourceIds[i]] = i + 1;
         }
 
         var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
+            cancellationToken.ThrowIfCancellationRequested();
             rewritten.Add(PdfPageExtractor.WrapObject(numberMap[sourceId], PdfPageExtractor.SerializeObject(objects[sourceId].Value, context)));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         int infoId = rewritten.Count + 1;
         rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
     }
 
     private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string? trailerRaw) {

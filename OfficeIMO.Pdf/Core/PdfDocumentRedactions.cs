@@ -8,7 +8,7 @@ public sealed class PdfDocumentRedactions {
 
     internal PdfDocumentRedactions(PdfDocument document) => _document = document;
 
-    /// <summary>Adds standard PDF /Redact review annotations for every canonical rectangle in a region.</summary>
+    /// <summary>Adds standard PDF /Redact review annotations for every canonical area in a region.</summary>
     public PdfDocument AddAnnotation(PdfRedactionAnnotationOptions options) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(options.Region, nameof(options.Region));
@@ -23,6 +23,9 @@ public sealed class PdfDocumentRedactions {
                 PageNumber = area.PageNumber,
                 Subtype = "Redact",
                 Rectangle = new[] { area.X, area.Y, area.Right, area.Top },
+                QuadPoints = area.ExactGeometry?.Kind == PdfRedactionRegionKind.Quadrilateral
+                    ? area.ExactGeometry.Points.SelectMany(static point => new[] { point.X, point.Y }).ToArray()
+                    : null,
                 Contents = options.Contents,
                 Title = options.Author,
                 Name = options.Name is null || options.Region.Areas.Count == 1 ? options.Name : options.Name + ":" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -46,7 +49,7 @@ public sealed class PdfDocumentRedactions {
         return Plan(areas, layoutOptions, options);
     }
 
-    /// <summary>Plans one or more rich review regions using their canonical conservative rectangles.</summary>
+    /// <summary>Plans one or more rich review regions while retaining their exact destructive geometry.</summary>
     public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(regions, nameof(regions));
         return Plan(regions.SelectMany(static region => region.Areas), layoutOptions, options);

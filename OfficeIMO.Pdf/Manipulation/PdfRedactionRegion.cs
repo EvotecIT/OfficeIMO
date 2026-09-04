@@ -4,11 +4,11 @@ namespace OfficeIMO.Pdf;
 public enum PdfRedactionRegionKind {
     /// <summary>One axis-aligned rectangle in PDF user space.</summary>
     Rectangle,
-    /// <summary>A four-point region represented conservatively for destructive application.</summary>
+    /// <summary>An exact four-point destructive region.</summary>
     Quadrilateral,
-    /// <summary>A polygon represented conservatively for destructive application.</summary>
+    /// <summary>An exact polygon destructive region.</summary>
     Polygon,
-    /// <summary>A stroked freehand path represented by conservative segment bounds.</summary>
+    /// <summary>An exact stroked freehand destructive path.</summary>
     Freehand,
     /// <summary>A caller-defined group of already normalized redaction rectangles.</summary>
     Group
@@ -31,11 +31,11 @@ public readonly struct PdfRedactionPoint {
 }
 
 /// <summary>
-/// Review geometry normalized into one or more conservative rectangles used consistently by planning,
-/// destructive application, and evidence. Conservative normalization may redact more than the visual path,
-/// but never less than its declared bounds.
+/// Review geometry normalized into bounded areas that retain exact polygon or freehand geometry through
+/// planning, destructive application, verification, and evidence.
 /// </summary>
 public sealed class PdfRedactionRegion {
+    private const int MaximumPointCount = 4096;
     private PdfRedactionRegion(PdfRedactionRegionKind kind, int pageNumber, IReadOnlyList<PdfRedactionPoint> points, IReadOnlyList<PdfRedactionArea> areas, string? label, double strokeWidth) {
         Kind = kind;
         PageNumber = pageNumber;
@@ -51,7 +51,7 @@ public sealed class PdfRedactionRegion {
     public int PageNumber { get; }
     /// <summary>Original points, when the region is path based.</summary>
     public IReadOnlyList<PdfRedactionPoint> Points { get; }
-    /// <summary>Canonical destructive rectangles.</summary>
+    /// <summary>Canonical bounded destructive areas. Non-rectangular areas retain exact internal geometry.</summary>
     public IReadOnlyList<PdfRedactionArea> Areas { get; }
     /// <summary>Optional caller label.</summary>
     public string? Label { get; }
@@ -64,15 +64,15 @@ public sealed class PdfRedactionRegion {
         return new PdfRedactionRegion(PdfRedactionRegionKind.Rectangle, pageNumber, Array.Empty<PdfRedactionPoint>(), new[] { area }, label, 0D);
     }
 
-    /// <summary>Creates a quadrilateral whose complete axis-aligned bounds are removed.</summary>
+    /// <summary>Creates an exact quadrilateral.</summary>
     public static PdfRedactionRegion Quadrilateral(int pageNumber, IEnumerable<PdfRedactionPoint> points, string? label = null) =>
         FromBoundedPoints(PdfRedactionRegionKind.Quadrilateral, pageNumber, points, 4, label);
 
-    /// <summary>Creates a polygon whose complete axis-aligned bounds are removed.</summary>
+    /// <summary>Creates an exact polygon.</summary>
     public static PdfRedactionRegion Polygon(int pageNumber, IEnumerable<PdfRedactionPoint> points, string? label = null) =>
         FromBoundedPoints(PdfRedactionRegionKind.Polygon, pageNumber, points, 3, label);
 
-    /// <summary>Creates a freehand region as conservative per-segment rectangles.</summary>
+    /// <summary>Creates an exact round-capped freehand region split into bounded path segments.</summary>
     public static PdfRedactionRegion Freehand(int pageNumber, IEnumerable<PdfRedactionPoint> points, double strokeWidth, string? label = null) {
         ValidatePage(pageNumber);
         if (double.IsNaN(strokeWidth) || double.IsInfinity(strokeWidth) || strokeWidth <= 0D) throw new ArgumentOutOfRangeException(nameof(strokeWidth));
@@ -86,7 +86,8 @@ public sealed class PdfRedactionRegion {
             double y = Math.Min(left.Y, right.Y) - radius;
             double width = Math.Max(strokeWidth, Math.Abs(left.X - right.X) + strokeWidth);
             double height = Math.Max(strokeWidth, Math.Abs(left.Y - right.Y) + strokeWidth);
-            areas[index - 1] = new PdfRedactionArea(pageNumber, x, y, width, height, label);
+            areas[index - 1] = new PdfRedactionArea(pageNumber, x, y, width, height, label)
+                .WithExactGeometry(PdfRedactionGeometry.FreehandSegment(left, right, strokeWidth));
         }
         return new PdfRedactionRegion(PdfRedactionRegionKind.Freehand, pageNumber, path, areas, label, strokeWidth);
     }
@@ -132,19 +133,36 @@ public sealed class PdfRedactionRegion {
         ValidatePage(pageNumber);
         PdfRedactionPoint[] snapshot = SnapshotPoints(points, requiredCount);
         if (kind == PdfRedactionRegionKind.Quadrilateral && snapshot.Length != 4) throw new ArgumentException("A quadrilateral requires exactly four points.", nameof(points));
+        if (kind == PdfRedactionRegionKind.Quadrilateral) snapshot = OrderQuadrilateral(snapshot);
+        if (!PdfRedactionGeometry.IsSimplePolygon(snapshot)) throw new ArgumentException("Region points must define one non-self-intersecting polygon with positive area.", nameof(points));
         double left = snapshot.Min(static point => point.X);
         double right = snapshot.Max(static point => point.X);
         double bottom = snapshot.Min(static point => point.Y);
         double top = snapshot.Max(static point => point.Y);
         if (right <= left || top <= bottom) throw new ArgumentException("Region points must enclose a positive area.", nameof(points));
-        return new PdfRedactionRegion(kind, pageNumber, snapshot, new[] { new PdfRedactionArea(pageNumber, left, bottom, right - left, top - bottom, label) }, label, 0D);
+        PdfRedactionArea area = new PdfRedactionArea(pageNumber, left, bottom, right - left, top - bottom, label)
+            .WithExactGeometry(PdfRedactionGeometry.Polygon(kind, snapshot));
+        return new PdfRedactionRegion(kind, pageNumber, snapshot, new[] { area }, label, 0D);
     }
 
     private static PdfRedactionPoint[] SnapshotPoints(IEnumerable<PdfRedactionPoint> points, int minimumCount) {
         Guard.NotNull(points, nameof(points));
-        PdfRedactionPoint[] snapshot = points.ToArray();
+        var bounded = new List<PdfRedactionPoint>();
+        foreach (PdfRedactionPoint point in points) {
+            if (bounded.Count >= MaximumPointCount) throw new ArgumentException($"A region cannot contain more than {MaximumPointCount} points.", nameof(points));
+            bounded.Add(point);
+        }
+        PdfRedactionPoint[] snapshot = bounded.ToArray();
         if (snapshot.Length < minimumCount) throw new ArgumentException($"The region requires at least {minimumCount} points.", nameof(points));
         return snapshot;
+    }
+
+    private static PdfRedactionPoint[] OrderQuadrilateral(PdfRedactionPoint[] points) {
+        double centerX = points.Average(static point => point.X);
+        double centerY = points.Average(static point => point.Y);
+        return points
+            .OrderBy(point => Math.Atan2(point.Y - centerY, point.X - centerX))
+            .ToArray();
     }
 
     private static void ValidatePage(int pageNumber) {

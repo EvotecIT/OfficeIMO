@@ -692,6 +692,9 @@ public sealed partial class PdfDocument {
         return PdfIncrementalUpdater.SignExternal(GetBytesForOperation(), signer, signatureOptions, ReadOptions);
     }
 
+    internal PdfUnsignedDerivativeResult CreateUnsignedDerivative(System.Threading.CancellationToken cancellationToken = default) =>
+        PdfRedactionApplier.CreateUnsignedDerivative(GetBytesForOperation(cancellationToken), ReadOptions, cancellationToken);
+
     /// <summary>
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>

@@ -493,9 +493,12 @@ internal static partial class PdfRedactionApplier {
         byte blue = imageEncoder.EncodeSample(2, options.FillColor.B);
         byte gray = imageEncoder.EncodeSample(0, ToGray(options.FillColor.R, options.FillColor.G, options.FillColor.B));
 
+        int rewrittenPixelCount = 0;
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * width * components;
             for (int column = x0; column < x1; column++) {
+                if (!ShouldRewritePixel(target.Match.Area, transform, column, row, width, height)) continue;
+                rewrittenPixelCount++;
                 int offset = rowOffset + column * components;
                 if (components == 1) {
                     rewritten[offset] = gray;
@@ -506,11 +509,12 @@ internal static partial class PdfRedactionApplier {
                 }
             }
         }
+        if (rewrittenPixelCount == 0) return false;
 
         PdfDictionary dictionary = CleanStreamDictionary(imageStream.Dictionary);
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
         if (softMask.HasMask &&
-            TryRewriteSoftMaskPixels(objects, softMask, x0, y0, x1, y1, options.MaximumDecodedImageBytes, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
+            TryRewriteSoftMaskPixels(objects, softMask, target.Match.Area, transform, x0, y0, x1, y1, options.MaximumDecodedImageBytes, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
             dictionary.Items["SMask"] = rewrittenSoftMaskReference;
         } else if (softMask.HasMask) {
             return false;
@@ -548,9 +552,12 @@ internal static partial class PdfRedactionApplier {
         byte red = ToColorByte(options.FillColor.R);
         byte green = ToColorByte(options.FillColor.G);
         byte blue = ToColorByte(options.FillColor.B);
+        int rewrittenPixelCount = 0;
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * width * 4;
             for (int column = x0; column < x1; column++) {
+                if (!ShouldRewritePixel(target.Match.Area, transform, column, row, width, height)) continue;
+                rewrittenPixelCount++;
                 int offset = rowOffset + column * 4;
                 rgba[offset] = red;
                 rgba[offset + 1] = green;
@@ -558,6 +565,7 @@ internal static partial class PdfRedactionApplier {
                 rgba[offset + 3] = 255;
             }
         }
+        if (rewrittenPixelCount == 0) return false;
 
         byte[] rgb = new byte[checked(width * height * 3)];
         byte[] alpha = new byte[checked(width * height)];
@@ -773,6 +781,8 @@ internal static partial class PdfRedactionApplier {
     private static bool TryRewriteSoftMaskPixels(
         Dictionary<int, PdfIndirectObject> objects,
         ImageSoftMaskRewriteTarget softMask,
+        PdfRedactionArea area,
+        Matrix2D transform,
         int x0,
         int y0,
         int x1,
@@ -796,6 +806,7 @@ internal static partial class PdfRedactionApplier {
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * softMask.Width;
             for (int column = x0; column < x1; column++) {
+                if (!ShouldRewritePixel(area, transform, column, row, softMask.Width, softMask.Height)) continue;
                 rewritten[rowOffset + column] = softMask.Encoder.EncodeSample(0, 1D);
             }
         }
@@ -810,6 +821,22 @@ internal static partial class PdfRedactionApplier {
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
         objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, new PdfStream(dictionary, CompressFlate(rewritten)));
         return true;
+    }
+
+    private static bool ShouldRewritePixel(PdfRedactionArea area, Matrix2D transform, int column, int row, int width, int height) {
+        double left = column / (double)width;
+        double right = (column + 1D) / width;
+        double top = 1D - row / (double)height;
+        double bottom = 1D - (row + 1D) / height;
+        var bottomLeft = transform.Transform(left, bottom);
+        var bottomRight = transform.Transform(right, bottom);
+        var topRight = transform.Transform(right, top);
+        var topLeft = transform.Transform(left, top);
+        return area.IntersectsQuadrilateral(
+            new PdfRedactionPoint(bottomLeft.X, bottomLeft.Y),
+            new PdfRedactionPoint(bottomRight.X, bottomRight.Y),
+            new PdfRedactionPoint(topRight.X, topRight.Y),
+            new PdfRedactionPoint(topLeft.X, topLeft.Y));
     }
 
     private static bool TryGetRedactionPixelBounds(PdfRedactionArea area, Matrix2D transform, int width, int height, out int x0, out int y0, out int x1, out int y1) {

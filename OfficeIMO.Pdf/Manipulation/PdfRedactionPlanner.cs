@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfRedactionPlanner {
     private const double DefaultTextHeight = 12D;
 
-    /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
+    /// <summary>Plans redaction impact for bounded rectangle or exact path geometry.</summary>
     public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false, cancellationToken);
     }
@@ -110,7 +110,7 @@ internal static partial class PdfRedactionPlanner {
         findings.Add(new PdfDiagnosticFinding(
             PdfDiagnosticSeverity.Info,
             "RedactionPlanOnly",
-            "This plan reports rectangle intersections only. It does not remove or rewrite PDF content."));
+            "This plan reports intersections with the exact reviewed geometry. It does not remove or rewrite PDF content."));
         cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfRedactionPlan(
@@ -124,7 +124,7 @@ internal static partial class PdfRedactionPlanner {
             reviewedTextObjectScopes);
     }
 
-    /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>
+    /// <summary>Plans redaction impact for a PDF file.</summary>
     public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
@@ -133,7 +133,7 @@ internal static partial class PdfRedactionPlanner {
         return Plan(pdf, areas, layoutOptions, options, cancellationToken);
     }
 
-    /// <summary>Plans rectangle-based redaction impact for a readable PDF stream.</summary>
+    /// <summary>Plans redaction impact for a readable PDF stream.</summary>
     public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
@@ -154,12 +154,12 @@ internal static partial class PdfRedactionPlanner {
             }
 
             if (block.Spans.Count > 0 && !block.Spans.Any(span =>
-                PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area.X, area.Y, area.Width, area.Height))) {
+                PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area))) {
                 continue;
             }
 
             PdfTextSpanBounds bounds = GetTextBlockBounds(block, document.Pages[block.PageNumber - 1]);
-            if (!Intersects(area.X, area.Y, area.Width, area.Height, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
+            if (!area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
                 continue;
             }
 
@@ -222,7 +222,7 @@ internal static partial class PdfRedactionPlanner {
             }
 
             foreach (PdfAnnotation annotation in page.Annotations) {
-                if (!Intersects(area.X, area.Y, area.Width, area.Height, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) {
+                if (!area.IntersectsRectangle(annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) {
                     continue;
                 }
 
@@ -269,7 +269,7 @@ internal static partial class PdfRedactionPlanner {
         PdfImagePlacement placement,
         List<PdfRedactionMatch> matches,
         List<PdfDiagnosticFinding> findings) {
-        if (!Intersects(area.X, area.Y, area.Width, area.Height, placement.X, placement.Y, placement.Width, placement.Height)) return;
+        if (!area.IntersectsRectangle(placement.X, placement.Y, placement.Width, placement.Height)) return;
 
         matches.Add(new PdfRedactionMatch(
             PdfRedactionMatchKind.ImagePlacement,
@@ -300,7 +300,7 @@ internal static partial class PdfRedactionPlanner {
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
-            if (!Intersects(area.X, area.Y, area.Width, area.Height, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
+            if (!area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
             matches.Add(new PdfRedactionMatch(
                 PdfRedactionMatchKind.TextBlock,
                 area,
@@ -324,7 +324,7 @@ internal static partial class PdfRedactionPlanner {
         bool excludeGeneratedRedactionMarks) {
         PdfVisualBounds visualArea = page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top);
         int generatedMarkIndex = excludeGeneratedRedactionMarks
-            ? FindGeneratedRedactionMarkIndex(visualArea, primitives)
+            ? FindGeneratedRedactionMarkIndex(area, visualArea, primitives)
             : -1;
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
@@ -334,19 +334,8 @@ internal static partial class PdfRedactionPlanner {
             double top = primitive.Y - strokePadding;
             double right = primitive.X + primitive.Width + strokePadding;
             double bottom = primitive.Y + primitive.Height + strokePadding;
-            if (!Intersects(
-                    visualArea.Left,
-                    visualArea.Top,
-                    visualArea.Width,
-                    visualArea.Height,
-                    left,
-                    top,
-                    right - left,
-                    bottom - top)) {
-                continue;
-            }
-
             PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(left, top, right, bottom);
+            if (!area.IntersectsRectangle(userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
             matches.Add(new PdfRedactionMatch(
                 PdfRedactionMatchKind.VectorPath,
                 area,
@@ -371,17 +360,17 @@ internal static partial class PdfRedactionPlanner {
     }
 
     private static int FindGeneratedRedactionMarkIndex(
+        PdfRedactionArea area,
         PdfVisualBounds visualArea,
         IReadOnlyList<PdfPageVisualPrimitive> primitives) {
         for (int i = primitives.Count - 1; i >= 0; i--) {
             PdfPageVisualPrimitive primitive = primitives[i];
-            if (primitive.ContentOrderKey?.Depth > 1 ||
-                primitive.Kind != PdfPageVisualPrimitiveKind.Rectangle ||
-                !primitive.HasFillPaint ||
-                primitive.HasStrokePaint) {
+            if (primitive.ContentOrderKey?.Depth > 1) {
                 continue;
             }
-            if (AreClose(primitive.X, visualArea.Left) &&
+            bool rectangleMark = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.HasFillPaint && !primitive.HasStrokePaint;
+            bool exactMark = area.ExactGeometry is not null && (primitive.HasFillPaint || primitive.HasStrokePaint);
+            if ((rectangleMark || exactMark) && AreClose(primitive.X, visualArea.Left) &&
                 AreClose(primitive.Y, visualArea.Top) &&
                 AreClose(primitive.Width, visualArea.Width) &&
                 AreClose(primitive.Height, visualArea.Height)) {

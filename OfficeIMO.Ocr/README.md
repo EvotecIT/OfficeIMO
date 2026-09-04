@@ -60,6 +60,25 @@ The host or format integration owns input validation, returned-output limits, re
 An engine should still honor cancellation and accurately advertise whether the same instance accepts concurrent calls. Applications invoking `IOcrEngine.RecognizeAsync` directly opt out of the shared runner policy.
 Engine identifiers are stable, non-empty provenance values and are limited to 256 untrimmed characters.
 
+## Discover optional providers
+
+Hosts that offer selectable OCR can register provider factories in an explicit `OcrEngineCatalog`. The catalog performs no ambient assembly scanning and the core package still carries no provider runtime:
+
+```csharp
+var catalog = new OcrEngineCatalog()
+    .Register(new MyOcrEngineProvider());
+
+foreach (OcrEngineDescriptor provider in catalog.Discover()) {
+    Console.WriteLine($"{provider.Id}: {provider.DisplayName}");
+}
+
+IOcrEngine engine = catalog.Create(
+    "my-provider",
+    new Dictionary<string, string> { ["model"] = "document" });
+```
+
+Provider identifiers are case-insensitive and unique. Registration snapshots identity and capabilities, while engine creation snapshots at most 128 scalar options with a 64 KiB aggregate character limit. Secrets remain host-owned: pass an environment-variable or secret-store reference understood by the provider instead of serializing a credential into a recipe or evidence file.
+
 ## Integrations and providers
 
 - `OfficeIMO.Reader.Ocr` recognizes image candidates from Word, Excel, PowerPoint, OneNote, EPUB, email, PDF, and other Reader adapters.

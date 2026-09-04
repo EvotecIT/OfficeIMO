@@ -19,7 +19,7 @@ public sealed class PdfRedactionAnnotationOptions {
     public string? Name { get; set; }
     /// <summary>Annotation color. Defaults to red.</summary>
     public IReadOnlyList<double> Color { get; set; } = new[] { 1D, 0D, 0D };
-    /// <summary>Maximum canonical rectangles authored from the region, from 1 through 64. Defaults to 16 while annotation creation performs one bounded rewrite per rectangle.</summary>
+    /// <summary>Maximum canonical areas authored from the region, from 1 through 64. Defaults to 16 while annotation creation performs one bounded rewrite per area.</summary>
     public int MaximumAnnotations { get; set; } = 16;
     /// <summary>Cooperatively cancels between annotation rewrites.</summary>
     public CancellationToken CancellationToken { get; set; }

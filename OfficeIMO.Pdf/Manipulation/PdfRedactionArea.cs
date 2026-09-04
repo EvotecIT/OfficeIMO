@@ -4,10 +4,10 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfRedactionArea {
     /// <summary>Creates a redaction area.</summary>
     public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label = null)
-        : this(pageNumber, x, y, width, height, label, textRenderingMode: null) {
+        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null) {
     }
 
-    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode) {
+    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be greater than zero.");
         }
@@ -35,6 +35,7 @@ public sealed class PdfRedactionArea {
         Height = height;
         Label = label;
         TextRenderingMode = textRenderingMode;
+        ExactGeometry = exactGeometry;
     }
 
     /// <summary>One-based page number.</summary>
@@ -63,8 +64,32 @@ public sealed class PdfRedactionArea {
 
     internal int? TextRenderingMode { get; }
 
+    internal PdfRedactionGeometry? ExactGeometry { get; }
+
+    internal bool IntersectsRectangle(double x, double y, double width, double height) =>
+        ExactGeometry?.IntersectsRectangle(x, y, width, height) ??
+        X < x + width && Right > x && Y < y + height && Top > y;
+
+    internal bool ContainsRectangle(double x, double y, double width, double height) =>
+        ExactGeometry?.ContainsRectangle(x, y, width, height) ??
+        x >= X && x + width <= Right && y >= Y && y + height <= Top;
+
+    internal bool ContainsPoint(double x, double y) =>
+        ExactGeometry?.ContainsPoint(x, y) ?? x >= X && x <= Right && y >= Y && y <= Top;
+
+    internal bool IntersectsQuadrilateral(
+        PdfRedactionPoint first,
+        PdfRedactionPoint second,
+        PdfRedactionPoint third,
+        PdfRedactionPoint fourth) =>
+        ExactGeometry?.IntersectsQuadrilateral(first, second, third, fourth) ??
+        PdfRedactionGeometry.RectangleIntersectsQuadrilateral(X, Y, Width, Height, first, second, third, fourth);
+
+    internal PdfRedactionArea WithExactGeometry(PdfRedactionGeometry exactGeometry) =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry);
+
     internal PdfRedactionArea WithTextRenderingMode(int textRenderingMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

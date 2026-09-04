@@ -8,6 +8,44 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionImageCoverageTests {
     [Fact]
+    public void Apply_RewritesOnlyImagePixelsInsideExactPolygon() {
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode",
+            Compress(CreateRgbPixels()));
+        PdfRedactionRegion region = PdfRedactionRegion.Polygon(1, new[] {
+            new PdfRedactionPoint(20D, 30D),
+            new PdfRedactionPoint(60D, 30D),
+            new PdfRedactionPoint(20D, 50D)
+        }, "triangular-image-redaction");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, region.Areas);
+
+        // Pixel samples are atomic: every footprint touched by the polygon, including its boundary, is rewritten.
+        Assert.Equal(7, CountBlackPixels(DecodePrimaryImage(redacted, out _)));
+    }
+
+    [Fact]
+    public void ApplyWithEvidence_RewritesPixelWhoseFootprintIntersectsExactSliver() {
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode",
+            Compress(CreateRgbPixels()));
+        PdfRedactionRegion region = PdfRedactionRegion.Polygon(1, new[] {
+            new PdfRedactionPoint(20D, 30D),
+            new PdfRedactionPoint(20.1D, 30D),
+            new PdfRedactionPoint(20D, 30.1D)
+        }, "sub-pixel-sliver");
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan(region.Areas);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Equal(1, CountBlackPixels(DecodePrimaryImage(result.Pdf, out _)));
+    }
+
+    [Fact]
     public void Apply_RewritesRotatedImagePixelsUsingInversePlacementTransform() {
         byte[] source = BuildImagePdf(
             "q\n0 40 -20 0 60 30 cm\n/ImTarget Do\nQ\n",

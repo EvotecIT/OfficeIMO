@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf;
+
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
@@ -15,6 +17,7 @@ public sealed partial class OfficeWorkflowRunner {
             RemoveIntersectingPaths = request.Recipe.RemoveIntersectingPaths,
             UnsupportedImagePolicy = request.Recipe.UnsupportedImagePolicy,
             EncryptedDocumentPolicy = request.Recipe.EncryptedDocumentPolicy,
+            SignaturePolicy = request.Recipe.SignaturePolicy,
             Rules = request.Recipe.Rules?.Select(static rule => rule is null
                 ? throw new ArgumentException("Recipe rules cannot contain null entries.")
                 : new PdfRedactionRule { Kind = rule.Kind, Value = rule.Value }).ToList()
@@ -56,9 +59,49 @@ public sealed partial class OfficeWorkflowRunner {
             OcrOptions = request.OcrOptions?.Clone(),
             OwnerPassword = request.OwnerPassword,
             OutputEncryption = request.OutputEncryption?.Clone(),
+            OutputSigner = request.OutputSigner,
+            OutputSignatureOptions = SnapshotSignatureOptions(request.OutputSignatureOptions),
+            OutputSignatureValidator = request.OutputSignatureValidator,
+            ExternalValidators = request.ExternalValidators?.ToList() ?? throw new ArgumentException("External validators cannot be null."),
             ExpectedOutputSha256 = request.ExpectedOutputSha256,
             ConflictPolicy = request.ConflictPolicy,
             Limits = limits
+        };
+    }
+
+    private static PdfExternalSignatureOptions? SnapshotSignatureOptions(PdfExternalSignatureOptions? options) {
+        if (options is null) return null;
+        PdfVisibleSignatureAppearanceOptions? appearance = options.VisibleAppearance is null ? null : new PdfVisibleSignatureAppearanceOptions {
+            PageNumber = options.VisibleAppearance.PageNumber,
+            X = options.VisibleAppearance.X,
+            Y = options.VisibleAppearance.Y,
+            Width = options.VisibleAppearance.Width,
+            Height = options.VisibleAppearance.Height,
+            Text = options.VisibleAppearance.Text,
+            ShowText = options.VisibleAppearance.ShowText,
+            FontSize = options.VisibleAppearance.FontSize,
+            BackgroundColor = options.VisibleAppearance.BackgroundColor,
+            BorderColor = options.VisibleAppearance.BorderColor,
+            TextColor = options.VisibleAppearance.TextColor,
+            ImageBytes = options.VisibleAppearance.ImageBytes?.ToArray(),
+            ImageFit = options.VisibleAppearance.ImageFit,
+            ImagePadding = options.VisibleAppearance.ImagePadding
+        };
+        return new PdfExternalSignatureOptions {
+            MaxInputBytes = options.MaxInputBytes,
+            CancellationToken = options.CancellationToken,
+            Profile = options.Profile,
+            CertificationPermission = options.CertificationPermission,
+            VisibleAppearance = appearance,
+            FieldName = options.FieldName,
+            Filter = options.Filter,
+            SubFilter = options.SubFilter,
+            Name = options.Name,
+            Reason = options.Reason,
+            Location = options.Location,
+            ContactInfo = options.ContactInfo,
+            SigningTime = options.SigningTime,
+            ReservedSignatureContentsBytes = options.ReservedSignatureContentsBytes
         };
     }
 

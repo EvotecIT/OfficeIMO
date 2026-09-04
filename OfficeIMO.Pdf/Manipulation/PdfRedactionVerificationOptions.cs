@@ -44,7 +44,10 @@ public sealed class PdfRedactionVerificationOptions {
     /// <summary>Cooperatively cancels parsing, marker inspection, managed rendering, and external validation boundaries.</summary>
     public CancellationToken CancellationToken { get; set; }
 
-    /// <summary>Optional development-time external validators.</summary>
+    /// <summary>
+    /// Optional independent validators. Implement <see cref="IPdfRedactionCancellationAwareExternalValidator"/>
+    /// when the validator starts a process or another potentially long-running operation.
+    /// </summary>
     public IList<IPdfRedactionExternalValidator> ExternalValidators => _externalValidators;
 
     /// <summary>Adds text markers that must be removed and returns this options object for fluent setup.</summary>

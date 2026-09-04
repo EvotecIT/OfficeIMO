@@ -9,10 +9,11 @@ public sealed class PdfRedactionEvidenceIssue {
 
 /// <summary>Privacy-safe evidence for one redaction workflow.</summary>
 public sealed class PdfRedactionWorkflowEvidence {
-    internal PdfRedactionWorkflowEvidence(string sourceSha256, string? outputSha256, string recipeSha256, int approvedCount, int rejectedCount, int verifiedAbsentCount, int residualCount, int inconclusiveCount, bool verified, IReadOnlyList<int> pages, IReadOnlyList<PdfRedactionEvidenceIssue> issues, string encryptionPolicy, bool ocrUsed, IReadOnlyList<string> ocrProviders, bool ocrPostVerificationPerformed = false, int ocrResidualCandidateCount = 0) {
+    internal PdfRedactionWorkflowEvidence(string sourceSha256, string? outputSha256, string recipeSha256, int approvedCount, int rejectedCount, int verifiedAbsentCount, int residualCount, int inconclusiveCount, bool verified, IReadOnlyList<int> pages, IReadOnlyList<PdfRedactionEvidenceIssue> issues, string encryptionPolicy, bool ocrUsed, IReadOnlyList<string> ocrProviders, bool ocrPostVerificationPerformed = false, int ocrResidualCandidateCount = 0, int sourceSignatureCount = 0, int outputSignatureCount = 0, string signaturePolicy = "RejectSignedSource", string? outputSigner = null, bool signatureCryptographicallyVerified = false, IReadOnlyList<string>? externalValidators = null) {
         SourceSha256 = sourceSha256; OutputSha256 = outputSha256; RecipeSha256 = recipeSha256; ApprovedCount = approvedCount; RejectedCount = rejectedCount;
         VerifiedAbsentCount = verifiedAbsentCount; ResidualCount = residualCount; InconclusiveCount = inconclusiveCount; Verified = verified; AffectedPageNumbers = pages;
         Issues = issues; EncryptionPolicy = encryptionPolicy; OcrUsed = ocrUsed; OcrProviders = ocrProviders; OcrPostVerificationPerformed = ocrPostVerificationPerformed; OcrResidualCandidateCount = ocrResidualCandidateCount;
+        SourceSignatureCount = sourceSignatureCount; OutputSignatureCount = outputSignatureCount; SignaturePolicy = signaturePolicy; OutputSigner = outputSigner; SignatureCryptographicallyVerified = signatureCryptographicallyVerified; ExternalValidators = externalValidators ?? Array.Empty<string>();
     }
     /// <summary>Exact source fingerprint.</summary>
     public string SourceSha256 { get; }
@@ -46,6 +47,18 @@ public sealed class PdfRedactionWorkflowEvidence {
     public bool OcrPostVerificationPerformed { get; }
     /// <summary>OCR candidates that still intersect approved areas after rewriting.</summary>
     public int OcrResidualCandidateCount { get; }
+    /// <summary>Signature definitions observed on the exact source.</summary>
+    public int SourceSignatureCount { get; }
+    /// <summary>Signature definitions validated on the final derivative.</summary>
+    public int OutputSignatureCount { get; }
+    /// <summary>Applied signed-source and derivative policy.</summary>
+    public string SignaturePolicy { get; }
+    /// <summary>Stable signer implementation name, when the workflow signed the derivative.</summary>
+    public string? OutputSigner { get; }
+    /// <summary>Whether a caller-provided cryptographic validator verified signature math and digest.</summary>
+    public bool SignatureCryptographicallyVerified { get; }
+    /// <summary>Independent validator identifiers that inspected the final artifact.</summary>
+    public IReadOnlyList<string> ExternalValidators { get; }
 }
 
 /// <summary>Operational plan, application, or verification result. Persist <see cref="PdfRedactionWorkflowRecord"/> when host paths and request identifiers must be omitted.</summary>

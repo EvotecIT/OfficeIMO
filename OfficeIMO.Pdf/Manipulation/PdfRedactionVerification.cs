@@ -82,7 +82,12 @@ internal static partial class PdfRedactionVerification {
 
         for (int i = 0; i < options.ExternalValidators.Count; i++) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            PdfRedactionExternalValidationResult result = options.ExternalValidators[i].Validate((byte[])redactedPdf.Clone()); externalResults.Add(result);
+            IPdfRedactionExternalValidator validator = options.ExternalValidators[i];
+            byte[] validatorInput = (byte[])redactedPdf.Clone();
+            PdfRedactionExternalValidationResult result = validator is IPdfRedactionCancellationAwareExternalValidator cancellationAware
+                ? cancellationAware.Validate(validatorInput, options.CancellationToken)
+                : validator.Validate(validatorInput);
+            externalResults.Add(result);
             if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
         }
 
@@ -161,7 +166,7 @@ internal static partial class PdfRedactionVerification {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RedactionPlanPageIdentityChanged",
                     "ReviewedPages",
-                    "The rewritten PDF changed reviewed page content outside the redaction areas, page order, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles against a different page identity."));
+                    "The rewritten PDF changed reviewed page content outside the redaction areas, page order, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed geometry against a different page identity."));
             }
         }
 
@@ -298,12 +303,7 @@ internal static partial class PdfRedactionVerification {
             IReadOnlyList<PdfTextSpan> spans = document.Pages[area.PageNumber - 1].GetTextSpansIncludingHiddenOptionalContent();
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 if ((spanIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-                if (PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(
-                    spans[spanIndex],
-                    area.X,
-                    area.Y,
-                    area.Width,
-                    area.Height)) return true;
+                if (PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(spans[spanIndex], area)) return true;
             }
         }
         return false;

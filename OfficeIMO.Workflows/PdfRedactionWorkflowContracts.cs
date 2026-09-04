@@ -35,6 +35,16 @@ public enum PdfRedactionEncryptedDocumentPolicy {
     DecryptAndReencrypt
 }
 
+/// <summary>Explicit policy for signed sources and output derivatives.</summary>
+public enum PdfRedactionSignaturePolicy {
+    /// <summary>Reject a signed source and do not sign the output.</summary>
+    RejectSignedSource,
+    /// <summary>Remove invalidated signatures through an explicit full-rewrite derivative.</summary>
+    CreateUnsignedDerivative,
+    /// <summary>Create the derivative and append one caller-provided signature after redaction verification.</summary>
+    CreateAndSignDerivative
+}
+
 /// <summary>Typed behavior for one serializable redaction search rule.</summary>
 public enum PdfRedactionRuleKind {
     /// <summary>Literal text.</summary>
@@ -113,6 +123,8 @@ public sealed class PdfRedactionRecipe {
     public PdfRedactionUnsupportedImagePolicy UnsupportedImagePolicy { get; set; } = PdfRedactionUnsupportedImagePolicy.FailClosed;
     /// <summary>Policy for encrypted input.</summary>
     public PdfRedactionEncryptedDocumentPolicy EncryptedDocumentPolicy { get; set; } = PdfRedactionEncryptedDocumentPolicy.Reject;
+    /// <summary>Signed-source and output-derivative policy.</summary>
+    public PdfRedactionSignaturePolicy SignaturePolicy { get; set; } = PdfRedactionSignaturePolicy.RejectSignedSource;
 }
 
 /// <summary>Redaction-specific resource limits.</summary>
@@ -159,7 +171,13 @@ public sealed class PdfRedactionDecisionManifest {
 
 /// <summary>One privacy-safe redaction candidate.</summary>
 public sealed class PdfRedactionWorkflowArea {
-    internal PdfRedactionWorkflowArea(PdfRedactionArea area) { PageNumber = area.PageNumber; X = area.X; Y = area.Y; Width = area.Width; Height = area.Height; }
+    internal PdfRedactionWorkflowArea(PdfRedactionArea area) {
+        PageNumber = area.PageNumber; X = area.X; Y = area.Y; Width = area.Width; Height = area.Height;
+        Kind = area.ExactGeometry?.Kind ?? PdfRedactionRegionKind.Rectangle;
+        Points = area.ExactGeometry?.Points.Select(static point => new PdfRedactionRecipePoint { X = point.X, Y = point.Y }).ToArray()
+            ?? Array.Empty<PdfRedactionRecipePoint>();
+        StrokeWidth = area.ExactGeometry?.StrokeWidth ?? 0D;
+    }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
     /// <summary>Left coordinate.</summary>
@@ -170,6 +188,12 @@ public sealed class PdfRedactionWorkflowArea {
     public double Width { get; }
     /// <summary>Height.</summary>
     public double Height { get; }
+    /// <summary>Exact reviewed geometry kind.</summary>
+    public PdfRedactionRegionKind Kind { get; }
+    /// <summary>Exact path points for polygon, quadrilateral, or freehand geometry.</summary>
+    public IReadOnlyList<PdfRedactionRecipePoint> Points { get; }
+    /// <summary>Exact freehand stroke width, or zero for other geometry.</summary>
+    public double StrokeWidth { get; }
 }
 
 /// <summary>One privacy-safe, atomically reviewable redaction candidate.</summary>
@@ -235,6 +259,14 @@ public sealed class PdfRedactionWorkflowRequest {
     public string? OwnerPassword { get; set; }
     /// <summary>Runtime new encryption for DecryptAndReencrypt. Passwords are never serialized into evidence.</summary>
     public PdfStandardEncryptionOptions? OutputEncryption { get; set; }
+    /// <summary>Runtime signer used only by CreateAndSignDerivative. It is never serialized into evidence.</summary>
+    public IPdfExternalSigner? OutputSigner { get; set; }
+    /// <summary>Runtime external-signature settings. They are never serialized wholesale into evidence.</summary>
+    public PdfExternalSignatureOptions? OutputSignatureOptions { get; set; }
+    /// <summary>Optional runtime cryptographic validator for the derivative signature.</summary>
+    public IPdfSignatureCryptographyProvider? OutputSignatureValidator { get; set; }
+    /// <summary>Optional cancellation-aware independent validators applied to the final redacted artifact.</summary>
+    public IList<IPdfRedactionCancellationAwareExternalValidator> ExternalValidators { get; set; } = new List<IPdfRedactionCancellationAwareExternalValidator>();
     /// <summary>Trusted expected output SHA-256 for zero-area verification when a security rewrite prevents byte comparison with the source.</summary>
     public string? ExpectedOutputSha256 { get; set; }
     /// <summary>Output conflict behavior.</summary>
