@@ -36,16 +36,23 @@ public sealed partial class OfficeWorkflowRunner {
         string? decisionsRoot = NormalizeOptionalPath(batch.DecisionsRoot);
         string manifestPath = Path.GetFullPath(batch.ManifestPath);
         var protectedPaths = batch.ProtectedInputPaths.Select(Path.GetFullPath).ToArray();
+        string physicalInputRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(inputRoot);
 
         string[] sourcePaths;
         if (batch.InputPaths.Count == 0) {
-            SearchOption searchOption = batch.RecurseSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            sourcePaths = Directory.EnumerateFiles(inputRoot, batch.SearchPattern, searchOption)
+            sourcePaths = Directory.EnumerateFiles(inputRoot, batch.SearchPattern, new EnumerationOptions {
+                    RecurseSubdirectories = batch.RecurseSubdirectories,
+                    IgnoreInaccessible = false,
+                    AttributesToSkip = FileAttributes.ReparsePoint,
+                    ReturnSpecialDirectories = false
+                })
                 .Where(static path => string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase))
                 .Select(Path.GetFullPath)
+                .Take(batch.Limits.MaximumBatchItems + 1)
                 .OrderBy(path => Path.GetRelativePath(inputRoot, path), StringComparer.Ordinal)
                 .ToArray();
         } else {
+            if (batch.InputPaths.Count > batch.Limits.MaximumBatchItems) throw new InvalidOperationException($"The redaction batch selected {batch.InputPaths.Count} items, above the configured {batch.Limits.MaximumBatchItems}-item limit.");
             sourcePaths = batch.InputPaths
                 .Select(relativePath => ResolveRelativePath(inputRoot, relativePath, "input"))
                 .OrderBy(path => Path.GetRelativePath(inputRoot, path), StringComparer.Ordinal)
@@ -56,17 +63,26 @@ public sealed partial class OfficeWorkflowRunner {
         EnsurePortableUniquePaths(sourcePaths, "Batch inputs");
         var requests = new PdfRedactionWorkflowRequest[sourcePaths.Length];
         var destinations = new List<string>(sourcePaths.Length * 2 + 1) { manifestPath };
+        var decisionPaths = new List<string>(sourcePaths.Length);
         for (int index = 0; index < sourcePaths.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             string sourcePath = sourcePaths[index];
             if (!File.Exists(sourcePath)) throw new FileNotFoundException("A selected redaction batch input was not found.", sourcePath);
             if (!string.Equals(Path.GetExtension(sourcePath), ".pdf", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Every redaction batch input must be a PDF.");
+            string physicalSourcePath = OfficeWorkflowPathIdentity.ResolvePhysicalPath(sourcePath);
+            if (!OfficeWorkflowPathIdentity.IsSameOrDescendant(physicalSourcePath, physicalInputRoot)) throw new ArgumentException("A selected redaction batch input physically escapes its configured input root.");
             string relativePath = Path.GetRelativePath(inputRoot, sourcePath);
             string relativeDirectory = Path.GetDirectoryName(relativePath) ?? string.Empty;
             string stem = Path.GetFileNameWithoutExtension(relativePath);
             string evidencePath = Path.Combine(evidenceRoot, relativeDirectory, stem + batch.EvidenceSuffix);
             string? outputPath = outputRoot is null ? null : Path.Combine(outputRoot, relativeDirectory, stem + batch.OutputSuffix);
             string? decisionsPath = decisionsRoot is null ? null : Path.Combine(decisionsRoot, relativeDirectory, stem + batch.DecisionsSuffix);
+            EnsureGeneratedPathWithinRoot(evidencePath, evidenceRoot, "evidence");
+            if (outputPath is not null) EnsureGeneratedPathWithinRoot(outputPath, outputRoot!, "output");
+            if (decisionsPath is not null) {
+                EnsureGeneratedPathWithinRoot(decisionsPath, decisionsRoot!, "decision");
+                decisionPaths.Add(decisionsPath);
+            }
             PdfRedactionDecisionManifest? decisions = decisionsPath is null
                 ? null
                 : await ReadDecisionManifestAsync(decisionsPath, cancellationToken).ConfigureAwait(false);
@@ -96,7 +112,8 @@ public sealed partial class OfficeWorkflowRunner {
             };
         }
         EnsurePortableUniquePaths(destinations, "Batch destinations");
-        EnsureDestinationsOutsideInputs(destinations, sourcePaths, protectedPaths);
+        EnsurePortableUniquePaths(decisionPaths, "Batch decision inputs");
+        EnsureDestinationsOutsideInputs(destinations, sourcePaths, protectedPaths.Concat(decisionPaths));
         return requests;
     }
 
@@ -142,16 +159,18 @@ public sealed partial class OfficeWorkflowRunner {
         if (batch.ConflictPolicy == OfficeWorkflowConflictPolicy.Rename) throw new ArgumentException("Redaction batches require Fail or Replace conflict policy.");
         if (string.IsNullOrWhiteSpace(batch.InputRoot) || !Directory.Exists(batch.InputRoot)) throw new DirectoryNotFoundException("Redaction batch input root was not found.");
         if (batch.InputPaths is null || batch.ProtectedInputPaths is null || batch.ExternalValidators is null || batch.Recipe is null || batch.Limits is null) throw new ArgumentException("Redaction batch collections, recipe, and limits cannot be null.");
+        if (batch.Limits.MaximumBatchItems <= 0 || batch.Limits.MaximumBatchItems > 10_000 || batch.Limits.MaximumConcurrency <= 0 || batch.Limits.MaximumConcurrency > 32 || batch.Limits.MaximumBatchPreparedBytes <= 0 || batch.Limits.MaximumEvidenceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(batch.Limits), "Redaction batch limits require 1 through 10,000 items, 1 through 32 workers, and positive prepared/evidence byte budgets.");
         if (string.IsNullOrWhiteSpace(batch.EvidenceRoot) || string.IsNullOrWhiteSpace(batch.ManifestPath)) throw new ArgumentException("Redaction batches require EvidenceRoot and ManifestPath.");
         if (batch.Mode != PdfRedactionWorkflowMode.PlanOnly && (string.IsNullOrWhiteSpace(batch.OutputRoot) || string.IsNullOrWhiteSpace(batch.DecisionsRoot))) throw new ArgumentException("Apply and verify batches require OutputRoot and DecisionsRoot.");
         ValidateBatchSuffix(batch.OutputSuffix, nameof(batch.OutputSuffix));
         ValidateBatchSuffix(batch.EvidenceSuffix, nameof(batch.EvidenceSuffix));
         ValidateBatchSuffix(batch.DecisionsSuffix, nameof(batch.DecisionsSuffix));
         if (string.IsNullOrWhiteSpace(batch.SearchPattern) || batch.SearchPattern.IndexOfAny(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) >= 0 || batch.SearchPattern.Contains("..", StringComparison.Ordinal)) throw new ArgumentException("Redaction batch SearchPattern must be one file-name pattern without directory traversal.");
-        string inputRoot = Path.GetFullPath(batch.InputRoot);
+        string inputRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(batch.InputRoot);
         foreach (string generatedRoot in new[] { batch.OutputRoot, batch.EvidenceRoot }.Where(static path => !string.IsNullOrWhiteSpace(path))!) {
-            if (IsPathWithin(inputRoot, Path.GetFullPath(generatedRoot!))) throw new ArgumentException("Redaction output and evidence roots cannot be inside the input root.");
+            if (OfficeWorkflowPathIdentity.IsSameOrDescendant(OfficeWorkflowPathIdentity.ResolvePhysicalPath(generatedRoot!), inputRoot)) throw new ArgumentException("Redaction output and evidence roots cannot be physically inside the input root.");
         }
+        if (OfficeWorkflowPathIdentity.IsSameOrDescendant(OfficeWorkflowPathIdentity.ResolvePhysicalPath(batch.ManifestPath), inputRoot)) throw new ArgumentException("The redaction batch manifest cannot be physically inside the input root.");
     }
 
     private static void ValidateBatchSuffix(string suffix, string parameterName) {
@@ -168,6 +187,12 @@ public sealed partial class OfficeWorkflowRunner {
     private static bool IsPathWithin(string root, string candidate) {
         string relative = Path.GetRelativePath(root, candidate);
         return !Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) && !relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal);
+    }
+
+    private static void EnsureGeneratedPathWithinRoot(string path, string root, string kind) {
+        string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(root);
+        string physicalPath = OfficeWorkflowPathIdentity.ResolvePhysicalPath(path);
+        if (!OfficeWorkflowPathIdentity.IsSameOrDescendant(physicalPath, physicalRoot)) throw new ArgumentException($"A redaction batch {kind} path physically escapes its configured root.");
     }
 
     private static void EnsurePortableUniquePaths(IEnumerable<string> paths, string kind) {

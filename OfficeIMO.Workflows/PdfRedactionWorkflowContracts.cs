@@ -159,7 +159,7 @@ public sealed class PdfRedactionWorkflowLimits {
     public int MaximumGeometryPoints { get; set; } = 100_000;
     /// <summary>Maximum discovered candidates.</summary>
     public int MaximumCandidates { get; set; } = 25_000;
-    /// <summary>Maximum items in one atomic batch.</summary>
+    /// <summary>Maximum selected items in one file-set batch.</summary>
     public int MaximumBatchItems { get; set; } = 100;
     /// <summary>Maximum items prepared concurrently before transactional publication.</summary>
     public int MaximumConcurrency { get; set; } = 1;

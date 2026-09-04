@@ -605,7 +605,7 @@ internal static partial class PdfRedactionApplier {
             // An area redaction is a confidentiality boundary. If a text object cannot be
             // located, retaining it could leave extractable text inside the painted area.
             // Text-targeted redactions still require their textual match before reaching here.
-            return target.Text.Length == 0 && target.Area.ExactGeometry is null;
+            return target.Text.Length == 0;
         }
 
         return target.Area.IntersectsRectangle(

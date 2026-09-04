@@ -329,25 +329,29 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         var origins = new List<CandidateOrigin>();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         bool ocrUsed = false;
+        void AddCandidate(IReadOnlyList<PdfRedactionArea> areas, CandidateOrigin origin) {
+            if (candidateAreaSets.Count >= request.Limits.MaximumCandidates) throw new RedactionWorkflowException($"Candidate discovery exceeded the configured {request.Limits.MaximumCandidates}-candidate limit.");
+            candidateAreaSets.Add(areas);
+            origins.Add(origin);
+        }
+        int RemainingSearchBudget() => Math.Max(1, request.Limits.MaximumCandidates - candidateAreaSets.Count);
         foreach (PdfRedactionRule rule in request.Recipe.Rules) {
             cancellationToken.ThrowIfCancellationRequested();
             if (rule.Kind == PdfRedactionRuleKind.RedactAnnotations) {
                 foreach (PdfAnnotation annotation in document.Reader.AnnotationsBySubtype("Redact")
                     .Where(static annotation => annotation.PageNumber.HasValue && (annotation.QuadPoints.Count >= 8 || annotation.Width > 0D && annotation.Height > 0D))) {
                     IReadOnlyList<PdfRedactionArea> areas = ApplyPolicies(PdfRedactionRegion.FromRedactAnnotation(annotation).Areas, rule.ContentScope, rule.AppearanceMode);
-                    candidateAreaSets.Add(areas);
-                    origins.Add(new CandidateOrigin("annotation", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
+                    AddCandidate(areas, new CandidateOrigin("annotation", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
                 }
                 continue;
             }
 
-            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, request.Limits.MaximumCandidates, cancellationToken);
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget(), cancellationToken);
             int nativeCount = 0;
             if (request.Recipe.DetectionMode != PdfRedactionDetectionMode.OcrOnly) {
                 PdfRedactionPlan nativePlan = document.Redactions.Search(search);
                 foreach (PdfRedactionArea area in nativePlan.Areas) {
-                    candidateAreaSets.Add(new[] { area.WithPolicies(rule.ContentScope, rule.AppearanceMode) });
-                    origins.Add(new CandidateOrigin("native", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
+                    AddCandidate(new[] { area.WithPolicies(rule.ContentScope, rule.AppearanceMode) }, new CandidateOrigin("native", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
                 }
                 nativeCount = nativePlan.Areas.Count;
             }
@@ -358,19 +362,21 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                  request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeThenOcr && nativeCount == 0);
             if (!runOcr) continue;
             if (request.OcrEngine is null) throw new RedactionWorkflowException("The recipe requires OCR but no runtime OCR engine was supplied.");
+            search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget(), cancellationToken);
             PdfOcrRedactionSearchResult ocr = await document.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
+            string safeProvider = NormalizeEvidenceIdentifier(request.OcrEngine.Id) ?? "ocr-provider";
             foreach (PdfOcrRedactionCandidate candidate in ocr.Candidates) {
-                candidateAreaSets.Add(new[] { candidate.Area.WithPolicies(rule.ContentScope, rule.AppearanceMode) });
-                origins.Add(new CandidateOrigin("ocr", rule.Name, rule.ContentScope, rule.AppearanceMode, candidate.MinimumConfidence, candidate.Provider, candidate.Model, candidate.Language));
+                AddCandidate(
+                    new[] { candidate.Area.WithPolicies(rule.ContentScope, rule.AppearanceMode) },
+                    new CandidateOrigin("ocr", rule.Name, rule.ContentScope, rule.AppearanceMode, candidate.MinimumConfidence, safeProvider, NormalizeEvidenceIdentifier(candidate.Model), NormalizeEvidenceIdentifier(candidate.Language)));
             }
             ocrUsed = true;
-            diagnostics.Add(new OfficeWorkflowDiagnostic("OcrCandidateDiscovery", $"OCR contributed {ocr.Candidates.Count} privacy-safe candidate(s) for rule '{rule.Name}'.", details: new Dictionary<string, string> { ["provider"] = request.OcrEngine.Id, ["rule"] = rule.Name, ["candidateCount"] = ocr.Candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
+            diagnostics.Add(new OfficeWorkflowDiagnostic("OcrCandidateDiscovery", $"OCR contributed {ocr.Candidates.Count} privacy-safe candidate(s) for rule '{rule.Name}'.", details: new Dictionary<string, string> { ["provider"] = safeProvider, ["rule"] = rule.Name, ["candidateCount"] = ocr.Candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
         }
 
         foreach (PdfRedactionRecipeRegion region in request.Recipe.Regions) {
             PdfRedactionRegion normalized = ConvertRegion(region);
-            candidateAreaSets.Add(ApplyPolicies(normalized.Areas, region.ContentScope, region.AppearanceMode));
-            origins.Add(new CandidateOrigin("region:" + normalized.Kind, region.Name, region.ContentScope, region.AppearanceMode, null, null, null, null));
+            AddCandidate(ApplyPolicies(normalized.Areas, region.ContentScope, region.AppearanceMode), new CandidateOrigin("region:" + normalized.Kind, region.Name, region.ContentScope, region.AppearanceMode, null, null, null, null));
         }
 
         var candidateAreas = new List<IReadOnlyList<PdfRedactionArea>>();
@@ -409,6 +415,16 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 throw new ArgumentException("The supplied rule cannot be represented as a text search.");
         }
         return search;
+    }
+
+    private static string? NormalizeEvidenceIdentifier(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        string normalized = value.Trim();
+        if (normalized.Length > 128 || !IsAsciiLetterOrDigit(normalized[0]) || normalized.Any(static character => !IsEvidenceIdentifierCharacter(character))) return null;
+        return normalized;
+
+        static bool IsAsciiLetterOrDigit(char value) => value is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9';
+        static bool IsEvidenceIdentifierCharacter(char value) => IsAsciiLetterOrDigit(value) || value is '.' or '_' or '-';
     }
 
     private static IReadOnlyList<PdfRedactionArea> ApplyPolicies(IReadOnlyList<PdfRedactionArea> areas, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
@@ -554,9 +570,13 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
 
     private static async Task<int> CountOcrResidualsAsync(PdfDocument output, PdfRedactionWorkflowRequest request, IReadOnlyList<PdfRedactionArea> approvedAreas, CancellationToken cancellationToken) {
         int residualCount = 0;
+        int discoveredCount = 0;
         foreach (PdfRedactionRule rule in request.Recipe.Rules.Where(static rule => rule.Kind is PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex)) {
-            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, request.Limits.MaximumCandidates, cancellationToken);
+            int remaining = request.Limits.MaximumCandidates - discoveredCount;
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, Math.Max(1, remaining), cancellationToken);
             PdfOcrRedactionSearchResult post = await output.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine!, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
+            if (post.Candidates.Count > remaining) throw new RedactionWorkflowException($"Post-rewrite OCR discovery exceeded the configured {request.Limits.MaximumCandidates}-candidate limit.");
+            discoveredCount += post.Candidates.Count;
             residualCount += post.Candidates.Count(candidate => approvedAreas.Any(area =>
                 area.PageNumber == candidate.Area.PageNumber &&
                 area.IntersectsRectangle(candidate.Area.X, candidate.Area.Y, candidate.Area.Width, candidate.Area.Height)));

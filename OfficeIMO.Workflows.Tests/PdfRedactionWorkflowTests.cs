@@ -5,7 +5,7 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Workflows.Tests;
 
-public sealed class PdfRedactionWorkflowTests {
+public sealed partial class PdfRedactionWorkflowTests {
     [Fact]
     public async Task PlanApplyAndVerifyPublishesPrivacySafeEvidence() {
         using var scope = new RedactionTestDirectory();
@@ -525,21 +525,22 @@ public sealed class PdfRedactionWorkflowTests {
         const string sensitive = "Ocr Secret";
         PdfDocument.Create().Paragraph(paragraph => paragraph.Text("unrelated native content")).Save(input);
         int invocation = 0;
+        const string metadataLeak = "https://tenant.invalid/Ocr Secret?token=991";
         var engine = new DelegateOcrEngine(
-            "workflow-fixture",
+            metadataLeak,
             (_, _) => {
                 invocation++;
                 return Task.FromResult(invocation < 3
                     ? new OcrResult {
-                        Provider = "fixture-provider",
-                        Model = "fixture-model",
-                        Language = "en",
+                        Provider = metadataLeak,
+                        Model = metadataLeak,
+                        Language = metadataLeak,
                         Spans = new[] {
                             OcrWord("Ocr", 200, 300, 30, 14, 0.98),
                             OcrWord("Secret", 235, 300, 50, 14, 0.94)
                         }
                     }
-                    : new OcrResult { Provider = "fixture-provider", Model = "fixture-model", Language = "en" });
+                    : new OcrResult { Provider = metadataLeak, Model = metadataLeak, Language = metadataLeak });
             },
             new OcrEngineCapabilities { SupportsWordSpans = true, SupportsConfidence = true });
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
@@ -553,6 +554,9 @@ public sealed class PdfRedactionWorkflowTests {
             OcrEngine = engine
         });
         PdfRedactionWorkflowCandidate candidate = Assert.Single(planned.Candidates);
+        Assert.Equal("ocr-provider", candidate.Provider);
+        Assert.Null(candidate.Model);
+        Assert.Null(candidate.Language);
         var decisions = new PdfRedactionDecisionManifest {
             SourceSha256 = planned.SourceSha256,
             RecipeSha256 = planned.RecipeSha256,
@@ -574,10 +578,33 @@ public sealed class PdfRedactionWorkflowTests {
         Assert.True(applied.Evidence?.OcrUsed);
         Assert.True(applied.Evidence?.OcrPostVerificationPerformed);
         Assert.Equal(0, applied.Evidence?.OcrResidualCandidateCount);
-        Assert.Contains("fixture-provider", applied.Evidence!.OcrProviders);
+        Assert.Contains("ocr-provider", applied.Evidence!.OcrProviders);
         string evidence = await File.ReadAllTextAsync(evidencePath);
         Assert.DoesNotContain(sensitive, evidence, StringComparison.Ordinal);
+        Assert.DoesNotContain(metadataLeak, evidence, StringComparison.Ordinal);
         Assert.DoesNotContain("recognized", evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CandidateLimitAppliesAcrossRulesBeforeDeduplication() {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("candidate-limit.pdf");
+        string evidence = scope.PathFor("candidate-limit.json");
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("bounded target")).Save(input);
+        PdfRedactionRecipe recipe = CreateRecipe("bounded target");
+        recipe.Rules.Add(new PdfRedactionRule { Name = "second-rule", Kind = PdfRedactionRuleKind.Literal, Value = "bounded target" });
+
+        PdfRedactionWorkflowResult result = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputPath = input,
+            EvidencePath = evidence,
+            Recipe = recipe,
+            Limits = new PdfRedactionWorkflowLimits { MaximumCandidates = 1 }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Message.Contains("candidate limit", StringComparison.OrdinalIgnoreCase));
+        Assert.False(File.Exists(evidence));
     }
 
     [Fact]
