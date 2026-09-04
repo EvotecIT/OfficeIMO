@@ -332,6 +332,26 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasNamedDestinations_CreateReusableInternalNavigation() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200D, PageHeight = 200D })
+            .Canvas(canvas => canvas
+                .NamedDestination("details", 10D, 120D)
+                .Text("Details", 10D, 120D, 80D, 20D)
+                .LinkToNamedDestination("details", 10D, 10D, 60D, 20D, "Jump to details"))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Contains("details", info.NamedDestinationNames);
+        Assert.Contains("details", info.LinkDestinationNames);
+
+        var canvas = new PdfPageCanvas();
+        Assert.Throws<ArgumentException>(() => canvas.NamedDestination(" ", 0D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.NamedDestination("target", -1D, 0D));
+        Assert.Throws<ArgumentException>(() => canvas.LinkToNamedDestination(" ", 0D, 0D, 10D, 10D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.LinkToNamedDestination("target", 0D, 0D, 0D, 10D));
+    }
+
+    [Fact]
     public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

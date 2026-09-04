@@ -24,6 +24,12 @@ internal static partial class PdfWriter {
                     case PdfCanvasOutlineItem outline:
                         RenderCanvasOutline(outline);
                         break;
+                    case PdfCanvasNamedDestinationItem destination:
+                        RenderCanvasNamedDestination(destination);
+                        break;
+                    case PdfCanvasNamedDestinationLinkItem destinationLink:
+                        RenderCanvasNamedDestinationLink(destinationLink);
+                        break;
                     case PdfCanvasTextItem text:
                         RenderCanvasText(text);
                         break;
@@ -96,6 +102,24 @@ internal static partial class PdfWriter {
                     bookmarkCount);
             }
             sb.Append("EMC\n");
+        }
+
+        private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
+            AddNamedDestinationName(item.Name, currentOpts.PageHeight - item.Y);
+        }
+
+        private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
+            ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas named-destination link");
+            double topY = currentOpts.PageHeight - item.Y;
+            currentPage!.Annotations.Add(new LinkAnnotation {
+                X1 = item.X,
+                Y1 = topY - item.Height,
+                X2 = item.X + item.Width,
+                Y2 = topY,
+                DestinationName = item.DestinationName,
+                Contents = item.Contents
+            });
+            pageDirty = true;
         }
 
         private static void RemoveCanvasArtifactInteractions(
@@ -303,7 +327,8 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.TableRow) return "TR";
             if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
             if (role == PdfCanvasStructureRole.TableCell) return "TD";
-            return "Caption";
+            if (role == PdfCanvasStructureRole.Caption) return "Caption";
+            return "Note";
         }
 
         private static string MapCanvasTableHeaderScope(PdfCanvasTableHeaderScope? scope) {

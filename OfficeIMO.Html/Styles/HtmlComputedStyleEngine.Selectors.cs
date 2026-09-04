@@ -125,6 +125,16 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
+        if (TryTrimPseudoElement(value, "::footnote-call", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FootnoteCall;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::footnote-marker", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FootnoteMarker;
+            return true;
+        }
+
         hostSelector = string.Empty;
         kind = HtmlPseudoElementKind.Before;
         return false;

@@ -428,8 +428,16 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
         HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
         HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment);
-        if (before == null && after == null && marker == null) return;
-        pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after, Marker = marker };
+        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment);
+        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment);
+        if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null) return;
+        pseudoElements[element] = new HtmlPseudoElementStylePair {
+            Before = before,
+            After = after,
+            Marker = marker,
+            FootnoteCall = footnoteCall,
+            FootnoteMarker = footnoteMarker
+        };
     }
 
     private static HtmlComputedStyle? ComputePseudoElementStyle(

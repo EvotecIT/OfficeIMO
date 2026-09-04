@@ -18,6 +18,73 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void HtmlToPdf_FootnotesUseNoteStructureAndRemainSearchableAfterBodyContent() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <p>Alpha body <span id="pdf-note" class="note">Footnote payload</span> omega.</p>
+            """;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string raw = Encoding.ASCII.GetString(pdf);
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("/Type /StructElem /S /Note", raw, StringComparison.Ordinal);
+        Assert.Contains("html-fragment:officeimo-footnote-call-1", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:officeimo-footnote-note-1", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:officeimo-footnote-call-1", info.LinkDestinationNames);
+        Assert.Contains("html-fragment:officeimo-footnote-note-1", info.LinkDestinationNames);
+        Assert.Contains("Alpha body", extracted, StringComparison.Ordinal);
+        Assert.Contains("Footnote payload", extracted, StringComparison.Ordinal);
+        Assert.True(extracted.IndexOf("Alpha body", StringComparison.Ordinal) < extracted.IndexOf("Footnote payload", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlToPdf_FragmentLinksUseNamedDestinationsInsteadOfRelativeUriActions() {
+        const string html = "<p><a href='#details'>Jump to details</a></p><p><span id='details'>Details</span></p>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("html-fragment:details", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:details", info.LinkDestinationNames);
+        Assert.DoesNotContain("#details", info.LinkUris);
+    }
+
+    [Fact]
+    public void HtmlToPdf_TopAndMissingFragmentsRemainDeterministic() {
+        const string html = "<p><a href='#TOP'>Top</a> <a href='#missing'>Missing</a></p><p>Body</p>";
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("html-fragment:top", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:top", info.LinkDestinationNames);
+        Assert.DoesNotContain("html-fragment:missing", info.LinkDestinationNames);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable);
+    }
+
+    [Fact]
+    public void HtmlToPdf_DuplicateIdsAndRepeatedTableHeadersEmitOneNamedDestination() {
+        string rows = string.Concat(Enumerable.Range(1, 18).Select(index => $"<tr><td>Row {index}</td></tr>"));
+        string html = "<style>@page{size:180px 120px;margin:8px}body,table{margin:0;font-size:10px;line-height:12px}</style>"
+            + "<a href='#heading'>Jump</a><table><thead><tr><th id='heading'>Repeated heading</th></tr></thead><tbody>"
+            + rows
+            + "</tbody></table><p id='heading'>Duplicate</p>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(1, info.NamedDestinationNames.Count(name => name == "html-fragment:heading"));
+        Assert.Contains("html-fragment:heading", info.LinkDestinationNames);
+    }
+
+    [Fact]
     public void Pdf_SaveAsHtmlAsync_LinksTheMethodTokenIntoRenderOptions() {
         using var optionsCancellation = new System.Threading.CancellationTokenSource();
         using var methodCancellation = new System.Threading.CancellationTokenSource();

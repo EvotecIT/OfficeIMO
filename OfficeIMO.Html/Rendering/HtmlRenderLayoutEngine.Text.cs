@@ -201,8 +201,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
+        if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
+            // CSS footnote extraction is a paged-media behavior. Continuous output
+            // keeps the authored note in normal flow instead of dropping its body.
+            style.FloatSide = "none";
+            style.UnsupportedFloat = string.Empty;
+        }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+            AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
+        }
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -237,7 +246,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.FloatSide != "none") {
             AssignLogicalTextOrders(runs);
-            AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            if (style.FloatSide == "footnote") AddFootnoteRun(element, width, inheritedStyle, depth, style, runs);
+            else AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
             return;
         }
 
@@ -1239,7 +1249,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {
-        if (string.IsNullOrWhiteSpace(rawHref)) return null;
+        if (rawHref == null) return null;
+        string candidate = rawHref.Trim();
+        if (candidate.Length == 0) return null;
+        if (candidate.Length > 1 && candidate[0] == '#') {
+            string fragment = candidate.Substring(1);
+            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase)) return "#top";
+            if (_document.GetElementById(fragment) == null) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable,
+                    "A document-internal hyperlink target was not found and the link annotation was omitted.",
+                    HtmlDiagnosticSeverity.Warning,
+                    HtmlRenderStyleResolver.DescribeSource(element),
+                    candidate,
+                    OfficeConversionLossKind.Omission);
+                return null;
+            }
+        }
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawHref, _baseUri, _options.UrlPolicy);
         if (resolved.Length > 0) return resolved;
         _diagnostics.Add(ComponentName, "HyperlinkRejectedByPolicy", "A hyperlink target was rejected before entering the rendered document.", HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), rawHref);

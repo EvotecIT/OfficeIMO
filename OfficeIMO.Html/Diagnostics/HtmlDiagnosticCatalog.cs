@@ -71,6 +71,12 @@ public static class HtmlDiagnosticCatalog {
             HtmlDiagnosticSeverity.Warning,
             "A hyperlink target was rejected because its URI is not allowed by policy.",
             "Use http, https, mailto, or a caller-approved scheme instead of script or local file targets."),
+        [HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable] = new HtmlDiagnosticDefinition(
+            HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable,
+            "Hyperlink",
+            HtmlDiagnosticSeverity.Warning,
+            "A document-internal hyperlink referenced a fragment target that does not exist.",
+            "Add an element with the referenced id, update the fragment, or remove the broken link."),
         ["ScriptResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
             "ScriptResourceRejectedByPolicy",
             "ResourcePolicy",

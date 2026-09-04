@@ -70,6 +70,33 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>Adds a named destination at an absolute top-left page coordinate.</summary>
+    public PdfPageCanvas NamedDestination(string name, double x, double y) {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        _items.Add(new PdfCanvasNamedDestinationItem(name.Trim(), x, y));
+        return this;
+    }
+
+    /// <summary>Adds a document-internal link annotation targeting a named destination.</summary>
+    public PdfPageCanvas LinkToNamedDestination(
+        string destinationName,
+        double x,
+        double y,
+        double width,
+        double height,
+        string? contents = null) {
+        Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        if (contents != null) Guard.NotNullOrWhiteSpace(contents, nameof(contents));
+        _items.Add(new PdfCanvasNamedDestinationLinkItem(destinationName.Trim(), x, y, width, height, contents));
+        return this;
+    }
+
     /// <summary>Groups absolute canvas content as one tagged figure with alternative text.</summary>
     public PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build) {
         Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
@@ -116,7 +143,7 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
     public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
-        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Caption) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Note) {
             throw new ArgumentOutOfRangeException(nameof(role));
         }
         Guard.NotNull(build, nameof(build));
@@ -590,6 +617,30 @@ internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
     public int Level { get; }
     public PdfOutlineState State { get; }
     public int? DocumentOrder { get; }
+}
+
+internal sealed class PdfCanvasNamedDestinationItem : PdfCanvasItem {
+    public PdfCanvasNamedDestinationItem(string name, double x, double y)
+        : base(x, y) {
+        Name = name;
+    }
+
+    public string Name { get; }
+}
+
+internal sealed class PdfCanvasNamedDestinationLinkItem : PdfCanvasItem {
+    public PdfCanvasNamedDestinationLinkItem(string destinationName, double x, double y, double width, double height, string? contents)
+        : base(x, y) {
+        DestinationName = destinationName;
+        Width = width;
+        Height = height;
+        Contents = contents;
+    }
+
+    public string DestinationName { get; }
+    public double Width { get; }
+    public double Height { get; }
+    public string? Contents { get; }
 }
 
 internal sealed class PdfCanvasArtifactItem : PdfCanvasItem {

@@ -220,6 +220,11 @@ internal static partial class HtmlPdfRenderedConverter {
             AddShape(canvas, shape, conversionReport, cancellationToken);
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, conversionReport, surfaceWidth, textAsSpan, logicalTextOwned, cancellationToken);
+        } else if (visual is HtmlRenderNamedDestination destination) {
+            canvas.NamedDestination(
+                MapNamedDestination(destination.Name),
+                destination.X * PointsPerCssPixel,
+                destination.Y * PointsPerCssPixel);
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
         } else if (visual is HtmlRenderDrawing drawing) {
@@ -378,7 +383,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
-        if (visual is HtmlRenderBookmarkAnchor) return false;
+        if (visual is HtmlRenderBookmarkAnchor || visual is HtmlRenderNamedDestination) return false;
         if (visual is HtmlRenderLayoutRegion layoutRegion) return layoutRegion.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderSemanticGroup semanticGroup) return semanticGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) return logicalTextGroup.Visuals.Any(ContainsPaintableVisual);
@@ -422,6 +427,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (role == HtmlRenderSemanticGroupRole.TableRow) return PdfCore.PdfCanvasStructureRole.TableRow;
         if (role == HtmlRenderSemanticGroupRole.TableHeaderCell) return PdfCore.PdfCanvasStructureRole.TableHeaderCell;
         if (role == HtmlRenderSemanticGroupRole.TableCell) return PdfCore.PdfCanvasStructureRole.TableCell;
+        if (role == HtmlRenderSemanticGroupRole.Footnote) return PdfCore.PdfCanvasStructureRole.Note;
         return PdfCore.PdfCanvasStructureRole.Caption;
     }
 
@@ -561,7 +567,10 @@ internal static partial class HtmlPdfRenderedConverter {
         bool logicalTextOwned,
         CancellationToken cancellationToken) {
         if (visual.Text.Length == 0) return;
-        string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
+        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = IsFragmentLink(visual.LinkUri)
+            ? MapNamedDestination(visual.LinkUri!.Substring(1))
+            : null;
         double frameWidth = visual.Width;
         if (visual.TextAdvanceWidth.HasValue) {
             double metricTolerance = Math.Max(
@@ -597,6 +606,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
+            linkDestinationName: linkDestination,
             fontFamily: visual.Font.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),
             underlineStyle: visual.UnderlineStyle,
@@ -614,6 +624,11 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Font.Size * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel);
     }
+
+    private static bool IsFragmentLink(string? link) =>
+        link != null && link.Length > 1 && link[0] == '#';
+
+    private static string MapNamedDestination(string name) => "html-fragment:" + name;
 
     private static PdfCore.PdfCanvasTextStructureRole MapStructureRole(string? semanticRole) {
         if (semanticRole == "heading-1") return PdfCore.PdfCanvasTextStructureRole.Heading1;

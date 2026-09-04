@@ -46,6 +46,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, FlattenedSemanticBoundary> _flattenedSemanticBoundaries = new Dictionary<IElement, FlattenedSemanticBoundary>();
     private readonly Dictionary<IElement, int> _documentOrderByElement = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, int> _footnoteNumbers = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, HtmlFootnoteEntry> _footnoteEntries = new Dictionary<IElement, HtmlFootnoteEntry>();
+    private readonly HashSet<string> _namedDestinationIds = new HashSet<string>(StringComparer.Ordinal);
+    private HtmlFootnotePagePlan _footnotePlan = HtmlFootnotePagePlan.Empty;
     private readonly Dictionary<int, HtmlRenderBookmarkDefinition> _bookmarkDefinitions = new Dictionary<int, HtmlRenderBookmarkDefinition>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _blankValueRadioGroupKeys = new Dictionary<IElement, string>();
@@ -100,12 +104,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
             _documentOrderByElement[element] = documentOrder++;
+            if (computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? elementStyle)
+                && string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
+                _footnoteNumbers[element] = _footnoteNumbers.Count + 1;
+            }
         }
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
+        foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
+        foreach (IElement linkElement in document.QuerySelectorAll("[href]")) {
+            string? href = linkElement.GetAttribute("href")?.Trim();
+            if (href == null || href.Length <= 1 || href[0] != '#') continue;
+            string fragment = href.Substring(1);
+            _namedDestinationIds.Add(string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase) ? "top" : fragment);
+        }
         _resources = resources ?? new HtmlResourceSession();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
@@ -158,12 +173,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         CheckCancellation();
         IdentifyStaticRadioGroups();
         HtmlRenderDocument rendered = RenderSinglePass();
-        if (_options.Mode != HtmlRenderMode.Paged || !_generatedContent.HasTargetPageReferences) return rendered;
+        if (_options.Mode != HtmlRenderMode.Paged) return rendered;
 
-        for (int pass = 0; pass < 3; pass++) {
-            IReadOnlyDictionary<string, int> targetPages = ResolveTargetPages(rendered);
-            if (_generatedContent.TargetPagesEqual(targetPages)) break;
-            _generatedContent = _generatedContent.WithTargetPages(targetPages);
+        for (int pass = 0; pass < 4; pass++) {
+            bool changed = false;
+            if (_generatedContent.HasTargetPageReferences) {
+                IReadOnlyDictionary<string, int> targetPages = ResolveTargetPages(rendered);
+                if (!_generatedContent.TargetPagesEqual(targetPages)) {
+                    _generatedContent = _generatedContent.WithTargetPages(targetPages);
+                    changed = true;
+                }
+            }
+            HtmlFootnotePagePlan footnotePlan = ResolveFootnotePlan(rendered);
+            if (!_footnotePlan.EquivalentTo(footnotePlan)) {
+                _footnotePlan = footnotePlan;
+                changed = true;
+            }
+            if (!changed) break;
             ResetLayoutPassState();
             rendered = RenderSinglePass();
         }
@@ -201,6 +227,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
             ? Array.Empty<HtmlRenderFlowBlock>()
             : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        blocks = AddDocumentTopDestination(blocks, contentWidth);
         if (_options.Mode == HtmlRenderMode.Paged && blocks.Count > 0 && blocks[0].PageName != null) {
             HtmlCssPageGeometry namedGeometry = _pageRules.ResolveGeometry(1, blocks[0].PageName, _options);
             if (!SamePageGeometry(initialGeometry, namedGeometry)) {
@@ -213,6 +240,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 blocks = rootStyle.Display == "none"
                     ? Array.Empty<HtmlRenderFlowBlock>()
                     : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+                blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
         HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
@@ -220,6 +248,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : RenderContinuous(blocks);
         CheckCancellation();
         return rendered;
+    }
+
+    private IReadOnlyList<HtmlRenderFlowBlock> AddDocumentTopDestination(
+        IReadOnlyList<HtmlRenderFlowBlock> blocks,
+        double contentWidth) {
+        if (!_namedDestinationIds.Contains("top")) return blocks;
+        var destination = new HtmlRenderNamedDestination("top", 0D, 0D, 0, "document:top-anchor");
+        if (blocks.Count == 0) {
+            return new[] {
+                new HtmlRenderFlowBlock(
+                    contentWidth,
+                    0.01D,
+                    new HtmlRenderVisual[] { destination },
+                    HtmlPageBreakTarget.None,
+                    HtmlPageBreakTarget.None,
+                    false,
+                    "document:top-anchor")
+            };
+        }
+
+        var result = blocks.ToList();
+        HtmlRenderFlowBlock first = result[0];
+        result[0] = first.WithVisuals(new HtmlRenderVisual[] { destination }
+            .Concat(first.Visuals.Select((visual, index) => visual.Translate(0D, 0D, index + 1))));
+        return result;
     }
 
     private IReadOnlyDictionary<string, int> ResolveTargetPages(HtmlRenderDocument rendered) {
@@ -294,6 +347,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
         _flattenedSemanticBoundaries.Clear();
+        _footnoteEntries.Clear();
         _bookmarkDefinitions.Clear();
         _runningStringValues.Clear();
         _runningElementSnapshots.Clear();
@@ -368,7 +422,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         SetActivePageGeometry(pageGeometry);
         double pageWidth = pageGeometry.Width;
         double pageHeight = pageGeometry.Height;
-        double contentHeight = pageGeometry.ContentHeight;
+        double contentHeight = ResolvePageBodyContentHeight(1, pageGeometry);
         ValidateSurface(pageWidth, pageHeight);
         PrepareGlobalPositionedRequests(
             includeRoot: true,
@@ -386,7 +440,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             SetActivePageGeometry(pageGeometry);
             pageWidth = pageGeometry.Width;
             pageHeight = pageGeometry.Height;
-            contentHeight = pageGeometry.ContentHeight;
+            contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
             ValidateSurface(pageWidth, pageHeight);
             visuals = CreatePageVisuals(pageWidth, pageHeight);
             y = pageGeometry.Margins.Top;
@@ -411,7 +465,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
                 pageHeight = pageGeometry.Height;
-                contentHeight = pageGeometry.ContentHeight;
+                contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
                 hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
                 currentPageName = block.PageName;
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
@@ -420,14 +474,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (block.Height <= contentHeight
                 && hasPageContent
                 && !HasInternalForcedBreak(block)
-                && y + block.Height > pageHeight - pageGeometry.Margins.Bottom) {
+                && y + block.Height > ResolvePageBodyBottom(pages.Count + 1, pageGeometry)) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 currentPageName = block.PageName;
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
-            if (block.Height <= pageHeight - pageGeometry.Margins.Bottom - y && !HasInternalForcedBreak(block)) {
+            if (block.Height <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
                 AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
@@ -438,7 +492,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
                     bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
                     double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
-                    double rawAvailable = pageHeight - pageGeometry.Margins.Bottom - y;
+                    double rawAvailable = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
                     HtmlRenderTrailingGroup? trailingGroup = ResolveTrailingGroup(block, blockOffset, Math.Max(0D, rawAvailable - continuationHeight), out double fragmentLimit);
                     bool repeatTrailing = trailingGroup != null && trailingGroup.Visuals.Count > 0 && trailingGroup.Height > 0D;
                     double trailingHeight = repeatTrailing ? trailingGroup!.Height : 0D;
@@ -547,13 +601,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         currentPageName = nextPageName;
                         pageWidth = pageGeometry.Width;
                         pageHeight = pageGeometry.Height;
-                        contentHeight = pageGeometry.ContentHeight;
+                        contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
                         HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
                         if (internalBreak != HtmlPageBreakTarget.None) {
                             EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                             pageWidth = pageGeometry.Width;
                             pageHeight = pageGeometry.Height;
-                            contentHeight = pageGeometry.ContentHeight;
+                            contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
                         }
                         if (RequiresPageRelayout(block, pageGeometry)) {
                             if (continuationProgress.HasValue
@@ -576,11 +630,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 EnsurePageSide(breakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
                 pageHeight = pageGeometry.Height;
-                contentHeight = pageGeometry.ContentHeight;
+                contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
             }
         }
 
         CommitPage(pages, visuals, pageGeometry, currentPageName);
+        while (pages.Count < _footnotePlan.MaximumPageNumber) {
+            BeginPage(currentPageName);
+            CommitPage(pages, visuals, pageGeometry, currentPageName);
+        }
         return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
     }
 
@@ -746,7 +804,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height = geometry.Height;
         bool includeRoot = pages.Count == 0;
         double contentWidth = geometry.ContentWidth;
-        double contentHeight = geometry.ContentHeight;
+        double contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, geometry);
+        AddFootnoteVisuals(visuals, pages.Count + 1, geometry);
         PrepareGlobalPositionedRequests(includeRoot, width, height, contentWidth, contentHeight);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);

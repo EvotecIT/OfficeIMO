@@ -193,7 +193,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         + (kind switch {
             HtmlPseudoElementKind.Before => "::before",
             HtmlPseudoElementKind.After => "::after",
-            _ => "::marker"
+            HtmlPseudoElementKind.Marker => "::marker",
+            HtmlPseudoElementKind.FootnoteCall => "::footnote-call",
+            _ => "::footnote-marker"
         });
 
     private void ReportUnsupportedGeneratedLayout(HtmlRenderBoxStyle style, string source) {

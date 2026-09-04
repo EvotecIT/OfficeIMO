@@ -29,7 +29,9 @@ internal sealed class HtmlGeneratedContentSet {
             HtmlGeneratedContent? found = kind switch {
                 HtmlPseudoElementKind.Before => pair.Before,
                 HtmlPseudoElementKind.After => pair.After,
-                _ => pair.Marker
+                HtmlPseudoElementKind.Marker => pair.Marker,
+                HtmlPseudoElementKind.FootnoteCall => pair.FootnoteCall,
+                _ => pair.FootnoteMarker
             };
             if (found != null && found.Fragments.Count > 0) {
                 content = found;
@@ -41,18 +43,23 @@ internal sealed class HtmlGeneratedContentSet {
         return false;
     }
 
-    internal bool Suppresses(IElement element, HtmlPseudoElementKind kind) =>
-        kind == HtmlPseudoElementKind.Marker
-        && _content.TryGetValue(element, out HtmlGeneratedPseudoContentPair? pair)
-        && pair.SuppressMarker;
+    internal bool Suppresses(IElement element, HtmlPseudoElementKind kind) {
+        if (!_content.TryGetValue(element, out HtmlGeneratedPseudoContentPair? pair)) return false;
+        if (kind == HtmlPseudoElementKind.Marker) return pair.SuppressMarker;
+        if (kind == HtmlPseudoElementKind.FootnoteCall) return pair.SuppressFootnoteCall;
+        return kind == HtmlPseudoElementKind.FootnoteMarker && pair.SuppressFootnoteMarker;
+    }
 
     internal bool HasTargetPageReferences => _content.Values.Any(pair =>
-        ContainsTargetPage(pair.Before) || ContainsTargetPage(pair.After) || ContainsTargetPage(pair.Marker));
+        ContainsTargetPage(pair.Before) || ContainsTargetPage(pair.After) || ContainsTargetPage(pair.Marker)
+        || ContainsTargetPage(pair.FootnoteCall) || ContainsTargetPage(pair.FootnoteMarker));
 
     internal IReadOnlyCollection<string> TargetPageIds => _content.Values
         .SelectMany(pair => EnumerateTargetPageIds(pair.Before)
             .Concat(EnumerateTargetPageIds(pair.After))
-            .Concat(EnumerateTargetPageIds(pair.Marker)))
+            .Concat(EnumerateTargetPageIds(pair.Marker))
+            .Concat(EnumerateTargetPageIds(pair.FootnoteCall))
+            .Concat(EnumerateTargetPageIds(pair.FootnoteMarker)))
         .Distinct(StringComparer.Ordinal)
         .ToArray();
 
@@ -79,7 +86,11 @@ internal sealed class HtmlGeneratedPseudoContentPair {
     internal HtmlGeneratedContent? Before { get; set; }
     internal HtmlGeneratedContent? After { get; set; }
     internal HtmlGeneratedContent? Marker { get; set; }
+    internal HtmlGeneratedContent? FootnoteCall { get; set; }
+    internal HtmlGeneratedContent? FootnoteMarker { get; set; }
     internal bool SuppressMarker { get; set; }
+    internal bool SuppressFootnoteCall { get; set; }
+    internal bool SuppressFootnoteMarker { get; set; }
 }
 
 internal sealed class HtmlGeneratedContent {

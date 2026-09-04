@@ -55,6 +55,11 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
+        if (string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
+            counters.Increment("footnote", 1, level);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles);
+        }
         ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles);
         ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles);
 
@@ -85,7 +90,9 @@ internal static class HtmlGeneratedContentResolver {
         string pseudoName = kind switch {
             HtmlPseudoElementKind.Before => "::before",
             HtmlPseudoElementKind.After => "::after",
-            _ => "::marker"
+            HtmlPseudoElementKind.Marker => "::marker",
+            HtmlPseudoElementKind.FootnoteCall => "::footnote-call",
+            _ => "::footnote-marker"
         };
         string pseudoSource = HtmlRenderStyleResolver.DescribeSource(element) + pseudoName;
         ApplyCounterProperties(pseudoStyle, level, counters, diagnostics, pseudoSource);
@@ -94,6 +101,16 @@ internal static class HtmlGeneratedContentResolver {
         if (kind == HtmlPseudoElementKind.Marker
             && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
             GetOrCreateContentPair(element, content).SuppressMarker = true;
+            return;
+        }
+        if (kind == HtmlPseudoElementKind.FootnoteCall
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressFootnoteCall = true;
+            return;
+        }
+        if (kind == HtmlPseudoElementKind.FootnoteMarker
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressFootnoteMarker = true;
             return;
         }
         if (string.IsNullOrWhiteSpace(expression)
@@ -143,7 +160,9 @@ internal static class HtmlGeneratedContentResolver {
 
         if (kind == HtmlPseudoElementKind.Before) pair.Before = generatedContent;
         else if (kind == HtmlPseudoElementKind.After) pair.After = generatedContent;
-        else pair.Marker = generatedContent;
+        else if (kind == HtmlPseudoElementKind.Marker) pair.Marker = generatedContent;
+        else if (kind == HtmlPseudoElementKind.FootnoteCall) pair.FootnoteCall = generatedContent;
+        else pair.FootnoteMarker = generatedContent;
     }
 
     private static HtmlGeneratedPseudoContentPair GetOrCreateContentPair(

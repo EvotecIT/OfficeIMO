@@ -249,7 +249,10 @@ internal static partial class HtmlPdfRenderedConverter {
         path.StrokeColor = null;
         var drawing = new OfficeDrawing(drawingWidth, drawingHeight)
             .AddShape(path, 0D, 0D);
-        string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
+        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = IsFragmentLink(visual.LinkUri)
+            ? MapNamedDestination(visual.LinkUri!.Substring(1))
+            : null;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
             frame.X * PointsPerCssPixel,
@@ -259,9 +262,21 @@ internal static partial class HtmlPdfRenderedConverter {
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
             linkUri: link,
             linkContents: link == null ? null : visual.Text);
+        Action<PdfCore.PdfPageCanvas> addDrawingAndLink = target => {
+            addDrawing(target);
+            if (linkDestination != null) {
+                target.LinkToNamedDestination(
+                    linkDestination,
+                    frame.X * PointsPerCssPixel,
+                    frame.Y * PointsPerCssPixel,
+                    drawingWidth * PointsPerCssPixel,
+                    drawingHeight * PointsPerCssPixel,
+                    visual.Text);
+            }
+        };
 
         if (logicalTextOwned) {
-            addDrawing(canvas);
+            addDrawingAndLink(canvas);
         } else {
             PdfCore.PdfCanvasTextStructureRole role = asSpan
                 ? PdfCore.PdfCanvasTextStructureRole.Span
@@ -271,14 +286,14 @@ internal static partial class HtmlPdfRenderedConverter {
                     visual.Text,
                     visual.X * PointsPerCssPixel,
                     (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
-                    addDrawing);
+                    addDrawingAndLink);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
                         visual.Text,
                         visual.X * PointsPerCssPixel,
                         (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
-                        addDrawing));
+                        addDrawingAndLink));
             }
         }
 

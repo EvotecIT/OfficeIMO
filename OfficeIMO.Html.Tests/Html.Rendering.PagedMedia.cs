@@ -6,6 +6,203 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_PlacesCssFootnotesInReservedPageArea() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; font-size:10px; line-height:12px; color:#334455; }
+            </style>
+            <p>Body before <span id="note" class="note">Footnote body</span> body after.</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderText call = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#note:footnote-call");
+        HtmlRenderText marker = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#note:footnote-marker");
+        HtmlRenderText body = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Footnote body");
+
+        Assert.Equal("1", call.Text);
+        Assert.Equal("1", marker.Text);
+        Assert.Equal(OfficeColor.FromRgb(0x33, 0x44, 0x55), body.Color);
+        Assert.True(body.Y > call.Y + 40D);
+        Assert.Contains(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "footnote-separator");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_SplitsLongFootnotesAcrossContinuationPages() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; display:inline-block; margin:0; font-size:10px; line-height:12px; }
+            </style>
+            <p>Body<span id="long-note" class="note">Line01<br>Line02<br>Line03<br>Line04<br>Line05<br>Line06<br>Line07<br>Line08<br>Line09<br>Line10<br>Line11<br>Line12</span></p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#long-note:footnote-marker" && text.Text == "1");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#long-note:footnote-marker" && text.Text.Contains("cont.", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Line01");
+        Assert.Contains(rendered.Pages.Skip(1).SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Line12");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_CascadesFootnoteCallAndMarkerPseudoElements() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+              .note::footnote-call { content:"[" counter(footnote) "]"; color:#aa2200; font-size:9px; vertical-align:baseline; }
+              .note::footnote-marker { content:counter(footnote, upper-roman) "."; color:#0044aa; font-size:8px; }
+            </style>
+            <p>Body <span id="styled-note" class="note">Styled footnote</span>.</p>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        }).Pages);
+        HtmlRenderText call = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#styled-note:footnote-call");
+        HtmlRenderText marker = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Source == "span#styled-note:footnote-marker");
+
+        Assert.Equal("[1]", call.Text);
+        Assert.Equal(9D, call.Font.Size, 3);
+        Assert.Equal(OfficeColor.FromRgb(0xaa, 0x22, 0x00), call.Color);
+        Assert.Equal("I.", marker.Text);
+        Assert.Equal(8D, marker.Font.Size, 3);
+        Assert.Equal(OfficeColor.FromRgb(0x00, 0x44, 0xaa), marker.Color);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PlacesEachBoundaryFootnoteOnOrAfterItsCallWithoutReflowCycling() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .spacer { height:92px; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <div class="spacer"></div>
+            <p>First call<span id="first-boundary-note" class="note">First boundary note</span><br>
+               Second call<span id="second-boundary-note" class="note">Second boundary note</span>.</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        foreach (string id in new[] { "first-boundary-note", "second-boundary-note" }) {
+            HtmlRenderPage callPage = Assert.Single(rendered.Pages, page =>
+                page.Visuals.OfType<HtmlRenderText>().Any(text => text.Source == "span#" + id + ":footnote-call"));
+            HtmlRenderPage markerPage = rendered.Pages.First(page =>
+                page.Visuals.OfType<HtmlRenderText>().Any(text => text.Source == "span#" + id + ":footnote-marker"));
+            Assert.InRange(markerPage.PageNumber, callPage.PageNumber, callPage.PageNumber + 1);
+        }
+
+        Assert.Equal(1, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "First boundary note"));
+        Assert.Equal(1, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Second boundary note"));
+    }
+
+    [Fact]
+    public void HtmlContinuousRendering_KeepsFootnoteContentInNormalFlow() {
+        const string html = "<p>Body <span id='continuous-note' style='float:footnote'>Continuous note</span> after.</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(text, visual => visual.Text.Contains("Continuous note", StringComparison.Ordinal));
+        Assert.DoesNotContain(text, visual => visual.Source == "span#continuous-note:footnote-call");
+        Assert.DoesNotContain(text, visual => visual.Source == "span#continuous-note:footnote-marker");
+    }
+
+    [Theory]
+    [InlineData("<aside id='container-note' class='note'>Block footnote</aside>")]
+    [InlineData("<table><tr><td>Cell <span id='container-note' class='note'>Table footnote</span></td></tr></table>")]
+    [InlineData("<div style='display:flex'><p>Flex <span id='container-note' class='note'>Flex footnote</span></p></div>")]
+    [InlineData("<div style='display:grid;grid-template-columns:1fr'><p>Grid <span id='container-note' class='note'>Grid footnote</span></p></div>")]
+    [InlineData("<div style='column-count:2'><p>Columns <span id='container-note' class='note'>Column footnote</span></p></div>")]
+    public void HtmlPagedMedia_ExtractsFootnotesFromSupportedLayoutContainers(string body) {
+        string html = "<style>@page{size:260px 180px;margin:10px}body,p,aside{margin:0;font-size:12px;line-height:16px}.note{float:footnote;font-size:10px;line-height:12px}</style>" + body;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(text, visual => visual.Source == "aside#container-note:footnote-call" || visual.Source == "span#container-note:footnote-call");
+        Assert.Contains(text, visual => visual.Source == "aside#container-note:footnote-marker" || visual.Source == "span#container-note:footnote-marker");
+        Assert.Contains(text, visual => visual.Text.Contains("footnote", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNamedPageGeometryForFootnoteContinuationPages() {
+        const string html = """
+            <style>
+              @page chapter { size:260px 180px; margin:12px; }
+              .chapter { page:chapter; margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; display:inline-block; margin:0; font-size:10px; line-height:12px; }
+            </style>
+            <p class="chapter">Body<span id="named-note" class="note">Line01<br>Line02<br>Line03<br>Line04<br>Line05<br>Line06<br>Line07<br>Line08<br>Line09<br>Line10<br>Line11<br>Line12<br>Line13<br>Line14</span></p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.All(rendered.Pages, page => {
+            Assert.Equal("chapter", page.PageName);
+            Assert.Equal(260D, page.Width, 3);
+            Assert.Equal(180D, page.Height, 3);
+            Assert.Equal(12D, page.Margins.Left, 3);
+        });
+        Assert.Contains(rendered.Pages.Skip(1).SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Line14");
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_AllowsFootnoteCallsAndMarkersToBeSuppressedIndependently() {
+        const string html = """
+            <style>
+              @page { size:240px 160px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:16px; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+              .no-call::footnote-call { content:none; }
+              .no-marker::footnote-marker { content:none; }
+            </style>
+            <p>A<span id="no-call" class="note no-call">First note</span>
+               B<span id="no-marker" class="note no-marker">Second note</span></p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+
+        Assert.DoesNotContain(text, visual => visual.Source == "span#no-call:footnote-call");
+        Assert.Contains(text, visual => visual.Source == "span#no-call:footnote-marker");
+        Assert.Contains(text, visual => visual.Source == "span#no-marker:footnote-call");
+        Assert.DoesNotContain(text, visual => visual.Source == "span#no-marker:footnote-marker");
+        Assert.Contains(text, visual => visual.Text == "First note");
+        Assert.Contains(text, visual => visual.Text == "Second note");
+    }
+
+    [Fact]
     public void HtmlRender_PageMarginBoxesCascadePropertiesAndExpandFontShorthand() {
         const string html = """
             <style>

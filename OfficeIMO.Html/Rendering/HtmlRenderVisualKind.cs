@@ -41,5 +41,8 @@ public enum HtmlRenderVisualKind {
     BookmarkAnchor = 11,
 
     /// <summary>Paint-neutral editable layout region for native destination projection.</summary>
-    LayoutRegion = 12
+    LayoutRegion = 12,
+
+    /// <summary>Paint-neutral named navigation destination.</summary>
+    NamedDestination = 13
 }

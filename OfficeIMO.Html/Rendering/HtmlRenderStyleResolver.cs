@@ -61,11 +61,17 @@ internal sealed partial class HtmlRenderStyleResolver {
         string semanticRole = kind switch {
             HtmlPseudoElementKind.Before => "generated-before",
             HtmlPseudoElementKind.After => "generated-after",
-            _ => "list-marker"
+            HtmlPseudoElementKind.Marker => "list-marker",
+            HtmlPseudoElementKind.FootnoteCall => "footnote-call",
+            _ => "footnote-marker"
         };
         style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
         return true;
     }
+
+    internal bool IsPseudoPropertySpecified(IElement element, HtmlPseudoElementKind kind, string propertyName) =>
+        _computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)
+        && computed.IsSpecifiedValue(propertyName);
 
     private HtmlRenderBoxStyle ResolveCore(
         IElement element,
@@ -472,7 +478,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static string NormalizeFloatSide(string value, string direction, out string unsupported) {
         unsupported = string.Empty;
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
-        if (normalized == "none" || normalized == "left" || normalized == "right") return normalized;
+        if (normalized == "none" || normalized == "left" || normalized == "right" || normalized == "footnote") return normalized;
         if (normalized == "inline-start") return direction == "rtl" ? "right" : "left";
         if (normalized == "inline-end") return direction == "rtl" ? "left" : "right";
         unsupported = normalized;

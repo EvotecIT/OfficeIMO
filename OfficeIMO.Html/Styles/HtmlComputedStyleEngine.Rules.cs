@@ -7,6 +7,8 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private const string RevertLayerSentinel = "var(--officeimo-internal-revert-layer)";
     private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
+    private const string FootnoteCallPseudoSentinel = "[data-officeimo-internal-footnote-call-pseudo]";
+    private const string FootnoteMarkerPseudoSentinel = "[data-officeimo-internal-footnote-marker-pseudo]";
     private const string GeneratedContentSentinelPrefix = "__officeimo_generated_content_";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
@@ -39,7 +41,7 @@ public static partial class HtmlComputedStyleEngine {
             string parseCss = ExpandNestedConditionalRules(css);
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
-            parseCss = ProtectMarkerPseudoElements(parseCss);
+            parseCss = ProtectManagedPseudoElements(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
@@ -110,7 +112,7 @@ public static partial class HtmlComputedStyleEngine {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
             IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(
-                RestoreMarkerPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
+                RestoreManagedPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
             AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
             foreach (var childRule in styleRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
@@ -346,8 +348,11 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static string ProtectMarkerPseudoElements(string css) {
-        if (string.IsNullOrEmpty(css) || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
+    private static string ProtectManagedPseudoElements(string css) {
+        if (string.IsNullOrEmpty(css)
+            || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::footnote-call", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
         var result = new System.Text.StringBuilder(css.Length + 16);
         char quote = '\0';
         for (int index = 0; index < css.Length;) {
@@ -371,12 +376,10 @@ public static partial class HtmlComputedStyleEngine {
                 index = end;
                 continue;
             }
-            const string marker = "::marker";
-            if (index + marker.Length <= css.Length
-                && string.Compare(css, index, marker, 0, marker.Length, StringComparison.OrdinalIgnoreCase) == 0
-                && (index + marker.Length == css.Length || !IsCssIdentifierCharacter(css[index + marker.Length]))) {
-                result.Append(MarkerPseudoSentinel);
-                index += marker.Length;
+            if (TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out int consumed)
+                || TryProtectPseudoElement(css, index, "::footnote-call", FootnoteCallPseudoSentinel, result, out consumed)
+                || TryProtectPseudoElement(css, index, "::marker", MarkerPseudoSentinel, result, out consumed)) {
+                index += consumed;
                 continue;
             }
             result.Append(current);
@@ -385,8 +388,28 @@ public static partial class HtmlComputedStyleEngine {
         return result.ToString();
     }
 
-    private static string RestoreMarkerPseudoElements(string selector) =>
-        selector.Replace(MarkerPseudoSentinel, "::marker");
+    private static bool TryProtectPseudoElement(
+        string css,
+        int index,
+        string pseudoElement,
+        string sentinel,
+        System.Text.StringBuilder result,
+        out int consumed) {
+        if (index + pseudoElement.Length <= css.Length
+            && string.Compare(css, index, pseudoElement, 0, pseudoElement.Length, StringComparison.OrdinalIgnoreCase) == 0
+            && (index + pseudoElement.Length == css.Length || !IsCssIdentifierCharacter(css[index + pseudoElement.Length]))) {
+            result.Append(sentinel);
+            consumed = pseudoElement.Length;
+            return true;
+        }
+        consumed = 0;
+        return false;
+    }
+
+    private static string RestoreManagedPseudoElements(string selector) =>
+        selector.Replace(MarkerPseudoSentinel, "::marker")
+            .Replace(FootnoteCallPseudoSentinel, "::footnote-call")
+            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker");
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";

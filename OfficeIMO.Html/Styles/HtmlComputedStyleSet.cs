@@ -5,7 +5,9 @@ namespace OfficeIMO.Html;
 internal enum HtmlPseudoElementKind {
     Before,
     After,
-    Marker
+    Marker,
+    FootnoteCall,
+    FootnoteMarker
 }
 
 internal sealed class HtmlComputedStyleSet {
@@ -27,7 +29,9 @@ internal sealed class HtmlComputedStyleSet {
             HtmlComputedStyle? found = kind switch {
                 HtmlPseudoElementKind.Before => pair.Before,
                 HtmlPseudoElementKind.After => pair.After,
-                _ => pair.Marker
+                HtmlPseudoElementKind.Marker => pair.Marker,
+                HtmlPseudoElementKind.FootnoteCall => pair.FootnoteCall,
+                _ => pair.FootnoteMarker
             };
             if (found != null) {
                 style = found;
@@ -44,4 +48,6 @@ internal sealed class HtmlPseudoElementStylePair {
     internal HtmlComputedStyle? Before { get; set; }
     internal HtmlComputedStyle? After { get; set; }
     internal HtmlComputedStyle? Marker { get; set; }
+    internal HtmlComputedStyle? FootnoteCall { get; set; }
+    internal HtmlComputedStyle? FootnoteMarker { get; set; }
 }

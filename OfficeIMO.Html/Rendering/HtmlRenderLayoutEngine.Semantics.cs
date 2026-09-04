@@ -48,20 +48,55 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderFlowBlock AddTargetPageAnchor(HtmlRenderFlowBlock block, IElement element) {
-        if (string.IsNullOrWhiteSpace(element.Id)
-            || !_generatedContent.TargetPageIds.Contains(element.Id, StringComparer.Ordinal)) return block;
+        var destinations = new List<HtmlRenderVisual>();
+        AddElementNamedDestination(destinations, element, 0D, 0D, block.Visuals.Count);
+        return destinations.Count == 0 ? block : block.WithVisuals(block.Visuals.Concat(destinations));
+    }
+
+    private void AddElementNamedDestination(
+        ICollection<HtmlRenderVisual> destinations,
+        IElement element,
+        double x,
+        double y,
+        int paintOrder) {
+        string? id = element.Id;
+        if (id == null || id.Length == 0) return;
+        if (!_namedDestinationIds.Contains(id)
+            || !ReferenceEquals(_document.GetElementById(id), element)) return;
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
-        return block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
-            new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.Artifact,
-                0D,
-                0D,
-                0.01D,
-                0.01D,
-                Array.Empty<HtmlRenderVisual>(),
-                block.Visuals.Count,
-                source)
-        }));
+        destinations.Add(new HtmlRenderNamedDestination(id, x, y, paintOrder, source));
+    }
+
+    private void AddInlineNamedDestinationRun(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double paintOffsetX,
+        double paintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
+        string? id = element.Id;
+        if (id == null || id.Length == 0) return;
+        if (!_namedDestinationIds.Contains(id)
+            || !ReferenceEquals(_document.GetElementById(id), element)
+            || style.FloatSide == "footnote") return;
+        string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
+        var destination = new HtmlRenderNamedDestination(id, 0D, 0D, 0, source);
+        var markerBlock = new HtmlRenderFlowBlock(
+            0D,
+            0.01D,
+            new HtmlRenderVisual[] { destination },
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            false,
+            source);
+        runs.Add(new HtmlInlineRun(
+            markerBlock,
+            style,
+            null,
+            source,
+            paintOffsetX,
+            paintOffsetY,
+            element,
+            isBookmarkMarker: true));
     }
 
     private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {

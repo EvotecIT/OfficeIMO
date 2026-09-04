@@ -6,6 +6,8 @@ namespace OfficeIMO.Html;
 /// Stable diagnostic codes emitted by the first-party HTML renderer.
 /// </summary>
 public static class HtmlRenderDiagnosticCodes {
+    /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
+    public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
     /// <summary>CSS background-image layers beyond the configured per-element limit were omitted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
     /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
