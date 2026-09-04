@@ -89,7 +89,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
             OfficeTextScriptGeometry.Resolve((font ?? OfficeFontInfo.Default).Size, baselineLevel).BaselineOffset) {
     }
 
-    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset) {
+    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor = null) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -154,6 +154,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         StrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
             ? strikethroughStyle
             : Font.IsStrikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        DecorationColor = decorationColor ?? color;
         Baseline = baseline;
         BaselineLevel = baselineLevel;
         BaselineScale = baselineScale;
@@ -240,6 +241,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Resolved strikethrough pattern.</summary>
     public OfficeTextDecorationStyle StrikethroughStyle { get; }
 
+    /// <summary>Optional underline and strikethrough color. Null uses the text color.</summary>
+    public OfficeColor? DecorationColor { get; }
+
     /// <summary>Resolved text baseline placement.</summary>
     public OfficeTextBaseline Baseline { get; }
 
@@ -265,7 +269,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
 
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

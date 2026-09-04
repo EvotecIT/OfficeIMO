@@ -186,11 +186,11 @@ public sealed partial class OfficeDrawing {
         bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding,
         OfficeTextParagraphIndent? paragraphIndent, OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel,
-        double baselineScale, double baselineOffset) =>
+        double baselineScale, double baselineOffset, OfficeColor? decorationColor = null) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees,
             rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding,
             paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, underlineStyle, strikethroughStyle, baseline,
-            baselineLevel, baselineScale, baselineOffset, allowOverflow: false);
+            baselineLevel, baselineScale, baselineOffset, decorationColor, allowOverflow: false);
 
     /// <summary>
     /// Adds an already-positioned single text run. The frame width may be clipped independently
@@ -265,11 +265,12 @@ public sealed partial class OfficeDrawing {
         string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color,
         OfficeTextAlignment alignment, double? lineHeight, double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle,
-        OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset) =>
+        OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset,
+        OfficeColor? decorationColor = null) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D,
             null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip,
             textAdvanceWidth ?? width, underlineStyle, strikethroughStyle, baseline, baselineLevel, baselineScale,
-            baselineOffset, allowOverflow: false);
+            baselineOffset, decorationColor, allowOverflow: false);
 
     private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline);
@@ -291,11 +292,11 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
-    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, bool allowOverflow) {
+    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment,
             rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical,
             padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline,
-            baselineLevel, baselineScale, baselineOffset);
+            baselineLevel, baselineScale, baselineOffset, decorationColor);
         if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
@@ -730,7 +731,8 @@ public sealed partial class OfficeDrawing {
             text.Baseline,
             text.BaselineLevel,
             text.BaselineScale,
-            text.BaselineOffset);
+            text.BaselineOffset,
+            text.DecorationColor);
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }

@@ -22,11 +22,12 @@ internal sealed class HtmlCssQuotes {
 
     internal static bool TryParse(string? value, out HtmlCssQuotes quotes) {
         quotes = Default;
-        if (string.IsNullOrWhiteSpace(value) || string.Equals(value.Trim(), "auto", StringComparison.OrdinalIgnoreCase)) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return true;
         }
 
         string normalized = value!.Trim();
+        if (string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)) return true;
         if (string.Equals(normalized, "none", StringComparison.OrdinalIgnoreCase)) {
             quotes = new HtmlCssQuotes(Array.Empty<QuotePair>());
             return true;

@@ -577,7 +577,8 @@ public static partial class OfficeDrawingSvgExporter {
                 text.TextAdvanceWidth.Value,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                OfficeTextBaseline.Normal);
+                OfficeTextBaseline.Normal,
+                text.DecorationColor);
         } else {
             sb.AppendSvgTextElement(
                 text.Text,
@@ -597,7 +598,8 @@ public static partial class OfficeDrawingSvgExporter {
                 (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                OfficeTextBaseline.Normal);
+                OfficeTextBaseline.Normal,
+                text.DecorationColor);
         }
 
         if (useFrameTransform) {
@@ -678,7 +680,8 @@ public static partial class OfficeDrawingSvgExporter {
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
             underlineStyle: text.UnderlineStyle,
             strikethroughStyle: text.StrikethroughStyle,
-            baseline: OfficeTextBaseline.Normal);
+            baseline: OfficeTextBaseline.Normal,
+            decorationColor: text.DecorationColor);
     }
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {

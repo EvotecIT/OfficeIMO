@@ -26,7 +26,8 @@ internal static partial class PdfWriter {
                 backgroundColor: run.BackgroundColor,
                 fontFamily: run.FontFamily,
                 underlineStyle: run.UnderlineStyle,
-                strikeStyle: run.StrikeStyle));
+                strikeStyle: run.StrikeStyle,
+                decorationColor: run.DecorationColor));
         }
 
         return stripped;

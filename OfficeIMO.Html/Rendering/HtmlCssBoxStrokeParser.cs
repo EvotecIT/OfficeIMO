@@ -145,6 +145,7 @@ internal static class HtmlCssBoxStrokeParser {
         out double width,
         out string style,
         out OfficeColor color,
+        out bool invertColor,
         out double offset,
         out string detail) {
         string shorthand = computed.GetValue("outline").Trim();
@@ -155,12 +156,16 @@ internal static class HtmlCssBoxStrokeParser {
         width = 3D;
         style = "none";
         color = currentColor;
+        invertColor = false;
         offset = 0D;
         detail = string.Empty;
         bool declared = shorthand.Length > 0 || widthValue.Length > 0 || styleValue.Length > 0 || colorValue.Length > 0 || offsetValue.Length > 0;
         if (!declared) {
             width = 0D;
             return true;
+        }
+        if (shorthand.Length > 0) {
+            shorthand = ReplaceOutlineInvertColor(shorthand, ref invertColor);
         }
         if (shorthand.Length > 0 && !TryParseStrokeShorthand(shorthand, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, currentColor, ref width, ref style, ref color)) {
             width = 0D;
@@ -177,7 +182,10 @@ internal static class HtmlCssBoxStrokeParser {
             detail = "outline-style=" + styleValue;
             return false;
         }
-        if (colorValue.Length > 0 && !TryStrokeColor(colorValue, currentColor, out color)) {
+        if (string.Equals(colorValue, "invert", StringComparison.OrdinalIgnoreCase)) {
+            color = currentColor;
+            invertColor = true;
+        } else if (colorValue.Length > 0 && !TryStrokeColor(colorValue, currentColor, out color)) {
             width = 0D;
             detail = "outline-color=" + colorValue;
             return false;
@@ -200,13 +208,26 @@ internal static class HtmlCssBoxStrokeParser {
         return TryParseStrokeShorthand(value, 100D, 16D, 16D, 100D, 100D, OfficeColor.Black, ref width, ref style, ref color);
     }
 
-    internal static bool IsSupportedOutlineSyntax(string value) => IsSupportedBorderSyntax(value);
+    internal static bool IsSupportedOutlineSyntax(string value) {
+        bool invert = false;
+        return IsSupportedBorderSyntax(ReplaceOutlineInvertColor(value, ref invert));
+    }
     internal static bool IsSupportedWidthSyntax(string value) => TryParseWidths(value, 100D, 16D, 16D, 100D, 100D, out _);
     internal static bool IsSupportedStyleSyntax(string value) => TryParseStyles(value, out _);
     internal static bool IsSupportedColorSyntax(string value) => TryParseColors(value, OfficeColor.Black, out _);
     internal static bool IsSupportedSideWidthSyntax(string value) => TryStrokeWidth(value, 100D, 16D, 16D, 100D, 100D, out _);
     internal static bool IsSupportedSideStyleSyntax(string value) => TryStrokeStyle(value, out _);
-    internal static bool IsSupportedSideColorSyntax(string value) => TryStrokeColor(value, OfficeColor.Black, out _);
+    internal static bool IsSupportedSideColorSyntax(string value) =>
+        string.Equals(value.Trim(), "invert", StringComparison.OrdinalIgnoreCase)
+        || TryStrokeColor(value, OfficeColor.Black, out _);
+
+    private static string ReplaceOutlineInvertColor(string value, ref bool invertColor) {
+        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
+        if (!tokens.Any(token => string.Equals(token, "invert", StringComparison.OrdinalIgnoreCase))) return value;
+        invertColor = true;
+        return string.Join(" ", tokens.Select(token =>
+            string.Equals(token, "invert", StringComparison.OrdinalIgnoreCase) ? "currentcolor" : token));
+    }
 
     private static bool TryParseStrokeShorthand(
         string value,

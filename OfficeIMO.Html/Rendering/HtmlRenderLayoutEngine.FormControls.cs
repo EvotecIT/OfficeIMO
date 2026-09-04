@@ -471,7 +471,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             logicalTextOrder: null,
             underlineStyle: style.UnderlineStyle,
             strikethroughStyle: style.StrikethroughStyle,
-            baseline: style.Baseline));
+            baseline: style.Baseline,
+            decorationColor: style.DecorationColor));
     }
 
     private void AddMultilineControlText(
@@ -514,7 +515,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 logicalTextOrder: null,
                 underlineStyle: style.UnderlineStyle,
                 strikethroughStyle: style.StrikethroughStyle,
-                baseline: style.Baseline));
+                baseline: style.Baseline,
+                decorationColor: style.DecorationColor));
         }
     }
 

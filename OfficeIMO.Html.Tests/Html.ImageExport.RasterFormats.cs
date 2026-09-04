@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImageExport_StrictOmissionPolicyRejectsDroppedGeneratedContent() {
+    public void HtmlImageExport_StrictOmissionPolicyRejectsUndecodableGeneratedImage() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.marker::before{content:url('data:image/png;base64,AA==')}</style><p class='marker'>Body</p>");
         var options = new HtmlRenderOptions {
@@ -141,7 +141,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(
             exception.Diagnostics,
             diagnostic =>
-                diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported &&
+                diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 

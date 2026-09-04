@@ -507,7 +507,8 @@ public sealed partial class PdfPageCanvas {
                 run.BackgroundColor,
                 run.FontFamily,
                 run.UnderlineStyle,
-                run.StrikeStyle));
+                run.StrikeStyle,
+                run.DecorationColor));
         }
 
         return styled.AsReadOnly();

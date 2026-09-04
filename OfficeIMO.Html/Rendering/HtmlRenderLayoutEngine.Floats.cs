@@ -371,7 +371,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? formattingContainer,
         IReadOnlyList<InlineFloatPlacement>? floatPlacements = null,
         double minimumHeight = 0D,
-        bool supportsContinuationReflow = false) {
+        bool supportsContinuationReflow = false,
+        bool isInlineContinuation = false) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
@@ -534,7 +535,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
                             baselineOffset: segment.Run.Style.BaselineOffset,
-                            textPaintWidth: paintSegment.Width));
+                            textPaintWidth: paintSegment.Width,
+                            decorationColor: segment.Run.Style.DecorationColor));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -589,7 +591,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height = Math.Max(flowY, minimumHeight);
         if (height > 0D) breakOffsets.Add(height);
         return new HtmlInlineLayout(
-            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
+            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
             height,
             breakOffsets,
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),

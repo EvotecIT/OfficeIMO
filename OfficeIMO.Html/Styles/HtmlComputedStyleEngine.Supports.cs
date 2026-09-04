@@ -231,6 +231,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-shadow", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxShadowParser.IsSupportedSyntax(normalized);
         }
+        if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "slice" || normalized == "clone";
+        }
         if (string.Equals(propertyName, "border", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
         }
@@ -349,6 +352,8 @@ public static partial class HtmlComputedStyleEngine {
             case "text-decoration-line":
                 return normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
                     .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
+            case "text-decoration-color":
+                return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
             case "font-weight":

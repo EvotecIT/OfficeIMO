@@ -18,7 +18,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextOverflowBehavior overflowBehavior,
         double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle,
-        OfficeTextDecorationStyle strikethroughStyle) {
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeColor? decorationColor) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
@@ -54,7 +55,8 @@ public sealed partial class OfficeRasterCanvas {
                         overflowBehavior,
                         textAdvanceWidth,
                         underlineStyle,
-                        strikethroughStyle);
+                        strikethroughStyle,
+                        decorationColor);
                     return true;
                 }
             }
@@ -83,7 +85,8 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeTextOverflowBehavior.Clip,
                 Math.Max(0.01D, runAdvance),
                 underlineStyle,
-                strikethroughStyle);
+                strikethroughStyle,
+                decorationColor);
             cursor += runAdvance;
         }
         return true;
@@ -107,7 +110,8 @@ public sealed partial class OfficeRasterCanvas {
         bool flipHorizontal,
         bool flipVertical,
         OfficeTextDecorationStyle underlineStyle,
-        OfficeTextDecorationStyle strikethroughStyle) {
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeColor? decorationColor) {
         if (_fonts == null) return false;
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -136,7 +140,8 @@ public sealed partial class OfficeRasterCanvas {
                 flipHorizontal,
                 flipVertical,
                 underlineStyle,
-                strikethroughStyle);
+                strikethroughStyle,
+                decorationColor);
             cursor += runWidth;
         }
         return true;

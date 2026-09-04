@@ -117,6 +117,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeFontInfo Font;
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
+    internal OfficeColor DecorationColor = OfficeColor.Black;
     internal OfficeTextBaseline Baseline;
     internal int BaselineLevel;
     internal double BaselineScale = 1D;
@@ -180,9 +181,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal int BoxShadowLayerCount;
     internal IReadOnlyList<HtmlCssBoxShadow> BoxShadows = Array.Empty<HtmlCssBoxShadow>();
     internal string UnsupportedBoxShadow = string.Empty;
+    internal string BoxDecorationBreak = "slice";
     internal double OutlineWidth;
     internal double OutlineOffset;
     internal OfficeColor OutlineColor = OfficeColor.Black;
+    internal bool OutlineColorInvert;
     internal string OutlineStyle = "none";
     internal string UnsupportedOutlinePaint = string.Empty;
     internal HtmlPageBreakTarget BreakBefore;

@@ -9,6 +9,89 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlBorders_BoxDecorationBreakPaintsInlineLineFragments() {
+        const string html = "<p style='margin:0;width:72px;font-size:10px;line-height:12px'>"
+            + "<span id='slice' style='background:#ffeecc;border:1px solid red;padding:1px;box-decoration-break:slice'>alpha beta gamma delta epsilon</span></p>"
+            + "<p style='margin:0;width:72px;font-size:10px;line-height:12px'>"
+            + "<span id='clone' style='background:#ccffee;border:1px solid blue;padding:1px;box-decoration-break:clone'>alpha beta gamma delta epsilon</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+
+        List<HtmlRenderShape> sliceBackgrounds = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "span#slice" && shape.Shape.FillColor == OfficeColor.FromRgb(0xFF, 0xEE, 0xCC))
+            .ToList();
+        List<HtmlRenderShape> cloneBackgrounds = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "span#clone" && shape.Shape.FillColor == OfficeColor.FromRgb(0xCC, 0xFF, 0xEE))
+            .ToList();
+        List<HtmlRenderShape> sliceEdges = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("span#slice:border-", StringComparison.Ordinal))
+            .ToList();
+        List<HtmlRenderShape> cloneBorders = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "span#clone" && shape.Shape.StrokeColor == OfficeColor.Blue)
+            .ToList();
+
+        Assert.True(sliceBackgrounds.Count >= 2);
+        Assert.Equal(sliceBackgrounds.Count, cloneBackgrounds.Count);
+        Assert.Single(sliceEdges, shape => shape.Source == "span#slice:border-left");
+        Assert.Single(sliceEdges, shape => shape.Source == "span#slice:border-right");
+        Assert.Equal(cloneBackgrounds.Count, cloneBorders.Count);
+        Assert.All(cloneBorders, shape => Assert.Equal(OfficeColor.Blue, shape.Shape.StrokeColor));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(box-decoration-break:slice)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(box-decoration-break:clone)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(box-decoration-break:repeat)"));
+    }
+
+    [Fact]
+    public void HtmlBorders_BoxDecorationBreakSliceRetainsOnlyDocumentOuterEdgesAcrossPages() {
+        string words = string.Join(" ", Enumerable.Range(0, 36).Select(index => "word" + index.ToString("D2")));
+        string html = "<style>@page{size:100px 40px;margin:0}html,body,p{margin:0}p{font-size:10px;line-height:12px;orphans:1;widows:1}</style>"
+            + "<p><span id='paged-slice' style='background:#ffeecc;border:1px solid red;box-decoration-break:slice'>"
+            + words
+            + "</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+        List<HtmlRenderShape> edges = rendered.Pages
+            .SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("span#paged-slice:border-", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.Single(edges, shape => shape.Source == "span#paged-slice:border-left");
+        Assert.Single(edges, shape => shape.Source == "span#paged-slice:border-right");
+        Assert.DoesNotContain(rendered.Pages.Skip(1).SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#paged-slice:border-left");
+    }
+
+    [Fact]
+    public void HtmlBorders_InvertOutlineUsesDeterministicBackdropInversion() {
+        const string html = "<div id='invert' style='width:24px;height:12px;background:#123456;outline:2px solid invert'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 50D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape outline = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#invert:outline");
+        Assert.Equal(OfficeColor.FromRgb(0xED, 0xCB, 0xA9), outline.Shape.StrokeColor);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(outline-color:invert)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(outline:2px solid invert)"));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlBorders_DashedBorderAndDottedOutlineFlowThroughAllBackends() {
         const string html = "<div id='styled-strokes' style='width:30px;height:16px;margin:5px;color:#ff0000;border:2px dashed currentColor;border-radius:4px;outline:2px dotted #0000ff;outline-offset:3px;background:#ffffff;font-size:6px;line-height:8px'>StrokePdf</div>";
         var options = new HtmlRenderOptions {

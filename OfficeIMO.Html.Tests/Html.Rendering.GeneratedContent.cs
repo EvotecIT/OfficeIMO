@@ -188,10 +188,10 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlGeneratedContent_RendersQuotesAndDiagnosesUnsupportedImages() {
+    public void HtmlGeneratedContent_RendersMixedTextImagesAndQuotes() {
         const string html = """
             <style>
-              .image::before { content:url('data:image/png;base64,AA=='); }
+              .image::before { content:"[" url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=') "]"; }
               .quote::after { content:open-quote; }
               .flex::before { content:"FlexFallback"; display:flex; }
             </style>
@@ -199,17 +199,15 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics
-            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported)
-            .ToList();
-
-        Assert.Single(diagnostics);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "p.image::before" && diagnostic.Detail!.Contains("url", StringComparison.OrdinalIgnoreCase));
+        HtmlRenderImage image = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>());
+        Assert.Equal(1D, image.Width, 3);
+        Assert.Equal(1D, image.Height, 3);
+        Assert.Equal(new[] { "[", "]" }, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.Source == "p.image::before").Select(text => text.Text).ToArray());
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.quote::after" && text.Text == "\u201c");
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.flex::before" && text.Text == "FlexFallback");
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
-        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text =>
-            text.Source == "p.image::before");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedContentUnsupported, out _));
     }
 

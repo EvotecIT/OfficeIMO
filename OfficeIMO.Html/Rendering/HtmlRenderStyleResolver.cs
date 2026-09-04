@@ -122,6 +122,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.Font.Size ?? fontSize,
             parent?.LineHeight ?? fontSize * 1.2D);
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
+        OfficeColor color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
@@ -141,7 +142,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             BaselineLevel = baselineLevel,
             BaselineScale = baselineScale,
             BaselineOffset = baselineOffset,
-            Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
+            Color = color,
+            DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
@@ -198,6 +200,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyDimensions(element, computed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);
+        if (style.OutlineColorInvert) {
+            OfficeColor backdrop = style.BackgroundColor ?? parent?.BackgroundColor ?? OfficeColor.White;
+            style.OutlineColor = OfficeColor.FromRgba((byte)(255 - backdrop.R), (byte)(255 - backdrop.G), (byte)(255 - backdrop.B), backdrop.A);
+        }
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(computed, style);
@@ -830,6 +836,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
         style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
+        style.BoxDecorationBreak = NormalizeCssValue(computed.GetValue("box-decoration-break"), "slice");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
         if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
             style.UnsupportedBoxShadow = boxShadow;

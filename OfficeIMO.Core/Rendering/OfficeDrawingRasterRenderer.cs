@@ -289,7 +289,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 text.Font.FamilyName,
                 text.TextAdvanceWidth.Value * scale,
                 text.UnderlineStyle,
-                text.StrikethroughStyle);
+                text.StrikethroughStyle,
+                text.DecorationColor);
             return;
         }
 
@@ -372,7 +373,8 @@ public static partial class OfficeDrawingRasterRenderer {
             flipVertical: text.FlipVertical,
             underlineStyle: text.UnderlineStyle,
             strikethroughStyle: text.StrikethroughStyle,
-            baseline: OfficeTextBaseline.Normal);
+            baseline: OfficeTextBaseline.Normal,
+            decorationColor: text.DecorationColor);
     }
 
     private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {

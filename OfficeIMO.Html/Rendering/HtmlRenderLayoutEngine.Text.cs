@@ -289,7 +289,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (style.Transform != "none"
             || style.OpacityWasSpecified && (style.Opacity < 1D || style.UnsupportedOpacity.Length > 0)
-            || style.ClipPath != "none") {
+            || style.ClipPath != "none"
+            || HasInlineBoxPaint(style)) {
             _inlineStackingElements.Add(element);
         }
 
@@ -697,8 +698,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ApplyEndEllipsis(overflowingLine, width, lineLogicalProgress);
             }
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+        return RenderInlineLines(
+            lines,
+            width,
+            paragraphStyle,
+            formattingContainer,
+            supportsContinuationReflow: supportsContinuationReflow,
+            isInlineContinuation: skipLogicalCharacters > 0);
     }
+
+    private static bool HasInlineBoxPaint(HtmlRenderBoxStyle style) =>
+        style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
+        || style.BackgroundImageLayerCount > 0
+        || style.Borders.HasPaint
+        || style.BoxShadowLayerCount > 0
+        || style.OutlineWidth > 0D && style.OutlineStyle != "none";
 
     private static bool HasRemainingInlineFlowContent(
         IReadOnlyList<HtmlInlineRun> runs,

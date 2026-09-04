@@ -114,7 +114,7 @@ internal static class HtmlGeneratedContentResolver {
             quotePairs = HtmlCssQuotes.Default;
         }
 
-        if (!TryEvaluate(expression, element, counters, counterStyles, quotes, quotePairs, out string generated, out string detail, out bool counterRepresentationLimited)) {
+        if (!TryEvaluate(expression, element, counters, counterStyles, quotes, quotePairs, out _, out IReadOnlyList<HtmlGeneratedContentFragment> fragments, out string detail, out bool counterRepresentationLimited)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -137,12 +137,13 @@ internal static class HtmlGeneratedContentResolver {
                 OfficeConversionLossKind.Approximation);
         }
 
-        if (generated.Length == 0) return;
+        if (fragments.Count == 0) return;
         HtmlGeneratedPseudoContentPair pair = GetOrCreateContentPair(element, content);
+        var generatedContent = new HtmlGeneratedContent(fragments);
 
-        if (kind == HtmlPseudoElementKind.Before) pair.Before = generated;
-        else if (kind == HtmlPseudoElementKind.After) pair.After = generated;
-        else pair.Marker = generated;
+        if (kind == HtmlPseudoElementKind.Before) pair.Before = generatedContent;
+        else if (kind == HtmlPseudoElementKind.After) pair.After = generatedContent;
+        else pair.Marker = generatedContent;
     }
 
     private static HtmlGeneratedPseudoContentPair GetOrCreateContentPair(
@@ -225,11 +226,14 @@ internal static class HtmlGeneratedContentResolver {
         QuoteState quotes,
         HtmlCssQuotes quotePairs,
         out string generated,
+        out IReadOnlyList<HtmlGeneratedContentFragment> fragments,
         out string detail,
         out bool counterRepresentationLimited) {
+        fragments = Array.Empty<HtmlGeneratedContentFragment>();
         counterRepresentationLimited = false;
         int quoteDepth = quotes.Depth;
         var text = new StringBuilder();
+        var generatedFragments = new List<HtmlGeneratedContentFragment>();
         int cursor = 0;
         while (cursor < expression.Length) {
             while (cursor < expression.Length && char.IsWhiteSpace(expression[cursor])) cursor++;
@@ -329,6 +333,15 @@ internal static class HtmlGeneratedContentResolver {
                 }
 
                 text.Append(string.Join(separator, formattedValues));
+            } else if (string.Equals(functionName, "url", StringComparison.OrdinalIgnoreCase)) {
+                IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractCssUrls("url(" + arguments + ")");
+                if (sources.Count != 1) {
+                    generated = string.Empty;
+                    detail = "unsupported generated-content url() expression";
+                    return false;
+                }
+                FlushGeneratedText(text, generatedFragments);
+                generatedFragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Image, sources[0]));
             } else {
                 generated = string.Empty;
                 detail = "unsupported generated-content function " + functionName + "()";
@@ -337,9 +350,19 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         quotes.Depth = quoteDepth;
-        generated = text.ToString();
+        FlushGeneratedText(text, generatedFragments);
+        fragments = generatedFragments.AsReadOnly();
+        generated = string.Concat(generatedFragments
+            .Where(fragment => fragment.Kind == HtmlGeneratedContentFragmentKind.Text)
+            .Select(fragment => fragment.Value));
         detail = string.Empty;
         return true;
+    }
+
+    private static void FlushGeneratedText(StringBuilder text, ICollection<HtmlGeneratedContentFragment> fragments) {
+        if (text.Length == 0) return;
+        fragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Text, text.ToString()));
+        text.Clear();
     }
 
     private static bool TryFormatCounter(

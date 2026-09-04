@@ -600,7 +600,8 @@ internal static partial class HtmlPdfRenderedConverter {
             fontFamily: visual.Font.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),
             underlineStyle: visual.UnderlineStyle,
-            strikeStyle: visual.StrikethroughStyle);
+            strikeStyle: visual.StrikethroughStyle,
+            decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor));
         canvas.Text(
             new[] { run },
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
