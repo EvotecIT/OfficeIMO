@@ -33,6 +33,7 @@
   "Targets": [
     {
       "Name": "Studio.Windows",
+      "Kind": "Desktop",
       "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
       "Publish": {
         "Framework": "net10.0",
@@ -50,6 +51,7 @@
     },
     {
       "Name": "Studio.macOS",
+      "Kind": "Desktop",
       "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
       "Publish": {
         "Framework": "net10.0",
@@ -66,6 +68,7 @@
     },
     {
       "Name": "Studio.Linux",
+      "Kind": "Desktop",
       "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
       "Publish": {
         "Framework": "net10.0",
@@ -127,6 +130,34 @@
         ]
       },
       "SignProfile": "OfficeIMO.Windows"
+    },
+    {
+      "Id": "OfficeIMO.Studio.Linux.Debian",
+      "Kind": "Debian",
+      "PrepareFromTarget": "Studio.Linux",
+      "Runtimes": [ "linux-x64", "linux-arm64" ],
+      "Frameworks": [ "net10.0" ],
+      "Styles": [ "PortableCompat" ],
+      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
+      "OutputName": "officeimo-studio_{version}_{architecture}.deb",
+      "Debian": {
+        "PackageName": "officeimo-studio",
+        "Version": "0.1.0",
+        "Maintainer": "Evotec <support@evotec.pl>",
+        "Description": "Cross-platform OfficeIMO document studio.",
+        "Executable": "OfficeIMO.Studio",
+        "CommandName": "officeimo-studio",
+        "InstallDirectoryName": "officeimo-studio",
+        "Section": "office",
+        "Priority": "optional",
+        "DesktopName": "OfficeIMO Studio",
+        "DesktopComment": "Open, inspect, convert, and work with documents locally.",
+        "DesktopCategories": "Office;Graphics;Utility;",
+        "MimeTypes": "application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.presentationml.presentation;",
+        "StartupWmClass": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "IconSize": 1024
+      }
     }
   ],
   "Outputs": {

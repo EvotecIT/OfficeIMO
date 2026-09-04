@@ -207,7 +207,9 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     ? OfficeConversionFileConflictPolicy.Replace
                     : OfficeConversionFileConflictPolicy.FailIfExists,
                 Pdf = new PdfOcrMergeOptions {
-                    Selection = string.IsNullOrWhiteSpace(Pages) ? null : PdfPageSelection.Parse(Pages),
+                    ReadOptions = new PdfReadOptions {
+                        PageSelection = string.IsNullOrWhiteSpace(Pages) ? null : PdfPageSelection.Parse(Pages)
+                    },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
                 }

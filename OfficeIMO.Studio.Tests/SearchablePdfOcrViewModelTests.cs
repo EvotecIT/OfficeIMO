@@ -32,7 +32,7 @@ public sealed class SearchablePdfOcrViewModelTests {
         Assert.Equal(output, service.OutputPath);
         Assert.NotNull(service.Options);
         Assert.Equal(OfficeOcrLanguage.English | OfficeOcrLanguage.Polish, service.Options!.Languages);
-        Assert.Equal("1,3", service.Options.Pdf.Selection!.ToString());
+        Assert.Equal("1,3", service.Options.Pdf.ReadOptions.PageSelection!.ToString());
         Assert.Equal(200D, service.Options.Pdf.Dpi);
         Assert.Equal(0.65D, service.Options.Pdf.MinimumConfidence);
         Assert.Equal(OfficeConversionFileConflictPolicy.Replace, service.Options.OutputConflictPolicy);
