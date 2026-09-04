@@ -1,15 +1,25 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class PdfAssemblySourceViewModel : ObservableObject {
-    public PdfAssemblySourceViewModel(string path) => Path = System.IO.Path.GetFullPath(path);
+    private readonly IStudioLocalizer _localizer;
+
+    public PdfAssemblySourceViewModel(string path) : this(path, null) { }
+
+    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer) {
+        Path = System.IO.Path.GetFullPath(path);
+        _localizer = localizer ?? StudioLocalization.Current;
+    }
     public string Path { get; }
     public string Name => Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path);
-    public string Kind => Directory.Exists(Path) ? "Folder" : System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
+    public string Kind => Directory.Exists(Path)
+        ? _localizer.GetOrDefault("Assembly.Source.Folder", "Folder")
+        : System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
 }
 
 public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable {
@@ -17,17 +27,28 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly Func<CancellationToken, Task<string?>> _pickFolder;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputPdf;
     private readonly IOfficeOutputWorkflowRunner _runner;
+    private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickFiles,
         Func<CancellationToken, Task<string?>> pickFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
-        IOfficeOutputWorkflowRunner? runner = null) {
+        IOfficeOutputWorkflowRunner? runner = null) : this(pickFiles, pickFolder, pickOutputPdf, runner, null) { }
+
+    internal PdfAssemblyViewModel(
+        Func<CancellationToken, Task<IReadOnlyList<string>>> pickFiles,
+        Func<CancellationToken, Task<string?>> pickFolder,
+        Func<CancellationToken, Task<string?>> pickOutputPdf,
+        IOfficeOutputWorkflowRunner? runner,
+        IStudioLocalizer? localizer = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _localizer = localizer ?? StudioLocalization.Current;
+        Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
+        Summary = T("Summary.Empty", "No assembly run yet");
     }
 
     public ObservableCollection<PdfAssemblySourceViewModel> Sources { get; } = new();
@@ -51,10 +72,10 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private double _progressFraction;
 
     [ObservableProperty]
-    private string _status = "Add documents, images, folders, or ZIPs in the order you want.";
+    private string _status = string.Empty;
 
     [ObservableProperty]
-    private string _summary = "No assembly run yet";
+    private string _summary = string.Empty;
 
     [ObservableProperty]
     private string? _publishedPath;
@@ -62,7 +83,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     public bool HasSources => Sources.Count > 0;
     public bool CanCancel => IsBusy;
     public bool HasOutput => !string.IsNullOrWhiteSpace(PublishedPath);
-    public string SourceSummary => Sources.Count == 0 ? "No sources" : $"{Sources.Count:N0} {(Sources.Count == 1 ? "source" : "sources")}";
+    public string SourceSummary => Sources.Count == 0
+        ? T("Sources.Empty", "No sources")
+        : _localizer.FormatOrDefault("Assembly.Sources.Count", "{0:N0} {1}", Sources.Count, Sources.Count == 1 ? T("Sources.One", "source") : T("Sources.Many", "sources"));
     private bool CanRun => !IsBusy && HasSources && !string.IsNullOrWhiteSpace(OutputPath);
 
     internal void UseDocument(string? path) {
@@ -123,7 +146,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         try {
             var progress = new Progress<OfficeWorkflowProgress>(update => {
                 ProgressFraction = update.Fraction;
-                Status = update.Message;
+                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
             });
             PdfAssemblyResult result = await _runner.AssemblePdfAsync(new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
@@ -133,9 +156,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             }, progress, operation.Token).ConfigureAwait(true);
             Summary = result.Summary;
             Status = result.Status switch {
-                OfficeWorkflowStatus.Completed => "Assembled PDF ready",
-                OfficeWorkflowStatus.Cancelled => "Assembly cancelled",
-                _ => result.Summary
+                OfficeWorkflowStatus.Completed => T("Status.Completed", "Assembled PDF ready"),
+                OfficeWorkflowStatus.Cancelled => T("Status.Cancelled", "Assembly cancelled"),
+                _ => _localizer.GetOrDefault("Assembly.Status.Failed", result.Summary)
             };
             PublishedPath = result.OutputPath;
             ProgressFraction = result.Status == OfficeWorkflowStatus.Completed ? 1D : ProgressFraction;
@@ -155,7 +178,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             string fullPath = System.IO.Path.GetFullPath(path);
             if (existing.Any(candidate => AreEquivalentPaths(candidate, fullPath))) continue;
             existing.Add(fullPath);
-            Sources.Add(new PdfAssemblySourceViewModel(fullPath));
+            Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer));
         }
         SelectedSource ??= Sources.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0) {
@@ -192,4 +215,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     }
 
     public void Dispose() => _cancellation?.Cancel();
+
+    private string T(string suffix, string fallback) =>
+        _localizer.GetOrDefault("Assembly." + suffix, fallback);
 }

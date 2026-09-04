@@ -43,7 +43,7 @@
           <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Note" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Note}">
             <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconNote}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Note}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Text box" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Text}">
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="FreeText" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Text}">
             <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconText}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="10" /></StackPanel>
           </Button>
           <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Highlight" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Highlight}">
@@ -52,7 +52,7 @@
           <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Underline" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Underline}">
             <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconUnderline}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Underline}" FontSize="10" /></StackPanel>
           </Button>
-          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Strikeout" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Strikeout}">
+          <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="StrikeOut" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Strikeout}">
             <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconStrike}" Width="17" Height="17" /><TextBlock Text="{loc:Loc DocumentWorkspace.Strikeout}" FontSize="10" /></StackPanel>
           </Button>
           <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Rectangle" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Rectangle}">
@@ -65,8 +65,8 @@
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsEditDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddText}" Content="{loc:Loc DocumentWorkspace.AddText}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add text" />
-          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddImage}" Content="{loc:Loc DocumentWorkspace.AddImage}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Add image" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddText}" Content="{loc:Loc DocumentWorkspace.AddText}" Command="{Binding SelectEditorToolCommand}" CommandParameter="AddText" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddImage}" Content="{loc:Loc DocumentWorkspace.AddImage}" Command="{Binding SelectEditorToolCommand}" CommandParameter="AddImage" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddLink}" Content="{loc:Loc DocumentWorkspace.AddLink}" Command="{Binding SelectEditorToolCommand}" CommandParameter="Link" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Watermark}" Content="{loc:Loc DocumentWorkspace.Watermark}" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.PageNumbers}" Content="{loc:Loc DocumentWorkspace.PageNumbers}" Command="{Binding ApplyPageNumbersCommand}" IsEnabled="{Binding CanEditPageContent}" />

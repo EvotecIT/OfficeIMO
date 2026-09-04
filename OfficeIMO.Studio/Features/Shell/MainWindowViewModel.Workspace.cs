@@ -55,8 +55,8 @@ public sealed partial class MainWindowViewModel {
     public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
 
     public string OrganizerSelectionLabel => _organizerSelection.Count == 0
-        ? "Select pages"
-        : $"{_organizerSelection.Count} of {OrganizerPages.Count} selected";
+        ? UiText("Workspace.SelectPages")
+        : UiFormat("Workspace.SelectedPageCount", _organizerSelection.Count, OrganizerPages.Count);
 
     partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
         if (value is not null) NavigateToPage(value.PageNumber);
@@ -131,7 +131,7 @@ public sealed partial class MainWindowViewModel {
         if (string.IsNullOrWhiteSpace(path)) return;
         string fullPath = Path.GetFullPath(path);
         if (!_canSaveAsPath(fullPath)) {
-            OperationStatus = "That PDF is already open in another tab. Close it or choose a different file name.";
+            OperationStatus = UiText("Workspace.SaveAsAlreadyOpen");
             return;
         }
         await RunSaveAsync(fullPath, cancellationToken).ConfigureAwait(true);
@@ -141,14 +141,14 @@ public sealed partial class MainWindowViewModel {
     private async Task UndoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanUndo != true) return;
         bool succeeded = await RunMutationAsync(token => _workspace.UndoAsync(token), cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Undo complete.";
+        if (succeeded) OperationStatus = UiText("Workspace.UndoComplete");
     }
 
     [RelayCommand]
     private async Task RedoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanRedo != true) return;
         bool succeeded = await RunMutationAsync(token => _workspace.RedoAsync(token), cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Redo complete.";
+        if (succeeded) OperationStatus = UiText("Workspace.RedoComplete");
     }
 
     [RelayCommand]
@@ -160,7 +160,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private void DiscardRecovery() {
         _workspace?.DiscardRecovery();
-        OperationStatus = "Recovery snapshot discarded";
+        OperationStatus = UiText("Workspace.RecoveryDiscarded");
         NotifyWorkspaceStateChanged();
     }
 
@@ -194,11 +194,11 @@ public sealed partial class MainWindowViewModel {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
         if (pages.Length >= _workspace.Pages.Count) {
-            ErrorMessage = "A PDF must keep at least one page.";
+            ErrorMessage = UiText("Workspace.AtLeastOnePage");
             return;
         }
         if (!await _confirmPageDeletion(pages.Length).ConfigureAwait(true)) {
-            OperationStatus = "Delete cancelled";
+            OperationStatus = UiText("Workspace.DeleteCancelled");
             return;
         }
         await RunMutationAsync(token => _workspace.DeleteAsync(pages, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
@@ -259,8 +259,8 @@ public sealed partial class MainWindowViewModel {
         if (succeeded) {
             RefreshWorkspacePresentation(Enumerable.Range(insertBefore, importedPageCount).ToArray());
             OperationStatus = importedPageCount == 1
-                ? "Imported 1 page"
-                : $"Imported {importedPageCount} pages from {paths.Count} PDFs";
+                ? UiText("Workspace.ImportedOnePage")
+                : UiFormat("Workspace.ImportedPages", importedPageCount, paths.Count);
         }
     }
 
@@ -288,8 +288,8 @@ public sealed partial class MainWindowViewModel {
             cancellationToken).ConfigureAwait(true);
         if (succeeded) {
             OperationStatus = outputs.Count == 1
-                ? "Created 1 split PDF"
-                : $"Created {outputs.Count} split PDFs";
+                ? UiText("Workspace.CreatedOneSplitPdf")
+                : UiFormat("Workspace.CreatedSplitPdfs", outputs.Count);
         }
     }
 
@@ -306,7 +306,7 @@ public sealed partial class MainWindowViewModel {
             return;
         }
 
-        OperationStatus = "Searching document";
+        OperationStatus = UiText("Workspace.SearchingDocument");
         await RunStandaloneAsync(async token => {
             var progress = new Progress<double>(fraction =>
                 OperationProgressFraction = Math.Clamp(fraction, 0D, 1D));
@@ -314,9 +314,11 @@ public sealed partial class MainWindowViewModel {
                 .SearchAsync(SearchQuery, token, progress)
                 .ConfigureAwait(true);
             SearchResults.Clear();
-            foreach (PdfSearchHit result in results) SearchResults.Add(result);
+            foreach (PdfSearchHit result in results) SearchResults.Add(result.WithLocalizer(_localizer));
             OperationProgressFraction = 1D;
-            OperationStatus = results.Count == 0 ? "No matches" : $"{results.Count} matching page(s)";
+            OperationStatus = results.Count == 0
+                ? UiText("Workspace.NoMatches")
+                : UiFormat("Workspace.MatchingPages", results.Count);
         }, cancellationToken).ConfigureAwait(true);
     }
 
@@ -355,11 +357,11 @@ public sealed partial class MainWindowViewModel {
             OperationProgressFraction = 1D;
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
-            OperationStatus = "Operation cancelled";
+            OperationStatus = UiText("Workspace.OperationCancelled");
             return false;
         } catch (Exception ex) {
             ErrorMessage = ex.Message;
-            OperationStatus = "Operation failed";
+            OperationStatus = UiText("Workspace.OperationFailed");
             return false;
         } finally {
             if (ReferenceEquals(_operationCancellation, currentCancellation)) _operationCancellation = null;
@@ -387,7 +389,7 @@ public sealed partial class MainWindowViewModel {
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (OcrWorkbench.CanCancel) OcrWorkbench.CancelCommand.Execute(null);
-        if (CanCancelOperation) OperationStatus = "Cancelling operation";
+        if (CanCancelOperation) OperationStatus = UiText("Workspace.CancellingOperation");
     }
 
     private int[] GetSelectedPages() => _organizerSelection.OrderBy(static page => page).ToArray();
@@ -435,14 +437,16 @@ public sealed partial class MainWindowViewModel {
             page.RotationDegrees,
             Zoom,
             sceneCoordinator,
-            renderCoordinator)).ToArray();
+            renderCoordinator,
+            _localizer)).ToArray();
         PdfOrganizerPageViewModel[] organizerPages = session.Pages.Select(page => new PdfOrganizerPageViewModel(
             page.PageNumber,
             page.Width,
             page.Height,
             page.RotationDegrees,
             sceneCoordinator,
-            renderCoordinator)).ToArray();
+            renderCoordinator,
+            _localizer)).ToArray();
 
         ReplaceDocument(_workspace, session, sceneCoordinator, renderCoordinator, pages, organizerPages, organizerSelection);
         SelectedPage = Pages[selectedPage - 1];
@@ -479,8 +483,9 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasSecurityWarning));
         if (_workspace is not null) {
             DocumentName = _workspace.FileName + (_workspace.IsDirty ? " *" : string.Empty);
-            DocumentDescription = $"{_workspace.Pages.Count:N0} {(_workspace.Pages.Count == 1 ? "page" : "pages")} · {FormatByteSize(_workspace.FileSize)}";
-            if (_workspace.HasRecovery) OperationStatus = "Recovered edits are available for this document.";
+            string pageLabel = _workspace.Pages.Count == 1 ? UiText("Document.Page") : UiText("Document.Pages");
+            DocumentDescription = UiFormat("Document.Summary", _workspace.Pages.Count, pageLabel, FormatByteSize(_workspace.FileSize));
+            if (_workspace.HasRecovery) OperationStatus = UiText("Workspace.RecoveryAvailable");
         }
         RebuildBookmarks();
         RebuildFormFields();
@@ -561,7 +566,7 @@ public sealed partial class MainWindowViewModel {
             return;
         }
 
-        OperationStatus = $"This link target is not supported: {target}";
+        OperationStatus = UiFormat("Workspace.UnsupportedLinkTarget", target);
     }
 
     private int GetSelectedPageNumber(IReadOnlyList<PdfPageViewModel> pages) =>

@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
@@ -13,6 +14,7 @@ namespace OfficeIMO.Studio.Features.Reader;
 public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private readonly PageSceneCoordinator _sceneCoordinator;
     private readonly PageRenderCoordinator _renderCoordinator;
+    private readonly IStudioLocalizer _localizer;
     private readonly double _pageWidth;
     private readonly double _pageHeight;
     private CancellationTokenSource? _loadCancellation;
@@ -74,20 +76,22 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         int rotationDegrees,
         double zoom,
         PageSceneCoordinator sceneCoordinator,
-        PageRenderCoordinator renderCoordinator) {
+        PageRenderCoordinator renderCoordinator,
+        IStudioLocalizer? localizer = null) {
         PageNumber = pageNumber;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
         _pageWidth = Math.Max(1D, swapsAxes ? height : width);
         _pageHeight = Math.Max(1D, swapsAxes ? width : height);
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
+        _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
         _zoom = zoom;
         UpdateDisplaySize();
     }
 
     public int PageNumber { get; }
 
-    public string PageLabel => $"Page {PageNumber}";
+    public string PageLabel => _localizer.Format("PdfPage.Label", PageNumber);
 
     public bool HasScene => Scene is not null;
 

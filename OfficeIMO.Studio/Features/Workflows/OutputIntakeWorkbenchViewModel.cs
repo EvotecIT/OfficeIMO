@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -17,10 +18,19 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickAssemblyFiles,
         Func<CancellationToken, Task<string?>> pickAssemblyFolder,
-        Func<CancellationToken, Task<string?>> pickOutputPdf) {
-        PrintPreview = new PrintPreviewViewModel(pickPdf);
-        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder);
-        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf);
+        Func<CancellationToken, Task<string?>> pickOutputPdf) : this(pickPdf, pickOutputFolder, pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, null) { }
+
+    internal OutputIntakeWorkbenchViewModel(
+        Func<CancellationToken, Task<string?>> pickPdf,
+        Func<CancellationToken, Task<string?>> pickOutputFolder,
+        Func<CancellationToken, Task<IReadOnlyList<string>>> pickAssemblyFiles,
+        Func<CancellationToken, Task<string?>> pickAssemblyFolder,
+        Func<CancellationToken, Task<string?>> pickOutputPdf,
+        IStudioLocalizer? localizer = null) {
+        localizer ??= StudioLocalization.Current;
+        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer);
+        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer);
+        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer);
         PrintPreview.PropertyChanged += OnChildPropertyChanged;
         PageExport.PropertyChanged += OnChildPropertyChanged;
         Assembly.PropertyChanged += OnChildPropertyChanged;

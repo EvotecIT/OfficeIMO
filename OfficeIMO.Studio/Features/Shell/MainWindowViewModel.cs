@@ -90,6 +90,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _localizer = _services.Localizer;
         DocumentName = _localizer.Get("App.Name");
         DocumentDescription = _localizer.Get("Document.EmptyDescription");
+        InitializeLocalizedEditorChoices();
+        InitializeLocalizedReaderLayouts();
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -104,20 +106,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _recentDocumentStore = recentDocumentStore;
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
-            _pickOutputFolder);
+            _pickOutputFolder,
+            runner: null,
+            localizer: _localizer);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             pickAssemblyFolder ?? _pickOutputFolder,
-            _pickSavePdf);
-        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder);
+            _pickSavePdf,
+            localizer: _localizer);
+        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer);
         OcrWorkbench = new SearchablePdfOcrViewModel(
             _pickPdf,
             _pickOutputFolder,
             openDocumentInTab,
             ocrService,
-            _canSaveAsPath);
+            _canSaveAsPath,
+            _localizer);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics);
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -145,6 +151,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         : _localizer.Format("Document.PagePosition", SelectedPage.PageNumber, Pages.Count);
 
     public string ZoomLabel => $"{Zoom:P0}";
+
+    private string UiText(string key) => _localizer.Get(key);
+
+    private string UiFormat(string key, params object?[] arguments) => _localizer.Format(key, arguments);
 
     public bool CanGoPrevious => SelectedPage is { PageNumber: > 1 };
 
@@ -249,18 +259,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                     page.Width,
                     page.Height,
                     page.RotationDegrees,
-                    Zoom,
-                    candidateSceneCoordinator,
-                    candidateRenderCoordinator))
+                     Zoom,
+                     candidateSceneCoordinator,
+                     candidateRenderCoordinator,
+                     _localizer))
                 .ToArray();
             candidateOrganizerPages = session.Pages
                 .Select(page => new PdfOrganizerPageViewModel(
                     page.PageNumber,
                     page.Width,
                     page.Height,
-                    page.RotationDegrees,
-                    candidateSceneCoordinator,
-                    candidateRenderCoordinator))
+                     page.RotationDegrees,
+                     candidateSceneCoordinator,
+                     candidateRenderCoordinator,
+                     _localizer))
                 .ToArray();
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
@@ -434,8 +446,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private async Task<bool> PrepareDocumentTransitionAsync() {
-        if (IsWorkspaceBusy || IsOpening) {
-            OperationStatus = "Cancel or wait for the current operation before changing documents.";
+        if (CanCancelOperation) {
+            OperationStatus = _localizer.Get("Document.WaitForOperation");
             return false;
         }
         if (!IsDirty) return true;

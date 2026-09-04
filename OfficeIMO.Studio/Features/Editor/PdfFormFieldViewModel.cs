@@ -1,16 +1,19 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Editor;
 
 public sealed partial class PdfFormFieldViewModel : ObservableObject {
     private readonly string _checkedValue;
+    private readonly IStudioLocalizer _localizer;
 
-    internal PdfFormFieldViewModel(PdfFormField field) {
+    internal PdfFormFieldViewModel(PdfFormField field, IStudioLocalizer? localizer = null) {
         ArgumentNullException.ThrowIfNull(field);
+        _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
         Name = field.Name ?? throw new ArgumentException("A named form field is required.", nameof(field));
-        Kind = GetKindLabel(field);
+        Kind = GetKindLabel(field, _localizer);
         IsReadOnly = field.IsReadOnly;
         IsRequired = field.IsRequired;
         PageNumbers = field.PageNumbers;
@@ -80,12 +83,14 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
 
     public bool CanFill => !IsReadOnly && !IsSignature && !IsUnsupported;
 
-    public string Label => Name + " · " + Kind + (IsReadOnly ? " · read only" : string.Empty);
+    public string Label => IsReadOnly
+        ? _localizer.Format("FormField.ReadOnlyLabel", Name, Kind)
+        : _localizer.Format("FormField.Label", Name, Kind);
 
     public string PageLabel => PageNumbers.Count switch {
-        0 => "No page location",
-        1 => "Page " + PageNumbers[0].ToString(System.Globalization.CultureInfo.InvariantCulture),
-        _ => "Pages " + string.Join(", ", PageNumbers)
+        0 => _localizer.Get("FormField.NoPageLocation"),
+        1 => _localizer.Format("PdfPage.Label", PageNumbers[0]),
+        _ => _localizer.Format("FormField.PagesLabel", string.Join(", ", PageNumbers))
     };
 
     public ObservableCollection<PdfFormChoiceViewModel> Choices { get; } = new();
@@ -122,17 +127,22 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
         return PdfFormFieldValue.From(TextValue ?? string.Empty);
     }
 
-    private static string GetKindLabel(PdfFormField field) {
-        if (field.IsPassword) return "Password";
-        if (field.IsMultiline) return "Multiline text";
-        if (field.IsTextField) return "Text";
-        if (field.IsCheckBox) return "Check box";
-        if (field.IsRadioButton) return "Radio group";
-        if (field.IsPushButton) return "Button";
-        if (field.IsCombo) return field.IsEditableChoice ? "Editable choice" : "Drop-down";
-        if (field.IsChoiceField) return field.AllowsMultipleSelection ? "Multiple choice" : "Choice";
-        if (field.IsSignatureField) return "Signature";
-        return "Unsupported";
+    private static string GetKindLabel(PdfFormField field, IStudioLocalizer localizer) {
+        string key = field switch {
+            { IsPassword: true } => "Password",
+            { IsMultiline: true } => "MultilineText",
+            { IsTextField: true } => "Text",
+            { IsCheckBox: true } => "CheckBox",
+            { IsRadioButton: true } => "RadioGroup",
+            { IsPushButton: true } => "Button",
+            { IsCombo: true, IsEditableChoice: true } => "EditableChoice",
+            { IsCombo: true } => "DropDown",
+            { IsChoiceField: true, AllowsMultipleSelection: true } => "MultipleChoice",
+            { IsChoiceField: true } => "Choice",
+            { IsSignatureField: true } => "Signature",
+            _ => "Unsupported"
+        };
+        return localizer.Get($"FormField.Kind.{key}");
     }
 
     private static IReadOnlyList<PdfFormChoiceOption> GetOptions(PdfFormField field) {

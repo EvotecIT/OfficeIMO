@@ -20,9 +20,9 @@ internal sealed class UnsavedChangesDialog : Window {
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-        var save = new Button { Content = localizer.Get("Common.Save"), Classes = { "primary" }, MinWidth = 84 };
+        var save = new Button { Content = localizer.Get("Common.Save"), Classes = { "primary" }, MinWidth = 84, IsDefault = true };
         var discard = new Button { Content = localizer.Get("Common.Discard"), Classes = { "tool" }, MinWidth = 84 };
-        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84 };
+        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84, IsCancel = true };
         save.Click += (_, _) => Close(UnsavedChangesDecision.Save);
         discard.Click += (_, _) => Close(UnsavedChangesDecision.Discard);
         cancel.Click += (_, _) => Close(UnsavedChangesDecision.Cancel);
@@ -48,5 +48,6 @@ internal sealed class UnsavedChangesDialog : Window {
                 }
             }
         };
+        Opened += (_, _) => cancel.Focus();
     }
 }

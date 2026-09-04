@@ -1228,4 +1228,60 @@
   <data name="Dialog.DeletePage" xml:space="preserve"><value>Delete page</value></data>
   <data name="Dialog.DeletePages" xml:space="preserve"><value>Delete pages</value></data>
   <data name="Dialog.DeletePagesDescription" xml:space="preserve"><value>The pages will be removed from this working copy. You can still use Undo before saving.</value></data>
+  <data name="Document.WaitForOperation" xml:space="preserve"><value>Cancel or wait for the current operation before changing documents.</value></data>
+  <data name="PdfPage.KeyboardHelp" xml:space="preserve"><value>Use arrow keys to review links and page objects, Enter to activate, Control+A to select page text, and Control+C to copy selected text.</value></data>
+  <data name="PdfPage.Label" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Reader.ComparisonSameDocument" xml:space="preserve"><value>Choose a different PDF for side-by-side comparison.</value></data>
+  <data name="Reader.ComparisonSynchronized" xml:space="preserve"><value>Side-by-side comparison is synchronized by page and zoom.</value></data>
+  <data name="Reader.ComparisonCancelled" xml:space="preserve"><value>Comparison opening cancelled</value></data>
+  <data name="Workspace.SelectPages" xml:space="preserve"><value>Select pages</value></data>
+  <data name="Workspace.SelectedPageCount" xml:space="preserve"><value>{0} of {1} selected</value></data>
+  <data name="Workspace.SaveAsAlreadyOpen" xml:space="preserve"><value>That PDF is already open in another tab. Close it or choose a different file name.</value></data>
+  <data name="Workspace.UndoComplete" xml:space="preserve"><value>Undo complete.</value></data>
+  <data name="Workspace.RedoComplete" xml:space="preserve"><value>Redo complete.</value></data>
+  <data name="Workspace.RecoveryDiscarded" xml:space="preserve"><value>Recovery snapshot discarded</value></data>
+  <data name="Workspace.AtLeastOnePage" xml:space="preserve"><value>A PDF must keep at least one page.</value></data>
+  <data name="Workspace.DeleteCancelled" xml:space="preserve"><value>Delete cancelled</value></data>
+  <data name="Workspace.ImportedOnePage" xml:space="preserve"><value>Imported 1 page</value></data>
+  <data name="Workspace.ImportedPages" xml:space="preserve"><value>Imported {0} pages from {1} PDFs</value></data>
+  <data name="Workspace.CreatedOneSplitPdf" xml:space="preserve"><value>Created 1 split PDF</value></data>
+  <data name="Workspace.CreatedSplitPdfs" xml:space="preserve"><value>Created {0} split PDFs</value></data>
+  <data name="Workspace.SearchingDocument" xml:space="preserve"><value>Searching document</value></data>
+  <data name="Workspace.NoMatches" xml:space="preserve"><value>No matches</value></data>
+  <data name="Workspace.MatchingPages" xml:space="preserve"><value>{0} matching page(s)</value></data>
+  <data name="Workspace.OperationCancelled" xml:space="preserve"><value>Operation cancelled</value></data>
+  <data name="Workspace.OperationFailed" xml:space="preserve"><value>Operation failed</value></data>
+  <data name="Workspace.CancellingOperation" xml:space="preserve"><value>Cancelling operation</value></data>
+  <data name="Workspace.RecoveryAvailable" xml:space="preserve"><value>Recovered edits are available for this document.</value></data>
+  <data name="Workspace.UnsupportedLinkTarget" xml:space="preserve"><value>This link target is not supported: {0}</value></data>
+  <data name="Editor.RedactionUnavailable" xml:space="preserve"><value>This document cannot be safely redacted under its current security and rewrite policy.</value></data>
+  <data name="Editor.PlanningRedaction" xml:space="preserve"><value>Planning redaction</value></data>
+  <data name="Editor.RedactionPreviewStale" xml:space="preserve"><value>The document changed before the redaction preview was ready. Draw the area again.</value></data>
+  <data name="Editor.RedactionSummary" xml:space="preserve"><value>Page {0}: {1} text, {2} image, and {3} annotation match(es). Intersecting images are removed as whole placements. Review the area, then apply permanent verified redaction.</value></data>
+  <data name="Editor.ImageSelectionStale" xml:space="preserve"><value>The document changed while the image was being selected. Place the image again.</value></data>
+  <data name="Editor.EditAdded" xml:space="preserve"><value>Edit added. Save when ready.</value></data>
+  <data name="Editor.Annotation" xml:space="preserve"><value>Annotation</value></data>
+  <data name="Editor.AnnotationSummary" xml:space="preserve"><value>{0} · page {1} · object {2}</value></data>
+  <data name="Editor.TextSelectionSummary" xml:space="preserve"><value>Text · page {0} · {1} character(s)</value></data>
+  <data name="Editor.ImageSelectionSummary" xml:space="preserve"><value>Image · page {0} · {1:0.#} × {2:0.#} pt</value></data>
+  <data name="Editor.RedactionReviewStale" xml:space="preserve"><value>The document changed after this redaction was reviewed. Draw and review the area again.</value></data>
+  <data name="Editor.RedactionVerified" xml:space="preserve"><value>Verified removal of {0} reviewed PDF content item(s) across {1} page(s).</value></data>
+  <data name="Editor.RedactionIncomplete" xml:space="preserve"><value>PDF redaction evidence is not complete: {0} residual and {1} inconclusive reviewed item(s).</value></data>
+  <data name="Search.ResultLabel" xml:space="preserve"><value>Page {0}: {1}</value></data>
+  <data name="FormField.Label" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="FormField.ReadOnlyLabel" xml:space="preserve"><value>{0} · {1} · read only</value></data>
+  <data name="FormField.NoPageLocation" xml:space="preserve"><value>No page location</value></data>
+  <data name="FormField.PagesLabel" xml:space="preserve"><value>Pages {0}</value></data>
+  <data name="FormField.Kind.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="FormField.Kind.MultilineText" xml:space="preserve"><value>Multiline text</value></data>
+  <data name="FormField.Kind.Text" xml:space="preserve"><value>Text</value></data>
+  <data name="FormField.Kind.CheckBox" xml:space="preserve"><value>Check box</value></data>
+  <data name="FormField.Kind.RadioGroup" xml:space="preserve"><value>Radio group</value></data>
+  <data name="FormField.Kind.Button" xml:space="preserve"><value>Button</value></data>
+  <data name="FormField.Kind.EditableChoice" xml:space="preserve"><value>Editable choice</value></data>
+  <data name="FormField.Kind.DropDown" xml:space="preserve"><value>Drop-down</value></data>
+  <data name="FormField.Kind.MultipleChoice" xml:space="preserve"><value>Multiple choice</value></data>
+  <data name="FormField.Kind.Choice" xml:space="preserve"><value>Choice</value></data>
+  <data name="FormField.Kind.Signature" xml:space="preserve"><value>Signature</value></data>
+  <data name="FormField.Kind.Unsupported" xml:space="preserve"><value>Unsupported</value></data>
 </root>

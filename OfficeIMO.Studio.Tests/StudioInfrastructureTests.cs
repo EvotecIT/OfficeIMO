@@ -1,7 +1,12 @@
 using System.Globalization;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Features.Shell;
+using OfficeIMO.Studio.Features.Workflows;
+using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Reader;
 
 namespace OfficeIMO.Studio.Tests;
 
@@ -55,6 +60,46 @@ public sealed class StudioInfrastructureTests {
         Assert.Contains("2", formatted, StringComparison.Ordinal);
         Assert.Contains("8", formatted, StringComparison.Ordinal);
         Assert.EndsWith("···⟧", value, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PseudolocaleTransformsFallbackStringsFromDynamicProductSurfaces() {
+        var localizer = new StudioLocalizer(CultureInfo.GetCultureInfo(StudioCultureCatalog.PseudoCulture));
+        using var conversion = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()),
+            _ => Task.FromResult<string?>(null),
+            runner: null,
+            localizer);
+        using var health = new DocumentHealthViewModel(
+            _ => Task.FromResult<string?>(null),
+            _ => Task.FromResult<string?>(null),
+            runner: null,
+            localizer);
+
+        Assert.StartsWith("⟦", conversion.Status, StringComparison.Ordinal);
+        Assert.All(conversion.Profiles, choice => Assert.StartsWith("⟦", choice.Label, StringComparison.Ordinal));
+        Assert.All(conversion.Routes, choice => Assert.StartsWith("⟦", choice.Description, StringComparison.Ordinal));
+        Assert.StartsWith("⟦", health.WorkbenchTitle, StringComparison.Ordinal);
+        Assert.StartsWith("⟦", health.PlanStepOneDetail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EditorAndReaderUseLocalizedLabelsButStableCommandIds() {
+        using var folder = new TemporaryFolder("localized-editor");
+        var store = new JsonStudioPreferencesStore(Path.Combine(folder.Path, "preferences.json"));
+        store.Save(new StudioPreferences { UiCulture = StudioCultureCatalog.PseudoCulture });
+        StudioApplicationServices services = StudioApplicationServices.Create(new StudioDataPaths(folder.Path));
+        using var viewModel = new MainWindowViewModel(
+            _ => Task.FromResult<string?>(null),
+            services: services);
+
+        Assert.All(viewModel.EditorTools, tool => Assert.StartsWith("⟦", tool.Label, StringComparison.Ordinal));
+        Assert.All(viewModel.ReaderLayoutChoices, layout => Assert.StartsWith("⟦", layout.Label, StringComparison.Ordinal));
+
+        viewModel.SelectEditorToolCommand.Execute(nameof(PdfEditorTool.AddText));
+
+        Assert.Equal(PdfEditorTool.AddText, viewModel.ActiveEditorTool);
+        Assert.StartsWith("⟦", viewModel.EditorInstruction, StringComparison.Ordinal);
     }
 
     [Fact]

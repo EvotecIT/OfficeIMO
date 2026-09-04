@@ -1,4 +1,5 @@
 using OfficeIMO.Workflows;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -9,12 +10,22 @@ public sealed record WorkflowConflictChoice(OfficeWorkflowConflictPolicy Value, 
 public sealed record HealthOperationChoice(OfficeWorkflowOperation Value, string Label, string Description, bool ProducesArtifact);
 
 public sealed class ConversionRouteChoice {
-    public ConversionRouteChoice(OfficeWorkflowRoute route) => Route = route;
+    private readonly IStudioLocalizer? _localizer;
+
+    public ConversionRouteChoice(OfficeWorkflowRoute route) : this(route, null) { }
+
+    internal ConversionRouteChoice(OfficeWorkflowRoute route, IStudioLocalizer? localizer) {
+        Route = route;
+        _localizer = localizer;
+    }
 
     public OfficeWorkflowRoute Route { get; }
-    public string Label => Route.Label;
-    public string Description => Route.Description;
+    public string Label => Localize("Label", Route.Label);
+    public string Description => Localize("Description", Route.Description);
     public string Engine => Route.Engine;
-    public string Fidelity => Route.Fidelity + " · " + Route.SupportLevel;
-    public string KnownLimitations => Route.KnownLimitations;
+    public string Fidelity => Localize("Fidelity", Route.Fidelity) + " · " + Localize("SupportLevel", Route.SupportLevel);
+    public string KnownLimitations => Localize("KnownLimitations", Route.KnownLimitations);
+
+    private string Localize(string property, string fallback) =>
+        _localizer?.GetOrDefault($"Conversion.Route.{Route.Id}.{property}", fallback) ?? fallback;
 }

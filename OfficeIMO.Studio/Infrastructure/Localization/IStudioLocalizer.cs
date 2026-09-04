@@ -8,5 +8,9 @@ internal interface IStudioLocalizer {
 
     string Get(string key);
 
+    string GetOrDefault(string key, string fallback);
+
     string Format(string key, params object?[] arguments);
+
+    string FormatOrDefault(string key, string fallback, params object?[] arguments);
 }

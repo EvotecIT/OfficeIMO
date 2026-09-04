@@ -221,6 +221,23 @@ public sealed class WorkflowViewModelTests {
     }
 
     [Fact]
+    public async Task ConversionQueueEnforcesOwnerBatchLimitBeforeRun() {
+        string[] paths = Enumerable.Range(1, OfficeWorkflowRunner.MaximumBatchRequestCount + 1)
+            .Select(index => Path.Combine(Path.GetTempPath(), $"source-{index}.docx"))
+            .ToArray();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>(paths),
+            _ => Task.FromResult<string?>(null));
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+
+        await viewModel.AddFilesCommand.ExecuteAsync(null);
+
+        Assert.Equal(OfficeWorkflowRunner.MaximumBatchRequestCount, viewModel.Jobs.Count);
+        Assert.Contains("limited", viewModel.Status, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(OfficeWorkflowRunner.MaximumBatchRequestCount.ToString(), viewModel.Status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task DocumentHealthInspectionPopulatesReadableBeforeReport() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");

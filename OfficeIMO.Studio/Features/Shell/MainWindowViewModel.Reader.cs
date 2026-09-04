@@ -15,12 +15,7 @@ public sealed partial class MainWindowViewModel {
     private ReaderLayoutChoice? _layoutBeforeComparison;
     private bool _synchronizingComparison;
 
-    public IReadOnlyList<ReaderLayoutChoice> ReaderLayoutChoices { get; } = [
-        new(ReaderLayoutMode.SinglePage, "Single page", "Show only the selected page."),
-        new(ReaderLayoutMode.Continuous, "Continuous", "Scroll through pages vertically."),
-        new(ReaderLayoutMode.TwoPage, "Two page", "Read a cover page followed by paired spreads."),
-        new(ReaderLayoutMode.Grid, "Grid", "Browse the whole document as a page grid.")
-    ];
+    public IReadOnlyList<ReaderLayoutChoice> ReaderLayoutChoices { get; private set; } = [];
 
     public ObservableCollection<PdfPageViewModel> ReaderPages { get; } = new();
 
@@ -36,8 +31,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsContinuousReaderLayout))]
     [NotifyPropertyChangedFor(nameof(IsTwoPageReaderLayout))]
     [NotifyPropertyChangedFor(nameof(IsGridReaderLayout))]
-    private ReaderLayoutChoice _selectedReaderLayoutChoice =
-        new(ReaderLayoutMode.Continuous, "Continuous", "Scroll through pages vertically.");
+    private ReaderLayoutChoice _selectedReaderLayoutChoice = null!;
 
     [ObservableProperty]
     private bool _isPageNightMode;
@@ -71,6 +65,22 @@ public sealed partial class MainWindowViewModel {
     public string ComparisonPagePosition => ComparisonSelectedPage is null
         ? _localizer.Get("Document.NoPage")
         : _localizer.Format("Document.PagePosition", ComparisonSelectedPage.PageNumber, ComparisonPages.Count);
+
+    private void InitializeLocalizedReaderLayouts() {
+        ReaderLayoutChoices = [
+            CreateReaderLayout(ReaderLayoutMode.SinglePage, "Single page", "Show only the selected page."),
+            CreateReaderLayout(ReaderLayoutMode.Continuous, "Continuous", "Scroll through pages vertically."),
+            CreateReaderLayout(ReaderLayoutMode.TwoPage, "Two page", "Read a cover page followed by paired spreads."),
+            CreateReaderLayout(ReaderLayoutMode.Grid, "Grid", "Browse the whole document as a page grid.")
+        ];
+        SelectedReaderLayoutChoice = ReaderLayoutChoices.Single(choice => choice.Mode == ReaderLayoutMode.Continuous);
+    }
+
+    private ReaderLayoutChoice CreateReaderLayout(ReaderLayoutMode mode, string label, string description) =>
+        new(
+            mode,
+            _localizer.GetOrDefault($"Reader.Layout.{mode}.Label", label),
+            _localizer.GetOrDefault($"Reader.Layout.{mode}.Description", description));
 
     partial void OnSelectedReaderLayoutChoiceChanged(ReaderLayoutChoice value) {
         RefreshReaderPages();
@@ -113,7 +123,7 @@ public sealed partial class MainWindowViewModel {
         if (string.IsNullOrWhiteSpace(path)) return;
         string fullPath = Path.GetFullPath(path);
         if (string.Equals(fullPath, DocumentPath, RecentDocumentPathComparison)) {
-            OperationStatus = "Choose a different PDF for side-by-side comparison.";
+            OperationStatus = UiText("Reader.ComparisonSameDocument");
             return;
         }
 
@@ -140,9 +150,10 @@ public sealed partial class MainWindowViewModel {
                     page.Width,
                     page.Height,
                     page.RotationDegrees,
-                    Zoom,
-                    candidateSceneCoordinator,
-                    candidateRenderCoordinator) {
+                     Zoom,
+                     candidateSceneCoordinator,
+                     candidateRenderCoordinator,
+                     _localizer) {
                     EditorTool = PdfEditorTool.Select,
                     SelectionMode = PdfEditorSelectionMode.None,
                     IsNightMode = IsPageNightMode
@@ -166,9 +177,9 @@ public sealed partial class MainWindowViewModel {
             _layoutBeforeComparison = layoutToRestore;
             SelectedReaderLayoutChoice = ReaderLayoutChoices.Single(choice => choice.Mode == ReaderLayoutMode.SinglePage);
             SynchronizeComparisonToPrimary(SelectedPage);
-            OperationStatus = "Side-by-side comparison is synchronized by page and zoom.";
+            OperationStatus = UiText("Reader.ComparisonSynchronized");
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
-            OperationStatus = "Comparison opening cancelled";
+            OperationStatus = UiText("Reader.ComparisonCancelled");
         } catch (Exception ex) {
             ErrorMessage = ex.Message;
         } finally {

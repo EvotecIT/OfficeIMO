@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -43,10 +44,11 @@ public sealed class PrintPreviewPlacementViewModel : IDisposable {
 }
 
 public sealed class PrintPreviewSheetViewModel : IDisposable {
-    public PrintPreviewSheetViewModel(PdfPrintSheet sheet, IReadOnlyList<Bitmap> images) {
+    public PrintPreviewSheetViewModel(PdfPrintSheet sheet, IReadOnlyList<Bitmap> images, string label) {
         const double maximumPreviewWidth = 350D;
         double scale = maximumPreviewWidth / sheet.PaperSize.Width;
         SheetNumber = sheet.SheetNumber;
+        Label = label;
         Width = maximumPreviewWidth;
         Height = sheet.PaperSize.Height * scale;
         Placements = sheet.Placements
@@ -58,7 +60,7 @@ public sealed class PrintPreviewSheetViewModel : IDisposable {
     public double Width { get; }
     public double Height { get; }
     public IReadOnlyList<PrintPreviewPlacementViewModel> Placements { get; }
-    public string Label => "Sheet " + SheetNumber;
+    public string Label { get; }
 
     public void Dispose() {
         foreach (PrintPreviewPlacementViewModel placement in Placements) placement.Dispose();
@@ -68,40 +70,50 @@ public sealed class PrintPreviewSheetViewModel : IDisposable {
 public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposable {
     internal const int MaximumPreviewPages = 100;
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
+    private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _cancellation;
 
-    public PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf) {
+    public PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf) : this(pickPdf, null) { }
+
+    internal PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf, IStudioLocalizer? localizer) {
         _pickPdf = pickPdf;
+        _localizer = localizer ?? StudioLocalization.Current;
+        PaperChoices = [
+            new("A4", PageSizes.A4),
+            new(T("Paper.Letter", "Letter"), PageSizes.Letter),
+            new(T("Paper.Legal", "Legal"), PageSizes.Legal),
+            new("A3", PageSizes.A3)
+        ];
+        OrientationChoices = [
+            Orientation(PdfPrintOrientation.Automatic, "Automatic"),
+            Orientation(PdfPrintOrientation.Portrait, "Portrait"),
+            Orientation(PdfPrintOrientation.Landscape, "Landscape")
+        ];
+        ScaleChoices = [
+            Scale(PdfPrintScaleMode.Fit, "Fit", "Show the whole page."),
+            Scale(PdfPrintScaleMode.ActualSize, "Actual size", "Keep physical page size where it fits."),
+            Scale(PdfPrintScaleMode.Fill, "Fill", "Fill each slot and crop overflow.")
+        ];
+        PagesPerSheetChoices = [
+            new(1, T("PagesPerSheet.One", "1 page")),
+            new(2, T("PagesPerSheet.Two", "2 pages")),
+            new(4, T("PagesPerSheet.Four", "4 pages"))
+        ];
         SelectedPaper = PaperChoices[0];
         SelectedOrientation = OrientationChoices[0];
         SelectedScale = ScaleChoices[0];
         SelectedPagesPerSheet = PagesPerSheetChoices[0];
+        Status = T("Status.Ready", "Choose a PDF and preview its print sheets.");
+        Summary = T("Summary.Empty", "No preview yet");
     }
 
-    public IReadOnlyList<PrintPaperChoice> PaperChoices { get; } = [
-        new("A4", PageSizes.A4),
-        new("Letter", PageSizes.Letter),
-        new("Legal", PageSizes.Legal),
-        new("A3", PageSizes.A3)
-    ];
+    public IReadOnlyList<PrintPaperChoice> PaperChoices { get; }
 
-    public IReadOnlyList<PrintOrientationChoice> OrientationChoices { get; } = [
-        new(PdfPrintOrientation.Automatic, "Automatic"),
-        new(PdfPrintOrientation.Portrait, "Portrait"),
-        new(PdfPrintOrientation.Landscape, "Landscape")
-    ];
+    public IReadOnlyList<PrintOrientationChoice> OrientationChoices { get; }
 
-    public IReadOnlyList<PrintScaleChoice> ScaleChoices { get; } = [
-        new(PdfPrintScaleMode.Fit, "Fit", "Show the whole page."),
-        new(PdfPrintScaleMode.ActualSize, "Actual size", "Keep physical page size where it fits."),
-        new(PdfPrintScaleMode.Fill, "Fill", "Fill each slot and crop overflow.")
-    ];
+    public IReadOnlyList<PrintScaleChoice> ScaleChoices { get; }
 
-    public IReadOnlyList<PrintPagesPerSheetChoice> PagesPerSheetChoices { get; } = [
-        new(1, "1 page"),
-        new(2, "2 pages"),
-        new(4, "4 pages")
-    ];
+    public IReadOnlyList<PrintPagesPerSheetChoice> PagesPerSheetChoices { get; }
 
     public ObservableCollection<PrintPreviewSheetViewModel> Sheets { get; } = new();
 
@@ -133,10 +145,10 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private double _progressFraction;
 
     [ObservableProperty]
-    private string _status = "Choose a PDF and preview its print sheets.";
+    private string _status = string.Empty;
 
     [ObservableProperty]
-    private string _summary = "No preview yet";
+    private string _summary = string.Empty;
 
     public bool HasPreview => Sheets.Count > 0;
     public bool CanCancel => IsBusy;
@@ -159,7 +171,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         _cancellation = operation;
         IsBusy = true;
         ProgressFraction = 0D;
-        Status = "Planning print sheets";
+        Status = T("Status.Planning", "Planning print sheets");
         ClearPreview();
 
         try {
@@ -174,10 +186,10 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             PdfPrintPlan plan = await Task.Run(() => PdfPrintPlanner.Create(request), operation.Token).ConfigureAwait(true);
             if (plan.SelectedPages.Count > MaximumPreviewPages) {
                 throw new InvalidOperationException(
-                    $"Print preview is limited to {MaximumPreviewPages:N0} pages. Enter a smaller page selection.");
+                    _localizer.FormatOrDefault("PrintPreview.Error.PageLimit", "Print preview is limited to {0:N0} pages. Enter a smaller page selection.", MaximumPreviewPages));
             }
             ProgressFraction = 0.2D;
-            Status = "Rendering page previews";
+            Status = T("Status.Rendering", "Rendering page previews");
             var options = new PdfImageExportOptions {
                 ThumbnailMaxDimension = 350,
                 MaximumOutputCount = MaximumPreviewPages
@@ -199,7 +211,10 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                         using var stream = new MemoryStream(rendered[imageIndex++].Bytes, writable: false);
                         bitmaps.Add(new Bitmap(stream));
                     }
-                    Sheets.Add(new PrintPreviewSheetViewModel(sheet, bitmaps));
+                    Sheets.Add(new PrintPreviewSheetViewModel(
+                        sheet,
+                        bitmaps,
+                        _localizer.FormatOrDefault("PrintPreview.Sheet.Label", "Sheet {0}", sheet.SheetNumber)));
                 } catch {
                     foreach (Bitmap bitmap in bitmaps) bitmap.Dispose();
                     throw;
@@ -207,17 +222,23 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 ProgressFraction = 0.2D + (double)imageIndex / rendered.Count * 0.8D;
             }
             OnPropertyChanged(nameof(HasPreview));
-            Summary = $"{plan.SelectedPages.Count:N0} {(plan.SelectedPages.Count == 1 ? "page" : "pages")} · {plan.Sheets.Count:N0} {(plan.Sheets.Count == 1 ? "sheet" : "sheets")}";
-            Status = "Print preview ready";
+            Summary = _localizer.FormatOrDefault(
+                "PrintPreview.Summary",
+                "{0:N0} {1} · {2:N0} {3}",
+                plan.SelectedPages.Count,
+                plan.SelectedPages.Count == 1 ? T("Count.Page", "page") : T("Count.Pages", "pages"),
+                plan.Sheets.Count,
+                plan.Sheets.Count == 1 ? T("Count.Sheet", "sheet") : T("Count.Sheets", "sheets"));
+            Status = T("Status.Completed", "Print preview ready");
             ProgressFraction = 1D;
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             ClearPreview();
-            Status = "Print preview cancelled";
-            Summary = "No preview";
+            Status = T("Status.Cancelled", "Print preview cancelled");
+            Summary = T("Summary.None", "No preview");
         } catch (Exception ex) {
             ClearPreview();
-            Status = "Print preview failed: " + ex.Message;
-            Summary = "Preview unavailable";
+            Status = _localizer.FormatOrDefault("PrintPreview.Status.Failed", "Print preview failed: {0}", ex.Message);
+            Summary = T("Summary.Unavailable", "Preview unavailable");
         } finally {
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
@@ -237,4 +258,13 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         _cancellation?.Cancel();
         ClearPreview();
     }
+
+    private PrintOrientationChoice Orientation(PdfPrintOrientation value, string fallback) =>
+        new(value, T($"Orientation.{value}", fallback));
+
+    private PrintScaleChoice Scale(PdfPrintScaleMode value, string label, string description) =>
+        new(value, T($"Scale.{value}.Label", label), T($"Scale.{value}.Description", description));
+
+    private string T(string suffix, string fallback) =>
+        _localizer.GetOrDefault("PrintPreview." + suffix, fallback);
 }

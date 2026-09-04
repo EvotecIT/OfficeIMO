@@ -1,10 +1,25 @@
+using System.Globalization;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class PdfPageViewModelTests {
     private static readonly byte[] TinyPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+    [Fact]
+    public void PageLabelUsesTheConfiguredCulture() {
+        using var coordinator = new PageRenderCoordinator((page, scale, _) =>
+            Task.FromResult(new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>())));
+        using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+            Task.FromResult(TestPdfPageScenes.Create(page)));
+        var localizer = new StudioLocalizer(CultureInfo.GetCultureInfo(StudioCultureCatalog.PseudoCulture));
+        using var viewModel = new PdfPageViewModel(2, 612, 792, 0, 1D, sceneCoordinator, coordinator, localizer);
+
+        Assert.StartsWith("⟦", viewModel.PageLabel, StringComparison.Ordinal);
+        Assert.Contains("2", viewModel.PageLabel, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task NewerZoomGenerationWinsOverSlowRender() {

@@ -22,7 +22,7 @@ internal sealed class PageDeletionDialog : Window {
             Foreground = Avalonia.Media.Brushes.White,
             MinWidth = 104
         };
-        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84 };
+        var cancel = new Button { Content = localizer.Get("Common.Cancel"), Classes = { "tool" }, MinWidth = 84, IsCancel = true };
         delete.Click += (_, _) => Close(true);
         cancel.Click += (_, _) => Close(false);
 
@@ -47,5 +47,6 @@ internal sealed class PageDeletionDialog : Window {
                 }
             }
         };
+        Opened += (_, _) => cancel.Focus();
     }
 }

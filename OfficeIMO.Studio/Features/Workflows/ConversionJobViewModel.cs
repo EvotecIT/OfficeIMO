@@ -1,13 +1,20 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Workflows;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class ConversionJobViewModel : ObservableObject {
-    public ConversionJobViewModel(string inputPath, ConversionRouteChoice route) {
+    private readonly IStudioLocalizer _localizer;
+
+    public ConversionJobViewModel(string inputPath, ConversionRouteChoice route) : this(inputPath, route, null) { }
+
+    internal ConversionJobViewModel(string inputPath, ConversionRouteChoice route, IStudioLocalizer? localizer) {
         Id = Guid.NewGuid().ToString("N");
         InputPath = inputPath;
         Route = route;
+        _localizer = localizer ?? StudioLocalization.Current;
+        Status = _localizer.GetOrDefault("Conversion.Job.Queued", "Queued");
     }
 
     public string Id { get; }
@@ -20,7 +27,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     public string KnownLimitations => Route.KnownLimitations;
 
     [ObservableProperty]
-    private string _status = "Queued";
+    private string _status = string.Empty;
 
     [ObservableProperty]
     private double _progressFraction;
@@ -42,11 +49,14 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         Diagnostics = result.Diagnostics;
         ProgressFraction = result.Status == OfficeWorkflowStatus.Cancelled ? ProgressFraction : 1D;
         Status = result.Status switch {
-            OfficeWorkflowStatus.Completed when HasWarnings => "Completed with warnings",
-            OfficeWorkflowStatus.Completed => "Completed",
-            OfficeWorkflowStatus.Cancelled => "Cancelled",
-            _ => "Failed"
+            OfficeWorkflowStatus.Completed when HasWarnings => T("CompletedWithWarnings", "Completed with warnings"),
+            OfficeWorkflowStatus.Completed => T("Completed", "Completed"),
+            OfficeWorkflowStatus.Cancelled => T("Cancelled", "Cancelled"),
+            _ => T("Failed", "Failed")
         };
         OnPropertyChanged(nameof(HasWarnings));
     }
+
+    private string T(string suffix, string fallback) =>
+        _localizer.GetOrDefault("Conversion.Job." + suffix, fallback);
 }

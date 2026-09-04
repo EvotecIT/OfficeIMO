@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Drawing;
+using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -11,25 +12,36 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeOutputWorkflowRunner _runner;
+    private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _cancellation;
 
     public PageImageExportViewModel(
         Func<CancellationToken, Task<string?>> pickPdf,
         Func<CancellationToken, Task<string?>> pickOutputFolder,
-        IOfficeOutputWorkflowRunner? runner = null) {
+        IOfficeOutputWorkflowRunner? runner = null) : this(pickPdf, pickOutputFolder, runner, null) { }
+
+    internal PageImageExportViewModel(
+        Func<CancellationToken, Task<string?>> pickPdf,
+        Func<CancellationToken, Task<string?>> pickOutputFolder,
+        IOfficeOutputWorkflowRunner? runner,
+        IStudioLocalizer? localizer = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _localizer = localizer ?? StudioLocalization.Current;
+        Formats = [
+            Format(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
+            Format(OfficeImageExportFormat.Jpeg, "JPEG", "Compact photographic raster pages."),
+            Format(OfficeImageExportFormat.Webp, "WebP", "Compact lossless raster pages."),
+            Format(OfficeImageExportFormat.Tiff, "TIFF", "Lossless archival raster pages."),
+            Format(OfficeImageExportFormat.Svg, "SVG", "Managed vector page scenes where supported.")
+        ];
         SelectedFormat = Formats[0];
+        Status = T("Status.Ready", "Choose a PDF and an output folder.");
+        Summary = T("Summary.Empty", "No export yet");
     }
 
-    public IReadOnlyList<ImageExportFormatChoice> Formats { get; } = [
-        new(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
-        new(OfficeImageExportFormat.Jpeg, "JPEG", "Compact photographic raster pages."),
-        new(OfficeImageExportFormat.Webp, "WebP", "Compact lossless raster pages."),
-        new(OfficeImageExportFormat.Tiff, "TIFF", "Lossless archival raster pages."),
-        new(OfficeImageExportFormat.Svg, "SVG", "Managed vector page scenes where supported.")
-    ];
+    public IReadOnlyList<ImageExportFormatChoice> Formats { get; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
@@ -60,10 +72,10 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private double _progressFraction;
 
     [ObservableProperty]
-    private string _status = "Choose a PDF and an output folder.";
+    private string _status = string.Empty;
 
     [ObservableProperty]
-    private string _summary = "No export yet";
+    private string _summary = string.Empty;
 
     [ObservableProperty]
     private string? _publishedDirectory;
@@ -107,7 +119,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         try {
             var progress = new Progress<OfficeWorkflowProgress>(update => {
                 ProgressFraction = update.Fraction;
-                Status = update.Message;
+                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
             });
             PdfPageImageExportResult result = await _runner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
                 InputPath = InputPath,
@@ -120,9 +132,9 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
             }, progress, operation.Token).ConfigureAwait(true);
             Summary = result.Summary;
             Status = result.Status switch {
-                OfficeWorkflowStatus.Completed => "Page images ready",
-                OfficeWorkflowStatus.Cancelled => "Page export cancelled",
-                _ => result.Summary
+                OfficeWorkflowStatus.Completed => T("Status.Completed", "Page images ready"),
+                OfficeWorkflowStatus.Cancelled => T("Status.Cancelled", "Page export cancelled"),
+                _ => _localizer.GetOrDefault("PageExport.Status.Failed", result.Summary)
             };
             PublishedDirectory = result.OutputDirectory;
             ProgressFraction = result.Status == OfficeWorkflowStatus.Completed ? 1D : ProgressFraction;
@@ -137,4 +149,10 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private void Cancel() => _cancellation?.Cancel();
 
     public void Dispose() => _cancellation?.Cancel();
+
+    private ImageExportFormatChoice Format(OfficeImageExportFormat value, string label, string description) =>
+        new(value, T($"Format.{value}.Label", label), T($"Format.{value}.Description", description));
+
+    private string T(string suffix, string fallback) =>
+        _localizer.GetOrDefault("PageExport." + suffix, fallback);
 }

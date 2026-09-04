@@ -2,12 +2,14 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Organizer;
 
 public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDisposable {
     private readonly PageSceneCoordinator _sceneCoordinator;
     private readonly PageRenderCoordinator _renderCoordinator;
+    private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _loadCancellation;
     private long _loadGeneration;
     private bool _attached;
@@ -35,7 +37,8 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         double height,
         int rotationDegrees,
         PageSceneCoordinator sceneCoordinator,
-        PageRenderCoordinator renderCoordinator) {
+        PageRenderCoordinator renderCoordinator,
+        IStudioLocalizer? localizer = null) {
         PageNumber = pageNumber;
         RotationDegrees = rotationDegrees;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
@@ -46,13 +49,14 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         ThumbnailHeight = Math.Round(visualHeight * scale, 2);
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
+        _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
     }
 
     public int PageNumber { get; }
 
     public int RotationDegrees { get; }
 
-    public string Label => $"Page {PageNumber}";
+    public string Label => _localizer.Format("PdfPage.Label", PageNumber);
 
     public double ThumbnailWidth { get; }
 

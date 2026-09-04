@@ -10,33 +10,6 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
-    private static readonly PdfEditorToolChoice[] AvailableEditorTools = {
-        new(PdfEditorTool.Select, "Select", "Select and copy text or open links"),
-        new(PdfEditorTool.Note, "Note", "Click to add a comment note"),
-        new(PdfEditorTool.FreeText, "Text box", "Draw a free-text annotation"),
-        new(PdfEditorTool.Highlight, "Highlight", "Drag across text or an area"),
-        new(PdfEditorTool.Underline, "Underline", "Drag across text or an area"),
-        new(PdfEditorTool.StrikeOut, "Strikeout", "Drag across text or an area"),
-        new(PdfEditorTool.Rectangle, "Rectangle", "Draw a rectangle annotation"),
-        new(PdfEditorTool.Ellipse, "Ellipse", "Draw an ellipse annotation"),
-        new(PdfEditorTool.Line, "Line", "Drag a review line"),
-        new(PdfEditorTool.Ink, "Ink", "Draw a freehand ink path"),
-        new(PdfEditorTool.Stamp, "Stamp", "Place an annotation stamp"),
-        new(PdfEditorTool.AddText, "Add text", "Add permanent page text without reflowing existing content"),
-        new(PdfEditorTool.AddImage, "Add image", "Choose and place a PNG or JPEG image"),
-        new(PdfEditorTool.Link, "Link", "Draw a URI link hotspot"),
-        new(PdfEditorTool.SignatureAppearance, "Signature appearance", "Draw a visual-only signature label; this does not cryptographically sign the PDF"),
-        new(PdfEditorTool.Redact, "Redact", "Draw an area, review it, then permanently remove intersecting content")
-    };
-    private static readonly PdfFormFieldCreationChoice[] AvailableFormFieldKinds = {
-        new(PdfFormFieldCreationKind.Text, "Text field"),
-        new(PdfFormFieldCreationKind.CheckBox, "Check box"),
-        new(PdfFormFieldCreationKind.Choice, "Choice field"),
-        new(PdfFormFieldCreationKind.RadioButtonGroup, "Radio group"),
-        new(PdfFormFieldCreationKind.Signature, "Signature field"),
-        new(PdfFormFieldCreationKind.PushButton, "Button")
-    };
-
     private PdfEditorGesture? _pendingRedaction;
     private PdfRedactionPlan? _pendingRedactionPlan;
     private PdfWorkspace? _pendingRedactionWorkspace;
@@ -46,7 +19,7 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveEditorTool))]
     [NotifyPropertyChangedFor(nameof(EditorInstruction))]
-    private PdfEditorToolChoice _selectedEditorToolChoice = AvailableEditorTools[0];
+    private PdfEditorToolChoice _selectedEditorToolChoice = null!;
 
     [ObservableProperty]
     private string _editorText = "Review note";
@@ -85,7 +58,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsCreatingChoiceField))]
     [NotifyPropertyChangedFor(nameof(IsCreatingChoiceList))]
     [NotifyPropertyChangedFor(nameof(IsCreatingButton))]
-    private PdfFormFieldCreationChoice _selectedFormFieldCreationChoice = AvailableFormFieldKinds[0];
+    private PdfFormFieldCreationChoice _selectedFormFieldCreationChoice = null!;
 
     [ObservableProperty]
     private string _newFormFieldName = "Field1";
@@ -158,11 +131,11 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     private string _annotationReplyText = string.Empty;
 
-    public ObservableCollection<PdfEditorToolChoice> EditorTools { get; } = new(AvailableEditorTools);
+    public ObservableCollection<PdfEditorToolChoice> EditorTools { get; } = new();
 
     public ObservableCollection<PdfFormFieldViewModel> FormFields { get; } = new();
 
-    public ObservableCollection<PdfFormFieldCreationChoice> FormFieldCreationChoices { get; } = new(AvailableFormFieldKinds);
+    public ObservableCollection<PdfFormFieldCreationChoice> FormFieldCreationChoices { get; } = new();
 
     public PdfEditorTool ActiveEditorTool => SelectedEditorToolChoice.Tool;
 
@@ -220,11 +193,46 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private void SelectEditorTool(string? label) {
-        PdfEditorToolChoice? choice = EditorTools.FirstOrDefault(tool =>
-            string.Equals(tool.Label, label, StringComparison.OrdinalIgnoreCase));
+    private void SelectEditorTool(string? toolId) {
+        if (!Enum.TryParse(toolId, ignoreCase: true, out PdfEditorTool tool)) return;
+        PdfEditorToolChoice? choice = EditorTools.FirstOrDefault(candidate => candidate.Tool == tool);
         if (choice is not null) SelectedEditorToolChoice = choice;
     }
+
+    private void InitializeLocalizedEditorChoices() {
+        EditorTools.Add(new(PdfEditorTool.Select, LocalizedEditorText("Select", "Label", "Select"), LocalizedEditorText("Select", "Hint", "Select and copy text or open links")));
+        EditorTools.Add(new(PdfEditorTool.Note, LocalizedEditorText("Note", "Label", "Note"), LocalizedEditorText("Note", "Hint", "Click to add a comment note")));
+        EditorTools.Add(new(PdfEditorTool.FreeText, LocalizedEditorText("FreeText", "Label", "Text box"), LocalizedEditorText("FreeText", "Hint", "Draw a free-text annotation")));
+        EditorTools.Add(new(PdfEditorTool.Highlight, LocalizedEditorText("Highlight", "Label", "Highlight"), LocalizedEditorText("Highlight", "Hint", "Drag across text or an area")));
+        EditorTools.Add(new(PdfEditorTool.Underline, LocalizedEditorText("Underline", "Label", "Underline"), LocalizedEditorText("Underline", "Hint", "Drag across text or an area")));
+        EditorTools.Add(new(PdfEditorTool.StrikeOut, LocalizedEditorText("StrikeOut", "Label", "Strikeout"), LocalizedEditorText("StrikeOut", "Hint", "Drag across text or an area")));
+        EditorTools.Add(new(PdfEditorTool.Rectangle, LocalizedEditorText("Rectangle", "Label", "Rectangle"), LocalizedEditorText("Rectangle", "Hint", "Draw a rectangle annotation")));
+        EditorTools.Add(new(PdfEditorTool.Ellipse, LocalizedEditorText("Ellipse", "Label", "Ellipse"), LocalizedEditorText("Ellipse", "Hint", "Draw an ellipse annotation")));
+        EditorTools.Add(new(PdfEditorTool.Line, LocalizedEditorText("Line", "Label", "Line"), LocalizedEditorText("Line", "Hint", "Drag a review line")));
+        EditorTools.Add(new(PdfEditorTool.Ink, LocalizedEditorText("Ink", "Label", "Ink"), LocalizedEditorText("Ink", "Hint", "Draw a freehand ink path")));
+        EditorTools.Add(new(PdfEditorTool.Stamp, LocalizedEditorText("Stamp", "Label", "Stamp"), LocalizedEditorText("Stamp", "Hint", "Place an annotation stamp")));
+        EditorTools.Add(new(PdfEditorTool.AddText, LocalizedEditorText("AddText", "Label", "Add text"), LocalizedEditorText("AddText", "Hint", "Add permanent page text without reflowing existing content")));
+        EditorTools.Add(new(PdfEditorTool.AddImage, LocalizedEditorText("AddImage", "Label", "Add image"), LocalizedEditorText("AddImage", "Hint", "Choose and place a PNG or JPEG image")));
+        EditorTools.Add(new(PdfEditorTool.Link, LocalizedEditorText("Link", "Label", "Link"), LocalizedEditorText("Link", "Hint", "Draw a URI link hotspot")));
+        EditorTools.Add(new(PdfEditorTool.SignatureAppearance, LocalizedEditorText("SignatureAppearance", "Label", "Signature appearance"), LocalizedEditorText("SignatureAppearance", "Hint", "Draw a visual-only signature label; this does not cryptographically sign the PDF")));
+        EditorTools.Add(new(PdfEditorTool.Redact, LocalizedEditorText("Redact", "Label", "Redact"), LocalizedEditorText("Redact", "Hint", "Draw an area, review it, then permanently remove intersecting content")));
+        SelectedEditorToolChoice = EditorTools[0];
+
+        foreach ((PdfFormFieldCreationKind kind, string label) in new[] {
+            (PdfFormFieldCreationKind.Text, "Text field"),
+            (PdfFormFieldCreationKind.CheckBox, "Check box"),
+            (PdfFormFieldCreationKind.Choice, "Choice field"),
+            (PdfFormFieldCreationKind.RadioButtonGroup, "Radio group"),
+            (PdfFormFieldCreationKind.Signature, "Signature field"),
+            (PdfFormFieldCreationKind.PushButton, "Button")
+        }) {
+            FormFieldCreationChoices.Add(new(kind, _localizer.GetOrDefault($"Editor.FormKind.{kind}", label)));
+        }
+        SelectedFormFieldCreationChoice = FormFieldCreationChoices[0];
+    }
+
+    private string LocalizedEditorText(string tool, string property, string fallback) =>
+        _localizer.GetOrDefault($"Editor.Tool.{tool}.{property}", fallback);
 
     private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
         bool acceptsEditorGesture = DocumentMode is StudioDocumentMode.Annotate or StudioDocumentMode.Edit ||
@@ -240,14 +248,14 @@ public sealed partial class MainWindowViewModel {
         ErrorMessage = null;
         if (tool == PdfEditorTool.Redact) {
             if (!CanRedact) {
-                ErrorMessage = "This document cannot be safely redacted under its current security and rewrite policy.";
+                ErrorMessage = UiText("Editor.RedactionUnavailable");
                 return;
             }
             CancelPendingRedaction();
             long generation = _redactionPlanGeneration;
             PdfRedactionPlan? plan = null;
             bool succeeded = await RunStandaloneAsync(async token => {
-                OperationStatus = "Planning redaction";
+                OperationStatus = UiText("Editor.PlanningRedaction");
                 plan = await workspace.PlanRedactionAsync(gesture, properties, token).ConfigureAwait(true);
                 token.ThrowIfCancellationRequested();
             }, CancellationToken.None).ConfigureAwait(true);
@@ -256,7 +264,7 @@ public sealed partial class MainWindowViewModel {
                 !ReferenceEquals(_workspace, workspace) ||
                 workspace.Revision != revision ||
                 ActiveEditorTool != PdfEditorTool.Redact) {
-                OperationStatus = "The document changed before the redaction preview was ready. Draw the area again.";
+                OperationStatus = UiText("Editor.RedactionPreviewStale");
                 return;
             }
             int textMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.TextBlock);
@@ -267,7 +275,12 @@ public sealed partial class MainWindowViewModel {
             _pendingRedactionWorkspace = workspace;
             _pendingRedactionRevision = revision;
             SetPendingRedactionArea(gesture);
-            PendingRedactionSummary = $"Page {gesture.PageNumber}: {textMatches} text, {imageMatches} image, and {annotationMatches} annotation match(es). Intersecting images are removed as whole placements. Review the area, then apply permanent verified redaction.";
+            PendingRedactionSummary = UiFormat(
+                "Editor.RedactionSummary",
+                gesture.PageNumber,
+                textMatches,
+                imageMatches,
+                annotationMatches);
             return;
         }
 
@@ -278,7 +291,7 @@ public sealed partial class MainWindowViewModel {
                 if (string.IsNullOrWhiteSpace(path)) return;
                 imageBytes = await File.ReadAllBytesAsync(path).ConfigureAwait(true);
                 if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
-                    OperationStatus = "The document changed while the image was being selected. Place the image again.";
+                    OperationStatus = UiText("Editor.ImageSelectionStale");
                     return;
                 }
             }
@@ -286,7 +299,7 @@ public sealed partial class MainWindowViewModel {
             bool succeeded = await RunMutationAsync(
                 token => workspace.ApplyEditorGestureAsync(tool, gesture, properties, token, CreateProgress()),
                 CancellationToken.None).ConfigureAwait(true);
-            if (succeeded) OperationStatus = "Edit added. Save when ready.";
+            if (succeeded) OperationStatus = UiText("Editor.EditAdded");
         } catch (Exception ex) {
             ErrorMessage = ex.Message;
         }
@@ -305,7 +318,11 @@ public sealed partial class MainWindowViewModel {
                 ClearObjectSelection();
                 return;
             }
-            SelectedAnnotationSummary = $"{selection.Subtype ?? "Annotation"} · page {selection.PageNumber} · object {selection.ObjectNumber}";
+            SelectedAnnotationSummary = UiFormat(
+                "Editor.AnnotationSummary",
+                selection.Subtype ?? UiText("Editor.Annotation"),
+                selection.PageNumber,
+                selection.ObjectNumber);
             SelectedAnnotationContents = annotation.Contents ?? string.Empty;
             SelectedAnnotationAuthor = annotation.Title ?? string.Empty;
             SelectedAnnotationX = annotation.X1;
@@ -323,8 +340,12 @@ public sealed partial class MainWindowViewModel {
 
         SelectedObject = selection;
         SelectedObjectSummary = selection.Kind switch {
-            PdfEditorSelectionKind.Text => $"Text · page {selection.PageNumber} · {selection.Text?.Length ?? 0} character(s)",
-            PdfEditorSelectionKind.Image => $"Image · page {selection.PageNumber} · {selection.ImagePlacement?.Width:0.#} × {selection.ImagePlacement?.Height:0.#} pt",
+            PdfEditorSelectionKind.Text => UiFormat("Editor.TextSelectionSummary", selection.PageNumber, selection.Text?.Length ?? 0),
+            PdfEditorSelectionKind.Image => UiFormat(
+                "Editor.ImageSelectionSummary",
+                selection.PageNumber,
+                selection.ImagePlacement?.Width,
+                selection.ImagePlacement?.Height),
             _ => SelectedAnnotationSummary
         };
         foreach (PdfPageViewModel page in Pages) {
@@ -343,7 +364,7 @@ public sealed partial class MainWindowViewModel {
         long revision = _pendingRedactionRevision;
         if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
             CancelPendingRedaction();
-            ErrorMessage = "The document changed after this redaction was reviewed. Draw and review the area again.";
+            ErrorMessage = UiText("Editor.RedactionReviewStale");
             return;
         }
         PdfVerifiedRedactionResult? proof = null;
@@ -356,7 +377,15 @@ public sealed partial class MainWindowViewModel {
                 CreateProgress()).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || proof is null) return;
-        OperationStatus = proof.Evidence.Summary;
+        OperationStatus = proof.Evidence.IsVerified
+            ? UiFormat(
+                "Editor.RedactionVerified",
+                proof.Evidence.VerifiedAbsentCount,
+                proof.Evidence.AffectedPageNumbers.Count)
+            : UiFormat(
+                "Editor.RedactionIncomplete",
+                proof.Evidence.ResidualCount,
+                proof.Evidence.InconclusiveCount);
     }
 
     [RelayCommand]
@@ -531,7 +560,7 @@ public sealed partial class MainWindowViewModel {
         FormFields.Clear();
         if (_workspace is not null) {
             foreach (PdfFormField field in _workspace.DocumentInfo.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
-                FormFields.Add(new PdfFormFieldViewModel(field));
+                FormFields.Add(new PdfFormFieldViewModel(field, _localizer));
             }
         }
         SelectedFormField = FormFields.FirstOrDefault(field => string.Equals(field.Name, selectedName, StringComparison.Ordinal))

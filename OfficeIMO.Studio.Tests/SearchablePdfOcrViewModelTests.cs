@@ -1,4 +1,5 @@
 using OfficeIMO.Ocr.Tesseract;
+using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
@@ -106,6 +107,26 @@ public sealed class SearchablePdfOcrViewModelTests {
             viewModel.ErrorMessage);
     }
 
+    [Fact]
+    public async Task DocumentTransitionRefusesToCloseWhileOcrIsRunning() {
+        var service = new BlockingOcrService();
+        using var viewModel = new MainWindowViewModel(
+            _ => Task.FromResult<string?>(null),
+            ocrService: service);
+        viewModel.OcrWorkbench.InputPath = Path.Combine(Path.GetTempPath(), "source.pdf");
+        viewModel.OcrWorkbench.OutputPath = Path.Combine(Path.GetTempPath(), "output.pdf");
+
+        Task run = viewModel.OcrWorkbench.RunCommand.ExecuteAsync(null);
+        await service.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(viewModel.CanCancelOperation);
+        Assert.False(await viewModel.RequestCloseDocumentAsync());
+        Assert.Contains("wait", viewModel.OperationStatus, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.CancelCurrentOperation();
+        await run.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
     private sealed class RecordingOcrService : ISearchablePdfOcrService {
         private readonly SearchablePdfOcrOutcome? _result;
         private readonly Exception? _exception;
@@ -130,6 +151,20 @@ public sealed class SearchablePdfOcrViewModelTests {
             Options = options;
             if (_exception is not null) return Task.FromException<SearchablePdfOcrOutcome>(_exception);
             return Task.FromResult(_result!);
+        }
+    }
+
+    private sealed class BlockingOcrService : ISearchablePdfOcrService {
+        internal TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
+            string inputPath,
+            string outputPath,
+            SearchablePdfOcrOptions options,
+            CancellationToken cancellationToken) {
+            Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("Unreachable");
         }
     }
 }

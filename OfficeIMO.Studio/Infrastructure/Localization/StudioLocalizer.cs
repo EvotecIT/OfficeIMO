@@ -21,8 +21,18 @@ internal sealed class StudioLocalizer : IStudioLocalizer {
         return IsPseudoCulture ? StudioPseudoLocalizer.Transform(value) : value;
     }
 
+    public string GetOrDefault(string key, string fallback) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(fallback);
+        string value = Resources.GetString(key, Culture) ?? Resources.GetString(key, CultureInfo.GetCultureInfo("en")) ?? fallback;
+        return IsPseudoCulture ? StudioPseudoLocalizer.Transform(value) : value;
+    }
+
     public string Format(string key, params object?[] arguments) =>
         string.Format(Culture, Get(key), arguments);
+
+    public string FormatOrDefault(string key, string fallback, params object?[] arguments) =>
+        string.Format(Culture, GetOrDefault(key, fallback), arguments);
 
     private bool IsPseudoCulture => string.Equals(Culture.Name, StudioCultureCatalog.PseudoCulture, StringComparison.OrdinalIgnoreCase);
 }

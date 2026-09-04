@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -11,7 +12,7 @@ using OfficeIMO.Studio.Features.Editor;
 namespace OfficeIMO.Studio.Features.Reader;
 
 /// <summary>Interactive retained PDF page surface with text selection, copy, and link activation.</summary>
-public sealed class PdfPageCanvas : Control, IDisposable {
+public sealed partial class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<PdfPageScene?> SceneProperty =
         AvaloniaProperty.Register<PdfPageCanvas, PdfPageScene?>(nameof(Scene));
 
@@ -41,6 +42,8 @@ public sealed class PdfPageCanvas : Control, IDisposable {
     private bool _selecting;
     private bool _editing;
     private bool _disposed;
+    private int _keyboardInteractionIndex = -1;
+    private PdfPageCanvasAutomationPeer? _automationPeer;
 
     static PdfPageCanvas() {
         AffectsRender<PdfPageCanvas>(
@@ -147,6 +150,8 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         _selectionEnd = null;
         _hoverRegion = null;
         _editorPath.Clear();
+        _keyboardInteractionIndex = -1;
+        _automationPeer?.RefreshChildren();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) {
@@ -257,7 +262,86 @@ public sealed class PdfPageCanvas : Control, IDisposable {
             ObjectSelected?.Invoke(null);
             InvalidateVisual();
             e.Handled = true;
+        } else if (e.Key == Key.A &&
+                   (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))) {
+            SelectAllText();
+            e.Handled = true;
+        } else if (e.Key is Key.Left or Key.Up) {
+            MoveKeyboardInteraction(-1);
+            e.Handled = true;
+        } else if (e.Key is Key.Right or Key.Down) {
+            MoveKeyboardInteraction(1);
+            e.Handled = true;
+        } else if (e.Key is Key.Home) {
+            MoveKeyboardInteractionTo(0);
+            e.Handled = true;
+        } else if (e.Key is Key.End) {
+            MoveKeyboardInteractionTo(GetKeyboardInteractions().Count - 1);
+            e.Handled = true;
+        } else if (e.Key is Key.Enter or Key.Space) {
+            ActivateKeyboardInteraction();
+            e.Handled = true;
         }
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() =>
+        _automationPeer ??= new PdfPageCanvasAutomationPeer(this);
+
+    private IReadOnlyList<PdfPageInteractionRegion> GetKeyboardInteractions() =>
+        Scene?.Interactions.Regions.Where(static region => region.Kind != PdfInteractionKind.Text).ToArray()
+        ?? Array.Empty<PdfPageInteractionRegion>();
+
+    private void MoveKeyboardInteraction(int offset) {
+        IReadOnlyList<PdfPageInteractionRegion> interactions = GetKeyboardInteractions();
+        if (interactions.Count == 0) return;
+        int next = _keyboardInteractionIndex < 0
+            ? offset < 0 ? interactions.Count - 1 : 0
+            : (_keyboardInteractionIndex + offset + interactions.Count) % interactions.Count;
+        MoveKeyboardInteractionTo(next);
+    }
+
+    private void MoveKeyboardInteractionTo(int index) {
+        IReadOnlyList<PdfPageInteractionRegion> interactions = GetKeyboardInteractions();
+        if (index < 0 || index >= interactions.Count) return;
+        _keyboardInteractionIndex = index;
+        _hoverRegion = interactions[index];
+        SelectRegion(interactions[index], activateLink: false);
+        InvalidateVisual();
+    }
+
+    private void ActivateKeyboardInteraction() {
+        IReadOnlyList<PdfPageInteractionRegion> interactions = GetKeyboardInteractions();
+        if (_keyboardInteractionIndex < 0 || _keyboardInteractionIndex >= interactions.Count) return;
+        SelectRegion(interactions[_keyboardInteractionIndex], activateLink: true);
+    }
+
+    internal void SelectRegion(PdfPageInteractionRegion region, bool activateLink) {
+        if (region.Kind == PdfInteractionKind.Link) {
+            if (activateLink && !string.IsNullOrWhiteSpace(region.Target)) LinkActivated?.Invoke(region.Target!);
+            return;
+        }
+        if (Scene is not null) ObjectSelected?.Invoke(CreateSelection(Scene.PageNumber, region));
+    }
+
+    private void SelectAllText() {
+        IReadOnlyList<PdfPageInteractionRegion>? regions = Scene?.Interactions.TextRegions;
+        if (regions is null || regions.Count == 0) return;
+        double left = regions.Min(static region => region.Quad.Left);
+        double top = regions.Min(static region => region.Quad.Top);
+        double right = regions.Max(static region => region.Quad.Right);
+        double bottom = regions.Max(static region => region.Quad.Bottom);
+        _selectionStart = ToControlPoint(new Point(left, top));
+        _selectionEnd = ToControlPoint(new Point(right, bottom));
+        SelectTextObject();
+        InvalidateVisual();
+    }
+
+    private Point ToControlPoint(Point pagePoint) {
+        PdfPageScene? scene = Scene;
+        if (scene is null) return pagePoint;
+        return new Point(
+            pagePoint.X * Bounds.Width / Math.Max(1D, scene.Drawing.Width),
+            pagePoint.Y * Bounds.Height / Math.Max(1D, scene.Drawing.Height));
     }
 
     private void ActivateLink(Point controlPoint) {

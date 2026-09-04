@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -76,6 +77,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, CancellationToken, Task>? _openDocument;
     private readonly ISearchablePdfOcrService _service;
     private readonly Func<string, bool> _canPublishPath;
+    private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _cancellation;
     private string? _automaticOutputPath;
 
@@ -84,17 +86,22 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         Func<string, CancellationToken, Task>? openDocument = null,
         ISearchablePdfOcrService? service = null,
-        Func<string, bool>? canPublishPath = null) {
+        Func<string, bool>? canPublishPath = null,
+        IStudioLocalizer? localizer = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
         _canPublishPath = canPublishPath ?? (_ => true);
+        _localizer = localizer ?? StudioLocalization.Current;
         Languages = new ObservableCollection<OcrLanguageChoice>(TesseractOcrLanguages.Supported.Select(language => {
-            var choice = new OcrLanguageChoice(language, FormatLanguage(language), language == TesseractOcrLanguage.English);
+            string fallback = FormatLanguage(language);
+            var choice = new OcrLanguageChoice(language, _localizer.GetOrDefault($"Ocr.Language.{language}", fallback), language == TesseractOcrLanguage.English);
             choice.PropertyChanged += OnLanguagePropertyChanged;
             return choice;
         }));
+        Status = T("Status.Ready", "Choose a scanned PDF to make its text searchable.");
+        Summary = T("Summary.Empty", "No OCR output yet");
     }
 
     public ObservableCollection<OcrLanguageChoice> Languages { get; }
@@ -128,10 +135,10 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _status = "Choose a scanned PDF to make its text searchable.";
+    private string _status = string.Empty;
 
     [ObservableProperty]
-    private string _summary = "No OCR output yet";
+    private string _summary = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -152,9 +159,9 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         get {
             string[] selected = Languages.Where(static choice => choice.IsSelected).Select(static choice => choice.Label).ToArray();
             return selected.Length switch {
-                0 => "Select at least one language",
+                0 => T("Language.None", "Select at least one language"),
                 1 => selected[0],
-                _ => $"{selected.Length} languages selected"
+                _ => _localizer.FormatOrDefault("Ocr.Language.Count", "{0} languages selected", selected.Length)
             };
         }
     }
@@ -203,18 +210,18 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         IsBusy = true;
         PublishedPath = null;
         ErrorMessage = null;
-        Status = "Preparing the OCR engine and page renderings…";
-        Summary = "OCR is running";
+        Status = T("Status.Preparing", "Preparing the OCR engine and page renderings…");
+        Summary = T("Summary.Running", "OCR is running");
 
         try {
             string input = Path.GetFullPath(InputPath.Trim());
             string output = Path.GetFullPath(OutputPath.Trim());
             if (PathsEqual(input, output)) {
-                throw new InvalidOperationException("Choose an OCR output PDF that is different from the source PDF.");
+                throw new InvalidOperationException(T("Error.SamePath", "Choose an OCR output PDF that is different from the source PDF."));
             }
             if (!_canPublishPath(output)) {
                 throw new InvalidOperationException(
-                    "That PDF is already open in another tab. Close it or choose a different output file name.");
+                    T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
             }
             TesseractOcrLanguage selectedLanguages = Languages
                 .Where(static choice => choice.IsSelected)
@@ -236,18 +243,21 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 .MakeSearchableAsync(input, output, options, operation.Token)
                 .ConfigureAwait(true);
             PublishedPath = output;
-            string pageLabel = result.ModifiedPages.Count == 1 ? "1 page" : $"{result.ModifiedPages.Count:N0} pages";
+            string pageLabel = result.ModifiedPages.Count == 1
+                ? T("Result.OnePage", "1 page")
+                : _localizer.FormatOrDefault("Ocr.Result.Pages", "{0:N0} pages", result.ModifiedPages.Count);
             Status = result.AddedWordCount > 0
-                ? "Searchable PDF created"
-                : "PDF created; no new OCR words passed the selected confidence threshold";
-            Summary = $"Added {result.AddedWordCount:N0} searchable words across {pageLabel}" +
-                      (string.IsNullOrWhiteSpace(result.Provider) ? "." : $" with {result.Provider}.");
+                ? T("Status.Completed", "Searchable PDF created")
+                : T("Status.NoWords", "PDF created; no new OCR words passed the selected confidence threshold");
+            Summary = string.IsNullOrWhiteSpace(result.Provider)
+                ? _localizer.FormatOrDefault("Ocr.Result.Summary", "Added {0:N0} searchable words across {1}.", result.AddedWordCount, pageLabel)
+                : _localizer.FormatOrDefault("Ocr.Result.SummaryWithProvider", "Added {0:N0} searchable words across {1} with {2}.", result.AddedWordCount, pageLabel, result.Provider);
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
-            Status = "OCR cancelled";
-            Summary = "The source PDF was not changed.";
+            Status = T("Status.Cancelled", "OCR cancelled");
+            Summary = T("Summary.SourceUnchanged", "The source PDF was not changed.");
         } catch (Exception ex) {
-            Status = "OCR could not finish";
-            Summary = "The source PDF was not changed.";
+            Status = T("Status.Failed", "OCR could not finish");
+            Summary = T("Summary.SourceUnchanged", "The source PDF was not changed.");
             ErrorMessage = ex.Message;
         } finally {
             IsBusy = false;
@@ -305,4 +315,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         _cancellation?.Cancel();
         foreach (OcrLanguageChoice language in Languages) language.PropertyChanged -= OnLanguagePropertyChanged;
     }
+
+    private string T(string suffix, string fallback) =>
+        _localizer.GetOrDefault("Ocr." + suffix, fallback);
 }
