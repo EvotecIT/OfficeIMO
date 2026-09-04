@@ -3,15 +3,22 @@ namespace OfficeIMO.Pdf;
 /// <summary>Rectangle requested for redaction planning, using PDF point coordinates from the page bottom-left.</summary>
 public sealed class PdfRedactionArea {
     /// <summary>Creates a redaction area.</summary>
-    public PdfRedactionArea(
-        int pageNumber,
-        double x,
-        double y,
-        double width,
-        double height,
-        string? label = null,
-        PdfRedactionContentScope contentScope = PdfRedactionContentScope.TextAndUnderlay,
-        PdfRedactionAppearanceMode appearanceMode = PdfRedactionAppearanceMode.Exact)
+    public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label = null)
+        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, PdfRedactionContentScope.TextAndUnderlay, PdfRedactionAppearanceMode.Exact) {
+    }
+
+    /// <summary>Creates a redaction area with an explicit intersecting-content policy.</summary>
+    public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, PdfRedactionContentScope contentScope)
+        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, contentScope, PdfRedactionAppearanceMode.Exact) {
+    }
+
+    /// <summary>Creates a redaction area with an explicit visible-appearance policy.</summary>
+    public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, PdfRedactionAppearanceMode appearanceMode)
+        : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, PdfRedactionContentScope.TextAndUnderlay, appearanceMode) {
+    }
+
+    /// <summary>Creates a redaction area with explicit intersecting-content and visible-appearance policies.</summary>
+    public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode)
         : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, contentScope, appearanceMode) {
     }
 
