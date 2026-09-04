@@ -364,11 +364,11 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             if (request.OcrEngine is null) throw new RedactionWorkflowException("The recipe requires OCR but no runtime OCR engine was supplied.");
             search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget(), cancellationToken);
             PdfOcrRedactionSearchResult ocr = await document.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
-            string safeProvider = NormalizeEvidenceIdentifier(request.OcrEngine.Id) ?? "ocr-provider";
+            string safeProvider = FingerprintEvidenceIdentifier(request.OcrEngine.Id) ?? "ocr-provider";
             foreach (PdfOcrRedactionCandidate candidate in ocr.Candidates) {
                 AddCandidate(
                     new[] { candidate.Area.WithPolicies(rule.ContentScope, rule.AppearanceMode) },
-                    new CandidateOrigin("ocr", rule.Name, rule.ContentScope, rule.AppearanceMode, candidate.MinimumConfidence, safeProvider, NormalizeEvidenceIdentifier(candidate.Model), NormalizeEvidenceIdentifier(candidate.Language)));
+                    new CandidateOrigin("ocr", rule.Name, rule.ContentScope, rule.AppearanceMode, candidate.MinimumConfidence, safeProvider, FingerprintEvidenceIdentifier(candidate.Model), FingerprintEvidenceIdentifier(candidate.Language)));
             }
             ocrUsed = true;
             diagnostics.Add(new OfficeWorkflowDiagnostic("OcrCandidateDiscovery", $"OCR contributed {ocr.Candidates.Count} privacy-safe candidate(s) for rule '{rule.Name}'.", details: new Dictionary<string, string> { ["provider"] = safeProvider, ["rule"] = rule.Name, ["candidateCount"] = ocr.Candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
@@ -417,14 +417,9 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         return search;
     }
 
-    private static string? NormalizeEvidenceIdentifier(string? value) {
+    private static string? FingerprintEvidenceIdentifier(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
-        string normalized = value.Trim();
-        if (normalized.Length > 128 || !IsAsciiLetterOrDigit(normalized[0]) || normalized.Any(static character => !IsEvidenceIdentifierCharacter(character))) return null;
-        return normalized;
-
-        static bool IsAsciiLetterOrDigit(char value) => value is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9';
-        static bool IsEvidenceIdentifierCharacter(char value) => IsAsciiLetterOrDigit(value) || value is '.' or '_' or '-';
+        return "sha256-" + ComputeSha256(System.Text.Encoding.UTF8.GetBytes(value.Trim())).ToLowerInvariant();
     }
 
     private static IReadOnlyList<PdfRedactionArea> ApplyPolicies(IReadOnlyList<PdfRedactionArea> areas, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>

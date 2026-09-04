@@ -525,7 +525,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         const string sensitive = "Ocr Secret";
         PdfDocument.Create().Paragraph(paragraph => paragraph.Text("unrelated native content")).Save(input);
         int invocation = 0;
-        const string metadataLeak = "https://tenant.invalid/Ocr Secret?token=991";
+        const string metadataLeak = "Account123456789";
         var engine = new DelegateOcrEngine(
             metadataLeak,
             (_, _) => {
@@ -554,9 +554,9 @@ public sealed partial class PdfRedactionWorkflowTests {
             OcrEngine = engine
         });
         PdfRedactionWorkflowCandidate candidate = Assert.Single(planned.Candidates);
-        Assert.Equal("ocr-provider", candidate.Provider);
-        Assert.Null(candidate.Model);
-        Assert.Null(candidate.Language);
+        Assert.StartsWith("sha256-", candidate.Provider, StringComparison.Ordinal);
+        Assert.StartsWith("sha256-", candidate.Model, StringComparison.Ordinal);
+        Assert.StartsWith("sha256-", candidate.Language, StringComparison.Ordinal);
         var decisions = new PdfRedactionDecisionManifest {
             SourceSha256 = planned.SourceSha256,
             RecipeSha256 = planned.RecipeSha256,
@@ -578,7 +578,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         Assert.True(applied.Evidence?.OcrUsed);
         Assert.True(applied.Evidence?.OcrPostVerificationPerformed);
         Assert.Equal(0, applied.Evidence?.OcrResidualCandidateCount);
-        Assert.Contains("ocr-provider", applied.Evidence!.OcrProviders);
+        Assert.Contains(candidate.Provider!, applied.Evidence!.OcrProviders);
         string evidence = await File.ReadAllTextAsync(evidencePath);
         Assert.DoesNotContain(sensitive, evidence, StringComparison.Ordinal);
         Assert.DoesNotContain(metadataLeak, evidence, StringComparison.Ordinal);
