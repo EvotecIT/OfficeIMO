@@ -116,6 +116,40 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void RegionReplacementCanRejectOrShrinkHorizontalOverflowBeforeMutation() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (short) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("short", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
+            region,
+            "a substantially wider replacement",
+            new PdfTextEditOptions { RegionWidthPolicy = PdfTextRegionWidthPolicy.RejectOverflow }));
+
+        PdfTextEditResult fitted = PdfDocument.Load(source).Text.Replace(
+            region,
+            "wider",
+            new PdfTextEditOptions { RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit, MinimumFontSize = 3D });
+        PdfTextMatch replacement = Assert.Single(fitted.Document.Text.Find("wider", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.True(replacement.FontSize < match.FontSize);
+        Assert.True(replacement.Width <= region.Width + 0.1D);
+        Assert.Contains(fitted.Warnings, warning => warning.Contains("reduced", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RegionShrinkRejectsUnreadableFitBelowConfiguredMinimum() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (short) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("short", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
+            region,
+            "a substantially wider replacement",
+            new PdfTextEditOptions { RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit, MinimumFontSize = 8D }));
+    }
+
+    [Fact]
     public void MoveAndAddProduceInspectableTextAtRequestedLocations() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Stationary line above"))

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Permanent redaction operations for one PDF document.</summary>
@@ -6,9 +8,67 @@ public sealed class PdfDocumentRedactions {
 
     internal PdfDocumentRedactions(PdfDocument document) => _document = document;
 
+    /// <summary>Adds standard PDF /Redact review annotations for every canonical area in a region.</summary>
+    public PdfDocument AddAnnotation(PdfRedactionAnnotationOptions options) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(options.Region, nameof(options.Region));
+        options.CancellationToken.ThrowIfCancellationRequested();
+        if (options.MaximumAnnotations <= 0 || options.MaximumAnnotations > 64) throw new ArgumentOutOfRangeException(nameof(options), "MaximumAnnotations must be from 1 through 64.");
+        if (options.Region.Areas.Count > options.MaximumAnnotations) throw new InvalidOperationException("The redaction region exceeds the configured annotation limit.");
+        PdfDocument current = _document;
+        for (int index = 0; index < options.Region.Areas.Count; index++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PdfRedactionArea area = options.Region.Areas[index];
+            var create = new PdfAnnotationCreateOptions {
+                PageNumber = area.PageNumber,
+                Subtype = "Redact",
+                Rectangle = new[] { area.X, area.Y, area.Right, area.Top },
+                QuadPoints = area.ExactGeometry?.Kind == PdfRedactionRegionKind.Quadrilateral
+                    ? area.ExactGeometry.Points.SelectMany(static point => new[] { point.X, point.Y }).ToArray()
+                    : null,
+                Contents = options.Contents,
+                Title = options.Author,
+                Name = options.Name is null || options.Region.Areas.Count == 1 ? options.Name : options.Name + ":" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Color = options.Color,
+                GenerateAppearance = false,
+                ExecutionPreference = PdfMutationExecutionPreference.RequireFullRewrite
+            };
+            current = current.Annotations.Add(create).ToDocument();
+        }
+        options.CancellationToken.ThrowIfCancellationRequested();
+        return current;
+    }
+
+    /// <summary>Builds a source-bound plan from standard PDF /Redact annotations already present in the document.</summary>
+    public PdfRedactionPlan PlanAnnotations(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+        PdfRedactionArea[] areas = _document.Reader.AnnotationsBySubtype("Redact", options)
+            .Where(static annotation => annotation.PageNumber.HasValue && (annotation.QuadPoints.Count >= 8 || annotation.Width > 0D && annotation.Height > 0D))
+            .SelectMany(static annotation => PdfRedactionRegion.FromRedactAnnotation(annotation).Areas)
+            .ToArray();
+        if (areas.Length == 0) throw new InvalidOperationException("The PDF does not contain any readable /Redact annotations.");
+        return Plan(areas, layoutOptions, options);
+    }
+
+    /// <summary>Plans one or more rich review regions while retaining their exact destructive geometry.</summary>
+    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+        Guard.NotNull(regions, nameof(regions));
+        return Plan(regions.SelectMany(static region => region.Areas), layoutOptions, options);
+    }
+
+    /// <summary>Plans rich review regions with cooperative cancellation.</summary>
+    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, CancellationToken cancellationToken, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+        Guard.NotNull(regions, nameof(regions));
+        cancellationToken.ThrowIfCancellationRequested();
+        return Plan(regions.SelectMany(static region => region.Areas), cancellationToken, layoutOptions, options);
+    }
+
     /// <summary>Plans rectangle-based redaction impact without modifying the PDF.</summary>
     public PdfRedactionPlan Plan(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
         _document.PlanRedactions(areas, layoutOptions, options);
+
+    /// <summary>Plans rectangle-based redaction impact with cooperative cancellation.</summary>
+    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionArea> areas, CancellationToken cancellationToken, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
+        _document.PlanRedactions(areas, layoutOptions, options, cancellationToken);
 
     /// <summary>Searches literal text, regex, logical kinds, and form-field names into a reviewable plan.</summary>
     public PdfRedactionPlan Search(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>

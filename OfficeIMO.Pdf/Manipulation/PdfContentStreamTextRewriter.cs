@@ -594,18 +594,12 @@ internal static class PdfContentStreamTextRewriter {
 }
 
 internal readonly struct PdfContentStreamTextRewriteTarget {
-    internal PdfContentStreamTextRewriteTarget(double x, double y, double width, double height, int? textRenderingMode = null) {
-        X = x;
-        Y = y;
-        Width = width;
-        Height = height;
+    internal PdfContentStreamTextRewriteTarget(PdfRedactionArea area, int? textRenderingMode = null) {
+        Area = area;
         TextRenderingMode = textRenderingMode;
     }
 
-    internal double X { get; }
-    internal double Y { get; }
-    internal double Width { get; }
-    internal double Height { get; }
+    internal PdfRedactionArea Area { get; }
     internal int? TextRenderingMode { get; }
 
     internal bool MatchesRenderingMode(int textRenderingMode) =>
@@ -613,8 +607,5 @@ internal readonly struct PdfContentStreamTextRewriteTarget {
 
     internal bool Intersects(PdfTextSpanBounds bounds, int textRenderingMode) =>
         MatchesRenderingMode(textRenderingMode) &&
-        X < bounds.Right &&
-        X + Width > bounds.Left &&
-        Y < bounds.Top &&
-        Y + Height > bounds.Bottom;
+        Area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
 }

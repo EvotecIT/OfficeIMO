@@ -20,6 +20,16 @@ public sealed class PdfAnnotationCreateOptions {
     public int Flags { get; set; } = 4;
     /// <summary>Optional RGB color.</summary>
     public IReadOnlyList<double>? Color { get; set; }
+    /// <summary>Optional gray, RGB, or CMYK interior color.</summary>
+    public IReadOnlyList<double>? InteriorColor { get; set; }
+    /// <summary>Optional annotation opacity from 0 through 1.</summary>
+    public double? Opacity { get; set; }
+    /// <summary>Optional border width.</summary>
+    public double? BorderWidth { get; set; }
+    /// <summary>Optional standard border style.</summary>
+    public PdfAnnotationBorderStyle? BorderStyle { get; set; }
+    /// <summary>Optional border dash pattern.</summary>
+    public IReadOnlyList<double>? BorderDashPattern { get; set; }
     /// <summary>Optional text-markup quadrilaterals.</summary>
     public IReadOnlyList<double>? QuadPoints { get; set; }
     /// <summary>Optional polygon/polyline vertices.</summary>

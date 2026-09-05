@@ -123,8 +123,7 @@ internal sealed class PdfRedactionTextObjectScope {
     private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds bounds) {
         for (int index = 0; index < areas.Count; index++) {
             PdfRedactionArea area = areas[index];
-            if (area.X < bounds.Right && area.Right > bounds.Left &&
-                area.Y < bounds.Top && area.Top > bounds.Bottom) return true;
+            if (area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) return true;
         }
         return false;
     }

@@ -20,6 +20,21 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Replacement RGB /C color values in the 0..1 range. Null leaves the value unchanged.</summary>
     public IReadOnlyList<double>? Color { get; set; }
 
+    /// <summary>Replacement gray, RGB, or CMYK /IC interior color values in the 0..1 range. Null leaves the value unchanged.</summary>
+    public IReadOnlyList<double>? InteriorColor { get; set; }
+
+    /// <summary>Replacement /CA annotation opacity in the 0..1 range. Null leaves the value unchanged.</summary>
+    public double? Opacity { get; set; }
+
+    /// <summary>Replacement /BS border width. Null leaves the value unchanged.</summary>
+    public double? BorderWidth { get; set; }
+
+    /// <summary>Replacement /BS border style. Null leaves the value unchanged.</summary>
+    public PdfAnnotationBorderStyle? BorderStyle { get; set; }
+
+    /// <summary>Replacement /BS dash pattern. Null leaves the value unchanged.</summary>
+    public IReadOnlyList<double>? BorderDashPattern { get; set; }
+
     /// <summary>Remove /A and /AA action dictionaries from the annotation.</summary>
     public bool RemoveActions { get; set; }
 

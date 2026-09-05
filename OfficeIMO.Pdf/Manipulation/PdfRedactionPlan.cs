@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Preview of text, image placements, and annotations that intersect requested redaction rectangles.</summary>
+/// <summary>Preview of text, image placements, vectors, and annotations that intersect requested redaction areas.</summary>
 public sealed class PdfRedactionPlan {
     internal PdfRedactionPlan(
         PdfDocumentPreflight preflight,
@@ -231,18 +231,20 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
         IReadOnlyList<PdfRedactionArea>? reviewedAreas = null) {
-        PdfVisualBounds[]? visualAreas = reviewedAreas?
-            .Select(area => page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top))
-            .ToArray();
         bool IntersectsReviewedPath(PdfPageVisualPrimitive path) {
-            if (visualAreas == null) return false;
+            if (reviewedAreas == null) return false;
             double strokePadding = path.HasStrokePaint ? Math.Max(0D, path.StrokeWidth) / 2D : 0D;
-            return IntersectsReviewedArea(
-                visualAreas,
+            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(
                 path.X - strokePadding,
                 path.Y - strokePadding,
-                path.Width + strokePadding * 2D,
-                path.Height + strokePadding * 2D);
+                path.X + path.Width + strokePadding,
+                path.Y + path.Height + strokePadding);
+            return IntersectsReviewedArea(
+                reviewedAreas,
+                userBounds.Left,
+                userBounds.Top,
+                userBounds.Width,
+                userBounds.Height);
         }
         PdfPageVisualPrimitive[] paths = page.GetIdentityVisualPrimitives()
             .Where(path => !IntersectsReviewedPath(path))
@@ -464,9 +466,6 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfPageVisualPrimitive> primitives = page.GetIdentityVisualPrimitives();
-        PdfVisualBounds[] visualAreas = pageAreas
-            .Select(area => page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top))
-            .ToArray();
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
             double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
@@ -474,7 +473,8 @@ public sealed class PdfRedactionPlan {
             double y = primitive.Y - strokePadding;
             double width = primitive.Width + strokePadding * 2D;
             double height = primitive.Height + strokePadding * 2D;
-            if (IntersectsReviewedArea(visualAreas, x, y, width, height)) continue;
+            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(x, y, x + width, y + height);
+            if (IntersectsReviewedArea(pageAreas, userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
 
             identity.Append("|P:").Append((int)primitive.Kind)
                 .Append(':').Append(FormatIdentityNumber(primitive.X))
@@ -601,22 +601,6 @@ public sealed class PdfRedactionPlan {
             .Append(resource.HasMalformedStrictInvocation ? '1' : '0');
         AppendIdentityColor(identity, pattern.Tint);
         identity.Append(':').Append(resource.SourceIdentity);
-    }
-
-    private static bool IntersectsReviewedArea(
-        PdfVisualBounds[] areas,
-        double x,
-        double y,
-        double width,
-        double height) {
-        for (int i = 0; i < areas.Length; i++) {
-            PdfVisualBounds area = areas[i];
-            if (x < area.Right && x + width > area.Left &&
-                y < area.Bottom && y + height > area.Top) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeColor? color) {
@@ -850,10 +834,7 @@ public sealed class PdfRedactionPlan {
         double height) {
         for (int i = 0; i < areas.Count; i++) {
             PdfRedactionArea area = areas[i];
-            if (x < area.X + area.Width && x + width > area.X &&
-                y < area.Y + area.Height && y + height > area.Y) {
-                return true;
-            }
+            if (area.IntersectsRectangle(x, y, width, height)) return true;
         }
         return false;
     }

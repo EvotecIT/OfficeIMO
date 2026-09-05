@@ -136,13 +136,7 @@ internal static partial class PdfRedactionApplier {
 
     private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionArea> areas) {
         return areas
-            .Select(area => new RedactionTextTarget(
-                string.Empty,
-                area.X,
-                area.Y,
-                area.Width,
-                area.Height,
-                area.TextRenderingMode))
+            .Select(area => new RedactionTextTarget(string.Empty, area, area.TextRenderingMode))
             .ToArray();
     }
 
@@ -302,10 +296,7 @@ internal static partial class PdfRedactionApplier {
                 RedactionTextObject textObject = textObjects.First(value => value.Index == span.Index);
                 var rewriteTargets = selectedTargets
                     .Select(static target => new PdfContentStreamTextRewriteTarget(
-                        target.X,
-                        target.Y,
-                        target.Width,
-                        target.Height <= 0D ? RedactionFallbackTextHeight : target.Height,
+                        target.Area,
                         target.TextRenderingMode))
                     .ToArray();
                 string replacement = PdfContentStreamTextRewriter.TryRemoveIntersectingGlyphs(
@@ -617,11 +608,7 @@ internal static partial class PdfRedactionApplier {
             return target.Text.Length == 0;
         }
 
-        return Intersects(
-            target.X,
-            target.Y,
-            target.Width,
-            target.Height <= 0D ? RedactionFallbackTextHeight : target.Height,
+        return target.Area.IntersectsRectangle(
             bounds.Value.Left,
             bounds.Value.Bottom,
             bounds.Value.Right - bounds.Value.Left,
@@ -898,24 +885,15 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct RedactionTextTarget {
-        public RedactionTextTarget(string text, double x, double y, double width, double height, int? textRenderingMode) {
+        public RedactionTextTarget(string text, PdfRedactionArea area, int? textRenderingMode) {
             Text = text;
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
+            Area = area;
             TextRenderingMode = textRenderingMode;
         }
 
         public string Text { get; }
 
-        public double X { get; }
-
-        public double Y { get; }
-
-        public double Width { get; }
-
-        public double Height { get; }
+        public PdfRedactionArea Area { get; }
 
         public int? TextRenderingMode { get; }
     }

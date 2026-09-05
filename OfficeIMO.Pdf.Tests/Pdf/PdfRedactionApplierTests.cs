@@ -1,11 +1,55 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionApplierTests {
+    [Theory]
+    [InlineData(PdfRedactionContentScope.TextOnly, true)]
+    [InlineData(PdfRedactionContentScope.TextAndUnderlay, false)]
+    public void Apply_HonorsContentScopeAndVerificationPolicy(PdfRedactionContentScope scope, bool expectsUnderlay) {
+        const string content = "q\n0.2 0.3 0.4 rg\n40 40 120 40 re f\nQ\nBT\n/F1 12 Tf\n50 60 Td\n(Secret value) Tj\nET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(content))
+        };
+        byte[] source = BuildPdf(objects, rootObjectNumber: 1);
+        var area = new PdfRedactionArea(1, 45D, 42D, 100D, 34D, "policy", scope);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+
+        byte[] output = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions());
+        string raw = PdfEncoding.Latin1GetString(output);
+
+        Assert.True(verification.IsVerified, string.Join("; ", verification.Issues.Select(static issue => issue.Message)));
+        Assert.DoesNotContain("Secret value", PdfTextExtractor.ExtractAllText(output), StringComparison.Ordinal);
+        Assert.Equal(expectsUnderlay, raw.Contains("40 40 120 40 re f", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Apply_FullLineAppearanceUsesEffectivePageWidth() {
+        byte[] source = BuildSingleTextObjectRedactionSource("(Secret) Tj");
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+        var area = new PdfRedactionArea(1, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, "full-line", appearanceMode: PdfRedactionAppearanceMode.FullLine);
+
+        byte[] output = PdfRedactionApplier.Apply(source, new[] { area });
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+        string decoded = string.Join("\n", objects.Values
+            .Select(static value => value.Value)
+            .OfType<PdfStream>()
+            .Select(stream => PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects))));
+
+        Assert.Matches(@"(?m)(?:^|\s)0(?:\.0+)?\s+-?\d+(?:\.\d+)?\s+612(?:\.0+)?\s+\d", decoded);
+        Assert.DoesNotContain("Secret", PdfTextExtractor.ExtractAllText(output), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Apply_RemovesAreaIntersectingTextEvenWhenExtractionProducesNoMatch() {
         const string whitespaceTextObject = "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET";
@@ -46,6 +90,33 @@ public class PdfRedactionApplierTests {
 
         Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
         Assert.DoesNotContain("unlocatable-outside-target", rewritten, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ExactRegionFailsClosedForTextObjectsWithoutKnownGeometry() {
+        const string content =
+            "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET\n" +
+            "BT\n% unlocatable-outside-exact-target\nET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(content))
+        };
+        byte[] source = BuildPdf(objects, rootObjectNumber: 1);
+        PdfRedactionArea area = Assert.Single(PdfRedactionRegion.Polygon(1, new[] {
+            new PdfRedactionPoint(45, 40),
+            new PdfRedactionPoint(125, 40),
+            new PdfRedactionPoint(125, 75),
+            new PdfRedactionPoint(45, 75)
+        }, "exact-unmatched-text").Areas);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string rewritten = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("unlocatable-outside-exact-target", rewritten, StringComparison.Ordinal);
     }
 
     [Fact]
