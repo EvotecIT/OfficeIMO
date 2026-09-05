@@ -67,6 +67,8 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     internal async Task InspectAsync(CancellationToken token = default) {
         foreach (var item in Pending.ToArray()) {
             if (_disposed) return;
+            // A local edit snapshot remains usable when the original cannot be opened.
+            item.HasRecovery = _recovery.Find(item.SourcePath, item.Document.Fingerprint) is not null;
             try {
                 item.SourceUnchanged = false;
                 item.SourceExists = File.Exists(item.SourcePath);
@@ -75,7 +77,6 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
                     string fingerprint = Convert.ToHexString(await SHA256.HashDataAsync(stream, token));
                     item.SourceUnchanged = string.Equals(fingerprint, item.Document.Fingerprint, StringComparison.OrdinalIgnoreCase);
                 }
-                item.HasRecovery = _recovery.Find(item.SourcePath, item.Document.Fingerprint) is not null;
                 item.Status = Text(item.SourceUnchanged ? "Ready" : item.SourceExists ? "Changed" : "Missing");
             } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                 item.SourceUnchanged = false;

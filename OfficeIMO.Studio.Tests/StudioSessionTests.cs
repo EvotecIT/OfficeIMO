@@ -92,6 +92,11 @@ public sealed class StudioSessionTests {
                 string destination = source;
                 using var restored = Host(services);
                 using var choices = new StudioSessionController(restored, services, _ => Task.FromResult<string?>(destination));
+                using (var locked = new FileStream(source, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
+                    await choices.InspectAsync();
+                    Assert.True(Assert.Single(choices.Pending).HasRecovery);
+                    Assert.False(Assert.Single(choices.Pending).SourceUnchanged);
+                }
                 await choices.RestoreCommand.ExecuteAsync(null);
                 var pending = Assert.Single(choices.Pending);
                 Assert.Empty(restored.Tabs);
