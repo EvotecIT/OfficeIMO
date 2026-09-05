@@ -134,6 +134,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out OfficeDrawing? drawing) {
         var readerOptions = new OfficeSvgDrawingReaderOptions();
         readerOptions.Fonts.AddRange(_fonts);
+        if (_options.SvgForeignObjectDepth < _options.MaxSvgForeignObjectDepth) {
+            readerOptions.ForeignObjectRenderer = RenderSvgForeignObject;
+        }
         if (OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
                 if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
@@ -165,6 +168,57 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "image/svg+xml",
             OfficeConversionLossKind.Omission);
         return false;
+    }
+
+    private OfficeDrawing? RenderSvgForeignObject(OfficeSvgForeignObjectContext context) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        if (_options.SvgForeignObjectDepth >= _options.MaxSvgForeignObjectDepth) return null;
+
+        string width = context.Width.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
+        string height = context.Height.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
+        string source = "<!doctype html><html><head><meta charset='utf-8'><style>"
+            + "html,body{margin:0;padding:0;width:" + width + "px;height:" + height + "px;overflow:hidden;background:transparent}"
+            + "</style></head><body>" + context.Html + "</body></html>";
+        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxHtmlNodes = Math.Min(limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxSvgForeignObjectHtmlNodes);
+        limits.MaxHtmlDepth = Math.Min(limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxLayoutDepth);
+        var conversionOptions = new HtmlConversionDocumentOptions {
+            BaseUri = _baseUri,
+            UrlPolicy = _options.UrlPolicy.Clone(),
+            ResourceUrlPolicy = _options.GetResourceUrlPolicy().Clone(),
+            Limits = limits,
+            IncludeNormalizedHtml = false,
+            UseBodyContentsOnly = true
+        };
+        HtmlConversionDocument nestedDocument = HtmlConversionDocument.Parse(source, conversionOptions);
+        HtmlRenderOptions nestedOptions = _options.Clone();
+        nestedOptions.Mode = HtmlRenderMode.Continuous;
+        nestedOptions.ViewportWidth = context.Width;
+        nestedOptions.ViewportHeight = context.Height;
+        nestedOptions.Margins = HtmlRenderMargins.All(0D);
+        nestedOptions.HonorCssPageRules = false;
+        nestedOptions.BackgroundColor = OfficeColor.Transparent;
+        nestedOptions.FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
+        nestedOptions.MaxHtmlNodes = Math.Min(nestedOptions.MaxHtmlNodes, _options.MaxSvgForeignObjectHtmlNodes);
+        nestedOptions.SvgForeignObjectDepth = _options.SvgForeignObjectDepth + 1;
+        nestedOptions.ResourceResolver = null;
+        nestedOptions.SynchronousResourceResolver = null;
+        nestedOptions.AdditionalStylesheets.Clear();
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(nestedDocument, nestedOptions, _cancellationToken);
+        _diagnostics.AddRange(rendered.Diagnostics);
+        HtmlRenderPage page = rendered.Pages[0];
+        OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
+        if (Math.Abs(nested.Width - context.Width) <= 0.0001D
+            && Math.Abs(nested.Height - context.Height) <= 0.0001D) return nested;
+
+        var clipped = new OfficeDrawing(context.Width, context.Height);
+        clipped.AddClippedDrawing(
+            nested,
+            0D,
+            0D,
+            OfficeClipPath.Rectangle(context.Width, context.Height));
+        return clipped;
     }
 
     private bool TryRasterizeSvgFallback(

@@ -256,6 +256,86 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_SvgForeignObjectUsesBoundedHtmlLayoutAndStaysSearchable() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 12'>"
+            + "<foreignObject x='2' y='2' width='14' height='8'>"
+            + "<div xmlns='http://www.w3.org/1999/xhtml' style='box-sizing:border-box;width:14px;height:8px;background:lime;color:navy;font:6px/8px Arial'>FX</div>"
+            + "</foreignObject></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='foreign-html' src='data:image/svg+xml;base64," + data
+            + "' style='display:block;width:100px;height:60px'></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Empty(visual.Drawing.Images);
+        OfficeColor foreignBackground = raster.GetPixel(15, 9);
+        Assert.True(foreignBackground.G > 100 && foreignBackground.G > foreignBackground.R && foreignBackground.G > foreignBackground.B, foreignBackground.ToString());
+        Assert.Contains(">FX</text>", exportedSvg, StringComparison.Ordinal);
+        Assert.Equal("FX", extracted);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.Equal(4, options.Clone().MaxSvgForeignObjectDepth);
+        Assert.Equal(1000, options.Clone().MaxSvgForeignObjectHtmlNodes);
+    }
+
+    [Fact]
+    public void HtmlImages_SvgForeignObjectDepthAndNodeLimitsAreValidated() {
+        var options = new HtmlRenderOptions { MaxSvgForeignObjectDepth = 0 };
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<p>x</p>", options));
+
+        options.MaxSvgForeignObjectDepth = 1;
+        options.MaxSvgForeignObjectHtmlNodes = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<p>x</p>", options));
+    }
+
+    [Fact]
+    public void HtmlImages_SvgForeignObjectRecursionAndDomWorkStayBounded() {
+        const string deepestSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 6'>"
+            + "<foreignObject width='8' height='6'><div xmlns='http://www.w3.org/1999/xhtml'>Deep</div></foreignObject></svg>";
+        string deepestData = Convert.ToBase64String(Encoding.UTF8.GetBytes(deepestSvg));
+        string outerSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'>"
+            + "<foreignObject width='10' height='8'><img xmlns='http://www.w3.org/1999/xhtml' src='data:image/svg+xml;base64,"
+            + deepestData + "' style='width:8px;height:6px'/></foreignObject></svg>";
+        string recursiveHtml = "<img src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(outerSvg)) + "'>";
+        var recursiveOptions = new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxSvgForeignObjectDepth = 1
+        };
+
+        HtmlRenderDocument recursive = HtmlRenderTestDriver.Render(recursiveHtml, recursiveOptions);
+        Assert.Contains(recursive.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+
+        string manyNodes = string.Concat(Enumerable.Repeat("<span>x</span>", 20));
+        string nodeSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<foreignObject width='20' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>"
+            + manyNodes + "</div></foreignObject></svg>";
+        string nodeHtml = "<img src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(nodeSvg)) + "'>";
+        var nodeOptions = new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            ViewportHeight = 10D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxSvgForeignObjectHtmlNodes = 12
+        };
+
+        HtmlRenderDocument boundedNodes = HtmlRenderTestDriver.Render(nodeHtml, nodeOptions);
+        Assert.Contains(boundedNodes.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
     public void HtmlImages_UsesDiagnosedCallerCodecFallbackForUnsupportedSvgFilters() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));

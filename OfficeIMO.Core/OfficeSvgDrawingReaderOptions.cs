@@ -10,6 +10,12 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// </summary>
     public OfficeFontFaceCollection Fonts { get; } = new OfficeFontFaceCollection();
 
+    /// <summary>
+    /// Optional caller-owned renderer for bounded inline XHTML inside SVG <c>foreignObject</c> elements.
+    /// The returned drawing must use the exact viewport dimensions supplied by the context.
+    /// </summary>
+    public OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; set; }
+
     /// <summary>Default maximum number of descendant and expanded reference elements.</summary>
     public const int DefaultMaximumElements = 10000;
 

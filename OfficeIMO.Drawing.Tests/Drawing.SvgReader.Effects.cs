@@ -221,6 +221,61 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_UsesBoundedForeignObjectRendererWithClipAndTransform() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'>"
+            + "<foreignObject x='2' y='1' width='4' height='3' transform='translate(1 1)'>"
+            + "<div xmlns='http://www.w3.org/1999/xhtml' style='color:red'>Foreign</div>"
+            + "</foreignObject></svg>";
+        OfficeSvgForeignObjectContext? request = null;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                request = context;
+                var nested = new OfficeDrawing(context.Width, context.Height);
+                var shape = OfficeShape.Rectangle(context.Width, context.Height);
+                shape.FillColor = OfficeColor.Red;
+                nested.AddShape(shape, 0D, 0D);
+                return nested;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            options,
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.NotNull(request);
+        Assert.Equal(4D, request!.Width);
+        Assert.Equal(3D, request.Height);
+        Assert.Contains("Foreign", request.Html, StringComparison.Ordinal);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(2, 1));
+        Assert.True(raster.GetPixel(4, 3).R > 240);
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(7, 5));
+    }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_DiagnosesForeignObjectRendererViewportMismatch() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'>"
+            + "<foreignObject width='4' height='3'><div xmlns='http://www.w3.org/1999/xhtml'>Mismatch</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = _ => new OfficeDrawing(3D, 3D)
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            options,
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Empty(drawing!.Elements);
+        Assert.Equal(1, unsupported);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_AppliesMasksToTextAndUseElements() {
         const string prefix = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 30'><defs>"
             + "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='20' height='30'><rect width='20' height='30' fill='white'/></mask>"

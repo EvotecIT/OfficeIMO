@@ -75,7 +75,7 @@ public static partial class OfficeSvgDrawingReader {
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
             AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
@@ -821,6 +821,20 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
         if (!style.Visible) return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
+        if (name == "foreignobject") {
+            TryAddForeignObject(
+                element,
+                drawing,
+                style,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                ref visited,
+                ref unsupported);
+            return;
+        }
         if (name is "g" or "svg" or "a" or "switch") {
             bool hasEffects = TryResolveSvgEffects(
                 element,
