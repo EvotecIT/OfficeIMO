@@ -224,6 +224,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_SvgDropShadowsRemainManagedVectorEffectsAcrossOutputs() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'><defs>"
+            + "<filter id='shadow'><feDropShadow dx='2' dy='1' stdDeviation='1' flood-color='red' flood-opacity='.8'/></filter>"
+            + "</defs><rect x='2' y='2' width='4' height='4' fill='blue' filter='url(#shadow)'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='filtered-vector' src='data:image/svg+xml;base64," + data
+            + "' style='display:block;width:120px;height:100px'></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html)
+            .ToPdfDocumentResult(new HtmlPdfSaveOptions(options));
+        byte[] pdf = pdfResult.ToBytes();
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Empty(visual.Drawing.Images);
+        Assert.Contains("fill=\"#FF0000\"", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", exportedSvg, StringComparison.Ordinal);
+        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
+        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(pdfResult.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");
+    }
+
+    [Fact]
     public void HtmlImages_UsesDiagnosedCallerCodecFallbackForUnsupportedSvgFilters() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));

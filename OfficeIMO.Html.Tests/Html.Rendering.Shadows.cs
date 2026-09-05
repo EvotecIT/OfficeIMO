@@ -182,4 +182,81 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(box-shadow:0 1px black, 0 2px blue)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(box-shadow:0 1px -2px black)"));
     }
+
+    [Fact]
+    public void HtmlTextShadows_RenderInheritedLayersAsArtifactsAcrossSvgAndPdf() {
+        const string html = "<p id='shadow' style='margin:4px;font:12px/16px Arial;text-shadow:2px 1px 0 rgba(255,0,0,.5),-1px 0 3px blue'><span>ShadowText</span></p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 28D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.White
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderSemanticGroup[] artifacts = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>()
+            .Where(group => group.Role == HtmlRenderSemanticGroupRole.Artifact
+                && group.Source?.Contains(":text-shadow", StringComparison.Ordinal) == true)
+            .ToArray();
+        HtmlRenderSemanticGroup red = Assert.Single(artifacts, group => group.Source == "span:text-shadow[0]");
+        HtmlRenderSemanticGroup blue = Assert.Single(artifacts, group => group.Source == "span:text-shadow[1]");
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        var pdfOptions = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 28D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.White
+        };
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(2, artifacts.Length);
+        HtmlRenderEffectGroup redSample = Assert.IsType<HtmlRenderEffectGroup>(Assert.Single(red.Visuals));
+        Assert.Equal(9, blue.Visuals.Count);
+        Assert.Equal(128D / 255D, redSample.Opacity, 3);
+        Assert.All(blue.Visuals, visual => Assert.IsType<HtmlRenderEffectGroup>(visual));
+        Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", svg, StringComparison.Ordinal);
+        Assert.Equal("ShadowText", extracted);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TextShadowValueUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.TextShadowLayerLimit);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(text-shadow:1px 2px 3px rgba(0,0,0,.4))"));
+    }
+
+    [Fact]
+    public void HtmlTextShadows_AreBoundedAndDiagnoseInvalidSyntax() {
+        const string limitedHtml = "<p id='limited' style='text-shadow:0 1px red,0 2px green,0 3px blue'>Limited</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxTextShadowLayers = 2
+        };
+
+        HtmlRenderDocument limited = HtmlRenderTestDriver.Render(limitedHtml, options);
+        HtmlDiagnostic limit = Assert.Single(limited.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TextShadowLayerLimit);
+        HtmlRenderDocument invalid = HtmlRenderTestDriver.Render(
+            "<p id='invalid' style='text-shadow:1px 2px -3px red'>Invalid</p>",
+            options);
+
+        Assert.Equal(2, EnumerateRenderVisuals(limited.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>()
+            .Count(group => group.Role == HtmlRenderSemanticGroupRole.Artifact
+                && group.Source?.Contains(":text-shadow", StringComparison.Ordinal) == true));
+        Assert.Contains("layers=3;limit=2", limit.Detail, StringComparison.Ordinal);
+        Assert.Single(invalid.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TextShadowValueUnsupported);
+        Assert.Equal(2, options.Clone().MaxTextShadowLayers);
+        Assert.Contains(HtmlRenderDiagnosticCodes.TextShadowLayerLimit, HtmlRenderDiagnosticCodes.All);
+        Assert.Contains(HtmlRenderDiagnosticCodes.TextShadowValueUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TextShadowLayerLimit, out _));
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TextShadowValueUnsupported, out _));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(text-shadow:1px 2px -3px red)"));
+
+        options.MaxTextShadowLayers = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render(limitedHtml, options));
+    }
 }

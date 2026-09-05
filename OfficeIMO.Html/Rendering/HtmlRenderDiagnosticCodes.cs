@@ -148,6 +148,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";
     /// <summary>CSS box-shadow layers beyond the configured per-element limit were omitted.</summary>
     public const string BoxShadowLayerLimit = "HtmlRenderBoxShadowLayerLimit";
+    /// <summary>A CSS text shadow contained invalid or unsupported syntax.</summary>
+    public const string TextShadowValueUnsupported = "HtmlRenderTextShadowValueUnsupported";
+    /// <summary>CSS text-shadow layers beyond the configured per-element limit were omitted.</summary>
+    public const string TextShadowLayerLimit = "HtmlRenderTextShadowLayerLimit";
     /// <summary>A CSS border paint declaration used invalid or unsupported syntax.</summary>
     public const string BorderPaintValueUnsupported = "HtmlRenderBorderPaintValueUnsupported";
     /// <summary>A CSS outline paint declaration could not be represented by the current outline model.</summary>
@@ -279,6 +283,8 @@ public static class HtmlRenderDiagnosticCodes {
         BorderRadiusValueUnsupported,
         BoxShadowLayerLimit,
         BoxShadowValueUnsupported,
+        TextShadowLayerLimit,
+        TextShadowValueUnsupported,
         BorderPaintValueUnsupported,
         OutlinePaintValueUnsupported,
         PositionInsetUnsupported,

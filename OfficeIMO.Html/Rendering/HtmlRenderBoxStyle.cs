@@ -186,6 +186,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal int BoxShadowLayerCount;
     internal IReadOnlyList<HtmlCssBoxShadow> BoxShadows = Array.Empty<HtmlCssBoxShadow>();
     internal string UnsupportedBoxShadow = string.Empty;
+    internal int TextShadowLayerCount;
+    internal IReadOnlyList<HtmlCssTextShadow> TextShadows = Array.Empty<HtmlCssTextShadow>();
+    internal string UnsupportedTextShadow = string.Empty;
     internal string BoxDecorationBreak = "slice";
     internal double OutlineWidth;
     internal double OutlineOffset;

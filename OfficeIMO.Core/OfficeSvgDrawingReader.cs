@@ -841,12 +841,16 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
-            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            if (hasEffects) {
+                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
+                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            }
             return;
         }
         if (name is "use" or "text") {
@@ -869,7 +873,8 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             if (name == "use") {
                 AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
@@ -894,7 +899,10 @@ public static partial class OfficeSvgDrawingReader {
                     ref pathCommandLimitExceeded,
                     ref unsupported);
             }
-            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            if (hasEffects) {
+                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
+                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            }
             return;
         }
 
@@ -980,12 +988,14 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
             if (hasEffects || hasPattern || hasMarkers) {
                 var target = new OfficeDrawing(drawing.Width, drawing.Height);
                 if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShape(shape.Shape, shape.X, shape.Y);
                 if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
+                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else {
                 drawing.AddShape(shape.Shape, shape.X, shape.Y);
@@ -1502,9 +1512,11 @@ public static partial class OfficeSvgDrawingReader {
                 if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
                 break;
             case "transform":
-            case "filter":
             case "clip-path":
                 unsupported++;
+                break;
+            case "filter":
+                // Resolved at the element-group boundary after its complete source graphic exists.
                 break;
             case "marker-start":
                 style.MarkerStart = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;

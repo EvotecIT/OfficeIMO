@@ -570,6 +570,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source)
                         : textVisuals[0];
+                    AddTextShadowVisuals(
+                        visuals,
+                        ownedVisuals,
+                        segment.Run,
+                        formattingContainer,
+                        textVisuals);
                     AddInlineOwnedVisual(
                         visuals,
                         ownedVisuals,

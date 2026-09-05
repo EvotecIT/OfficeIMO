@@ -231,6 +231,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-shadow", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxShadowParser.IsSupportedSyntax(normalized);
         }
+        if (string.Equals(propertyName, "text-shadow", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTextShadowParser.IsSupportedSyntax(normalized);
+        }
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }

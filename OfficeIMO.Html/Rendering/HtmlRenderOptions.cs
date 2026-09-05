@@ -147,6 +147,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum CSS box-shadow layers accepted on one element.</summary>
     public int MaxBoxShadowLayers { get; set; } = 32;
 
+    /// <summary>Maximum CSS text-shadow layers accepted on one element.</summary>
+    public int MaxTextShadowLayers { get; set; } = 16;
+
     /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
     public int MaxGradientStops { get; set; } = 64;
 
@@ -224,6 +227,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;
+        target.MaxTextShadowLayers = MaxTextShadowLayers;
         target.MaxGradientStops = MaxGradientStops;
         target.ConicGradientQualitySegments = ConicGradientQualitySegments;
         target.MaxGridTracks = MaxGridTracks;
@@ -298,6 +302,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxBoxShadowLayers <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxBoxShadowLayers), "Maximum box-shadow layer count must be positive.");
+        }
+
+        if (MaxTextShadowLayers <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTextShadowLayers), "Maximum text-shadow layer count must be positive.");
         }
 
         if (MaxGradientStops < 2) {

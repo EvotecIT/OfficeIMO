@@ -152,6 +152,75 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_RendersBoundedDropShadowFiltersAsVectorEffectGroups() {
+        const string svg = """
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 10">
+              <defs>
+                <filter id="shadow">
+                  <feDropShadow dx="2" dy="1" stdDeviation="1" flood-color="red" flood-opacity="0.6" />
+                </filter>
+              </defs>
+              <rect x="2" y="2" width="4" height="4" fill="blue" filter="url(#shadow)" />
+            </svg>
+            """;
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup outer = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawing filtered = outer.Drawing;
+        Assert.Equal(2, filtered.Elements.OfType<OfficeDrawingEffectGroup>().Count());
+        OfficeDrawing blurSamples = filtered.Elements.OfType<OfficeDrawingEffectGroup>().First().Drawing;
+        Assert.Equal(9, blurSamples.Elements.OfType<OfficeDrawingEffectGroup>().Count());
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
+        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        string roundTrip = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("fill=\"#FF0000\"", roundTrip, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", roundTrip, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_ComposesGaussianBlurAndOffsetWithoutRasterImages() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'><defs>"
+            + "<filter id='moved'><feGaussianBlur stdDeviation='0'/><feOffset dx='2' dy='1'/></filter></defs>"
+            + "<rect x='1' y='1' width='3' height='3' fill='lime' filter='url(#moved)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Empty(drawing!.Images);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(1, 1).A);
+        Assert.True(raster.GetPixel(3, 2).G > 200, raster.GetPixel(3, 2).ToString());
+    }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_DiagnosesFilterGraphsOutsideTheStaticPrimitiveSubset() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs>"
+            + "<filter id='graph'><feGaussianBlur stdDeviation='1' result='blur'/><feBlend in='SourceGraphic' in2='blur'/></filter></defs>"
+            + "<rect width='10' height='10' fill='red' filter='url(#graph)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Single(drawing!.Shapes);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_AppliesMasksToTextAndUseElements() {
         const string prefix = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 30'><defs>"
             + "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='20' height='30'><rect width='20' height='30' fill='white'/></mask>"

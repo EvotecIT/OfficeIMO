@@ -871,6 +871,13 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.BoxShadowLayerCount = shadows.Count;
             style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
+        string textShadow = NormalizeCssValue(computed.GetValue("text-shadow"), "none");
+        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssTextShadow> textShadows)) {
+            style.UnsupportedTextShadow = textShadow;
+        } else {
+            style.TextShadowLayerCount = textShadows.Count;
+            style.TextShadows = textShadows.Take(_options.MaxTextShadowLayers).ToArray();
+        }
     }
 
     private static void ApplyOpacity(string value, HtmlRenderBoxStyle style) {
