@@ -407,6 +407,57 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderMapsUserSpacePatternFillToBoundedVectorTiling() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><pattern id='checks' patternUnits='userSpaceOnUse' width='8' height='8'>"
+            + "<rect width='4' height='4' fill='red'/><rect x='4' y='4' width='4' height='4' fill='blue'/>"
+            + "</pattern></defs><rect x='4' y='2' width='28' height='16' rx='2' fill='url(#checks)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup patternHost = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup transformedPattern = Assert.Single(patternHost.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingGroup clippedPattern = Assert.Single(transformedPattern.Drawing.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingTilingPattern tiling = Assert.Single(clippedPattern.Drawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(8D, tiling.HorizontalStep);
+        Assert.Equal(8D, tiling.VerticalStep);
+        Assert.Equal(2, tiling.Tile.Shapes.Count);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(1, 1).A);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 3));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(13, 6));
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<clipPath", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderRendersReusableStartMidAndEndMarkerScenes() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='arrow' markerUnits='userSpaceOnUse' markerWidth='6' markerHeight='6' "
+            + "viewBox='0 0 10 10' refX='5' refY='5' orient='auto'>"
+            + "<path d='M0 0 L10 5 L0 10 Z' fill='context-stroke'/></marker></defs>"
+            + "<polyline points='5,15 20,5 35,15' fill='none' stroke='green' stroke-width='1' "
+            + "marker-start='url(#arrow)' marker-mid='url(#arrow)' marker-end='url(#arrow)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup[] markers = markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(3, markers.Length);
+        Assert.All(markers, marker => Assert.Single(marker.Drawing.Shapes));
+        Assert.All(markers, marker => Assert.Equal(OfficeColor.Green, marker.Drawing.Shapes[0].Shape.FillColor));
+        Assert.NotEqual(markers[0].Transform, markers[1].Transform);
+        Assert.NotEqual(markers[1].Transform, markers[2].Transform);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(20, 5).A > 0);
+        Assert.Contains("#008000", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SvgReaderResolvesPercentageTextPositionAndHangingBaseline() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100' fill='navy'>"
             + "<text x='50%' y='25%' font-size='10' text-anchor='middle' dominant-baseline='hanging'>Label</text></svg>";

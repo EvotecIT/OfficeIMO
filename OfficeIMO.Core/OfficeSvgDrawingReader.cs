@@ -814,7 +814,7 @@ public static partial class OfficeSvgDrawingReader {
         visited++;
         if (visited > maximumElements) return;
         string name = element.Name.LocalName.ToLowerInvariant();
-        if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return;
+        if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
         if (name == "defs") return;
 
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
@@ -901,6 +901,49 @@ public static partial class OfficeSvgDrawingReader {
         ApplyTransform(shape, transform);
 
         try {
+            if (style.StrokePattern != null) {
+                unsupported++;
+                shape.Shape.StrokeColor = null;
+                shape.Shape.StrokeGradient = null;
+                shape.Shape.StrokeRadialGradient = null;
+            }
+            bool hasPattern = TryAddSvgPatternFill(
+                style.FillPattern,
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? patternLayer);
+            bool hasMarkers = TryAddSvgMarkers(
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? markerLayer);
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
@@ -921,9 +964,11 @@ public static partial class OfficeSvgDrawingReader {
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
-            if (hasEffects) {
+            if (hasEffects || hasPattern || hasMarkers) {
                 var target = new OfficeDrawing(drawing.Width, drawing.Height);
+                if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShape(shape.Shape, shape.X, shape.Y);
+                if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else {
                 drawing.AddShape(shape.Shape, shape.X, shape.Y);
@@ -1302,6 +1347,14 @@ public static partial class OfficeSvgDrawingReader {
                 else style.Color = currentColor;
                 break;
             case "fill":
+                if (normalized.Equals("context-stroke", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetFill(new SvgResolvedPaint(style.Stroke ?? style.Color));
+                    break;
+                }
+                if (normalized.Equals("context-fill", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetFill(style.Fill.HasValue ? new SvgResolvedPaint(style.Fill.Value) : default);
+                    break;
+                }
                 if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint fill)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetFill(default);
@@ -1309,6 +1362,11 @@ public static partial class OfficeSvgDrawingReader {
                 else style.SetFill(fill);
                 break;
             case "stroke":
+                if (normalized.Equals("context-fill", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetStroke(style.Fill.HasValue ? new SvgResolvedPaint(style.Fill.Value) : default);
+                    break;
+                }
+                if (normalized.Equals("context-stroke", StringComparison.OrdinalIgnoreCase)) break;
                 if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint stroke)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetStroke(default);
@@ -1429,10 +1487,16 @@ public static partial class OfficeSvgDrawingReader {
             case "transform":
             case "filter":
             case "clip-path":
-            case "marker-start":
-            case "marker-mid":
-            case "marker-end":
                 unsupported++;
+                break;
+            case "marker-start":
+                style.MarkerStart = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
+                break;
+            case "marker-mid":
+                style.MarkerMid = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
+                break;
+            case "marker-end":
+                style.MarkerEnd = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
                 break;
         }
     }
@@ -1588,10 +1652,12 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeLinearGradient? FillGradient;
         internal OfficeRadialGradient? FillRadialGradient;
         internal SvgGradientDefinition? FillDeferredGradient;
+        internal XElement? FillPattern;
         internal OfficeColor? Stroke;
         internal OfficeLinearGradient? StrokeGradient;
         internal OfficeRadialGradient? StrokeRadialGradient;
         internal SvgGradientDefinition? StrokeDeferredGradient;
+        internal XElement? StrokePattern;
         internal double StrokeWidth;
         internal double Opacity;
         internal double FillOpacity;
@@ -1609,6 +1675,9 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgBaselineShift BaselineShift;
         internal SvgWritingMode WritingMode;
         internal SvgTextOrientation TextOrientation;
+        internal string? MarkerStart;
+        internal string? MarkerMid;
+        internal string? MarkerEnd;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -1616,6 +1685,7 @@ public static partial class OfficeSvgDrawingReader {
             FillGradient = paint.LinearGradient;
             FillRadialGradient = paint.RadialGradient;
             FillDeferredGradient = paint.DeferredGradient;
+            FillPattern = paint.Pattern;
         }
 
         internal void SetStroke(SvgResolvedPaint paint) {
@@ -1623,6 +1693,7 @@ public static partial class OfficeSvgDrawingReader {
             StrokeGradient = paint.LinearGradient;
             StrokeRadialGradient = paint.RadialGradient;
             StrokeDeferredGradient = paint.DeferredGradient;
+            StrokePattern = paint.Pattern;
         }
 
         internal static SvgPaintContext Default => new SvgPaintContext {
