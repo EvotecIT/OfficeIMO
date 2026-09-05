@@ -66,4 +66,31 @@ public class PdfComposeIncrementalAdapterTests {
         Assert.Contains("/ToUnicode", source, StringComparison.Ordinal);
         Assert.Contains("LateSettingsMarker", PdfReadDocument.Open(document.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Page_PrintProductionPageBoxesRemainScopedToThatPage() {
+        PdfDocument document = PdfDocument.Create(_ => { });
+        document.Compose(compose => compose
+            .Page(page => page
+                .Size(200, 120)
+                .Margin(0)
+                .PrintProductionPageBoxes(new PdfPrintProductionPageBoxes(
+                    PageMargins.Uniform(12),
+                    PageMargins.Uniform(4)))
+                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Production")))))
+            .Page(page => page
+                .Size(200, 120)
+                .Margin(0)
+                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Screen"))))));
+
+        PdfDocumentInfo info = PdfInspector.Inspect(document.ToBytes());
+
+        Assert.Equal(2, info.PageCount);
+        Assert.Equal(1, info.TrimBoxPageCount);
+        Assert.Equal(1, info.BleedBoxPageCount);
+        Assert.Equal(12D, info.Pages[0].TrimBox!.Left);
+        Assert.Equal(4D, info.Pages[0].BleedBox!.Left);
+        Assert.Null(info.Pages[1].TrimBox);
+        Assert.Null(info.Pages[1].BleedBox);
+    }
 }

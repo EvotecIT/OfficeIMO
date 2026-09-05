@@ -166,6 +166,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageMarginPositionUnsupported = "HtmlRenderPageMarginPositionUnsupported";
     /// <summary>An <c>@page</c> size declaration was unsupported.</summary>
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
+    /// <summary>An <c>@page</c> bleed declaration was unsupported.</summary>
+    public const string PageBleedUnsupported = "HtmlRenderPageBleedUnsupported";
+    /// <summary>An <c>@page</c> marks declaration was unsupported.</summary>
+    public const string PageMarksUnsupported = "HtmlRenderPageMarksUnsupported";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
     /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
@@ -287,6 +291,8 @@ public static class HtmlRenderDiagnosticCodes {
         PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
+        PageBleedUnsupported,
+        PageMarksUnsupported,
         MathMlContentUnsupported,
         SvgContentUnsupported,
         SvgRasterFallback,

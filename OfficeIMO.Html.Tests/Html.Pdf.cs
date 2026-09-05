@@ -18,6 +18,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void HtmlToPdf_MapsCssBleedAndPrinterMarksToProductionPageBoxes() {
+        const string html = """
+            <style>
+              @page { size:100px 80px; margin:10px; bleed:4px; marks:crop cross; }
+              body, p { margin:0; font-size:10px; line-height:12px; }
+            </style>
+            <p>Print production</p>
+            """;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+
+        Assert.Equal(1, info.TrimBoxPageCount);
+        Assert.Equal(1, info.BleedBoxPageCount);
+        Assert.Equal(111D, page.Geometry.MediaBox!.Width, 3);
+        Assert.Equal(96D, page.Geometry.MediaBox.Height, 3);
+        Assert.Equal(18D, page.TrimBox!.Left, 3);
+        Assert.Equal(18D, page.TrimBox.Bottom, 3);
+        Assert.Equal(75D, page.TrimBox.Width, 3);
+        Assert.Equal(60D, page.TrimBox.Height, 3);
+        Assert.Equal(15D, page.BleedBox!.Left, 3);
+        Assert.Equal(15D, page.BleedBox.Bottom, 3);
+        Assert.Equal(81D, page.BleedBox.Width, 3);
+        Assert.Equal(66D, page.BleedBox.Height, 3);
+    }
+
+    [Fact]
     public void HtmlToPdf_FootnotesUseNoteStructureAndRemainSearchableAfterBodyContent() {
         const string html = """
             <style>

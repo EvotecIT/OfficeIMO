@@ -161,13 +161,21 @@ internal static partial class HtmlPdfRenderedConverter {
             cancellationToken.ThrowIfCancellationRequested();
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
             double pageHeight = renderedPage.Height * PointsPerCssPixel;
-            pdf.Page(page => page
-                .Size(pageWidth, pageHeight)
-                .Margin(0D)
-                .Canvas(canvas => {
+            pdf.Page(page => {
+                page.Size(pageWidth, pageHeight)
+                    .Margin(0D);
+                if (renderedPage.PrintProduction != null) {
+                    double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel;
+                    double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel;
+                    page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
+                        PdfCore.PageMargins.Uniform(trimInset),
+                        PdfCore.PageMargins.Uniform(bleedInset)));
+                }
+                page.Canvas(canvas => {
                     AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
-                }));
+                });
+            });
         }
 
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss

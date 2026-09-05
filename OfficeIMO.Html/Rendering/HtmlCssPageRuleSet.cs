@@ -73,7 +73,70 @@ internal sealed class HtmlCssPageRuleSet {
         ApplySide(right, width, height, options.DefaultFontSize, ref resolvedRight);
         ApplySide(bottom, width, height, options.DefaultFontSize, ref resolvedBottom);
         ApplySide(left, width, height, options.DefaultFontSize, ref resolvedLeft);
-        return new HtmlCssPageGeometry(width, height, HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom));
+        HtmlRenderPrintProductionSettings? printProduction = ResolvePrintProduction(matching, width, height, options);
+        HtmlRenderMargins margins = HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom);
+        if (printProduction == null) return new HtmlCssPageGeometry(width, height, margins);
+
+        double sheetInset = printProduction.TrimInset;
+        return new HtmlCssPageGeometry(
+            width + (sheetInset * 2D),
+            height + (sheetInset * 2D),
+            HtmlRenderMargins.FromCssPageRule(
+                margins.Left + sheetInset,
+                margins.Top + sheetInset,
+                margins.Right + sheetInset,
+                margins.Bottom + sheetInset),
+            printProduction);
+    }
+
+    private static HtmlRenderPrintProductionSettings? ResolvePrintProduction(
+        IReadOnlyList<HtmlCssPageRule> rules,
+        double trimWidth,
+        double trimHeight,
+        HtmlRenderOptions options) {
+        var bleed = new HtmlCssPageCascadeValue();
+        var marks = new HtmlCssPageCascadeValue();
+        foreach (HtmlCssPageRule rule in rules) {
+            Consider(ref bleed, rule.Production.Bleed, rule);
+            Consider(ref marks, rule.Production.Marks, rule);
+        }
+
+        HtmlRenderPrintMarks resolvedMarks = ResolveMarks(ResolveLayerRevert(marks));
+        HtmlCssPageCascadeValue resolvedBleedValue = ResolveLayerRevert(bleed);
+        double resolvedBleed = 0D;
+        if (!resolvedBleedValue.HasValue
+            || string.Equals(resolvedBleedValue.Value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(resolvedBleedValue.Value, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(resolvedBleedValue.Value, "unset", StringComparison.OrdinalIgnoreCase)) {
+            if (resolvedMarks != HtmlRenderPrintMarks.None) resolvedBleed = 8D; // CSS Paged Media's 6pt auto bleed.
+        } else if (HtmlRenderCssValues.TryLength(
+                resolvedBleedValue.Value,
+                Math.Min(trimWidth, trimHeight),
+                options.DefaultFontSize,
+                options.DefaultFontSize,
+                trimWidth,
+                trimHeight,
+                out double parsedBleed)) {
+            resolvedBleed = Math.Max(0D, parsedBleed);
+        }
+
+        if (resolvedMarks == HtmlRenderPrintMarks.None && resolvedBleed <= 0D) return null;
+        double markArea = resolvedMarks == HtmlRenderPrintMarks.None ? 0D : 20D;
+        return new HtmlRenderPrintProductionSettings(resolvedBleed, markArea, resolvedMarks);
+    }
+
+    private static HtmlRenderPrintMarks ResolveMarks(HtmlCssPageCascadeValue value) {
+        if (!value.HasValue
+            || string.Equals(value.Value, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "unset", StringComparison.OrdinalIgnoreCase)) return HtmlRenderPrintMarks.None;
+
+        HtmlRenderPrintMarks marks = HtmlRenderPrintMarks.None;
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(value.Value)) {
+            if (string.Equals(token, "crop", StringComparison.OrdinalIgnoreCase)) marks |= HtmlRenderPrintMarks.Crop;
+            else if (string.Equals(token, "cross", StringComparison.OrdinalIgnoreCase)) marks |= HtmlRenderPrintMarks.Cross;
+        }
+        return marks;
     }
 
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ResolveMarginBoxes(int pageNumber, string? pageName, HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
@@ -328,11 +391,13 @@ internal sealed class HtmlCssPageRule {
         HtmlCssPageSelector selector,
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes,
         HtmlCssPageGeometryDeclaration geometry,
+        HtmlCssPageProductionDeclaration production,
         CascadeLayerOrder? layerOrder) {
         PageName = pageName;
         Selector = selector;
         MarginBoxes = marginBoxes;
         Geometry = geometry;
+        Production = production;
         LayerOrder = layerOrder;
     }
 
@@ -340,22 +405,40 @@ internal sealed class HtmlCssPageRule {
     internal HtmlCssPageSelector Selector { get; }
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> MarginBoxes { get; }
     internal HtmlCssPageGeometryDeclaration Geometry { get; }
+    internal HtmlCssPageProductionDeclaration Production { get; }
     internal CascadeLayerOrder? LayerOrder { get; }
     internal int SourceOrder { get; set; }
 }
 
 internal readonly struct HtmlCssPageGeometry {
-    internal HtmlCssPageGeometry(double width, double height, HtmlRenderMargins margins) {
+    internal HtmlCssPageGeometry(
+        double width,
+        double height,
+        HtmlRenderMargins margins,
+        HtmlRenderPrintProductionSettings? printProduction = null) {
         Width = width;
         Height = height;
         Margins = margins;
+        PrintProduction = printProduction;
     }
 
     internal double Width { get; }
     internal double Height { get; }
     internal HtmlRenderMargins Margins { get; }
+    internal HtmlRenderPrintProductionSettings? PrintProduction { get; }
     internal double ContentWidth => Math.Max(1D, Width - Margins.Left - Margins.Right);
     internal double ContentHeight => Math.Max(1D, Height - Margins.Top - Margins.Bottom);
+}
+
+internal readonly struct HtmlCssPageProductionDeclaration {
+    internal HtmlCssPageProductionDeclaration(HtmlCssPageDeclaration bleed, HtmlCssPageDeclaration marks) {
+        Bleed = bleed;
+        Marks = marks;
+    }
+
+    internal HtmlCssPageDeclaration Bleed { get; }
+    internal HtmlCssPageDeclaration Marks { get; }
+    internal bool IsEmpty => Bleed.Value.Length == 0 && Marks.Value.Length == 0;
 }
 
 internal sealed class HtmlCssPageMarginRule {

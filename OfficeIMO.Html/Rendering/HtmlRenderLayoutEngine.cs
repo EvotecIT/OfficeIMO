@@ -822,9 +822,59 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         ApplyViewportOverflow(visuals, width, height);
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage, geometry.Margins));
+        AddPrintProductionMarks(visuals, geometry);
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage, geometry.Margins, geometry.PrintProduction));
         _currentPageRunningStringAssignments.Clear();
         _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
+    }
+
+    private void AddPrintProductionMarks(List<HtmlRenderVisual> visuals, HtmlCssPageGeometry geometry) {
+        HtmlRenderPrintProductionSettings? production = geometry.PrintProduction;
+        if (production == null || production.Marks == HtmlRenderPrintMarks.None) return;
+
+        double trimInset = production.TrimInset;
+        double trimRight = geometry.Width - trimInset;
+        double trimBottom = geometry.Height - trimInset;
+        double markGap = 4D;
+        double markLength = 12D;
+        void AddLine(double x1, double y1, double x2, double y2, string suffix) {
+            double width = Math.Max(0.0001D, x2 - x1);
+            double height = Math.Max(0.0001D, y2 - y1);
+            OfficeShape line = OfficeShape.Line(0D, 0D, width, height);
+            line.FillColor = null;
+            line.StrokeColor = OfficeColor.Black;
+            line.StrokeWidth = 0.6666666667D;
+            visuals.Add(new HtmlRenderShape(line, x1, y1, _paintOrder++, source: "@page marks:" + suffix));
+        }
+
+        if ((production.Marks & HtmlRenderPrintMarks.Crop) != 0) {
+            AddLine(trimInset - markGap - markLength, trimInset, trimInset - markGap, trimInset, "crop-top-left-h");
+            AddLine(trimInset, trimInset - markGap - markLength, trimInset, trimInset - markGap, "crop-top-left-v");
+            AddLine(trimRight + markGap, trimInset, trimRight + markGap + markLength, trimInset, "crop-top-right-h");
+            AddLine(trimRight, trimInset - markGap - markLength, trimRight, trimInset - markGap, "crop-top-right-v");
+            AddLine(trimInset - markGap - markLength, trimBottom, trimInset - markGap, trimBottom, "crop-bottom-left-h");
+            AddLine(trimInset, trimBottom + markGap, trimInset, trimBottom + markGap + markLength, "crop-bottom-left-v");
+            AddLine(trimRight + markGap, trimBottom, trimRight + markGap + markLength, trimBottom, "crop-bottom-right-h");
+            AddLine(trimRight, trimBottom + markGap, trimRight, trimBottom + markGap + markLength, "crop-bottom-right-v");
+        }
+
+        if ((production.Marks & HtmlRenderPrintMarks.Cross) != 0) {
+            double centerX = geometry.Width / 2D;
+            double centerY = geometry.Height / 2D;
+            double radius = 4D;
+            double topY = production.MarkArea / 2D;
+            double bottomY = geometry.Height - topY;
+            double leftX = production.MarkArea / 2D;
+            double rightX = geometry.Width - leftX;
+            AddLine(centerX - radius, topY, centerX + radius, topY, "cross-top-h");
+            AddLine(centerX, topY - radius, centerX, topY + radius, "cross-top-v");
+            AddLine(centerX - radius, bottomY, centerX + radius, bottomY, "cross-bottom-h");
+            AddLine(centerX, bottomY - radius, centerX, bottomY + radius, "cross-bottom-v");
+            AddLine(leftX - radius, centerY, leftX + radius, centerY, "cross-left-h");
+            AddLine(leftX, centerY - radius, leftX, centerY + radius, "cross-left-v");
+            AddLine(rightX - radius, centerY, rightX + radius, centerY, "cross-right-h");
+            AddLine(rightX, centerY - radius, rightX, centerY + radius, "cross-right-v");
+        }
     }
 
     private void RecordRunningStringAssignments(HtmlRenderFlowBlock block, double start, double end, double pageOffset) {

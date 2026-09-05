@@ -1034,4 +1034,78 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
     }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesBleedAndPrinterMarksAsPerPageSheetGeometry() {
+        const string html = """
+            <style>
+              @page { size:100px 80px; margin:10px; bleed:4px; marks:crop cross; }
+              body, p { margin:0; font-size:10px; line-height:12px; }
+            </style>
+            <p>Print production</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderPrintProductionSettings production = Assert.IsType<HtmlRenderPrintProductionSettings>(page.PrintProduction);
+        Assert.Equal(148D, page.Width, 6);
+        Assert.Equal(128D, page.Height, 6);
+        Assert.Equal(34D, page.Margins.Left, 6);
+        Assert.Equal(34D, page.Margins.Top, 6);
+        Assert.Equal(4D, production.Bleed, 6);
+        Assert.Equal(20D, production.MarkArea, 6);
+        Assert.Equal(24D, production.TrimInset, 6);
+        Assert.Equal(HtmlRenderPrintMarks.Crop | HtmlRenderPrintMarks.Cross, production.Marks);
+        Assert.Equal(16, page.Visuals.OfType<HtmlRenderShape>().Count(shape =>
+            shape.Source != null && shape.Source.StartsWith("@page marks:", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_CascadesPrintProductionGeometryPerPage() {
+        const string html = """
+            <style>
+              @page { size:100px 80px; margin:10px; bleed:2px; }
+              @page:first { bleed:4px; marks:crop; }
+              body, p { margin:0; font-size:10px; line-height:12px; }
+              .next { break-before:page; }
+            </style>
+            <p>First</p><p class="next">Second</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(148D, rendered.Pages[0].Width, 6);
+        Assert.Equal(104D, rendered.Pages[1].Width, 6);
+        Assert.Equal(HtmlRenderPrintMarks.Crop, rendered.Pages[0].PrintProduction!.Marks);
+        Assert.Equal(HtmlRenderPrintMarks.None, rendered.Pages[1].PrintProduction!.Marks);
+        Assert.Equal(4D, rendered.Pages[0].PrintProduction!.Bleed, 6);
+        Assert.Equal(2D, rendered.Pages[1].PrintProduction!.Bleed, 6);
+    }
+
+    [Theory]
+    [InlineData("bleed:-1px", HtmlRenderDiagnosticCodes.PageBleedUnsupported)]
+    [InlineData("marks:crop crop", HtmlRenderDiagnosticCodes.PageMarksUnsupported)]
+    [InlineData("marks:printers", HtmlRenderDiagnosticCodes.PageMarksUnsupported)]
+    public void HtmlPagedMedia_DiagnosesUnsupportedPrintProductionDeclarations(
+        string declaration,
+        string expectedCode) {
+        string html = "<style>@page{size:100px 80px;" + declaration + "}</style><p>Body</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == expectedCode);
+        Assert.Null(Assert.Single(rendered.Pages).PrintProduction);
+    }
 }
