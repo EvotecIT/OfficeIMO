@@ -30,6 +30,14 @@ internal static class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
     }
 
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar) {
+        if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 3,
+            gpos: CreatePairPositioningGpos());
+    }
+
     internal static byte[] CreateColorFont(int scalar) {
         return CreateFontFromCmap(
             CreateFormat12Cmap(new[] { scalar }),
@@ -117,6 +125,7 @@ internal static class ManagedTextShapingTestAssets {
         int glyphCount = 2,
         byte[]? kern = null,
         byte[]? gsub = null,
+        byte[]? gpos = null,
         bool distinctSecondGlyph = false,
         byte[]? colr = null,
         byte[]? cpal = null) {
@@ -144,6 +153,7 @@ internal static class ManagedTextShapingTestAssets {
         };
         if (kern != null) tables.Add(("kern", kern));
         if (gsub != null) tables.Add(("GSUB", gsub));
+        if (gpos != null) tables.Add(("GPOS", gpos));
         if (colr != null) tables.Add(("COLR", colr));
         if (cpal != null) tables.Add(("CPAL", cpal));
 
@@ -186,6 +196,56 @@ internal static class ManagedTextShapingTestAssets {
         return table;
     }
 
+    private static byte[] CreatePairPositioningGpos() {
+        var table = new byte[86];
+        WriteUInt16(table, 0, 1);
+        WriteUInt16(table, 2, 0);
+        WriteUInt16(table, 4, 10);
+        WriteUInt16(table, 6, 30);
+        WriteUInt16(table, 8, 44);
+
+        WriteUInt16(table, 10, 1);
+        WriteTag(table, 12, "DFLT");
+        WriteUInt16(table, 16, 8);
+        WriteUInt16(table, 18, 4);
+        WriteUInt16(table, 20, 0);
+        WriteUInt16(table, 22, 0);
+        WriteUInt16(table, 24, ushort.MaxValue);
+        WriteUInt16(table, 26, 1);
+        WriteUInt16(table, 28, 0);
+
+        WriteUInt16(table, 30, 1);
+        WriteTag(table, 32, "kern");
+        WriteUInt16(table, 36, 8);
+        WriteUInt16(table, 38, 0);
+        WriteUInt16(table, 40, 1);
+        WriteUInt16(table, 42, 0);
+
+        WriteUInt16(table, 44, 1);
+        WriteUInt16(table, 46, 4);
+        WriteUInt16(table, 48, 2);
+        WriteUInt16(table, 50, 0);
+        WriteUInt16(table, 52, 1);
+        WriteUInt16(table, 54, 8);
+
+        WriteUInt16(table, 56, 1);
+        WriteUInt16(table, 58, 12);
+        WriteUInt16(table, 60, 5);
+        WriteUInt16(table, 62, 5);
+        WriteUInt16(table, 64, 1);
+        WriteUInt16(table, 66, 18);
+        WriteUInt16(table, 68, 1);
+        WriteUInt16(table, 70, 1);
+        WriteUInt16(table, 72, 1);
+        WriteUInt16(table, 74, 1);
+        WriteUInt16(table, 76, 2);
+        WriteInt16(table, 78, -10);
+        WriteInt16(table, 80, -20);
+        WriteInt16(table, 82, -30);
+        WriteInt16(table, 84, -40);
+        return table;
+    }
+
     private static byte[] CreateCpalV1() {
         var table = new byte[52];
         WriteUInt16(table, 0, 1);
@@ -213,6 +273,9 @@ internal static class ManagedTextShapingTestAssets {
         data[offset + 2] = red;
         data[offset + 3] = alpha;
     }
+
+    private static void WriteInt16(byte[] data, int offset, short value) =>
+        WriteUInt16(data, offset, unchecked((ushort)value));
 
     internal static byte[] CreateFontCollection(params int[] scalars) {
         byte[] first = CreateFont('A');

@@ -39,6 +39,10 @@ public sealed partial class OfficeTrueTypeFont {
         return Kerning((ushort)leftGlyphId, (ushort)rightGlyphId, leftScalar, rightScalar);
     }
 
+    internal OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
+        IReadOnlyList<int> glyphs,
+        IReadOnlyList<int> scalars) => _kerning.PositionRun(glyphs, scalars);
+
     bool IOfficeColorFontProgram.HasColorGlyph(int glyphId) => _colorGlyphs?.HasColorGlyph(glyphId) == true;
 
     bool IOfficeColorFontProgram.TryGetColorLayers(

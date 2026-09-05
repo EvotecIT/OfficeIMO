@@ -183,6 +183,31 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void ManagedProvider_PreservesGposPlacementAndBothAdvanceAdjustments() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V');
+        var request = new OfficeTextShapingRequest(
+            "AV",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("kern", 1) }),
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en");
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(-10, result.Glyphs[0].OffsetX);
+        Assert.Equal(-30, result.Glyphs[1].OffsetX);
+        Assert.Equal(-20, result.GetAdvanceAdjustment(0));
+        Assert.Equal(-40, result.GetAdvanceAdjustment(1));
+        Assert.All(result.Glyphs, static glyph => Assert.Null(glyph.AdvanceWidth));
+        OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
+        Assert.Equal(940D, loaded.CreateShapedTextRun(request.Text, result).Measure(fontSize: 1000D), 6);
+    }
+
+    [Fact]
     public void ManagedProvider_AppliesRequestedGsubLigatureAndPreservesExtractionText() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i');
         OfficeOpenTypeSubstitution substitution = Assert.IsType<OfficeOpenTypeSubstitution>(OfficeOpenTypeSubstitution.TryCreate(font));

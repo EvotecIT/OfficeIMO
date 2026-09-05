@@ -377,6 +377,13 @@ public readonly struct OfficeShapedGlyph {
         OffsetY = offsetY;
     }
 
+    internal static OfficeShapedGlyph CreatePositionedUsingNominalAdvance(
+        int glyphId,
+        string unicodeText,
+        int textIndex,
+        int offsetX,
+        int offsetY) => new OfficeShapedGlyph(glyphId, unicodeText, textIndex, advanceWidth: null, offsetX, offsetY);
+
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }
 

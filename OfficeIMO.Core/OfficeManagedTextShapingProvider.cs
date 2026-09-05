@@ -56,21 +56,27 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
 
         OfficeOpenTypeSubstitution? substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
         substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
-        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
-        var advanceAdjustments = new List<int>();
-        int? previousKerningScalar = null;
         bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
-        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+        var glyphIds = new int[tokens.Count];
+        var scalars = new int[tokens.Count];
+        for (int index = 0; index < tokens.Count; index++) {
+            glyphIds[index] = tokens[index].GlyphId;
+            scalars[index] = tokens[index].Scalar;
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = kerningEnabled
+            ? PositionGlyphRun(font, glyphIds, scalars)
+            : new OfficeOpenTypeGlyphPositioning[tokens.Count];
+        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
+        var advanceAdjustments = new List<int>(tokens.Count);
+        foreach ((OfficeOpenTypeSubstitution.GlyphToken token, int index) in tokens.Select((token, index) => (token, index))) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            if (kerningEnabled && previousKerningScalar.HasValue && glyphs.Count > 0) {
-                int previousIndex = glyphs.Count - 1;
-                OfficeShapedGlyph previous = glyphs[previousIndex];
-                int kerning = GetKerningAdjustment(font, previous.GlyphId, token.GlyphId, previousKerningScalar.Value, token.Scalar);
-                if (kerning != 0) advanceAdjustments[previousIndex] = checked(advanceAdjustments[previousIndex] + kerning);
-            }
-            glyphs.Add(new OfficeShapedGlyph(token.GlyphId, token.UnicodeText, token.TextIndex));
-            advanceAdjustments.Add(0);
-            previousKerningScalar = token.Scalar;
+            glyphs.Add(OfficeShapedGlyph.CreatePositionedUsingNominalAdvance(
+                token.GlyphId,
+                token.UnicodeText,
+                token.TextIndex,
+                positioning[index].XPlacement,
+                offsetY: 0));
+            advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
         return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments);
@@ -126,19 +132,13 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         return true;
     }
 
-    private static int GetKerningAdjustment(
+    private static OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IOfficeFontProgram font,
-        int leftGlyphId,
-        int rightGlyphId,
-        int leftScalar,
-        int rightScalar) {
-        if (font is OfficeTrueTypeFont trueType) {
-            return trueType.GetKerningAdjustment(leftGlyphId, rightGlyphId, leftScalar, rightScalar);
-        }
-        if (font is OfficeOpenTypeCffFont cff) {
-            return cff.GetKerningAdjustment(leftGlyphId, rightGlyphId, leftScalar, rightScalar);
-        }
-        return 0;
+        IReadOnlyList<int> glyphIds,
+        IReadOnlyList<int> scalars) {
+        if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars);
+        if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars);
+        return new OfficeOpenTypeGlyphPositioning[glyphIds.Count];
     }
 
     private static bool IsBidiControlElement(string value) =>
