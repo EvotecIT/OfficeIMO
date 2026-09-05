@@ -40,6 +40,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly StudioApplicationServices _services;
     private readonly IStudioLocalizer _localizer;
     private StudioCommandCatalog? _commands;
+    private readonly bool _persistDocumentViews;
 
     /// <summary>The shared command surface used by discovery, tool cards, and keyboard actions.</summary>
     public StudioCommandCatalog Commands => _commands ??= new StudioCommandCatalog(this, _localizer);
@@ -90,7 +91,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null,
         ISearchablePdfOcrService? ocrService = null,
         StudioApplicationServices? services = null) {
-        _services = services ?? StudioApplicationServices.CreateDefault();
+        _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
         DocumentName = _localizer.Get("App.Name");
         DocumentDescription = _localizer.Get("Document.EmptyDescription");
@@ -288,6 +290,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 candidateRenderCoordinator,
                 candidatePages,
                 candidateOrganizerPages);
+            RestoreDocumentViewState();
             RecordRecentDocument(path);
             WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
             installed = true;
@@ -325,7 +328,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         bool invalidPassword = false;
         while (true) {
             try {
-                return await PdfWorkspace.OpenAsync(path, cancellationToken, password: password).ConfigureAwait(true);
+                return await PdfWorkspace.OpenAsync(path, cancellationToken,
+                    recoveryStore: new PdfWorkspaceRecoveryStore(_services.Paths.RecoveryRoot), password: password).ConfigureAwait(true);
             } catch (PdfPasswordRequiredException) {
                 invalidPassword = false;
             } catch (PdfInvalidPasswordException) {
@@ -429,6 +433,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public void Dispose() {
         _commands?.Dispose();
         if (_disposed) return;
+        SaveDocumentViewState();
         _disposed = true;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
@@ -478,6 +483,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
         IReadOnlyCollection<int>? organizerSelection = null) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();
         ClearObjectSelection();
         foreach (PdfPageViewModel page in Pages) page.Dispose();
@@ -619,10 +625,4 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private enum ViewerZoomMode {
-        Custom,
-        FitWidth,
-        FitPage,
-        Grid
-    }
 }

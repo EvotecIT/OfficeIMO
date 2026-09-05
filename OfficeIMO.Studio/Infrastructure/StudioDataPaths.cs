@@ -10,6 +10,8 @@ internal sealed class StudioDataPaths {
 
     internal string PreferencesPath => Path.Combine(Root, "preferences.json");
 
+    internal string DocumentViewsPath => Path.Combine(Root, "document-views.json");
+
     internal string RecentDocumentsPath => Path.Combine(Root, "recent-documents.json");
 
     internal string RecoveryRoot => Path.Combine(Root, "Recovery");

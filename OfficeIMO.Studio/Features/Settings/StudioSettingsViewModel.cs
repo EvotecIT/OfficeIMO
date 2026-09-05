@@ -9,6 +9,8 @@ internal sealed record StudioCultureChoice(string Name, string Label);
 
 internal sealed record StudioThemeChoice(StudioThemePreference Value, string Label, string Description);
 
+internal sealed record StudioDensityChoice(StudioDensityPreference Value, string Label);
+
 /// <summary>Presents application-wide preferences and privacy-bounded support information.</summary>
 internal sealed partial class StudioSettingsViewModel : ObservableObject, IDisposable {
     private readonly StudioPreferencesService _preferences;
@@ -36,6 +38,10 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             new(StudioThemePreference.Dark, _localizer.Get("Settings.ThemeDark"), _localizer.Get("Settings.ThemeDarkDescription")),
             new(StudioThemePreference.HighContrast, _localizer.Get("Settings.ThemeHighContrast"), _localizer.Get("Settings.ThemeHighContrastDescription"))
         ];
+        Densities = [
+            new(StudioDensityPreference.Comfortable, _localizer.Get("Settings.DensityComfortable")),
+            new(StudioDensityPreference.Compact, _localizer.Get("Settings.DensityCompact"))
+        ];
 
         StudioSupportSnapshot support = diagnostics.CreateSupportSnapshot();
         ProductVersion = support.Version;
@@ -50,6 +56,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     internal IReadOnlyList<StudioCultureChoice> Cultures { get; }
 
     internal IReadOnlyList<StudioThemeChoice> Themes { get; }
+
+    internal IReadOnlyList<StudioDensityChoice> Densities { get; }
 
     internal string ProductVersion { get; }
 
@@ -68,6 +76,9 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     [ObservableProperty]
     private StudioThemeChoice _selectedTheme = null!;
 
+    [ObservableProperty]
+    private StudioDensityChoice _selectedDensity = null!;
+
     internal bool RestartRequired =>
         !string.Equals(SelectedCulture.Name, _localizer.Culture.Name, StringComparison.OrdinalIgnoreCase);
 
@@ -82,6 +93,11 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
         _preferences.Update(current => current with { Theme = value.Value });
     }
 
+    partial void OnSelectedDensityChanged(StudioDensityChoice value) {
+        if (_synchronizing || value is null) return;
+        _preferences.Update(current => current with { Density = value.Value });
+    }
+
     public void Dispose() => _preferences.Changed -= OnPreferencesChanged;
 
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) => SynchronizeFromPreferences();
@@ -92,6 +108,7 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             SelectedCulture = Cultures.FirstOrDefault(choice =>
                 string.Equals(choice.Name, _preferences.Current.UiCulture, StringComparison.OrdinalIgnoreCase)) ?? Cultures[0];
             SelectedTheme = Themes.First(choice => choice.Value == _preferences.Current.Theme);
+            SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
         } finally {
             _synchronizing = false;
         }

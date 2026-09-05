@@ -76,6 +76,7 @@ public sealed partial class MainWindowViewModel {
     public bool IsProtectDocumentMode => DocumentMode == StudioDocumentMode.Protect;
 
     partial void OnDocumentModeChanged(StudioDocumentMode value) {
+        OnPropertyChanged(nameof(SelectedDocumentModeCommand));
         if (value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit &&
             SelectedEditorToolChoice.Tool != PdfEditorTool.Select) {
             SelectedEditorToolChoice = EditorTools[0];

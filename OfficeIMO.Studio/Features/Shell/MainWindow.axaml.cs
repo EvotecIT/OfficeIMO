@@ -27,7 +27,7 @@ public sealed partial class MainWindow : Window {
     private readonly StudioApplicationServices _services;
     private bool _commandPaletteOpen;
 
-    public MainWindow() : this(StudioApplicationServices.CreateDefault()) { }
+    public MainWindow() : this((Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault()) { }
 
     internal MainWindow(StudioApplicationServices services) {
         _services = services ?? throw new ArgumentNullException(nameof(services));
@@ -95,6 +95,7 @@ public sealed partial class MainWindow : Window {
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;
+        ViewModel.SaveDocumentViewState();
         _changingActiveDocument = true;
         try {
             ViewModel = document;
@@ -172,6 +173,16 @@ public sealed partial class MainWindow : Window {
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key == Key.F9) {
+            await ViewModel.Commands["FocusReading"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Escape && ViewModel.IsFocusReading) {
+            ViewModel.IsFocusReading = false;
+            e.Handled = true;
+            return;
+        }
         bool primaryModifier = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
         if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P) {
             await ShowCommandPaletteAsync();

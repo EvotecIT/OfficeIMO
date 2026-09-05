@@ -70,7 +70,7 @@ public sealed class StudioResponsiveLayoutTests {
                                 $"{child.GetType().Name} extends beyond toolbar: {child.Bounds}, {panel.Bounds}");
                     }
                     Assert.True(window.ReaderPagesListControl.Bounds.Height >= 180,
-                        $"Page viewport is too short: {window.ReaderPagesListControl.Bounds}");
+                        $"Page viewport is too short in {model.DocumentMode}: {window.ReaderPagesListControl.Bounds}; rows: {string.Join(", ", ((Grid)workspace.Content!).RowDefinitions.Select(row => row.ActualHeight))}");
                 }
             } finally {
                 window.Close();

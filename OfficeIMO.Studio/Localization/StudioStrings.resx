@@ -1372,4 +1372,14 @@
   <data name="Commands.NoChanges" xml:space="preserve"><value>There are no unsaved changes.</value></data>
   <data name="Commands.NoUndo" xml:space="preserve"><value>There is no edit to undo.</value></data>
   <data name="Commands.NoRedo" xml:space="preserve"><value>There is no edit to redo.</value></data>
+  <data name="Settings.Density" xml:space="preserve"><value>Control density</value></data>
+  <data name="Settings.DensityComfortable" xml:space="preserve"><value>Comfortable</value></data>
+  <data name="Settings.DensityCompact" xml:space="preserve"><value>Compact</value></data>
+  <data name="Commands.FocusReading.Title" xml:space="preserve"><value>Focus reading</value></data>
+  <data name="Commands.FocusReading.Description" xml:space="preserve"><value>Hide document tools and panes, or restore the workspace.</value></data>
+  <data name="DocumentWorkspace.DocumentTask" xml:space="preserve"><value>Document task</value></data>
+  <data name="Settings.ReadingWorkspace" xml:space="preserve"><value>Reading workspace</value></data>
+  <data name="Settings.ReadingWorkspaceDescription" xml:space="preserve"><value>Studio remembers the page, zoom, and pane sizes for documents you reopen. Pane choices are kept separately for each document task.</value></data>
+  <data name="Settings.FocusReadingHelp" xml:space="preserve"><value>Press F9 for focus reading. Press Escape or F9 to bring the document controls back.</value></data>
+  <data name="Settings.DocumentAppearanceHelp" xml:space="preserve"><value>Application themes change the controls around your document. Document colors stay unchanged; page night mode is a separate reading option.</value></data>
 </root>

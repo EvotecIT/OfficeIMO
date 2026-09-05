@@ -16,6 +16,13 @@
         <Border Classes="card">
           <StackPanel Spacing="12">
             <TextBlock Text="{loc:Loc Settings.AppearanceAndLanguage}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.Density}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding Densities}" SelectedItem="{Binding SelectedDensity, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Density}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioDensityChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
             <TextBlock Text="{loc:Loc Settings.InterfaceLanguage}" FontWeight="SemiBold" />
             <ComboBox ItemsSource="{Binding Cultures}" SelectedItem="{Binding SelectedCulture, Mode=TwoWay}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
@@ -37,24 +44,22 @@
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Appearance}">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="settings:StudioThemeChoice">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding Label}" />
-                    <TextBlock Text="{Binding Description}" Classes="muted" FontSize="11" />
-                  </StackPanel>
+                  <TextBlock Text="{Binding Label}" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
+            <TextBlock Text="{Binding SelectedTheme.Description}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 
         <Border Grid.Column="1" Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Text="{loc:Loc Settings.LocalizationReadiness}" Classes="sectionTitle" />
-            <TextBlock Text="{loc:Loc Settings.LocalizationReadinessDescription}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.ReadingWorkspace}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.ReadingWorkspaceDescription}" TextWrapping="Wrap" />
             <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
-              <TextBlock Text="{loc:Loc Settings.LocalizationCoverage}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc Settings.FocusReadingHelp}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
             </Border>
-            <TextBlock Text="{loc:Loc Settings.LocalizationContract}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.DocumentAppearanceHelp}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
       </Grid>

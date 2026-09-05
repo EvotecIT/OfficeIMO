@@ -22,7 +22,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
             Func<string?>? guard = null, bool tool = false, string shortcut = "", bool workspace = false) {
             _byId.Add(id, new StudioCommandItem(id, Text(id + ".Title", title), Text(id + ".Description", description),
                 Text("Category." + category, category), shortcut, tool, operation, guard ?? Idle,
-                workspace ? () => document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace : null));
+                workspace ? () => { document.IsFocusReading = false; document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace; } : null));
         }
 
         Add("Open", "Open PDF", "Open a PDF in a document tab.", "File", document.OpenCommand, shortcut: modifier + "O");
@@ -34,6 +34,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Redo", "Redo", "Restore the last undone edit.", "Edit", document.RedoCommand,
             () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null), shortcut: modifier + "Shift+Z");
         Add("Read", "Read document", "Return to the document reading workspace.", "Read", document.ShowViewModeCommand, Loaded, workspace: true);
+        Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, shortcut: "F9");
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);
         Add("Edit", "Edit PDF content", "Select supported existing text and images to edit.", "Edit", document.ShowEditModeCommand, () => Allowed(document.CanEditPageContent), true, workspace: true);
         Add("Pages", "Organize pages", "Rotate, crop, duplicate, reorder, import, extract, and split pages.", "Organize", document.ShowPagesModeCommand, Loaded, true, workspace: true);

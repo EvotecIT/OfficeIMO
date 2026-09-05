@@ -13,12 +13,17 @@ namespace OfficeIMO.Studio;
 public sealed partial class App : Application {
     private bool _diagnosticHandlersAttached;
 
+    public App() { }
+
+    internal App(StudioApplicationServices services) => Services = services;
+
     internal StudioApplicationServices Services { get; private set; } = null!;
 
     public override void Initialize() {
         Services ??= StudioApplicationServices.CreateDefault();
         StudioLocalization.Configure(Services.Localizer);
         AvaloniaXamlLoader.Load(this);
+        ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
             StudioThemePreference.Dark => Avalonia.Styling.ThemeVariant.Dark,
@@ -29,12 +34,21 @@ public sealed partial class App : Application {
     }
 
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) {
+        ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
             StudioThemePreference.Dark => Avalonia.Styling.ThemeVariant.Dark,
             StudioThemePreference.HighContrast => StudioThemeVariants.HighContrast,
             _ => Avalonia.Styling.ThemeVariant.Default
         };
+    }
+
+    private void ApplyDensity() {
+        bool compact = Services.Preferences.Current.Density == StudioDensityPreference.Compact;
+        Resources["StudioBodyFontSize"] = compact ? 13D : 14D;
+        Resources["StudioControlHeight"] = compact ? 32D : 38D;
+        Resources["StudioControlPadding"] = compact ? new Thickness(8, 3) : new Thickness(10, 6);
+        Resources["StudioModePadding"] = compact ? new Thickness(12, 5) : new Thickness(14, 8);
     }
 
     public override void OnFrameworkInitializationCompleted() {

@@ -5,6 +5,8 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 ## Current workspace
 
 - Open several PDFs in document tabs and use single-page, continuous, two-page, or grid reading modes.
+- Choose comfortable or compact controls in Settings. Studio remembers page, zoom, reading layout, bounded pane widths, and pane choices for up to 64 documents, using path hashes in the view-preference file.
+- Press F9 for focus reading and Escape or F9 to restore document controls. At narrow widths, a document-task picker and one optional side pane leave room for the page.
 - Search the Tools catalog or open command search with Ctrl+Shift+P (Command+Shift+P on macOS). Commands show document requirements, use the same operations as the workspace controls, and can be selected with the keyboard.
 - Search, follow bookmarks and links, navigate by keyboard, use page night mode, and compare two PDFs in synchronized panes.
 - Select existing text, images, and annotations with visible bounds and handles. Replace, move, resize, recolor, flatten, or remove supported objects through the canonical PDF editors.

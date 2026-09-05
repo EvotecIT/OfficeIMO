@@ -7,6 +7,11 @@ internal enum StudioThemePreference {
     HighContrast
 }
 
+internal enum StudioDensityPreference {
+    Comfortable,
+    Compact
+}
+
 /// <summary>Versioned, user-scoped presentation preferences for OfficeIMO Studio.</summary>
 internal sealed record StudioPreferences {
     internal const int CurrentSchemaVersion = 1;
@@ -17,13 +22,16 @@ internal sealed record StudioPreferences {
 
     public StudioThemePreference Theme { get; init; } = StudioThemePreference.System;
 
+    public StudioDensityPreference Density { get; init; } = StudioDensityPreference.Comfortable;
+
     internal StudioPreferences Normalize() {
         string culture = Infrastructure.Localization.StudioCultureCatalog.NormalizeOrDefault(UiCulture);
         StudioThemePreference theme = Enum.IsDefined(Theme) ? Theme : StudioThemePreference.System;
         return this with {
             SchemaVersion = CurrentSchemaVersion,
             UiCulture = culture,
-            Theme = theme
+            Theme = theme,
+            Density = Enum.IsDefined(Density) ? Density : StudioDensityPreference.Comfortable
         };
     }
 }

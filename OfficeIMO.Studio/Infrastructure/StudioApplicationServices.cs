@@ -18,6 +18,7 @@ internal sealed class StudioApplicationServices {
         Cultures = cultures;
         Localizer = localizer;
         Diagnostics = diagnostics;
+        DocumentViews = new StudioDocumentViewStore(paths.DocumentViewsPath);
     }
 
     internal StudioDataPaths Paths { get; }
@@ -29,6 +30,8 @@ internal sealed class StudioApplicationServices {
     internal IStudioLocalizer Localizer { get; }
 
     internal IStudioDiagnostics Diagnostics { get; }
+
+    internal StudioDocumentViewStore DocumentViews { get; }
 
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 

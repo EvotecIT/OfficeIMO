@@ -101,7 +101,7 @@
             <StackPanel Spacing="5">
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
               <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}"
-                         Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
 
@@ -118,7 +118,7 @@
               <TextBlock Text="{Binding OcrWorkbench.ErrorMessage}" IsVisible="{Binding OcrWorkbench.HasError}"
                          Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.PublishedPath}" IsVisible="{Binding OcrWorkbench.HasOutput}"
-                         FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" />
+                         FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </StackPanel>

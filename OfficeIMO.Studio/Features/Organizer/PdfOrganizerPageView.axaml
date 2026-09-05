@@ -28,7 +28,7 @@
                      VerticalAlignment="Center" />
         <TextBlock IsVisible="{Binding HasError}"
                    Text="{loc:Loc PdfOrganizerPage.PreviewUnavailable}"
-                   FontSize="10"
+                   FontSize="12"
                    Foreground="{DynamicResource StudioErrorBrush}"
                    TextWrapping="Wrap"
                    TextAlignment="Center"
@@ -37,7 +37,7 @@
       </Grid>
     </Border>
     <TextBlock Text="{Binding Label}"
-               FontSize="11"
+               FontSize="12"
                HorizontalAlignment="Center" />
   </StackPanel>
 </UserControl>

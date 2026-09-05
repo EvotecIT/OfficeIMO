@@ -96,7 +96,7 @@
                           CommandParameter="{Binding}">
                     <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="10">
                       <Border Width="30" Height="30" CornerRadius="6" Background="{DynamicResource StudioErrorSoftBrush}">
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.PDF}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}"
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.PDF}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                       <StackPanel Grid.Column="1" Spacing="2">
