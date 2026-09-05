@@ -326,9 +326,6 @@ internal static partial class PdfWriter {
                 return MeasureDrawingBlockHeight(drawing);
             }
 
-            if (block is PanelParagraphBlock panel) {
-                return MeasurePanelBlockHeight(panel, frameWidth, fontSize, firstVisualOnly: false);
-            }
 
             if (block is RowBlock row) {
                 return MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: false);
@@ -457,16 +454,13 @@ internal static partial class PdfWriter {
                 return ResolveDrawingStyle(drawing, currentOpts).KeepWithNext;
             }
 
-            if (block is PanelParagraphBlock panel) {
-                return ResolvePanelStyle(panel, currentOpts).KeepWithNext;
-            }
 
             if (block is RowBlock row) {
                 return (row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot)?.KeepWithNext == true;
             }
 
             if (block is ContainerBlock container) {
-                return container.Style.KeepWithNext;
+                return ResolveContainerStyle(container).KeepWithNext;
             }
 
             return false;
@@ -495,7 +489,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is ContainerBlock container) {
-                PdfPanelStyle style = container.Style;
+                PdfPanelStyle style = ResolveContainerStyle(container);
                 double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
                 ValidatePanelStyle(style, outerWidth);
                 double contentWidth = outerWidth - 2D * style.PaddingX;
@@ -565,9 +559,6 @@ internal static partial class PdfWriter {
                 return (listStyle?.SpacingBefore ?? 0D) + leading;
             }
 
-            if (block is PanelParagraphBlock panel) {
-                return MeasurePanelBlockHeight(panel, frameWidth, fontSize, firstVisualOnly: true);
-            }
 
             if (block is TableBlock table) {
                 return MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: true);
@@ -655,20 +646,6 @@ internal static partial class PdfWriter {
             return ResolveTopLevelSpacingBefore(style.SpacingBefore) + drawing.Drawing.Height + style.SpacingAfter;
         }
 
-        private double MeasurePanelBlockHeight(PanelParagraphBlock panel, double frameWidth, double fontSize, bool firstVisualOnly) {
-            PdfPanelStyle panelStyle = ResolvePanelStyle(panel, currentOpts);
-            double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(frameWidth, panelStyle.MaxWidth.Value) : frameWidth;
-            ValidatePanelStyle(panelStyle, innerWidth);
-            double size = fontSize;
-            double leading = size * 1.4;
-            double textWidth = innerWidth - 2 * panelStyle.PaddingX;
-            var wrap = WrapRichRunsCore(panel.Runs, textWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
-            int lineCount = firstVisualOnly ? Math.Min(1, wrap.LineHeights.Count) : wrap.LineHeights.Count;
-            double spacingBefore = ResolveTopLevelSpacingBefore(panelStyle.SpacingBefore);
-            double textHeight = MeasureRichLinesHeight(wrap.LineHeights, lineCount, leading);
-            double spacingAfter = firstVisualOnly ? 0D : panelStyle.SpacingAfter;
-            return spacingBefore + panelStyle.PaddingY + textHeight + panelStyle.PaddingY + spacingAfter;
-        }
 
         private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly) {
             int columns = row.Columns.Count;

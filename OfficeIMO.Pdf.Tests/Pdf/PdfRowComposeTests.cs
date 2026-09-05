@@ -547,11 +547,11 @@ namespace OfficeIMO.Tests.Pdf {
 
             var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
             var row = Assert.IsType<RowBlock>(Assert.Single(page.Blocks));
-            var panel = Assert.IsType<PanelParagraphBlock>(Assert.Single(row.Columns[0].Blocks));
+            var panel = Assert.IsType<ContainerBlock>(Assert.Single(row.Columns[0].Blocks));
 
             Assert.True(panel.Style!.KeepTogether);
             Assert.Equal(PdfColor.FromRgb(248, 250, 252), panel.Style.Background);
-            Assert.Contains(panel.Runs, run => run.Bold);
+            Assert.Contains(Assert.IsType<RichParagraphBlock>(Assert.Single(panel.Blocks)).Runs, run => run.Bold);
         }
 
         [Fact]
@@ -569,8 +569,8 @@ namespace OfficeIMO.Tests.Pdf {
 
             var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
             var row = Assert.IsType<RowBlock>(Assert.Single(page.Blocks));
-            var panel = Assert.IsType<PanelParagraphBlock>(Assert.Single(row.Columns[0].Blocks));
-            string text = string.Concat(panel.Runs.Select(run => run.Text));
+            var panel = Assert.IsType<ContainerBlock>(Assert.Single(row.Columns[0].Blocks));
+            string text = PdfReadDocument.Open(doc.ToBytes()).ExtractText();
 
             Assert.Contains("Column Panel", text, StringComparison.Ordinal);
             Assert.Contains("Column-local composed panels", text, StringComparison.Ordinal);
@@ -621,15 +621,12 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void RowColumn_RejectsUnsupportedNestedLayoutDuringComposition() {
-            var exception = Assert.Throws<NotSupportedException>(() =>
-                PdfDocument.Create(document => document.Content(content => content.Row(row =>
-                    row.RelativeColumn(column => column.Element(element => element
-                        .Padding(4)
-                        .Content(container => container.Text("Nested"))))))));
-
-            Assert.Contains("ContainerBlock", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("use Panel", exception.Message, StringComparison.Ordinal);
+        public void RowColumn_PreservesDecoratedContent() {
+            var document = PdfDocument.Create(document => document.Content(content => content.Row(row =>
+                row.RelativeColumn(column => column.Element(element => element
+                    .Padding(4)
+                    .Content(container => container.Text("Nested")))))));
+            Assert.Contains("Nested", PdfReadDocument.Open(document.ToBytes()).ExtractText());
         }
     }
 }

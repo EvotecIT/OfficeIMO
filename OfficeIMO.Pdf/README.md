@@ -52,6 +52,10 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 content, components, logical groups, and row columns. This keeps reusable content
 independent of where it is placed.
 
+For incremental authoring, use `var document = PdfDocument.Create(options)` and
+add blocks through `document.Content`. The same builder supports both ordinary
+statements and fluent chains; callbacks remain useful for grouping and page setup.
+
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {
@@ -121,10 +125,15 @@ leave it no positive width. Automatic sizing measures panel text and padding as
 well as ordinary text and fixed-size primitives.
 Columns can contain the normal flow primitives, including rich text, lists,
 tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
-Page-, section-, layer-, multi-column-, deferred-flow-, decorated-element-, and nested-row
-layout blocks remain outer layout boundaries and are rejected immediately when
-placed directly inside a row; place the row inside an `Element(...)` when the
-whole row needs shared decoration or semantics.
+Decorated elements, semantic groups, static components, and static flow with
+position capture or keep-together rules work inside rows. Page boundaries,
+sections, layers, automatic multi-column layouts, contextual or conditional flow,
+and nested rows remain outer layout boundaries.
+
+Percentages are literal in every row. Use relative weights for proportional fill.
+`Panel` and `Element` preserve child blocks through the same container layout;
+`PanelParagraph` adds one ordinary paragraph inside that container. Keep-together
+content must fit a complete frame, including padding. Otherwise allow splitting.
 
 ## What it does
 

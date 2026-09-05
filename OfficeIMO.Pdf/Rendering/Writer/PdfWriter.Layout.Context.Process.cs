@@ -64,7 +64,6 @@ internal static partial class PdfWriter {
                 if (block is DrawingBlock drawing) { RenderDrawingFlowBlock(drawing, nextBlock, blockList, blockIndex); continue; }
                 if (block is RowBlock row) { RenderRowFlowBlock(row, nextBlock, blockList, blockIndex); continue; }
                 if (block is ImageBlock image) { RenderImageFlowBlock(image, nextBlock, blockList, blockIndex); continue; }
-                if (block is PanelParagraphBlock panel) { RenderPanelFlowBlock(panel, nextBlock, blockList, blockIndex); continue; }
                 throw new NotSupportedException("PDF flow does not support block type " + block.GetType().Name + ".");
             }
         }

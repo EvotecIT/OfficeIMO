@@ -61,7 +61,18 @@ public sealed partial class PdfDocument {
     /// </summary>
     /// <param name="options">Page size, margins and default font options. When null, sensible defaults are used.</param>
     /// <returns>New <see cref="PdfDocument"/> instance.</returns>
-    internal static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
+    public static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
+
+    /// <summary>
+    /// Gets the content builder for ordinary incremental authoring. It uses the same document
+    /// flow as <see cref="Compose"/> and cannot add generated content to a loaded PDF.
+    /// </summary>
+    public PdfContentBuilder Content {
+        get {
+            EnsureGeneratedDocument();
+            return new PdfContentBuilder(this);
+        }
+    }
 
     /// <summary>
     /// Creates and composes a PDF document through the canonical authoring DSL.

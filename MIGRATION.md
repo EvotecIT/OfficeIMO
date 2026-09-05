@@ -133,12 +133,29 @@ PdfDocument.Create(document => document
             .RelativeColumn(cell => cell.Text("Description")))));
 ```
 
+For incremental authoring, create the document with options and add content through
+its document-owned builder. It uses the same operations as callback composition:
+
+```csharp
+var report = PdfDocument.Create(new PdfOptions());
+report.Content.H1("Service report");
+report.Content.Text("Ready");
+report.Save("report.pdf");
+```
+
+`Panel` now preserves headings, tables, rules, bookmarks, and fields through the
+same decorated container owner as `Element`. `PanelParagraph` adds one ordinary
+paragraph inside that container. Paragraph spacing and page-scoped defaults apply
+consistently. `KeepTogether` rejects content taller than a complete frame; set it
+to false to allow splitting. Vertical padding must leave room for content.
+`PdfSaveResult.RequireNoLoss()` also requires a successful save.
+
 Use `FixedColumn` for points, `AutoColumn` for measured content with optional
 bounds, `RelativeColumn` for a weighted share of remaining width, and
 `PercentColumn` for an explicit percentage. The general `Column` overload accepts
-a `PdfColumnWidth` value when sizing is computed or shared. Percent-only rows keep
-their previous proportional fill behavior when the declared total is below 100%.
-Mixed rows retain literal percentages and assign only the uncommitted width to
+a `PdfColumnWidth` value when sizing is computed or shared. Percentages are literal
+in every row: 30% and 20% leave half of the column area unassigned. Use relative
+weights 3 and 2 for proportional fill. Mixed rows assign only uncommitted width to
 relative columns. Committed widths that cannot fit fail during layout instead of
 overlapping adjacent content, and a mixed row with no positive width left for a
 relative column now fails instead of rendering a zero-width column. Automatic
@@ -150,9 +167,10 @@ configure its background, border, padding, width, alignment, keep rules, or tagg
 role, then provide the same `PdfContentBuilder` through `Content(...)`. An element
 without decorators or semantics is also a zero-cost group and can contain a page
 break. Layout blocks whose pagination contract cannot be nested directly inside a
-row fail during composition. Use `Panel(...)` for grouped row content, or place
-page, section, decorated-element, multi-column, layer, deferred-flow, and nested-row
-layouts outside the row.
+row fail during composition. Rows support decorated elements, block-preserving panels, semantic groups, static
+components, and static flow with capture or keep-together rules. Place page
+boundaries, sections, automatic multi-column layouts, layers, contextual or
+conditional flow, and nested rows outside row columns.
 
 `KeepTogether` and `KeepWithNext` now fail closed when the complete constrained
 content cannot be measured before rendering. Dynamic page callbacks, automatic

@@ -5,20 +5,27 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private System.Collections.Generic.List<System.Collections.Generic.List<ColItem>> BuildRowColumnItems(RowBlock rb, double[] colWs) {
-            int ncols = rb.Columns.Count;
-        var colItems = new System.Collections.Generic.List<System.Collections.Generic.List<ColItem>>(ncols);
-        for (int i = 0; i < ncols; i++) {
+        private List<List<ColItem>> BuildRowColumnItems(RowBlock row, double[] columnWidths) {
+            var columns = new List<List<ColItem>>(row.Columns.Count);
+            for (int index = 0; index < row.Columns.Count; index++) {
+                columns.Add(BuildColumnItems(row.Columns[index].Blocks, columnWidths[index], 0D));
+            }
+            return columns;
+        }
+
+        private List<ColItem> BuildColumnItems(IReadOnlyList<IPdfBlock> blocks, double columnWidth, double columnXOffset) {
             var items = new System.Collections.Generic.List<ColItem>();
             int nextListGroupId = 1;
-            foreach (var cb in rb.Columns[i].Blocks) {
+            foreach (var cb in blocks) {
+                if (TryAddColumnGroup(items, cb, columnWidth, columnXOffset)) continue;
+                int firstItemIndex = items.Count;
                 if (cb is HeadingBlock hb2) {
                     PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb2, currentOpts);
                     double size = GetHeadingFontSize(hb2, headingStyle);
                     double leading = GetHeadingLeading(headingStyle, size);
                     PdfColor? headingColor = hb2.Color ?? headingStyle?.Color;
                     System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
-                    var wrap = WrapRichRunsCore(headingRuns, colWs[i], size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+                    var wrap = WrapRichRunsCore(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
                     items.Add(new ColHead {
                         Block = hb2,
                         Runs = headingRuns,
@@ -37,7 +44,7 @@ internal static partial class PdfWriter {
                     double size = currentOpts.DefaultFontSize;
                     PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb2);
                     double leading = GetParagraphLeading(paragraphStyle, size);
-                    var textFrame = GetParagraphTextFrame(paragraphStyle, 0, colWs[i]);
+                    var textFrame = GetParagraphTextFrame(paragraphStyle, 0, columnWidth);
                     var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
                     items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                 } else if (cb is BulletListBlock bl2) {
@@ -57,7 +64,7 @@ internal static partial class PdfWriter {
                     double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
                     double indent = bulletWidth + markerGap;
                     double listLeftIndent = listStyle?.LeftIndent ?? 0D;
-                    double rawTextWidth = colWs[i] - listLeftIndent - indent;
+                    double rawTextWidth = columnWidth - listLeftIndent - indent;
                     double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
                     double alignmentWidth = Math.Max(0, rawTextWidth);
                     double itemSpacing = GetListItemSpacing(listStyle, leading);
@@ -122,7 +129,7 @@ internal static partial class PdfWriter {
                     double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
                     double indent = markerWidth + markerGap;
                     double listLeftIndent = listStyle?.LeftIndent ?? 0D;
-                    double rawTextWidth = colWs[i] - listLeftIndent - indent;
+                    double rawTextWidth = columnWidth - listLeftIndent - indent;
                     double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
                     double alignmentWidth = Math.Max(0, rawTextWidth);
                     double itemSpacing = GetListItemSpacing(listStyle, leading);
@@ -167,20 +174,6 @@ internal static partial class PdfWriter {
                     }
 
                     items.AddRange(listItems);
-                } else if (cb is PanelParagraphBlock ppb2) {
-                    double size = currentOpts.DefaultFontSize;
-                    double leading = size * 1.4;
-                    var panelFont = ChooseNormal(currentOpts.DefaultFont);
-                    double firstBaselineOffset = GetAscenderForOptions(panelFont, size, currentOpts);
-                    PdfPanelStyle panelStyle = ResolvePanelStyle(ppb2, currentOpts);
-                    double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(colWs[i], panelStyle.MaxWidth.Value) : colWs[i];
-                    ValidatePanelStyle(panelStyle, innerWidth);
-                    double textWidthAvail = innerWidth - 2 * panelStyle.PaddingX;
-                    var wrap = WrapRichRunsCore(ppb2.Runs, textWidthAvail, size, panelFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
-                    double xOffset = 0;
-                    if (panelStyle.Align == PdfAlign.Center) xOffset = Math.Max(0, (colWs[i] - innerWidth) / 2);
-                    else if (panelStyle.Align == PdfAlign.Right) xOffset = Math.Max(0, colWs[i] - innerWidth);
-                    items.Add(new ColPanel { Block = ppb2, Style = panelStyle, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, FirstBaselineOffset = firstBaselineOffset, XOffset = xOffset, PanelWidth = innerWidth, TextWidth = textWidthAvail });
                 } else if (cb is TableBlock tb2) {
                     PdfTableStyle style = tb2.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
                     int cols = GetTableColumnCount(tb2);
@@ -205,7 +198,7 @@ internal static partial class PdfWriter {
                     ValidateTableColumnStyleBounds(style, cols);
                     ValidateTableRowStyleBounds(style, tb2.Rows.Count);
                     ValidateTableRowSpansWithinRoleBoundaries(tb2, cols, headerRowCount, footerStartRowIndex);
-                    PreparedTableColumns preparedColumns = PrepareTableColumns(tb2, style, colWs[i], size, headerRowCount, footerStartRowIndex);
+                    PreparedTableColumns preparedColumns = PrepareTableColumns(tb2, style, columnWidth, size, headerRowCount, footerStartRowIndex);
                     double[] colPixel = preparedColumns.ColumnWidths;
                     double tableWidth = preparedColumns.TableWidth;
                     ValidateTableCellTextWidths(tb2, style, cols, colPixel, columnGap);
@@ -278,7 +271,7 @@ internal static partial class PdfWriter {
                 } else if (cb is ImageBlock ib2) {
                     PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
                     double spacingBefore = imageStyle.SpacingBefore;
-                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, colWs[i], spacingBefore, imageStyle.SpacingAfter);
+                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, columnWidth, spacingBefore, imageStyle.SpacingAfter);
                     items.Add(new ColImg { Block = ib2, Style = imageStyle, Width = imageBox.Width, Height = imageBox.Height });
                 } else if (cb is ShapeBlock sb2) {
                     items.Add(new ColShape { Block = sb2 });
@@ -293,12 +286,14 @@ internal static partial class PdfWriter {
                 } else if (cb is SpacerBlock spacer2) {
                     items.Add(new ColSpacer { Block = spacer2 });
                 } else {
-                    throw new NotSupportedException("Row columns do not support nested block type " + cb.GetType().Name + ". Move that block outside the row.");
+                    throw new NotSupportedException("This content requires a page-level layout and cannot be placed inside a row column.");
+                }
+                for (int itemIndex = firstItemIndex; itemIndex < items.Count; itemIndex++) {
+                    items[itemIndex].ColumnXOffset = columnXOffset;
+                    items[itemIndex].ColumnWidth = columnWidth;
                 }
             }
-            colItems.Add(items);
-        }
-            return colItems;
+            return items;
         }
 
         private double MeasureRowKeepTogetherHeight(System.Collections.Generic.List<ColItem> items) {
@@ -327,6 +322,19 @@ internal static partial class PdfWriter {
             var heights = new double[items.Count];
             for (int itemIndex = items.Count - 1; itemIndex >= 0; itemIndex--) {
                 ColItem item = items[itemIndex];
+                if (item is ColGroupEnd end) {
+                    heights[itemIndex] = end.Group.Style?.PaddingY ?? 0D;
+                    continue;
+                }
+                if (item is ColGroupStart start) {
+                    ColumnGroup group = start.Group;
+                    double fullHeight = MeasureColumnGroupHeight(group, 1D);
+                    int following = itemIndex + group.ItemCount;
+                    heights[itemIndex] = group.KeepTogether || group.Style?.KeepWithNext == true
+                        ? fullHeight : MeasureColItemFirstVisualHeight(item);
+                    if (group.Style?.KeepWithNext == true && following < items.Count) heights[itemIndex] += heights[following];
+                    continue;
+                }
                 if (item is ColBookmark) {
                     heights[itemIndex] = itemIndex + 1 < items.Count ? heights[itemIndex + 1] : 0D;
                     continue;
@@ -368,9 +376,6 @@ internal static partial class PdfWriter {
                 return listItem.KeepWithNext && listItem.IsFirstInKeepWithNextGroup;
             }
 
-            if (item is ColPanel panel) {
-                return panel.Style.KeepWithNext;
-            }
 
             if (item is ColTable table) {
                 return table.Style.KeepWithNext;
@@ -396,6 +401,12 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureColItemFullHeight(ColItem item, double consumedBefore) {
+            if (item is ColGroupStart groupStart) {
+                return ResolveColumnSpacingBefore(groupStart.Group.Style?.SpacingBefore ?? 0D, consumedBefore) + (groupStart.Group.Style?.PaddingY ?? 0D);
+            }
+            if (item is ColGroupEnd groupEnd) {
+                return (groupEnd.Group.Style?.PaddingY ?? 0D) + (groupEnd.Group.Style?.SpacingAfter ?? 0D);
+            }
             if (item is ColPar paragraph) {
                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
                 return ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), consumedBefore) + paragraph.Heights.Sum() + GetParagraphSpacingAfter(paragraphStyle, paragraph.Leading);
@@ -409,9 +420,6 @@ internal static partial class PdfWriter {
                 return ResolveColumnSpacingBefore(listItem.SpacingBefore, consumedBefore) + MeasureRichLinesHeight(listItem.Heights, listItem.Lines.Count, listItem.Leading) + listItem.SpacingAfter;
             }
 
-            if (item is ColPanel panel) {
-                return ResolveColumnSpacingBefore(panel.Style.SpacingBefore, consumedBefore) + panel.Style.PaddingY + panel.Heights.Sum() + panel.Style.PaddingY + panel.Style.SpacingAfter;
-            }
 
             if (item is ColTable table) {
                 return ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
@@ -454,6 +462,10 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureColItemFirstVisualHeight(ColItem item) {
+            if (item is ColGroupStart groupStart) {
+                return (groupStart.Group.Style?.SpacingBefore ?? 0D) + (groupStart.Group.Style?.PaddingY ?? 0D) + MeasureColumnGroupFirstVisualHeight(groupStart.Group);
+            }
+            if (item is ColGroupEnd groupEnd) return groupEnd.Group.Style?.PaddingY ?? 0D;
             if (item is ColPar paragraph) {
                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
                 return GetParagraphSpacingBefore(paragraphStyle) + (paragraph.Heights.Count == 0 ? 0D : paragraph.Heights[0]);
@@ -467,9 +479,6 @@ internal static partial class PdfWriter {
                 return listItem.SpacingBefore + (listItem.Lines.Count == 0 ? 0D : GetRichLineHeight(listItem.Heights, 0, listItem.Leading));
             }
 
-            if (item is ColPanel panel) {
-                return panel.Style.SpacingBefore + panel.Style.PaddingY + (panel.Heights.Count == 0 ? 0D : panel.Heights[0]) + panel.Style.PaddingY;
-            }
 
             if (item is ColTable table) {
                 double firstRowHeight = table.RowHeights.Length == 0 ? 0D : table.RowHeights[0];

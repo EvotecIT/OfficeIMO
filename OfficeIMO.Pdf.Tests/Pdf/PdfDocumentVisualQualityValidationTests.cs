@@ -151,7 +151,7 @@ public partial class PdfDocumentVisualQualityTests {
         var panelParagraphAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().PanelParagraph(p => p.Text("Invalid panel text"), new PdfPanelStyle(), (PdfAlign)99));
 
-        Assert.Contains("Panel paragraph alignment must be Left, Center, Right, or Justify.", panelParagraphAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Paragraph alignment must be Left, Center, Right, or Justify.", panelParagraphAlignException.Message, StringComparison.Ordinal);
 
         byte[] justifiedPanelParagraph = PdfDocument.Create()
             .PanelParagraph(p => p.Text("Justified panel text remains supported inside the panel box."), new PdfPanelStyle(), PdfAlign.Justify)

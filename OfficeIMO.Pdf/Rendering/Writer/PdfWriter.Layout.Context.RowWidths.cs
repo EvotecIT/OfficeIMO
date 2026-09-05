@@ -9,11 +9,9 @@ internal static partial class PdfWriter {
                 return result;
             }
 
-            bool percentagesOnly = true;
             double percentTotal = 0D;
             for (int index = 0; index < count; index++) {
                 PdfColumnWidth width = row.Columns[index].Width;
-                percentagesOnly &= width.Unit == PdfColumnWidthUnit.Percent;
                 if (width.Unit == PdfColumnWidthUnit.Percent) {
                     percentTotal += width.Value;
                 }
@@ -21,15 +19,6 @@ internal static partial class PdfWriter {
 
             if (percentTotal > 100.0001D) {
                 throw new ArgumentException("Percentage row columns cannot exceed 100% of the available width.");
-            }
-
-            if (percentagesOnly) {
-                double scale = percentTotal <= 0D ? 0D : 100D / percentTotal;
-                for (int index = 0; index < count; index++) {
-                    result[index] = availableWidth * (row.Columns[index].Width.Value * scale / 100D);
-                }
-
-                return result;
             }
 
             double committed = 0D;
@@ -104,18 +93,22 @@ internal static partial class PdfWriter {
 
         private double MeasureBlockPreferredWidth(IPdfBlock block, double availableWidth) {
             switch (block) {
+                case ContainerBlock container:
+                    double inset = ResolveContainerStyle(container).PaddingX * 2D;
+                    double content = container.Blocks.Count == 0 ? 0D : container.Blocks.Max(child => MeasureBlockPreferredWidth(child, Math.Max(0D, availableWidth - inset)));
+                    return Math.Min(ResolveContainerStyle(container).MaxWidth ?? availableWidth, content + inset);
+                case SemanticBlock semantic:
+                    return semantic.Blocks.Count == 0 ? 0D : semantic.Blocks.Max(child => MeasureBlockPreferredWidth(child, availableWidth));
+                case FlowBlock flow when flow.StaticBlocks != null:
+                    return flow.StaticBlocks.Count == 0 ? 0D : flow.StaticBlocks.Max(child => MeasureBlockPreferredWidth(child, availableWidth));
                 case HeadingBlock heading:
-                    PdfHeadingStyle headingStyle = heading.Style ?? currentOpts.DefaultHeadingStylesSnapshot?.GetSnapshot(heading.Level) ?? new PdfHeadingStyle();
-                    double headingSize = headingStyle.GetFontSize(heading.Level);
-                    return EstimateSimpleTextWidthForOptions(heading.Text, headingStyle.Font ?? currentOpts.DefaultFont, headingSize, currentOpts);
+                    PdfHeadingStyle? headingStyle = ResolveHeadingStyle(heading, currentOpts);
+                    double headingSize = GetHeadingFontSize(heading, headingStyle);
+                    return MeasureRunsPreferredWidth(
+                        CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle?.Color),
+                        headingSize);
                 case RichParagraphBlock paragraph:
                     return MeasureRunsPreferredWidth(paragraph.Runs);
-                case PanelParagraphBlock panel:
-                    PdfPanelStyle panelStyle = ResolvePanelStyle(panel, currentOpts);
-                    double panelWidth = MeasureRunsPreferredWidth(panel.Runs) + panelStyle.PaddingX * 2D;
-                    return panelStyle.MaxWidth.HasValue
-                        ? Math.Min(panelStyle.MaxWidth.Value, panelWidth)
-                        : panelWidth;
                 case BulletListBlock bullets:
                     return bullets.RichItems.Count == 0 ? 1D : bullets.RichItems.Max(item => MeasureRunsPreferredWidth(item.Runs)) + currentOpts.DefaultFontSize * 1.5D;
                 case NumberedListBlock numbered:
@@ -140,11 +133,6 @@ internal static partial class PdfWriter {
                     return annotation.Width;
                 case HighlightAnnotationBlock annotation:
                     return annotation.Width;
-                case ContainerBlock container:
-                    double contentWidth = container.Blocks.Count == 0 ? 1D : container.Blocks.Max(item => MeasureBlockPreferredWidth(item, availableWidth));
-                    return contentWidth + container.Style.PaddingX * 2D;
-                case FlowBlock flow when flow.StaticBlocks != null:
-                    return flow.StaticBlocks.Count == 0 ? 1D : flow.StaticBlocks.Max(item => MeasureBlockPreferredWidth(item, availableWidth));
                 case RowBlock:
                 case TableBlock:
                 case DeferredTableBlock:
@@ -154,19 +142,12 @@ internal static partial class PdfWriter {
             }
         }
 
-        private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs) {
-            double width = 0D;
-            foreach (PdfTextRun run in runs) {
-                if (run.InlineElement != null) {
-                    width += run.InlineElement.Width;
-                    continue;
-                }
-
-                double size = run.FontSize ?? currentOpts.DefaultFontSize;
-                width += EstimateSimpleTextWidthForOptions(run.Text, run.Font ?? currentOpts.DefaultFont, size, currentOpts);
-            }
-
-            return width;
+        private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs, double? fontSize = null) {
+            double size = fontSize ?? currentOpts.DefaultFontSize;
+            var layout = WrapRichRunsCore(
+                runs, double.MaxValue, size, ChooseNormal(currentOpts.DefaultFont), size * 1.4D,
+                null, DefaultParagraphTabStopWidth, currentOpts);
+            return layout.Lines.Count == 0 ? 0D : layout.Lines.Max(line => MeasureRichLineWidth(line, currentOpts));
         }
     }
 }

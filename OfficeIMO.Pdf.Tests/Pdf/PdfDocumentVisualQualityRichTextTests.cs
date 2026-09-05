@@ -252,10 +252,8 @@ public partial class PdfDocumentVisualQualityTests {
             KeepWithNext = true,
             WidowControl = true
         };
-        var panelStyle = new PdfPanelStyle();
 
         var paragraph = new RichParagraphBlock(runs, PdfAlign.Left, null, paragraphStyle);
-        var panel = new PanelParagraphBlock(runs, PdfAlign.Left, null, panelStyle);
 
         runs[0] = PdfTextRun.Normal("Mutated alpha");
         runs.Add(PdfTextRun.Normal("Late gamma"));
@@ -270,9 +268,7 @@ public partial class PdfDocumentVisualQualityTests {
         paragraphStyle.WidowControl = false;
 
         Assert.Equal(new[] { "Stable alpha", "Stable beta" }, paragraph.Runs.Select(run => run.Text).ToArray());
-        Assert.Equal(new[] { "Stable alpha", "Stable beta" }, panel.Runs.Select(run => run.Text).ToArray());
         Assert.False(paragraph.Runs is List<PdfTextRun>);
-        Assert.False(panel.Runs is List<PdfTextRun>);
         Assert.Equal(1.6, paragraph.Style!.LineHeight);
         Assert.Equal(4, paragraph.Style.LeftIndent);
         Assert.Equal(5, paragraph.Style.RightIndent);
