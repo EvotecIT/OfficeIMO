@@ -22,6 +22,14 @@ internal static class ManagedTextShapingTestAssets {
             kern: CreateKernTable(1, 2, adjustment));
     }
 
+    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga") {
+        if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
+    }
+
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
         if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
         if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
@@ -99,6 +107,7 @@ internal static class ManagedTextShapingTestAssets {
         bool includeTrailingMetric = false,
         int glyphCount = 2,
         byte[]? kern = null,
+        byte[]? gsub = null,
         bool distinctSecondGlyph = false) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
@@ -123,6 +132,7 @@ internal static class ManagedTextShapingTestAssets {
             ("name", new byte[6])
         };
         if (kern != null) tables.Add(("kern", kern));
+        if (gsub != null) tables.Add(("GSUB", gsub));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
@@ -376,6 +386,41 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 18, leftGlyph);
         WriteUInt16(data, 20, rightGlyph);
         WriteUInt16(data, 22, unchecked((ushort)adjustment));
+        return data;
+    }
+
+    private static byte[] CreateLigatureGsub(string featureTag, ushort firstGlyph, ushort secondGlyph, ushort ligatureGlyph) {
+        if (featureTag == null || featureTag.Length != 4) throw new ArgumentException("Feature tags must contain four characters.", nameof(featureTag));
+        var data = new byte[62];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, featureTag);
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 4);
+        WriteUInt16(data, 30, 4);
+        WriteUInt16(data, 32, 0);
+        WriteUInt16(data, 34, 1);
+        WriteUInt16(data, 36, 8);
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, 18);
+        WriteUInt16(data, 42, 1);
+        WriteUInt16(data, 44, 8);
+        WriteUInt16(data, 46, 1);
+        WriteUInt16(data, 48, 4);
+        WriteUInt16(data, 50, ligatureGlyph);
+        WriteUInt16(data, 52, 2);
+        WriteUInt16(data, 54, secondGlyph);
+        WriteUInt16(data, 56, 1);
+        WriteUInt16(data, 58, 1);
+        WriteUInt16(data, 60, firstGlyph);
         return data;
     }
 

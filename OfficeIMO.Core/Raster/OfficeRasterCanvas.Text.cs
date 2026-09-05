@@ -100,8 +100,9 @@ public sealed partial class OfficeRasterCanvas {
         double textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
-        OfficeColor? decorationColor = null) =>
-        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor);
+        OfficeColor? decorationColor = null,
+        OfficeTextFeatureSettings? featureSettings = null) =>
+        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor, featureSettings);
 
     private void DrawTextCore(
         string? text,
@@ -118,7 +119,8 @@ public sealed partial class OfficeRasterCanvas {
         double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
-        OfficeColor? decorationColor = null) {
+        OfficeColor? decorationColor = null,
+        OfficeTextFeatureSettings? featureSettings = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
             return;
         }
@@ -153,19 +155,19 @@ public sealed partial class OfficeRasterCanvas {
         IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
-            double measured = MeasureResolvedText(value, font, size);
+            double measured = MeasureResolvedText(value, font, size, featureSettings);
             double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
                     value = OfficeTextElements.RemoveLast(value);
                     if (value.Length == 0) break;
-                    measured = MeasureResolvedText(value + "...", font, size);
+                    measured = MeasureResolvedText(value + "...", font, size, featureSettings);
                 }
 
-                if (value.Length == 0 && MeasureResolvedText("...", font, size) > availableWidth) return;
+                if (value.Length == 0 && MeasureResolvedText("...", font, size, featureSettings) > availableWidth) return;
                 if (!string.Equals(value, text, StringComparison.Ordinal)) {
                     value += "...";
-                    measured = MeasureResolvedText(value, font, size);
+                    measured = MeasureResolvedText(value, font, size, featureSettings);
                 }
             }
 
@@ -174,7 +176,7 @@ public sealed partial class OfficeRasterCanvas {
                 : measured;
             double top = y + Math.Max(1D, (height - font.LineHeight(size)) / 2D);
             double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
-            List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size);
+            List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings);
             if (measured > 0D && Math.Abs(resolvedAdvance - measured) > 0.0001D) {
                 ScaleContoursX(contours, textX, resolvedAdvance / measured);
             }

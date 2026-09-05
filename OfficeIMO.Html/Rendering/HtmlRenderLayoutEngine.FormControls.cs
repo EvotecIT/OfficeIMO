@@ -472,7 +472,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             underlineStyle: style.UnderlineStyle,
             strikethroughStyle: style.StrikethroughStyle,
             baseline: style.Baseline,
-            decorationColor: style.DecorationColor));
+            decorationColor: style.DecorationColor,
+            featureSettings: style.TextFeatureSettings,
+            fontPalette: style.FontPalette));
     }
 
     private void AddMultilineControlText(
@@ -516,7 +518,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 underlineStyle: style.UnderlineStyle,
                 strikethroughStyle: style.StrikethroughStyle,
                 baseline: style.Baseline,
-                decorationColor: style.DecorationColor));
+                decorationColor: style.DecorationColor,
+                featureSettings: style.TextFeatureSettings,
+                fontPalette: style.FontPalette));
         }
     }
 

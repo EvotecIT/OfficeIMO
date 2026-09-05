@@ -126,4 +126,53 @@ public class DrawingManagedTextShapingProviderTests {
         OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
         Assert.Equal(880D, loaded.CreateShapedTextRun(request.Text, result).Measure(fontSize: 1000D), 6);
     }
+
+    [Fact]
+    public void ManagedProvider_HonorsExplicitKerningDisable() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', adjustment: -120);
+        var request = new OfficeTextShapingRequest(
+            "AV",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("kern", 0) }),
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en");
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(0, result.GetAdvanceAdjustment(0));
+        Assert.Equal(0, result.GetAdvanceAdjustment(1));
+    }
+
+    [Fact]
+    public void ManagedProvider_AppliesRequestedGsubLigatureAndPreservesExtractionText() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i');
+        OfficeOpenTypeSubstitution substitution = Assert.IsType<OfficeOpenTypeSubstitution>(OfficeOpenTypeSubstitution.TryCreate(font));
+        var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken> {
+            new OfficeOpenTypeSubstitution.GlyphToken(1, "f", 0, 'f'),
+            new OfficeOpenTypeSubstitution.GlyphToken(2, "i", 1, 'i')
+        };
+        substitution.Apply(tokens, new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("liga", 1) }), default);
+        Assert.Single(tokens);
+        var request = new OfficeTextShapingRequest(
+            "fi",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("liga", 1) }),
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en");
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        OfficeShapedGlyph glyph = Assert.Single(result.Glyphs);
+        Assert.Equal(3, glyph.GlyphId);
+        Assert.Equal("fi", glyph.UnicodeText);
+        Assert.Equal(0, glyph.TextIndex);
+    }
 }

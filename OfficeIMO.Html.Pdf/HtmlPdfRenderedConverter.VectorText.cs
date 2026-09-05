@@ -44,7 +44,7 @@ internal static partial class HtmlPdfRenderedConverter {
             bool simulateItalic = (requestedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic &&
                 (face.Style & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
             resolvedRuns.Add(new OutlinedFontRun(run.Text, face, simulateBold, simulateItalic));
-            requiresOutlines |= !face.CanEmbedAsStaticPdfFont;
+            requiresOutlines |= !face.CanEmbedAsStaticPdfFont || !visual.FeatureSettings.IsDefault;
         }
         if (!requiresOutlines) {
             foreach (OutlinedFontRun run in resolvedRuns) {
@@ -67,6 +67,7 @@ internal static partial class HtmlPdfRenderedConverter {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeTextShapingResult? shapingResult = ShapeOutlinedRun(
                 run,
+                visual.FeatureSettings,
                 webFonts,
                 cancellationToken,
                 out string? shapedText);
@@ -319,15 +320,18 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static OfficeTextShapingResult? ShapeOutlinedRun(
         OutlinedFontRun run,
+        OfficeTextFeatureSettings featureSettings,
         RegisteredWebFonts webFonts,
         CancellationToken cancellationToken,
         out string? shapedText) {
         shapedText = null;
-        if (webFonts.TextShapingProvider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
+        IOfficeTextShapingProvider? provider = webFonts.TextShapingProvider;
+        if (provider == null && !featureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
         shapedText = OfficeArabicTextShaper.ToLogicalText(run.Text);
         cancellationToken.ThrowIfCancellationRequested();
         IOfficeFontProgram program = run.Face.Program;
-        OfficeTextShapingResult? shapingResult = webFonts.TextShapingProvider.ShapeText(new OfficeTextShapingRequest(
+        OfficeTextShapingResult? shapingResult = provider.ShapeText(new OfficeTextShapingRequest(
             shapedText,
             program.DisplayName ?? run.Face.FamilyName,
             program.GetFontDataForShaping(),
@@ -339,7 +343,8 @@ internal static partial class HtmlPdfRenderedConverter {
             program.CollectionIndex,
             run.Face.VariationCoordinatesForShaping,
             cloneFontData: false,
-            fontProgramCacheKey: program));
+            fontProgramCacheKey: program,
+            featureSettings: featureSettings));
         if (shapingResult == null) shapedText = null;
         return shapingResult;
     }

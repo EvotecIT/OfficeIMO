@@ -675,7 +675,31 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal,
         OfficeColor? decorationColor = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor);
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings: null);
+
+    internal static StringBuilder AppendSvgFeaturedTextElement(
+        this StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        double lineHeight,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        OfficeTextAlignment horizontalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextBaseline baseline,
+        OfficeColor? decorationColor,
+        OfficeTextFeatureSettings featureSettings) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings);
 
     internal static StringBuilder AppendSvgPositionedTextElement(
         this StringBuilder builder,
@@ -698,8 +722,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
-        OfficeColor? decorationColor = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor);
+        OfficeColor? decorationColor = null,
+        OfficeTextFeatureSettings? featureSettings = null) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -722,7 +747,8 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
-        OfficeColor? decorationColor) {
+        OfficeColor? decorationColor,
+        OfficeTextFeatureSettings? featureSettings) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -755,6 +781,18 @@ public static partial class OfficeTextBlockRenderer {
             .AppendNumberAttribute("font-size", renderedFontSize)
             .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment))
             .AppendPaintAttribute("fill", color);
+
+        if (featureSettings != null && !featureSettings.IsDefault) {
+            var tags = new List<string>(featureSettings.Features.Keys);
+            tags.Sort(StringComparer.Ordinal);
+            var declaration = new StringBuilder();
+            foreach (string tag in tags) {
+                if (declaration.Length > 0) declaration.Append(", ");
+                declaration.Append('"').Append(tag).Append("\" ")
+                    .Append(featureSettings.Features[tag].ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            builder.AppendAttribute("font-feature-settings", declaration.ToString());
+        }
 
         if (textAdvanceWidth.HasValue && lines.Length == 1) {
             builder.AppendNumberAttribute("textLength", textAdvanceWidth.Value)

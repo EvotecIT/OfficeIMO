@@ -153,6 +153,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string ListStylePosition = "outside";
     internal string ListStyleImage = "none";
     internal string FontVariant = "normal";
+    internal OfficeTextFeatureSettings TextFeatureSettings = OfficeTextFeatureSettings.Default;
+    internal string FontPalette = "normal";
     internal string TextTransform = "none";
     internal bool ApproximateSmallCaps;
     internal string Language = string.Empty;

@@ -44,6 +44,8 @@ public sealed class PdfTextRun {
     public PdfTabAlignment TabAlignment { get; }
     /// <summary>Optional fixed-size visual carried by this run instead of text.</summary>
     public PdfInlineElement? InlineElement { get; }
+    /// <summary>Optional OpenType feature selections for this run.</summary>
+    public OfficeIMO.Drawing.OfficeTextFeatureSettings FeatureSettings { get; private set; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -141,6 +143,7 @@ public sealed class PdfTextRun {
         TabLeader = tabLeader;
         TabAlignment = tabAlignment;
         InlineElement = null;
+        FeatureSettings = OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
     }
 
     private PdfTextRun(PdfInlineElement inlineElement)
@@ -178,7 +181,20 @@ public sealed class PdfTextRun {
     public PdfTextRun WithTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         if (InlineElement != null) return this;
         string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
-        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor).WithFeatureSettings(FeatureSettings);
+    }
+
+    /// <summary>Creates a copy with explicit OpenType feature selections.</summary>
+    public PdfTextRun WithFeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings featureSettings) {
+#if NET6_0_OR_GREATER
+        System.ArgumentNullException.ThrowIfNull(featureSettings);
+#else
+        if (featureSettings == null) throw new System.ArgumentNullException(nameof(featureSettings));
+#endif
+        if (InlineElement != null) return this;
+        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        copy.FeatureSettings = featureSettings;
+        return copy;
     }
     /// <summary>Create a hyperlink run that points to a URI.</summary>
     public static PdfTextRun Link(

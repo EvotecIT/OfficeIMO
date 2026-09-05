@@ -753,7 +753,8 @@ internal static partial class PdfWriter {
                 run.FontFamily,
                 run.UnderlineStyle,
                 run.StrikeStyle,
-                run.DecorationColor));
+                run.DecorationColor)
+                .WithFeatureSettings(run.FeatureSettings));
         }
 
         return scaledRuns.AsReadOnly();

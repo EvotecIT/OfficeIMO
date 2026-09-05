@@ -596,9 +596,10 @@ public static partial class OfficeDrawingSvgExporter {
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
                 OfficeTextBaseline.Normal,
-                text.DecorationColor);
+                text.DecorationColor,
+                text.FeatureSettings);
         } else {
-            sb.AppendSvgTextElement(
+            sb.AppendSvgFeaturedTextElement(
                 text.Text,
                 x,
                 y,
@@ -617,7 +618,8 @@ public static partial class OfficeDrawingSvgExporter {
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
                 OfficeTextBaseline.Normal,
-                text.DecorationColor);
+                text.DecorationColor,
+                text.FeatureSettings);
         }
 
         if (useFrameTransform) {

@@ -27,7 +27,8 @@ internal static partial class PdfWriter {
                 fontFamily: run.FontFamily,
                 underlineStyle: run.UnderlineStyle,
                 strikeStyle: run.StrikeStyle,
-                decorationColor: run.DecorationColor));
+                decorationColor: run.DecorationColor)
+                .WithFeatureSettings(run.FeatureSettings));
         }
 
         return stripped;

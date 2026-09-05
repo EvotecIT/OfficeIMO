@@ -5,12 +5,12 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Dependency-light shaping provider for bounded Arabic joining and bidirectional text that can be
-/// represented by a TrueType-outline font.
+/// Dependency-light shaping provider for bounded Arabic joining, bidirectional text, and common
+/// OpenType substitutions that can be represented by a TrueType-outline font.
 /// </summary>
 /// <remarks>
-/// The provider deliberately declines OpenType/CFF fonts and scripts that require GSUB/GPOS shaping
-/// beyond the managed core. Callers then retain their normal scalar fallback and diagnostics. This
+/// The provider deliberately declines scripts and lookup types that require shaping beyond the
+/// bounded managed core. Callers then retain their normal scalar fallback and diagnostics. This
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
 public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider {
@@ -24,9 +24,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (request.IsOpenTypeCff ||
-            string.IsNullOrEmpty(request.Text) ||
-            !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
+        if (string.IsNullOrEmpty(request.Text) ||
+            !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
@@ -35,7 +34,9 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             return null;
         }
 
-        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(request.FontData, request.FontCollectionIndex);
+        IOfficeFontProgram? font = request.IsOpenTypeCff
+            ? OfficeOpenTypeCffFont.TryLoad(request.FontDataForShaping, request.VariationCoordinatesForShaping, out _)
+            : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex);
         if (font == null) return null;
 
         string contextual = OfficeArabicTextShaper.Shape(request.Text);
@@ -47,17 +48,29 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
         if (!font.HasGlyphs(visual)) return null;
-        var glyphs = new List<OfficeShapedGlyph>();
-        var advanceAdjustments = new List<int>();
-        int? previousKerningScalar = null;
+        var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>();
         foreach (VisualTextElement element in visualElements) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            if (!TryAddElementGlyphs(
-                    font,
-                    element,
-                    glyphs,
-                    advanceAdjustments,
-                    ref previousKerningScalar)) return null;
+            if (!TryAddElementGlyphs(font, element, tokens)) return null;
+        }
+
+        OfficeOpenTypeSubstitution? substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+        substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
+        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
+        var advanceAdjustments = new List<int>();
+        int? previousKerningScalar = null;
+        bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
+        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            if (kerningEnabled && previousKerningScalar.HasValue && glyphs.Count > 0) {
+                int previousIndex = glyphs.Count - 1;
+                OfficeShapedGlyph previous = glyphs[previousIndex];
+                int kerning = GetKerningAdjustment(font, previous.GlyphId, token.GlyphId, previousKerningScalar.Value, token.Scalar);
+                if (kerning != 0) advanceAdjustments[previousIndex] = checked(advanceAdjustments[previousIndex] + kerning);
+            }
+            glyphs.Add(new OfficeShapedGlyph(token.GlyphId, token.UnicodeText, token.TextIndex));
+            advanceAdjustments.Add(0);
+            previousKerningScalar = token.Scalar;
         }
 
         return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments);
@@ -89,11 +102,9 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     }
 
     private static bool TryAddElementGlyphs(
-        OfficeTrueTypeFont font,
+        IOfficeFontProgram font,
         VisualTextElement element,
-        List<OfficeShapedGlyph> glyphs,
-        List<int> advanceAdjustments,
-        ref int? previousKerningScalar) {
+        List<OfficeOpenTypeSubstitution.GlyphToken> glyphs) {
         int visualIndex = 0;
         int logicalOffset = 0;
         while (visualIndex < element.VisualText.Length) {
@@ -105,28 +116,29 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             }
 
             string unicodeText = char.ConvertFromUtf32(logicalScalar);
-            if (previousKerningScalar.HasValue && glyphs.Count > 0) {
-                int previousIndex = glyphs.Count - 1;
-                OfficeShapedGlyph previous = glyphs[previousIndex];
-                int kerning = font.GetKerningAdjustment(
-                    previous.GlyphId,
-                    glyphId,
-                    previousKerningScalar.Value,
-                    logicalScalar);
-                if (kerning != 0) {
-                    advanceAdjustments[previousIndex] = checked(
-                        advanceAdjustments[previousIndex] + kerning);
-                }
-            }
-            glyphs.Add(new OfficeShapedGlyph(
+            glyphs.Add(new OfficeOpenTypeSubstitution.GlyphToken(
                 glyphId,
                 unicodeText,
-                element.LogicalIndex + logicalStart));
-            advanceAdjustments.Add(0);
-            previousKerningScalar = logicalScalar;
+                element.LogicalIndex + logicalStart,
+                logicalScalar));
         }
 
         return true;
+    }
+
+    private static int GetKerningAdjustment(
+        IOfficeFontProgram font,
+        int leftGlyphId,
+        int rightGlyphId,
+        int leftScalar,
+        int rightScalar) {
+        if (font is OfficeTrueTypeFont trueType) {
+            return trueType.GetKerningAdjustment(leftGlyphId, rightGlyphId, leftScalar, rightScalar);
+        }
+        if (font is OfficeOpenTypeCffFont cff) {
+            return cff.GetKerningAdjustment(leftGlyphId, rightGlyphId, leftScalar, rightScalar);
+        }
+        return 0;
     }
 
     private static bool IsBidiControlElement(string value) =>

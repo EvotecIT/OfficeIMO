@@ -7,12 +7,14 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
-        if (options.ShapingProvider == null) {
+        IOfficeTextShapingProvider? provider = options.ShapingProvider;
+        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null) {
             glyphRun = null!;
             return false;
         }
 
-        OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
+        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
             font.FontDataForInspection,
@@ -23,7 +25,8 @@ internal static class PdfExternalTextShaper {
             default,
             fontCollectionIndex: null,
             variationCoordinates: null,
-            cloneFontData: false));
+            cloneFontData: false,
+            featureSettings: options.FeatureSettings));
 
         if (result == null) {
             glyphRun = null!;
@@ -39,12 +42,14 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
-        if (options.ShapingProvider == null) {
+        IOfficeTextShapingProvider? provider = options.ShapingProvider;
+        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null) {
             glyphRun = null!;
             return false;
         }
 
-        OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
+        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
             font.FontDataForInspection,
@@ -55,7 +60,8 @@ internal static class PdfExternalTextShaper {
             default,
             fontCollectionIndex: null,
             variationCoordinates: null,
-            cloneFontData: false));
+            cloneFontData: false,
+            featureSettings: options.FeatureSettings));
 
         if (result == null) {
             glyphRun = null!;

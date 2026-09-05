@@ -310,7 +310,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visual.BaselineScale,
                 visual.BaselineOffset,
                 glyphWidth,
-                visual.DecorationColor);
+                visual.DecorationColor,
+                visual.FeatureSettings,
+                visual.FontPalette);
             if (upright) {
                 destination.Add(glyph.Translate(0D, 0D, destination.Count));
                 continue;

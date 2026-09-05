@@ -154,7 +154,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             baselineScale: text.BaselineScale,
             baselineOffset: text.BaselineOffset,
             textPaintWidth: text.TextPaintWidth,
-            decorationColor: color);
+            decorationColor: color,
+            featureSettings: text.FeatureSettings,
+            fontPalette: text.FontPalette);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

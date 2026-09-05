@@ -205,6 +205,13 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         return glyphId != 0;
     }
 
+    internal int GetKerningAdjustment(int leftGlyphId, int rightGlyphId, int leftScalar, int rightScalar) {
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(
+            new[] { leftGlyphId, rightGlyphId },
+            new[] { leftScalar, rightScalar });
+        return positioning.Length > 0 ? positioning[0].XAdvance : 0;
+    }
+
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
         PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
         ValidateSize(fontSize);

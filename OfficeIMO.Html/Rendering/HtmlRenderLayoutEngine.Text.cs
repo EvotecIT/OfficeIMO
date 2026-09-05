@@ -500,12 +500,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
+        if (provider == null && !style.TextFeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             measured = 0D;
             return false;
         }
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
-        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, out measured)) return true;
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, out measured)) return true;
 
         IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
@@ -531,14 +532,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
             cloneFontData: false,
-            fontProgramCacheKey: font));
+            fontProgramCacheKey: font,
+            featureSettings: style.TextFeatureSettings));
         if (result == null) {
             measured = 0D;
             return false;
         }
 
         measured = font.MeasureShapedText(logicalText, result, effectiveFont.Size);
-        _shapedTextMeasurementCache.Store(text, effectiveFont, measured);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, measured);
         return true;
     }
 

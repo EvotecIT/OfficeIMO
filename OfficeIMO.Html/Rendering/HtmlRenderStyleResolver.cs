@@ -131,6 +131,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? parent?.TextTransform ?? "none"
             : computed.GetValue("text-transform").Trim().ToLowerInvariant();
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
+        OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
+        string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
         int baselineLevel = ResolveTextBaselineLevel(
             pseudoElement ? string.Empty : tag,
@@ -181,6 +183,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             ListStylePosition = ResolveListStylePosition(computed),
             ListStyleImage = ResolveListStyleImage(computed),
             FontVariant = fontVariantCaps,
+            TextFeatureSettings = textFeatureSettings,
+            FontPalette = fontPalette,
             TextTransform = textTransform,
             ApproximateSmallCaps = approximateSmallCaps,
             Language = language,

@@ -366,7 +366,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             entry.MarkerStyle.LineHeight,
                             _paintOrder++,
                             "#" + FootnoteCallDestination(entry.Number),
-                            HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker"));
+                            HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker",
+                            semanticRole: null,
+                            layoutY: null,
+                            semanticNodeId: null,
+                            textAdvanceWidth: null,
+                            featureSettings: entry.MarkerStyle.TextFeatureSettings,
+                            fontPalette: entry.MarkerStyle.FontPalette));
                     }
                 } else {
                     children.Add(new HtmlRenderText(
@@ -381,7 +387,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         entry.MarkerStyle.LineHeight,
                         _paintOrder++,
                         "#" + FootnoteCallDestination(entry.Number),
-                        HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker"));
+                        HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker",
+                        semanticRole: null,
+                        layoutY: null,
+                        semanticNodeId: null,
+                        textAdvanceWidth: null,
+                        featureSettings: entry.MarkerStyle.TextFeatureSettings,
+                        fontPalette: entry.MarkerStyle.FontPalette));
                 }
             }
             foreach (HtmlRenderVisual visual in body) {
