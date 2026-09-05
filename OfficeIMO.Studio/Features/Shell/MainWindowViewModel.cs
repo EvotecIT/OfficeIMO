@@ -90,7 +90,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<string, CancellationToken, Task>? openDocumentInTab = null,
         Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null,
         ISearchablePdfOcrService? ocrService = null,
-        StudioApplicationServices? services = null) {
+        StudioApplicationServices? services = null,
+        Func<string, bool>? canPublishPath = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -128,7 +129,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             _pickOutputFolder,
             openDocumentInTab,
             ocrService,
-            _canSaveAsPath,
+            canPublishPath ?? _canSaveAsPath,
             _localizer);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics);
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -345,11 +346,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     internal async Task<bool> RequestCloseDocumentAsync() {
-        if (!await PrepareDocumentTransitionAsync().ConfigureAwait(true)) return false;
+        if (!await PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+        CompletePreparedClose();
+        return true;
+    }
+
+    internal Task<bool> PrepareCloseDocumentAsync() => PrepareDocumentTransitionAsync();
+
+    internal void CancelPreparedClose() => _discardOnNextTransition = false;
+
+    internal void CompletePreparedClose() {
         _openCancellation?.Cancel();
         ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
         ErrorMessage = null;
-        return true;
     }
 
     [RelayCommand]

@@ -75,8 +75,9 @@ public sealed partial class MainWindow : Window {
 
     internal MainWindowViewModel ViewModel { get; private set; }
 
-    private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) =>
-        new(
+    private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) {
+        MainWindowViewModel? document = null;
+        document = new(
             pickPdf: PickPdfAsync,
             pickSavePdf: PickSavePdfAsync,
             pickImportPdfs: PickPdfsAsync,
@@ -88,10 +89,13 @@ public sealed partial class MainWindow : Window {
             pickWorkflowFiles: PickWorkflowFilesAsync,
             recentDocumentStore: new JsonRecentDocumentStore(_services.Paths.RecentDocumentsPath),
             promptPdfPassword: PromptPdfPasswordAsync,
-            canSaveAsPath: path => TabHost.CanActiveDocumentOwnPath(path),
+            canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
             openDocumentInTab: openDocumentInTab,
             pickAssemblyFolder: PickAssemblyFolderAsync,
-            services: _services);
+            services: _services,
+            canPublishPath: path => TabHost.CanPublishPath(path));
+        return document;
+    }
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;

@@ -52,12 +52,13 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         SelectedTab = Tabs[(current + offset + Tabs.Count) % Tabs.Count];
     }
 
-    internal bool CanActiveDocumentOwnPath(string path) {
+    internal bool CanPublishPath(string path) => CanDocumentOwnPath(null, path);
+
+    internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;
         string fullPath = Path.GetFullPath(path);
-        MainWindowViewModel activeDocument = ActiveDocument;
         return Tabs.All(tab =>
-            ReferenceEquals(tab.Document, activeDocument) ||
+            ReferenceEquals(tab.Document, document) ||
             !string.Equals(
                 tab.Document.DocumentPath,
                 fullPath,
@@ -132,9 +133,23 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     }
 
     internal async Task<bool> RequestCloseAllAsync() {
-        foreach (StudioDocumentTabViewModel tab in Tabs.ToArray()) {
-            SelectedTab = tab;
-            if (!await tab.Document.RequestCloseDocumentAsync().ConfigureAwait(true)) return false;
+        StudioDocumentTabViewModel[] candidates = Tabs.ToArray();
+        StudioDocumentTabViewModel? previousSelection = SelectedTab;
+        bool prepared = false;
+        try {
+            foreach (StudioDocumentTabViewModel tab in candidates) {
+                SelectedTab = tab;
+                if (!await tab.Document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+            }
+            prepared = true;
+        } finally {
+            if (!prepared) {
+                foreach (StudioDocumentTabViewModel tab in candidates) tab.Document.CancelPreparedClose();
+                if (previousSelection is not null && Tabs.Contains(previousSelection)) SelectedTab = previousSelection;
+            }
+        }
+        foreach (StudioDocumentTabViewModel tab in candidates) {
+            tab.Document.CompletePreparedClose();
             Tabs.Remove(tab);
             tab.Dispose();
         }
