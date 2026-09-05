@@ -867,7 +867,16 @@ public static partial class OfficeSvgDrawingReader {
             if (!TryAddEmbeddedSvgImage(element, drawing, style, transform, viewX, viewY)) unsupported++;
             return;
         }
-        if (name is "g" or "svg" or "a" or "switch") {
+        if (name == "svg") {
+            if (!TryAddNestedSvgViewport(
+                    element, drawing, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) {
+                unsupported++;
+            }
+            return;
+        }
+        if (name is "g" or "a" or "switch") {
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
