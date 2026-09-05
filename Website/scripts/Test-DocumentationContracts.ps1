@@ -312,9 +312,9 @@ if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 218
-    productionComponentCount = 117
-    testProjectCount = 41
+    projectCount = 220
+    productionComponentCount = 118
+    testProjectCount = 42
     benchmarkProjectCount = 33
     validationProjectCount = 28
     apiReferenceCount = 26
@@ -403,7 +403,7 @@ if ($aotMatrix.summary.fullyRootedLibraryCount -ne 111 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.nativeBuildAnalyzerCount -ne 1 -or
-    $aotMatrix.summary.managedCrossPlatformProjectCount -ne 2 -or
+    $aotMatrix.summary.managedCrossPlatformProjectCount -ne 3 -or
     $aotMatrix.summary.managedWindowsProjectCount -ne 1) {
     Add-Failure 'The NativeAOT classification totals changed without updating the customer-facing contract.'
 }
