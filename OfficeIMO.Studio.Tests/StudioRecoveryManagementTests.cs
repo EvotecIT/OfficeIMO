@@ -19,8 +19,8 @@ public sealed class StudioRecoveryManagementTests {
                 PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
                 byte[] original = File.ReadAllBytes(source);
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
-                string snapshot = await services.Recovery.WriteAsync(source,
-                    PdfWorkspaceRecoveryStore.Fingerprint(original), original, 1, CancellationToken.None);
+                string snapshot = Assert.IsType<string>(await services.Recovery.WriteAsync(source,
+                    PdfWorkspaceRecoveryStore.Fingerprint(original), original, 1, CancellationToken.None));
                 using var reader = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
                 await reader.OpenDocumentAsync(source);
                 Assert.True(reader.HasRecovery);
@@ -107,8 +107,8 @@ public sealed class StudioRecoveryManagementTests {
             Directory.CreateDirectory(root);
             try {
                 var services = StudioApplicationServices.Create(new StudioDataPaths(root));
-                string snapshot = await services.Recovery.WriteAsync(Path.Combine(root, "source.pdf"),
-                    PdfWorkspaceRecoveryStore.Fingerprint([1]), [1], 1, CancellationToken.None);
+                string snapshot = Assert.IsType<string>(await services.Recovery.WriteAsync(Path.Combine(root, "source.pdf"),
+                    PdfWorkspaceRecoveryStore.Fingerprint([1]), [1], 1, CancellationToken.None));
                 await File.WriteAllBytesAsync(snapshot, [0]);
                 File.SetLastWriteTimeUtc(snapshot, DateTime.UtcNow.AddDays(-31));
                 var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

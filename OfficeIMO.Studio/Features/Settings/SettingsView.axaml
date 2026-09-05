@@ -72,6 +72,10 @@
             <CheckBox IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}" />
             <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
             <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"
+                    IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryDisabled}" IsVisible="{Binding !CreateRecoverySnapshots}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.RecoveryRetention}" TextWrapping="Wrap" Classes="muted" />
             <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
                     IsVisible="{Binding !ConfirmRecoveryClear}" IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />

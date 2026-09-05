@@ -34,7 +34,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
         try {
             var store = new PdfWorkspaceRecoveryStore(root);
             byte[] bytes = [1, 2, 3];
-            string snapshot = await store.WriteAsync(Path.Combine(root, "source.pdf"), PdfWorkspaceRecoveryStore.Fingerprint(bytes), bytes, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(Path.Combine(root, "source.pdf"), PdfWorkspaceRecoveryStore.Fingerprint(bytes), bytes, 1, CancellationToken.None));
             if (legacy) {
                 File.Delete(snapshot);
                 snapshot = Path.ChangeExtension(snapshot, ".pdf");
@@ -62,15 +62,15 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             var store = new PdfWorkspaceRecoveryStore(root);
             byte[] bytes = [1, 2, 3];
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(bytes);
-            string current = await store.WriteAsync(Path.Combine(root, "current.pdf"), fingerprint, bytes, 1, CancellationToken.None);
-            string expired = await store.WriteAsync(Path.Combine(root, "expired.pdf"), fingerprint, bytes, 1, CancellationToken.None);
+            string current = Assert.IsType<string>(await store.WriteAsync(Path.Combine(root, "current.pdf"), fingerprint, bytes, 1, CancellationToken.None));
+            string expired = Assert.IsType<string>(await store.WriteAsync(Path.Combine(root, "expired.pdf"), fingerprint, bytes, 1, CancellationToken.None));
             var metadata = ReadMetadata(expired);
             metadata["UpdatedAt"] = DateTimeOffset.UtcNow.AddDays(-31);
             WriteFixture(expired, metadata, bytes);
             string legacy = Path.ChangeExtension(expired, ".pdf");
             metadata["SchemaVersion"] = 1;
             WriteFixture(legacy, metadata, bytes, legacy: true);
-            string unknown = await store.WriteAsync(Path.Combine(root, "future.pdf"), fingerprint, bytes, 1, CancellationToken.None);
+            string unknown = Assert.IsType<string>(await store.WriteAsync(Path.Combine(root, "future.pdf"), fingerprint, bytes, 1, CancellationToken.None));
             metadata = ReadMetadata(unknown);
             metadata["SchemaVersion"] = 999;
             metadata["UpdatedAt"] = DateTimeOffset.UtcNow.AddDays(-40);
@@ -170,7 +170,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             string recoveryRoot = Path.Combine(root, "recovery");
             var store = new PdfWorkspaceRecoveryStore(recoveryRoot);
             byte[] bytes = [1, 2, 3];
-            string snapshot = await store.WriteAsync(Path.Combine(root, "source.pdf"), PdfWorkspaceRecoveryStore.Fingerprint(bytes), bytes, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(Path.Combine(root, "source.pdf"), PdfWorkspaceRecoveryStore.Fingerprint(bytes), bytes, 1, CancellationToken.None));
             if (OperatingSystem.IsWindows()) {
                 using var locked = new FileStream(snapshot, FileMode.Open, FileAccess.Read, FileShare.Read);
                 RecoveryCleanupResult failed = await store.ClearAllAsync();

@@ -20,7 +20,7 @@ internal sealed class StudioApplicationServices {
         Localizer = localizer;
         Diagnostics = diagnostics;
         DocumentViews = new StudioDocumentViewStore(paths.DocumentViewsPath);
-        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot);
+        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
     }
 
     internal StudioDataPaths Paths { get; }

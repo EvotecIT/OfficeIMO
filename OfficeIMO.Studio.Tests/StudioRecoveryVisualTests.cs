@@ -56,6 +56,15 @@ public sealed class StudioRecoveryVisualTests {
                 TextBlock status = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == settings.RecoveryStatus);
                 VisibleBounds(status, view);
                 Capture(window, width, dark, "cleared");
+
+                await settings.ToggleRecoveryPersistenceCommand.ExecuteAsync(null);
+                Assert.False(settings.CreateRecoverySnapshots);
+                var toggle = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, settings.ToggleRecoveryPersistenceCommand));
+                Layout(window, width, height);
+                toggle.BringIntoView();
+                Layout(window, width, height);
+                VisibleBounds(toggle, view);
+                Capture(window, width, dark, "disabled");
             } finally {
                 window.Close();
             }

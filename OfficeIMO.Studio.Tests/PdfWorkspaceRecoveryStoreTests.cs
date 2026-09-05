@@ -30,7 +30,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             byte[] original = await File.ReadAllBytesAsync(source);
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(original);
             var store = new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery"));
-            string snapshot = await store.WriteAsync(source, fingerprint, original, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(source, fingerprint, original, 1, CancellationToken.None));
             Assert.Equal(original, store.ReadVerifiedSnapshot(source, fingerprint));
             JsonObject metadata = ReadMetadata(snapshot);
             if (legacy) {
@@ -82,7 +82,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             byte[] edited = await File.ReadAllBytesAsync(replacement);
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(original);
             var store = new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery"));
-            string snapshot = await store.WriteAsync(source, fingerprint, edited, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(source, fingerprint, edited, 1, CancellationToken.None));
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None, recoveryStore: store);
             Assert.True(workspace.HasRecovery);
             await File.WriteAllBytesAsync(snapshot, original);
@@ -111,7 +111,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             byte[] first = [1, 2, 3], second = [4, 5, 6];
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(first);
             var store = new PdfWorkspaceRecoveryStore(root);
-            string snapshot = await store.WriteAsync(source, fingerprint, first, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(source, fingerprint, first, 1, CancellationToken.None));
             if (!OperatingSystem.IsWindows()) {
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(snapshot));
                 File.SetUnixFileMode(snapshot, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
@@ -154,7 +154,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             byte[] first = [1, 2, 3], second = [4, 5, 6];
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(first);
             var store = new PdfWorkspaceRecoveryStore(root);
-            string snapshot = await store.WriteAsync(source, fingerprint, first, 1, CancellationToken.None);
+            string snapshot = Assert.IsType<string>(await store.WriteAsync(source, fingerprint, first, 1, CancellationToken.None));
             JsonObject metadata = ReadMetadata(snapshot);
             metadata.Remove("SchemaVersion"); // Original records predate the schema field.
             File.Delete(snapshot);

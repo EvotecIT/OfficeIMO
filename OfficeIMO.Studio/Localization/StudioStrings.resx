@@ -1432,8 +1432,15 @@
   <data name="Settings.RecoveryClearWarning" xml:space="preserve"><value>Delete stored recovery files? Unsaved edits from previous sessions cannot be recovered afterward. Open documents and original files stay intact. New edits can create new recovery copies.</value></data>
   <data name="Settings.DeleteRecovery" xml:space="preserve"><value>Delete recovery files</value></data>
   <data name="Settings.CancelRecoveryClear" xml:space="preserve"><value>Cancel</value></data>
-  <data name="Settings.RecoveryClearing" xml:space="preserve"><value>Clearing recovery files…</value></data>
-  <data name="Settings.RecoveryCleared" xml:space="preserve"><value>Recovery files removed: {0}. New edits can create new copies.</value></data>
+  <data name="Settings.RecoveryClearing" xml:space="preserve"><value>Updating recovery storage…</value></data>
+  <data name="Settings.RecoveryCleared" xml:space="preserve"><value>Recovery files removed: {0}. New edits create copies only while recovery storage is enabled.</value></data>
+  <data name="Settings.RecoveryPrivacyHelp" xml:space="preserve"><value>Recovery storage saves copies of unsaved edits on this device. Turn it off before editing a private document. This applies to documents in this running Studio instance and future launches; close other running instances separately. Existing copies remain until cleared below.</value></data>
+  <data name="Settings.DisableRecovery" xml:space="preserve"><value>Turn off recovery storage</value></data>
+  <data name="Settings.EnableRecovery" xml:space="preserve"><value>Turn on recovery storage</value></data>
+  <data name="Settings.RecoveryEnabled" xml:space="preserve"><value>Recovery storage is on. Future edits will save recovery copies.</value></data>
+  <data name="Settings.RecoveryDisabled" xml:space="preserve"><value>Recovery storage is off. Save your work regularly: new unsaved edits cannot be recovered after an unexpected exit.</value></data>
+  <data name="Settings.RecoveryPreferenceFailed" xml:space="preserve"><value>The recovery setting could not be saved. The previous setting remains in effect. Check folder access and retry.</value></data>
+  <data name="Settings.RecoveryPreferenceCanceled" xml:space="preserve"><value>The recovery setting was not changed.</value></data>
   <data name="Settings.RecoveryClearIncomplete" xml:space="preserve"><value>Recovery files removed: {0}. Could not remove: {1}. Close other Studio windows or check folder access, then retry.</value></data>
   <data name="Settings.RecoveryClearFailed" xml:space="preserve"><value>Recovery files could not be cleared. Check folder access or close other Studio windows, then retry.</value></data>
   <data name="Settings.RecoveryClearCanceled" xml:space="preserve"><value>Cleanup was canceled. Some recovery files may already have been removed.</value></data>

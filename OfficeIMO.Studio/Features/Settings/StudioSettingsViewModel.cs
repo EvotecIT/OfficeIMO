@@ -122,6 +122,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             SelectedTheme = Themes.First(choice => choice.Value == _preferences.Current.Theme);
             SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
             RememberSession = _preferences.Current.RememberSession;
+            OnPropertyChanged(nameof(CreateRecoverySnapshots));
+            OnPropertyChanged(nameof(RecoveryPersistenceAction));
         } finally {
             _synchronizing = false;
         }

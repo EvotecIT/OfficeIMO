@@ -11,6 +11,29 @@ internal sealed partial class StudioSettingsViewModel {
     public bool HasRecoveryStatus => !string.IsNullOrWhiteSpace(RecoveryStatus);
     partial void OnRecoveryStatusChanged(string? value) => OnPropertyChanged(nameof(HasRecoveryStatus));
 
+    public bool CreateRecoverySnapshots => _preferences.Current.CreateRecoverySnapshots;
+    public string RecoveryPersistenceAction => _localizer.Get(CreateRecoverySnapshots
+        ? "Settings.DisableRecovery" : "Settings.EnableRecovery");
+
+    [RelayCommand]
+    private async Task ToggleRecoveryPersistenceAsync(CancellationToken token) {
+        if (IsRecoveryBusy) return;
+        IsRecoveryBusy = true;
+        try {
+            bool enabled = !CreateRecoverySnapshots;
+            await _recovery.SetPersistenceAsync(enabled,
+                () => _preferences.Update(current => current with { CreateRecoverySnapshots = enabled }), token);
+            RecoveryStatus = enabled ? _localizer.Get("Settings.RecoveryEnabled") : null;
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "PersistencePreferenceFailed", error);
+            RecoveryStatus = _localizer.Get("Settings.RecoveryPreferenceFailed");
+        } catch (OperationCanceledException) when (token.IsCancellationRequested) {
+            RecoveryStatus = _localizer.Get("Settings.RecoveryPreferenceCanceled");
+        } finally {
+            IsRecoveryBusy = false;
+        }
+    }
+
     [RelayCommand]
     private void RequestRecoveryClear() {
         if (IsRecoveryBusy) return;

@@ -12,8 +12,11 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
     private const int MaximumMetadataBytes = 64 * 1024;
     private static ReadOnlySpan<byte> SnapshotMagic => "OIMORCV2"u8;
     private readonly string _root;
+    private readonly SemaphoreSlim _persistenceGate = new(1, 1);
+    private bool _persistenceEnabled;
 
-    internal PdfWorkspaceRecoveryStore(string? root = null) {
+    internal PdfWorkspaceRecoveryStore(string? root = null, bool persistenceEnabled = true) {
+        _persistenceEnabled = persistenceEnabled;
         _root = root ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OfficeIMO",
@@ -21,7 +24,37 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
             "Recovery");
     }
 
-    internal async Task<string> WriteAsync(
+    /// <summary>Commits the preference after active writes finish. Failure retains the previous policy.</summary>
+    internal async Task SetPersistenceAsync(bool enabled, Action persistPreference, CancellationToken token = default) {
+        ArgumentNullException.ThrowIfNull(persistPreference);
+        await _persistenceGate.WaitAsync(token);
+        try {
+            token.ThrowIfCancellationRequested();
+            persistPreference();
+            _persistenceEnabled = enabled;
+        } finally {
+            _persistenceGate.Release();
+        }
+    }
+
+    /// <summary>Stores edits when enabled; returns null without touching storage when opted out.</summary>
+    internal async Task<string?> WriteAsync(
+        string sourcePath,
+        string baseFingerprint,
+        byte[] bytes,
+        long revision,
+        CancellationToken cancellationToken) {
+        await _persistenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_persistenceEnabled) return null;
+            return await WriteEnabledAsync(sourcePath, baseFingerprint, bytes, revision, cancellationToken).ConfigureAwait(false);
+        } finally {
+            _persistenceGate.Release();
+        }
+    }
+
+    private async Task<string> WriteEnabledAsync(
         string sourcePath,
         string baseFingerprint,
         byte[] bytes,
