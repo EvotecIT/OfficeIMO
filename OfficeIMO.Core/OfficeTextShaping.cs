@@ -358,11 +358,12 @@ public readonly struct OfficeShapedGlyph {
         int textIndex,
         int? advanceWidth,
         int offsetX,
-        int offsetY) {
+        int offsetY,
+        bool allowEmptyUnicode = false) {
         if (glyphId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(glyphId), "Shaped glyph identifiers must be positive.");
         }
-        if (string.IsNullOrEmpty(unicodeText)) {
+        if (!allowEmptyUnicode && string.IsNullOrEmpty(unicodeText)) {
             throw new ArgumentException("Shaped glyphs must preserve non-empty Unicode extraction text.", nameof(unicodeText));
         }
         if (textIndex < 0) {
@@ -383,6 +384,12 @@ public readonly struct OfficeShapedGlyph {
         int textIndex,
         int offsetX,
         int offsetY) => new OfficeShapedGlyph(glyphId, unicodeText, textIndex, advanceWidth: null, offsetX, offsetY);
+
+    internal static OfficeShapedGlyph CreateUnicodeContinuation(
+        int glyphId,
+        int textIndex,
+        int offsetX,
+        int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth: null, offsetX, offsetY, allowEmptyUnicode: true);
 
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }

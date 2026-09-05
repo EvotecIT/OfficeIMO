@@ -5,7 +5,7 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded GSUB single, alternate, ligature, and extension lookup interpreter.</summary>
-internal sealed class OfficeOpenTypeSubstitution {
+internal sealed partial class OfficeOpenTypeSubstitution {
     private const int MaximumFeatureRecords = 4096;
     private const int MaximumLookupRecords = 4096;
     private const int MaximumSubtablesPerLookup = 256;
@@ -108,12 +108,20 @@ internal sealed class OfficeOpenTypeSubstitution {
             return;
         }
 
+        if (lookupType == 8) {
+            ApplyReverseChaining(glyphs, subtable, cancellationToken, ref operations);
+            return;
+        }
+
         for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (++operations > MaximumOperations) throw new InvalidDataException("GSUB shaping exceeded the managed operation budget.");
             if (lookupType == 1) ApplySingle(glyphs, glyphIndex, subtable);
+            else if (lookupType == 2) ApplyMultiple(glyphs, glyphIndex, subtable);
             else if (lookupType == 3) ApplyAlternate(glyphs, glyphIndex, subtable, featureValue);
             else if (lookupType == 4 && ApplyLigature(glyphs, glyphIndex, subtable)) glyphIndex--;
+            else if (lookupType == 5) ApplyContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
+            else if (lookupType == 6) ApplyChainedContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
         }
     }
 
@@ -248,17 +256,19 @@ internal sealed class OfficeOpenTypeSubstitution {
     }
 
     internal readonly struct GlyphToken {
-        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar) {
+        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation = false) {
             GlyphId = glyphId;
             UnicodeText = unicodeText;
             TextIndex = textIndex;
             Scalar = scalar;
+            IsUnicodeContinuation = isUnicodeContinuation;
         }
 
         internal int GlyphId { get; }
         internal string UnicodeText { get; }
         internal int TextIndex { get; }
         internal int Scalar { get; }
-        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar);
+        internal bool IsUnicodeContinuation { get; }
+        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation);
     }
 }

@@ -236,6 +236,48 @@ public class DrawingManagedTextShapingProviderTests {
         Assert.Equal(0, glyph.TextIndex);
     }
 
+    [Fact]
+    public void ManagedProvider_AppliesMultipleSubstitutionWithoutDuplicatingLogicalText() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A');
+        var request = new OfficeTextShapingRequest(
+            "A",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en",
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("ccmp", 1) }));
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(new[] { 3, 4 }, result.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal("A", result.Glyphs[0].UnicodeText);
+        Assert.Equal(string.Empty, result.Glyphs[1].UnicodeText);
+        Assert.Equal(0, result.Glyphs[1].TextIndex);
+    }
+
+    [Fact]
+    public void ManagedProvider_AppliesContextualFormatThreeLookupRecords() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithContextualSubstitution('A', 'B');
+        var request = new OfficeTextShapingRequest(
+            "AB",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en",
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("calt", 1) }));
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(new[] { 1, 3 }, result.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(new[] { "A", "B" }, result.Glyphs.Select(glyph => glyph.UnicodeText));
+    }
+
     private static bool ContainsColor(OfficeRasterImage image, Func<OfficeColor, bool> predicate) {
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {

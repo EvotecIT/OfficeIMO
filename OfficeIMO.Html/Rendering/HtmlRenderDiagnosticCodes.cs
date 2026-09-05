@@ -52,6 +52,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
     public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
+    /// <summary>A requested OpenType feature requires a shaping lookup outside the bounded managed subset.</summary>
+    public const string OpenTypeFeatureUnsupported = "HtmlRenderOpenTypeFeatureUnsupported";
     /// <summary>Legacy diagnostic retained for source compatibility; bounded bidi positioning is active.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>A complex-script run requires provider-owned shaping that no configured provider accepted.</summary>
@@ -241,6 +243,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceUnavailable,
         FontFormatUnsupported,
         FontVariantApproximated,
+        OpenTypeFeatureUnsupported,
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
         FlexLayoutPending,

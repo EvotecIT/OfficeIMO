@@ -38,6 +38,15 @@ internal static class ManagedTextShapingTestAssets {
             gpos: CreatePairPositioningGpos());
     }
 
+    internal static byte[] CreateFontWithMultipleSubstitution(int scalar) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub());
+
+    internal static byte[] CreateFontWithContextualSubstitution(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub());
+
     internal static byte[] CreateColorFont(int scalar) {
         return CreateFontFromCmap(
             CreateFormat12Cmap(new[] { scalar }),
@@ -244,6 +253,85 @@ internal static class ManagedTextShapingTestAssets {
         WriteInt16(table, 82, -30);
         WriteInt16(table, 84, -40);
         return table;
+    }
+
+    private static byte[] CreateMultipleGsub() {
+        var data = new byte[60];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, "ccmp");
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 4);
+        WriteUInt16(data, 30, 2);
+        WriteUInt16(data, 32, 0);
+        WriteUInt16(data, 34, 1);
+        WriteUInt16(data, 36, 8);
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, 10);
+        WriteUInt16(data, 42, 1);
+        WriteUInt16(data, 44, 16);
+        WriteUInt16(data, 48, 1);
+        WriteUInt16(data, 50, 1);
+        WriteUInt16(data, 52, 1);
+        WriteUInt16(data, 54, 2);
+        WriteUInt16(data, 56, 3);
+        WriteUInt16(data, 58, 4);
+        return data;
+    }
+
+    private static byte[] CreateContextualGsub() {
+        var data = new byte[88];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, "calt");
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 2);
+        WriteUInt16(data, 28, 6);
+        WriteUInt16(data, 30, 40);
+        WriteUInt16(data, 32, 5);
+        WriteUInt16(data, 34, 0);
+        WriteUInt16(data, 36, 1);
+        WriteUInt16(data, 38, 8);
+        WriteUInt16(data, 40, 3);
+        WriteUInt16(data, 42, 2);
+        WriteUInt16(data, 44, 1);
+        WriteUInt16(data, 46, 14);
+        WriteUInt16(data, 48, 20);
+        WriteUInt16(data, 50, 1);
+        WriteUInt16(data, 52, 1);
+        WriteUInt16(data, 54, 1);
+        WriteUInt16(data, 56, 1);
+        WriteUInt16(data, 58, 1);
+        WriteUInt16(data, 60, 1);
+        WriteUInt16(data, 62, 1);
+        WriteUInt16(data, 64, 2);
+        WriteUInt16(data, 66, 1);
+        WriteUInt16(data, 68, 0);
+        WriteUInt16(data, 70, 1);
+        WriteUInt16(data, 72, 8);
+        WriteUInt16(data, 74, 2);
+        WriteUInt16(data, 76, 8);
+        WriteUInt16(data, 78, 1);
+        WriteUInt16(data, 80, 3);
+        WriteUInt16(data, 82, 1);
+        WriteUInt16(data, 84, 1);
+        WriteUInt16(data, 86, 2);
+        return data;
     }
 
     private static byte[] CreateCpalV1() {

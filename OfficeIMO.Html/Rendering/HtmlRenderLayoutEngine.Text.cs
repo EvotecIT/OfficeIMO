@@ -465,14 +465,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedComplexTextShaping(IText textNode, HtmlRenderBoxStyle style) {
         IElement? element = textNode.ParentElement;
         if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedComplexTextShapingElements.Contains(element)) return;
-        if (!RequiresConfiguredTextShaping(textNode.Data)) return;
+        bool featureShaping = !style.TextFeatureSettings.IsDefault;
+        if (!featureShaping && !RequiresConfiguredTextShaping(textNode.Data)) return;
+        if (featureShaping && _options.TextShapingProvider != null) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
             textNode.Data,
             style.Font.FamilyName,
             style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
-            if (!RequiresConfiguredTextShaping(fallback.Text)) continue;
+            if (!featureShaping && !RequiresConfiguredTextShaping(fallback.Text)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
             fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
             if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
@@ -482,10 +484,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (allUnsupportedRunsShaped) return;
         _reportedComplexTextShapingElements.Add(element);
+        string diagnosticCode = featureShaping
+            ? HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported
+            : HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported;
+        string message = featureShaping
+            ? "A requested OpenType feature required a lookup outside the bounded managed shaping subset; scalar glyphs were used."
+            : "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.";
         _diagnostics.Add(
             ComponentName,
-            HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
-            "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.",
+            diagnosticCode,
+            message,
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
             "provider-declined",

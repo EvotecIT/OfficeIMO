@@ -94,10 +94,6 @@ internal static class PdfExternalTextShaper {
                 throw new ArgumentException("PDF text shaping provider returned a text index outside the source text.", nameof(result));
             }
 
-            if (string.IsNullOrEmpty(shapedGlyph.UnicodeText)) {
-                throw new ArgumentException("PDF text shaping provider returned a glyph without Unicode extraction text.", nameof(result));
-            }
-
             int nominalWidth1000 = getGlyphWidth1000(shapedGlyph.GlyphId);
             int advanceWidth1000 = shapedGlyph.AdvanceWidth.HasValue
                 ? ScaleToPdfUnits(shapedGlyph.AdvanceWidth.Value, unitsPerEm)

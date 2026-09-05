@@ -55,6 +55,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         }
 
         OfficeOpenTypeSubstitution? substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+        if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return null;
         substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
         bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
         var glyphIds = new int[tokens.Count];
@@ -70,12 +71,18 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         var advanceAdjustments = new List<int>(tokens.Count);
         foreach ((OfficeOpenTypeSubstitution.GlyphToken token, int index) in tokens.Select((token, index) => (token, index))) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            glyphs.Add(OfficeShapedGlyph.CreatePositionedUsingNominalAdvance(
-                token.GlyphId,
-                token.UnicodeText,
-                token.TextIndex,
-                positioning[index].XPlacement,
-                offsetY: 0));
+            glyphs.Add(token.IsUnicodeContinuation
+                ? OfficeShapedGlyph.CreateUnicodeContinuation(
+                    token.GlyphId,
+                    token.TextIndex,
+                    positioning[index].XPlacement,
+                    offsetY: 0)
+                : OfficeShapedGlyph.CreatePositionedUsingNominalAdvance(
+                    token.GlyphId,
+                    token.UnicodeText,
+                    token.TextIndex,
+                    positioning[index].XPlacement,
+                    offsetY: 0));
             advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
