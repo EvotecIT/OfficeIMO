@@ -272,7 +272,9 @@ public static partial class OfficeDrawingRasterRenderer {
             text.UnderlineStyle == OfficeTextDecorationStyle.None &&
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
-        if ((text.TextAdvanceWidth.HasValue || !text.FeatureSettings.IsDefault) && supportsPositionedPath) {
+        if ((text.TextAdvanceWidth.HasValue ||
+             !text.FeatureSettings.IsDefault ||
+             !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase)) && supportsPositionedPath) {
             double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
             double renderedFontSize = positionedSourceFontSize * text.BaselineScale;
             double positionedBaselineOffset = text.BaselineOffset * scale;
@@ -291,7 +293,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
                 text.DecorationColor,
-                text.FeatureSettings);
+                text.FeatureSettings,
+                text.FontPalette);
             return;
         }
 

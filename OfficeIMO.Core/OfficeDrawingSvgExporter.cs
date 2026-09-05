@@ -597,7 +597,8 @@ public static partial class OfficeDrawingSvgExporter {
                 text.StrikethroughStyle,
                 OfficeTextBaseline.Normal,
                 text.DecorationColor,
-                text.FeatureSettings);
+                text.FeatureSettings,
+                text.FontPalette);
         } else {
             sb.AppendSvgFeaturedTextElement(
                 text.Text,
@@ -619,7 +620,8 @@ public static partial class OfficeDrawingSvgExporter {
                 text.StrikethroughStyle,
                 OfficeTextBaseline.Normal,
                 text.DecorationColor,
-                text.FeatureSettings);
+                text.FeatureSettings,
+                text.FontPalette);
         }
 
         if (useFrameTransform) {

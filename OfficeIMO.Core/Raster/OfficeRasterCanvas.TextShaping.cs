@@ -111,6 +111,43 @@ public sealed partial class OfficeRasterCanvas {
             fontSize);
     }
 
+    private bool TryGetResolvedColorTextContours(
+        string text,
+        IOfficeFontProgram font,
+        double x,
+        double y,
+        double fontSize,
+        OfficeTextFeatureSettings? featureSettings,
+        string? fontPalette,
+        OfficeColor foreground,
+        out List<OfficeColorGlyphContours> layers) {
+        layers = new List<OfficeColorGlyphContours>();
+        if (font is not OfficeTrueTypeFont trueType) return false;
+        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
+            return trueType.TryGetShapedColorTextContours(
+                OfficeArabicTextShaper.ToLogicalText(text),
+                run,
+                x,
+                y,
+                fontSize,
+                fontPalette,
+                foreground,
+                MaximumTextOutlinePointsPerRun,
+                _cancellationToken,
+                out layers);
+        }
+        return trueType.TryGetColorTextContours(
+            GetManagedTextFallback(text, font).Text,
+            x,
+            y,
+            fontSize,
+            fontPalette,
+            foreground,
+            MaximumTextOutlinePointsPerRun,
+            _cancellationToken,
+            out layers);
+    }
+
     private List<List<OfficePoint>> GetBoundedTextContours(
         IOfficeFontProgram font,
         string text,

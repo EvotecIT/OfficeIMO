@@ -675,7 +675,7 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal,
         OfficeColor? decorationColor = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings: null);
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings: null, fontPalette: null);
 
     internal static StringBuilder AppendSvgFeaturedTextElement(
         this StringBuilder builder,
@@ -698,8 +698,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor,
-        OfficeTextFeatureSettings featureSettings) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings);
+        OfficeTextFeatureSettings featureSettings,
+        string? fontPalette) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
 
     internal static StringBuilder AppendSvgPositionedTextElement(
         this StringBuilder builder,
@@ -723,8 +724,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor = null,
-        OfficeTextFeatureSettings? featureSettings = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings);
+        OfficeTextFeatureSettings? featureSettings = null,
+        string? fontPalette = null) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -748,7 +750,8 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor,
-        OfficeTextFeatureSettings? featureSettings) {
+        OfficeTextFeatureSettings? featureSettings,
+        string? fontPalette) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -792,6 +795,10 @@ public static partial class OfficeTextBlockRenderer {
                     .Append(featureSettings.Features[tag].ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
             builder.AppendAttribute("font-feature-settings", declaration.ToString());
+        }
+
+        if (!string.IsNullOrWhiteSpace(fontPalette) && !string.Equals(fontPalette, "normal", StringComparison.OrdinalIgnoreCase)) {
+            builder.AppendAttribute("font-palette", fontPalette!.Trim());
         }
 
         if (textAdvanceWidth.HasValue && lines.Length == 1) {

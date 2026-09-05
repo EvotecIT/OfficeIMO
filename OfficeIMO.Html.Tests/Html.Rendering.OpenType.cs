@@ -110,4 +110,62 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("fi", PdfCore.PdfReadDocument.Open(enabledPdf).ExtractText().Trim());
         Assert.Equal("fi", PdfCore.PdfReadDocument.Open(disabledPdf).ExtractText().Trim());
     }
+
+    [Fact]
+    public void HtmlRendering_FontPaletteSelectsManagedColorGlyphPalette() {
+        byte[] font = ManagedTextShapingTestAssets.CreateColorFont('A');
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 90D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.Fonts.Add("Color Test", font);
+        const string shared = "margin:0;font-family:'Color Test';font-size:40px;line-height:48px;color:black;font-palette:";
+        HtmlConversionDocument light = HtmlConversionDocument.Parse("<p style=\"" + shared + "light\">A</p>");
+        HtmlConversionDocument dark = HtmlConversionDocument.Parse("<p style=\"" + shared + "dark\">A</p>");
+        HtmlRenderDocument lightRendered = HtmlRenderTestDriver.Render(light, options);
+        HtmlRenderText lightVisual = Assert.Single(lightRendered.Pages[0].Visuals.OfType<HtmlRenderText>());
+        OfficeDrawingText lightDrawingText = Assert.Single(lightRendered.Pages[0].CreateDrawing().Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal("light", lightVisual.FontPalette);
+        Assert.Equal("light", lightDrawingText.FontPalette);
+        Assert.True(OfficePngReader.TryDecode(light.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? lightImage));
+        Assert.True(OfficePngReader.TryDecode(dark.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
+        string darkSvg = Encoding.UTF8.GetString(dark.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        byte[] darkPdf = dark.ToPdf(new HtmlPdfSaveOptions(options));
+        OfficeColor[] pdfPaints = PdfCore.PdfDocument.Load(darkPdf).Render.Drawing(1).Shapes
+            .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent)
+            .ToArray();
+
+        Assert.NotNull(lightImage);
+        Assert.NotNull(darkImage);
+        Assert.True(ContainsColor(lightImage!, pixel => pixel.R > 220 && pixel.G < 40 && pixel.B < 40), DescribeColors(lightImage!));
+        Assert.True(ContainsColor(lightImage!, pixel => pixel.B > 220 && pixel.R < 40 && pixel.G < 40));
+        Assert.True(ContainsColor(darkImage!, pixel => pixel.R > 220 && pixel.G > 220 && pixel.B < 40));
+        Assert.True(ContainsColor(darkImage!, pixel => pixel.G > 90 && pixel.R < 40 && pixel.B < 40));
+        Assert.Contains("font-palette=\"dark\"", darkSvg, StringComparison.Ordinal);
+        Assert.Contains(OfficeColor.Yellow, pdfPaints);
+        Assert.Contains(OfficeColor.FromRgb(0, 128, 0), pdfPaints);
+        Assert.Equal("A", PdfCore.PdfReadDocument.Open(darkPdf).ExtractText().Trim());
+    }
+
+    private static bool ContainsColor(OfficeRasterImage image, Func<OfficeColor, bool> predicate) {
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                if (predicate(image.GetPixel(x, y))) return true;
+            }
+        }
+        return false;
+    }
+
+    private static string DescribeColors(OfficeRasterImage image) {
+        var counts = new Dictionary<OfficeColor, int>();
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor color = image.GetPixel(x, y);
+                counts[color] = counts.TryGetValue(color, out int count) ? count + 1 : 1;
+            }
+        }
+        return string.Join(", ", counts.OrderByDescending(pair => pair.Value).Take(12).Select(pair => pair.Key + "=" + pair.Value));
+    }
 }

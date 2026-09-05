@@ -30,6 +30,15 @@ internal static class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
     }
 
+    internal static byte[] CreateColorFont(int scalar) {
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(new[] { scalar }),
+            glyphCount: 4,
+            distinctSecondGlyph: true,
+            colr: CreateColrV0(),
+            cpal: CreateCpalV1());
+    }
+
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
         if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
         if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
@@ -108,7 +117,9 @@ internal static class ManagedTextShapingTestAssets {
         int glyphCount = 2,
         byte[]? kern = null,
         byte[]? gsub = null,
-        bool distinctSecondGlyph = false) {
+        bool distinctSecondGlyph = false,
+        byte[]? colr = null,
+        byte[]? cpal = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -133,6 +144,8 @@ internal static class ManagedTextShapingTestAssets {
         };
         if (kern != null) tables.Add(("kern", kern));
         if (gsub != null) tables.Add(("GSUB", gsub));
+        if (colr != null) tables.Add(("COLR", colr));
+        if (cpal != null) tables.Add(("CPAL", cpal));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
@@ -154,6 +167,51 @@ internal static class ManagedTextShapingTestAssets {
         }
 
         return font;
+    }
+
+    private static byte[] CreateColrV0() {
+        var table = new byte[28];
+        WriteUInt16(table, 0, 0);
+        WriteUInt16(table, 2, 1);
+        WriteUInt32(table, 4, 14);
+        WriteUInt32(table, 8, 20);
+        WriteUInt16(table, 12, 2);
+        WriteUInt16(table, 14, 1);
+        WriteUInt16(table, 16, 0);
+        WriteUInt16(table, 18, 2);
+        WriteUInt16(table, 20, 2);
+        WriteUInt16(table, 22, 0);
+        WriteUInt16(table, 24, 3);
+        WriteUInt16(table, 26, 1);
+        return table;
+    }
+
+    private static byte[] CreateCpalV1() {
+        var table = new byte[52];
+        WriteUInt16(table, 0, 1);
+        WriteUInt16(table, 2, 2);
+        WriteUInt16(table, 4, 2);
+        WriteUInt16(table, 6, 4);
+        WriteUInt32(table, 8, 28);
+        WriteUInt16(table, 12, 0);
+        WriteUInt16(table, 14, 2);
+        WriteUInt32(table, 16, 44);
+        WriteUInt32(table, 20, 0);
+        WriteUInt32(table, 24, 0);
+        WriteBgra(table, 28, 255, 0, 0, 255);
+        WriteBgra(table, 32, 0, 0, 255, 255);
+        WriteBgra(table, 36, 255, 255, 0, 255);
+        WriteBgra(table, 40, 0, 128, 0, 255);
+        WriteUInt32(table, 44, 1);
+        WriteUInt32(table, 48, 2);
+        return table;
+    }
+
+    private static void WriteBgra(byte[] data, int offset, byte red, byte green, byte blue, byte alpha) {
+        data[offset] = blue;
+        data[offset + 1] = green;
+        data[offset + 2] = red;
+        data[offset + 3] = alpha;
     }
 
     internal static byte[] CreateFontCollection(params int[] scalars) {

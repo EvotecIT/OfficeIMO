@@ -19,7 +19,9 @@ public sealed partial class OfficeRasterCanvas {
         double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
-        OfficeColor? decorationColor) {
+        OfficeColor? decorationColor,
+        OfficeTextFeatureSettings? featureSettings,
+        string? fontPalette) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
@@ -56,7 +58,9 @@ public sealed partial class OfficeRasterCanvas {
                         textAdvanceWidth,
                         underlineStyle,
                         strikethroughStyle,
-                        decorationColor);
+                        decorationColor,
+                        featureSettings,
+                        fontPalette);
                     return true;
                 }
             }
@@ -86,7 +90,9 @@ public sealed partial class OfficeRasterCanvas {
                 Math.Max(0.01D, runAdvance),
                 underlineStyle,
                 strikethroughStyle,
-                decorationColor);
+                decorationColor,
+                featureSettings,
+                fontPalette);
             cursor += runAdvance;
         }
         return true;

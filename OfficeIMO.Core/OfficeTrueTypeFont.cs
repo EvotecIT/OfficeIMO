@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxFontCacheEntries = 1024;
@@ -30,6 +30,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _hhea;
     private readonly int _hmtx;
     private readonly OfficeOpenTypeKerning _kerning;
+    private readonly OfficeOpenTypeColorGlyphs? _colorGlyphs;
     private readonly int _loca;
     private readonly int _maxp;
     private readonly int _name;
@@ -66,8 +67,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _hmtx = tables["hmtx"];
         int gpos = tables.TryGetValue("GPOS", out int gposOffset) ? gposOffset : -1;
         int kern = tables.TryGetValue("kern", out int kernOffset) ? kernOffset : -1;
-        OfficeOpenTypeReader? reader = null;
-        if (_variationModel.IsVariable) {
+        OfficeOpenTypeReader? reader = collectionIndex == null ? OfficeOpenTypeReader.TryCreate(data) : null;
+        if (_variationModel.IsVariable && reader == null) {
             reader = OfficeOpenTypeReader.TryCreate(data)
                 ?? throw new InvalidDataException("The variable TrueType font table directory is invalid.");
         }
@@ -98,6 +99,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+        _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
         _variations = variationModel != null && variationModel.IsVariable
             ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)
             : null;
