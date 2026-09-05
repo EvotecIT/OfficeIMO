@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
@@ -10,6 +11,53 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioViewPreferencesTests {
+    [Theory]
+    [InlineData(960, 620, false)]
+    [InlineData(1280, 820, true)]
+    public async Task CustomZoomSurvivesEditsHistoryAndSaveInTheRenderedWorkspace(int width, int height, bool dark) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            string source = Path.Combine(services.Paths.Root, "custom-zoom.pdf");
+            PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
+                .Content(content => content.Text("Custom zoom survives editing and saving.")))).Save(source);
+            var window = new MainWindow(services) { Width = width, Height = height };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(source);
+                var model = window.ViewModel;
+                model.ActualSizeCommand.Execute(null);
+                model.ZoomInCommand.Execute(null);
+                model.ZoomInCommand.Execute(null);
+                model.SetOrganizerSelection([Assert.Single(model.OrganizerPages)]);
+                await model.DuplicateSelectedCommand.ExecuteAsync(null);
+                Assert.Equal(1.5, model.Zoom);
+                await model.UndoCommand.ExecuteAsync(null);
+                Assert.Equal(1.5, model.Zoom);
+                await model.RedoCommand.ExecuteAsync(null);
+                Assert.Equal(1.5, model.Zoom);
+                await model.SaveCommand.ExecuteAsync(null);
+                Assert.False(model.IsDirty);
+                Assert.Equal(1.5, model.Zoom);
+                Assert.Equal(2, PdfDocument.Load(source).Read().Pages.Count);
+                await model.Pages[0].EnsureRenderedAsync();
+                window.Measure(new Size(width, height));
+                window.Arrange(new Rect(0, 0, width, height));
+                window.UpdateLayout();
+                Assert.Equal(900, model.Pages[0].DisplayWidth);
+                using var frame = window.CaptureRenderedFrame();
+                Assert.NotNull(frame);
+                string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+                if (!string.IsNullOrWhiteSpace(output)) {
+                    Directory.CreateDirectory(output);
+                    frame.Save(Path.Combine(output, $"custom-zoom-{width}-{(dark ? "dark" : "light")}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                }
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Fact]
     public void StoredViewPreferencesAreBoundedAndDoNotContainSourcePaths() {
         string root = NewFolder();

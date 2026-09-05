@@ -580,7 +580,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private void ApplyFitZoom() {
-        if (Pages.Count == 0) return;
+        if (Pages.Count == 0 || _zoomMode == ViewerZoomMode.Custom) return;
         PdfPageViewModel page = SelectedPage ?? Pages[0];
         double unscaledWidth = page.DisplayWidth / Math.Max(Zoom, 0.01D);
         double unscaledHeight = page.DisplayHeight / Math.Max(Zoom, 0.01D);
