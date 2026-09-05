@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42651
+    "conceptualWordCount": 42657
   },
   "categories": [
     {
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 524,
+      "sourceFileCount": 526,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
