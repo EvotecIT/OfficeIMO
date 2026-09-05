@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 218,
-    "productionComponentCount": 117,
-    "testProjectCount": 41,
+    "projectCount": 220,
+    "productionComponentCount": 118,
+    "testProjectCount": 42,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42472
+    "conceptualWordCount": 42653
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 11
+      "componentCount": 12
     }
   ],
   "components": [
@@ -716,7 +716,7 @@
       "description": "Dependency-light OCR contracts shared by OfficeIMO document formats and providers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 6,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ocr/",
@@ -872,7 +872,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1110,
+      "sourceFileCount": 1125,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -885,7 +885,7 @@
       "description": "Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
-      "sourceFileCount": 6,
+      "sourceFileCount": 7,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
@@ -1399,13 +1399,26 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
     },
     {
+      "name": "OfficeIMO.Studio",
+      "packageId": "OfficeIMO.Studio",
+      "category": "Specialized components",
+      "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "sourceFileCount": 81,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
+    },
+    {
       "name": "OfficeIMO.Tool",
       "packageId": "OfficeIMO.Tool",
       "category": "Specialized components",
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 39,
+      "sourceFileCount": 41,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1548,7 +1561,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 20,
+      "sourceFileCount": 28,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
