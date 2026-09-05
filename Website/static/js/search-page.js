@@ -7,6 +7,15 @@
     return;
   }
 
+  let entries = [];
+  let indexLoadError = null;
+  let resolveIndexReady;
+  const indexReady = new Promise(function (resolve) {
+    resolveIndexReady = resolve;
+  });
+  const webMcpSearch = window.PowerForgeWebMcpSearch || {};
+  window.PowerForgeWebMcpSearch = webMcpSearch;
+
   const params = new URLSearchParams(window.location.search);
   const seededQuery = (params.get('q') || '').trim();
   if (seededQuery) {
@@ -63,7 +72,47 @@
     }).join('');
   }
 
-  let entries = [];
+  function awaitIndex(signal) {
+    if (!signal) {
+      return indexReady;
+    }
+    if (signal.aborted) {
+      return Promise.reject(new DOMException('The OfficeIMO search was cancelled.', 'AbortError'));
+    }
+
+    return new Promise(function (resolve, reject) {
+      function cleanup() {
+        signal.removeEventListener('abort', abort);
+      }
+      function abort() {
+        cleanup();
+        reject(new DOMException('The OfficeIMO search was cancelled.', 'AbortError'));
+      }
+      signal.addEventListener('abort', abort, { once: true });
+      indexReady.then(function () {
+        cleanup();
+        resolve();
+      });
+    });
+  }
+
+  webMcpSearch.adapter = {
+    search: async function (request) {
+      await awaitIndex(request.signal);
+      if (indexLoadError) {
+        throw indexLoadError;
+      }
+      if (typeof webMcpSearch.searchEntries !== 'function') {
+        throw new Error('The PowerForge WebMCP search runtime is unavailable.');
+      }
+
+      const result = webMcpSearch.searchEntries(entries, request.query, request.limit);
+      input.value = request.query;
+      render(result.results, request.query);
+      return result;
+    }
+  };
+
   try {
     let indexPath = '/search/index.json';
     const manifestResponse = await fetch('/search/manifest.json', { cache: 'no-cache' });
@@ -81,10 +130,13 @@
 
     entries = await indexResponse.json();
   } catch (error) {
+    indexLoadError = error instanceof Error ? error : new Error(String(error));
     meta.textContent = 'Search index unavailable.';
     results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
+    resolveIndexReady();
     return;
   }
+  resolveIndexReady();
 
   function runSearch() {
     const query = input.value.trim().toLowerCase();
