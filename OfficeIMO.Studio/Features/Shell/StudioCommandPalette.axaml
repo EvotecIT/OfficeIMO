@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+        x:Class="OfficeIMO.Studio.Features.Shell.StudioCommandPalette"
+        x:DataType="shell:StudioCommandPaletteModel"
+        Title="{loc:Loc Commands.PaletteTitle}" Width="660" Height="480"
+        MinWidth="420" MinHeight="300" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource StudioPanelBrush}" Foreground="{DynamicResource StudioTextBrush}">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="12">
+    <TextBox x:Name="QueryBox" MinHeight="36" Text="{Binding Query, Mode=TwoWay}"
+             PlaceholderText="{loc:Loc Commands.SearchPlaceholder}"
+             AutomationProperties.Name="{loc:Loc Commands.SearchPlaceholder}" />
+    <Grid Grid.Row="1">
+      <ListBox x:Name="ResultsList" ItemsSource="{Binding Results}"
+               SelectedItem="{Binding SelectedCommand, Mode=TwoWay}"
+               DoubleTapped="OnResultDoubleTapped" Background="Transparent"
+               AutomationProperties.Name="{loc:Loc Commands.Results}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="shell:StudioCommandItem">
+            <Grid ColumnDefinitions="*,Auto" Margin="4,6" ColumnSpacing="12">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}"
+                           Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <TextBlock Grid.Column="1" Text="{Binding Shortcut}" Classes="muted" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock IsVisible="{Binding !HasResults}" Text="{loc:Loc Commands.NoResults}" TextWrapping="Wrap" Margin="12" />
+    </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBlock Text="{loc:Loc Commands.KeyboardHelp}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="primary" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable}" />
+    </Grid>
+  </Grid>
+</Window>

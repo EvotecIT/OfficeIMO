@@ -39,6 +39,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private bool _discardOnNextTransition;
     private readonly StudioApplicationServices _services;
     private readonly IStudioLocalizer _localizer;
+    private StudioCommandCatalog? _commands;
+
+    /// <summary>The shared command surface used by discovery, tool cards, and keyboard actions.</summary>
+    public StudioCommandCatalog Commands => _commands ??= new StudioCommandCatalog(this, _localizer);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -423,6 +427,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        _commands?.Dispose();
         if (_disposed) return;
         _disposed = true;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;

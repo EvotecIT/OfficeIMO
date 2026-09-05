@@ -151,9 +151,11 @@ public sealed class StudioResponsiveLayoutTests {
                         .Where(panel => panel.IsEffectivelyVisible).ToArray();
                     Assert.NotEmpty(panels);
                     foreach (var panel in panels) {
-                        var cards = panel.Children.OfType<Button>().ToArray();
+                        var cards = panel.Children.ToArray();
                         Assert.NotEmpty(cards);
                         foreach (var card in cards) {
+                            Assert.True(card is Button || card.GetVisualDescendants().OfType<Button>().Any(),
+                                "Each task card must expose a reachable action.");
                             Assert.True(card.Bounds.Right <= panel.Bounds.Width + 3, $"Card {card.Bounds}, panel {panel.Bounds}");
                             Assert.True(card.Bounds.Bottom <= panel.Bounds.Height + 1);
                             foreach (var text in card.GetVisualDescendants().OfType<TextBlock>()) {

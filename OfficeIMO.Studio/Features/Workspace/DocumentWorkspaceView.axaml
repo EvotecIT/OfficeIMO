@@ -12,21 +12,21 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
       <WrapPanel ItemSpacing="12" LineSpacing="6" Margin="10,5">
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.View}" Content="{loc:Loc DocumentWorkspace.View}"
-                       IsChecked="{Binding IsViewDocumentMode, Mode=OneWay}" Command="{Binding ShowViewModeCommand}" />
+                       IsChecked="{Binding IsViewDocumentMode, Mode=OneWay}" Command="{Binding Commands[Read]}" />
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Annotate}" Content="{loc:Loc DocumentWorkspace.Annotate}"
-                       IsChecked="{Binding IsAnnotateDocumentMode, Mode=OneWay}" Command="{Binding ShowAnnotateModeCommand}" />
+                       IsChecked="{Binding IsAnnotateDocumentMode, Mode=OneWay}" Command="{Binding Commands[Comment]}" />
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Edit}" Content="{loc:Loc DocumentWorkspace.Edit}"
-                       IsChecked="{Binding IsEditDocumentMode, Mode=OneWay}" Command="{Binding ShowEditModeCommand}" />
+                       IsChecked="{Binding IsEditDocumentMode, Mode=OneWay}" Command="{Binding Commands[Edit]}" />
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Pages}" Content="{loc:Loc DocumentWorkspace.Pages}"
-                       IsChecked="{Binding IsPagesDocumentMode, Mode=OneWay}" Command="{Binding ShowPagesModeCommand}" />
+                       IsChecked="{Binding IsPagesDocumentMode, Mode=OneWay}" Command="{Binding Commands[Pages]}" />
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Forms}" Content="{loc:Loc DocumentWorkspace.Forms}"
-                       IsChecked="{Binding IsFormsDocumentMode, Mode=OneWay}" Command="{Binding ShowFormsModeCommand}" />
+                       IsChecked="{Binding IsFormsDocumentMode, Mode=OneWay}" Command="{Binding Commands[Forms]}" />
           <ToggleButton Classes="mode" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Protect}" Content="{loc:Loc DocumentWorkspace.Protect}"
-                       IsChecked="{Binding IsProtectDocumentMode, Mode=OneWay}" Command="{Binding ShowProtectModeCommand}" />
+                       IsChecked="{Binding IsProtectDocumentMode, Mode=OneWay}" Command="{Binding Commands[Protect]}" />
         <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-          <Button Classes="tool" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" Content="{loc:Loc DocumentWorkspace.Undo}" />
-          <Button Classes="tool" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redo}" Content="{loc:Loc DocumentWorkspace.Redo}" />
-          <Button Classes="tool" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Save}" Content="{loc:Loc DocumentWorkspace.Save}" />
+          <Button Classes="tool" Command="{Binding Commands[Undo]}" IsEnabled="{Binding CanUndo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" Content="{loc:Loc DocumentWorkspace.Undo}" />
+          <Button Classes="tool" Command="{Binding Commands[Redo]}" IsEnabled="{Binding CanRedo}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redo}" Content="{loc:Loc DocumentWorkspace.Redo}" />
+          <Button Classes="tool" Command="{Binding Commands[Save]}" IsEnabled="{Binding IsDirty}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Save}" Content="{loc:Loc DocumentWorkspace.Save}" />
         </StackPanel>
       </WrapPanel>
     </Border>
@@ -84,7 +84,7 @@
         </WrapPanel>
 
         <WrapPanel IsVisible="{Binding IsProtectDocumentMode}" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" Margin="10,7">
-          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redact}" Content="{loc:Loc DocumentWorkspace.Redact}" Command="{Binding BeginRedactionCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redact}" Content="{loc:Loc DocumentWorkspace.Redact}" Command="{Binding Commands[Redact]}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ValidateSignatures}" Content="{loc:Loc DocumentWorkspace.ValidateSignatures}" Command="{Binding ValidateSignaturesCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.BatesNumbers}" Content="{loc:Loc DocumentWorkspace.BatesNumbers}" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
           <TextBlock MaxWidth="340" Classes="muted" Text="{loc:Loc DocumentWorkspace.SensitiveOperationsRequireExplicitReviewAndVerification}" VerticalAlignment="Center" Margin="8,0" />
@@ -135,7 +135,7 @@
           </Border>
           <TextBlock Text="{loc:Loc DocumentWorkspace.OpenAPDFToBegin}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
           <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.ReadAnnotateOrganizeFillProtectAndVerifyFromOneWorkspace}" HorizontalAlignment="Center" />
-          <Button Classes="primary" Command="{Binding OpenCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.OpenPDF}" Content="{loc:Loc DocumentWorkspace.OpenPDF}" HorizontalAlignment="Center" />
+          <Button Classes="primary" Command="{Binding Commands[Open]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.OpenPDF}" Content="{loc:Loc DocumentWorkspace.OpenPDF}" HorizontalAlignment="Center" />
         </StackPanel>
       </Border>
 
@@ -449,7 +449,7 @@
               <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Spacing="8">
                 <TextBlock Text="{loc:Loc DocumentWorkspace.Protect}" FontSize="15" FontWeight="SemiBold" />
                 <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly}" TextWrapping="Wrap" />
-                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.UseRedactionTool}" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding BeginRedactionCommand}" IsEnabled="{Binding CanRedact}" />
+                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.UseRedactionTool}" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding Commands[Redact]}" IsEnabled="{Binding CanRedact}" />
                 <Border IsVisible="{Binding HasPendingRedaction}" Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
                   <StackPanel Spacing="7">
                     <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" Foreground="{DynamicResource StudioErrorBrush}" FontWeight="SemiBold" />
@@ -551,11 +551,11 @@
         <TextBlock Text="{Binding SelectedPagePosition}" VerticalAlignment="Center" />
         <Button Classes="tool" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Previous}" Content="{loc:Loc DocumentWorkspace.Previous}" />
         <Button Classes="tool" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNext}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}" Content="{loc:Loc DocumentWorkspace.Next}" />
-        <Button Classes="tool" Command="{Binding ZoomOutCommand}" Content="−" />
-        <Button Classes="tool" Command="{Binding ActualSizeCommand}" Content="{Binding ZoomLabel}" MinWidth="58" />
-        <Button Classes="tool" Command="{Binding ZoomInCommand}" Content="+" />
-        <Button x:Name="FitWidthButton" Classes="tool" Command="{Binding FitWidthCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitWidth}" Content="{loc:Loc DocumentWorkspace.FitWidth}" />
-        <Button x:Name="FitPageButton" Classes="tool" Command="{Binding FitPageCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitPage}" Content="{loc:Loc DocumentWorkspace.FitPage}" />
+        <Button Classes="tool" Command="{Binding Commands[ZoomOut]}" Content="−" />
+        <Button Classes="tool" Command="{Binding Commands[ActualSize]}" Content="{Binding ZoomLabel}" MinWidth="58" />
+        <Button Classes="tool" Command="{Binding Commands[ZoomIn]}" Content="+" />
+        <Button x:Name="FitWidthButton" Classes="tool" Command="{Binding Commands[FitWidth]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitWidth}" Content="{loc:Loc DocumentWorkspace.FitWidth}" />
+        <Button x:Name="FitPageButton" Classes="tool" Command="{Binding Commands[FitPage]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitPage}" Content="{loc:Loc DocumentWorkspace.FitPage}" />
       </WrapPanel>
     </Border>
   </Grid>

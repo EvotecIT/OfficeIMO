@@ -1290,4 +1290,86 @@
   <data name="DocumentWorkspace.ResizeProperties" xml:space="preserve"><value>Resize properties pane</value></data>
   <data name="PdfPage.RenderingNotes" xml:space="preserve"><value>Rendering notes</value></data>
   <data name="Home.SupportedInputGuidance" xml:space="preserve"><value>Open a PDF to read and edit. Use Tools to convert or combine other files.</value></data>
+  <data name="Commands.PaletteTitle" xml:space="preserve"><value>Find a command</value></data>
+  <data name="Commands.SearchPlaceholder" xml:space="preserve"><value>Search commands and shortcuts</value></data>
+  <data name="Commands.Results" xml:space="preserve"><value>Matching commands</value></data>
+  <data name="Commands.NoResults" xml:space="preserve"><value>No matching commands. Try a different word.</value></data>
+  <data name="Commands.KeyboardHelp" xml:space="preserve"><value>Use the arrow keys to choose, Enter to run, or Escape to close.</value></data>
+  <data name="Commands.Run" xml:space="preserve"><value>Run command</value></data>
+  <data name="Commands.SearchTools" xml:space="preserve"><value>Search document tools</value></data>
+  <data name="Commands.Open.Title" xml:space="preserve"><value>Open PDF</value></data>
+  <data name="Commands.Open.Description" xml:space="preserve"><value>Open a PDF in a document tab.</value></data>
+  <data name="Commands.Category.File" xml:space="preserve"><value>File</value></data>
+  <data name="Commands.Save.Title" xml:space="preserve"><value>Save</value></data>
+  <data name="Commands.Save.Description" xml:space="preserve"><value>Save changes to the current document.</value></data>
+  <data name="Commands.SaveAs.Title" xml:space="preserve"><value>Save a copy</value></data>
+  <data name="Commands.SaveAs.Description" xml:space="preserve"><value>Choose a destination for this document.</value></data>
+  <data name="Commands.Undo.Title" xml:space="preserve"><value>Undo</value></data>
+  <data name="Commands.Undo.Description" xml:space="preserve"><value>Undo the last document edit.</value></data>
+  <data name="Commands.Category.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Commands.Redo.Title" xml:space="preserve"><value>Redo</value></data>
+  <data name="Commands.Redo.Description" xml:space="preserve"><value>Restore the last undone edit.</value></data>
+  <data name="Commands.Read.Title" xml:space="preserve"><value>Read document</value></data>
+  <data name="Commands.Read.Description" xml:space="preserve"><value>Return to the document reading workspace.</value></data>
+  <data name="Commands.Category.Read" xml:space="preserve"><value>Read</value></data>
+  <data name="Commands.Comment.Title" xml:space="preserve"><value>Comment and review</value></data>
+  <data name="Commands.Comment.Description" xml:space="preserve"><value>Add annotations and review existing comments.</value></data>
+  <data name="Commands.Category.Review" xml:space="preserve"><value>Review</value></data>
+  <data name="Commands.Edit.Title" xml:space="preserve"><value>Edit PDF content</value></data>
+  <data name="Commands.Edit.Description" xml:space="preserve"><value>Select supported existing text and images to edit.</value></data>
+  <data name="Commands.Pages.Title" xml:space="preserve"><value>Organize pages</value></data>
+  <data name="Commands.Pages.Description" xml:space="preserve"><value>Rotate, crop, duplicate, reorder, import, extract, and split pages.</value></data>
+  <data name="Commands.Category.Organize" xml:space="preserve"><value>Organize</value></data>
+  <data name="Commands.Forms.Title" xml:space="preserve"><value>Fill and edit forms</value></data>
+  <data name="Commands.Forms.Description" xml:space="preserve"><value>Fill fields or author supported AcroForm controls.</value></data>
+  <data name="Commands.Protect.Title" xml:space="preserve"><value>Protect and sign</value></data>
+  <data name="Commands.Protect.Description" xml:space="preserve"><value>Inspect protection, sign, or protect a document copy.</value></data>
+  <data name="Commands.Category.Security" xml:space="preserve"><value>Security</value></data>
+  <data name="Commands.Redact.Title" xml:space="preserve"><value>Redact content</value></data>
+  <data name="Commands.Redact.Description" xml:space="preserve"><value>Mark content for reviewed permanent removal.</value></data>
+  <data name="Commands.Convert.Title" xml:space="preserve"><value>Convert files</value></data>
+  <data name="Commands.Convert.Description" xml:space="preserve"><value>Convert supported Office, web, markup, PDF, and image files.</value></data>
+  <data name="Commands.Category.Convert" xml:space="preserve"><value>Convert</value></data>
+  <data name="Commands.Ocr.Title" xml:space="preserve"><value>Make PDF searchable</value></data>
+  <data name="Commands.Ocr.Description" xml:space="preserve"><value>Recognize scanned pages and add a searchable text layer.</value></data>
+  <data name="Commands.Assemble.Title" xml:space="preserve"><value>Assemble PDF</value></data>
+  <data name="Commands.Assemble.Description" xml:space="preserve"><value>Combine PDFs, images, Office files, folders, and ZIP archives.</value></data>
+  <data name="Commands.Export.Title" xml:space="preserve"><value>Export page images</value></data>
+  <data name="Commands.Export.Description" xml:space="preserve"><value>Export selected PDF pages to image files.</value></data>
+  <data name="Commands.Category.Output" xml:space="preserve"><value>Output</value></data>
+  <data name="Commands.Print.Title" xml:space="preserve"><value>Preview print sheets</value></data>
+  <data name="Commands.Print.Description" xml:space="preserve"><value>Inspect planned print sheets and page placement.</value></data>
+  <data name="Commands.Inspect.Title" xml:space="preserve"><value>Inspect document</value></data>
+  <data name="Commands.Inspect.Description" xml:space="preserve"><value>Review structure, security, and document findings.</value></data>
+  <data name="Commands.Compare.Title" xml:space="preserve"><value>Compare PDFs</value></data>
+  <data name="Commands.Compare.Description" xml:space="preserve"><value>Compare two PDFs and inspect the resulting report.</value></data>
+  <data name="Commands.Optimize.Title" xml:space="preserve"><value>Optimize PDF</value></data>
+  <data name="Commands.Optimize.Description" xml:space="preserve"><value>Plan and run supported lossless optimization.</value></data>
+  <data name="Commands.Repair.Title" xml:space="preserve"><value>Plan PDF repair</value></data>
+  <data name="Commands.Repair.Description" xml:space="preserve"><value>Inspect repair findings before choosing an output.</value></data>
+  <data name="Commands.Sanitize.Title" xml:space="preserve"><value>Sanitize PDF</value></data>
+  <data name="Commands.Sanitize.Description" xml:space="preserve"><value>Remove forbidden actions and payloads, then verify the output.</value></data>
+  <data name="Commands.FitPage.Title" xml:space="preserve"><value>Fit page</value></data>
+  <data name="Commands.FitPage.Description" xml:space="preserve"><value>Show the complete current page.</value></data>
+  <data name="Commands.ActualSize.Title" xml:space="preserve"><value>Actual size</value></data>
+  <data name="Commands.ActualSize.Description" xml:space="preserve"><value>Display the document at its natural scale.</value></data>
+  <data name="Commands.FitWidth.Title" xml:space="preserve"><value>Fit width</value></data>
+  <data name="Commands.FitWidth.Description" xml:space="preserve"><value>Fit the current page to the reading area.</value></data>
+  <data name="Commands.ZoomIn.Title" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="Commands.ZoomIn.Description" xml:space="preserve"><value>Increase document magnification.</value></data>
+  <data name="Commands.ZoomOut.Title" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="Commands.ZoomOut.Description" xml:space="preserve"><value>Decrease document magnification.</value></data>
+  <data name="Commands.Home.Title" xml:space="preserve"><value>Home</value></data>
+  <data name="Commands.Home.Description" xml:space="preserve"><value>Open recent documents and starting tasks.</value></data>
+  <data name="Commands.Category.Navigate" xml:space="preserve"><value>Navigate</value></data>
+  <data name="Commands.Tools.Title" xml:space="preserve"><value>Tools</value></data>
+  <data name="Commands.Tools.Description" xml:space="preserve"><value>Search the document tool catalog.</value></data>
+  <data name="Commands.Settings.Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Commands.Settings.Description" xml:space="preserve"><value>Change appearance and interface preferences.</value></data>
+  <data name="Commands.Busy" xml:space="preserve"><value>Wait for the current document operation or cancel it.</value></data>
+  <data name="Commands.OpenFirst" xml:space="preserve"><value>Open a PDF to use this command.</value></data>
+  <data name="Commands.Unsupported" xml:space="preserve"><value>This document does not allow this operation. Inspect its protection and supported content.</value></data>
+  <data name="Commands.NoChanges" xml:space="preserve"><value>There are no unsaved changes.</value></data>
+  <data name="Commands.NoUndo" xml:space="preserve"><value>There is no edit to undo.</value></data>
+  <data name="Commands.NoRedo" xml:space="preserve"><value>There is no edit to redo.</value></data>
 </root>

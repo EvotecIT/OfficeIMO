@@ -25,6 +25,7 @@ public sealed partial class MainWindow : Window {
     private bool _organizerDragStarted;
     private bool _changingActiveDocument;
     private readonly StudioApplicationServices _services;
+    private bool _commandPaletteOpen;
 
     public MainWindow() : this(StudioApplicationServices.CreateDefault()) { }
 
@@ -137,8 +138,27 @@ public sealed partial class MainWindow : Window {
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
     }
 
-    private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+    private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => FocusDocumentSearch();
+
+    private void FocusDocumentSearch() {
+        if (!ViewModel.HasDocument) return;
+        ViewModel.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
         DocumentWorkspace.FocusSearch();
+    }
+
+    private async void OnCommandsClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ShowCommandPaletteAsync();
+
+    internal async Task ShowCommandPaletteAsync() {
+        if (_commandPaletteOpen) return;
+        _commandPaletteOpen = true;
+        try {
+            var palette = new StudioCommandPalette(ViewModel.Commands);
+            StudioCommandItem? command = await palette.ShowDialog<StudioCommandItem?>(this);
+            if (command is not null) await command.ExecuteAsync();
+        } finally {
+            _commandPaletteOpen = false;
+        }
+    }
 
     private void OnToggleThemeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         if (Application.Current is not { } application) return;
@@ -152,10 +172,14 @@ public sealed partial class MainWindow : Window {
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
-        bool primaryModifier = e.KeyModifiers.HasFlag(KeyModifiers.Control) ||
-                               e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        bool primaryModifier = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
+        if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P) {
+            await ShowCommandPaletteAsync();
+            e.Handled = true;
+            return;
+        }
         if (primaryModifier && e.Key == Key.F) {
-            DocumentWorkspace.FocusSearch();
+            FocusDocumentSearch();
             e.Handled = true;
             return;
         }
@@ -171,38 +195,56 @@ public sealed partial class MainWindow : Window {
             return;
         }
         if (primaryModifier && e.Key == Key.O) {
-            await TabHost.OpenNewTabCommand.ExecuteAsync(null);
+            await ViewModel.Commands["Open"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (primaryModifier && e.Key == Key.S) {
+            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "SaveAs" : "Save"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (primaryModifier && e.Key == Key.P) {
+            await ViewModel.Commands["Print"].ExecuteAsync();
             e.Handled = true;
             return;
         }
 
         if (IsTextEntryFocused()) return;
 
+        if (primaryModifier && e.Key == Key.Z) {
+            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "Redo" : "Undo"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (primaryModifier) {
             switch (e.Key) {
                 case Key.D0:
                 case Key.NumPad0:
-                    ViewModel.FitPageCommand.Execute(null);
+                    ViewModel.Commands["FitPage"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.D1:
                 case Key.NumPad1:
-                    ViewModel.ActualSizeCommand.Execute(null);
+                    ViewModel.Commands["ActualSize"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.D2:
                 case Key.NumPad2:
-                    ViewModel.FitWidthCommand.Execute(null);
+                    ViewModel.Commands["FitWidth"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.OemPlus:
                 case Key.Add:
-                    ViewModel.ZoomInCommand.Execute(null);
+                    ViewModel.Commands["ZoomIn"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.OemMinus:
                 case Key.Subtract:
-                    ViewModel.ZoomOutCommand.Execute(null);
+                    ViewModel.Commands["ZoomOut"].Execute(null);
                     e.Handled = true;
                     return;
             }

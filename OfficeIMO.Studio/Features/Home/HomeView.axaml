@@ -18,7 +18,7 @@
           <PathIcon Data="{StaticResource IconOpen}" Width="34" Height="34"
                     Foreground="{DynamicResource StudioMutedTextBrush}" />
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.DragAndDropFilesHere}" FontSize="14" HorizontalAlignment="Center" />
-          <Button Classes="primary" HorizontalAlignment="Center" Command="{Binding OpenCommand}" IsEnabled="{Binding CanStartDocumentTransition}"
+          <Button Classes="primary" HorizontalAlignment="Center" Command="{Binding Commands[Open]}" IsEnabled="{Binding CanStartDocumentTransition}"
                   AutomationProperties.Name="{loc:Loc Home.OpenFile}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <PathIcon Data="{StaticResource IconOpen}" Width="16" Height="16" />
@@ -32,37 +32,37 @@
       <StackPanel Grid.Row="2" Spacing="10">
         <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.QuickTasks}" FontSize="15" FontWeight="SemiBold" />
         <infra:AdaptiveCardPanel MinimumCardWidth="140" ColumnSpacing="12" RowSpacing="12">
-          <Button Classes="cardAction" Command="{Binding ShowAssemblyCommand}" AutomationProperties.Name="{loc:Loc Home.Merge}">
+          <Button Classes="cardAction" Command="{Binding Commands[Assemble]}" AutomationProperties.Name="{loc:Loc Home.Merge}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Merge}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Classes="cardAction" Command="{Binding ShowPageToolsCommand}" AutomationProperties.Name="{loc:Loc Home.Split}">
+          <Button Classes="cardAction" Command="{Binding Commands[Pages]}" AutomationProperties.Name="{loc:Loc Home.Split}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Split}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}" AutomationProperties.Name="{loc:Loc Home.Convert}">
+          <Button Classes="cardAction" Command="{Binding Commands[Convert]}" AutomationProperties.Name="{loc:Loc Home.Convert}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconConvert}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Convert}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Classes="cardAction" Command="{Binding ShowOcrCommand}" AutomationProperties.Name="{loc:Loc Home.OCR}">
+          <Button Classes="cardAction" Command="{Binding Commands[Ocr]}" AutomationProperties.Name="{loc:Loc Home.OCR}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconOcr}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.OCR}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Classes="cardAction" Command="{Binding ShowOptimizeCommand}" AutomationProperties.Name="{loc:Loc Home.Compress}">
+          <Button Classes="cardAction" Command="{Binding Commands[Optimize]}" AutomationProperties.Name="{loc:Loc Home.Compress}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Classes="cardAction" Command="{Binding ShowProtectCommand}" AutomationProperties.Name="{loc:Loc Home.Protect}">
+          <Button Classes="cardAction" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" />
