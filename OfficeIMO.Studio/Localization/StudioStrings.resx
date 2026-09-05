@@ -1,0 +1,1287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ConversionWorkbench.AddFiles" xml:space="preserve">
+    <value>Add files</value>
+  </data>
+  <data name="ConversionWorkbench.AddFilesToSeeRouteFidelityEngineDetailsDiagnosticsAnd" xml:space="preserve">
+    <value>Add files to see route fidelity, engine details, diagnostics, and the published result.</value>
+  </data>
+  <data name="ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile" xml:space="preserve">
+    <value>Add one or more matching files. The selected route, profile, and conflict policy apply to the queue.</value>
+  </data>
+  <data name="ConversionWorkbench.BuildYourConversionQueue" xml:space="preserve">
+    <value>Build your conversion queue</value>
+  </data>
+  <data name="ConversionWorkbench.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ConversionWorkbench.ChooseFolder" xml:space="preserve">
+    <value>Choose folder</value>
+  </data>
+  <data name="ConversionWorkbench.ChooseTheResult" xml:space="preserve">
+    <value>Choose the result</value>
+  </data>
+  <data name="ConversionWorkbench.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="ConversionWorkbench.ConversionQueue" xml:space="preserve">
+    <value>Conversion queue</value>
+  </data>
+  <data name="ConversionWorkbench.CONVERSIONSETUP" xml:space="preserve">
+    <value>CONVERSION SETUP</value>
+  </data>
+  <data name="ConversionWorkbench.DetailsAndFidelity" xml:space="preserve">
+    <value>Details and fidelity</value>
+  </data>
+  <data name="ConversionWorkbench.Engine" xml:space="preserve">
+    <value>Engine</value>
+  </data>
+  <data name="ConversionWorkbench.FILE" xml:space="preserve">
+    <value>FILE</value>
+  </data>
+  <data name="ConversionWorkbench.I" xml:space="preserve">
+    <value>i</value>
+  </data>
+  <data name="ConversionWorkbench.IfAFileExists" xml:space="preserve">
+    <value>If a file exists</value>
+  </data>
+  <data name="ConversionWorkbench.KnownLimitations" xml:space="preserve">
+    <value>Known limitations</value>
+  </data>
+  <data name="ConversionWorkbench.NoJobSelected" xml:space="preserve">
+    <value>No job selected</value>
+  </data>
+  <data name="ConversionWorkbench.OutputFolder" xml:space="preserve">
+    <value>Output folder</value>
+  </data>
+  <data name="ConversionWorkbench.OutputProfile" xml:space="preserve">
+    <value>Output profile</value>
+  </data>
+  <data name="ConversionWorkbench.PROGRESS" xml:space="preserve">
+    <value>PROGRESS</value>
+  </data>
+  <data name="ConversionWorkbench.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ConversionWorkbench.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="ConversionWorkbench.Route" xml:space="preserve">
+    <value>Route</value>
+  </data>
+  <data name="ConversionWorkbench.RunQueue" xml:space="preserve">
+    <value>Run queue</value>
+  </data>
+  <data name="ConversionWorkbench.SELECTEDJOB" xml:space="preserve">
+    <value>SELECTED JOB</value>
+  </data>
+  <data name="ConversionWorkbench.STATUS" xml:space="preserve">
+    <value>STATUS</value>
+  </data>
+  <data name="ConversionWorkbench.UseEachSourceFolder" xml:space="preserve">
+    <value>Use each source folder</value>
+  </data>
+  <data name="DocumentHealth.ADamagedFileCanContainContentThatCannotBeRecovered" xml:space="preserve">
+    <value>A damaged file can contain content that cannot be recovered exactly. OfficeIMO reports every detected-only or unsupported recovery instead of silently claiming success.</value>
+  </data>
+  <data name="DocumentHealth.AdvancedOptions" xml:space="preserve">
+    <value>Advanced options</value>
+  </data>
+  <data name="DocumentHealth.After" xml:space="preserve">
+    <value>After</value>
+  </data>
+  <data name="DocumentHealth.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="DocumentHealth.Before" xml:space="preserve">
+    <value>Before</value>
+  </data>
+  <data name="DocumentHealth.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DocumentHealth.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="DocumentHealth.Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="DocumentHealth.ChooseComparisonPDF" xml:space="preserve">
+    <value>Choose comparison PDF</value>
+  </data>
+  <data name="DocumentHealth.ChooseFolder" xml:space="preserve">
+    <value>Choose folder</value>
+  </data>
+  <data name="DocumentHealth.ChoosePDF" xml:space="preserve">
+    <value>Choose PDF</value>
+  </data>
+  <data name="DocumentHealth.ChooseTheFile" xml:space="preserve">
+    <value>Choose the file</value>
+  </data>
+  <data name="DocumentHealth.CompressionProfile" xml:space="preserve">
+    <value>Compression profile</value>
+  </data>
+  <data name="DocumentHealth.Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="DocumentHealth.Diagnostics" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="DocumentHealth.Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="DocumentHealth.KeepTheSourcePDFUnchanged" xml:space="preserve">
+    <value>Keep the source PDF unchanged</value>
+  </data>
+  <data name="DocumentHealth.LeaveEmptyWhenThePDFIsNotProtected" xml:space="preserve">
+    <value>Leave empty when the PDF is not protected</value>
+  </data>
+  <data name="DocumentHealth.OperationEvidence" xml:space="preserve">
+    <value>Operation evidence</value>
+  </data>
+  <data name="DocumentHealth.OperationFailed" xml:space="preserve">
+    <value>Operation failed</value>
+  </data>
+  <data name="DocumentHealth.Options" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="DocumentHealth.Output" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="DocumentHealth.OutputLocation" xml:space="preserve">
+    <value>Output location</value>
+  </data>
+  <data name="DocumentHealth.PasswordIfRequired" xml:space="preserve">
+    <value>Password, if required</value>
+  </data>
+  <data name="DocumentHealth.PDF" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="DocumentHealth.PDFToCompareAgainst" xml:space="preserve">
+    <value>PDF to compare against</value>
+  </data>
+  <data name="DocumentHealth.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="DocumentHealth.Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="DocumentHealth.ReviewBeforeRunning" xml:space="preserve">
+    <value>Review before running</value>
+  </data>
+  <data name="DocumentHealth.Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="DocumentHealth.StartAnother" xml:space="preserve">
+    <value>Start another</value>
+  </data>
+  <data name="DocumentHealth.TheRepairEngineUsesExplicitRecoveriesAndPreservesUnsupportedContent" xml:space="preserve">
+    <value>The repair engine uses explicit recoveries and preserves unsupported content when it can do so safely.</value>
+  </data>
+  <data name="DocumentWorkspace.Accessibility" xml:space="preserve">
+    <value>Accessibility</value>
+  </data>
+  <data name="DocumentWorkspace.AddImage" xml:space="preserve">
+    <value>Add image</value>
+  </data>
+  <data name="DocumentWorkspace.AddLink" xml:space="preserve">
+    <value>Add link</value>
+  </data>
+  <data name="DocumentWorkspace.AddPDFs" xml:space="preserve">
+    <value>Add PDFs</value>
+  </data>
+  <data name="DocumentWorkspace.AddReply" xml:space="preserve">
+    <value>Add reply</value>
+  </data>
+  <data name="DocumentWorkspace.AddText" xml:space="preserve">
+    <value>Add text</value>
+  </data>
+  <data name="DocumentWorkspace.AddWatermark" xml:space="preserve">
+    <value>Add watermark</value>
+  </data>
+  <data name="DocumentWorkspace.AllowACustomValue" xml:space="preserve">
+    <value>Allow a custom value</value>
+  </data>
+  <data name="DocumentWorkspace.AllowedOperations" xml:space="preserve">
+    <value>Allowed operations</value>
+  </data>
+  <data name="DocumentWorkspace.AllowMultipleSelections" xml:space="preserve">
+    <value>Allow multiple selections</value>
+  </data>
+  <data name="DocumentWorkspace.Annotate" xml:space="preserve">
+    <value>Annotate</value>
+  </data>
+  <data name="DocumentWorkspace.Annotations" xml:space="preserve">
+    <value>Annotations</value>
+  </data>
+  <data name="DocumentWorkspace.ApplyAndVerify" xml:space="preserve">
+    <value>Apply and verify</value>
+  </data>
+  <data name="DocumentWorkspace.ApplyBatesNumbers" xml:space="preserve">
+    <value>Apply Bates numbers</value>
+  </data>
+  <data name="DocumentWorkspace.ApplyGeometry" xml:space="preserve">
+    <value>Apply geometry</value>
+  </data>
+  <data name="DocumentWorkspace.ApplyProperties" xml:space="preserve">
+    <value>Apply properties</value>
+  </data>
+  <data name="DocumentWorkspace.AssemblePages" xml:space="preserve">
+    <value>Assemble pages</value>
+  </data>
+  <data name="DocumentWorkspace.Author" xml:space="preserve">
+    <value>Author</value>
+  </data>
+  <data name="DocumentWorkspace.BatesNumbering" xml:space="preserve">
+    <value>Bates numbering</value>
+  </data>
+  <data name="DocumentWorkspace.BatesNumbers" xml:space="preserve">
+    <value>Bates numbers</value>
+  </data>
+  <data name="DocumentWorkspace.BlankPage" xml:space="preserve">
+    <value>Blank page</value>
+  </data>
+  <data name="DocumentWorkspace.Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="DocumentWorkspace.Bottom" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
+  <data name="DocumentWorkspace.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DocumentWorkspace.Caption" xml:space="preserve">
+    <value>Caption</value>
+  </data>
+  <data name="DocumentWorkspace.CertificateSignature" xml:space="preserve">
+    <value>Certificate signature</value>
+  </data>
+  <data name="DocumentWorkspace.ChangeContent" xml:space="preserve">
+    <value>Change content</value>
+  </data>
+  <data name="DocumentWorkspace.Checked" xml:space="preserve">
+    <value>Checked</value>
+  </data>
+  <data name="DocumentWorkspace.ChooseAnnotateEditPagesFormsOrProtectToRevealContextual" xml:space="preserve">
+    <value>Choose Annotate, Edit, Pages, Forms, or Protect to reveal contextual controls.</value>
+  </data>
+  <data name="DocumentWorkspace.ChooseAValidCertificateWithAnAccessiblePrivateKeyTo" xml:space="preserve">
+    <value>Choose a valid certificate with an accessible private key to sign this PDF.</value>
+  </data>
+  <data name="DocumentWorkspace.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="DocumentWorkspace.CloseComparison" xml:space="preserve">
+    <value>Close comparison</value>
+  </data>
+  <data name="DocumentWorkspace.Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="DocumentWorkspace.Comment" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="DocumentWorkspace.CompareSideBySide" xml:space="preserve">
+    <value>Compare side by side…</value>
+  </data>
+  <data name="DocumentWorkspace.ConfirmPassword" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="DocumentWorkspace.CopyContent" xml:space="preserve">
+    <value>Copy content</value>
+  </data>
+  <data name="DocumentWorkspace.CreateField" xml:space="preserve">
+    <value>Create field</value>
+  </data>
+  <data name="DocumentWorkspace.CropMargin" xml:space="preserve">
+    <value>Crop margin</value>
+  </data>
+  <data name="DocumentWorkspace.CropSelectedPages" xml:space="preserve">
+    <value>Crop selected pages</value>
+  </data>
+  <data name="DocumentWorkspace.CurrentOwnerPassword" xml:space="preserve">
+    <value>Current owner password</value>
+  </data>
+  <data name="DocumentWorkspace.CustomValue" xml:space="preserve">
+    <value>Custom value</value>
+  </data>
+  <data name="DocumentWorkspace.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DocumentWorkspace.DeleteObject" xml:space="preserve">
+    <value>Delete object</value>
+  </data>
+  <data name="DocumentWorkspace.Digits" xml:space="preserve">
+    <value>Digits</value>
+  </data>
+  <data name="DocumentWorkspace.Document" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="DocumentWorkspace.DocumentOpenPassword" xml:space="preserve">
+    <value>Document-open password</value>
+  </data>
+  <data name="DocumentWorkspace.Down" xml:space="preserve">
+    <value>Down</value>
+  </data>
+  <data name="DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly" xml:space="preserve">
+    <value>Draw a redaction area, review matched content, and apply only after verification.</value>
+  </data>
+  <data name="DocumentWorkspace.DropDown" xml:space="preserve">
+    <value>Drop-down</value>
+  </data>
+  <data name="DocumentWorkspace.Duplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="DocumentWorkspace.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="DocumentWorkspace.EditProperties" xml:space="preserve">
+    <value>Edit properties</value>
+  </data>
+  <data name="DocumentWorkspace.EncryptDocumentMetadata" xml:space="preserve">
+    <value>Encrypt document metadata</value>
+  </data>
+  <data name="DocumentWorkspace.Extract" xml:space="preserve">
+    <value>Extract</value>
+  </data>
+  <data name="DocumentWorkspace.FieldAuthoringIsUnavailableUnderThisDocumentSCurrentSecurity" xml:space="preserve">
+    <value>Field authoring is unavailable under this document's current security policy.</value>
+  </data>
+  <data name="DocumentWorkspace.FillAndFlatten" xml:space="preserve">
+    <value>Fill and flatten</value>
+  </data>
+  <data name="DocumentWorkspace.FillField" xml:space="preserve">
+    <value>Fill field</value>
+  </data>
+  <data name="DocumentWorkspace.FillFields" xml:space="preserve">
+    <value>Fill fields</value>
+  </data>
+  <data name="DocumentWorkspace.FillForms" xml:space="preserve">
+    <value>Fill forms</value>
+  </data>
+  <data name="DocumentWorkspace.Find" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="DocumentWorkspace.FindAndReplace" xml:space="preserve">
+    <value>Find and replace</value>
+  </data>
+  <data name="DocumentWorkspace.FindInDocument" xml:space="preserve">
+    <value>Find in document</value>
+  </data>
+  <data name="DocumentWorkspace.FindInPDF" xml:space="preserve">
+    <value>Find in PDF</value>
+  </data>
+  <data name="DocumentWorkspace.FitPage" xml:space="preserve">
+    <value>Fit page</value>
+  </data>
+  <data name="DocumentWorkspace.FitWidth" xml:space="preserve">
+    <value>Fit width</value>
+  </data>
+  <data name="DocumentWorkspace.FlattenAll" xml:space="preserve">
+    <value>Flatten all</value>
+  </data>
+  <data name="DocumentWorkspace.FlattenAnnotation" xml:space="preserve">
+    <value>Flatten annotation</value>
+  </data>
+  <data name="DocumentWorkspace.FlattenField" xml:space="preserve">
+    <value>Flatten field</value>
+  </data>
+  <data name="DocumentWorkspace.FlatteningIsExplicitAndMakesSupportedWidgetsPermanentPageContent" xml:space="preserve">
+    <value>Flattening is explicit and makes supported widgets permanent page content.</value>
+  </data>
+  <data name="DocumentWorkspace.FlattenSelectedField" xml:space="preserve">
+    <value>Flatten selected field</value>
+  </data>
+  <data name="DocumentWorkspace.FontSize" xml:space="preserve">
+    <value>Font size</value>
+  </data>
+  <data name="DocumentWorkspace.FormFields" xml:space="preserve">
+    <value>Form fields</value>
+  </data>
+  <data name="DocumentWorkspace.Forms" xml:space="preserve">
+    <value>Forms</value>
+  </data>
+  <data name="DocumentWorkspace.Height" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="DocumentWorkspace.Highlight" xml:space="preserve">
+    <value>Highlight</value>
+  </data>
+  <data name="DocumentWorkspace.HighQualityPrint" xml:space="preserve">
+    <value>High-quality print</value>
+  </data>
+  <data name="DocumentWorkspace.InitiallyChecked" xml:space="preserve">
+    <value>Initially checked</value>
+  </data>
+  <data name="DocumentWorkspace.InitialValue" xml:space="preserve">
+    <value>Initial value</value>
+  </data>
+  <data name="DocumentWorkspace.Layout" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="DocumentWorkspace.Left" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="DocumentWorkspace.Line" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="DocumentWorkspace.Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="DocumentWorkspace.MatchCase" xml:space="preserve">
+    <value>Match case</value>
+  </data>
+  <data name="DocumentWorkspace.MoveObject" xml:space="preserve">
+    <value>Move object</value>
+  </data>
+  <data name="DocumentWorkspace.MoveX" xml:space="preserve">
+    <value>Move X</value>
+  </data>
+  <data name="DocumentWorkspace.MoveY" xml:space="preserve">
+    <value>Move Y</value>
+  </data>
+  <data name="DocumentWorkspace.Multiline" xml:space="preserve">
+    <value>Multiline</value>
+  </data>
+  <data name="DocumentWorkspace.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="DocumentWorkspace.NewOwnerPasswordOptional" xml:space="preserve">
+    <value>New owner password (optional)</value>
+  </data>
+  <data name="DocumentWorkspace.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="DocumentWorkspace.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="DocumentWorkspace.Opacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="DocumentWorkspace.OpenAPDFToBegin" xml:space="preserve">
+    <value>Open a PDF to begin</value>
+  </data>
+  <data name="DocumentWorkspace.OpeningPDF" xml:space="preserve">
+    <value>Opening PDF…</value>
+  </data>
+  <data name="DocumentWorkspace.OpenPDF" xml:space="preserve">
+    <value>Open PDF</value>
+  </data>
+  <data name="DocumentWorkspace.OptionsOnePerLine" xml:space="preserve">
+    <value>Options (one per line)</value>
+  </data>
+  <data name="DocumentWorkspace.Page" xml:space="preserve">
+    <value>Page</value>
+  </data>
+  <data name="DocumentWorkspace.PageActions" xml:space="preserve">
+    <value>Page actions</value>
+  </data>
+  <data name="DocumentWorkspace.PageNightMode" xml:space="preserve">
+    <value>Page night mode</value>
+  </data>
+  <data name="DocumentWorkspace.PageNumbers" xml:space="preserve">
+    <value>Page numbers</value>
+  </data>
+  <data name="DocumentWorkspace.Pages" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="DocumentWorkspace.PagesPerSplitFile" xml:space="preserve">
+    <value>Pages per split file</value>
+  </data>
+  <data name="DocumentWorkspace.PasswordField" xml:space="preserve">
+    <value>Password field</value>
+  </data>
+  <data name="DocumentWorkspace.PasswordProtection" xml:space="preserve">
+    <value>Password protection</value>
+  </data>
+  <data name="DocumentWorkspace.PermanentRedaction" xml:space="preserve">
+    <value>Permanent redaction</value>
+  </data>
+  <data name="DocumentWorkspace.Points" xml:space="preserve">
+    <value>Points</value>
+  </data>
+  <data name="DocumentWorkspace.Prefix" xml:space="preserve">
+    <value>Prefix</value>
+  </data>
+  <data name="DocumentWorkspace.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="DocumentWorkspace.Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="DocumentWorkspace.Protect" xml:space="preserve">
+    <value>Protect</value>
+  </data>
+  <data name="DocumentWorkspace.ReadAnnotateOrganizeFillProtectAndVerifyFromOneWorkspace" xml:space="preserve">
+    <value>Read, annotate, organize, fill, protect, and verify from one workspace.</value>
+  </data>
+  <data name="DocumentWorkspace.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="DocumentWorkspace.Rectangle" xml:space="preserve">
+    <value>Rectangle</value>
+  </data>
+  <data name="DocumentWorkspace.Redact" xml:space="preserve">
+    <value>Redact</value>
+  </data>
+  <data name="DocumentWorkspace.Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="DocumentWorkspace.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DocumentWorkspace.ReplaceAll" xml:space="preserve">
+    <value>Replace all</value>
+  </data>
+  <data name="DocumentWorkspace.ReplaceImage" xml:space="preserve">
+    <value>Replace image…</value>
+  </data>
+  <data name="DocumentWorkspace.ReplaceText" xml:space="preserve">
+    <value>Replace text</value>
+  </data>
+  <data name="DocumentWorkspace.ReplaceWith" xml:space="preserve">
+    <value>Replace with</value>
+  </data>
+  <data name="DocumentWorkspace.Reply" xml:space="preserve">
+    <value>Reply</value>
+  </data>
+  <data name="DocumentWorkspace.RotateLeft" xml:space="preserve">
+    <value>Rotate left</value>
+  </data>
+  <data name="DocumentWorkspace.RotateRight" xml:space="preserve">
+    <value>Rotate right</value>
+  </data>
+  <data name="DocumentWorkspace.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="DocumentWorkspace.SaveDecryptedCopy" xml:space="preserve">
+    <value>Save decrypted copy…</value>
+  </data>
+  <data name="DocumentWorkspace.SaveProtectedCopy" xml:space="preserve">
+    <value>Save protected copy…</value>
+  </data>
+  <data name="DocumentWorkspace.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="DocumentWorkspace.Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="DocumentWorkspace.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="DocumentWorkspace.SelectedObject" xml:space="preserve">
+    <value>Selected object</value>
+  </data>
+  <data name="DocumentWorkspace.SelectExistingTextAnImageOrAnAnnotationOnThe" xml:space="preserve">
+    <value>Select existing text, an image, or an annotation on the page to inspect and edit it.</value>
+  </data>
+  <data name="DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks" xml:space="preserve">
+    <value>Select text, follow links, search, and navigate bookmarks.</value>
+  </data>
+  <data name="DocumentWorkspace.SensitiveOperationsRequireExplicitReviewAndVerification" xml:space="preserve">
+    <value>Sensitive operations require explicit review and verification.</value>
+  </data>
+  <data name="DocumentWorkspace.ShowSignatureOnThePage" xml:space="preserve">
+    <value>Show signature on the page</value>
+  </data>
+  <data name="DocumentWorkspace.SignatureField" xml:space="preserve">
+    <value>Signature field</value>
+  </data>
+  <data name="DocumentWorkspace.SignDocument" xml:space="preserve">
+    <value>Sign document</value>
+  </data>
+  <data name="DocumentWorkspace.Split" xml:space="preserve">
+    <value>Split</value>
+  </data>
+  <data name="DocumentWorkspace.SplitToFolder" xml:space="preserve">
+    <value>Split to folder</value>
+  </data>
+  <data name="DocumentWorkspace.Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="DocumentWorkspace.Strikeout" xml:space="preserve">
+    <value>Strikeout</value>
+  </data>
+  <data name="DocumentWorkspace.Suffix" xml:space="preserve">
+    <value>Suffix</value>
+  </data>
+  <data name="DocumentWorkspace.Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="DocumentWorkspace.TextComment" xml:space="preserve">
+    <value>Text / comment</value>
+  </data>
+  <data name="DocumentWorkspace.TextThatMustBeAbsent" xml:space="preserve">
+    <value>Text that must be absent</value>
+  </data>
+  <data name="DocumentWorkspace.TheReplacementKeepsThisPlacementSPositionSizeAndRotation" xml:space="preserve">
+    <value>The replacement keeps this placement's position, size, and rotation.</value>
+  </data>
+  <data name="DocumentWorkspace.ThisDocumentIsAlreadyProtectedEnterItsOwnerPasswordBelow" xml:space="preserve">
+    <value>This document is already protected. Enter its owner password below only if owner authorization was not used when opening it.</value>
+  </data>
+  <data name="DocumentWorkspace.ThisFieldIsNotDirectlyFillableFromThisInspector" xml:space="preserve">
+    <value>This field is not directly fillable from this inspector.</value>
+  </data>
+  <data name="DocumentWorkspace.ThisIsASignatureFieldUseTheSigningSectionIn" xml:space="preserve">
+    <value>This is a signature field. Use the signing section in Protect mode to apply a certificate signature.</value>
+  </data>
+  <data name="DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet" xml:space="preserve">
+    <value>This PDF has no named form fields yet.</value>
+  </data>
+  <data name="DocumentWorkspace.Tool" xml:space="preserve">
+    <value>Tool</value>
+  </data>
+  <data name="DocumentWorkspace.Underline" xml:space="preserve">
+    <value>Underline</value>
+  </data>
+  <data name="DocumentWorkspace.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="DocumentWorkspace.Up" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="DocumentWorkspace.UseRedactionTool" xml:space="preserve">
+    <value>Use redaction tool</value>
+  </data>
+  <data name="DocumentWorkspace.ValidateSignatures" xml:space="preserve">
+    <value>Validate signatures</value>
+  </data>
+  <data name="DocumentWorkspace.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="DocumentWorkspace.Watermark" xml:space="preserve">
+    <value>Watermark</value>
+  </data>
+  <data name="DocumentWorkspace.WatermarkText" xml:space="preserve">
+    <value>Watermark text</value>
+  </data>
+  <data name="DocumentWorkspace.WholeWords" xml:space="preserve">
+    <value>Whole words</value>
+  </data>
+  <data name="DocumentWorkspace.Width" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="DocumentWorkspace.X" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="DocumentWorkspace.Y" xml:space="preserve">
+    <value>Y</value>
+  </data>
+  <data name="Home.ClearList" xml:space="preserve">
+    <value>Clear list</value>
+  </data>
+  <data name="Home.Compress" xml:space="preserve">
+    <value>Compress</value>
+  </data>
+  <data name="Home.Convert" xml:space="preserve">
+    <value>Convert</value>
+  </data>
+  <data name="Home.DocumentsYouOpenWillAppearHere" xml:space="preserve">
+    <value>Documents you open will appear here.</value>
+  </data>
+  <data name="Home.DragAndDropFilesHere" xml:space="preserve">
+    <value>Drag and drop files here</value>
+  </data>
+  <data name="Home.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Home.Merge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Home.NoRecentDocuments" xml:space="preserve">
+    <value>No recent documents</value>
+  </data>
+  <data name="Home.OCR" xml:space="preserve">
+    <value>OCR</value>
+  </data>
+  <data name="Home.OpenFile" xml:space="preserve">
+    <value>Open file</value>
+  </data>
+  <data name="Home.PDF" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="Home.Protect" xml:space="preserve">
+    <value>Protect</value>
+  </data>
+  <data name="Home.QuickTasks" xml:space="preserve">
+    <value>Quick tasks</value>
+  </data>
+  <data name="Home.Recent" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="Home.Split" xml:space="preserve">
+    <value>Split</value>
+  </data>
+  <data name="MainWindow.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MainWindow.Convert" xml:space="preserve">
+    <value>Convert</value>
+  </data>
+  <data name="MainWindow.Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="MainWindow.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="MainWindow.Document" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="MainWindow.Find" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="MainWindow.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="MainWindow.OCR" xml:space="preserve">
+    <value>OCR</value>
+  </data>
+  <data name="MainWindow.OpenAnotherDocument" xml:space="preserve">
+    <value>Open another document</value>
+  </data>
+  <data name="MainWindow.PrepareRunAndInspectConversionJobs" xml:space="preserve">
+    <value>Prepare, run, and inspect conversion jobs.</value>
+  </data>
+  <data name="MainWindow.RestoreRecoveredEdits" xml:space="preserve">
+    <value>Restore recovered edits</value>
+  </data>
+  <data name="MainWindow.SaveAs" xml:space="preserve">
+    <value>Save as</value>
+  </data>
+  <data name="MainWindow.SearchThisDocument" xml:space="preserve">
+    <value>Search this document</value>
+  </data>
+  <data name="MainWindow.SwitchLightAndDarkAppearance" xml:space="preserve">
+    <value>Switch light and dark appearance</value>
+  </data>
+  <data name="MainWindow.Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="MainWindow.Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AddFiles" xml:space="preserve">
+    <value>Add files</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AddFolder" xml:space="preserve">
+    <value>Add folder</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AddPDFsImagesOfficeDocumentsFoldersOrZIPArchivesTheir" xml:space="preserve">
+    <value>Add PDFs, images, Office documents, folders, or ZIP archives. Their queue order becomes the document order.</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AllPagesOr13Last" xml:space="preserve">
+    <value>All pages or 1-3,last</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AssembledPdf" xml:space="preserve">
+    <value>assembled.pdf</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AssemblePDF" xml:space="preserve">
+    <value>Assemble PDF</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ASSEMBLYOUTPUT" xml:space="preserve">
+    <value>ASSEMBLY OUTPUT</value>
+  </data>
+  <data name="OutputIntakeWorkbench.AssemblyQueue" xml:space="preserve">
+    <value>Assembly queue</value>
+  </data>
+  <data name="OutputIntakeWorkbench.BuildOnePDFFromMixedSources" xml:space="preserve">
+    <value>Build one PDF from mixed sources</value>
+  </data>
+  <data name="OutputIntakeWorkbench.BuildPreview" xml:space="preserve">
+    <value>Build preview</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ChooseAPDF" xml:space="preserve">
+    <value>Choose a PDF</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ChooseFolder" xml:space="preserve">
+    <value>Choose folder</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ChooseOutput" xml:space="preserve">
+    <value>Choose output</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ChoosePDF" xml:space="preserve">
+    <value>Choose PDF</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Document" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="OutputIntakeWorkbench.EveryPageIsDecodedAndCheckedBeforeItsOutputFolder" xml:space="preserve">
+    <value>Every page is decoded and checked before its output folder is published.</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ExportPages" xml:space="preserve">
+    <value>Export pages</value>
+  </data>
+  <data name="OutputIntakeWorkbench.FoldersAreOrderedByPathZIPEntriesAreExpandedIn" xml:space="preserve">
+    <value>Folders are ordered by path. ZIP entries are expanded in name order with path, count, size, and compression guards.</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="OutputIntakeWorkbench.IncludeNestedFolderFiles" xml:space="preserve">
+    <value>Include nested folder files</value>
+  </data>
+  <data name="OutputIntakeWorkbench.MaxDimension" xml:space="preserve">
+    <value>Max dimension</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Orientation" xml:space="preserve">
+    <value>Orientation</value>
+  </data>
+  <data name="OutputIntakeWorkbench.OutputFolder" xml:space="preserve">
+    <value>Output folder</value>
+  </data>
+  <data name="OutputIntakeWorkbench.OutputIntake" xml:space="preserve">
+    <value>Output &amp; intake</value>
+  </data>
+  <data name="OutputIntakeWorkbench.OutputPDF" xml:space="preserve">
+    <value>Output PDF</value>
+  </data>
+  <data name="OutputIntakeWorkbench.PAGEEXPORT" xml:space="preserve">
+    <value>PAGE EXPORT</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Pages" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="OutputIntakeWorkbench.PagesPerSheet" xml:space="preserve">
+    <value>Pages per sheet</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Paper" xml:space="preserve">
+    <value>Paper</value>
+  </data>
+  <data name="OutputIntakeWorkbench.PreviewPrintSheetsExportPagesOrCombineMixedDocumentSources" xml:space="preserve">
+    <value>Preview print sheets, export pages, or combine mixed document sources.</value>
+  </data>
+  <data name="OutputIntakeWorkbench.PrintPreview" xml:space="preserve">
+    <value>Print preview</value>
+  </data>
+  <data name="OutputIntakeWorkbench.PRINTSETUP" xml:space="preserve">
+    <value>PRINT SETUP</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ReviewPaperPlacementBeforeContinuingToYourPrinter" xml:space="preserve">
+    <value>Review paper placement before continuing to your printer.</value>
+  </data>
+  <data name="OutputIntakeWorkbench.Scaling" xml:space="preserve">
+    <value>Scaling</value>
+  </data>
+  <data name="OutputIntakeWorkbench.SheetPreview" xml:space="preserve">
+    <value>Sheet preview</value>
+  </data>
+  <data name="OutputIntakeWorkbench.SourcePDF" xml:space="preserve">
+    <value>Source PDF</value>
+  </data>
+  <data name="OutputIntakeWorkbench.TargetDPI" xml:space="preserve">
+    <value>Target DPI</value>
+  </data>
+  <data name="OutputIntakeWorkbench.ValidatedPageImages" xml:space="preserve">
+    <value>Validated page images</value>
+  </data>
+  <data name="PdfOrganizerPage.PreviewUnavailable" xml:space="preserve">
+    <value>Preview unavailable</value>
+  </data>
+  <data name="PdfPage.RenderingPage" xml:space="preserve">
+    <value>Rendering page…</value>
+  </data>
+  <data name="PdfPage.ThisPageCouldNotBeRendered" xml:space="preserve">
+    <value>This page could not be rendered</value>
+  </data>
+  <data name="SearchablePdfOcr.AllPagesOr135" xml:space="preserve">
+    <value>All pages or 1-3,5</value>
+  </data>
+  <data name="SearchablePdfOcr.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SearchablePdfOcr.ChooseAPDF" xml:space="preserve">
+    <value>Choose a PDF</value>
+  </data>
+  <data name="SearchablePdfOcr.ChooseOutputFolder" xml:space="preserve">
+    <value>Choose output folder</value>
+  </data>
+  <data name="SearchablePdfOcr.ChoosePDF" xml:space="preserve">
+    <value>Choose PDF</value>
+  </data>
+  <data name="SearchablePdfOcr.CreateSearchablePDF" xml:space="preserve">
+    <value>Create searchable PDF</value>
+  </data>
+  <data name="SearchablePdfOcr.DownloadChecksumVerifiedLanguageDataWhenTheInstalledRuntimeIs" xml:space="preserve">
+    <value>Download checksum-verified language data when the installed runtime is missing it</value>
+  </data>
+  <data name="SearchablePdfOcr.MinConfidence" xml:space="preserve">
+    <value>Min confidence %</value>
+  </data>
+  <data name="SearchablePdfOcr.OCRRuntime" xml:space="preserve">
+    <value>OCR runtime</value>
+  </data>
+  <data name="SearchablePdfOcr.OfficeIMORendersEachSelectedPageRecognizesWordGeometryRemovesOverlap" xml:space="preserve">
+    <value>OfficeIMO renders each selected page, recognizes word geometry, removes overlap with native text, and writes an invisible searchable layer into a separate PDF.</value>
+  </data>
+  <data name="SearchablePdfOcr.OpenResult" xml:space="preserve">
+    <value>Open result</value>
+  </data>
+  <data name="SearchablePdfOcr.OUTPUT" xml:space="preserve">
+    <value>OUTPUT</value>
+  </data>
+  <data name="SearchablePdfOcr.Pages" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="SearchablePdfOcr.RecognitionLanguages" xml:space="preserve">
+    <value>Recognition languages</value>
+  </data>
+  <data name="SearchablePdfOcr.RecognizeText" xml:space="preserve">
+    <value>Recognize text</value>
+  </data>
+  <data name="SearchablePdfOcr.RenderDPI" xml:space="preserve">
+    <value>Render DPI</value>
+  </data>
+  <data name="SearchablePdfOcr.ReplaceAnExistingOutputFile" xml:space="preserve">
+    <value>Replace an existing output file</value>
+  </data>
+  <data name="SearchablePdfOcr.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="SearchablePdfOcr.ScannedPDF" xml:space="preserve">
+    <value>Scanned PDF</value>
+  </data>
+  <data name="SearchablePdfOcr.ScanSearchablePdf" xml:space="preserve">
+    <value>scan-searchable.pdf</value>
+  </data>
+  <data name="SearchablePdfOcr.SearchablePDF" xml:space="preserve">
+    <value>Searchable PDF</value>
+  </data>
+  <data name="SearchablePdfOcr.SearchableTextWithoutChangingTheVisiblePage" xml:space="preserve">
+    <value>Searchable text without changing the visible page</value>
+  </data>
+  <data name="SearchablePdfOcr.SOURCE" xml:space="preserve">
+    <value>SOURCE</value>
+  </data>
+  <data name="SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt" xml:space="preserve">
+    <value>Tesseract must be installed on this computer. OfficeIMO discovers it from the environment, PATH, or common installation locations; the application does not install an executable silently.</value>
+  </data>
+  <data name="SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe" xml:space="preserve">
+    <value>Turn scanned pages into a searchable PDF while keeping the visible page intact.</value>
+  </data>
+  <data name="Tools.AssemblePDF" xml:space="preserve">
+    <value>Assemble PDF</value>
+  </data>
+  <data name="Tools.AssessRecoveriesAndBlockersWithoutWriting" xml:space="preserve">
+    <value>Assess recoveries and blockers without writing.</value>
+  </data>
+  <data name="Tools.ChooseAFocusedTaskAdvancedWorkOpensInAGuided" xml:space="preserve">
+    <value>Choose a focused task. Advanced work opens in a guided workbench.</value>
+  </data>
+  <data name="Tools.CombinePDFsImagesOfficeFilesFoldersAndZIPs" xml:space="preserve">
+    <value>Combine PDFs, images, Office files, folders, and ZIPs.</value>
+  </data>
+  <data name="Tools.ComparePDFs" xml:space="preserve">
+    <value>Compare PDFs</value>
+  </data>
+  <data name="Tools.CompressPDF" xml:space="preserve">
+    <value>Compress PDF</value>
+  </data>
+  <data name="Tools.ConvertAndRecognize" xml:space="preserve">
+    <value>Convert and recognize</value>
+  </data>
+  <data name="Tools.ConvertFiles" xml:space="preserve">
+    <value>Convert files</value>
+  </data>
+  <data name="Tools.CreateValidatedPNGJPEGWebPTIFFOrSVGFiles" xml:space="preserve">
+    <value>Create validated PNG, JPEG, WebP, TIFF, or SVG files.</value>
+  </data>
+  <data name="Tools.ExportPages" xml:space="preserve">
+    <value>Export pages</value>
+  </data>
+  <data name="Tools.ExtractRangesIntoVerifiedFiles" xml:space="preserve">
+    <value>Extract ranges into verified files.</value>
+  </data>
+  <data name="Tools.InspectPDF" xml:space="preserve">
+    <value>Inspect PDF</value>
+  </data>
+  <data name="Tools.MakePDFSearchable" xml:space="preserve">
+    <value>Make PDF searchable</value>
+  </data>
+  <data name="Tools.OfficeWebMarkupPDFAndImages" xml:space="preserve">
+    <value>Office, web, markup, PDF, and images.</value>
+  </data>
+  <data name="Tools.OptimizeAndOutput" xml:space="preserve">
+    <value>Optimize and output</value>
+  </data>
+  <data name="Tools.OptimizeDeterministicallyAndValidate" xml:space="preserve">
+    <value>Optimize deterministically and validate.</value>
+  </data>
+  <data name="Tools.Organize" xml:space="preserve">
+    <value>Organize</value>
+  </data>
+  <data name="Tools.OrganizePages" xml:space="preserve">
+    <value>Organize pages</value>
+  </data>
+  <data name="Tools.PlanPaperScalingAndMultiPageSheets" xml:space="preserve">
+    <value>Plan paper, scaling, and multi-page sheets.</value>
+  </data>
+  <data name="Tools.PlanRepair" xml:space="preserve">
+    <value>Plan repair</value>
+  </data>
+  <data name="Tools.PrintPreview" xml:space="preserve">
+    <value>Print preview</value>
+  </data>
+  <data name="Tools.ProtectAndRedact" xml:space="preserve">
+    <value>Protect and redact</value>
+  </data>
+  <data name="Tools.RecognizeScannedPagesAndAddASearchableTextLayer" xml:space="preserve">
+    <value>Recognize scanned pages and add a searchable text layer.</value>
+  </data>
+  <data name="Tools.RecoverExplicitlyReopenAndReport" xml:space="preserve">
+    <value>Recover explicitly, reopen, and report.</value>
+  </data>
+  <data name="Tools.RemoveForbiddenActionsAndPayloadsThenVerify" xml:space="preserve">
+    <value>Remove forbidden actions and payloads, then verify.</value>
+  </data>
+  <data name="Tools.RepairPDF" xml:space="preserve">
+    <value>Repair PDF</value>
+  </data>
+  <data name="Tools.ReviewAndProtect" xml:space="preserve">
+    <value>Review and protect</value>
+  </data>
+  <data name="Tools.ReviewIrreversibleChangesBeforeSave" xml:space="preserve">
+    <value>Review irreversible changes before save.</value>
+  </data>
+  <data name="Tools.RotateCropDuplicateAndMove" xml:space="preserve">
+    <value>Rotate, crop, duplicate, and move.</value>
+  </data>
+  <data name="Tools.SanitizePDF" xml:space="preserve">
+    <value>Sanitize PDF</value>
+  </data>
+  <data name="Tools.SecuritySignaturesTagsAndDiagnostics" xml:space="preserve">
+    <value>Security, signatures, tags, and diagnostics.</value>
+  </data>
+  <data name="Tools.SplitPDF" xml:space="preserve">
+    <value>Split PDF</value>
+  </data>
+  <data name="Tools.StructureAndManagedVisualComparison" xml:space="preserve">
+    <value>Structure and managed visual comparison.</value>
+  </data>
+  <data name="Tools.Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Settings.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings.Description" xml:space="preserve">
+    <value>Choose how OfficeIMO Studio looks, formats information, and records privacy-safe support evidence.</value>
+  </data>
+  <data name="Settings.AppearanceAndLanguage" xml:space="preserve">
+    <value>Appearance and language</value>
+  </data>
+  <data name="Settings.InterfaceLanguage" xml:space="preserve">
+    <value>Interface language</value>
+  </data>
+  <data name="Settings.PseudolocalizedEnglish" xml:space="preserve">
+    <value>Pseudolocalized English</value>
+  </data>
+  <data name="Settings.RestartRequired" xml:space="preserve">
+    <value>Restart OfficeIMO Studio to apply the selected interface language consistently.</value>
+  </data>
+  <data name="Settings.Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings.ThemeSystem" xml:space="preserve">
+    <value>Use system setting</value>
+  </data>
+  <data name="Settings.ThemeSystemDescription" xml:space="preserve">
+    <value>Follow the operating system light or dark preference.</value>
+  </data>
+  <data name="Settings.ThemeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings.ThemeLightDescription" xml:space="preserve">
+    <value>Use a bright document workspace.</value>
+  </data>
+  <data name="Settings.ThemeDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings.ThemeDarkDescription" xml:space="preserve">
+    <value>Use a low-light document workspace.</value>
+  </data>
+  <data name="Settings.ThemeHighContrast" xml:space="preserve">
+    <value>High contrast</value>
+  </data>
+  <data name="Settings.ThemeHighContrastDescription" xml:space="preserve">
+    <value>Use maximum separation between text, controls, and workspace surfaces.</value>
+  </data>
+  <data name="Settings.LocalizationReadiness" xml:space="preserve">
+    <value>Localization readiness</value>
+  </data>
+  <data name="Settings.LocalizationReadinessDescription" xml:space="preserve">
+    <value>The interface uses stable feature-scoped resource keys. Additional reviewed culture packs can be added without changing document engines or view-model contracts.</value>
+  </data>
+  <data name="Settings.LocalizationCoverage" xml:space="preserve">
+    <value>English is the neutral fallback. The en-XA expansion locale is available for clipping and hard-coded-text testing.</value>
+  </data>
+  <data name="Settings.LocalizationContract" xml:space="preserve">
+    <value>The culture catalog is ready for Polish, German, French, Italian, Spanish, Portuguese, Dutch, Czech, Slovak, Ukrainian, Romanian, Hungarian, Swedish, Danish, Finnish, Norwegian, Arabic, Hebrew, Japanese, Korean, and Chinese resource packs.</value>
+  </data>
+  <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
+    <value>Privacy and diagnostics</value>
+  </data>
+  <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
+    <value>Local diagnostics record application areas, stable event codes, runtime metadata, and sanitized stack traces. They exclude document contents, document names, document paths, and exception messages.</value>
+  </data>
+  <data name="Settings.DiagnosticsLocation" xml:space="preserve">
+    <value>Local diagnostics location</value>
+  </data>
+  <data name="Settings.AboutAndUpdates" xml:space="preserve">
+    <value>About and updates</value>
+  </data>
+  <data name="Settings.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Settings.Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+  <data name="Settings.System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Settings.ManualUpdatePolicy" xml:space="preserve">
+    <value>Updates are manual until signed release channels and an explicit update policy are configured.</value>
+  </data>
+  <data name="Recent.TodayAt" xml:space="preserve">
+    <value>Today, {0}</value>
+  </data>
+  <data name="Recent.YesterdayAt" xml:space="preserve">
+    <value>Yesterday, {0}</value>
+  </data>
+  <data name="Recent.FileSize" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Common.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Capability.SignedDocument" xml:space="preserve">
+    <value>This PDF contains signatures. Stay in View mode to preserve signed bytes, or work on an unsigned copy before making changes.</value>
+  </data>
+  <data name="Capability.EncryptedDocument" xml:space="preserve">
+    <value>This PDF is encrypted. Enter the owner password in Protect, or save a permitted copy before changing document content.</value>
+  </data>
+  <data name="Capability.RestrictedDocument" xml:space="preserve">
+    <value>This PDF carries certification or usage-rights restrictions. Review its permissions in Protect before attempting changes.</value>
+  </data>
+  <data name="Capability.AnnotationsUnavailable" xml:space="preserve">
+    <value>Annotations cannot be changed safely in this document. Use View mode or create an unrestricted working copy.</value>
+  </data>
+  <data name="Capability.ContentEditingUnavailable" xml:space="preserve">
+    <value>Page content cannot be changed safely in this document. Use View mode or create an unrestricted working copy.</value>
+  </data>
+  <data name="Capability.PageEditingUnavailable" xml:space="preserve">
+    <value>Pages cannot be reorganized safely in this document. Extract permitted content or create an unrestricted working copy.</value>
+  </data>
+  <data name="Capability.FormsUnavailable" xml:space="preserve">
+    <value>Forms cannot be filled, flattened, or authored safely in this document. Review permissions in Protect or use an unrestricted copy.</value>
+  </data>
+  <data name="Capability.ProtectionUnavailable" xml:space="preserve">
+    <value>Protection changes and permanent redaction are unavailable for this document. Review its security details or use an unrestricted copy.</value>
+  </data>
+  <data name="App.Name" xml:space="preserve"><value>OfficeIMO Studio</value></data>
+  <data name="Document.EmptyDescription" xml:space="preserve"><value>Open a PDF to begin</value></data>
+  <data name="Document.NoPage" xml:space="preserve"><value>No page</value></data>
+  <data name="Document.PagePosition" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Document.Page" xml:space="preserve"><value>page</value></data>
+  <data name="Document.Pages" xml:space="preserve"><value>pages</value></data>
+  <data name="Document.Summary" xml:space="preserve"><value>{0:N0} {1} · {2}</value></data>
+  <data name="Picker.OpenPdf" xml:space="preserve"><value>Open PDF</value></data>
+  <data name="Picker.AddPdfDocuments" xml:space="preserve"><value>Add PDF documents</value></data>
+  <data name="Picker.AddDocumentsOrImages" xml:space="preserve"><value>Add documents or images</value></data>
+  <data name="Picker.SupportedFiles" xml:space="preserve"><value>Supported documents, images, and archives</value></data>
+  <data name="Picker.AddSourceFolder" xml:space="preserve"><value>Add source folder</value></data>
+  <data name="Picker.SavePdf" xml:space="preserve"><value>Save PDF</value></data>
+  <data name="Picker.PdfDocuments" xml:space="preserve"><value>PDF documents</value></data>
+  <data name="Picker.ChooseOutputFolder" xml:space="preserve"><value>Choose output folder</value></data>
+  <data name="Picker.ChooseImage" xml:space="preserve"><value>Choose image</value></data>
+  <data name="Picker.PngOrJpegImages" xml:space="preserve"><value>PNG or JPEG images</value></data>
+  <data name="Error.CouldNotOpenLink" xml:space="preserve"><value>The operating system could not open this link.</value></data>
+  <data name="Common.Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common.Discard" xml:space="preserve"><value>Discard</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Dialog.PasswordRequired" xml:space="preserve"><value>Password required</value></data>
+  <data name="Dialog.DocumentPassword" xml:space="preserve"><value>Document password</value></data>
+  <data name="Dialog.EnterPassword" xml:space="preserve"><value>Enter the password to open this PDF.</value></data>
+  <data name="Dialog.InvalidPassword" xml:space="preserve"><value>That password did not open the document. Try again.</value></data>
+  <data name="Dialog.UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Dialog.SaveChangesTo" xml:space="preserve"><value>Save changes to {0}?</value></data>
+  <data name="Dialog.UnsavedDescription" xml:space="preserve"><value>Your page edits have not been saved yet.</value></data>
+  <data name="Dialog.DeletePageTitle" xml:space="preserve"><value>Delete page?</value></data>
+  <data name="Dialog.DeletePagesTitle" xml:space="preserve"><value>Delete {0} pages?</value></data>
+  <data name="Dialog.DeletePage" xml:space="preserve"><value>Delete page</value></data>
+  <data name="Dialog.DeletePages" xml:space="preserve"><value>Delete pages</value></data>
+  <data name="Dialog.DeletePagesDescription" xml:space="preserve"><value>The pages will be removed from this working copy. You can still use Undo before saving.</value></data>
+  <data name="Document.WaitForOperation" xml:space="preserve"><value>Cancel or wait for the current operation before changing documents.</value></data>
+  <data name="PdfPage.KeyboardHelp" xml:space="preserve"><value>Use arrow keys to review links and page objects, Enter to activate, Control+A to select page text, and Control+C to copy selected text.</value></data>
+  <data name="PdfPage.Label" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Reader.ComparisonSameDocument" xml:space="preserve"><value>Choose a different PDF for side-by-side comparison.</value></data>
+  <data name="Reader.ComparisonSynchronized" xml:space="preserve"><value>Side-by-side comparison is synchronized by page and zoom.</value></data>
+  <data name="Reader.ComparisonCancelled" xml:space="preserve"><value>Comparison opening cancelled</value></data>
+  <data name="Workspace.SelectPages" xml:space="preserve"><value>Select pages</value></data>
+  <data name="Workspace.SelectedPageCount" xml:space="preserve"><value>{0} of {1} selected</value></data>
+  <data name="Workspace.SaveAsAlreadyOpen" xml:space="preserve"><value>That PDF is already open in another tab. Close it or choose a different file name.</value></data>
+  <data name="Workspace.UndoComplete" xml:space="preserve"><value>Undo complete.</value></data>
+  <data name="Workspace.RedoComplete" xml:space="preserve"><value>Redo complete.</value></data>
+  <data name="Workspace.RecoveryDiscarded" xml:space="preserve"><value>Recovery snapshot discarded</value></data>
+  <data name="Workspace.AtLeastOnePage" xml:space="preserve"><value>A PDF must keep at least one page.</value></data>
+  <data name="Workspace.DeleteCancelled" xml:space="preserve"><value>Delete cancelled</value></data>
+  <data name="Workspace.ImportedOnePage" xml:space="preserve"><value>Imported 1 page</value></data>
+  <data name="Workspace.ImportedPages" xml:space="preserve"><value>Imported {0} pages from {1} PDFs</value></data>
+  <data name="Workspace.CreatedOneSplitPdf" xml:space="preserve"><value>Created 1 split PDF</value></data>
+  <data name="Workspace.CreatedSplitPdfs" xml:space="preserve"><value>Created {0} split PDFs</value></data>
+  <data name="Workspace.SearchingDocument" xml:space="preserve"><value>Searching document</value></data>
+  <data name="Workspace.NoMatches" xml:space="preserve"><value>No matches</value></data>
+  <data name="Workspace.MatchingPages" xml:space="preserve"><value>{0} matching page(s)</value></data>
+  <data name="Workspace.OperationCancelled" xml:space="preserve"><value>Operation cancelled</value></data>
+  <data name="Workspace.OperationFailed" xml:space="preserve"><value>Operation failed</value></data>
+  <data name="Workspace.CancellingOperation" xml:space="preserve"><value>Cancelling operation</value></data>
+  <data name="Workspace.RecoveryAvailable" xml:space="preserve"><value>Recovered edits are available for this document.</value></data>
+  <data name="Workspace.UnsupportedLinkTarget" xml:space="preserve"><value>This link target is not supported: {0}</value></data>
+  <data name="Editor.RedactionUnavailable" xml:space="preserve"><value>This document cannot be safely redacted under its current security and rewrite policy.</value></data>
+  <data name="Editor.PlanningRedaction" xml:space="preserve"><value>Planning redaction</value></data>
+  <data name="Editor.RedactionPreviewStale" xml:space="preserve"><value>The document changed before the redaction preview was ready. Draw the area again.</value></data>
+  <data name="Editor.RedactionSummary" xml:space="preserve"><value>Page {0}: {1} text, {2} image, and {3} annotation match(es). Intersecting images are removed as whole placements. Review the area, then apply permanent verified redaction.</value></data>
+  <data name="Editor.ImageSelectionStale" xml:space="preserve"><value>The document changed while the image was being selected. Place the image again.</value></data>
+  <data name="Editor.EditAdded" xml:space="preserve"><value>Edit added. Save when ready.</value></data>
+  <data name="Editor.Annotation" xml:space="preserve"><value>Annotation</value></data>
+  <data name="Editor.AnnotationSummary" xml:space="preserve"><value>{0} · page {1} · object {2}</value></data>
+  <data name="Editor.TextSelectionSummary" xml:space="preserve"><value>Text · page {0} · {1} character(s)</value></data>
+  <data name="Editor.ImageSelectionSummary" xml:space="preserve"><value>Image · page {0} · {1:0.#} × {2:0.#} pt</value></data>
+  <data name="Editor.RedactionReviewStale" xml:space="preserve"><value>The document changed after this redaction was reviewed. Draw and review the area again.</value></data>
+  <data name="Editor.RedactionVerified" xml:space="preserve"><value>Verified removal of {0} reviewed PDF content item(s) across {1} page(s).</value></data>
+  <data name="Editor.RedactionIncomplete" xml:space="preserve"><value>PDF redaction evidence is not complete: {0} residual and {1} inconclusive reviewed item(s).</value></data>
+  <data name="Search.ResultLabel" xml:space="preserve"><value>Page {0}: {1}</value></data>
+  <data name="FormField.Label" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="FormField.ReadOnlyLabel" xml:space="preserve"><value>{0} · {1} · read only</value></data>
+  <data name="FormField.NoPageLocation" xml:space="preserve"><value>No page location</value></data>
+  <data name="FormField.PagesLabel" xml:space="preserve"><value>Pages {0}</value></data>
+  <data name="FormField.Kind.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="FormField.Kind.MultilineText" xml:space="preserve"><value>Multiline text</value></data>
+  <data name="FormField.Kind.Text" xml:space="preserve"><value>Text</value></data>
+  <data name="FormField.Kind.CheckBox" xml:space="preserve"><value>Check box</value></data>
+  <data name="FormField.Kind.RadioGroup" xml:space="preserve"><value>Radio group</value></data>
+  <data name="FormField.Kind.Button" xml:space="preserve"><value>Button</value></data>
+  <data name="FormField.Kind.EditableChoice" xml:space="preserve"><value>Editable choice</value></data>
+  <data name="FormField.Kind.DropDown" xml:space="preserve"><value>Drop-down</value></data>
+  <data name="FormField.Kind.MultipleChoice" xml:space="preserve"><value>Multiple choice</value></data>
+  <data name="FormField.Kind.Choice" xml:space="preserve"><value>Choice</value></data>
+  <data name="FormField.Kind.Signature" xml:space="preserve"><value>Signature</value></data>
+  <data name="FormField.Kind.Unsupported" xml:space="preserve"><value>Unsupported</value></data>
+</root>

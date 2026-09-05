@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="OfficeIMO Studio">
+  <defs>
+    <linearGradient id="background" x1="130" y1="92" x2="884" y2="932" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#315FDB" />
+      <stop offset="0.55" stop-color="#2450BE" />
+      <stop offset="1" stop-color="#183573" />
+    </linearGradient>
+    <linearGradient id="spine" x1="694" y1="265" x2="793" y2="759" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ADCEB" />
+      <stop offset="1" stop-color="#20B8D0" />
+    </linearGradient>
+    <filter id="shadow" x="192" y="125" width="674" height="798" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#0A1D4A" flood-opacity="0.35" />
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="206" fill="url(#background)" />
+  <path d="M748 258h35c53 0 96 43 96 96v316c0 53-43 96-96 96h-35" fill="none" stroke="url(#spine)" stroke-width="58" stroke-linecap="round" />
+  <rect x="245" y="166" width="528" height="692" rx="112" fill="#FFFFFF" filter="url(#shadow)" />
+  <path d="M377 357h266M377 485h266M377 613h174" fill="none" stroke="#2450BE" stroke-width="52" stroke-linecap="round" />
+  <circle cx="680" cy="680" r="68" fill="#26C4DA" />
+  <path d="m648 681 22 22 44-48" fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

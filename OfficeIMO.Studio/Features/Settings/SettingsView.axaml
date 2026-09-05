@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:settings="using:OfficeIMO.Studio.Features.Settings"
+             x:Class="OfficeIMO.Studio.Features.Settings.SettingsView"
+             x:DataType="settings:StudioSettingsViewModel">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                Background="{DynamicResource StudioWindowBrush}">
+    <StackPanel Margin="28,24,28,36" Spacing="18" MaxWidth="980" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Loc Settings.Settings}" Classes="pageTitle" />
+        <TextBlock Text="{loc:Loc Settings.Description}" Classes="muted" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Text="{loc:Loc Settings.AppearanceAndLanguage}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.InterfaceLanguage}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding Cultures}" SelectedItem="{Binding SelectedCulture, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioCultureChoice">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding Label}" />
+                    <TextBlock Text="{Binding Name}" Classes="muted" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Border IsVisible="{Binding RestartRequired}" Background="{DynamicResource StudioWarningSoftBrush}"
+                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+              <TextBlock Text="{loc:Loc Settings.RestartRequired}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
+            </Border>
+            <TextBlock Text="{loc:Loc Settings.Appearance}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Appearance}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioThemeChoice">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Label}" />
+                    <TextBlock Text="{Binding Description}" Classes="muted" FontSize="11" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{loc:Loc Settings.LocalizationReadiness}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.LocalizationReadinessDescription}" TextWrapping="Wrap" />
+            <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
+              <TextBlock Text="{loc:Loc Settings.LocalizationCoverage}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
+            </Border>
+            <TextBlock Text="{loc:Loc Settings.LocalizationContract}" Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />
+            <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.DiagnosticsLocation}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{Binding DiagnosticsDirectory}" Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{loc:Loc Settings.AboutAndUpdates}" Classes="sectionTitle" />
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="7">
+              <TextBlock Text="{loc:Loc Settings.Version}" Classes="muted" />
+              <TextBlock Grid.Column="1" Text="{Binding ProductVersion}" />
+              <TextBlock Grid.Row="1" Text="{loc:Loc Settings.Runtime}" Classes="muted" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RuntimeDescription}" TextWrapping="Wrap" />
+              <TextBlock Grid.Row="2" Text="{loc:Loc Settings.System}" Classes="muted" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OperatingSystem}" TextWrapping="Wrap" />
+            </Grid>
+            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="6" Padding="10,8" Margin="0,4,0,0">
+              <TextBlock Text="{loc:Loc Settings.ManualUpdatePolicy}" Classes="muted" TextWrapping="Wrap" />
+            </Border>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
