@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42653
+    "conceptualWordCount": 42659
   },
   "categories": [
     {
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 503,
+      "sourceFileCount": 504,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -717,7 +717,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
       "sourceFileCount": 6,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ocr/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr"
@@ -886,7 +886,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
       "sourceFileCount": 7,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.Ocr"
@@ -1561,7 +1561,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 28,
+      "sourceFileCount": 29,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
