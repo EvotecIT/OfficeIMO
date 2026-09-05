@@ -315,11 +315,7 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "incremental",
-    "AlwaysPurgePaths": [
-      "/apps/officeimo-converter/",
-      "/apps/officeimo-converter/?embedded=1"
-    ],
+    "PurgeMode": "hostname",
     "SmartTieredCache": true
   },
   "EditLinks": {

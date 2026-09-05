@@ -31,12 +31,12 @@ jobs:
       actions: write
       contents: read
       packages: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-maintenance.yml@9f2d36a18c8334d9a27587f04b38ad0dc9bd515d
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-maintenance.yml@3fb959e848e8d05744af826b7a74ae7edcc1e41d
     with:
       website_root: Website
       pipeline_config: Website/pipeline.maintenance.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 9f2d36a18c8334d9a27587f04b38ad0dc9bd515d
+      powerforge_ref: 3fb959e848e8d05744af826b7a74ae7edcc1e41d
       report_artifact_name: powerforge-website-maintenance-reports
