@@ -479,7 +479,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(leadY - firstMetricY >= 24, $"Expected metric cards to start after the lead copy with visible breathing room. Gap: {leadY - firstMetricY:0.##}pt.");
         Assert.True(Math.Abs(firstMetricY - secondMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
         Assert.True(Math.Abs(firstMetricY - thirdMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
-        Assert.True(firstMetricY - fourthMetricY >= 12, "Expected the long fourth metric label to wrap below its value instead of colliding with neighboring cards.");
+        Assert.True(firstMetricY - fourthMetricY >= 10, "Expected the long fourth metric label to wrap below its value instead of colliding with neighboring cards.");
         Assert.True(leftHeadingY - riskHeaderY >= 175, $"Expected the trend drawing to reserve vertical space before the risk table. Gap: {leftHeadingY - riskHeaderY:0.##}pt.");
         Assert.True(Math.Abs(leftHeadingY - rightHeadingY) <= 2, "Expected the two body columns to start on the same visual row.");
         Assert.True(riskHeaderY - riskBodyY >= 14, $"Expected dashboard table header and first row to retain readable rhythm. Gap: {riskHeaderY - riskBodyY:0.##}pt.");

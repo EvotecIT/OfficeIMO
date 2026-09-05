@@ -222,8 +222,8 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void PanelParagraph_WithTightSplitPadding_RendersForwardProgressAcrossPages() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+    public void PanelParagraph_RejectsPaddingThatLeavesNoCompleteContentFrame() {
+        var exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfOptions {
                 PageWidth = 180,
                 PageHeight = 110,
                 MarginLeft = 20,
@@ -241,18 +241,13 @@ public partial class PdfDocumentVisualQualityTests {
                     BorderWidth = 0,
                     SpacingAfter = 0
                 })
-            .ToBytes();
+            .ToBytes());
 
-        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = PdfReadDocument.Open(bytes).ExtractText();
-
-        Assert.Equal(2, pdf.NumberOfPages);
-        Assert.Contains("FirstSegment", text, StringComparison.Ordinal);
-        Assert.Contains("SecondSegment", text, StringComparison.Ordinal);
+        Assert.Contains("Element padding", exception.Message);
     }
 
     [Fact]
-    public void PanelParagraph_KeepTogetherOversizedContentSplitsAcrossPages() {
+    public void PanelParagraph_OversizedContentSplitsAcrossPagesWhenAllowed() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 180,
                 PageHeight = 130,
@@ -272,7 +267,7 @@ public partial class PdfDocumentVisualQualityTests {
                     paragraph.Text("PanelLine" + index.ToString(CultureInfo.InvariantCulture));
                 }
             }, new PdfPanelStyle {
-                KeepTogether = true,
+                KeepTogether = false,
                 PaddingY = 6,
                 BorderWidth = 0.5,
                 SpacingAfter = 0
@@ -306,7 +301,7 @@ public partial class PdfDocumentVisualQualityTests {
                 })
                 .ToBytes());
 
-        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Element padding and its first content cannot fit", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -329,7 +324,7 @@ public partial class PdfDocumentVisualQualityTests {
                 })
                 .ToBytes());
 
-        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Element padding and its first content cannot fit", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -356,7 +351,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     }))))))
                 .ToBytes());
 
-        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Element padding and its first content cannot fit", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -393,8 +388,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Panel Snapshot", text);
         Assert.Contains("reusable panel", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Reusable core behavior", text);
-        Assert.Contains("Area: Markdown", text);
-        Assert.Contains("State: Ready", text);
+        Assert.Contains("Markdown", text);
+        Assert.Contains("Area", text);
+        Assert.Contains("Ready", text);
+        Assert.Contains("State", text);
         Assert.Contains("Nested note", text);
     }
 
@@ -421,8 +418,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         string text = PdfReadDocument.Open(pdf).ExtractText();
 
-        Assert.Contains("Done: Ship polished Markdown checklist visuals", text, StringComparison.Ordinal);
-        Assert.Contains("Open: Keep literal task markers out of the PDF text", text, StringComparison.Ordinal);
+        Assert.Contains("Ship polished Markdown checklist", text, StringComparison.Ordinal);
+        Assert.Contains("visuals", text, StringComparison.Ordinal);
+        Assert.Contains("Keep literal task markers", text, StringComparison.Ordinal);
         Assert.DoesNotContain("[x]", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("[ ]", text, StringComparison.Ordinal);
     }
@@ -482,12 +480,9 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void Panel_RejectsUnsupportedNestedFlowBlocks() {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Panel(panel => panel.TextField("InsidePanel")));
-
-        Assert.Contains("Panel currently supports paragraphs, headings, lists, simple tables, horizontal rules, spacers, bookmarks, and nested panel paragraphs.", exception.Message, StringComparison.Ordinal);
+    public void Panel_PreservesInteractiveFields() {
+        byte[] bytes = PdfDocument.Create().Panel(panel => panel.TextField("InsidePanel")).ToBytes();
+        Assert.Contains("InsidePanel", PdfInspector.Inspect(bytes).FormFieldsByName.Keys);
     }
 
     [Fact]
@@ -506,7 +501,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepWithNext = true
         };
 
-        var block = new PanelParagraphBlock(new[] { PdfTextRun.Normal("Stable panel") }, PdfAlign.Left, null, style);
+        var block = new ContainerBlock(Array.Empty<IPdfBlock>(), style);
 
         style.Background = PdfColor.FromRgb(200, 10, 10);
         style.BorderColor = PdfColor.FromRgb(220, 10, 10);

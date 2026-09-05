@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is ContainerBlock container) {
-                PdfPanelStyle style = container.Style;
+                PdfPanelStyle style = ResolveContainerStyle(container);
                 double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
                 ValidatePanelStyle(style, outerWidth);
                 double contentWidth = outerWidth - 2D * style.PaddingX;

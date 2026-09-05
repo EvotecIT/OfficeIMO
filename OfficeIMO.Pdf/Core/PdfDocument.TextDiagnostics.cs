@@ -83,9 +83,6 @@ public sealed partial class PdfDocument {
             case DeferredTableBlock table:
                 AnalyzeDeferredTable(table, options, defaultFont, diagnostics, location, cancellationToken);
                 break;
-            case PanelParagraphBlock panel:
-                AddRuns(diagnostics, panel.Runs, options, defaultFont, "PdfPanel", location);
-                break;
             case TextFieldBlock textField:
                 AddFormWidgetText(diagnostics, textField.Value, options, "PdfTextField", location, fieldName: textField.Name);
                 break;
@@ -572,7 +569,6 @@ public sealed partial class PdfDocument {
             BulletListBlock => "PdfBulletList[" + index + "]",
             NumberedListBlock => "PdfNumberedList[" + index + "]",
             TableBlock => "PdfTable[" + index + "]",
-            PanelParagraphBlock => "PdfPanel[" + index + "]",
             TextFieldBlock => "PdfTextField[" + index + "]",
             ChoiceFieldBlock => "PdfChoiceField[" + index + "]",
             FreeTextAnnotationBlock => "PdfFreeTextAnnotation[" + index + "]",

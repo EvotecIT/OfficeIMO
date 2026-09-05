@@ -131,7 +131,7 @@ public sealed partial class MarkdownPdfStyle {
         PaddingY = paddingY,
         SpacingBefore = spacingBefore,
         SpacingAfter = spacingAfter,
-        KeepTogether = true
+        KeepTogether = false
     };
 
     private static PdfCore.PdfPanelStyle PanelWithLeftRuleFromShared(OfficeColor background, OfficeColor border, OfficeColor left, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {

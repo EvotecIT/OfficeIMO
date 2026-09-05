@@ -29,7 +29,8 @@ public sealed class PdfRowBuilder {
         return this;
     }
 
-    /// <summary>Adds a column with an explicit sizing strategy.</summary>
+    /// <summary>Adds a column with an explicit sizing strategy. Static elements, semantic groups, and components retain their content.</summary>
+    /// <remarks>Page boundaries, nested rows, automatic multi-column layouts, and page-dependent deferred content belong outside a row.</remarks>
     public PdfRowBuilder Column(PdfColumnWidth width, System.Action<PdfContentBuilder> build) {
         Guard.NotNull(build, nameof(build));
         width.Validate(nameof(width));
@@ -79,13 +80,13 @@ public sealed class PdfRowBuilder {
 
     private static void ValidateColumnBlocks(System.Collections.Generic.IReadOnlyList<IPdfBlock> blocks) {
         foreach (IPdfBlock block in blocks) {
-            if (PdfFlowNestingRules.IsColumnFlowPrimitive(block)) {
+            if (PdfFlowNestingRules.IsColumnFlowSupported(block)) {
                 continue;
             }
 
             throw new NotSupportedException(
-                "Row columns do not support " + block.GetType().Name +
-                " as direct content. Place that layout block outside the row, or use Panel for grouped row content.");
+                "Row columns support static content, elements, semantic groups, and components. " +
+                "Place page boundaries, nested rows, automatic multi-column layouts, and page-dependent content outside the row.");
         }
     }
 }

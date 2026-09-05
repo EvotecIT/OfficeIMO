@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42628
+    "conceptualWordCount": 42651
   },
   "categories": [
     {
@@ -872,7 +872,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1120,
+      "sourceFileCount": 1126,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

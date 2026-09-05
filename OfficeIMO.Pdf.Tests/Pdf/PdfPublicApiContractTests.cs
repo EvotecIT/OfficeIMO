@@ -60,9 +60,9 @@ public sealed class PdfPublicApiContractTests {
             method.Name == nameof(PdfDocument.Create) &&
             method.IsStatic &&
             method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Action<PdfDocumentBuilder>));
-        Assert.All(
-            methods.Where(method => method.Name == nameof(PdfDocument.Create) && method.IsStatic),
-            method => Assert.Equal(typeof(Action<PdfDocumentBuilder>), method.GetParameters()[0].ParameterType));
+        Assert.Contains(methods, method => method.Name == nameof(PdfDocument.Create) &&
+            method.IsStatic && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(PdfOptions));
+        Assert.Equal(typeof(PdfContentBuilder), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Content))?.PropertyType);
         Assert.Contains(methods, method =>
             method.Name == nameof(PdfDocument.Load) &&
             method.IsStatic &&
