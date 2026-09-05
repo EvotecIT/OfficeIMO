@@ -134,14 +134,14 @@ public sealed partial class OfficeLinearGradient {
     }
 
     /// <summary>
-    /// Creates a local-coordinate gradient whose vector follows the supplied angle after an affine shape transform.
+    /// Creates a local-coordinate gradient whose color-field normal follows the supplied angle after an affine shape transform.
     /// </summary>
     /// <param name="stops">Gradient stops. The first stop must use offset 0 and the last stop offset 1.</param>
     /// <param name="destinationDegrees">Clockwise gradient angle in destination coordinates.</param>
     /// <param name="localWidth">Width of the shape's local coordinate box.</param>
     /// <param name="localHeight">Height of the shape's local coordinate box.</param>
     /// <param name="localToDestination">Affine transform applied to the shape after its local gradient is evaluated.</param>
-    /// <returns>A local normalized gradient that preserves the requested destination-space direction.</returns>
+    /// <returns>A local normalized gradient that preserves the requested destination-space color-field direction.</returns>
     public static OfficeLinearGradient FromTransformedAngle(
         IReadOnlyList<OfficeGradientStop> stops,
         double destinationDegrees,
