@@ -6,6 +6,8 @@ public sealed class ConverterInterop(IJSRuntime js) : IAsyncDisposable {
     internal const string ModulePath = "./Components/ConverterWorkspace.razor.js";
     internal const string CreateObjectUrlMethod = "createObjectUrl";
     internal const string RevokeObjectUrlMethod = "revokeObjectUrl";
+    internal const string RegisterWebMcpToolMethod = "registerWebMcpTool";
+    internal const string UnregisterWebMcpToolMethod = "unregisterWebMcpTool";
 
     private IJSObjectReference? _module;
 
@@ -23,6 +25,21 @@ public sealed class ConverterInterop(IJSRuntime js) : IAsyncDisposable {
         }
         IJSObjectReference module = await GetModuleAsync();
         await module.InvokeVoidAsync(RevokeObjectUrlMethod, url);
+    }
+
+    public async ValueTask RegisterWebMcpToolAsync<T>(DotNetObjectReference<T> converter) where T : class {
+        IJSObjectReference module = await GetModuleAsync();
+        await module.InvokeVoidAsync(RegisterWebMcpToolMethod, converter);
+    }
+
+    public async ValueTask UnregisterWebMcpToolAsync() {
+        if (_module is null) {
+            return;
+        }
+        try {
+            await _module.InvokeVoidAsync(UnregisterWebMcpToolMethod);
+        } catch (JSDisconnectedException) {
+        }
     }
 
     public async ValueTask DisposeAsync() {

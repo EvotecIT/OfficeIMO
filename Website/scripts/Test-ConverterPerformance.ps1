@@ -114,6 +114,38 @@ try {
             throw "Repeated route '$($route.routeId)' did not produce fail-closed in-flight browser heap evidence."
         }
     }
+    if (-not $result.webMcp) {
+        throw 'The browser run did not capture the convert_selected_document Website Tool.'
+    }
+    if (-not [bool] $result.webMcpLifecycle.removedOutsideConverter -or -not [bool] $result.webMcpLifecycle.restoredWithConverter) {
+        throw 'The converter Website Tool did not follow the visible converter workspace lifecycle.'
+    }
+    if (-not [bool] $result.webMcp.output.success -or [string] $result.webMcp.output.route -ne 'docx-pdf') {
+        throw 'The convert_selected_document Website Tool did not complete the visible DOCX-to-PDF route.'
+    }
+    if ([long] $result.webMcp.outputCharacters -gt 1500) {
+        throw "The converter Website Tool returned $($result.webMcp.outputCharacters) characters; the limit is 1500."
+    }
+    if ([bool] $result.webMcp.annotations.readOnlyHint -or [bool] $result.webMcp.annotations.destructiveHint -or -not [bool] $result.webMcp.annotations.untrustedContentHint) {
+        throw 'The converter Website Tool annotations do not describe a local, non-destructive conversion of user-provided content.'
+    }
+    if ([bool] $result.webMcp.cancelled.success -or [string] $result.webMcp.cancelled.message -ne 'Conversion was cancelled before it started.') {
+        throw 'The converter Website Tool did not honor a caller cancellation before conversion.'
+    }
+    if ($null -ne $result.webMcp.schema.properties.PSObject.Properties -and @($result.webMcp.schema.properties.PSObject.Properties).Count -gt 0) {
+        throw 'The converter Website Tool must not accept file paths, bytes, or other input parameters.'
+    }
+    if (-not [bool] $result.longNameWebMcp.output.success -or
+        [long] $result.longNameWebMcp.outputCharacters -gt 1500 -or
+        [long] $result.longNameWebMcp.outputFileNameCharacters -gt 180 -or
+        [bool] $result.longNameWebMcp.hasUnpairedSurrogate) {
+        $longNameEvidence = $result.longNameWebMcp | ConvertTo-Json -Depth 6 -Compress
+        throw "The converter Website Tool did not return a Unicode-safe bounded filename. Evidence: $longNameEvidence"
+    }
+    if ([bool] $result.malformedWebMcp.output.success -or [long] $result.malformedWebMcp.outputCharacters -gt 1500 -or [string] $result.malformedWebMcp.visibleDiagnostics -notmatch 'Conversion failed') {
+        $malformedEvidence = $result.malformedWebMcp | ConvertTo-Json -Depth 6 -Compress
+        throw "The converter Website Tool did not return a bounded failure synchronized with the visible workspace. Evidence: $malformedEvidence"
+    }
     if (@($result.consoleErrors).Count -gt 0) {
         throw "Browser converter emitted console errors: $($result.consoleErrors -join ' | ')"
     }
@@ -127,6 +159,10 @@ try {
         playwrightCliVersion = [string] $budgets.playwrightCliVersion
         browserEngine = $browserEngine
         routes = $result.routes
+        webMcp = $result.webMcp
+        webMcpLifecycle = $result.webMcpLifecycle
+        longNameWebMcp = $result.longNameWebMcp
+        malformedWebMcp = $result.malformedWebMcp
         budgets = $budgets
     }
     $reportDirectory = Split-Path -Parent $ReportPath

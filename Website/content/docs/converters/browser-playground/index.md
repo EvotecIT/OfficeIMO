@@ -6,6 +6,12 @@ order: 90
 
 The [browser document workspace](/convert/) is a static Blazor WebAssembly application. Supported conversions and PDF operations execute inside the current tab; selected file bytes are not uploaded to OfficeIMO.
 
+## ChatGPT Website Tool
+
+Open the [full-screen browser workspace](/apps/officeimo-converter/) in a browser that supports Website Tools to make `convert_selected_document` available on that page. Choose or drop a document and select the route and settings in the visible workspace first. ChatGPT can then invoke the same **Convert** action, and the generated download, warnings, and diagnostics remain visible on the page.
+
+The tool has no file, path, URL, or format arguments. It can act only on the document and settings already selected by the user, and processing remains browser-local. It returns bounded metadata rather than document contents. Closing or navigating away from the workspace unregisters the tool. Cancellation is honored before conversion starts; once the synchronous browser-local conversion has started, it completes atomically.
+
 ## Supported browser routes
 
 | Source | Output | Engine |

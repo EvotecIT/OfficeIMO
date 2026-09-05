@@ -76,3 +76,14 @@ public sealed record ConversionResult(
     public BrowserPdfProfile? Profile { get; init; }
     public SelectedDocument? SourceSnapshot { get; init; }
 }
+
+public sealed record WebMcpConversionResult(
+    bool Success,
+    string Route,
+    string SourceFormat,
+    string TargetFormat,
+    string? OutputFileName,
+    long OutputBytes,
+    int WarningCount,
+    long ElapsedMilliseconds,
+    string Message);
