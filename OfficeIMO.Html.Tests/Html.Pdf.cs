@@ -84,6 +84,20 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_EmptyLegacyAndPercentEncodedFragmentTargetsRemainNavigable() {
+        const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
+            + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("html-fragment:empty target", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:empty target", info.LinkDestinationNames);
+        Assert.Contains("html-fragment:legacy", info.NamedDestinationNames);
+        Assert.Contains("html-fragment:legacy", info.LinkDestinationNames);
+    }
+
+    [Fact]
     public void HtmlToPdf_TopAndMissingFragmentsRemainDeterministic() {
         const string html = "<p><a href='#TOP'>Top</a> <a href='#missing'>Missing</a></p><p>Body</p>";
 

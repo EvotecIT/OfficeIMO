@@ -356,7 +356,15 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
-        if (!group.Visuals.Any(ContainsPaintableVisual)) return;
+        if (!group.Visuals.Any(ContainsPaintableVisual)) {
+            // Navigation-only groups still carry named destinations. They cannot create
+            // an empty structure element, but their non-painting children must reach the
+            // page canvas so empty anchors remain valid link targets.
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                AddVisual(canvas, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
+            }
+            return;
+        }
         if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
             canvas.Artifact(nested => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {

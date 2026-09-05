@@ -59,12 +59,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x,
         double y,
         int paintOrder) {
-        string? id = element.Id;
-        if (id == null || id.Length == 0) return;
-        if (!_namedDestinationIds.Contains(id)
-            || !ReferenceEquals(_document.GetElementById(id), element)) return;
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
-        destinations.Add(new HtmlRenderNamedDestination(id, x, y, paintOrder, source));
+        foreach (string name in GetNamedDestinations(element)) {
+            destinations.Add(new HtmlRenderNamedDestination(name, x, y, paintOrder++, source));
+        }
     }
 
     private void AddInlineNamedDestinationRun(
@@ -73,30 +71,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double paintOffsetX,
         double paintOffsetY,
         ICollection<HtmlInlineRun> runs) {
-        string? id = element.Id;
-        if (id == null || id.Length == 0) return;
-        if (!_namedDestinationIds.Contains(id)
-            || !ReferenceEquals(_document.GetElementById(id), element)
-            || style.FloatSide == "footnote") return;
+        if (style.FloatSide == "footnote") return;
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
-        var destination = new HtmlRenderNamedDestination(id, 0D, 0D, 0, source);
-        var markerBlock = new HtmlRenderFlowBlock(
-            0D,
-            0.01D,
-            new HtmlRenderVisual[] { destination },
-            HtmlPageBreakTarget.None,
-            HtmlPageBreakTarget.None,
-            false,
-            source);
-        runs.Add(new HtmlInlineRun(
-            markerBlock,
-            style,
-            null,
-            source,
-            paintOffsetX,
-            paintOffsetY,
-            element,
-            isBookmarkMarker: true));
+        foreach (string name in GetNamedDestinations(element)) {
+            var destination = new HtmlRenderNamedDestination(name, 0D, 0D, 0, source);
+            var markerBlock = new HtmlRenderFlowBlock(
+                0D,
+                0.01D,
+                new HtmlRenderVisual[] { destination },
+                HtmlPageBreakTarget.None,
+                HtmlPageBreakTarget.None,
+                false,
+                source);
+            runs.Add(new HtmlInlineRun(
+                markerBlock,
+                style,
+                null,
+                source,
+                paintOffsetX,
+                paintOffsetY,
+                element,
+                isBookmarkMarker: true));
+        }
+    }
+
+    private IEnumerable<string> GetNamedDestinations(IElement element) {
+        string? id = element.Id;
+        if (IsNamedDestinationTarget(id, element)) yield return id!;
+        string? name = element.GetAttribute("name");
+        if (!string.Equals(name, id, StringComparison.Ordinal) && IsNamedDestinationTarget(name, element)) yield return name!;
+    }
+
+    private bool IsNamedDestinationTarget(string? name, IElement element) {
+        if (name == null || name.Length == 0) return false;
+        return _namedDestinationIds.Contains(name)
+            && _namedDestinationTargets.TryGetValue(name, out IElement? target)
+            && ReferenceEquals(target, element);
     }
 
     private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {

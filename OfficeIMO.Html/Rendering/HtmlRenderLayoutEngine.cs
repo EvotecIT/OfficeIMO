@@ -49,6 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, int> _footnoteNumbers = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, HtmlFootnoteEntry> _footnoteEntries = new Dictionary<IElement, HtmlFootnoteEntry>();
     private readonly HashSet<string> _namedDestinationIds = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, IElement> _namedDestinationTargets = new Dictionary<string, IElement>(StringComparer.Ordinal);
     private HtmlFootnotePagePlan _footnotePlan = HtmlFootnotePagePlan.Empty;
     private readonly Dictionary<int, HtmlRenderBookmarkDefinition> _bookmarkDefinitions = new Dictionary<int, HtmlRenderBookmarkDefinition>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
@@ -105,6 +106,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
             _documentOrderByElement[element] = documentOrder++;
+            RegisterFragmentTarget(element.Id, element);
+            RegisterFragmentTarget(element.GetAttribute("name"), element);
             if (computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? elementStyle)
                 && string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
                 _footnoteNumbers[element] = _footnoteNumbers.Count + 1;
@@ -119,7 +122,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement linkElement in document.QuerySelectorAll("[href]")) {
             string? href = linkElement.GetAttribute("href")?.Trim();
             if (href == null || href.Length <= 1 || href[0] != '#') continue;
-            string fragment = href.Substring(1);
+            if (!TryDecodeFragment(href.Substring(1), out string fragment)) continue;
             _namedDestinationIds.Add(string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase) ? "top" : fragment);
         }
         _resources = resources ?? new HtmlResourceSession();
@@ -129,6 +132,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
         _activePageGeometry = new HtmlCssPageGeometry(options.PageWidth, options.PageHeight, options.Margins);
+    }
+
+    private void RegisterFragmentTarget(string? name, IElement element) {
+        if (name == null || name.Length == 0 || _namedDestinationTargets.ContainsKey(name)) return;
+        _namedDestinationTargets[name] = element;
+    }
+
+    private static bool TryDecodeFragment(string encoded, out string fragment) {
+        fragment = string.Empty;
+        if (encoded.Length == 0) return false;
+        try {
+            fragment = Uri.UnescapeDataString(encoded);
+            return fragment.Length > 0;
+        } catch (UriFormatException) {
+            return false;
+        }
     }
 
     private bool TryResolveLength(string? value, double reference, double fontSize, out double result) =>
@@ -176,21 +195,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderDocument rendered = RenderSinglePass();
         if (_options.Mode != HtmlRenderMode.Paged) return rendered;
 
-        for (int pass = 0; pass < 4; pass++) {
+        int maximumConvergencePasses = Math.Min(
+            64,
+            Math.Max(8, _footnoteNumbers.Count + _generatedContent.TargetPageIds.Count + 4));
+        for (int pass = 0; pass < maximumConvergencePasses; pass++) {
             bool changed = false;
+            HtmlGeneratedContentSet nextGeneratedContent = _generatedContent;
             if (_generatedContent.HasTargetPageReferences) {
                 IReadOnlyDictionary<string, int> targetPages = ResolveTargetPages(rendered);
                 if (!_generatedContent.TargetPagesEqual(targetPages)) {
-                    _generatedContent = _generatedContent.WithTargetPages(targetPages);
+                    nextGeneratedContent = _generatedContent.WithTargetPages(targetPages);
                     changed = true;
                 }
             }
             HtmlFootnotePagePlan footnotePlan = ResolveFootnotePlan(rendered);
             if (!_footnotePlan.EquivalentTo(footnotePlan)) {
-                _footnotePlan = footnotePlan;
                 changed = true;
             }
-            if (!changed) break;
+            if (!changed) return rendered;
+            if (pass + 1 >= maximumConvergencePasses) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.PaginationConvergenceLimitExceeded,
+                    "Paged cross-reference or footnote reflow did not reach a fixed point within the bounded pass limit; the last internally consistent render pass was retained.",
+                    HtmlDiagnosticSeverity.Error,
+                    "document",
+                    maximumConvergencePasses.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    OfficeConversionLossKind.Approximation);
+                return rendered;
+            }
+            _generatedContent = nextGeneratedContent;
+            _footnotePlan = footnotePlan;
             ResetLayoutPassState();
             rendered = RenderSinglePass();
         }
@@ -279,8 +314,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyDictionary<string, int> ResolveTargetPages(HtmlRenderDocument rendered) {
         var targetPages = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (string id in _generatedContent.TargetPageIds) {
-            IElement? target = _document.GetElementById(id);
-            if (target == null) continue;
+            if (!_namedDestinationTargets.TryGetValue(id, out IElement? target)) continue;
             string targetSource = HtmlRenderStyleResolver.DescribeSource(target);
             string anchorSource = HtmlRenderStyleResolver.DescribeSource(target) + ":target-page-anchor";
             foreach (HtmlRenderPage page in rendered.Pages) {

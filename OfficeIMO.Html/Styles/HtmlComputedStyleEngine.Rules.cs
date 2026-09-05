@@ -180,6 +180,8 @@ public static partial class HtmlComputedStyleEngine {
         }
         RemoveSyntheticAnimationName(styleRule.CssText, declarations);
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
+        int declarationOrder = 0;
+        foreach (StyleDeclaration declaration in declarations.Values) declaration.DeclarationOrder = declarationOrder++;
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {

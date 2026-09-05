@@ -24,6 +24,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
     /// <summary>Layout exceeded the configured operation limit.</summary>
     public const string LayoutOperationLimitExceeded = "HtmlRenderLayoutOperationLimitExceeded";
+    /// <summary>Paged cross-reference or footnote reflow did not reach a fixed point within its bounded pass limit.</summary>
+    public const string PaginationConvergenceLimitExceeded = "HtmlRenderPaginationConvergenceLimitExceeded";
     /// <summary>A paged running-string value exceeded its configured character limit.</summary>
     public const string RunningStringLimitExceeded = "HtmlRenderRunningStringLimitExceeded";
     /// <summary>The source HTML string exceeded the configured character limit.</summary>
@@ -225,6 +227,7 @@ public static class HtmlRenderDiagnosticCodes {
         GradientStopLimitExceeded,
         DepthLimitExceeded,
         LayoutOperationLimitExceeded,
+        PaginationConvergenceLimitExceeded,
         RunningStringLimitExceeded,
         InputCharacterLimitExceeded,
         NodeLimitExceeded,

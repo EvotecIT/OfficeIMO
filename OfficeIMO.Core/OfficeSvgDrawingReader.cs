@@ -885,9 +885,15 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
-            AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
-                maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            if (name == "switch") {
+                AddFirstSupportedSwitchChild(element, target, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            } else {
+                AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            }
             if (hasEffects) {
                 TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
@@ -1045,6 +1051,44 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
         }
     }
+
+    private static void AddFirstSupportedSwitchChild(
+        XElement element,
+        OfficeDrawing drawing,
+        SvgPaintContext inherited,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
+        int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
+        ref int visited,
+        ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
+        ref int unsupported) {
+        foreach (XElement child in element.Elements()) {
+            string childName = child.Name.LocalName.ToLowerInvariant();
+            if (childName is "title" or "desc" or "metadata" or "defs" or "style"
+                or "lineargradient" or "radialgradient" or "pattern" or "stop") {
+                continue;
+            }
+            if (child.Attribute("requiredExtensions") != null || child.Attribute("requiredFeatures") != null) {
+                continue;
+            }
+            if (!IsSupportedSwitchElement(childName)) continue;
+            AddElement(child, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            return;
+        }
+    }
+
+    private static bool IsSupportedSwitchElement(string name) => name is
+        "svg" or "g" or "a" or "switch" or "foreignobject" or "use" or "text"
+        or "rect" or "circle" or "ellipse" or "line" or "polygon" or "polyline" or "path";
 
     private static OfficeTransform ResolveTransform(
         XElement element,

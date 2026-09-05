@@ -451,7 +451,7 @@ public static partial class HtmlComputedStyleEngine {
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
-                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true);
+                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder);
                     }
                 }
             }
@@ -460,9 +460,10 @@ public static partial class HtmlComputedStyleEngine {
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
-            out HashSet<string> specifiedProperties);
+            out HashSet<string> specifiedProperties,
+            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
-            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
+            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
         computed[element] = style;
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
@@ -545,15 +546,17 @@ public static partial class HtmlComputedStyleEngine {
                     rule.Specificity,
                     rule.Order,
                     rule.LayerOrder,
-                    valueAlreadyValidated: true);
+                    valueAlreadyValidated: true,
+                    declarationOrder: declaration.Value.DeclarationOrder);
             }
         }
 
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
-            out HashSet<string> specifiedProperties);
+            out HashSet<string> specifiedProperties,
+            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities);
         return HtmlComputedStyle.FromOwnedCollections(
-            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
+            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
     }
 
 }

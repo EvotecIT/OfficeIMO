@@ -7,6 +7,44 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("margin-left:5px;margin-inline-start:20px", 20D)]
+    [InlineData("margin-inline-start:20px;margin-left:5px", 5D)]
+    [InlineData("margin-inline-start:20px!important;margin-left:5px", 20D)]
+    public void HtmlRender_LogicalAndPhysicalPropertiesRespectTheFullCascade(string declarations, double expectedX) {
+        string html = $"<div id='logical' style='{declarations};width:20px;height:10px;background:red'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#logical" && item.Shape.FillColor == OfficeColor.Red);
+
+        Assert.Equal(expectedX, shape.X, 3);
+    }
+
+    [Theory]
+    [InlineData("ltr", "div#logical:border-bottom")]
+    [InlineData("rtl", "div#logical:border-top")]
+    public void HtmlRender_SidewaysLrUsesBottomToTopInlineDirection(string direction, string expectedBorderSource) {
+        string html = $"<div id='logical' dir='{direction}' style='writing-mode:sideways-lr;"
+            + "border-inline-start:3px solid blue;width:30px;height:50px;background:red'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == expectedBorderSource && item.Shape.StrokeColor == OfficeColor.Blue);
+    }
+
     [Fact]
     public void HtmlRender_LogicalBoxPropertiesFollowVerticalWritingMode() {
         const string html = "<div id='logical' style='writing-mode:vertical-rl;inline-size:80px;block-size:40px;"

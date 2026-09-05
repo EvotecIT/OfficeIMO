@@ -11,44 +11,48 @@ public static partial class HtmlComputedStyleEngine {
         internal string Value { get; }
         internal bool IsImportant { get; }
         internal bool IsSupported { get; }
+        internal int DeclarationOrder { get; set; }
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false) {
+        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false, int declarationOrder = 0) {
             Value = value;
             HasValue = true;
             IsImportant = isImportant;
             Specificity = specificity;
             Order = order;
+            DeclarationOrder = declarationOrder;
             LayerOrder = layerOrder;
             Alternatives = MaterializeAlternatives(alternatives);
             InheritsComputedValue = inheritsComputedValue;
         }
 
-        private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer) {
+        private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer, int declarationOrder) {
             Value = string.Empty;
             HasValue = false;
             IsImportant = isImportant;
             Specificity = specificity;
             Order = order;
+            DeclarationOrder = declarationOrder;
             LayerOrder = layerOrder;
             Alternatives = MaterializeAlternatives(alternatives);
             RevertsLayer = revertsLayer;
             InheritsComputedValue = false;
         }
 
-        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives) {
-            return new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: false);
+        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0) {
+            return new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: false, declarationOrder);
         }
 
-        internal static CascadedProperty RevertLayer(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives) =>
-            new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: true);
+        internal static CascadedProperty RevertLayer(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, int declarationOrder = 0) =>
+            new CascadedProperty(isImportant, specificity, order, layerOrder, alternatives, revertsLayer: true, declarationOrder);
 
         internal string Value { get; }
         internal bool HasValue { get; }
         internal bool IsImportant { get; }
         internal Specificity Specificity { get; }
         internal int Order { get; }
+        internal int DeclarationOrder { get; }
         internal CascadeLayerOrder? LayerOrder { get; }
         internal IReadOnlyList<CascadedProperty> Alternatives { get; }
         internal bool RevertsLayer { get; }
@@ -57,10 +61,10 @@ public static partial class HtmlComputedStyleEngine {
         internal CascadedProperty WithAlternative(CascadedProperty alternative) {
             var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
             return RevertsLayer
-                ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives)
+                ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder)
                 : HasValue
-                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue)
-                    : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives);
+                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue, DeclarationOrder)
+                    : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder);
         }
 
         private static IReadOnlyList<CascadedProperty> MaterializeAlternatives(IEnumerable<CascadedProperty>? alternatives) =>

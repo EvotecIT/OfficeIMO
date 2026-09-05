@@ -87,6 +87,12 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
                 return false;
             }
+            // A marker without an explicit viewBox uses its authored marker viewport as
+            // the user-space coordinate system. markerUnits scales the viewport at the
+            // placement site; it must not also enlarge that coordinate system or the two
+            // changes cancel out in ResolveViewportTransform.
+            double markerUserWidth = markerWidth;
+            double markerUserHeight = markerHeight;
             string markerUnits = marker.Attribute("markerUnits")?.Value.Trim() ?? "strokeWidth";
             if (markerUnits.Equals("strokeWidth", StringComparison.OrdinalIgnoreCase)) {
                 markerWidth *= Math.Max(0.01D, inheritedStyle.StrokeWidth);
@@ -102,7 +108,7 @@ public static partial class OfficeSvgDrawingReader {
 
             IReadOnlyList<double> viewBox;
             if (marker.Attribute("viewBox") == null) {
-                viewBox = new[] { 0D, 0D, markerWidth, markerHeight };
+                viewBox = new[] { 0D, 0D, markerUserWidth, markerUserHeight };
             } else if (!TryParseNumberList(marker.Attribute("viewBox")?.Value, out viewBox)
                        || viewBox.Count != 4
                        || viewBox[2] <= 0D

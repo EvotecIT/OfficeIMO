@@ -463,22 +463,28 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         out HashSet<string> inheritedProperties,
         out HashSet<string> resetProperties,
-        out HashSet<string> specifiedProperties) {
+        out HashSet<string> specifiedProperties,
+        out Dictionary<string, HtmlCssCascadePriority> cascadePriorities) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var priorities = new Dictionary<string, HtmlCssCascadePriority>(HtmlCssPropertyNameComparer.Instance);
         if (parentProperties != null) {
             foreach (KeyValuePair<string, string> pair in parentProperties) {
                 if (!IsInheritedProperty(pair.Key)) continue;
                 raw[pair.Key] = pair.Value;
                 inherited.Add(pair.Key);
+                priorities[pair.Key] = new HtmlCssCascadePriority(
+                    inherited: true, important: false, inline: false, layerOrder: null,
+                    ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
             }
         }
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
+                priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
                     inherited.Add(pair.Key);
@@ -492,11 +498,15 @@ public static partial class HtmlComputedStyleEngine {
                   && parentProperties != null
                   && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
                 raw[pair.Key] = inheritedValue;
+                priorities[pair.Key] = new HtmlCssCascadePriority(
+                    inherited: true, important: false, inline: false, layerOrder: null,
+                    ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
                 inherited.Add(pair.Key);
                 reset.Remove(pair.Key);
                 specified.Remove(pair.Key);
             } else {
                 raw.Remove(pair.Key);
+                priorities.Remove(pair.Key);
                 inherited.Remove(pair.Key);
                 specified.Remove(pair.Key);
                 reset.Add(pair.Key);
@@ -515,8 +525,24 @@ public static partial class HtmlComputedStyleEngine {
         resetProperties = reset;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;
+        priorities = priorities
+            .Where(pair => resolved.ContainsKey(pair.Key))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, HtmlCssPropertyNameComparer.Instance);
+        cascadePriorities = priorities;
         return resolved;
     }
+
+    private static HtmlCssCascadePriority ToCascadePriority(CascadedProperty property) =>
+        new HtmlCssCascadePriority(
+            inherited: ReferenceEquals(property.Specificity, Specificity.Inherited) || property.InheritsComputedValue,
+            important: property.IsImportant,
+            inline: ReferenceEquals(property.Specificity, Specificity.Inline),
+            layerOrder: property.LayerOrder,
+            ids: property.Specificity.Ids,
+            classes: property.Specificity.ClassesAttributesAndPseudoClasses,
+            elements: property.Specificity.Elements,
+            ruleOrder: property.Order,
+            declarationOrder: property.DeclarationOrder);
 
     private static Dictionary<string, string> ResolveCustomPropertyValues(
         IReadOnlyDictionary<string, string> raw,
@@ -579,7 +605,7 @@ public static partial class HtmlComputedStyleEngine {
             CascadedProperty? current = null;
             foreach (CascadedProperty candidate in candidates) {
                 if (candidate.Specificity != Specificity.Inherited && revertedLayers.Contains(candidate.LayerOrder)) continue;
-                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder)) {
+                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder, candidate.DeclarationOrder)) {
                     current = candidate;
                 }
             }

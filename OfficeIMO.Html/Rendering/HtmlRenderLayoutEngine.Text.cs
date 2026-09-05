@@ -1273,23 +1273,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string candidate = rawHref.Trim();
         if (candidate.Length == 0) return null;
         if (candidate.Length > 1 && candidate[0] == '#') {
-            string fragment = candidate.Substring(1);
-            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase)) return "#top";
-            if (_document.GetElementById(fragment) == null) {
-                _diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable,
-                    "A document-internal hyperlink target was not found and the link annotation was omitted.",
-                    HtmlDiagnosticSeverity.Warning,
-                    HtmlRenderStyleResolver.DescribeSource(element),
-                    candidate,
-                    OfficeConversionLossKind.Omission);
-                return null;
+            if (!TryDecodeFragment(candidate.Substring(1), out string fragment)) {
+                return ReportUnavailableFragment(element, candidate);
             }
+            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase)) return "#top";
+            if (!_namedDestinationTargets.ContainsKey(fragment)) return ReportUnavailableFragment(element, candidate);
+            return "#" + fragment;
         }
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawHref, _baseUri, _options.UrlPolicy);
         if (resolved.Length > 0) return resolved;
         _diagnostics.Add(ComponentName, "HyperlinkRejectedByPolicy", "A hyperlink target was rejected before entering the rendered document.", HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), rawHref);
+        return null;
+    }
+
+    private string? ReportUnavailableFragment(IElement element, string candidate) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable,
+            "A document-internal hyperlink target was not found and the link annotation was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            candidate,
+            OfficeConversionLossKind.Omission);
         return null;
     }
 

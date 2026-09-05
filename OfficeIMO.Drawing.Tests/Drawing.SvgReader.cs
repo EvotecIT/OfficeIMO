@@ -494,6 +494,40 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReader_DefaultMarkerUnitsScaleImplicitViewportWithStrokeWidth() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='square' markerWidth='3' markerHeight='3' refX='0' refY='0' orient='0'>"
+            + "<rect width='3' height='3' fill='red'/></marker></defs>"
+            + "<line x1='2' y1='5' x2='10' y2='5' stroke='black' stroke-width='4' marker-end='url(#square)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup marker = Assert.Single(markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficePoint origin = marker.Transform.TransformPoint(new OfficePoint(0D, 0D));
+        OfficePoint corner = marker.Transform.TransformPoint(new OfficePoint(3D, 3D));
+        Assert.Equal(12D, Math.Abs(corner.X - origin.X), 6);
+        Assert.Equal(12D, Math.Abs(corner.Y - origin.Y), 6);
+    }
+
+    [Fact]
+    public void SvgReader_SwitchRendersOnlyTheFirstSupportedChild() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<switch><rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></switch></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
+        Assert.Equal(0, raster.GetPixel(15, 5).A);
+    }
+
+    [Fact]
     public void SvgReader_ComposesMarkerPlacementWithTheOwningElementTransform() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><marker id='dot' markerUnits='userSpaceOnUse' markerWidth='1' markerHeight='1' "
