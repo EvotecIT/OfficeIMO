@@ -367,7 +367,7 @@ public sealed class ReaderOcrCoreTests {
 
         try {
             Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
-                CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                CandidateTimeout = TimeSpan.FromSeconds(1),
                 ContinueOnError = true,
             });
 
@@ -409,7 +409,7 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
-    public async Task ApplyOcrAsync_EnforcesTimeoutWhenSynchronousEngineIgnoresCancellation() {
+    public async Task ApplyOcrAsync_EnforcesDeadlineWhenSynchronousEngineCannotComplete() {
         OfficeDocumentReadResult source = CreateDocument(1);
         using var releaseProvider = new ManualResetEventSlim(false);
         var engine = new DelegateOcrEngine("synchronous-non-cooperative-fixture", (_, _) => {
@@ -428,6 +428,7 @@ public sealed class ReaderOcrCoreTests {
             Assert.Same(executionTask, completed);
             OfficeDocumentOcrExecutionResult execution = await executionTask;
             Assert.Equal(1, execution.Report.FailedCandidateCount + execution.Report.SkippedCandidateCount);
+            Assert.Equal(0, execution.Report.RecognizedCandidateCount);
             Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
         } finally {
             releaseProvider.Set();
@@ -452,7 +453,7 @@ public sealed class ReaderOcrCoreTests {
 
         try {
             Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
-                CandidateTimeout = TimeSpan.FromMilliseconds(100),
+                CandidateTimeout = TimeSpan.FromSeconds(1),
                 ContinueOnError = true
             });
             Task started = await Task.WhenAny(providerStarted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
@@ -498,7 +499,7 @@ public sealed class ReaderOcrCoreTests {
             OfficeDocumentOcrExecutionResult first = await source.ApplyOcrAsync(
                 engine,
                 new OfficeDocumentOcrExecutionOptions {
-                    CandidateTimeout = TimeSpan.FromMilliseconds(100),
+                    CandidateTimeout = TimeSpan.FromSeconds(1),
                     ContinueOnError = true
                 });
             Assert.Same(
@@ -526,7 +527,7 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
-    public async Task ApplyOcrAsync_EnforcesTimeoutWhenEngineIgnoresCancellation() {
+    public async Task ApplyOcrAsync_EnforcesDeadlineWhenEngineCannotComplete() {
         OfficeDocumentReadResult source = CreateDocument(1);
         var completion = new TaskCompletionSource<OcrResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var engine = new DelegateOcrEngine(
@@ -543,6 +544,7 @@ public sealed class ReaderOcrCoreTests {
             Assert.Same(executionTask, completed);
             OfficeDocumentOcrExecutionResult execution = await executionTask;
             Assert.Equal(1, execution.Report.FailedCandidateCount + execution.Report.SkippedCandidateCount);
+            Assert.Equal(0, execution.Report.RecognizedCandidateCount);
             Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
         } finally {
             completion.TrySetResult(new OcrResult { Text = "late" });

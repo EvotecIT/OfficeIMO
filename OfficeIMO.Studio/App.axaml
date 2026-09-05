@@ -1,0 +1,133 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:preferences="clr-namespace:OfficeIMO.Studio.Infrastructure.Preferences"
+             x:Class="OfficeIMO.Studio.App">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#F4F6F8" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#F7F8FA" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#E7EAEE" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#5E6878" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#EAF0FF" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#D9DEE6" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#172033" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#5E6878" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#2F63E9" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#2455D2" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#EAF0FF" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#07866F" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#E6F6F2" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#B76800" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#FFF5E5" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#C7353A" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#FDEBEC" />
+          <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#14171C" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#1D2229" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#222831" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#282E37" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#282D34" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#1D2229" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#AEB7C4" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#27375C" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#343B45" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#F3F6FA" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#AEB7C4" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#5C82F2" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#7899F7" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#27375C" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#42BFA5" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#173B34" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#E6A23C" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#44341D" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#EF6267" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#472326" />
+          <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="{x:Static preferences:StudioThemeVariants.HighContrast}">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#080808" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#171717" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#17254A" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#E6E6E6" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#78A8FF" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#A8C6FF" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#17254A" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#66FFCC" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#073326" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#FFD166" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#332500" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#FF8A8F" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#3D090C" />
+          <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <StreamGeometry x:Key="IconHome">M3,10.5 12,3 21,10.5 21,21 15,21 15,15 9,15 9,21 3,21Z</StreamGeometry>
+      <StreamGeometry x:Key="IconTools">M4,4 10,4 10,10 4,10ZM14,4 20,4 20,10 14,10ZM4,14 10,14 10,20 4,20ZM14,14 20,14 20,20 14,20Z</StreamGeometry>
+      <StreamGeometry x:Key="IconJobs">M4,7 9,7 10.5,5 13.5,5 15,7 20,7 20,20 4,20ZM9,11 15,11 15,13 9,13Z</StreamGeometry>
+      <StreamGeometry x:Key="IconDocument">M5,2 15,2 20,7 20,22 5,22ZM15,4 15,8 19,8ZM8,12 17,12 17,14 8,14ZM8,16 17,16 17,18 8,18Z</StreamGeometry>
+      <StreamGeometry x:Key="IconOcr">M4,3 9,3 9,5 6,5 6,8 4,8ZM15,3 20,3 20,8 18,8 18,5 15,5ZM4,16 6,16 6,19 9,19 9,21 4,21ZM18,16 20,16 20,21 15,21 15,19 18,19ZM8,9 16,9 16,11 8,11ZM8,13 16,13 16,15 8,15Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSettings">M12,8.2A3.8,3.8 0 1 0 12,15.8A3.8,3.8 0 1 0 12,8.2M19.4,13.5 21,14.7 19,18.2 17.1,17.4A8.2,8.2 0 0 1 14.2,19.1L14,21.2 10,21.2 9.8,19.1A8.2,8.2 0 0 1 6.9,17.4L5,18.2 3,14.7 4.6,13.5A8.4,8.4 0 0 1 4.6,10.5L3,9.3 5,5.8 6.9,6.6A8.2,8.2 0 0 1 9.8,4.9L10,2.8 14,2.8 14.2,4.9A8.2,8.2 0 0 1 17.1,6.6L19,5.8 21,9.3 19.4,10.5A8.4,8.4 0 0 1 19.4,13.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconTheme">M12,2A10,10 0 1 0 22,12C22,11.2 21.9,10.4 21.7,9.7A7.8,7.8 0 0 1 12,19.5A7.8,7.8 0 0 1 4.3,12A7.8,7.8 0 0 1 12,4.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconOpen">M3,6 10,6 12,8 21,8 19,19 3,19ZM3,6 3,4 10,4 12,6Z</StreamGeometry>
+      <StreamGeometry x:Key="IconMerge">M4,4 12,4 12,10 18,10 18,4 21,4 21,13 12,13 12,20 4,20ZM7,9 10,12 7,15 5.5,13.5 7,12 5.5,10.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSplit">M5,3 11,3 11,21 5,21ZM13,3 19,3 19,21 13,21ZM2,12 5,9 5,15ZM22,12 19,9 19,15Z</StreamGeometry>
+      <StreamGeometry x:Key="IconConvert">M4,7 16,7 13,4 14.5,2.5 20,8 14.5,13.5 13,12 16,9 4,9ZM20,15 8,15 11,12 9.5,10.5 4,16 9.5,21.5 11,20 8,17 20,17Z</StreamGeometry>
+      <StreamGeometry x:Key="IconCompress">M5,3 11,3 11,5 7,5 7,9 5,9ZM19,3 13,3 13,5 17,5 17,9 19,9ZM5,21 11,21 11,19 7,19 7,15 5,15ZM19,21 13,21 13,19 17,19 17,15 19,15Z</StreamGeometry>
+      <StreamGeometry x:Key="IconCompare">M4,4 11,4 11,20 4,20ZM13,4 20,4 20,20 13,20ZM6,8 9,8 9,10 6,10ZM15,14 18,14 18,16 15,16Z</StreamGeometry>
+      <StreamGeometry x:Key="IconProtect">M6,10 7,10 7,7A5,5 0 0 1 17,7L17,10 18,10 18,21 6,21ZM9,10 15,10 15,7A3,3 0 0 0 9,7Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSearch">M10,3A7,7 0 1 0 10,17A7,7 0 1 0 10,3M15.5,14 21,19.5 19.5,21 14,15.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconNote">M4,3 20,3 20,17 14,17 10,21 10,17 4,17ZM8,8 16,8 16,10 8,10ZM8,12 14,12 14,14 8,14Z</StreamGeometry>
+      <StreamGeometry x:Key="IconText">M4,4 20,4 20,7 14,7 14,20 10,20 10,7 4,7Z</StreamGeometry>
+      <StreamGeometry x:Key="IconHighlight">M5,17 15.5,6.5 19.5,10.5 9,21 4,21ZM13.5,5 16,2.5 20,6.5 17.5,9Z</StreamGeometry>
+      <StreamGeometry x:Key="IconUnderline">M6,3 6,12A6,6 0 0 0 18,12L18,3 15,3 15,12A3,3 0 0 1 9,12L9,3ZM4,20 20,20 20,22 4,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconStrike">M4,11 20,11 20,13 4,13ZM8,4 18,4 18,7 13,7 13,9 10,9 10,7 8,7ZM10,15 13,15 13,17 18,17 18,20 8,20 8,17 10,17Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRectangle">M4,5 20,5 20,19 4,19ZM6,7 6,17 18,17 18,7Z</StreamGeometry>
+      <StreamGeometry x:Key="IconLine">M4,19 18,5 20,7 6,21Z</StreamGeometry>
+      <StreamGeometry x:Key="IconMore">M5,10A2,2 0 1 0 5,14A2,2 0 1 0 5,10M12,10A2,2 0 1 0 12,14A2,2 0 1 0 12,10M19,10A2,2 0 1 0 19,14A2,2 0 1 0 19,10</StreamGeometry>
+      <StreamGeometry x:Key="IconPrint">M6,3 18,3 18,8 20,8A2,2 0 0 1 22,10L22,17 18,17 18,21 6,21 6,17 2,17 2,10A2,2 0 0 1 4,8L6,8ZM8,5 8,9 16,9 16,5ZM8,15 8,19 16,19 16,15ZM18,11A1,1 0 1 0 18,13A1,1 0 1 0 18,11</StreamGeometry>
+      <StreamGeometry x:Key="IconExport">M5,3 14,3 19,8 19,12 17,12 17,9 13,9 13,5 7,5 7,19 13,19 13,21 5,21ZM15,4.5 17.5,7 15,7ZM14,14 18,14 18,11 22,15 18,19 18,16 14,16Z</StreamGeometry>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme DensityStyle="Compact" />
+    <Style Selector="Window"><Setter Property="FontSize" Value="13" /></Style>
+    <Style Selector="Button.tool"><Setter Property="MinWidth" Value="34" /><Setter Property="Height" Value="32" /><Setter Property="Padding" Value="10,4" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="Button.tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+    <Style Selector="Button.primary"><Setter Property="MinHeight" Value="34" /><Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /><Setter Property="Padding" Value="16,8" /><Setter Property="CornerRadius" Value="6" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" /></Style>
+    <Style Selector="Button.ghost"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="10,7" /><Setter Property="CornerRadius" Value="6" /></Style>
+    <Style Selector="Button.cardAction"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="12" /></Style>
+    <Style Selector="ToggleButton.nav"><Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="6,9" /><Setter Property="CornerRadius" Value="6" /></Style>
+    <Style Selector="ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /></Style>
+    <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="ToggleButton.mode"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="14,9" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="CornerRadius" Value="0" /></Style>
+    <Style Selector="ToggleButton.mode:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+    <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+    <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16" /></Style>
+    <Style Selector="TextBlock.pageTitle"><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.sectionTitle"><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.eyebrow"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="TextBox, ComboBox, NumericUpDown"><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="CornerRadius" Value="6" /></Style>
+    <Style Selector="TabItem"><Setter Property="Padding" Value="12,8" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="FontSize" Value="12" /></Style>
+  </Application.Styles>
+</Application>

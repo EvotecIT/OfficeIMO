@@ -1,4 +1,31 @@
 async (page) => {
+  await page.addInitScript(() => {
+    const tools = Object.create(null);
+    const objectUrlBlobs = new Map();
+    const createObjectURL = URL.createObjectURL.bind(URL);
+    const revokeObjectURL = URL.revokeObjectURL.bind(URL);
+    Object.defineProperty(window, '__officeImoWebMcpTools', { value: tools, configurable: true });
+    Object.defineProperty(window, '__officeImoObjectUrlBlobs', { value: objectUrlBlobs, configurable: true });
+    URL.createObjectURL = blob => {
+      const url = createObjectURL(blob);
+      objectUrlBlobs.set(url, blob);
+      return url;
+    };
+    URL.revokeObjectURL = url => {
+      objectUrlBlobs.delete(url);
+      revokeObjectURL(url);
+    };
+    Object.defineProperty(document, 'modelContext', {
+      configurable: true,
+      value: {
+        registerTool: async (tool, options) => {
+          tools[tool.name] = tool;
+          options?.signal?.addEventListener('abort', () => { delete tools[tool.name]; }, { once: true });
+        }
+      }
+    });
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
   const routeIds = ['docx-pdf', 'xlsx-pdf', 'pptx-pdf'];
   const consoleErrors = [];
   page.on('console', message => {
@@ -17,7 +44,15 @@ async (page) => {
   if (await page.locator('#blazor-error-ui').isVisible()) {
     consoleErrors.push('Blazor error UI became visible during startup.');
   }
+  await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
+  await page.getByRole('button', { name: 'PDF tools', exact: true }).click();
+  await page.waitForFunction(() => !window.__officeImoWebMcpTools?.convert_selected_document, null, { timeout: 60000 });
+  const removedOutsideConverter = await page.evaluate(() => !window.__officeImoWebMcpTools?.convert_selected_document);
+  await page.getByRole('button', { name: 'Convert', exact: true }).click();
+  await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
+  const restoredWithConverter = await page.evaluate(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document));
   let maximumBrowserHeapBytes = 0;
+  let webMcp = null;
 
   const readBrowserHeap = async () => page.evaluate(() => {
     const memory = performance.memory;
@@ -38,7 +73,7 @@ async (page) => {
     await page.locator('.ocx-diagnostic').filter({ hasText: 'Sample ready' }).waitFor({ state: 'visible', timeout: 60000 });
     const summary = page.locator(`[data-performance-result="true"][data-route="${routeId}"]`);
     const downloadLink = page.getByRole('link', { name: 'Download result', exact: true });
-    const measureConversion = async previousDownloadUrl => {
+    const measureConversion = async (previousDownloadUrl, useWebMcp) => {
       let sampling = true;
       let memorySamples = 0;
       let peakBrowserHeapBytes = 0;
@@ -58,7 +93,27 @@ async (page) => {
         }
       })();
 
-      await page.locator(`[data-convert-route="${routeId}"]`).click();
+      let webMcpOutput = null;
+      if (useWebMcp) {
+        await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
+        webMcpOutput = await page.evaluate(async () => {
+          const tool = window.__officeImoWebMcpTools.convert_selected_document;
+          const cancelledSignal = new AbortController();
+          cancelledSignal.abort();
+          const cancelled = await tool.execute({}, { signal: cancelledSignal.signal });
+          const output = await tool.execute({}, { signal: new AbortController().signal });
+          return {
+            registeredTools: Object.keys(window.__officeImoWebMcpTools).sort(),
+            schema: tool.inputSchema,
+            annotations: tool.annotations,
+            cancelled,
+            output,
+            outputCharacters: JSON.stringify(output).length
+          };
+        });
+      } else {
+        await page.locator(`[data-convert-route="${routeId}"]`).click();
+      }
       await page.waitForFunction(previousUrl => {
         const link = Array.from(document.querySelectorAll('a'))
           .find(element => element.textContent?.trim() === 'Download result');
@@ -71,7 +126,9 @@ async (page) => {
 
       const downloadUrl = await downloadLink.getAttribute('href');
       const pdfMagic = await page.evaluate(async url => {
-        const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+        const blob = window.__officeImoObjectUrlBlobs?.get(url);
+        if (!(blob instanceof Blob)) throw new Error(`Generated output blob is unavailable for ${url}.`);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
         return String.fromCharCode(...bytes.slice(0, 4));
       }, downloadUrl);
       const metrics = await summary.evaluate(element => ({
@@ -79,11 +136,12 @@ async (page) => {
         peakRetainedBytes: Number(element.getAttribute('data-peak-retained-bytes') || '0'),
         resultBytes: Number(element.getAttribute('data-result-bytes') || '0')
       }));
-      return { downloadUrl, pdfMagic, memorySamples, peakBrowserHeapBytes, peakBrowserUsedHeapBytes, ...metrics };
+      return { downloadUrl, pdfMagic, memorySamples, peakBrowserHeapBytes, peakBrowserUsedHeapBytes, webMcpOutput, ...metrics };
     };
 
-    const first = await measureConversion('');
-    const repeat = await measureConversion(first.downloadUrl);
+    const first = await measureConversion('', index === 0);
+    const repeat = await measureConversion(first.downloadUrl, false);
+    if (first.webMcpOutput) webMcp = first.webMcpOutput;
     maximumBrowserHeapBytes = Math.max(
       maximumBrowserHeapBytes,
       first.peakBrowserHeapBytes,
@@ -107,5 +165,70 @@ async (page) => {
     });
   }
 
-  return JSON.stringify({ startupMilliseconds, maximumBrowserHeapBytes, routes: results, consoleErrors });
+  await page.goto(`${baseUrl}?route=docx-pdf`, { waitUntil: 'domcontentloaded' });
+  await page.locator('[data-converter-ready="true"]').waitFor({ state: 'visible', timeout: 60000 });
+  await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
+  await page.getByLabel('Choose a DOCX file', { exact: true }).evaluate(async input => {
+    const bytes = new Uint8Array(await (await fetch('samples/basic.docx')).arrayBuffer());
+    const file = new File(
+      [bytes],
+      `${'a'.repeat(179)}🚀.docx`,
+      { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+    );
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.locator('.ocx-diagnostic').filter({ hasText: 'is loaded in this browser tab' })
+    .waitFor({ state: 'visible', timeout: 60000 });
+  const longNameWebMcp = await page.evaluate(async () => {
+    const tool = window.__officeImoWebMcpTools.convert_selected_document;
+    const output = await tool.execute({}, { signal: new AbortController().signal });
+    const fileName = String(output.outputFileName || '');
+    const hasUnpairedSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(fileName);
+    return {
+      output,
+      outputCharacters: JSON.stringify(output).length,
+      outputFileNameCharacters: fileName.length,
+      hasUnpairedSurrogate
+    };
+  });
+  await page.getByLabel('Choose a DOCX file', { exact: true }).evaluate(input => {
+    const bytes = new Uint8Array([
+      110, 111, 116, 45, 97, 110, 45, 111, 112, 101, 110,
+      45, 120, 109, 108, 45, 112, 97, 99, 107, 97, 103, 101
+    ]);
+    const file = new File(
+      [bytes],
+      `${'malformed-'.repeat(18)}document.docx`,
+      { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+    );
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.locator('.ocx-diagnostic').filter({ hasText: 'is loaded in this browser tab' })
+    .waitFor({ state: 'visible', timeout: 60000 });
+  const malformedWebMcp = await page.evaluate(async () => {
+    const tool = window.__officeImoWebMcpTools.convert_selected_document;
+    const output = await tool.execute({}, { signal: new AbortController().signal });
+    return {
+      output,
+      outputCharacters: JSON.stringify(output).length,
+      visibleDiagnostics: Array.from(document.querySelectorAll('.ocx-diagnostic')).map(element => element.textContent || '').join(' ')
+    };
+  });
+
+  return JSON.stringify({
+    startupMilliseconds,
+    maximumBrowserHeapBytes,
+    routes: results,
+    webMcp,
+    webMcpLifecycle: { removedOutsideConverter, restoredWithConverter },
+    longNameWebMcp,
+    malformedWebMcp,
+    consoleErrors
+  });
 }

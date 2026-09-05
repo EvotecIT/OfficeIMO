@@ -1,0 +1,204 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.dotnetpublish.schema.json",
+  "SchemaVersion": 1,
+  "DotNet": {
+    "ProjectRoot": "../..",
+    "Configuration": "Release",
+    "Restore": true,
+    "Build": true,
+    "NoRestoreInPublish": true,
+    "NoBuildInPublish": true,
+    "MsBuildProperties": {
+      "DisableImplicitLibraryPacksFolder": "true",
+      "OfficeIMOStudioLockedRestore": "true",
+      "RestoreLockedMode": "true",
+      "RuntimeIdentifiers": "win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64"
+    },
+    "EnvironmentVariables": {
+      "NUGET_PACKAGES": {
+        "FromEnvironmentVariable": "NUGET_PACKAGES",
+        "Required": true
+      }
+    },
+    "TrustedBuildPackages": [ "Avalonia", "CommunityToolkit.Mvvm" ],
+    "LockedOutputGuard": true
+  },
+  "SigningProfiles": {
+    "OfficeIMO.Windows": {
+      "Provider": "CertificateStore",
+      "Enabled": true,
+      "IncludeDlls": true,
+      "OverwriteSigned": false,
+      "OnMissingTool": "Fail",
+      "OnSignFailure": "Fail",
+      "TimeoutSeconds": 300,
+      "Thumbprint": "92e95fb58effa6a4a75e77a33cdd6bfe6dd30f1a",
+      "TimestampUrl": "http://timestamp.digicert.com",
+      "Description": "OfficeIMO Studio",
+      "Url": "https://officeimo.com"
+    }
+  },
+  "Targets": [
+    {
+      "Name": "Studio.Windows",
+      "Kind": "Desktop",
+      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [ "win-x64", "win-arm64" ],
+        "Style": "PortableCompat",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": true,
+        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}",
+        "SignProfile": "OfficeIMO.Windows"
+      }
+    },
+    {
+      "Name": "Studio.macOS",
+      "Kind": "Desktop",
+      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [ "osx-x64", "osx-arm64" ],
+        "Style": "SelfContained",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": true,
+        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}"
+      }
+    },
+    {
+      "Name": "Studio.Linux",
+      "Kind": "Desktop",
+      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [ "linux-x64", "linux-arm64" ],
+        "Style": "PortableCompat",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": true,
+        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}"
+      }
+    }
+  ],
+  "Installers": [
+    {
+      "Id": "OfficeIMO.Studio.Windows.MSI",
+      "PrepareFromTarget": "Studio.Windows",
+      "Runtimes": [ "win-x64" ],
+      "Frameworks": [ "net10.0" ],
+      "Styles": [ "PortableCompat" ],
+      "Harvest": "Auto",
+      "HarvestExcludePatterns": [ "**/*.pdb" ],
+      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
+      "OutputName": "OfficeIMO-Studio-{rid}.msi",
+      "Authoring": {
+        "Product": {
+          "Name": "OfficeIMO Studio",
+          "Manufacturer": "Evotec",
+          "Version": "0.1.0",
+          "UpgradeCode": "{C54BB967-362B-48C3-937E-CCBCDD1EA390}",
+          "Scope": "PerMachine",
+          "DowngradeErrorMessage": "A newer version of OfficeIMO Studio is already installed."
+        },
+        "CompanyFolderName": "Evotec",
+        "InstallDirectoryName": "OfficeIMO Studio",
+        "PayloadComponentGroupId": "StudioFiles",
+        "Directories": [
+          {
+            "StandardDirectoryId": "ProgramMenuFolder",
+            "Segments": [
+              { "Id": "OfficeIMOProgramsFolder", "Name": "OfficeIMO Studio" }
+            ]
+          }
+        ],
+        "Components": [
+          {
+            "Type": "Shortcut",
+            "Id": "OfficeIMOStudioStartMenuShortcut",
+            "DirectoryRefId": "OfficeIMOProgramsFolder",
+            "Guid": "*",
+            "ShortcutId": "OfficeIMOStudioShortcut",
+            "Name": "OfficeIMO Studio",
+            "Target": "[INSTALLFOLDER]OfficeIMO.Studio.exe",
+            "WorkingDirectoryId": "INSTALLFOLDER",
+            "RegistryKey": "Software\\Evotec\\OfficeIMO Studio"
+          }
+        ]
+      },
+      "SignProfile": "OfficeIMO.Windows"
+    },
+    {
+      "Id": "OfficeIMO.Studio.Linux.Debian",
+      "Kind": "Debian",
+      "PrepareFromTarget": "Studio.Linux",
+      "Runtimes": [ "linux-x64", "linux-arm64" ],
+      "Frameworks": [ "net10.0" ],
+      "Styles": [ "PortableCompat" ],
+      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
+      "OutputName": "officeimo-studio_{version}_{architecture}.deb",
+      "Debian": {
+        "PackageName": "officeimo-studio",
+        "Version": "0.1.0",
+        "Maintainer": "Evotec <support@evotec.pl>",
+        "Description": "Cross-platform OfficeIMO document studio.",
+        "Executable": "OfficeIMO.Studio",
+        "CommandName": "officeimo-studio",
+        "InstallDirectoryName": "officeimo-studio",
+        "Section": "office",
+        "Priority": "optional",
+        "DesktopName": "OfficeIMO Studio",
+        "DesktopComment": "Open, inspect, convert, and work with documents locally.",
+        "DesktopCategories": "Office;Graphics;Utility;",
+        "MimeTypes": "application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.openxmlformats-officedocument.presentationml.presentation;",
+        "StartupWmClass": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "IconSize": 1024
+      }
+    },
+    {
+      "Id": "OfficeIMO.Studio.macOS.App",
+      "Kind": "MacApp",
+      "PrepareFromTarget": "Studio.macOS",
+      "Runtimes": [ "osx-x64", "osx-arm64" ],
+      "Frameworks": [ "net10.0" ],
+      "Styles": [ "SelfContained" ],
+      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
+      "OutputName": "OfficeIMO-Studio-{version}-{rid}.zip",
+      "MacApp": {
+        "BundleIdentifier": "com.evotec.officeimo.studio",
+        "BundleName": "OfficeIMO Studio",
+        "Version": "0.1.0",
+        "BuildNumber": "1",
+        "Executable": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "MinimumSystemVersion": "13.0",
+        "Category": "public.app-category.productivity",
+        "Copyright": "Copyright © Evotec",
+        "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx" ],
+        "CodesignIdentity": "-",
+        "HardenedRuntime": true,
+        "Timestamp": false,
+        "EntitlementsPath": "Build/Studio/Apple/Direct.entitlements"
+      }
+    }
+  ],
+  "Outputs": {
+    "ManifestJsonPath": "Artifacts/Studio/manifest.json",
+    "ManifestTextPath": "Artifacts/Studio/manifest.txt",
+    "ChecksumsPath": "Artifacts/Studio/SHA256SUMS.txt",
+    "RunReportPath": "Artifacts/Studio/run-report.json",
+    "RunReportMarkdownPath": "Artifacts/Studio/run-report.md"
+  }
+}
