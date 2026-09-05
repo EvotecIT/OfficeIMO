@@ -717,6 +717,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 cancellationToken)) return;
         double originX = visual.X * PointsPerCssPixel;
         double originY = visual.Y * PointsPerCssPixel;
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
+        string? drawingLinkUri = fragmentLink ? null : visual.LinkUri;
         OfficeTransform drawingToPage = OfficeTransform.Scale(scaleX * PointsPerCssPixel, scaleY * PointsPerCssPixel)
             .Then(OfficeTransform.Translate(originX, originY));
         OfficeTransform pageToDrawing = drawingToPage.Invert();
@@ -732,8 +734,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     originY,
                     visual.Width * PointsPerCssPixel,
                     visual.Height * PointsPerCssPixel,
-                    linkUri: visual.LinkUri,
-                    linkContents: visual.LinkUri == null ? null : visual.Source);
+                    linkUri: drawingLinkUri,
+                    linkContents: drawingLinkUri == null ? null : visual.Source);
                 shapeBatch = new OfficeDrawing(source.Width, source.Height);
             }
 
@@ -834,7 +836,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     text.Alignment,
                     scaledLineHeight,
                     paintOrder: 0,
-                    linkUri: visual.LinkUri,
+                    linkUri: drawingLinkUri,
                     source: visual.Source,
                     semanticRole: "span",
                     layoutY: textY,
@@ -870,8 +872,8 @@ internal static partial class HtmlPdfRenderedConverter {
                         strike: text.Font.IsStrikethrough,
                         fontSize: fontSize,
                         font: MapFont(run.FamilyName, run.Text, text.Font.Style, webFonts),
-                        linkUri: visual.LinkUri,
-                        linkContents: visual.LinkUri == null ? null : run.Text,
+                        linkUri: drawingLinkUri,
+                        linkContents: drawingLinkUri == null ? null : run.Text,
                         fontFamily: run.FamilyName))
                     .ToList();
                 target.Text(
@@ -893,6 +895,15 @@ internal static partial class HtmlPdfRenderedConverter {
             AddElements(canvas, source.Elements);
         } else {
             canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements));
+        }
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
         }
     }
 

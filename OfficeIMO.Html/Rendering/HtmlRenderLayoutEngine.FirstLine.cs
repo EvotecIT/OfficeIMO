@@ -86,10 +86,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderBoxStyle tokenStyle = run.IsFirstLetter ? run.Style : firstLineStyle;
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
                 double tokenWidth = MeasureInlineText(measuredToken, tokenStyle);
-                if (!hasContent
-                    && tokenWidth > width
+                double remainingWidth = Math.Max(0D, width - lineWidth);
+                if (tokenWidth > remainingWidth
                     && !IsWhitespaceToken(token)
-                    && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, width, out int split)) {
+                    && remainingWidth > 0.0001D
+                    && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, remainingWidth, out int split)) {
                     string prefix = token.Substring(0, split);
                     string suffix = token.Substring(split);
                     styledRuns.Add(run.CloneText(prefix, prefix, tokenStyle, run.IsFirstLetter));

@@ -170,6 +170,30 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(firstIsRightmost, firstX > secondX);
     }
 
+    [Theory]
+    [InlineData("vertical-rl", true)]
+    [InlineData("vertical-lr", false)]
+    public void HtmlRender_VerticalNestedAndDecoratedBlocksAdvanceByTheirPaintedExtent(string writingMode, bool followingIsLeft) {
+        string html = $"<div style='writing-mode:{writingMode};inline-size:90px;block-size:180px;margin:0;font-size:12px;line-height:16px'>"
+            + "<div id='nested' style='width:56px;margin:0 8px 0 0;padding:4px;border:2px solid #123;background:#def'>"
+            + "<span id='nested-a' style='display:block'>A</span><span id='nested-b' style='display:block'>B</span></div>"
+            + "<p id='following' style='margin:0'>C</p></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+        double[] nestedX = text
+            .Where(item => item.Text == "A" || item.Text == "B")
+            .Select(item => item.X)
+            .ToArray();
+        double followingX = Assert.Single(text, item => item.Text == "C").X;
+
+        Assert.Equal(2, nestedX.Length);
+        if (followingIsLeft) Assert.True(followingX < nestedX.Min() - 20D);
+        else Assert.True(followingX > nestedX.Max() + 20D);
+    }
+
     [Fact]
     public void HtmlRender_FirstLetterAndFirstLineStyleTheRenderedFragments() {
         const string html = "<style>#lead::first-letter{font-size:30px;color:#cc0000}"
@@ -221,6 +245,25 @@ public sealed partial class HtmlRenderingTests {
             && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC));
         Assert.Contains(text, item => item.Y > firstLineY + 0.001D
             && item.Color == OfficeColor.Black);
+        Assert.DoesNotContain(text, item => item.Y > firstLineY + 0.001D
+            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC));
+    }
+
+    [Fact]
+    public void HtmlRender_FirstLineStylesAnEmergencyTokenPrefixAfterEarlierContent() {
+        const string html = "<style>#lead::first-line{color:#0000cc}</style>"
+            + "<p id='lead' style='width:72px;margin:0;font-size:12px;line-height:16px;overflow-wrap:anywhere'>"
+            + "Hi supercalifragilisticexpialidocious</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+        double firstLineY = text.Min(item => item.Y);
+
+        Assert.Contains(text, item => item.Y <= firstLineY + 0.001D && item.Text.Contains("Hi", StringComparison.Ordinal));
+        Assert.DoesNotContain(text, item => item.Y <= firstLineY + 0.001D && item.Color == OfficeColor.Black);
+        Assert.Contains(text, item => item.Y > firstLineY + 0.001D && item.Color == OfficeColor.Black);
         Assert.DoesNotContain(text, item => item.Y > firstLineY + 0.001D
             && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC));
     }

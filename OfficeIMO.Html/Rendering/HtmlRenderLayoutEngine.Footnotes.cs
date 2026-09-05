@@ -21,7 +21,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             noteStyle.ClearSide = "none";
             noteStyle.UnsupportedFloat = string.Empty;
             noteStyle.UnsupportedClear = string.Empty;
-            double pageContentWidth = Math.Max(1D, _activePageGeometry.ContentWidth);
+            double pageContentWidth = _footnotePlan.TryGetContentWidth(element, out double plannedContentWidth)
+                ? Math.Max(1D, plannedContentWidth)
+                : Math.Max(1D, _activePageGeometry.ContentWidth);
             double noteWidth = Math.Max(1D, pageContentWidth - FootnoteMarkerGutter);
             HtmlRenderFlowBlock noteBlock = LayoutElementWithoutEditableRegionMarker(
                 element,
@@ -68,6 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 number,
                 noteBlock,
                 noteWidth,
+                pageContentWidth,
                 noteStyle,
                 parentStyle.Clone(),
                 depth,
@@ -187,6 +190,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (_footnoteEntries.Count == 0) return HtmlFootnotePagePlan.Empty;
         var chunks = new List<HtmlFootnoteChunk>();
         var reservations = new Dictionary<int, double>();
+        var contentWidths = new Dictionary<IElement, double>();
         foreach (HtmlFootnoteEntry entry in _footnoteEntries.Values.OrderBy(item => item.Number)) {
             int callPage = FindFootnoteCallPage(rendered, entry);
             if (callPage <= 0) continue;
@@ -199,7 +203,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 pageNumber = Math.Max(pageNumber, previousPage);
             }
             HtmlCssPageGeometry callGeometry = ResolveFootnotePageGeometry(rendered, pageNumber);
-            RelayoutFootnoteEntry(entry, Math.Max(1D, callGeometry.ContentWidth - entry.MarkerGutter));
+            double pageContentWidth = Math.Max(1D, callGeometry.ContentWidth);
+            RelayoutFootnoteEntry(entry, pageContentWidth);
+            contentWidths[entry.Element] = pageContentWidth;
+            double markerHeight = ResolveFootnoteMarkerHeight(entry);
             double offset = 0D;
             while (offset < entry.Block.Height - 0.0001D) {
                 HtmlCssPageGeometry geometry = ResolveFootnotePageGeometry(rendered, pageNumber);
@@ -215,13 +222,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double end = FindFootnoteFragmentEnd(entry.Block, offset, capacity);
                 if (end <= offset + 0.0001D) end = Math.Min(entry.Block.Height, offset + capacity);
                 double height = Math.Max(0.01D, end - offset);
-                chunks.Add(new HtmlFootnoteChunk(entry.Element, pageNumber, offset, end, firstOnPage));
-                reservations[pageNumber] = reserved + separator + height;
+                double reservedHeight = Math.Max(height, markerHeight);
+                chunks.Add(new HtmlFootnoteChunk(entry.Element, pageNumber, offset, end, firstOnPage, reservedHeight));
+                reservations[pageNumber] = reserved + separator + reservedHeight;
                 offset = end;
                 if (offset < entry.Block.Height - 0.0001D) pageNumber++;
             }
         }
-        return new HtmlFootnotePagePlan(chunks, reservations);
+        return new HtmlFootnotePagePlan(chunks, reservations, contentWidths);
     }
 
     private HtmlCssPageGeometry ResolveFootnotePageGeometry(HtmlRenderDocument rendered, int pageNumber) {
@@ -237,8 +245,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : _pageRules.ResolveGeometry(pageNumber, pageName, _options);
     }
 
-    private void RelayoutFootnoteEntry(HtmlFootnoteEntry entry, double width) {
-        if (Math.Abs(entry.LayoutWidth - width) <= 0.0001D) return;
+    private void RelayoutFootnoteEntry(HtmlFootnoteEntry entry, double pageContentWidth) {
+        if (Math.Abs(entry.PageContentWidth - pageContentWidth) <= 0.0001D) return;
+        HtmlRenderFlowBlock? markerBlock = null;
+        double markerGutter = entry.SuppressMarker ? 0D : FootnoteMarkerGutter;
+        if (!entry.SuppressMarker
+            && _generatedContent.TryGetContent(entry.Element, HtmlPseudoElementKind.FootnoteMarker, out HtmlGeneratedContent markerContent)
+            && markerContent.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)) {
+            markerBlock = LayoutFootnoteMarkerContent(
+                entry.Element,
+                entry.Number,
+                markerContent,
+                entry.MarkerStyle,
+                pageContentWidth);
+            if (markerBlock != null) markerGutter = ResolveFootnoteMarkerGutter(markerBlock.Width, pageContentWidth);
+        }
+        double width = Math.Max(1D, pageContentWidth - markerGutter);
         entry.Block = LayoutElementWithoutEditableRegionMarker(
             entry.Element,
             width,
@@ -246,6 +268,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             entry.ParentStyle,
             entry.Depth + 1);
         entry.LayoutWidth = width;
+        entry.PageContentWidth = pageContentWidth;
+        entry.MarkerBlock = markerBlock;
+        entry.MarkerGutter = markerGutter;
+    }
+
+    private static double ResolveFootnoteMarkerHeight(HtmlFootnoteEntry entry) {
+        if (entry.SuppressMarker) return 0D;
+        return Math.Max(0.01D, entry.MarkerBlock?.Height ?? entry.MarkerStyle.LineHeight);
     }
 
     private static int FindFootnoteCallPage(HtmlRenderDocument rendered, HtmlFootnoteEntry entry) {
@@ -362,12 +392,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 geometry.Margins.Left,
                 cursorY,
                 geometry.ContentWidth,
-                Math.Max(0.01D, chunk.End - chunk.Start),
+                chunk.ReservedHeight,
                 children,
                 _paintOrder++,
                 HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote",
                 structureElementKey: "html-footnote:" + entry.Number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            cursorY += chunk.End - chunk.Start;
+            cursorY += chunk.ReservedHeight;
         }
     }
 }
@@ -378,6 +408,7 @@ internal sealed class HtmlFootnoteEntry {
         int number,
         HtmlRenderFlowBlock block,
         double layoutWidth,
+        double pageContentWidth,
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         int depth,
@@ -390,6 +421,7 @@ internal sealed class HtmlFootnoteEntry {
         Number = number;
         Block = block;
         LayoutWidth = layoutWidth;
+        PageContentWidth = pageContentWidth;
         Style = style;
         ParentStyle = parentStyle;
         Depth = depth;
@@ -404,36 +436,49 @@ internal sealed class HtmlFootnoteEntry {
     internal int Number { get; }
     internal HtmlRenderFlowBlock Block { get; set; }
     internal double LayoutWidth { get; set; }
+    internal double PageContentWidth { get; set; }
     internal HtmlRenderBoxStyle Style { get; }
     internal HtmlRenderBoxStyle ParentStyle { get; }
     internal int Depth { get; }
     internal HtmlRenderBoxStyle MarkerStyle { get; }
     internal string MarkerContent { get; }
-    internal HtmlRenderFlowBlock? MarkerBlock { get; }
-    internal double MarkerGutter { get; }
+    internal HtmlRenderFlowBlock? MarkerBlock { get; set; }
+    internal double MarkerGutter { get; set; }
     internal bool SuppressMarker { get; }
 }
 
-internal readonly record struct HtmlFootnoteChunk(IElement Element, int PageNumber, double Start, double End, bool FirstOnPage);
+internal readonly record struct HtmlFootnoteChunk(
+    IElement Element,
+    int PageNumber,
+    double Start,
+    double End,
+    bool FirstOnPage,
+    double ReservedHeight);
 
 internal sealed class HtmlFootnotePagePlan {
     private readonly IReadOnlyList<HtmlFootnoteChunk> _chunks;
     private readonly IReadOnlyDictionary<int, double> _reservations;
+    private readonly IReadOnlyDictionary<IElement, double> _contentWidths;
 
     internal static HtmlFootnotePagePlan Empty { get; } = new HtmlFootnotePagePlan(
         Array.Empty<HtmlFootnoteChunk>(),
-        new Dictionary<int, double>());
+        new Dictionary<int, double>(),
+        new Dictionary<IElement, double>());
 
     internal HtmlFootnotePagePlan(
         IReadOnlyList<HtmlFootnoteChunk> chunks,
-        IReadOnlyDictionary<int, double> reservations) {
+        IReadOnlyDictionary<int, double> reservations,
+        IReadOnlyDictionary<IElement, double> contentWidths) {
         _chunks = chunks;
         _reservations = reservations;
+        _contentWidths = contentWidths;
     }
 
     internal int MaximumPageNumber => _chunks.Select(chunk => chunk.PageNumber).DefaultIfEmpty(0).Max();
 
     internal bool TryGetReservation(int pageNumber, out double reserved) => _reservations.TryGetValue(pageNumber, out reserved);
+
+    internal bool TryGetContentWidth(IElement element, out double width) => _contentWidths.TryGetValue(element, out width);
 
     internal IReadOnlyList<HtmlFootnoteChunk> GetChunks(int pageNumber) =>
         _chunks.Where(chunk => chunk.PageNumber == pageNumber).ToArray();
@@ -454,8 +499,11 @@ internal sealed class HtmlFootnotePagePlan {
     }
 
     internal bool EquivalentTo(HtmlFootnotePagePlan other) {
-        if (_reservations.Count != other._reservations.Count || _chunks.Count != other._chunks.Count) return false;
+        if (_reservations.Count != other._reservations.Count
+            || _chunks.Count != other._chunks.Count
+            || _contentWidths.Count != other._contentWidths.Count) return false;
         if (_reservations.Any(pair => !other._reservations.TryGetValue(pair.Key, out double value) || Math.Abs(value - pair.Value) > 0.0001D)) return false;
+        if (_contentWidths.Any(pair => !other._contentWidths.TryGetValue(pair.Key, out double value) || Math.Abs(value - pair.Value) > 0.0001D)) return false;
         for (int index = 0; index < _chunks.Count; index++) {
             HtmlFootnoteChunk left = _chunks[index];
             HtmlFootnoteChunk right = other._chunks[index];
@@ -463,7 +511,8 @@ internal sealed class HtmlFootnotePagePlan {
                 || left.PageNumber != right.PageNumber
                 || Math.Abs(left.Start - right.Start) > 0.0001D
                 || Math.Abs(left.End - right.End) > 0.0001D
-                || left.FirstOnPage != right.FirstOnPage) return false;
+                || left.FirstOnPage != right.FirstOnPage
+                || Math.Abs(left.ReservedHeight - right.ReservedHeight) > 0.0001D) return false;
         }
         return true;
     }

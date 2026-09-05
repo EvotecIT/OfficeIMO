@@ -114,6 +114,56 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPagedMedia_FootnoteSvgMarkersUsePdfNamedDestinations(bool rasterizedEffect) {
+        string effect = rasterizedEffect
+            ? "<defs><mask id='m' maskUnits='userSpaceOnUse'><rect width='12' height='28' fill='white'/></mask></defs>"
+                + "<g mask='url(#m)' style='mix-blend-mode:multiply'><rect width='12' height='28' fill='blue'/></g>"
+            : "<rect width='12' height='28' fill='blue'/>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 28'>" + effect + "</svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+        string html = "<style>@page{size:240px 190px;margin:10px}body,p{margin:0;font-size:12px;line-height:16px}"
+            + ".note{float:footnote;font-size:10px;line-height:12px}"
+            + ".note::footnote-marker{content:url('data:image/svg+xml;base64," + data + "')}</style>"
+            + "<p>Body<span id='svg-note' class='note'>SVG marker footnote</span>.</p>";
+
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfInspector.Inspect(result.ToBytes());
+
+        Assert.Contains("html-fragment:officeimo-footnote-call-1", info.LinkDestinationNames);
+        Assert.DoesNotContain("#officeimo-footnote-call-1", info.LinkUris);
+        Assert.Equal(rasterizedEffect, result.Report.Warnings.Any(warning => warning.Code == "HtmlPdfDrawingEffectRasterized"));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_TallFootnoteMarkersReserveTheirFullRowHeight() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 28'><rect width='12' height='28' fill='blue'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+        string html = "<style>@page{size:240px 220px;margin:10px}body,p{margin:0;font-size:12px;line-height:16px}"
+            + ".note{float:footnote;font-size:10px;line-height:12px}"
+            + ".note::footnote-marker{content:url('data:image/svg+xml;base64," + data + "')}</style>"
+            + "<p>Calls<span id='first-tall-note' class='note'>First note</span> and "
+            + "<span id='second-tall-note' class='note'>Second note</span>.</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        IReadOnlyList<HtmlRenderDrawing> markers = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderDrawing>()
+            .Where(drawing => drawing.LinkUri?.StartsWith("#officeimo-footnote-call-", StringComparison.Ordinal) == true)
+            .OrderBy(drawing => drawing.Y)
+            .ToList();
+
+        Assert.Equal(2, markers.Count);
+        Assert.True(markers[1].Y >= markers[0].Y + markers[0].Height - 0.001D);
+    }
+
     [Fact]
     public void HtmlPagedMedia_LaysOutFootnoteBodiesAgainstThePageFootnoteArea() {
         const string html = """
@@ -141,6 +191,36 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(body);
         Assert.InRange(body.Select(text => text.Y).Distinct().Count(), 1, 2);
         Assert.All(body, text => Assert.True(text.X >= 30D));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNamedCallPageWidthInTheFinalFootnotePass() {
+        const string html = """
+            <style>
+              @page { size:300px 210px; margin:10px; }
+              @page narrow { size:180px 210px; margin:10px; }
+              body, p, section { margin:0; font-size:12px; line-height:16px; }
+              .narrow { page:narrow; break-before:page; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <p>Wide first page.</p>
+            <section class="narrow"><p>Call<span id="named-page-note" class="note">A named page footnote must wrap inside its narrower final page geometry.</span>.</p></section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        HtmlRenderPage callPage = Assert.Single(rendered.Pages, page =>
+            page.Visuals.OfType<HtmlRenderText>().Any(text => text.Source == "span#named-page-note:footnote-call"));
+        IReadOnlyList<HtmlRenderText> body = callPage.Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Source == "span")
+            .ToList();
+
+        Assert.Equal(180D, callPage.Width, 3);
+        Assert.NotEmpty(body);
+        Assert.True(body.Select(text => text.Y).Distinct().Count() >= 2);
+        Assert.All(body, text => Assert.True(text.X + text.Width <= callPage.Width - callPage.Margins.Right + 0.001D));
     }
 
     [Fact]

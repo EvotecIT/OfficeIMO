@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, surfaceHeight - style.VerticalInsets);
     }
 
-    private static void ArrangeVerticalBlockChildren(
+    private void ArrangeVerticalBlockChildren(
         IReadOnlyList<HtmlRenderFlowBlock> children,
         HtmlRenderBoxStyle style,
         double contentWidth,
@@ -44,10 +44,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? childPageName = children.Count > 0 ? children[0].PageName : null;
         for (int childIndex = 0; childIndex < children.Count; childIndex++) {
             HtmlRenderFlowBlock child = children[childIndex];
-            double advance = ResolveVerticalBlockAdvance(child, style.LineHeight);
-            double childX = rightToLeft ? cursor - advance : cursor;
-            if (rightToLeft) cursor = childX;
-            else cursor += advance;
+            VerticalBlockBounds bounds = ResolveVerticalBlockBounds(child, style.LineHeight);
+            double childX = rightToLeft ? cursor - bounds.Right : cursor - bounds.Left;
+            cursor = rightToLeft ? childX + bounds.Left : childX + bounds.Right;
 
             if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
                 forcedBreaks.Add(new HtmlRenderForcedBreak(0D, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
@@ -72,30 +71,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (contentHeight > 0D) breakOffsets.Add(contentHeight);
     }
 
-    private static double ResolveVerticalBlockAdvance(HtmlRenderFlowBlock child, double fallback) {
-        double maximum = 0D;
-        foreach (HtmlRenderVisual visual in child.Visuals) maximum = Math.Max(maximum, ResolveVerticalWritingWidth(visual));
-        return Math.Max(0.01D, maximum > 0D ? maximum : Math.Min(child.Width, Math.Max(fallback, child.Height)));
+    private VerticalBlockBounds ResolveVerticalBlockBounds(HtmlRenderFlowBlock child, double fallback) {
+        double left = 0D;
+        double right = 0D;
+        bool hasPaintBounds = false;
+        foreach (HtmlRenderVisual visual in child.Visuals) {
+            IncludeVerticalBlockPaintBounds(visual, ref left, ref right, ref hasPaintBounds);
+        }
+        if (!hasPaintBounds) {
+            right = Math.Max(0.01D, Math.Min(child.Width, Math.Max(fallback, child.Height)));
+        }
+        if (child.OwnerElement != null
+            && _layoutStyles.TryGetValue(child.OwnerElement, out HtmlRenderBoxStyle? childStyle)
+            && childStyle.MarginRight > 0D) {
+            right += childStyle.MarginRight;
+        }
+        if (right <= left + 0.0001D) right = left + 0.01D;
+        return new VerticalBlockBounds(left, right);
     }
 
-    private static double ResolveVerticalWritingWidth(HtmlRenderVisual visual) {
-        double width = visual.Source?.EndsWith(":vertical-writing", StringComparison.Ordinal) == true
-            ? visual.Width
-            : 0D;
-        IReadOnlyList<HtmlRenderVisual>? children = visual switch {
-            HtmlRenderEffectGroup effect => effect.Visuals,
+    private static void IncludeVerticalBlockPaintBounds(
+        HtmlRenderVisual visual,
+        ref double left,
+        ref double right,
+        ref bool hasPaintBounds) {
+        IReadOnlyList<HtmlRenderVisual>? paintNeutralChildren = visual switch {
             HtmlRenderSemanticGroup semantic => semantic.Visuals,
             HtmlRenderLayoutRegion region => region.Visuals,
             HtmlRenderLogicalTextGroup logical => logical.Visuals,
-            HtmlRenderClipGroup clip => clip.Visuals,
-            HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
-            HtmlRenderFormField field => field.Visuals,
             _ => null
         };
-        if (children == null) return width;
-        foreach (HtmlRenderVisual child in children) width = Math.Max(width, ResolveVerticalWritingWidth(child));
-        return width;
+        if (paintNeutralChildren != null) {
+            foreach (HtmlRenderVisual child in paintNeutralChildren) {
+                IncludeVerticalBlockPaintBounds(child, ref left, ref right, ref hasPaintBounds);
+            }
+            return;
+        }
+
+        left = Math.Min(left, visual.X);
+        right = Math.Max(right, visual.X + visual.Width);
+        hasPaintBounds = true;
     }
+
+    private readonly record struct VerticalBlockBounds(double Left, double Right);
 
     private HtmlInlineLayout TransformSidewaysVerticalInlineLayout(
         HtmlInlineLayout inline,
