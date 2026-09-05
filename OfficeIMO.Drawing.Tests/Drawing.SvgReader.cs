@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -357,6 +358,41 @@ public class DrawingSvgReaderTests {
         Assert.True(text.X < 20D);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
         OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderPaintsGradientPatternAndStrokeTextAsAccessibleVectorOutlines() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 70'>"
+            + "<defs>"
+            + "<linearGradient id='ink' x1='0%' y1='0%' x2='100%' y2='0%'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<pattern id='checks' patternUnits='userSpaceOnUse' width='6' height='6'><rect width='3' height='6' fill='gold'/><rect x='3' width='3' height='6' fill='green'/></pattern>"
+            + "</defs>"
+            + "<text x='8' y='28' font-family='Painted' font-size='22' fill='url(#ink)' stroke='black' stroke-width='1'>AB</text>"
+            + "<text x='8' y='60' font-family='Painted' font-size='22' fill='url(#checks)'>BA</text>"
+            + "</svg>";
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFont('A', 'B'));
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            options,
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup[] logicalPaint = drawing!.Elements.OfType<OfficeDrawingGroup>().ToArray();
+        Assert.Equal(new[] { "AB", "BA" }, logicalPaint.Select(group => group.ActualText));
+        Assert.All(logicalPaint, group => Assert.NotEmpty(group.Drawing.Shapes));
+        Assert.Contains(logicalPaint, group => group.Drawing.Elements.OfType<OfficeDrawingEffectGroup>().Any());
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("aria-label=\"AB\"", exported, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"BA\"", exported, StringComparison.Ordinal);
+        Assert.Contains("<linearGradient", exported, StringComparison.Ordinal);
+        Assert.DoesNotContain("<text", exported, StringComparison.Ordinal);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(Enumerable.Range(0, raster.Height).Any(y =>
+            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0)));
     }
 
     [Fact]

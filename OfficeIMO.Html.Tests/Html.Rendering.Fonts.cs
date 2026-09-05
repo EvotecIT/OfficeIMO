@@ -359,6 +359,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_KeepsPaintedSvgTextVectorAndSearchable() {
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 28'>"
+            + "<defs><linearGradient id='ink'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>"
+            + "<text x='4' y='21' font-family='PaintedSvg' font-size='18' fill='url(#ink)' stroke='black'>AB</text></svg>";
+        string html = "<style>@font-face{font-family:PaintedSvg;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "')}</style><img style='width:80px;height:28px' src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg();
+        var pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions.PdfOptions.CompressContentStreams = false;
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeDrawingGroup logicalPaint = Assert.Single(
+            visual.InnerDrawing.Elements.OfType<OfficeDrawingGroup>(),
+            group => group.ActualText == "AB");
+        Assert.NotEmpty(logicalPaint.Drawing.Shapes);
+        Assert.Contains("aria-label=\"AB\"", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("<linearGradient", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("AB", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_UsesFallbackFontWhenRegisteredFaceDoesNotCoverRun() {
         byte[] fontData = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
         string html = "<style>@font-face{font-family:Scoped;src:url('data:font/ttf;base64,"

@@ -725,7 +725,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         .Then(groupTransform)
                         .Then(drawingToPage);
                     OfficeDrawing nestedDrawing = drawingGroup.Drawing;
-                    target.Effect(pageGroupTransform, 1D, grouped => {
+                    Action<PdfCore.PdfPageCanvas> addGroupPaint = groupTarget => groupTarget.Effect(pageGroupTransform, 1D, grouped => {
                         grouped.Clip(
                             originX,
                             originY,
@@ -745,6 +745,15 @@ internal static partial class HtmlPdfRenderedConverter {
                                 }
                             });
                     });
+                    if (drawingGroup.ActualText == null) {
+                        addGroupPaint(target);
+                    } else {
+                        target.ActualText(
+                            drawingGroup.ActualText,
+                            (visual.X + drawingGroup.ActualTextAnchorX * scaleX) * PointsPerCssPixel,
+                            (visual.Y + drawingGroup.ActualTextAnchorY * scaleY) * PointsPerCssPixel,
+                            addGroupPaint);
+                    }
                     continue;
                 }
                 if (element is OfficeDrawingEffectGroup effectGroup) {

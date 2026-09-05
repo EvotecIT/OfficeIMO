@@ -43,6 +43,7 @@ public static partial class OfficeSvgDrawingReader {
                         "start",
                         source.Style,
                         source.Transform,
+                        source.FontProgram,
                         angleDegrees,
                         point.X,
                         point.Y) {

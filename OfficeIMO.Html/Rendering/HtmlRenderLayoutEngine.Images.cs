@@ -132,7 +132,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double fallbackHeight,
         string sourceDescription,
         out OfficeDrawing? drawing) {
-        if (OfficeSvgDrawingReader.TryRead(bytes, out drawing, out int unsupportedFeatures) && drawing != null) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.AddRange(_fonts);
+        if (OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
                 if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
                     drawing = rasterFallback;

@@ -811,7 +811,22 @@ public sealed partial class OfficeDrawing {
             double wrapperWidth = group.X + group.ClipPath.Width;
             double wrapperHeight = group.Y + group.ClipPath.Height;
             var wrapper = new OfficeDrawing(wrapperWidth, wrapperHeight);
-            wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value);
+            if (group.ActualText == null) {
+                wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value);
+            } else {
+                wrapper.Fonts.AddRange(group.InnerDrawing.Fonts);
+                wrapper._elements.Add(new OfficeDrawingGroup(
+                    group.InnerDrawing,
+                    group.X,
+                    group.Y,
+                    group.ClipPath,
+                    group.ContentOffsetX,
+                    group.ContentOffsetY,
+                    groupTransform.Value,
+                    group.ActualText,
+                    group.ActualTextAnchorX,
+                    group.ActualTextAnchorY));
+            }
             AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), 0D, 0D, frameTransform.Value, allowOverflow);
             return;
         }
@@ -821,13 +836,17 @@ public sealed partial class OfficeDrawing {
         }
 
         if (groupTransform.HasValue) {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
         } else {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
         }
     }
 
-    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
+    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow, string? actualText = null, double actualTextAnchorX = 0D, double actualTextAnchorY = 0D) {
+        if (actualText != null) {
+            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform, actualText, actualTextAnchorX, actualTextAnchorY));
+            return;
+        }
         if (allowOverflow) {
             _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform));
         } else if (frameTransform.HasValue) {

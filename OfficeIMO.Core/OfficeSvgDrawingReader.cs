@@ -69,6 +69,7 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             var scene = new OfficeDrawing(viewWidth, viewHeight);
+            scene.Fonts.AddRange(options?.Fonts);
             int visited = 0;
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
@@ -875,7 +876,23 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             } else {
-                AddText(element, target, style, paintServers, references, transform, viewX, viewY, ref unsupported);
+                AddText(
+                    element,
+                    target,
+                    style,
+                    paintServers,
+                    references,
+                    transform,
+                    viewX,
+                    viewY,
+                    maximumElements,
+                    maximumViewportDimension,
+                    maximumViewportPixels,
+                    depth,
+                    ref visited,
+                    ref pathCommands,
+                    ref pathCommandLimitExceeded,
+                    ref unsupported);
             }
             if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;

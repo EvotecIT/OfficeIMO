@@ -4,6 +4,12 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    /// <summary>
+    /// Scoped font faces available when SVG text must be converted to painted vector outlines.
+    /// Callers can register web fonts without changing process-wide font state.
+    /// </summary>
+    public OfficeFontFaceCollection Fonts { get; } = new OfficeFontFaceCollection();
+
     /// <summary>Default maximum number of descendant and expanded reference elements.</summary>
     public const int DefaultMaximumElements = 10000;
 

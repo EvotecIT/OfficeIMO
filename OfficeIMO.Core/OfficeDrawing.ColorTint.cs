@@ -43,7 +43,9 @@ public sealed partial class OfficeDrawing {
             } else if (current is OfficeDrawingGroup group) {
                 OfficeDrawing child = group.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);
-                replacement = new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform);
+                replacement = group.ActualText == null
+                    ? new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform)
+                    : new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform, group.ActualText, group.ActualTextAnchorX, group.ActualTextAnchorY);
             } else if (current is OfficeDrawingEffectGroup effectGroup) {
                 OfficeDrawing child = effectGroup.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);

@@ -65,6 +65,29 @@ public sealed class PdfClippedDrawingGroupTests {
         Assert.True(letters[1].StartBaseLine.X > letters[0].StartBaseLine.X);
     }
 
+    [Fact]
+    public void DrawingFlowRetainsActualTextForVectorGlyphPaint() {
+        OfficeShape glyphPaint = OfficeShape.Rectangle(20D, 12D);
+        glyphPaint.FillColor = OfficeColor.Navy;
+        var paint = new OfficeDrawing(40D, 20D).AddShape(glyphPaint, 4D, 3D);
+        var drawing = new OfficeDrawing(40D, 20D)
+            .AddActualTextDrawing("Vector label", paint, 4D, 15D);
+
+        OfficeDrawing clone = drawing.Clone();
+        OfficeDrawingGroup logicalGroup = Assert.Single(clone.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal("Vector label", logicalGroup.ActualText);
+        Assert.Equal(4D, logicalGroup.ActualTextAnchorX);
+        Assert.Equal(15D, logicalGroup.ActualTextAnchorY);
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Drawing(clone)
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.Contains("Vector label", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(OfficeFillRule.EvenOdd, " W* n")]
     [InlineData(OfficeFillRule.NonZero, " W n")]

@@ -204,8 +204,12 @@ public static partial class OfficeDrawingSvgExporter {
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
-        sb.Append("<g")
-            .AppendClipPathReference(groupClipPathId)
+        sb.Append("<g");
+        if (drawingGroup.ActualText != null) {
+            sb.AppendAttribute("role", "img")
+                .AppendAttribute("aria-label", drawingGroup.ActualText);
+        }
+        sb.AppendClipPathReference(groupClipPathId)
             .Append(transform)
             .Append('>');
         bool hasContentOffset = Math.Abs(drawingGroup.ContentOffsetX) > 0.0000001D || Math.Abs(drawingGroup.ContentOffsetY) > 0.0000001D;
