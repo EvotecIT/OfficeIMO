@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
     private static readonly ISet<string> RasterGeometryCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray",
+        "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset",
         "transform", "transform-origin", "transform-box",
         "font-family", "font-size", "font-style", "font-weight", "text-anchor", "dominant-baseline",
         "alignment-baseline", "baseline-shift", "white-space", "letter-spacing", "word-spacing", "direction",

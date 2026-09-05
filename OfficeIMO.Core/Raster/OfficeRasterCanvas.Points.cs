@@ -38,12 +38,13 @@ public sealed partial class OfficeRasterCanvas {
         OfficeColor color,
         double thickness,
         IReadOnlyList<double>? dashPattern,
-        bool resetDashPatternForEachSegment = false) {
+        bool resetDashPatternForEachSegment = false,
+        double dashOffset = 0D) {
         if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
-        DrawPatternedPolyline(ToOfficePoints(points), color, thickness, dashPattern, resetDashPatternForEachSegment);
+        DrawPatternedPolyline(ToOfficePoints(points), color, thickness, dashPattern, resetDashPatternForEachSegment, dashOffset);
     }
 
     /// <summary>

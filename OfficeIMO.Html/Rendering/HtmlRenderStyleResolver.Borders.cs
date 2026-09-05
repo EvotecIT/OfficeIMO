@@ -38,11 +38,13 @@ internal sealed partial class HtmlRenderStyleResolver {
                 out double outlineWidth,
                 out string outlineStyle,
                 out OfficeColor outlineColor,
+                out bool outlineColorInvert,
                 out double outlineOffset,
                 out string outlineDetail)) {
             style.OutlineWidth = outlineWidth;
             style.OutlineStyle = outlineStyle;
             style.OutlineColor = outlineColor;
+            style.OutlineColorInvert = outlineColorInvert;
             style.OutlineOffset = outlineOffset;
         } else {
             style.OutlineWidth = 0D;

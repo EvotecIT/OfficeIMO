@@ -71,6 +71,38 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
+    public void HtmlToPdf_PreservesAdvancedManagedEngineContentThroughTheBrowserSurface() {
+        const string embeddedSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 28'><defs>"
+            + "<filter id='shadow'><feDropShadow dx='2' dy='1' stdDeviation='1' flood-color='navy'/></filter></defs>"
+            + "<rect x='1' y='1' width='20' height='20' rx='3' fill='orange' filter='url(#shadow)'/>"
+            + "<foreignObject x='27' y='2' width='49' height='20'><div xmlns='http://www.w3.org/1999/xhtml' "
+            + "style='font:10px/16px Arial;color:navy;background:#ddffdd'>BrowserForeign</div></foreignObject></svg>";
+        string html = "<style>body{font:12px/16px Arial}.shadow{text-shadow:1px 1px 1px #99a}"
+            + ".vertical{writing-mode:vertical-rl;height:96px;margin:0}"
+            + "li::marker{content:'✓ ';color:green}</style>"
+            + "<p class='shadow'>BrowserShadow</p><h2 class='vertical'>VerticalWeb</h2>"
+            + "<ul><li>BrowserMarker</li></ul>"
+            + embeddedSvg.Replace("<svg ", "<svg aria-label='Advanced vector proof' style='width:240px;height:84px' ", StringComparison.Ordinal);
+
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            html,
+            BrowserPdfProfileCatalog.Faithful);
+
+        string text = PdfReadDocument.Open(result.Bytes).ExtractText();
+        string compactText = string.Concat(text.Where(static character => !char.IsWhiteSpace(character)));
+        Assert.Contains("BrowserShadow", compactText, StringComparison.Ordinal);
+        Assert.Contains("VerticalWeb", compactText, StringComparison.Ordinal);
+        Assert.Contains("BrowserMarker", compactText, StringComparison.Ordinal);
+        Assert.Contains("BrowserForeign", compactText, StringComparison.Ordinal);
+        Assert.NotNull(result.CompanionReport);
+        string report = Encoding.UTF8.GetString(result.CompanionReport!.Bytes);
+        Assert.DoesNotContain("HtmlRenderSvgContentUnsupported", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("HtmlRenderSvgRasterFallback", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("HtmlRenderTextShadowValueUnsupported", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
         var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
         string[] compatibleAliases = [

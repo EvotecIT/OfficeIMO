@@ -6,6 +6,10 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     private const string RevertLayerSentinel = "var(--officeimo-internal-revert-layer)";
+    private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
+    private const string FootnoteCallPseudoSentinel = "[data-officeimo-internal-footnote-call-pseudo]";
+    private const string FootnoteMarkerPseudoSentinel = "[data-officeimo-internal-footnote-marker-pseudo]";
+    private const string GeneratedContentSentinelPrefix = "__officeimo_generated_content_";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
         IHtmlDocument document,
@@ -36,6 +40,8 @@ public static partial class HtmlComputedStyleEngine {
             IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
             string parseCss = ExpandNestedConditionalRules(css);
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
+            parseCss = ProtectGeneratedContentFunctions(parseCss);
+            parseCss = ProtectManagedPseudoElements(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
@@ -105,7 +111,8 @@ public static partial class HtmlComputedStyleEngine {
 
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
-            IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(styleRule.SelectorText ?? string.Empty, parentSelectors);
+            IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(
+                RestoreManagedPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
             AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
             foreach (var childRule in styleRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
@@ -173,6 +180,8 @@ public static partial class HtmlComputedStyleEngine {
         }
         RemoveSyntheticAnimationName(styleRule.CssText, declarations);
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
+        int declarationOrder = 0;
+        foreach (StyleDeclaration declaration in declarations.Values) declaration.DeclarationOrder = declarationOrder++;
 
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {
@@ -268,7 +277,141 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static string RestoreProtectedDeclarationValue(string value) =>
-        RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value));
+        RestoreGeneratedContentFunctions(RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value)));
+
+    private static string ProtectGeneratedContentFunctions(string css) {
+        if (string.IsNullOrEmpty(css)
+            || css.IndexOf("target-text", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("target-counter", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("leader", StringComparison.OrdinalIgnoreCase) < 0) return css;
+
+        var output = new System.Text.StringBuilder(css.Length);
+        int copied = 0;
+        for (int index = 0; index + 7 <= css.Length; index++) {
+            if (string.Compare(css, index, "content", 0, 7, StringComparison.OrdinalIgnoreCase) != 0
+                || index > 0 && IsCssIdentifierCharacter(css[index - 1])
+                || index + 7 < css.Length && IsCssIdentifierCharacter(css[index + 7])) continue;
+            int before = SkipCssWhitespaceAndCommentsBackward(css, index - 1);
+            if (before < 0 || css[before] != '{' && css[before] != ';') continue;
+            int colon = SkipCssWhitespaceAndCommentsForward(css, index + 7);
+            if (colon >= css.Length || css[colon] != ':') continue;
+            int valueStart = colon + 1;
+            int valueEnd = FindDeclarationValueEnd(css, valueStart);
+            if (valueEnd <= valueStart) continue;
+            string value = css.Substring(valueStart, valueEnd - valueStart);
+            if (value.IndexOf("target-text", StringComparison.OrdinalIgnoreCase) < 0
+                && value.IndexOf("target-counter", StringComparison.OrdinalIgnoreCase) < 0
+                && value.IndexOf("leader", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            string raw = StripTrailingImportant(value.Trim(), out bool important);
+            string encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
+            output.Append(css, copied, valueStart - copied)
+                .Append('"').Append(GeneratedContentSentinelPrefix).Append(encoded).Append('"');
+            if (important) output.Append(" !important");
+            copied = valueEnd;
+            index = valueEnd - 1;
+        }
+        if (copied == 0) return css;
+        output.Append(css, copied, css.Length - copied);
+        return output.ToString();
+    }
+
+    private static int FindDeclarationValueEnd(string css, int start) {
+        int parentheses = 0;
+        char quote = '\0';
+        for (int index = start; index < css.Length; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') quote = current;
+            else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                index = close < 0 ? css.Length : close + 1;
+            } else if (current == '(') parentheses++;
+            else if (current == ')' && parentheses > 0) parentheses--;
+            else if (parentheses == 0 && (current == ';' || current == '}')) return index;
+        }
+        return css.Length;
+    }
+
+    private static string RestoreGeneratedContentFunctions(string value) {
+        string trimmed = value.Trim();
+        if (trimmed.Length < GeneratedContentSentinelPrefix.Length + 2
+            || trimmed[0] != trimmed[trimmed.Length - 1]
+            || trimmed[0] != '\'' && trimmed[0] != '"') return value;
+        string payload = trimmed.Substring(1, trimmed.Length - 2);
+        if (!payload.StartsWith(GeneratedContentSentinelPrefix, StringComparison.Ordinal)) return value;
+        try {
+            byte[] bytes = Convert.FromBase64String(payload.Substring(GeneratedContentSentinelPrefix.Length));
+            return System.Text.Encoding.UTF8.GetString(bytes);
+        } catch (FormatException) {
+            return value;
+        }
+    }
+
+    private static string ProtectManagedPseudoElements(string css) {
+        if (string.IsNullOrEmpty(css)
+            || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::footnote-call", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
+        var result = new System.Text.StringBuilder(css.Length + 16);
+        char quote = '\0';
+        for (int index = 0; index < css.Length;) {
+            char current = css[index];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                index++;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                result.Append(current);
+                index++;
+                continue;
+            }
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                int end = close < 0 ? css.Length : close + 2;
+                result.Append(css, index, end - index);
+                index = end;
+                continue;
+            }
+            if (TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out int consumed)
+                || TryProtectPseudoElement(css, index, "::footnote-call", FootnoteCallPseudoSentinel, result, out consumed)
+                || TryProtectPseudoElement(css, index, "::marker", MarkerPseudoSentinel, result, out consumed)) {
+                index += consumed;
+                continue;
+            }
+            result.Append(current);
+            index++;
+        }
+        return result.ToString();
+    }
+
+    private static bool TryProtectPseudoElement(
+        string css,
+        int index,
+        string pseudoElement,
+        string sentinel,
+        System.Text.StringBuilder result,
+        out int consumed) {
+        if (index + pseudoElement.Length <= css.Length
+            && string.Compare(css, index, pseudoElement, 0, pseudoElement.Length, StringComparison.OrdinalIgnoreCase) == 0
+            && (index + pseudoElement.Length == css.Length || !IsCssIdentifierCharacter(css[index + pseudoElement.Length]))) {
+            result.Append(sentinel);
+            consumed = pseudoElement.Length;
+            return true;
+        }
+        consumed = 0;
+        return false;
+    }
+
+    private static string RestoreManagedPseudoElements(string selector) =>
+        selector.Replace(MarkerPseudoSentinel, "::marker")
+            .Replace(FootnoteCallPseudoSentinel, "::footnote-call")
+            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker");
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";

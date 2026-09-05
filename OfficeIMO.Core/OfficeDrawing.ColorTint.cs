@@ -23,7 +23,10 @@ public sealed partial class OfficeDrawing {
                     text.WrapText, text.ShrinkToFit, text.StackedText, text.FlipHorizontal, text.FlipVertical,
                     text.Padding, text.ParagraphIndent, text.OverflowBehavior, text.TextAdvanceWidth,
                     text.UnderlineStyle, text.StrikethroughStyle, text.Baseline, text.BaselineLevel,
-                    text.BaselineScale, text.BaselineOffset);
+                    text.BaselineScale, text.BaselineOffset,
+                    text.DecorationColor.HasValue ? WithTint(text.DecorationColor.Value, tint) : null,
+                    text.FeatureSettings,
+                    text.FontPalette);
             } else if (current is OfficeDrawingRichText richText) {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);
                 for (int runIndex = 0; runIndex < richText.Runs.Count; runIndex++) {
@@ -42,7 +45,9 @@ public sealed partial class OfficeDrawing {
             } else if (current is OfficeDrawingGroup group) {
                 OfficeDrawing child = group.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);
-                replacement = new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform);
+                replacement = group.ActualText == null
+                    ? new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform)
+                    : new OfficeDrawingGroup(child, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform, group.ActualText, group.ActualTextAnchorX, group.ActualTextAnchorY);
             } else if (current is OfficeDrawingEffectGroup effectGroup) {
                 OfficeDrawing child = effectGroup.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);

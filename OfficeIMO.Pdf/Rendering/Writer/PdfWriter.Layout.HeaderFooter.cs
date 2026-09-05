@@ -640,9 +640,14 @@ internal static partial class PdfWriter {
                 .GraphicsState(opacityState);
         }
 
-        if (shape.Transform.HasValue) {
-            string? shadingName = EnsureHeaderFooterFillGradient(page, shape, xShape, bottomY, localCoordinates: true);
-            DrawTransformedShape(sb, shape, shadingName == null ? ToHeaderFooterPdfColor(shape.FillColor) : null, ToHeaderFooterPdfColor(shape.StrokeColor), shadingName, xShape, bottomY);
+        if (shape.Transform.HasValue || RequiresExactStrokeWriter(shape)) {
+            OfficeShape renderShape = shape;
+            if (!renderShape.Transform.HasValue) {
+                renderShape = shape.Clone();
+                renderShape.Transform = OfficeTransform.Identity;
+            }
+            string? shadingName = EnsureHeaderFooterFillGradient(page, renderShape, xShape, bottomY, localCoordinates: true);
+            DrawTransformedShape(sb, renderShape, shadingName == null ? ToHeaderFooterPdfColor(renderShape.FillColor) : null, ToHeaderFooterPdfColor(renderShape.StrokeColor), shadingName, xShape, bottomY);
         } else {
             if (shape.ClipPath != null) {
                 new ContentStreamBuilder(sb)

@@ -400,6 +400,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeRadialGradient = primitive.StrokeRadialGradient;
         shape.StrokeWidth = primitive.StrokeWidth;
         shape.StrokeDashStyle = primitive.StrokeDashStyle;
+        ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         shape.FillOpacity = primitive.FillOpacity;
@@ -432,6 +433,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeRadialGradient = primitive.StrokeRadialGradient;
         shape.StrokeWidth = primitive.StrokeWidth;
         shape.StrokeDashStyle = primitive.StrokeDashStyle;
+        ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         shape.StrokeOpacity = primitive.StrokeOpacity;
@@ -459,6 +461,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeRadialGradient = primitive.StrokeRadialGradient;
         shape.StrokeWidth = primitive.StrokeWidth;
         shape.StrokeDashStyle = primitive.StrokeDashStyle;
+        ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         shape.FillOpacity = primitive.FillOpacity;
@@ -471,6 +474,12 @@ public sealed partial class PdfReadPage {
 
         if (HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             drawing.AddShape(shape, primitive.X, primitive.Y);
+        }
+    }
+
+    private static void ApplyExactStrokeDash(OfficeShape shape, PdfPageVisualPrimitive primitive) {
+        if (primitive.StrokeDashPattern.HasValue && primitive.StrokeDashPattern.Value.Array.Count > 0) {
+            shape.SetStrokeDashArray(primitive.StrokeDashPattern.Value.Array, primitive.StrokeDashPattern.Value.Phase);
         }
     }
 

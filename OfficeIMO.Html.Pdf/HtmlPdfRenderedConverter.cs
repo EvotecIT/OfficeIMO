@@ -161,13 +161,21 @@ internal static partial class HtmlPdfRenderedConverter {
             cancellationToken.ThrowIfCancellationRequested();
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
             double pageHeight = renderedPage.Height * PointsPerCssPixel;
-            pdf.Page(page => page
-                .Size(pageWidth, pageHeight)
-                .Margin(0D)
-                .Canvas(canvas => {
+            pdf.Page(page => {
+                page.Size(pageWidth, pageHeight)
+                    .Margin(0D);
+                if (renderedPage.PrintProduction != null) {
+                    double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel;
+                    double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel;
+                    page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
+                        PdfCore.PageMargins.Uniform(trimInset),
+                        PdfCore.PageMargins.Uniform(bleedInset)));
+                }
+                page.Canvas(canvas => {
                     AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
-                }));
+                });
+            });
         }
 
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
@@ -220,6 +228,11 @@ internal static partial class HtmlPdfRenderedConverter {
             AddShape(canvas, shape, conversionReport, cancellationToken);
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, conversionReport, surfaceWidth, textAsSpan, logicalTextOwned, cancellationToken);
+        } else if (visual is HtmlRenderNamedDestination destination) {
+            canvas.NamedDestination(
+                MapNamedDestination(destination.Name),
+                destination.X * PointsPerCssPixel,
+                destination.Y * PointsPerCssPixel);
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
         } else if (visual is HtmlRenderDrawing drawing) {
@@ -343,7 +356,15 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
-        if (!group.Visuals.Any(ContainsPaintableVisual)) return;
+        if (!group.Visuals.Any(ContainsPaintableVisual)) {
+            // Navigation-only groups still carry named destinations. They cannot create
+            // an empty structure element, but their non-painting children must reach the
+            // page canvas so empty anchors remain valid link targets.
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                AddVisual(canvas, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
+            }
+            return;
+        }
         if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
             canvas.Artifact(nested => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
@@ -378,7 +399,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
-        if (visual is HtmlRenderBookmarkAnchor) return false;
+        if (visual is HtmlRenderBookmarkAnchor || visual is HtmlRenderNamedDestination) return false;
         if (visual is HtmlRenderLayoutRegion layoutRegion) return layoutRegion.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderSemanticGroup semanticGroup) return semanticGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) return logicalTextGroup.Visuals.Any(ContainsPaintableVisual);
@@ -422,6 +443,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (role == HtmlRenderSemanticGroupRole.TableRow) return PdfCore.PdfCanvasStructureRole.TableRow;
         if (role == HtmlRenderSemanticGroupRole.TableHeaderCell) return PdfCore.PdfCanvasStructureRole.TableHeaderCell;
         if (role == HtmlRenderSemanticGroupRole.TableCell) return PdfCore.PdfCanvasStructureRole.TableCell;
+        if (role == HtmlRenderSemanticGroupRole.Footnote) return PdfCore.PdfCanvasStructureRole.Note;
         return PdfCore.PdfCanvasStructureRole.Caption;
     }
 
@@ -530,15 +552,35 @@ internal static partial class HtmlPdfRenderedConverter {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
         drawing.AddShape(visual.Shape.Clone(), 0D, 0D);
         if (TryAddTranslucentGradient(canvas, visual, drawing, conversionReport, cancellationToken)) return;
-        canvas.Drawing(
+        double x = visual.X * PointsPerCssPixel;
+        double y = visual.Y * PointsPerCssPixel;
+        double drawingX = Math.Max(0D, x);
+        double drawingY = Math.Max(0D, y);
+        OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
+        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
-            visual.X * PointsPerCssPixel,
-            visual.Y * PointsPerCssPixel,
+            drawingX,
+            drawingY,
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
-            linkUri: visual.LinkUri,
-            linkContents: visual.LinkUri == null ? null : visual.Source);
+            linkUri: fragmentLink ? null : visual.LinkUri,
+            linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source);
+        if (transform == OfficeTransform.Identity) {
+            addDrawing(canvas);
+        } else {
+            canvas.Effect(transform, 1D, addDrawing);
+        }
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
+        }
     }
 
     private static void AddText(
@@ -551,7 +593,10 @@ internal static partial class HtmlPdfRenderedConverter {
         bool logicalTextOwned,
         CancellationToken cancellationToken) {
         if (visual.Text.Length == 0) return;
-        string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
+        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = IsFragmentLink(visual.LinkUri)
+            ? MapNamedDestination(visual.LinkUri!.Substring(1))
+            : null;
         double frameWidth = visual.Width;
         if (visual.TextAdvanceWidth.HasValue) {
             double metricTolerance = Math.Max(
@@ -587,10 +632,13 @@ internal static partial class HtmlPdfRenderedConverter {
                 webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
+            linkDestinationName: linkDestination,
             fontFamily: visual.Font.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),
             underlineStyle: visual.UnderlineStyle,
-            strikeStyle: visual.StrikethroughStyle);
+            strikeStyle: visual.StrikethroughStyle,
+            decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
+            .WithFeatureSettings(visual.FeatureSettings);
         canvas.Text(
             new[] { run },
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
@@ -603,6 +651,19 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Font.Size * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel);
     }
+
+    private static bool IsFragmentLink(string? link) =>
+        link != null && link.Length > 1 && link[0] == '#';
+
+    private static string DecodeFragmentName(string name) {
+        try {
+            return System.Uri.UnescapeDataString(name);
+        } catch (System.UriFormatException) {
+            return name;
+        }
+    }
+
+    private static string MapNamedDestination(string name) => "html-fragment:" + name;
 
     private static PdfCore.PdfCanvasTextStructureRole MapStructureRole(string? semanticRole) {
         if (semanticRole == "heading-1") return PdfCore.PdfCanvasTextStructureRole.Heading1;
@@ -633,6 +694,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     visual.SourceCrop.Bottom)
             }
             : null;
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
         canvas.ImageShared(
             imageResource,
             visual.X * PointsPerCssPixel,
@@ -640,9 +702,18 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             style,
-            linkUri: visual.LinkUri,
-            linkContents: visual.LinkUri == null ? null : visual.Source,
+            linkUri: fragmentLink ? null : visual.LinkUri,
+            linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
             alternativeText: visual.AlternativeText);
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
+        }
     }
 
     private static void AddDrawing(
@@ -663,6 +734,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 cancellationToken)) return;
         double originX = visual.X * PointsPerCssPixel;
         double originY = visual.Y * PointsPerCssPixel;
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
+        string? drawingLinkUri = fragmentLink ? null : visual.LinkUri;
         OfficeTransform drawingToPage = OfficeTransform.Scale(scaleX * PointsPerCssPixel, scaleY * PointsPerCssPixel)
             .Then(OfficeTransform.Translate(originX, originY));
         OfficeTransform pageToDrawing = drawingToPage.Invert();
@@ -672,21 +745,23 @@ internal static partial class HtmlPdfRenderedConverter {
             void FlushShapes() {
                 if (shapeBatch.Elements.Count == 0) return;
                 cancellationToken.ThrowIfCancellationRequested();
-                target.Drawing(
+                target.DrawingForClippedRendering(
                     shapeBatch,
                     originX,
                     originY,
                     visual.Width * PointsPerCssPixel,
                     visual.Height * PointsPerCssPixel,
-                    linkUri: visual.LinkUri,
-                    linkContents: visual.LinkUri == null ? null : visual.Source);
+                    linkUri: drawingLinkUri,
+                    linkContents: drawingLinkUri == null ? null : visual.Source);
                 shapeBatch = new OfficeDrawing(source.Width, source.Height);
             }
 
             foreach (OfficeDrawingElement element in elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (element is OfficeDrawingShape shape) {
-                    shapeBatch.AddShape(shape.Shape, shape.X, shape.Y);
+                    // Nested SVG clips, filters, and foreign-object viewports may retain
+                    // deliberately out-of-bounds paint that is clipped by an ancestor group.
+                    shapeBatch.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
                     continue;
                 }
                 if (element is OfficeDrawingGroup drawingGroup) {
@@ -699,7 +774,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         .Then(groupTransform)
                         .Then(drawingToPage);
                     OfficeDrawing nestedDrawing = drawingGroup.Drawing;
-                    target.Effect(pageGroupTransform, 1D, grouped => {
+                    Action<PdfCore.PdfPageCanvas> addGroupPaint = groupTarget => groupTarget.Effect(pageGroupTransform, 1D, grouped => {
                         grouped.Clip(
                             originX,
                             originY,
@@ -719,6 +794,15 @@ internal static partial class HtmlPdfRenderedConverter {
                                 }
                             });
                     });
+                    if (drawingGroup.ActualText == null) {
+                        addGroupPaint(target);
+                    } else {
+                        target.ActualText(
+                            drawingGroup.ActualText,
+                            (visual.X + drawingGroup.ActualTextAnchorX * scaleX) * PointsPerCssPixel,
+                            (visual.Y + drawingGroup.ActualTextAnchorY * scaleY) * PointsPerCssPixel,
+                            addGroupPaint);
+                    }
                     continue;
                 }
                 if (element is OfficeDrawingEffectGroup effectGroup) {
@@ -750,6 +834,59 @@ internal static partial class HtmlPdfRenderedConverter {
                     });
                     continue;
                 }
+                if (element is OfficeDrawingImage image) {
+                    FlushShapes();
+                    PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(
+                        image.EncodedBytes, image.ContentType);
+                    if (imageResource == null) continue;
+                    PdfCore.PdfImageStyle? imageStyle = image.Projection.HasCrop
+                        ? new PdfCore.PdfImageStyle {
+                            SourceCrop = new PdfCore.PdfImageSourceCrop(
+                                image.Projection.SourceCrop.Left,
+                                image.Projection.SourceCrop.Top,
+                                image.Projection.SourceCrop.Right,
+                                image.Projection.SourceCrop.Bottom)
+                        }
+                        : null;
+                    Action<PdfCore.PdfPageCanvas> addImage = imageTarget => imageTarget.ImageShared(
+                        imageResource,
+                        (visual.X + image.Projection.X * scaleX) * PointsPerCssPixel,
+                        (visual.Y + image.Projection.Y * scaleY) * PointsPerCssPixel,
+                        image.Projection.Width * scaleX * PointsPerCssPixel,
+                        image.Projection.Height * scaleY * PointsPerCssPixel,
+                        imageStyle,
+                        alternativeText: image.AlternativeText);
+                    OfficeTransform imageTransform = image.Projection.CreateFrameTransform().CreateDestinationTransform();
+                    if (imageTransform == OfficeTransform.Identity && image.Opacity >= 1D) {
+                        addImage(target);
+                    } else {
+                        OfficeTransform pageImageTransform = pageToDrawing.Then(imageTransform).Then(drawingToPage);
+                        target.Effect(pageImageTransform, image.Opacity, addImage);
+                    }
+                    continue;
+                }
+                if (element is OfficeDrawingLink link) {
+                    FlushShapes();
+                    double linkX = (visual.X + link.X * scaleX) * PointsPerCssPixel;
+                    double linkY = (visual.Y + link.Y * scaleY) * PointsPerCssPixel;
+                    double linkWidth = link.Width * scaleX * PointsPerCssPixel;
+                    double linkHeight = link.Height * scaleY * PointsPerCssPixel;
+                    if (IsFragmentLink(link.Uri)) {
+                        target.LinkToNamedDestination(
+                            MapNamedDestination(DecodeFragmentName(link.Uri.Substring(1))),
+                            linkX,
+                            linkY,
+                            linkWidth,
+                            linkHeight,
+                            link.AlternativeText);
+                    } else {
+                        OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
+                        linkArea.FillColor = null;
+                        linkArea.StrokeColor = null;
+                        target.Shape(linkArea, linkX, linkY, linkUri: link.Uri, linkContents: link.AlternativeText);
+                    }
+                    continue;
+                }
                 if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
                 FlushShapes();
                 double textX = visual.X + text.X * scaleX;
@@ -769,7 +906,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     text.Alignment,
                     scaledLineHeight,
                     paintOrder: 0,
-                    linkUri: visual.LinkUri,
+                    linkUri: drawingLinkUri,
                     source: visual.Source,
                     semanticRole: "span",
                     layoutY: textY,
@@ -805,8 +942,8 @@ internal static partial class HtmlPdfRenderedConverter {
                         strike: text.Font.IsStrikethrough,
                         fontSize: fontSize,
                         font: MapFont(run.FamilyName, run.Text, text.Font.Style, webFonts),
-                        linkUri: visual.LinkUri,
-                        linkContents: visual.LinkUri == null ? null : run.Text,
+                        linkUri: drawingLinkUri,
+                        linkContents: drawingLinkUri == null ? null : run.Text,
                         fontFamily: run.FamilyName))
                     .ToList();
                 target.Text(
@@ -828,6 +965,15 @@ internal static partial class HtmlPdfRenderedConverter {
             AddElements(canvas, source.Elements);
         } else {
             canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements));
+        }
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
         }
     }
 

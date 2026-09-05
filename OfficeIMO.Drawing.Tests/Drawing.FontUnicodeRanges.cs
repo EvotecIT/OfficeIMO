@@ -99,6 +99,39 @@ public sealed class DrawingFontUnicodeRangeTests {
     }
 
     [Fact]
+    public void FontCollection_SelectsNearestWeightStretchAndObliqueFace() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", font, new OfficeFontFaceDescriptor(300, 100D))
+            .Add("Scoped", font, new OfficeFontFaceDescriptor(500, 100D))
+            .Add("Scoped", font, new OfficeFontFaceDescriptor(700, 75D))
+            .Add("Scoped", font, new OfficeFontFaceDescriptor(700, 100D, OfficeFontSlant.Oblique, 10D))
+            .Add("Scoped", font, new OfficeFontFaceDescriptor(700, 100D, OfficeFontSlant.Oblique, 20D));
+
+        Assert.True(fonts.TryResolveFaceForText(
+            "A",
+            "Scoped",
+            new OfficeFontFaceDescriptor(450, 100D),
+            out OfficeFontFace? nearestWeight));
+        Assert.Equal(500, nearestWeight!.Descriptor.Weight);
+
+        Assert.True(fonts.TryResolveFaceForText(
+            "A",
+            "Scoped",
+            new OfficeFontFaceDescriptor(650, 75D),
+            out OfficeFontFace? condensed));
+        Assert.Equal(75D, condensed!.Descriptor.StretchPercent);
+
+        Assert.True(fonts.TryResolveFaceForText(
+            "A",
+            "Scoped",
+            new OfficeFontFaceDescriptor(700, 100D, OfficeFontSlant.Oblique, 16D),
+            out OfficeFontFace? oblique));
+        Assert.Equal(20D, oblique!.Descriptor.ObliqueAngleDegrees);
+        Assert.Equal(5, fonts.Faces.Select(face => face.ResourceFamilyName).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void FontCollection_PreservesExplicitRangeSelectionAfterArabicShaping() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(
             0x0627,

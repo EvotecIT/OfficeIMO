@@ -212,9 +212,46 @@ internal static class HtmlCssPageSettingsResolver {
             FindTopLevelDeclarationWithPriority(body, "margin-right", HtmlCssPageRuleSet.IsValidPageMarginComponent),
             FindTopLevelDeclarationWithPriority(body, "margin-bottom", HtmlCssPageRuleSet.IsValidPageMarginComponent),
             FindTopLevelDeclarationWithPriority(body, "margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent));
+        bool IsValidBleed(string value) => IsCssWidePageProductionValue(value)
+            || string.Equals(value.Trim(), "auto", StringComparison.OrdinalIgnoreCase)
+            || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: true)
+                && HtmlRenderCssValues.TryLength(value, 1D, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out double bleed)
+                && bleed >= 0D;
+        bool IsValidMarks(string value) {
+            if (IsCssWidePageProductionValue(value)) return true;
+            IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
+            if (tokens.Count == 0 || tokens.Count > 2) return false;
+            if (tokens.Count == 1 && string.Equals(tokens[0], "none", StringComparison.OrdinalIgnoreCase)) return true;
+            return tokens.All(token => string.Equals(token, "crop", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(token, "cross", StringComparison.OrdinalIgnoreCase))
+                && tokens.Distinct(StringComparer.OrdinalIgnoreCase).Count() == tokens.Count;
+        }
+        HtmlCssPageDeclaration authoredBleed = FindTopLevelDeclarationWithPriority(body, "bleed");
+        HtmlCssPageDeclaration authoredMarks = FindTopLevelDeclarationWithPriority(body, "marks");
+        string productionSource = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
+        if (authoredBleed.Value.Length > 0 && !IsValidBleed(authoredBleed.Value)) {
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageBleedUnsupported,
+                "An @page bleed declaration could not be resolved.", HtmlDiagnosticSeverity.Warning,
+                productionSource, authoredBleed.Value, OfficeConversionLossKind.Omission);
+        }
+        if (authoredMarks.Value.Length > 0 && !IsValidMarks(authoredMarks.Value)) {
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarksUnsupported,
+                "An @page marks declaration could not be resolved.", HtmlDiagnosticSeverity.Warning,
+                productionSource, authoredMarks.Value, OfficeConversionLossKind.Omission);
+        }
+        var production = new HtmlCssPageProductionDeclaration(
+            FindTopLevelDeclarationWithPriority(body, "bleed", IsValidBleed),
+            FindTopLevelDeclarationWithPriority(body, "marks", IsValidMarks));
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics);
-        if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, layerOrder));
+        if (marginBoxes.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
+            pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder));
+        }
     }
+
+    private static bool IsCssWidePageProductionValue(string value) =>
+        string.Equals(value.Trim(), "initial", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value.Trim(), "unset", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryParsePageSelector(string selectorText, out string? pageName, out HtmlCssPageSelector selector) {
         string normalized = selectorText.Trim();

@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using OfficeIMO.Drawing;
 
@@ -124,10 +125,15 @@ internal static partial class PdfWriter {
                     .GraphicsState(opacityState);
             }
 
-            if (shape.Transform.HasValue) {
+            if (shape.Transform.HasValue || RequiresExactStrokeWriter(shape)) {
                 pageDirty = true;
-                string? shadingName = EnsureFillGradient(shape, xShape, bottomY, localCoordinates: true);
-                DrawTransformedShape(sb, shape, shadingName == null ? ToPdfColor(shape.FillColor) : null, ToPdfColor(shape.StrokeColor), shadingName, xShape, bottomY);
+                OfficeIMO.Drawing.OfficeShape renderShape = shape;
+                if (!renderShape.Transform.HasValue) {
+                    renderShape = shape.Clone();
+                    renderShape.Transform = OfficeTransform.Identity;
+                }
+                string? shadingName = EnsureFillGradient(renderShape, xShape, bottomY, localCoordinates: true);
+                DrawTransformedShape(sb, renderShape, shadingName == null ? ToPdfColor(renderShape.FillColor) : null, ToPdfColor(renderShape.StrokeColor), shadingName, xShape, bottomY);
             } else {
                 if (shape.ClipPath != null) {
                     new ContentStreamBuilder(sb)
@@ -248,15 +254,67 @@ internal static partial class PdfWriter {
                 new ContentStreamBuilder(sb).RestoreState();
             }
 
-            if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
-                OfficeTransform pageTransform = ToTopLeftPageTransform(
-                    group.FrameTransform.Value.CreateDestinationTransform(),
-                    originX,
-                    originTopY);
-                RenderEffectGroup(pageTransform, 1D, DrawGroupContent);
-            } else {
-                DrawGroupContent();
+            void DrawGroupPaint() {
+                if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+                    OfficeTransform pageTransform = ToTopLeftPageTransform(
+                        group.FrameTransform.Value.CreateDestinationTransform(),
+                        originX,
+                        originTopY);
+                    RenderEffectGroup(pageTransform, 1D, DrawGroupContent);
+                } else {
+                    DrawGroupContent();
+                }
             }
+
+            if (group.ActualText == null || _suppressCanvasActualTextChildren || _suppressCanvasAccessibilityWrappers) {
+                DrawGroupPaint();
+            } else {
+                DrawDrawingActualText(
+                    group.ActualText,
+                    originX + group.ActualTextAnchorX,
+                    originTopY - group.ActualTextAnchorY,
+                    DrawGroupPaint);
+            }
+        }
+
+        private void DrawDrawingActualText(string actualText, double anchorX, double anchorY, Action drawPaint) {
+            sb.Append("/Artifact BMC\n");
+            bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
+            bool previousStructure = _suppressCanvasStructureRegistration;
+            bool previousActualTextChildren = _suppressCanvasActualTextChildren;
+            _suppressCanvasAccessibilityWrappers = true;
+            _suppressCanvasStructureRegistration = true;
+            _suppressCanvasActualTextChildren = true;
+            try {
+                drawPaint();
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousAccessibility;
+                _suppressCanvasStructureRegistration = previousStructure;
+                _suppressCanvasActualTextChildren = previousActualTextChildren;
+            }
+            sb.Append("EMC\n");
+
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetFontResourceName(font, null, font);
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            var content = new ContentStreamBuilder(sb)
+                .SaveState()
+                .BeginText()
+                .Font(fontResource, 1D)
+                .TextRenderingMode(3)
+                .TextMatrix(anchorX, anchorY);
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(actualText));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append(" >> BDC\n");
+            content.ShowText(EncodeActualTextAnchor(font, currentOpts), 1D);
+            sb.Append("EMC\n");
+            content.EndText().RestoreState();
+            MarkSimpleFont(font);
+            pageDirty = true;
         }
 
         private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {

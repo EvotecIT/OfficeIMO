@@ -25,6 +25,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PartitionListMarkerVisuals(block.Visuals, out List<HtmlRenderVisual> markerVisuals, out List<HtmlRenderVisual> bodyVisuals);
         var itemVisuals = new List<HtmlRenderVisual>(2);
         if (markerVisuals.Count > 0) {
+            if (markerVisuals.Count == 1
+                && markerVisuals[0] is HtmlRenderSemanticGroup existingLabel
+                && existingLabel.Role == HtmlRenderSemanticGroupRole.ListLabel) {
+                markerVisuals = existingLabel.Visuals.ToList();
+            }
             (double x, double y, double width, double height) = ResolveSemanticBounds(markerVisuals, block.Width, block.Height);
             itemVisuals.Add(new HtmlRenderSemanticGroup(
                 HtmlRenderSemanticGroupRole.ListLabel,

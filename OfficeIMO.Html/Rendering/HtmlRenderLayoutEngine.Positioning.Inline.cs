@@ -87,14 +87,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderVisual> content,
         IReadOnlyDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals,
         IReadOnlyDictionary<IElement, InlineContainingBounds> bounds,
-        IElement? formattingContainer) {
+        IElement? formattingContainer,
+        bool isInlineContinuation) {
         if (formattingContainer == null) return content;
         var nodes = new Dictionary<IElement, InlineStackingNode>();
         foreach (IElement element in ownedVisuals.Keys) CreateInlineStackingNode(element, formattingContainer, ownedVisuals, nodes);
 
         var positionedPlacements = new List<InlinePositionedPlacement>();
         foreach (KeyValuePair<IElement, InlineContainingBounds> entry in bounds) {
-            InlineContainingRect rect = entry.Value.ToRect(formattingContainer);
+            InlineContainingRect rect = entry.Value.ToRect(formattingContainer, isInlineContinuation);
             _inlineContainingRects[entry.Key] = rect;
             if (nodes.TryGetValue(entry.Key, out InlineStackingNode? node)) node.Bounds = rect;
             if (!_localPositionedElements.TryGetValue(entry.Key, out List<PositionedElementRequest>? requests)) continue;
@@ -167,36 +168,83 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private double _top = double.PositiveInfinity;
         private double _right = double.NegativeInfinity;
         private double _bottom = double.NegativeInfinity;
+        private readonly List<InlineFragmentRect> _fragments = new List<InlineFragmentRect>();
 
         internal void Include(double x, double y, double width, double height) {
             _left = Math.Min(_left, x);
             _top = Math.Min(_top, y);
             _right = Math.Max(_right, x + width);
             _bottom = Math.Max(_bottom, y + height);
+            IncludeFragment(x, y, width, height);
         }
 
-        internal InlineContainingRect ToRect(IElement formattingContainer) =>
+        private void IncludeFragment(double x, double y, double width, double height) {
+            const double tolerance = 0.01D;
+            for (int index = 0; index < _fragments.Count; index++) {
+                InlineFragmentRect fragment = _fragments[index];
+                if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
+                double right = x + width;
+                if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
+                _fragments[index] = new InlineFragmentRect(
+                    Math.Min(fragment.X, x),
+                    Math.Min(fragment.Y, y),
+                    Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
+                    Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
+                return;
+            }
+            _fragments.Add(new InlineFragmentRect(x, y, width, height));
+        }
+
+        internal InlineContainingRect ToRect(IElement formattingContainer, bool isContinuation) =>
             new InlineContainingRect(
                 formattingContainer,
                 double.IsPositiveInfinity(_left) ? 0D : _left,
                 double.IsPositiveInfinity(_top) ? 0D : _top,
                 double.IsNegativeInfinity(_right) ? 0.01D : _right - _left,
-                double.IsNegativeInfinity(_bottom) ? 0.01D : _bottom - _top);
+                double.IsNegativeInfinity(_bottom) ? 0.01D : _bottom - _top,
+                _fragments.OrderBy(item => item.Y).ThenBy(item => item.X).ToArray(),
+                isContinuation);
+    }
+
+    private readonly struct InlineFragmentRect {
+        internal InlineFragmentRect(double x, double y, double width, double height) {
+            X = x;
+            Y = y;
+            Width = Math.Max(0.01D, width);
+            Height = Math.Max(0.01D, height);
+        }
+        internal double X { get; }
+        internal double Y { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal double Right => X + Width;
+        internal double Bottom => Y + Height;
     }
 
     private sealed class InlineContainingRect {
-        internal InlineContainingRect(IElement formattingContainer, double x, double y, double width, double height) {
+        internal InlineContainingRect(
+            IElement formattingContainer,
+            double x,
+            double y,
+            double width,
+            double height,
+            IReadOnlyList<InlineFragmentRect> fragments,
+            bool isContinuation) {
             FormattingContainer = formattingContainer;
             X = x;
             Y = y;
             Width = Math.Max(0.01D, width);
             Height = Math.Max(0.01D, height);
+            Fragments = fragments;
+            IsContinuation = isContinuation;
         }
         internal IElement FormattingContainer { get; }
         internal double X { get; }
         internal double Y { get; }
         internal double Width { get; }
         internal double Height { get; }
+        internal IReadOnlyList<InlineFragmentRect> Fragments { get; }
+        internal bool IsContinuation { get; }
     }
 
     private sealed class InlineStaticPosition {

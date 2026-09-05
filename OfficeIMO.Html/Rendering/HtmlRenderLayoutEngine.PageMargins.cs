@@ -6,7 +6,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderPage> ApplyPageMarginContent(IReadOnlyList<HtmlRenderPage> pages) {
         var rendered = new List<HtmlRenderPage>(pages.Count);
         foreach (HtmlRenderPage page in pages) {
-            var geometry = new HtmlCssPageGeometry(page.Width, page.Height, page.Margins);
+            var geometry = new HtmlCssPageGeometry(page.Width, page.Height, page.Margins, page.PrintProduction);
             IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber, page.PageName, geometry, _options);
             if (boxes.Count == 0) {
                 rendered.Add(page);
@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     marginBoxSource));
             }
 
-            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins));
+            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins, page.PrintProduction));
         }
 
         return rendered.AsReadOnly();

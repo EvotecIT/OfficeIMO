@@ -7,6 +7,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static string ResolveLogicalText(IEnumerable<HtmlRenderVisual> visuals, string fallback) {
         var text = new StringBuilder();
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
             else if (visual is HtmlRenderLogicalTextGroup logicalText) text.Append(logicalText.Text);
             else if (visual is HtmlRenderClipGroup clip) text.Append(ResolveLogicalText(clip.Visuals, string.Empty));

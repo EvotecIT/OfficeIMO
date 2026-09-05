@@ -180,12 +180,12 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language)).TotalAdvanceWidth1000 * fontSize / 1000D;
+        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings)).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {

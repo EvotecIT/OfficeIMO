@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42617
+    "conceptualWordCount": 42628
   },
   "categories": [
     {
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 503,
+      "sourceFileCount": 524,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -443,7 +443,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 279,
+      "sourceFileCount": 295,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -456,7 +456,7 @@
       "description": "Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 24,
+      "sourceFileCount": 26,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": null,

@@ -419,7 +419,7 @@ public static partial class HtmlEditableLayoutProjector {
         if (!HtmlCssBoxStrokeParser.TryParseOutline(
                 style, 100D, 16D, 16D, 100D, 100D,
                 OfficeIMO.Drawing.OfficeColor.Black,
-                out double width, out string outlineStyle, out _, out _, out string detail)) {
+                out double width, out string outlineStyle, out _, out _, out _, out string detail)) {
             effects.Add(prefix + (detail.Length > 0 ? detail : "outline=unsupported"));
             return;
         }

@@ -22,15 +22,25 @@ internal static partial class HtmlPdfRenderedConverter {
         });
         PdfCore.PdfCanvasImageResource? effectImage = GetSharedPdfImageResource(png, "image/png");
         if (effectImage != null) {
+            bool fragmentLink = IsFragmentLink(visual.LinkUri);
             canvas.ImageShared(
                 effectImage,
                 visual.X * PointsPerCssPixel,
                 visual.Y * PointsPerCssPixel,
                 visual.Width * PointsPerCssPixel,
                 visual.Height * PointsPerCssPixel,
-                linkUri: visual.LinkUri,
-                linkContents: visual.LinkUri == null ? null : visual.Source,
+                linkUri: fragmentLink ? null : visual.LinkUri,
+                linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
                 alternativeText: visual.AlternativeText);
+            if (fragmentLink) {
+                canvas.LinkToNamedDestination(
+                    MapNamedDestination(visual.LinkUri!.Substring(1)),
+                    visual.X * PointsPerCssPixel,
+                    visual.Y * PointsPerCssPixel,
+                    visual.Width * PointsPerCssPixel,
+                    visual.Height * PointsPerCssPixel,
+                    visual.Source);
+            }
         }
         conversionReport.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Html.Pdf",

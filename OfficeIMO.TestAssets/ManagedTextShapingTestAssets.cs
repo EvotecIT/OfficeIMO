@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
@@ -14,12 +15,67 @@ internal static class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateFormat12Cmap(scalars));
     }
 
+    internal static byte[] CreateFontWithDistinctGlyphs(params int[] scalars) {
+        if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
+        int[] ordered = new SortedSet<int>(scalars).ToArray();
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
+    }
+
     internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
             CreateFormat12Cmap(leftScalar, 1, rightScalar, 2),
             glyphCount: 3,
             kern: CreateKernTable(1, 2, adjustment));
+    }
+
+    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga") {
+        if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
+    }
+
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar) {
+        if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 3,
+            gpos: CreatePairPositioningGpos());
+    }
+
+    internal static byte[] CreateFontWithMultipleSubstitution(int scalar) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub());
+
+    internal static byte[] CreateFontWithSelfReferentialMultipleSubstitution(int scalar) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub(2, 1));
+
+    internal static byte[] CreateFontWithContextualSubstitution(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub());
+
+    internal static byte[] CreateFontWithUnsupportedNestedContextualLookupFlags(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub(nestedLookupFlags: 0x0008));
+
+    internal static byte[] CreateFontWithUnsupportedNestedReverseContextualLookup(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub(nestedLookupType: 8));
+
+    internal static byte[] CreateColorFont(int scalar) {
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(new[] { scalar }),
+            glyphCount: 4,
+            distinctSecondGlyph: true,
+            colr: CreateColrV0(),
+            cpal: CreateCpalV1());
     }
 
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
@@ -99,7 +155,11 @@ internal static class ManagedTextShapingTestAssets {
         bool includeTrailingMetric = false,
         int glyphCount = 2,
         byte[]? kern = null,
-        bool distinctSecondGlyph = false) {
+        byte[]? gsub = null,
+        byte[]? gpos = null,
+        bool distinctSecondGlyph = false,
+        byte[]? colr = null,
+        byte[]? cpal = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -123,6 +183,10 @@ internal static class ManagedTextShapingTestAssets {
             ("name", new byte[6])
         };
         if (kern != null) tables.Add(("kern", kern));
+        if (gsub != null) tables.Add(("GSUB", gsub));
+        if (gpos != null) tables.Add(("GPOS", gpos));
+        if (colr != null) tables.Add(("COLR", colr));
+        if (cpal != null) tables.Add(("CPAL", cpal));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
@@ -145,6 +209,183 @@ internal static class ManagedTextShapingTestAssets {
 
         return font;
     }
+
+    private static byte[] CreateColrV0() {
+        var table = new byte[28];
+        WriteUInt16(table, 0, 0);
+        WriteUInt16(table, 2, 1);
+        WriteUInt32(table, 4, 14);
+        WriteUInt32(table, 8, 20);
+        WriteUInt16(table, 12, 2);
+        WriteUInt16(table, 14, 1);
+        WriteUInt16(table, 16, 0);
+        WriteUInt16(table, 18, 2);
+        WriteUInt16(table, 20, 2);
+        WriteUInt16(table, 22, 0);
+        WriteUInt16(table, 24, 3);
+        WriteUInt16(table, 26, 1);
+        return table;
+    }
+
+    private static byte[] CreatePairPositioningGpos() {
+        var table = new byte[86];
+        WriteUInt16(table, 0, 1);
+        WriteUInt16(table, 2, 0);
+        WriteUInt16(table, 4, 10);
+        WriteUInt16(table, 6, 30);
+        WriteUInt16(table, 8, 44);
+
+        WriteUInt16(table, 10, 1);
+        WriteTag(table, 12, "DFLT");
+        WriteUInt16(table, 16, 8);
+        WriteUInt16(table, 18, 4);
+        WriteUInt16(table, 20, 0);
+        WriteUInt16(table, 22, 0);
+        WriteUInt16(table, 24, ushort.MaxValue);
+        WriteUInt16(table, 26, 1);
+        WriteUInt16(table, 28, 0);
+
+        WriteUInt16(table, 30, 1);
+        WriteTag(table, 32, "kern");
+        WriteUInt16(table, 36, 8);
+        WriteUInt16(table, 38, 0);
+        WriteUInt16(table, 40, 1);
+        WriteUInt16(table, 42, 0);
+
+        WriteUInt16(table, 44, 1);
+        WriteUInt16(table, 46, 4);
+        WriteUInt16(table, 48, 2);
+        WriteUInt16(table, 50, 0);
+        WriteUInt16(table, 52, 1);
+        WriteUInt16(table, 54, 8);
+
+        WriteUInt16(table, 56, 1);
+        WriteUInt16(table, 58, 12);
+        WriteUInt16(table, 60, 5);
+        WriteUInt16(table, 62, 5);
+        WriteUInt16(table, 64, 1);
+        WriteUInt16(table, 66, 18);
+        WriteUInt16(table, 68, 1);
+        WriteUInt16(table, 70, 1);
+        WriteUInt16(table, 72, 1);
+        WriteUInt16(table, 74, 1);
+        WriteUInt16(table, 76, 2);
+        WriteInt16(table, 78, -10);
+        WriteInt16(table, 80, -20);
+        WriteInt16(table, 82, -30);
+        WriteInt16(table, 84, -40);
+        return table;
+    }
+
+    private static byte[] CreateMultipleGsub(ushort firstReplacement = 3, ushort secondReplacement = 4) {
+        var data = new byte[60];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, "ccmp");
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 4);
+        WriteUInt16(data, 30, 2);
+        WriteUInt16(data, 32, 0);
+        WriteUInt16(data, 34, 1);
+        WriteUInt16(data, 36, 8);
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, 10);
+        WriteUInt16(data, 42, 1);
+        WriteUInt16(data, 44, 16);
+        WriteUInt16(data, 48, 1);
+        WriteUInt16(data, 50, 1);
+        WriteUInt16(data, 52, 1);
+        WriteUInt16(data, 54, 2);
+        WriteUInt16(data, 56, firstReplacement);
+        WriteUInt16(data, 58, secondReplacement);
+        return data;
+    }
+
+    private static byte[] CreateContextualGsub(ushort nestedLookupFlags = 0, ushort nestedLookupType = 1) {
+        var data = new byte[88];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, "calt");
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 2);
+        WriteUInt16(data, 28, 6);
+        WriteUInt16(data, 30, 40);
+        WriteUInt16(data, 32, 5);
+        WriteUInt16(data, 34, 0);
+        WriteUInt16(data, 36, 1);
+        WriteUInt16(data, 38, 8);
+        WriteUInt16(data, 40, 3);
+        WriteUInt16(data, 42, 2);
+        WriteUInt16(data, 44, 1);
+        WriteUInt16(data, 46, 14);
+        WriteUInt16(data, 48, 20);
+        WriteUInt16(data, 50, 1);
+        WriteUInt16(data, 52, 1);
+        WriteUInt16(data, 54, 1);
+        WriteUInt16(data, 56, 1);
+        WriteUInt16(data, 58, 1);
+        WriteUInt16(data, 60, 1);
+        WriteUInt16(data, 62, 1);
+        WriteUInt16(data, 64, 2);
+        WriteUInt16(data, 66, nestedLookupType);
+        WriteUInt16(data, 68, nestedLookupFlags);
+        WriteUInt16(data, 70, 1);
+        WriteUInt16(data, 72, 8);
+        WriteUInt16(data, 74, 2);
+        WriteUInt16(data, 76, 8);
+        WriteUInt16(data, 78, 1);
+        WriteUInt16(data, 80, 3);
+        WriteUInt16(data, 82, 1);
+        WriteUInt16(data, 84, 1);
+        WriteUInt16(data, 86, 2);
+        return data;
+    }
+
+    private static byte[] CreateCpalV1() {
+        var table = new byte[52];
+        WriteUInt16(table, 0, 1);
+        WriteUInt16(table, 2, 2);
+        WriteUInt16(table, 4, 2);
+        WriteUInt16(table, 6, 4);
+        WriteUInt32(table, 8, 28);
+        WriteUInt16(table, 12, 0);
+        WriteUInt16(table, 14, 2);
+        WriteUInt32(table, 16, 44);
+        WriteUInt32(table, 20, 0);
+        WriteUInt32(table, 24, 0);
+        WriteBgra(table, 28, 255, 0, 0, 255);
+        WriteBgra(table, 32, 0, 0, 255, 255);
+        WriteBgra(table, 36, 255, 255, 0, 255);
+        WriteBgra(table, 40, 0, 128, 0, 255);
+        WriteUInt32(table, 44, 1);
+        WriteUInt32(table, 48, 2);
+        return table;
+    }
+
+    private static void WriteBgra(byte[] data, int offset, byte red, byte green, byte blue, byte alpha) {
+        data[offset] = blue;
+        data[offset + 1] = green;
+        data[offset + 2] = red;
+        data[offset + 3] = alpha;
+    }
+
+    private static void WriteInt16(byte[] data, int offset, short value) =>
+        WriteUInt16(data, offset, unchecked((ushort)value));
 
     internal static byte[] CreateFontCollection(params int[] scalars) {
         byte[] first = CreateFont('A');
@@ -288,6 +529,24 @@ internal static class ManagedTextShapingTestAssets {
         return data;
     }
 
+    private static byte[] CreateDistinctFormat12Cmap(int[] orderedScalars) {
+        var data = new byte[28 + (orderedScalars.Length * 12)];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, (uint)(16 + (orderedScalars.Length * 12)));
+        WriteUInt32(data, 24, (uint)orderedScalars.Length);
+        for (int index = 0; index < orderedScalars.Length; index++) {
+            int offset = 28 + (index * 12);
+            WriteUInt32(data, offset, checked((uint)orderedScalars[index]));
+            WriteUInt32(data, offset + 4, checked((uint)orderedScalars[index]));
+            WriteUInt32(data, offset + 8, checked((uint)(index + 1)));
+        }
+        return data;
+    }
+
     private static byte[] CreateUnicodeCmapWithVariationSequence(
         int scalar,
         int variationSelector,
@@ -376,6 +635,41 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 18, leftGlyph);
         WriteUInt16(data, 20, rightGlyph);
         WriteUInt16(data, 22, unchecked((ushort)adjustment));
+        return data;
+    }
+
+    private static byte[] CreateLigatureGsub(string featureTag, ushort firstGlyph, ushort secondGlyph, ushort ligatureGlyph) {
+        if (featureTag == null || featureTag.Length != 4) throw new ArgumentException("Feature tags must contain four characters.", nameof(featureTag));
+        var data = new byte[62];
+        WriteUInt32(data, 0, 0x00010000);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, 12);
+        WriteUInt16(data, 8, 26);
+        WriteUInt16(data, 10, 0);
+        WriteUInt16(data, 12, 1);
+        WriteTag(data, 14, featureTag);
+        WriteUInt16(data, 18, 8);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 24, 0);
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 4);
+        WriteUInt16(data, 30, 4);
+        WriteUInt16(data, 32, 0);
+        WriteUInt16(data, 34, 1);
+        WriteUInt16(data, 36, 8);
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, 18);
+        WriteUInt16(data, 42, 1);
+        WriteUInt16(data, 44, 8);
+        WriteUInt16(data, 46, 1);
+        WriteUInt16(data, 48, 4);
+        WriteUInt16(data, 50, ligatureGlyph);
+        WriteUInt16(data, 52, 2);
+        WriteUInt16(data, 54, secondGlyph);
+        WriteUInt16(data, 56, 1);
+        WriteUInt16(data, 58, 1);
+        WriteUInt16(data, 60, firstGlyph);
         return data;
     }
 

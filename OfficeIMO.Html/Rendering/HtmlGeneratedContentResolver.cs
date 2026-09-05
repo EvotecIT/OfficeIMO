@@ -18,10 +18,11 @@ internal static class HtmlGeneratedContentResolver {
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();
+        var quotes = new QuoteState();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content, counterStyles);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
             counters.ExitLevel(level);
         }
 
@@ -36,6 +37,7 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
+        QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles) {
         if (depth > maximumDepth) {
@@ -53,15 +55,21 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content, counterStyles);
+        if (string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
+            counters.Increment("footnote", 1, level);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles);
+        }
+        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content, counterStyles);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles);
     }
 
     private static void ResolvePseudo(
@@ -71,6 +79,7 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
+        QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
@@ -78,17 +87,51 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        string pseudoName = kind == HtmlPseudoElementKind.Before ? "::before" : "::after";
+        string pseudoName = kind switch {
+            HtmlPseudoElementKind.Before => "::before",
+            HtmlPseudoElementKind.After => "::after",
+            HtmlPseudoElementKind.Marker => "::marker",
+            HtmlPseudoElementKind.FootnoteCall => "::footnote-call",
+            _ => "::footnote-marker"
+        };
         string pseudoSource = HtmlRenderStyleResolver.DescribeSource(element) + pseudoName;
         ApplyCounterProperties(pseudoStyle, level, counters, diagnostics, pseudoSource);
         string expression = pseudoStyle.GetValue("content");
+        string normalizedExpression = expression.Trim();
+        if (kind == HtmlPseudoElementKind.Marker
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressMarker = true;
+            return;
+        }
+        if (kind == HtmlPseudoElementKind.FootnoteCall
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressFootnoteCall = true;
+            return;
+        }
+        if (kind == HtmlPseudoElementKind.FootnoteMarker
+            && string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)) {
+            GetOrCreateContentPair(element, content).SuppressFootnoteMarker = true;
+            return;
+        }
         if (string.IsNullOrWhiteSpace(expression)
-            || string.Equals(expression.Trim(), "none", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(expression.Trim(), "normal", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(normalizedExpression, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalizedExpression, "normal", StringComparison.OrdinalIgnoreCase)) {
             return;
         }
 
-        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail, out bool counterRepresentationLimited)) {
+        if (!HtmlCssQuotes.TryParse(pseudoStyle.GetValue("quotes"), out HtmlCssQuotes quotePairs)) {
+            diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                "A CSS quotes declaration could not be represented and used the default quote pairs.",
+                HtmlDiagnosticSeverity.Warning,
+                pseudoSource,
+                "quotes=" + pseudoStyle.GetValue("quotes"),
+                OfficeConversionLossKind.Approximation);
+            quotePairs = HtmlCssQuotes.Default;
+        }
+
+        if (!TryEvaluate(expression, element, counters, counterStyles, quotes, quotePairs, out _, out IReadOnlyList<HtmlGeneratedContentFragment> fragments, out string detail, out bool counterRepresentationLimited)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -111,14 +154,25 @@ internal static class HtmlGeneratedContentResolver {
                 OfficeConversionLossKind.Approximation);
         }
 
-        if (generated.Length == 0) return;
+        if (fragments.Count == 0) return;
+        HtmlGeneratedPseudoContentPair pair = GetOrCreateContentPair(element, content);
+        var generatedContent = new HtmlGeneratedContent(fragments);
+
+        if (kind == HtmlPseudoElementKind.Before) pair.Before = generatedContent;
+        else if (kind == HtmlPseudoElementKind.After) pair.After = generatedContent;
+        else if (kind == HtmlPseudoElementKind.Marker) pair.Marker = generatedContent;
+        else if (kind == HtmlPseudoElementKind.FootnoteCall) pair.FootnoteCall = generatedContent;
+        else pair.FootnoteMarker = generatedContent;
+    }
+
+    private static HtmlGeneratedPseudoContentPair GetOrCreateContentPair(
+        IElement element,
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
         if (!content.TryGetValue(element, out HtmlGeneratedPseudoContentPair? pair)) {
             pair = new HtmlGeneratedPseudoContentPair();
             content[element] = pair;
         }
-
-        if (kind == HtmlPseudoElementKind.Before) pair.Before = generated;
-        else pair.After = generated;
+        return pair;
     }
 
     private static void ApplyCounterProperties(
@@ -188,11 +242,17 @@ internal static class HtmlGeneratedContentResolver {
         IElement element,
         CounterState counters,
         HtmlCounterStyleRegistry counterStyles,
+        QuoteState quotes,
+        HtmlCssQuotes quotePairs,
         out string generated,
+        out IReadOnlyList<HtmlGeneratedContentFragment> fragments,
         out string detail,
         out bool counterRepresentationLimited) {
+        fragments = Array.Empty<HtmlGeneratedContentFragment>();
         counterRepresentationLimited = false;
+        int quoteDepth = quotes.Depth;
         var text = new StringBuilder();
+        var generatedFragments = new List<HtmlGeneratedContentFragment>();
         int cursor = 0;
         while (cursor < expression.Length) {
             while (cursor < expression.Length && char.IsWhiteSpace(expression[cursor])) cursor++;
@@ -207,6 +267,31 @@ internal static class HtmlGeneratedContentResolver {
 
                 text.Append(literal);
                 continue;
+            }
+
+            if (TryReadKeyword(expression, ref cursor, out string keyword)) {
+                if (string.Equals(keyword, "open-quote", StringComparison.OrdinalIgnoreCase)) {
+                    text.Append(quotePairs.OpeningAt(quoteDepth));
+                    if (quoteDepth < int.MaxValue) quoteDepth++;
+                    continue;
+                }
+                if (string.Equals(keyword, "close-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth > 0) quoteDepth--;
+                    text.Append(quotePairs.ClosingAt(quoteDepth));
+                    continue;
+                }
+                if (string.Equals(keyword, "no-open-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth < int.MaxValue) quoteDepth++;
+                    continue;
+                }
+                if (string.Equals(keyword, "no-close-quote", StringComparison.OrdinalIgnoreCase)) {
+                    if (quoteDepth > 0) quoteDepth--;
+                    continue;
+                }
+
+                generated = string.Empty;
+                detail = "unsupported content token " + keyword;
+                return false;
             }
 
             if (!TryReadFunction(expression, ref cursor, out string functionName, out string arguments)) {
@@ -234,7 +319,11 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!TryFormatCounter(counters.Get(name), style, counterStyles, out string formatted, out bool limited)) {
+                int counterValue = string.Equals(name, "list-item", StringComparison.OrdinalIgnoreCase)
+                    && HtmlListSemantics.TryResolveOrdinal(element, out int listOrdinal)
+                    ? listOrdinal
+                    : counters.Get(name);
+                if (!TryFormatCounter(counterValue, style, counterStyles, out string formatted, out bool limited)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;
@@ -263,6 +352,70 @@ internal static class HtmlGeneratedContentResolver {
                 }
 
                 text.Append(string.Join(separator, formattedValues));
+            } else if (string.Equals(functionName, "url", StringComparison.OrdinalIgnoreCase)) {
+                IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractCssUrls("url(" + arguments + ")");
+                if (sources.Count != 1) {
+                    generated = string.Empty;
+                    detail = "unsupported generated-content url() expression";
+                    return false;
+                }
+                FlushGeneratedText(text, generatedFragments);
+                generatedFragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Image, sources[0]));
+            } else if (string.Equals(functionName, "target-text", StringComparison.OrdinalIgnoreCase)) {
+                IReadOnlyList<string> parts = SplitArguments(arguments);
+                if (parts.Count < 1 || parts.Count > 2
+                    || parts.Count == 2 && !string.Equals(parts[1].Trim(), "content", StringComparison.OrdinalIgnoreCase)
+                    || !TryResolveTargetElement(element, parts[0], out IElement? target)) {
+                    generated = string.Empty;
+                    detail = "unsupported target-text() expression";
+                    return false;
+                }
+                text.Append(CollapseGeneratedWhitespace(target!.TextContent));
+            } else if (string.Equals(functionName, "target-counter", StringComparison.OrdinalIgnoreCase)) {
+                IReadOnlyList<string> parts = SplitArguments(arguments);
+                if (parts.Count < 2 || parts.Count > 3
+                    || !IsCounterName(parts[1].Trim())
+                    || !TryResolveTargetElement(element, parts[0], out IElement? target)) {
+                    generated = string.Empty;
+                    detail = "unsupported target-counter() expression";
+                    return false;
+                }
+
+                string counterName = HtmlCssEscapeDecoder.Decode(parts[1].Trim());
+                string style = parts.Count == 3 ? parts[2].Trim() : "decimal";
+                if (string.Equals(counterName, "page", StringComparison.OrdinalIgnoreCase)) {
+                    if (!TryFormatCounter(1, style, counterStyles, out _, out bool pageRepresentationLimited)) {
+                        generated = string.Empty;
+                        detail = "unsupported counter style " + style;
+                        return false;
+                    }
+                    counterRepresentationLimited |= pageRepresentationLimited;
+                    string? targetId = target!.GetAttribute("id");
+                    if (string.IsNullOrWhiteSpace(targetId)) {
+                        generated = string.Empty;
+                        detail = "target-counter(page) requires a fragment target";
+                        return false;
+                    }
+                    FlushGeneratedText(text, generatedFragments);
+                    generatedFragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.TargetPage, targetId!, style));
+                } else if (string.Equals(counterName, "list-item", StringComparison.OrdinalIgnoreCase)
+                    && HtmlListSemantics.TryResolveOrdinal(target!, out int targetOrdinal)
+                    && TryFormatCounter(targetOrdinal, style, counterStyles, out string formatted, out bool limited)) {
+                    counterRepresentationLimited |= limited;
+                    text.Append(formatted);
+                } else {
+                    generated = string.Empty;
+                    detail = "unsupported target counter " + counterName;
+                    return false;
+                }
+            } else if (string.Equals(functionName, "leader", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryParseLeader(arguments, out string leader)) {
+                    generated = string.Empty;
+                    detail = "unsupported leader() expression";
+                    return false;
+                }
+                FlushGeneratedText(text, generatedFragments);
+                generatedFragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Leader, leader));
             } else {
                 generated = string.Empty;
                 detail = "unsupported generated-content function " + functionName + "()";
@@ -270,10 +423,91 @@ internal static class HtmlGeneratedContentResolver {
             }
         }
 
-        generated = text.ToString();
+        quotes.Depth = quoteDepth;
+        FlushGeneratedText(text, generatedFragments);
+        fragments = generatedFragments.AsReadOnly();
+        generated = string.Concat(generatedFragments
+            .Where(fragment => fragment.Kind == HtmlGeneratedContentFragmentKind.Text)
+            .Select(fragment => fragment.Value));
         detail = string.Empty;
         return true;
     }
+
+    private static void FlushGeneratedText(StringBuilder text, ICollection<HtmlGeneratedContentFragment> fragments) {
+        if (text.Length == 0) return;
+        fragments.Add(new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Text, text.ToString()));
+        text.Clear();
+    }
+
+    private static bool TryResolveTargetElement(IElement context, string expression, out IElement? target) {
+        string trimmed = expression.Trim();
+        string reference;
+        int cursor = 0;
+        if (trimmed.StartsWith("attr(", StringComparison.OrdinalIgnoreCase)
+            && TryReadFunction(trimmed, ref cursor, out string functionName, out string arguments)
+            && cursor == trimmed.Length
+            && string.Equals(functionName, "attr", StringComparison.OrdinalIgnoreCase)) {
+            string attributeName = HtmlCssEscapeDecoder.Decode(arguments.Trim());
+            if (!IsAttributeName(attributeName)) {
+                target = null;
+                return false;
+            }
+            reference = context.GetAttribute(attributeName) ?? string.Empty;
+        } else if (TryParseQuotedValue(trimmed, out string quoted)) {
+            reference = quoted;
+        } else {
+            int functionCursor = 0;
+            if (trimmed.StartsWith("url(", StringComparison.OrdinalIgnoreCase)
+                && TryReadFunction(trimmed, ref functionCursor, out string urlFunction, out string urlArguments)
+                && functionCursor == trimmed.Length
+                && string.Equals(urlFunction, "url", StringComparison.OrdinalIgnoreCase)) {
+                string rawReference = urlArguments.Trim();
+                reference = TryParseQuotedValue(rawReference, out string quotedReference)
+                    ? quotedReference
+                    : HtmlCssEscapeDecoder.Decode(rawReference);
+            } else {
+                IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(trimmed);
+                reference = urls.Count == 1 ? urls[0] : trimmed;
+            }
+        }
+
+        int hash = reference.LastIndexOf('#');
+        if (hash < 0 || hash == reference.Length - 1) {
+            target = null;
+            return false;
+        }
+        string id;
+        try {
+            id = Uri.UnescapeDataString(reference.Substring(hash + 1));
+        } catch (UriFormatException) {
+            target = null;
+            return false;
+        }
+        target = context.Owner?.GetElementById(id);
+        return target != null;
+    }
+
+    private static bool TryParseLeader(string arguments, out string leader) {
+        string trimmed = arguments.Trim();
+        if (TryParseQuotedValue(trimmed, out leader)) return leader.Length > 0;
+        if (string.Equals(trimmed, "dotted", StringComparison.OrdinalIgnoreCase)) {
+            leader = ".";
+            return true;
+        }
+        if (string.Equals(trimmed, "solid", StringComparison.OrdinalIgnoreCase)) {
+            leader = "_";
+            return true;
+        }
+        if (string.Equals(trimmed, "space", StringComparison.OrdinalIgnoreCase)) {
+            leader = " ";
+            return true;
+        }
+        leader = string.Empty;
+        return false;
+    }
+
+    private static string CollapseGeneratedWhitespace(string? value) =>
+        string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static bool TryFormatCounter(
         int value,
@@ -336,6 +570,19 @@ internal static class HtmlGeneratedContentResolver {
         arguments = string.Empty;
         cursor = nameStart;
         return false;
+    }
+
+    private static bool TryReadKeyword(string value, ref int cursor, out string keyword) {
+        int start = cursor;
+        while (cursor < value.Length && (char.IsLetter(value[cursor]) || value[cursor] == '-')) cursor++;
+        if (cursor == start || cursor < value.Length && value[cursor] == '(') {
+            cursor = start;
+            keyword = string.Empty;
+            return false;
+        }
+
+        keyword = value.Substring(start, cursor - start);
+        return true;
     }
 
     private static IReadOnlyList<string> SplitArguments(string value) {
@@ -510,6 +757,10 @@ internal static class HtmlGeneratedContentResolver {
 
             return values;
         }
+    }
+
+    private sealed class QuoteState {
+        internal int Depth { get; set; }
     }
 
     private sealed class CounterValue {
