@@ -54,4 +54,49 @@ if (standardsReadDocument.Pages.Count != 2
     throw new InvalidOperationException("The NativeAOT strict static standards packet lost its two-page searchable contract.");
 }
 
+const string embeddedSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 18'><defs>"
+    + "<filter id='s'><feDropShadow dx='2' dy='1' stdDeviation='1' flood-color='navy'/></filter></defs>"
+    + "<rect x='1' y='1' width='12' height='12' fill='orange' filter='url(#s)'/>"
+    + "<foreignObject x='17' y='1' width='20' height='14'><div xmlns='http://www.w3.org/1999/xhtml' "
+    + "style='font:8px/12px Arial;color:navy;background:lime'>ForeignAot</div></foreignObject></svg>";
+string embeddedSvgData = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(embeddedSvg));
+string advancedHtml = "<style>@page{size:4in 3in;margin:24px;bleed:4px;marks:crop}"
+    + "h2{text-shadow:1px 1px 1px #99a;writing-mode:vertical-rl;height:80px}"
+    + "li::marker{content:'✓ ';color:green}</style>"
+    + "<h2>VerticalAot</h2><ul><li>MarkerAot</li></ul>"
+    + "<img src='data:image/svg+xml;base64," + embeddedSvgData + "' style='width:160px;height:72px'>";
+HtmlConversionDocument advancedSource = HtmlConversionDocument.Parse(advancedHtml);
+var advancedOptions = new HtmlRenderOptions {
+    Mode = HtmlRenderMode.Paged,
+    PageSize = new OfficePageSize(4D, 3D),
+    Margins = HtmlRenderMargins.All(24D),
+    FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+};
+HtmlRenderDocument advancedRender = HtmlRenderEngine.Render(advancedSource, advancedOptions);
+if (advancedRender.Diagnostics.Any(diagnostic =>
+        diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported
+            or HtmlRenderDiagnosticCodes.SvgRasterFallback
+            or HtmlRenderDiagnosticCodes.TextShadowValueUnsupported
+            or HtmlRenderDiagnosticCodes.TextShadowLayerLimit)) {
+    throw new InvalidOperationException("The NativeAOT advanced HTML packet lost an effects capability: "
+        + string.Join(", ", advancedRender.Diagnostics.Select(diagnostic => diagnostic.Code)));
+}
+string advancedSvg = advancedSource.ToSvg(advancedOptions);
+byte[] advancedPdf = advancedSource.ToPdf(new HtmlPdfSaveOptions(advancedOptions));
+string advancedText = PdfReadDocument.Open(advancedPdf).ExtractText();
+string compactAdvancedText = string.Concat(advancedText.Where(character => !char.IsWhiteSpace(character)));
+if (!compactAdvancedText.Contains("VerticalAot", StringComparison.Ordinal)
+    || !compactAdvancedText.Contains("MarkerAot", StringComparison.Ordinal)
+    || !compactAdvancedText.Contains("ForeignAot", StringComparison.Ordinal)) {
+    throw new InvalidOperationException("The NativeAOT advanced HTML/CSS/SVG packet lost searchable content: " + advancedText);
+}
+if (advancedRender.Pages.Count != 1
+    || advancedRender.Pages[0].PrintProduction?.Marks != HtmlRenderPrintMarks.Crop
+    || advancedRender.Pages[0].PrintProduction?.Bleed != 4D) {
+    throw new InvalidOperationException("The NativeAOT advanced packet lost CSS bleed or crop-mark metadata.");
+}
+if (advancedSvg.Contains("data:image/png;base64", StringComparison.Ordinal)) {
+    throw new InvalidOperationException("The NativeAOT advanced vector packet unexpectedly rasterized SVG content.");
+}
+
 Console.WriteLine("OfficeIMO HTML NativeAOT smoke passed.");
