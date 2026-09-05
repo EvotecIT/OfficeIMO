@@ -77,7 +77,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryRead(file, out PdfCiiDocumentHeaderEvidence? evidence, out string? documentDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryRead(file.DataSnapshot, out CiiDocumentHeaderEvidence? evidence, out string? documentDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-document-header",
                     "EN 16931 XML document header",
@@ -136,7 +136,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTradeTransaction(file, out PdfCiiTradeTransactionEvidence? evidence, out string? tradeDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTradeTransaction(file.DataSnapshot, out CiiTradeTransactionEvidence? evidence, out string? tradeDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-trade-transaction",
                     "EN 16931 XML trade transaction",
@@ -207,7 +207,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPartyIdentification(file, out PdfCiiPartyIdentificationEvidence? evidence, out string? partyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPartyIdentification(file.DataSnapshot, out CiiPartyIdentificationEvidence? evidence, out string? partyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-party-identification",
                     "EN 16931 XML party identification",
@@ -266,7 +266,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadLineItems(file, out PdfCiiLineItemEvidence? evidence, out string? lineDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadLineItems(file.DataSnapshot, out CiiLineItemEvidence? evidence, out string? lineDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-item",
                     "EN 16931 XML line item",
@@ -337,7 +337,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPartyTaxRegistration(file, out PdfCiiPartyTaxRegistrationEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPartyTaxRegistration(file.DataSnapshot, out CiiPartyTaxRegistrationEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-party-tax-registration",
                     "EN 16931 XML party tax registration",
@@ -384,7 +384,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadSettlementSummary(file, out PdfCiiSettlementSummaryEvidence? evidence, out string? settlementDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadSettlementSummary(file.DataSnapshot, out CiiSettlementSummaryEvidence? evidence, out string? settlementDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-settlement-summary",
                     "EN 16931 XML settlement summary",
@@ -447,7 +447,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadLinePricing(file, out PdfCiiLinePricingEvidence? evidence, out string? pricingDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadLinePricing(file.DataSnapshot, out CiiLinePricingEvidence? evidence, out string? pricingDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-pricing",
                     "EN 16931 XML line pricing",
@@ -510,7 +510,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadAmountConsistency(file, out PdfCiiAmountConsistencyEvidence? evidence, out string? amountDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadAmountConsistency(file.DataSnapshot, out CiiAmountConsistencyEvidence? evidence, out string? amountDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-amount-consistency",
                     "EN 16931 XML amount consistency",
@@ -606,7 +606,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxBreakdown(file, out PdfCiiTaxBreakdownEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxBreakdown(file.DataSnapshot, out CiiTaxBreakdownEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-breakdown",
                     "EN 16931 XML tax breakdown",
@@ -693,7 +693,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPaymentInstructions(file, out PdfCiiPaymentInstructionEvidence? evidence, out string? paymentDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPaymentInstructions(file.DataSnapshot, out CiiPaymentInstructionEvidence? evidence, out string? paymentDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-payment-instructions",
                     "EN 16931 XML payment instructions",
@@ -764,7 +764,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPaymentTerms(file, out PdfCiiPaymentTermsEvidence? evidence, out string? termsDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPaymentTerms(file.DataSnapshot, out CiiPaymentTermsEvidence? evidence, out string? termsDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-payment-terms",
                     "EN 16931 XML payment terms",

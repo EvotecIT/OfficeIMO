@@ -23,7 +23,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxCategoryCodes(file, out PdfCiiTaxCategoryCodeEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxCategoryCodes(file.DataSnapshot, out CiiTaxCategoryCodeEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-category-code",
                     "EN 16931 XML tax category code",

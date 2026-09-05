@@ -468,6 +468,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Studio", "OfficeI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Studio.Tests", "OfficeIMO.Studio.Tests\OfficeIMO.Studio.Tests.csproj", "{5DF15A9A-2E2D-4BF2-B0A7-B20330552081}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Invoices", "OfficeIMO.Invoices\OfficeIMO.Invoices.csproj", "{31C67948-07B6-4B64-9C68-DD387F9F8448}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -2578,6 +2580,18 @@ Global
 		{5DF15A9A-2E2D-4BF2-B0A7-B20330552081}.Release|x64.Build.0 = Release|Any CPU
 		{5DF15A9A-2E2D-4BF2-B0A7-B20330552081}.Release|x86.ActiveCfg = Release|Any CPU
 		{5DF15A9A-2E2D-4BF2-B0A7-B20330552081}.Release|x86.Build.0 = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|x64.Build.0 = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Debug|x86.Build.0 = Debug|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|x64.ActiveCfg = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|x64.Build.0 = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|x86.ActiveCfg = Release|Any CPU
+		{31C67948-07B6-4B64-9C68-DD387F9F8448}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

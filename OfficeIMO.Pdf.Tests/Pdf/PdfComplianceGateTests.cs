@@ -492,7 +492,10 @@ public class PdfComplianceGateTests {
     }
 
     private static PdfDocument CreateElectronicInvoiceDocument(PdfComplianceProfile profile) {
-        byte[] invoiceXml = CreateElectronicInvoiceXml();
+        // Exercise preservation-based editing in the same artifacts sent to external invoice validators.
+        byte[] invoiceXml = OfficeIMO.Invoices.CiiInvoiceDocument.Load(CreateElectronicInvoiceXml())
+            .WithIssueDate(new DateTime(2026, 6, 4))
+            .ToBytes();
         return PdfDocument.Create(CreateEinvoiceOptions(profile, invoiceXml))
             .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.FacturX ? "Factur-X" : "ZUGFeRD") + " Invoice", author: "OfficeIMO")
             .Language("en-US")

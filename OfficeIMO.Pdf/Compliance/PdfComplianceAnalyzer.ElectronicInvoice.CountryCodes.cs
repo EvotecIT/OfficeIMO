@@ -38,7 +38,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadCountryCodes(file, out PdfCiiCountryCodeEvidence? evidence, out string? countryDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadCountryCodes(file.DataSnapshot, out CiiCountryCodeEvidence? evidence, out string? countryDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-country-code",
                     "EN 16931 XML country code",

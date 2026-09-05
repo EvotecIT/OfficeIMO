@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadDateFormats(file, out PdfCiiDateFormatEvidence? evidence, out string? dateDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadDateFormats(file.DataSnapshot, out CiiDateFormatEvidence? evidence, out string? dateDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-date-format",
                     "EN 16931 XML date format",

@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxCategoryConsistency(file, out PdfCiiTaxCategoryConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxCategoryConsistency(file.DataSnapshot, out CiiTaxCategoryConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-category-consistency",
                     "EN 16931 XML tax category consistency",

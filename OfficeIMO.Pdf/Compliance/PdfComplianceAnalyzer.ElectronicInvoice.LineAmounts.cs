@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadLineAmountConsistency(file, out PdfCiiLineAmountConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadLineAmountConsistency(file.DataSnapshot, out CiiLineAmountConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-amount-consistency",
                     "EN 16931 XML line amount consistency",

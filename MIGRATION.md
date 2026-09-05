@@ -1661,3 +1661,14 @@ Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false
 - Review `HasLoss`, omitted-content, and resource-policy diagnostics before accepting converted output.
 - Clean package caches, lock files, `bin`, and `obj` outputs when old and new assemblies were restored together.
 - Run the application test suite on every supported operating system after the coordinated package upgrade.
+## Invoice XML ownership
+
+`OfficeIMO.Pdf` now depends on `OfficeIMO.Invoices` for its CII inspection
+primitives. NuGet and project references bring this dependency transitively;
+applications that deploy selected DLLs manually must also deploy
+`OfficeIMO.Invoices.dll`.
+
+Existing byte-array and file-based Factur-X APIs keep their signatures.
+`UseFacturXDocument` accepts the immutable, preservation-based CII header model
+documented in [OfficeIMO.Invoices](OfficeIMO.Invoices/README.md). Loading or
+editing XML is not a conformance result and does not update visible PDF content.

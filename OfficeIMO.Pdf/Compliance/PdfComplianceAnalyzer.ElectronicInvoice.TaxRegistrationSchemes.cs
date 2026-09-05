@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPartyTaxRegistrationSchemes(file, out PdfCiiPartyTaxRegistrationSchemeEvidence? evidence, out string? schemeDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPartyTaxRegistrationSchemes(file.DataSnapshot, out CiiPartyTaxRegistrationSchemeEvidence? evidence, out string? schemeDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-party-tax-registration-scheme",
                     "EN 16931 XML party tax registration scheme",

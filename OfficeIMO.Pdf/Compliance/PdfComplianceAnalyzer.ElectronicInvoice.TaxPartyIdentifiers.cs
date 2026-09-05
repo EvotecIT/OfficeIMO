@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxPartyIdentifiers(file, out PdfCiiTaxPartyIdentifierEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxPartyIdentifiers(file.DataSnapshot, out CiiTaxPartyIdentifierEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-party-identifiers",
                     "EN 16931 XML tax party identifiers",

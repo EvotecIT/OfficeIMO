@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPaymentAccounts(file, out PdfCiiPaymentAccountEvidence? evidence, out string? paymentDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPaymentAccounts(file.DataSnapshot, out CiiPaymentAccountEvidence? evidence, out string? paymentDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-payment-account-format",
                     "EN 16931 XML payment account format",

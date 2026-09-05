@@ -43,9 +43,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoices\OfficeIMO.Invoices.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="OfficeIMO.Invoices.Internal" />
     <Using Include="System" />
     <Using Include="System.Text" />
     <Using Include="System.Collections.Generic" />

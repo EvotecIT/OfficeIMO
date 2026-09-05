@@ -31,7 +31,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadCurrencyConsistency(file, out PdfCiiCurrencyConsistencyEvidence? evidence, out string? currencyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadCurrencyConsistency(file.DataSnapshot, out CiiCurrencyConsistencyEvidence? evidence, out string? currencyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-currency-code",
                     "EN 16931 XML currency code",

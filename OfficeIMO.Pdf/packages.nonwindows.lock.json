@@ -18,6 +18,9 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoices": {
+        "type": "Project"
       }
     },
     ".NETStandard,Version=v2.0/linux-arm64": {},
@@ -35,6 +38,9 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoices": {
+        "type": "Project"
       }
     },
     "net10.0/linux-arm64": {},
@@ -51,6 +57,9 @@
         "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
       },
       "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.invoices": {
         "type": "Project"
       }
     },

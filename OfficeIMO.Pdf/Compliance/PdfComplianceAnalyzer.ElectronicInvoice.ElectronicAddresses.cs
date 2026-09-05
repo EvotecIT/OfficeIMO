@@ -107,7 +107,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadElectronicAddresses(file, out PdfCiiElectronicAddressEvidence? evidence, out string? addressDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadElectronicAddresses(file.DataSnapshot, out CiiElectronicAddressEvidence? evidence, out string? addressDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-electronic-address",
                     "EN 16931 XML electronic address",

@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadLineTax(file, out PdfCiiLineTaxEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadLineTax(file.DataSnapshot, out CiiLineTaxEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-tax",
                     "EN 16931 XML line tax",
