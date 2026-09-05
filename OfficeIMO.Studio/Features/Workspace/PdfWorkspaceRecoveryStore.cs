@@ -148,7 +148,8 @@ internal sealed class PdfWorkspaceRecoveryStore {
                 stream.Flush(flushToDisk: true);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, path);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, path,
+                OfficeFileCommit.ConflictPolicy.Replace, OfficeFileCommit.UnixFileAccessPolicy.OwnerOnly);
         } finally {
             TryDelete(temporaryPath);
         }

@@ -87,7 +87,9 @@ namespace OfficeIMO.Core.Internal {
                     handle,
                     FileAccess.ReadWrite,
                     bufferSize,
-                    (options & FileOptions.Asynchronous) != 0) {
+                    // libc.open supplies a synchronous handle. FileStream still supports
+                    // asynchronous methods through its fallback for synchronous handles.
+                    isAsync: false) {
                 _path = path;
                 _deleteOnClose = (options & FileOptions.DeleteOnClose) != 0;
             }
@@ -152,6 +154,21 @@ namespace OfficeIMO.Core.Internal {
             } finally {
                 TryDelete(probePath);
             }
+        }
+
+        internal static void ApplyOwnerOnlyUnixPermissions(string path) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+#if NET6_0_OR_GREATER
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+#else
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX) &&
+                !RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                throw new PlatformNotSupportedException("Owner-only permissions are not supported on this Unix platform.");
+            }
+            if (ChangeFileMode(path, 0x180U) != 0) {
+                throw new IOException("Unable to restrict Unix file permissions (OS error " + Marshal.GetLastWin32Error() + ").");
+            }
+#endif
         }
 
         internal static void CopyUnixFileModePortable(string sourcePath, string destinationPath) {

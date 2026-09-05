@@ -11,7 +11,7 @@ namespace OfficeIMO.Core.Internal {
     /// Commits completed Office files without exposing a partially written destination.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    internal static class OfficeFileCommit {
+    internal static partial class OfficeFileCommit {
         /// <summary>Controls whether an existing destination may be replaced.</summary>
         public enum ConflictPolicy {
             /// <summary>Fails when the destination already exists.</summary>
@@ -474,12 +474,14 @@ namespace OfficeIMO.Core.Internal {
             string targetPath,
             ConflictPolicy conflictPolicy,
             bool allowNonAtomicReplacementFallback,
-            bool allowReadOnlyUnixDestination) {
+            bool allowReadOnlyUnixDestination,
+            bool ownerOnlyUnixPermissions = false) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
 
             string fullTargetPath = GetFullTargetPath(targetPath);
+            if (ownerOnlyUnixPermissions) OfficeTemporaryFile.ApplyOwnerOnlyUnixPermissions(temporaryPath);
             if (conflictPolicy == ConflictPolicy.FailIfExists) {
-                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) {
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath, applyDefaultUnixPermissions: !ownerOnlyUnixPermissions)) {
                     throw new IOException($"Destination file '{fullTargetPath}' already exists.");
                 }
                 return;
@@ -490,14 +492,15 @@ namespace OfficeIMO.Core.Internal {
             }
 
             if (!File.Exists(fullTargetPath)) {
-                if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true)) {
+                if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true,
+                    applyDefaultUnixPermissions: !ownerOnlyUnixPermissions)) {
                     return;
                 }
 
                 // The destination appeared after the existence check. Replace it below.
             }
 
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (!ownerOnlyUnixPermissions && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 // A rename/replace installs the staging inode on Unix. Apply the existing
                 // destination's mode first so a restrictive workbook or document cannot be
                 // widened to the staging file's default umask-derived permissions.
@@ -613,7 +616,8 @@ namespace OfficeIMO.Core.Internal {
         private static bool TryMoveIfAbsent(
             string sourcePath,
             string targetPath,
-            bool waitForClaim = false) {
+            bool waitForClaim = false,
+            bool applyDefaultUnixPermissions = true) {
             string claimPath = CreateClaimPath(targetPath);
             FileStream? claim = null;
             for (int attempt = 0; ; attempt++) {
@@ -644,7 +648,7 @@ namespace OfficeIMO.Core.Internal {
 
             try {
                 if (File.Exists(targetPath)) return false;
-                OfficeTemporaryFile.ApplyDefaultUnixCreationMode(sourcePath);
+                if (applyDefaultUnixPermissions) OfficeTemporaryFile.ApplyDefaultUnixCreationMode(sourcePath);
                 try {
                     ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
                     return true;

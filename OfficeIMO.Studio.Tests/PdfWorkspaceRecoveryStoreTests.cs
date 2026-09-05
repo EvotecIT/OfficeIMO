@@ -112,6 +112,10 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(first);
             var store = new PdfWorkspaceRecoveryStore(root);
             string snapshot = await store.WriteAsync(source, fingerprint, first, 1, CancellationToken.None);
+            if (!OperatingSystem.IsWindows()) {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(snapshot));
+                File.SetUnixFileMode(snapshot, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+            }
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -135,6 +139,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
             Assert.Equal(first, store.ReadVerifiedSnapshot(source, fingerprint));
             await store.WriteAsync(source, fingerprint, second, 2, CancellationToken.None);
             Assert.Equal(second, store.ReadVerifiedSnapshot(source, fingerprint));
+            if (!OperatingSystem.IsWindows()) Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(snapshot));
         } finally {
             Directory.Delete(root, recursive: true);
         }
