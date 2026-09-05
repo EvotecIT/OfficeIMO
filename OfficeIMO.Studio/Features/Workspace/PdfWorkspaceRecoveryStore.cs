@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 
@@ -7,6 +8,8 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed class PdfWorkspaceRecoveryStore {
     internal const long MaximumSnapshotBytes = 512L * 1024 * 1024;
     internal static readonly TimeSpan Retention = TimeSpan.FromDays(30);
+    private const int MaximumMetadataBytes = 64 * 1024;
+    private static ReadOnlySpan<byte> SnapshotMagic => "OIMORCV2"u8;
     private readonly string _root;
 
     internal PdfWorkspaceRecoveryStore(string? root = null) {
@@ -29,62 +32,94 @@ internal sealed class PdfWorkspaceRecoveryStore {
         string canonicalPath = Canonicalize(sourcePath);
         string key = CreateKey(canonicalPath);
         Directory.CreateDirectory(_root);
-        string pdfPath = Path.Combine(_root, key + ".pdf");
-        string metadataPath = Path.Combine(_root, key + ".json");
+        string snapshotPath = Path.Combine(_root, key + ".recovery");
         string recoveryFingerprint = Fingerprint(bytes);
-        await WriteAtomicAsync(pdfPath, bytes, cancellationToken).ConfigureAwait(false);
 
         byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(new RecoveryMetadata(
             canonicalPath,
             baseFingerprint,
             recoveryFingerprint,
             revision,
-            DateTimeOffset.UtcNow));
-        await WriteAtomicAsync(metadataPath, metadata, cancellationToken).ConfigureAwait(false);
-        return pdfPath;
+            DateTimeOffset.UtcNow) { SchemaVersion = 2 });
+        if (metadata.Length > MaximumMetadataBytes) throw new InvalidDataException("Recovery metadata exceeds its size limit.");
+        await WriteSnapshotAsync(snapshotPath, metadata, bytes, cancellationToken).ConfigureAwait(false);
+        // Migrate only after the complete replacement has been published successfully.
+        TryDelete(Path.Combine(_root, key + ".pdf"));
+        TryDelete(Path.Combine(_root, key + ".json"));
+        return snapshotPath;
     }
 
     internal void Delete(string sourcePath) {
         string key = CreateKey(Canonicalize(sourcePath));
+        TryDelete(Path.Combine(_root, key + ".recovery"));
         TryDelete(Path.Combine(_root, key + ".pdf"));
         TryDelete(Path.Combine(_root, key + ".json"));
     }
 
     internal string? Find(string sourcePath, string baseFingerprint) {
-        if (ReadVerifiedSnapshot(sourcePath, baseFingerprint) is null) return null;
-        return Path.Combine(_root, CreateKey(Canonicalize(sourcePath)) + ".pdf");
+        return ReadSnapshot(sourcePath, baseFingerprint)?.Path;
     }
 
-    internal byte[]? ReadVerifiedSnapshot(string sourcePath, string baseFingerprint) {
+    internal byte[]? ReadVerifiedSnapshot(string sourcePath, string baseFingerprint) =>
+        ReadSnapshot(sourcePath, baseFingerprint)?.Bytes;
+
+    private (string Path, byte[] Bytes)? ReadSnapshot(string sourcePath, string baseFingerprint) {
         string canonicalPath = Canonicalize(sourcePath);
         string key = CreateKey(canonicalPath);
         string pdfPath = Path.Combine(_root, key + ".pdf");
         string metadataPath = Path.Combine(_root, key + ".json");
-        if (!File.Exists(pdfPath) || !File.Exists(metadataPath)) return null;
+        string snapshotPath = Path.Combine(_root, key + ".recovery");
 
         try {
-            byte[]? metadataBytes = ReadBounded(metadataPath, 64 * 1024);
+            if (File.Exists(snapshotPath)) {
+                // Never fall back to older edits when a newer snapshot exists but is invalid.
+                byte[]? snapshot = ReadCurrentSnapshot(snapshotPath, canonicalPath, baseFingerprint);
+                return snapshot is null ? null : (snapshotPath, snapshot);
+            }
+            if (!File.Exists(pdfPath) || !File.Exists(metadataPath)) return null;
+            byte[]? metadataBytes = ReadBounded(metadataPath, MaximumMetadataBytes);
             if (metadataBytes is null) return null;
             RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(metadataBytes);
-            DateTimeOffset now = DateTimeOffset.UtcNow;
-            if (metadata is null ||
-                metadata.SchemaVersion != 1 ||
-                metadata.UpdatedAt < now - Retention ||
-                metadata.UpdatedAt > now.AddDays(1) ||
-                metadata.Revision < 0 ||
-                !PathsEqual(canonicalPath, metadata.SourcePath) ||
-                !string.Equals(baseFingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase)) {
-                return null;
-            }
+            if (!IsValidMetadata(metadata, canonicalPath, baseFingerprint, schemaVersion: 1)) return null;
             byte[]? bytes = ReadBounded(pdfPath, MaximumSnapshotBytes);
             if (bytes is null) return null;
-            return string.Equals(Fingerprint(bytes), metadata.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase) ? bytes : null;
+            return string.Equals(Fingerprint(bytes), metadata!.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase) ? (pdfPath, bytes) : null;
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             return null;
         }
     }
 
     internal static string Fingerprint(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+
+    private static bool IsValidMetadata(RecoveryMetadata? metadata, string path, string fingerprint, int schemaVersion) {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        return metadata is not null && metadata.SchemaVersion == schemaVersion &&
+            metadata.UpdatedAt >= now - Retention && metadata.UpdatedAt <= now.AddDays(1) &&
+            metadata.Revision >= 0 && PathsEqual(path, metadata.SourcePath) &&
+            string.Equals(fingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static byte[]? ReadCurrentSnapshot(string path, string sourcePath, string baseFingerprint) {
+        // Delete sharing allows atomic replacement while this reader retains the old file handle.
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+        long length = stream.Length;
+        if (length < 20 || length > 20 + MaximumMetadataBytes + MaximumSnapshotBytes) return null;
+        Span<byte> header = stackalloc byte[20];
+        stream.ReadExactly(header);
+        if (!header[..8].SequenceEqual(SnapshotMagic)) return null;
+        int metadataLength = BinaryPrimitives.ReadInt32LittleEndian(header[8..12]);
+        long pdfLength = BinaryPrimitives.ReadInt64LittleEndian(header[12..]);
+        if (metadataLength <= 0 || metadataLength > MaximumMetadataBytes ||
+            pdfLength <= 0 || pdfLength > MaximumSnapshotBytes || length != 20L + metadataLength + pdfLength) return null;
+        byte[] metadataBytes = new byte[metadataLength];
+        stream.ReadExactly(metadataBytes);
+        RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(metadataBytes);
+        if (!IsValidMetadata(metadata, sourcePath, baseFingerprint, schemaVersion: 2)) return null;
+        byte[] bytes = new byte[checked((int)pdfLength)];
+        stream.ReadExactly(bytes);
+        return stream.ReadByte() == -1 &&
+            string.Equals(Fingerprint(bytes), metadata!.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase) ? bytes : null;
+    }
 
     private static byte[]? ReadBounded(string path, long maximumBytes) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -97,10 +132,22 @@ internal sealed class PdfWorkspaceRecoveryStore {
         return stream.ReadByte() == -1 ? bytes : null;
     }
 
-    private static async Task WriteAtomicAsync(string path, byte[] bytes, CancellationToken cancellationToken) {
+    private static async Task WriteSnapshotAsync(string path, byte[] metadata, byte[] bytes, CancellationToken cancellationToken) {
         string temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
         try {
-            await File.WriteAllBytesAsync(temporaryPath, bytes, cancellationToken).ConfigureAwait(false);
+            byte[] header = new byte[20];
+            SnapshotMagic.CopyTo(header);
+            BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(8, 4), metadata.Length);
+            BinaryPrimitives.WriteInt64LittleEndian(header.AsSpan(12, 8), bytes.LongLength);
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                64 * 1024, FileOptions.Asynchronous)) {
+                await stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(metadata, cancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                stream.Flush(flushToDisk: true);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, path, overwrite: true);
         } finally {
             TryDelete(temporaryPath);

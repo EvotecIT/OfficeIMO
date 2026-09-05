@@ -186,12 +186,12 @@ public sealed class StudioDocumentTabHostTests {
             Assert.Equal(2, host.Tabs.Count);
             Assert.Same(selected, host.SelectedTab);
             Assert.All(host.Tabs, tab => { Assert.True(tab.Document.IsDirty); Assert.Equal(2, tab.Document.Pages.Count); });
-            Assert.Equal(2, Directory.GetFiles(Path.Combine(root, "profile", "Recovery"), "*.pdf").Length);
+            Assert.Equal(2, Directory.GetFiles(Path.Combine(root, "profile", "Recovery"), "*.recovery").Length);
             decisions.Enqueue(UnsavedChangesDecision.Discard);
             decisions.Enqueue(UnsavedChangesDecision.Discard);
             Assert.True(await host.RequestCloseAllAsync());
             Assert.Empty(host.Tabs);
-            Assert.Empty(Directory.GetFiles(Path.Combine(root, "profile", "Recovery"), "*.pdf"));
+            Assert.Empty(Directory.GetFiles(Path.Combine(root, "profile", "Recovery"), "*.recovery"));
         } finally { Directory.Delete(root, recursive: true); }
     }
 
