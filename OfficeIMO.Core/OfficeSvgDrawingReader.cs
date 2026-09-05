@@ -66,20 +66,54 @@ public static partial class OfficeSvgDrawingReader {
                 out double viewHeight,
                 out double viewportWidth,
                 out double viewportHeight)) return false;
+        // Malformed shapes remain a tolerant-import concern, but complete geometry in definitions
+        // still belongs to the document-wide hard budget even when it is not painted directly.
+        if (ExceedsValidSvgDocumentPathCommandLimit(root)) return false;
 
         try {
+            ApplySvgStylesheets(root, ref unsupportedFeatureCount);
             var scene = new OfficeDrawing(viewWidth, viewHeight);
+            scene.Fonts.AddRange(options?.Fonts);
             int visited = 0;
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions);
-            var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
+            SvgPaintContext rootDefaults = SvgPaintContext.Default;
+            rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
+            var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
+            bool rootHasEffects = TryResolveSvgEffects(
+                root,
+                scene.Width,
+                scene.Height,
+                context,
+                paintServers,
+                references,
+                rootTransform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                0,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupportedFeatureCount,
+                out OfficeBlendMode rootBlendMode,
+                out OfficeDrawingSoftMask? rootSoftMask,
+                out SvgFilterEffect? rootFilterEffect);
+            OfficeDrawing rootContent = rootHasEffects ? new OfficeDrawing(viewWidth, viewHeight) : scene;
+            rootContent.Fonts.AddRange(options?.Fonts);
+            AddChildren(root, rootContent, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
+            if (rootHasEffects) {
+                TryApplySvgFilter(rootContent, rootFilterEffect, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
+                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
+            }
             if (visited > maximumElements) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
@@ -276,6 +310,41 @@ public static partial class OfficeSvgDrawingReader {
         int commandCount = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
             if (!TryAddSvgGeometryCommands(element, ref commandCount)) return true;
+        }
+        return false;
+    }
+
+    private static bool ExceedsValidSvgDocumentPathCommandLimit(XElement root) {
+        int commandCount = 0;
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            string name = element.Name.LocalName;
+            int remaining = MaximumSvgPathCommands - commandCount;
+            if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
+                bool parsed = OfficeSvgPathDataParser.TryParse(
+                    ReadRasterProjectedAttribute(element, "d"),
+                    MaximumSvgPathCommands + 1,
+                    out IReadOnlyList<OfficePathCommand> commands,
+                    out bool commandLimitExceeded);
+                if (commandLimitExceeded) return true;
+                if (!parsed) continue;
+                if (commands.Count > remaining) return true;
+                commandCount += commands.Count;
+                continue;
+            }
+
+            bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
+            if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) continue;
+            bool pointsParsed = TryParseNumberList(
+                ReadRasterProjectedAttribute(element, "points"),
+                (MaximumSvgPathCommands + 1) * 2,
+                out IReadOnlyList<double> values,
+                out bool valueLimitExceeded);
+            if (valueLimitExceeded && values.Count >= MaximumSvgPathCommands * 2) return true;
+            if (!pointsParsed) continue;
+            int elementCommands = values.Count / 2;
+            if (close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
+            if (elementCommands > remaining) return true;
+            commandCount += elementCommands;
         }
         return false;
     }
@@ -814,13 +883,41 @@ public static partial class OfficeSvgDrawingReader {
         visited++;
         if (visited > maximumElements) return;
         string name = element.Name.LocalName.ToLowerInvariant();
-        if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return;
+        if (name is "title" or "desc" or "metadata" or "style" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
         if (name == "defs") return;
 
+        inherited.DashPercentageReference = NormalizedSvgDiagonal(drawing.Width, drawing.Height);
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
         if (!style.Visible) return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
-        if (name is "g" or "svg" or "a" or "switch") {
+        if (name == "foreignobject") {
+            TryAddForeignObject(
+                element,
+                drawing,
+                style,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                ref visited,
+                ref unsupported);
+            return;
+        }
+        if (name == "image") {
+            if (!TryAddEmbeddedSvgImage(element, drawing, style, transform, viewX, viewY)) unsupported++;
+            return;
+        }
+        if (name == "svg") {
+            if (!TryAddNestedSvgViewport(
+                    element, drawing, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) {
+                unsupported++;
+            }
+            return;
+        }
+        if (name is "g" or "a" or "switch") {
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
@@ -840,12 +937,28 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
-            OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
-            AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
-                maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
-            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
+            bool capturesLink = name == "a";
+            OfficeDrawing target = hasEffects || capturesLink ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            if (name == "switch") {
+                AddFirstSupportedSwitchChild(element, target, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            } else {
+                AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
+                    maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            }
+            if (hasEffects) {
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
+                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            } else if (capturesLink) {
+                drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
+            }
+            if (capturesLink) {
+                TryAddSvgLink(element, target, drawing, ref unsupported);
+            }
             return;
         }
         if (name is "use" or "text") {
@@ -868,16 +981,36 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             if (name == "use") {
                 AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             } else {
-                AddText(element, target, style, paintServers, transform, viewX, viewY, ref unsupported);
+                AddText(
+                    element,
+                    target,
+                    style,
+                    paintServers,
+                    references,
+                    transform,
+                    viewX,
+                    viewY,
+                    maximumElements,
+                    maximumViewportDimension,
+                    maximumViewportPixels,
+                    depth,
+                    ref visited,
+                    ref pathCommands,
+                    ref pathCommandLimitExceeded,
+                    ref unsupported);
             }
-            if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            if (hasEffects) {
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
+                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            }
             return;
         }
 
@@ -901,6 +1034,62 @@ public static partial class OfficeSvgDrawingReader {
         ApplyTransform(shape, transform);
 
         try {
+            bool hasPattern = TryAddSvgPatternFill(
+                style.FillPattern,
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? patternLayer);
+            bool hasStrokePattern = TryAddSvgPatternStroke(
+                style.StrokePattern,
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? strokePatternLayer);
+            bool hasMarkers = TryAddSvgMarkers(
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? markerLayer);
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
@@ -920,10 +1109,15 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
-                out OfficeDrawingSoftMask? softMask);
-            if (hasEffects) {
+                out OfficeDrawingSoftMask? softMask,
+                out SvgFilterEffect? filterEffect);
+            if (hasEffects || hasPattern || hasStrokePattern || hasMarkers) {
                 var target = new OfficeDrawing(drawing.Width, drawing.Height);
+                if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShape(shape.Shape, shape.X, shape.Y);
+                if (strokePatternLayer != null) target.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
+                if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else {
                 drawing.AddShape(shape.Shape, shape.X, shape.Y);
@@ -932,6 +1126,44 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
         }
     }
+
+    private static void AddFirstSupportedSwitchChild(
+        XElement element,
+        OfficeDrawing drawing,
+        SvgPaintContext inherited,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
+        int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
+        ref int visited,
+        ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
+        ref int unsupported) {
+        foreach (XElement child in element.Elements()) {
+            string childName = child.Name.LocalName.ToLowerInvariant();
+            if (childName is "title" or "desc" or "metadata" or "defs" or "style"
+                or "lineargradient" or "radialgradient" or "pattern" or "stop") {
+                continue;
+            }
+            if (child.Attribute("requiredExtensions") != null || child.Attribute("requiredFeatures") != null) {
+                continue;
+            }
+            if (!IsSupportedSwitchElement(childName)) continue;
+            AddElement(child, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
+            return;
+        }
+    }
+
+    private static bool IsSupportedSwitchElement(string name) => name is
+        "svg" or "g" or "a" or "switch" or "foreignobject" or "use" or "text"
+        or "image" or "rect" or "circle" or "ellipse" or "line" or "polygon" or "polyline" or "path";
 
     private static OfficeTransform ResolveTransform(
         XElement element,
@@ -1056,8 +1288,10 @@ public static partial class OfficeSvgDrawingReader {
         shape.StrokeWidth = style.StrokeWidth;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
         shape.StrokeDashStyle = style.DashStyle;
+        shape.SetStrokeDashArray(style.DashArray, style.DashOffset);
         shape.StrokeLineCap = style.LineCap;
         shape.StrokeLineJoin = style.LineJoin;
+        shape.StrokeMiterLimit = style.MiterLimit;
         double x = Math.Min(x1, x2);
         double y = Math.Min(y1, y2);
         return new OfficeDrawingShape(shape, x, y);
@@ -1211,13 +1445,17 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("fill-opacity", element.Attribute("fill-opacity")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-opacity", element.Attribute("stroke-opacity")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-dasharray", element.Attribute("stroke-dasharray")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-dashoffset", element.Attribute("stroke-dashoffset")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-linecap", element.Attribute("stroke-linecap")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-miterlimit", element.Attribute("stroke-miterlimit")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("writing-mode", element.Attribute("writing-mode")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("text-orientation", element.Attribute("text-orientation")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
@@ -1300,6 +1538,14 @@ public static partial class OfficeSvgDrawingReader {
                 else style.Color = currentColor;
                 break;
             case "fill":
+                if (normalized.Equals("context-stroke", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetFill(new SvgResolvedPaint(style.Stroke ?? style.Color));
+                    break;
+                }
+                if (normalized.Equals("context-fill", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetFill(style.Fill.HasValue ? new SvgResolvedPaint(style.Fill.Value) : default);
+                    break;
+                }
                 if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint fill)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetFill(default);
@@ -1307,6 +1553,11 @@ public static partial class OfficeSvgDrawingReader {
                 else style.SetFill(fill);
                 break;
             case "stroke":
+                if (normalized.Equals("context-fill", StringComparison.OrdinalIgnoreCase)) {
+                    style.SetStroke(style.Fill.HasValue ? new SvgResolvedPaint(style.Fill.Value) : default);
+                    break;
+                }
+                if (normalized.Equals("context-stroke", StringComparison.OrdinalIgnoreCase)) break;
                 if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint stroke)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetStroke(default);
@@ -1330,9 +1581,20 @@ public static partial class OfficeSvgDrawingReader {
                 else style.StrokeOpacity = strokeOpacity;
                 break;
             case "stroke-dasharray":
-                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.DashStyle = OfficeStrokeDashStyle.Solid;
-                else if (TryParseNumberList(normalized, out IReadOnlyList<double> dash) && dash.Count >= 2) style.DashStyle = OfficeStrokeDashStyle.Dash;
+                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                    style.DashStyle = OfficeStrokeDashStyle.Solid;
+                    style.DashArray = Array.Empty<double>();
+                    style.DashOffset = 0D;
+                }
+                else if (TryParseSvgDashArray(normalized, style.DashPercentageReference, out IReadOnlyList<double> dash)) {
+                    style.DashStyle = OfficeStrokeDashStyle.Dash;
+                    style.DashArray = dash;
+                }
                 else unsupported++;
+                break;
+            case "stroke-dashoffset":
+                if (!TrySvgStrokeLength(normalized, style.DashPercentageReference, out double dashOffset)) unsupported++;
+                else style.DashOffset = dashOffset;
                 break;
             case "stroke-linecap":
                 if (normalized.Equals("butt", StringComparison.OrdinalIgnoreCase)) style.LineCap = OfficeStrokeLineCap.Butt;
@@ -1345,6 +1607,11 @@ public static partial class OfficeSvgDrawingReader {
                 else if (normalized.Equals("round", StringComparison.OrdinalIgnoreCase)) style.LineJoin = OfficeStrokeLineJoin.Round;
                 else if (normalized.Equals("bevel", StringComparison.OrdinalIgnoreCase)) style.LineJoin = OfficeStrokeLineJoin.Bevel;
                 else unsupported++;
+                break;
+            case "stroke-miterlimit":
+                if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double miterLimit)
+                    || double.IsNaN(miterLimit) || double.IsInfinity(miterLimit) || miterLimit < 1D) unsupported++;
+                else style.MiterLimit = miterLimit;
                 break;
             case "fill-rule":
                 if (normalized.Equals("nonzero", StringComparison.OrdinalIgnoreCase)) style.FillRule = OfficeFillRule.NonZero;
@@ -1379,6 +1646,22 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 else unsupported++;
                 break;
+            case "writing-mode":
+                string writingMode = normalized.ToLowerInvariant();
+                if (writingMode == "horizontal-tb") style.WritingMode = SvgWritingMode.HorizontalTb;
+                else if (writingMode is "vertical-rl" or "tb" or "tb-rl") style.WritingMode = SvgWritingMode.VerticalRl;
+                else if (writingMode is "vertical-lr" or "tb-lr") style.WritingMode = SvgWritingMode.VerticalLr;
+                else if (writingMode == "sideways-rl") style.WritingMode = SvgWritingMode.SidewaysRl;
+                else if (writingMode == "sideways-lr") style.WritingMode = SvgWritingMode.SidewaysLr;
+                else unsupported++;
+                break;
+            case "text-orientation":
+                string orientation = normalized.ToLowerInvariant();
+                if (orientation == "mixed") style.TextOrientation = SvgTextOrientation.Mixed;
+                else if (orientation == "upright") style.TextOrientation = SvgTextOrientation.Upright;
+                else if (orientation == "sideways") style.TextOrientation = SvgTextOrientation.Sideways;
+                else unsupported++;
+                break;
             case "text-anchor":
                 string anchor = normalized.ToLowerInvariant();
                 if (anchor is "start" or "middle" or "end") style.TextAnchor = anchor;
@@ -1409,12 +1692,21 @@ public static partial class OfficeSvgDrawingReader {
                 if (normalized.Equals("hidden", StringComparison.OrdinalIgnoreCase) || normalized.Equals("collapse", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
                 break;
             case "transform":
-            case "filter":
             case "clip-path":
+                // Resolved by the geometry/effect owners after the cascade has produced
+                // the effective declaration for this element.
+                break;
+            case "filter":
+                // Resolved at the element-group boundary after its complete source graphic exists.
+                break;
             case "marker-start":
+                style.MarkerStart = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
+                break;
             case "marker-mid":
+                style.MarkerMid = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
+                break;
             case "marker-end":
-                unsupported++;
+                style.MarkerEnd = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
                 break;
         }
     }
@@ -1430,8 +1722,10 @@ public static partial class OfficeSvgDrawingReader {
         shape.FillOpacity = style.FillOpacity * style.Opacity;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
         shape.StrokeDashStyle = style.DashStyle;
+        shape.SetStrokeDashArray(style.DashArray, style.DashOffset);
         shape.StrokeLineCap = style.LineCap;
         shape.StrokeLineJoin = style.LineJoin;
+        shape.StrokeMiterLimit = style.MiterLimit;
         shape.FillRule = style.FillRule;
     }
 
@@ -1520,6 +1814,39 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);
 
+    private static bool TryParseSvgDashArray(string value, double percentageReference, out IReadOnlyList<double> values) {
+        values = Array.Empty<double>();
+        string[] tokens = value.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0 || tokens.Length > 256) return false;
+        var result = new List<double>(tokens.Length);
+        bool hasPositive = false;
+        foreach (string token in tokens) {
+            if (!TrySvgStrokeLength(token, percentageReference, out double length) || length < 0D) return false;
+            result.Add(length);
+            hasPositive |= length > 0D;
+        }
+        if (!hasPositive) return false;
+        values = result.AsReadOnly();
+        return true;
+    }
+
+    private static bool TrySvgStrokeLength(string value, double percentageReference, out double result) {
+        result = 0D;
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
+                || double.IsNaN(percentage) || double.IsInfinity(percentage)
+                || double.IsNaN(percentageReference) || double.IsInfinity(percentageReference)) return false;
+            result = percentage * percentageReference / 100D;
+            return !double.IsNaN(result) && !double.IsInfinity(result);
+        }
+        return TrySvgLength(normalized, out result);
+    }
+
+    private static double NormalizedSvgDiagonal(double width, double height) =>
+        Math.Sqrt((width * width) + (height * height)) / Math.Sqrt(2D);
+
     private static bool TryParseNumberList(string? value, int maximumValues,
         out IReadOnlyList<double> values) =>
         TryParseNumberList(value, maximumValues, out values, out _);
@@ -1570,17 +1897,23 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeLinearGradient? FillGradient;
         internal OfficeRadialGradient? FillRadialGradient;
         internal SvgGradientDefinition? FillDeferredGradient;
+        internal XElement? FillPattern;
         internal OfficeColor? Stroke;
         internal OfficeLinearGradient? StrokeGradient;
         internal OfficeRadialGradient? StrokeRadialGradient;
         internal SvgGradientDefinition? StrokeDeferredGradient;
+        internal XElement? StrokePattern;
         internal double StrokeWidth;
         internal double Opacity;
         internal double FillOpacity;
         internal double StrokeOpacity;
         internal OfficeStrokeDashStyle DashStyle;
+        internal IReadOnlyList<double> DashArray;
+        internal double DashOffset;
+        internal double DashPercentageReference;
         internal OfficeStrokeLineCap LineCap;
         internal OfficeStrokeLineJoin LineJoin;
+        internal double MiterLimit;
         internal OfficeFillRule FillRule;
         internal string FontFamily;
         internal double FontSize;
@@ -1589,6 +1922,11 @@ public static partial class OfficeSvgDrawingReader {
         internal string TextAnchor;
         internal SvgDominantBaseline DominantBaseline;
         internal SvgBaselineShift BaselineShift;
+        internal SvgWritingMode WritingMode;
+        internal SvgTextOrientation TextOrientation;
+        internal string? MarkerStart;
+        internal string? MarkerMid;
+        internal string? MarkerEnd;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -1596,6 +1934,7 @@ public static partial class OfficeSvgDrawingReader {
             FillGradient = paint.LinearGradient;
             FillRadialGradient = paint.RadialGradient;
             FillDeferredGradient = paint.DeferredGradient;
+            FillPattern = paint.Pattern;
         }
 
         internal void SetStroke(SvgResolvedPaint paint) {
@@ -1603,6 +1942,7 @@ public static partial class OfficeSvgDrawingReader {
             StrokeGradient = paint.LinearGradient;
             StrokeRadialGradient = paint.RadialGradient;
             StrokeDeferredGradient = paint.DeferredGradient;
+            StrokePattern = paint.Pattern;
         }
 
         internal static SvgPaintContext Default => new SvgPaintContext {
@@ -1614,8 +1954,10 @@ public static partial class OfficeSvgDrawingReader {
             FillOpacity = 1D,
             StrokeOpacity = 1D,
             DashStyle = OfficeStrokeDashStyle.Solid,
+            DashArray = Array.Empty<double>(),
             LineCap = OfficeStrokeLineCap.Butt,
             LineJoin = OfficeStrokeLineJoin.Miter,
+            MiterLimit = 4D,
             FillRule = OfficeFillRule.NonZero,
             FontFamily = "Arial",
             FontSize = 16D,
@@ -1624,8 +1966,24 @@ public static partial class OfficeSvgDrawingReader {
             TextAnchor = "start",
             DominantBaseline = SvgDominantBaseline.Alphabetic,
             BaselineShift = default,
+            WritingMode = SvgWritingMode.HorizontalTb,
+            TextOrientation = SvgTextOrientation.Mixed,
             Visible = true
         };
+    }
+
+    private enum SvgWritingMode {
+        HorizontalTb,
+        VerticalRl,
+        VerticalLr,
+        SidewaysRl,
+        SidewaysLr
+    }
+
+    private enum SvgTextOrientation {
+        Mixed,
+        Upright,
+        Sideways
     }
 
     private enum SvgDominantBaseline {

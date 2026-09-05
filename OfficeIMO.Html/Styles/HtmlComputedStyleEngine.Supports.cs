@@ -231,6 +231,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-shadow", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxShadowParser.IsSupportedSyntax(normalized);
         }
+        if (string.Equals(propertyName, "text-shadow", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTextShadowParser.IsSupportedSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "slice" || normalized == "clone";
+        }
         if (string.Equals(propertyName, "border", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
         }
@@ -349,8 +355,16 @@ public static partial class HtmlComputedStyleEngine {
             case "text-decoration-line":
                 return normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
                     .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
+            case "text-decoration-color":
+                return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
+            case "font-stretch":
+                return IsKnownKeyword(normalized, "normal", "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded", "wider", "narrower")
+                    || normalized.EndsWith("%", StringComparison.Ordinal)
+                    && double.TryParse(normalized.Substring(0, normalized.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double stretch)
+                    && stretch >= 50D
+                    && stretch <= 200D;
             case "font-weight":
                 int weight;
                 return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")
@@ -359,6 +373,8 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "left", "right", "center", "justify", "start", "end", "match-parent");
             case "direction":
                 return IsKnownKeyword(normalized, "ltr", "rtl");
+            case "unicode-bidi":
+                return IsKnownKeyword(normalized, "normal", "embed", "isolate", "bidi-override", "isolate-override", "plaintext");
             case "white-space":
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
             case "hyphens":
@@ -386,6 +402,13 @@ public static partial class HtmlComputedStyleEngine {
                 return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
                     : IsNonNegativeCssLength(normalized);
+            case "list-style-position":
+                return IsKnownKeyword(normalized, "inside", "outside");
+            case "list-style-image":
+                return normalized == "none"
+                    || normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)
+                    && normalized.EndsWith(")", StringComparison.Ordinal)
+                    && HtmlResourcePipeline.ExtractCssUrls(value).Count == 1;
             case "letter-spacing":
             case "word-spacing":
                 return normalized == "normal"
@@ -434,30 +457,43 @@ public static partial class HtmlComputedStyleEngine {
         return false;
     }
 
-    private static bool IsInheritedProperty(string propertyName) =>
-        InheritedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal);
+    private static bool IsInheritedProperty(
+        string propertyName,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+        if (!propertyName.StartsWith("--", StringComparison.Ordinal)) return InheritedProperties.Contains(propertyName);
+        return customPropertyRegistrations == null
+            || !customPropertyRegistrations.TryGetValue(propertyName, out CustomPropertyRegistration? registration)
+            || registration.Inherits;
+    }
 
     private static Dictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties,
         out HashSet<string> inheritedProperties,
         out HashSet<string> resetProperties,
-        out HashSet<string> specifiedProperties) {
+        out HashSet<string> specifiedProperties,
+        out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var priorities = new Dictionary<string, HtmlCssCascadePriority>(HtmlCssPropertyNameComparer.Instance);
         if (parentProperties != null) {
             foreach (KeyValuePair<string, string> pair in parentProperties) {
-                if (!IsInheritedProperty(pair.Key)) continue;
+                if (!IsInheritedProperty(pair.Key, customPropertyRegistrations)) continue;
                 raw[pair.Key] = pair.Value;
                 inherited.Add(pair.Key);
+                priorities[pair.Key] = new HtmlCssCascadePriority(
+                    inherited: true, important: false, inline: false, layerOrder: null,
+                    ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
             }
         }
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
+                priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
                     inherited.Add(pair.Key);
@@ -467,20 +503,25 @@ public static partial class HtmlComputedStyleEngine {
                     inherited.Remove(pair.Key);
                 }
             } else if ((effective?.RevertsLayer == true || effective == null && pair.Value.RevertsLayer)
-                  && IsInheritedProperty(pair.Key)
+                  && IsInheritedProperty(pair.Key, customPropertyRegistrations)
                   && parentProperties != null
                   && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
                 raw[pair.Key] = inheritedValue;
+                priorities[pair.Key] = new HtmlCssCascadePriority(
+                    inherited: true, important: false, inline: false, layerOrder: null,
+                    ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
                 inherited.Add(pair.Key);
                 reset.Remove(pair.Key);
                 specified.Remove(pair.Key);
             } else {
                 raw.Remove(pair.Key);
+                priorities.Remove(pair.Key);
                 inherited.Remove(pair.Key);
                 specified.Remove(pair.Key);
                 reset.Add(pair.Key);
             }
         }
+        ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
@@ -488,14 +529,67 @@ public static partial class HtmlComputedStyleEngine {
             ? ResolveCustomPropertyValues(raw, parentProperties)
             : raw;
 
+        ExpandResolvedPhysicalBoxShorthands(resolved, priorities, inherited, reset, specified);
+
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);
         resetProperties = reset;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;
+        priorities = priorities
+            .Where(pair => resolved.ContainsKey(pair.Key))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, HtmlCssPropertyNameComparer.Instance);
+        cascadePriorities = priorities;
         return resolved;
     }
+
+    private static void ApplyRegisteredCustomPropertyFallbacks(
+        IDictionary<string, string> raw,
+        IReadOnlyDictionary<string, string>? parentProperties,
+        ISet<string> specifiedProperties,
+        ISet<string> inheritedProperties,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations) {
+        if (customPropertyRegistrations == null || customPropertyRegistrations.Count == 0) return;
+        foreach (CustomPropertyRegistration registration in customPropertyRegistrations.Values) {
+            bool locallySpecified = specifiedProperties.Contains(registration.Name);
+            if (locallySpecified && raw.TryGetValue(registration.Name, out string? authoredValue)) {
+                bool resolved = HtmlCssCustomPropertyResolver.TryResolve(
+                    authoredValue,
+                    name => raw.TryGetValue(name, out string? customValue) ? customValue : null,
+                    out string computedValue);
+                if (resolved && IsRegisteredCustomPropertyValueValid(registration.Syntax, computedValue)) {
+                    raw[registration.Name] = computedValue;
+                    continue;
+                }
+                raw.Remove(registration.Name);
+                specifiedProperties.Remove(registration.Name);
+            }
+
+            if (registration.Inherits
+                && parentProperties != null
+                && parentProperties.TryGetValue(registration.Name, out string? inheritedValue)
+                && IsRegisteredCustomPropertyValueValid(registration.Syntax, inheritedValue)) {
+                raw[registration.Name] = inheritedValue;
+                inheritedProperties.Add(registration.Name);
+            } else if (!string.IsNullOrWhiteSpace(registration.InitialValue)) {
+                raw[registration.Name] = registration.InitialValue!;
+                inheritedProperties.Remove(registration.Name);
+            }
+        }
+    }
+
+    private static HtmlCssCascadePriority ToCascadePriority(CascadedProperty property) =>
+        new HtmlCssCascadePriority(
+            inherited: ReferenceEquals(property.Specificity, Specificity.Inherited) || property.InheritsComputedValue,
+            important: property.IsImportant,
+            inline: ReferenceEquals(property.Specificity, Specificity.Inline),
+            layerOrder: property.LayerOrder,
+            ids: property.Specificity.Ids,
+            classes: property.Specificity.ClassesAttributesAndPseudoClasses,
+            elements: property.Specificity.Elements,
+            ruleOrder: property.Order,
+            declarationOrder: property.DeclarationOrder);
 
     private static Dictionary<string, string> ResolveCustomPropertyValues(
         IReadOnlyDictionary<string, string> raw,
@@ -558,7 +652,7 @@ public static partial class HtmlComputedStyleEngine {
             CascadedProperty? current = null;
             foreach (CascadedProperty candidate in candidates) {
                 if (candidate.Specificity != Specificity.Inherited && revertedLayers.Contains(candidate.LayerOrder)) continue;
-                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder)) {
+                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder, candidate.DeclarationOrder)) {
                     current = candidate;
                 }
             }

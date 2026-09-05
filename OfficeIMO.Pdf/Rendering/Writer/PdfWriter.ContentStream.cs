@@ -58,10 +58,19 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder MiterLimit(double miterLimit) {
+        _sb.Append(F(miterLimit)).Append(" M\n");
+        return this;
+    }
+
     public ContentStreamBuilder StrokeDash(params double[] pattern) {
+        return StrokeDash(pattern, 0D);
+    }
+
+    public ContentStreamBuilder StrokeDash(IReadOnlyList<double> pattern, double phase) {
         Guard.NotNull(pattern, nameof(pattern));
         _sb.Append('[');
-        for (int i = 0; i < pattern.Length; i++) {
+        for (int i = 0; i < pattern.Count; i++) {
             if (i > 0) {
                 _sb.Append(' ');
             }
@@ -69,7 +78,7 @@ internal sealed class ContentStreamBuilder {
             _sb.Append(F(pattern[i]));
         }
 
-        _sb.Append("] 0 d\n");
+        _sb.Append("] ").Append(F(phase)).Append(" d\n");
         return this;
     }
 

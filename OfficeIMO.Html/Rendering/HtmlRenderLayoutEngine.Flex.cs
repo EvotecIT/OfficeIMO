@@ -193,7 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
-        if (tag == "img" && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
+        if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
         if (style.ExplicitWidth.HasValue) {
             return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
         }

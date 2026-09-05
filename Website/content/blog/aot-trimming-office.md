@@ -48,7 +48,7 @@ An AOT document worker does not need a browser, cloud SDK, or OCR engine unless 
 - Tesseract and process-based OCR execute an external program even when the OfficeIMO host is native.
 - The optional Chromium browser-PDF bridge uses HtmlTinkerX and Playwright through the managed cross-platform runtime. It is not presented as NativeAOT-compatible.
 - The local HTML/PDF workbench uses its managed cross-platform deployment path. It is not presented as NativeAOT-compatible without separate native-publish proof.
-- OfficeIMO Studio uses the checked-in managed Avalonia distribution profiles for Windows, Linux, and macOS. The current desktop application is not presented as NativeAOT-compatible.
+- OfficeIMO Studio uses the managed cross-platform Avalonia desktop runtime. It is not presented as NativeAOT-compatible without separate native-publish proof.
 - WPF/WebView2 uses managed Windows deployment and is not presented as NativeAOT-compatible while WPF trimming is rejected by the .NET SDK.
 
 Keeping those boundaries explicit makes a small native Word, Excel, PowerPoint, Markdown, CSV, Reader, or PDF tool practical without pretending every third-party runtime is compiled into the same binary.

@@ -1,5 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Html;
 
@@ -9,18 +11,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
             ? HtmlRenderStyleResolver.DescribeSource(element)
             : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
-        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
+        IReadOnlyList<string> candidates = IsInlineSvgElement(element)
+            ? Array.Empty<string>()
+            : HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
         string contentType = string.Empty;
         OfficeImageInfo? imageInfo = null;
-        foreach (string candidate in candidates) {
-            if (TryResolveImageSource(candidate, sourceDescription, out bytes, out contentType, out imageInfo, reportDiagnostics: false)) {
-                source = candidate;
-                break;
+        if (TryReadInlineSvgSource(element, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
+            bytes = inlineSvg;
+            contentType = "image/svg+xml";
+            imageInfo = inlineSvgInfo;
+        } else {
+            foreach (string candidate in candidates) {
+                if (TryResolveImageSource(candidate, sourceDescription, out bytes, out contentType, out imageInfo, reportDiagnostics: false)) {
+                    source = candidate;
+                    break;
+                }
             }
+            if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         }
-        if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         if (bytes != null
             && OfficeImageOrientationNormalizer.TryNormalizeToPng(
                 bytes,
@@ -50,7 +60,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
             : null);
-        string? alternativeText = element.GetAttribute("alt");
+        string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,
             contentSize.Width,
@@ -94,7 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 double textHeight = Math.Min(placement.Height, style.LineHeight);
-                objectVisuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text", null, null, null, false, null, null, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline, style.BaselineLevel, style.BaselineScale, style.BaselineOffset));
+                objectVisuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text", null, null, null, false, null, null, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline, style.BaselineLevel, style.BaselineScale, style.BaselineOffset, decorationColor: style.DecorationColor, featureSettings: style.TextFeatureSettings, fontPalette: style.FontPalette));
             }
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
@@ -126,13 +136,80 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, style.MarginLeft + ResolveReplacedImageBoxWidth(element, style) + style.MarginRight);
     }
 
+    private static bool IsReplacedImageElement(IElement element) =>
+        IsReplacedImageElementTag(element.LocalName);
+
+    private static bool IsReplacedImageElementTag(string tagName) =>
+        tagName.Equals("img", StringComparison.OrdinalIgnoreCase)
+        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInlineSvgElement(IElement element) =>
+        element.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+
+    private bool TryReadInlineSvgSource(
+        IElement element,
+        out byte[]? bytes,
+        out OfficeImageInfo? imageInfo) {
+        bytes = null;
+        imageInfo = null;
+        if (!IsInlineSvgElement(element)) return false;
+
+        string source = element.OuterHtml;
+        try {
+            XElement svg = XElement.Parse(source, LoadOptions.PreserveWhitespace);
+            IReadOnlyList<IElement> htmlElements = new[] { element }
+                .Concat(element.QuerySelectorAll("*").OfType<IElement>())
+                .ToArray();
+            IReadOnlyList<XElement> svgElements = svg.DescendantsAndSelf().ToArray();
+            int count = Math.Min(htmlElements.Count, svgElements.Count);
+            for (int index = 0; index < count; index++) {
+                if (!_computedStyles.Elements.TryGetValue(htmlElements[index], out HtmlComputedStyle? computed)) continue;
+                string computedSvgStyle = BuildInlineSvgComputedStyle(computed);
+                if (computedSvgStyle.Length > 0) svgElements[index].SetAttributeValue("style", computedSvgStyle);
+            }
+            source = svg.ToString(SaveOptions.DisableFormatting);
+        } catch (System.Xml.XmlException) {
+            // The bounded SVG reader reports malformed XML through its normal parse result.
+        }
+        bytes = Encoding.UTF8.GetBytes(source);
+        if (OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo identified)) {
+            imageInfo = identified;
+        }
+        return true;
+    }
+
+    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed) {
+        var style = new StringBuilder();
+        foreach (KeyValuePair<string, string> property in computed.Properties) {
+            if (!property.Key.StartsWith("--", StringComparison.Ordinal)
+                && !IsSvgComputedStyleProperty(property.Key)) continue;
+            if (style.Length > 0) style.Append(';');
+            style.Append(property.Key).Append(':').Append(property.Value);
+        }
+        return style.ToString();
+    }
+
+    private static bool IsSvgComputedStyleProperty(string name) => name.ToLowerInvariant() is
+        "color" or "fill" or "fill-opacity" or "fill-rule" or "stroke" or "stroke-width"
+        or "stroke-opacity" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap"
+        or "stroke-linejoin" or "stroke-miterlimit" or "opacity" or "display" or "visibility"
+        or "font-family" or "font-size" or "font-style" or "font-weight" or "line-height"
+        or "writing-mode" or "text-orientation" or "text-anchor" or "dominant-baseline"
+        or "baseline-shift" or "transform" or "clip-path" or "filter" or "mask"
+        or "mix-blend-mode" or "marker-start" or "marker-mid" or "marker-end";
+
     private bool TryReadSvgDrawing(
         byte[] bytes,
         double fallbackWidth,
         double fallbackHeight,
         string sourceDescription,
         out OfficeDrawing? drawing) {
-        if (OfficeSvgDrawingReader.TryRead(bytes, out drawing, out int unsupportedFeatures) && drawing != null) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        readerOptions.Fonts.AddRange(_fonts);
+        if (_options.SvgForeignObjectDepth < _options.MaxSvgForeignObjectDepth) {
+            readerOptions.ForeignObjectRenderer = RenderSvgForeignObject;
+        }
+        if (OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
                 if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
                     drawing = rasterFallback;
@@ -163,6 +240,57 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "image/svg+xml",
             OfficeConversionLossKind.Omission);
         return false;
+    }
+
+    private OfficeDrawing? RenderSvgForeignObject(OfficeSvgForeignObjectContext context) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        if (_options.SvgForeignObjectDepth >= _options.MaxSvgForeignObjectDepth) return null;
+
+        string width = context.Width.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
+        string height = context.Height.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
+        string source = "<!doctype html><html><head><meta charset='utf-8'><style>"
+            + "html,body{margin:0;padding:0;width:" + width + "px;height:" + height + "px;overflow:hidden;background:transparent}"
+            + "</style></head><body>" + context.Html + "</body></html>";
+        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxHtmlNodes = Math.Min(limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxSvgForeignObjectHtmlNodes);
+        limits.MaxHtmlDepth = Math.Min(limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxLayoutDepth);
+        var conversionOptions = new HtmlConversionDocumentOptions {
+            BaseUri = _baseUri,
+            UrlPolicy = _options.UrlPolicy.Clone(),
+            ResourceUrlPolicy = _options.GetResourceUrlPolicy().Clone(),
+            Limits = limits,
+            IncludeNormalizedHtml = false,
+            UseBodyContentsOnly = true
+        };
+        HtmlConversionDocument nestedDocument = HtmlConversionDocument.Parse(source, conversionOptions);
+        HtmlRenderOptions nestedOptions = _options.Clone();
+        nestedOptions.Mode = HtmlRenderMode.Continuous;
+        nestedOptions.ViewportWidth = context.Width;
+        nestedOptions.ViewportHeight = context.Height;
+        nestedOptions.Margins = HtmlRenderMargins.All(0D);
+        nestedOptions.HonorCssPageRules = false;
+        nestedOptions.BackgroundColor = OfficeColor.Transparent;
+        nestedOptions.FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
+        nestedOptions.MaxHtmlNodes = Math.Min(nestedOptions.MaxHtmlNodes, _options.MaxSvgForeignObjectHtmlNodes);
+        nestedOptions.SvgForeignObjectDepth = _options.SvgForeignObjectDepth + 1;
+        nestedOptions.ResourceResolver = null;
+        nestedOptions.SynchronousResourceResolver = null;
+        nestedOptions.AdditionalStylesheets.Clear();
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(nestedDocument, nestedOptions, _cancellationToken);
+        _diagnostics.AddRange(rendered.Diagnostics);
+        HtmlRenderPage page = rendered.Pages[0];
+        OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
+        if (Math.Abs(nested.Width - context.Width) <= 0.0001D
+            && Math.Abs(nested.Height - context.Height) <= 0.0001D) return nested;
+
+        var clipped = new OfficeDrawing(context.Width, context.Height);
+        clipped.AddClippedDrawing(
+            nested,
+            0D,
+            0D,
+            OfficeClipPath.Rectangle(context.Width, context.Height));
+        return clipped;
     }
 
     private bool TryRasterizeSvgFallback(

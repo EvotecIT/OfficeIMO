@@ -6,6 +6,8 @@ namespace OfficeIMO.Html;
 /// Stable diagnostic codes emitted by the first-party HTML renderer.
 /// </summary>
 public static class HtmlRenderDiagnosticCodes {
+    /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
+    public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
     /// <summary>CSS background-image layers beyond the configured per-element limit were omitted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
     /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
@@ -22,6 +24,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
     /// <summary>Layout exceeded the configured operation limit.</summary>
     public const string LayoutOperationLimitExceeded = "HtmlRenderLayoutOperationLimitExceeded";
+    /// <summary>Paged cross-reference or footnote reflow did not reach a fixed point within its bounded pass limit.</summary>
+    public const string PaginationConvergenceLimitExceeded = "HtmlRenderPaginationConvergenceLimitExceeded";
     /// <summary>A paged running-string value exceeded its configured character limit.</summary>
     public const string RunningStringLimitExceeded = "HtmlRenderRunningStringLimitExceeded";
     /// <summary>The source HTML string exceeded the configured character limit.</summary>
@@ -48,6 +52,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
     public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
+    /// <summary>A requested OpenType feature requires a shaping lookup outside the bounded managed subset.</summary>
+    public const string OpenTypeFeatureUnsupported = "HtmlRenderOpenTypeFeatureUnsupported";
     /// <summary>Legacy diagnostic retained for source compatibility; bounded bidi positioning is active.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>A complex-script run requires provider-owned shaping that no configured provider accepted.</summary>
@@ -146,6 +152,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";
     /// <summary>CSS box-shadow layers beyond the configured per-element limit were omitted.</summary>
     public const string BoxShadowLayerLimit = "HtmlRenderBoxShadowLayerLimit";
+    /// <summary>A CSS text shadow contained invalid or unsupported syntax.</summary>
+    public const string TextShadowValueUnsupported = "HtmlRenderTextShadowValueUnsupported";
+    /// <summary>CSS text-shadow layers beyond the configured per-element limit were omitted.</summary>
+    public const string TextShadowLayerLimit = "HtmlRenderTextShadowLayerLimit";
     /// <summary>A CSS border paint declaration used invalid or unsupported syntax.</summary>
     public const string BorderPaintValueUnsupported = "HtmlRenderBorderPaintValueUnsupported";
     /// <summary>A CSS outline paint declaration could not be represented by the current outline model.</summary>
@@ -164,6 +174,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageMarginPositionUnsupported = "HtmlRenderPageMarginPositionUnsupported";
     /// <summary>An <c>@page</c> size declaration was unsupported.</summary>
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
+    /// <summary>An <c>@page</c> bleed declaration was unsupported.</summary>
+    public const string PageBleedUnsupported = "HtmlRenderPageBleedUnsupported";
+    /// <summary>An <c>@page</c> marks declaration was unsupported.</summary>
+    public const string PageMarksUnsupported = "HtmlRenderPageMarksUnsupported";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
     /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
@@ -215,6 +229,7 @@ public static class HtmlRenderDiagnosticCodes {
         GradientStopLimitExceeded,
         DepthLimitExceeded,
         LayoutOperationLimitExceeded,
+        PaginationConvergenceLimitExceeded,
         RunningStringLimitExceeded,
         InputCharacterLimitExceeded,
         NodeLimitExceeded,
@@ -228,6 +243,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceUnavailable,
         FontFormatUnsupported,
         FontVariantApproximated,
+        OpenTypeFeatureUnsupported,
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
         FlexLayoutPending,
@@ -273,6 +289,8 @@ public static class HtmlRenderDiagnosticCodes {
         BorderRadiusValueUnsupported,
         BoxShadowLayerLimit,
         BoxShadowValueUnsupported,
+        TextShadowLayerLimit,
+        TextShadowValueUnsupported,
         BorderPaintValueUnsupported,
         OutlinePaintValueUnsupported,
         PositionInsetUnsupported,
@@ -285,6 +303,8 @@ public static class HtmlRenderDiagnosticCodes {
         PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
+        PageBleedUnsupported,
+        PageMarksUnsupported,
         MathMlContentUnsupported,
         SvgContentUnsupported,
         SvgRasterFallback,

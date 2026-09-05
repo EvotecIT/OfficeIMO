@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options) {
+    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
@@ -37,7 +37,8 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRun,
-                options.Language));
+                options.Language,
+                featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
             return glyphRun.ToTextShowCommand();
         }
@@ -54,7 +55,8 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRun,
-                options.Language));
+                options.Language,
+                featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             return glyphRun.ToTextShowCommand();
         }
@@ -67,11 +69,19 @@ internal static partial class PdfWriter {
         return new PdfTextShowCommand(EncodeWinAnsiHex(text));
     }
 
+    private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options) {
+        PdfTextShowCommand command = EncodeTextShowCommand(" ", font, options);
+        return command.ActualText == null
+            ? command
+            : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs);
+    }
+
     private static PdfTextShowCommand EncodeTextShowCommand(
         string text,
         PdfStandardFont fallbackFont,
         PdfNamedFontFace? namedFont,
-        PdfOptions? options) {
+        PdfOptions? options,
+        OfficeTextFeatureSettings? featureSettings = null) {
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -90,7 +100,8 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRun,
-                options.Language));
+                options.Language,
+                featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
             return glyphRun.ToTextShowCommand();
         }
@@ -113,12 +124,13 @@ internal static partial class PdfWriter {
                 options.TextShapingModeSnapshot,
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRun,
-                options.Language));
+                options.Language,
+                featureSettings));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             return glyphRun.ToTextShowCommand();
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -375,7 +387,9 @@ internal static partial class PdfWriter {
             PdfInlineElement? inlineElement = null,
             PdfNamedFontFace? namedFont = null,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
+            OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            PdfColor? decorationColor = null,
+            OfficeTextFeatureSettings? featureSettings = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -403,6 +417,8 @@ internal static partial class PdfWriter {
             StrikeStyle = strikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
                 ? strikeStyle
                 : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+            DecorationColor = decorationColor;
+            FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         }
 
         public string Text { get; }
@@ -422,6 +438,8 @@ internal static partial class PdfWriter {
         public PdfColor? Color { get; }
 
         public PdfColor? BackgroundColor { get; }
+
+        public PdfColor? DecorationColor { get; }
 
         public string? Uri { get; }
 
@@ -451,14 +469,16 @@ internal static partial class PdfWriter {
 
         public PdfNamedFontFace? NamedFont { get; }
 
+        public OfficeTextFeatureSettings FeatureSettings { get; }
+
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
     }
 
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
@@ -488,8 +508,8 @@ internal static partial class PdfWriter {
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
-    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
-        EstimateSimpleTextWidthForOptions(text, font, namedFont, EffectiveRichFontSize(fontSize, baseline), options);
+    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null) =>
+        EstimateSimpleTextWidthForOptions(text, font, namedFont, EffectiveRichFontSize(fontSize, baseline), options, featureSettings);
 
     private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line, PdfOptions? options = null) {
         double width = 0D;
@@ -614,6 +634,8 @@ internal static partial class PdfWriter {
         double lineHeightRatio = fontSize > 0 ? lineHeight / fontSize : 1.2D;
         double currentLineHeight = lineHeight;
         PdfNamedFontFace? currentRunNamedFont = null;
+        PdfColor? currentRunDecorationColor = null;
+        OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
         double CurrentMaxWidth() => lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts;
         double CurrentLineOriginOffset() => lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D;
         void RegisterLineHeight(double runFontSize) {
@@ -714,6 +736,8 @@ internal static partial class PdfWriter {
             bool italic = run.Italic;
             var color = run.Color;
             var backgroundColor = run.BackgroundColor;
+            currentRunDecorationColor = run.DecorationColor;
+            currentRunFeatureSettings = run.FeatureSettings;
             string? uri = run.LinkUri;
             string? destinationName = run.LinkDestinationName;
             string? contents = run.LinkContents;
@@ -776,7 +800,9 @@ internal static partial class PdfWriter {
                     inlineElement: inlineElement,
                     namedFont: currentRunNamedFont,
                     underlineStyle: underlineStyle,
-                    strikeStyle: strikeStyle));
+                    strikeStyle: strikeStyle,
+                    decorationColor: currentRunDecorationColor,
+                    featureSettings: currentRunFeatureSettings));
                 lineWidth += leadingAdvance + inlineElement.Width;
                 RegisterInlineLineHeight(inlineElement);
                 ResetPendingLeading();
@@ -875,7 +901,7 @@ internal static partial class PdfWriter {
                         }
 
                         string chunk = token.Substring(pos, take);
-                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                         RegisterLineHeight(runFontSize);
                         lineWidth += chunkW;
                         pos += take;
@@ -912,7 +938,7 @@ internal static partial class PdfWriter {
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();
@@ -960,7 +986,7 @@ internal static partial class PdfWriter {
 
             for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                 PdfTextTokenChunk chunk = chunks[chunkIndex];
-                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                 RegisterLineHeight(runFontSize);
                 lineWidth += chunk.Width;
                 if (chunkIndex + 1 < chunks.Count) {
@@ -1041,7 +1067,7 @@ internal static partial class PdfWriter {
 
             for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
                 (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
-                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                 RegisterLineHeight(runFontSize);
                 lineWidth += selectedWidth;
                 if (chunkIndex < plannedChunks.Count - 1) {
@@ -1134,7 +1160,7 @@ internal static partial class PdfWriter {
 
             for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
                 (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
-                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                 RegisterLineHeight(runFontSize);
                 lineWidth += selectedWidth;
                 if (chunkIndex < plannedChunks.Count - 1) {
@@ -1345,7 +1371,7 @@ internal static partial class PdfWriter {
 
             for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                 PdfTextTokenChunk chunk = chunks[chunkIndex];
-                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle));
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
                 RegisterLineHeight(runFontSize);
                 lineWidth += chunk.Width;
                 if (chunkIndex + 1 < chunks.Count) {
@@ -1416,7 +1442,9 @@ internal static partial class PdfWriter {
             backgroundColor: styleTemplate.BackgroundColor,
             fontFamily: styleTemplate.FontFamily ?? fallbackFontFamily,
             underlineStyle: styleTemplate.UnderlineStyle,
-            strikeStyle: styleTemplate.StrikeStyle);
+            strikeStyle: styleTemplate.StrikeStyle,
+            decorationColor: styleTemplate.DecorationColor)
+            .WithFeatureSettings(styleTemplate.FeatureSettings);
     }
 
     private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
@@ -1575,7 +1603,7 @@ internal static partial class PdfWriter {
             : lineIndex == 0 ? firstLineXOverride ?? fallback : fallback;
 
     private static double MeasureRichSegment(RichSeg segment, PdfOptions? options) =>
-        segment.InlineElement?.Width ?? MeasureRichText(segment.Text, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options);
+        segment.InlineElement?.Width ?? MeasureRichText(segment.Text, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options, segment.FeatureSettings);
 
     private static double AdjustRichLineBaseline(
         double baseline,
@@ -1951,7 +1979,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts), runFontSize, textRise)
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -1965,18 +1993,18 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts), runFontSize, textRise);
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise);
                 }
 
                 double baselineY = lineY + textRise;
 
                 if (s.Underline) {
-                    var ulColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
                     double yLine = baselineY - runFontSize * 0.15;
                     underlines.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, ulColor, s.UnderlineStyle));
                 }
                 if (s.Strike) {
-                    var stColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
                     double yLine = baselineY + runFontSize * 0.32;
                     strikes.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, stColor, s.StrikeStyle));
                 }

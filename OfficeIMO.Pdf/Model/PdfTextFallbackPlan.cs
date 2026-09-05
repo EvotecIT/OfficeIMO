@@ -153,7 +153,9 @@ public sealed class PdfTextFallbackPlan {
             keepLink ? styleTemplate.LinkDestinationName : null,
             backgroundColor: styleTemplate.BackgroundColor,
             underlineStyle: styleTemplate.UnderlineStyle,
-            strikeStyle: styleTemplate.StrikeStyle);
+            strikeStyle: styleTemplate.StrikeStyle,
+            decorationColor: styleTemplate.DecorationColor)
+            .WithFeatureSettings(styleTemplate.FeatureSettings);
     }
 
     private static PdfTextRun CreateStyledNamedRun(string text, string fontFamily, PdfTextRun? styleTemplate) {
@@ -180,7 +182,9 @@ public sealed class PdfTextFallbackPlan {
             backgroundColor: styleTemplate.BackgroundColor,
             fontFamily: fontFamily,
             underlineStyle: styleTemplate.UnderlineStyle,
-            strikeStyle: styleTemplate.StrikeStyle);
+            strikeStyle: styleTemplate.StrikeStyle,
+            decorationColor: styleTemplate.DecorationColor)
+            .WithFeatureSettings(styleTemplate.FeatureSettings);
     }
 
     private static PdfTextRun CreateStyledLayoutRun(string text, PdfTextRun? styleTemplate) {
@@ -200,7 +204,9 @@ public sealed class PdfTextFallbackPlan {
             baseline: styleTemplate.Baseline,
             backgroundColor: styleTemplate.BackgroundColor,
             underlineStyle: styleTemplate.UnderlineStyle,
-            strikeStyle: styleTemplate.StrikeStyle);
+            strikeStyle: styleTemplate.StrikeStyle,
+            decorationColor: styleTemplate.DecorationColor)
+            .WithFeatureSettings(styleTemplate.FeatureSettings);
     }
 
     private static void AddLayoutControlRuns(List<PdfTextRun> runs, string text, PdfTextRun? styleTemplate) {

@@ -5,13 +5,17 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
-        TryResolveImageSource(
-            element.GetAttribute("src"),
-            HtmlRenderStyleResolver.DescribeSource(element),
-            out byte[]? bytes,
-            out _,
-            out OfficeImageInfo? imageInfo,
-            reportDiagnostics: false);
+        byte[]? bytes;
+        OfficeImageInfo? imageInfo;
+        if (!TryReadInlineSvgSource(element, out bytes, out imageInfo)) {
+            TryResolveImageSource(
+                element.GetAttribute("src"),
+                HtmlRenderStyleResolver.DescribeSource(element),
+                out bytes,
+                out _,
+                out imageInfo,
+                reportDiagnostics: false);
+        }
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
         bool hasAxisSwappingOrientation = hasIntrinsicSize
             && OfficeImageOrientationNormalizer.TryRead(bytes, out OfficeImageOrientation orientation)

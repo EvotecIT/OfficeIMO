@@ -44,7 +44,9 @@ internal static partial class HtmlPdfRenderedConverter {
             bool simulateItalic = (requestedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic &&
                 (face.Style & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
             resolvedRuns.Add(new OutlinedFontRun(run.Text, face, simulateBold, simulateItalic));
-            requiresOutlines |= !face.CanEmbedAsStaticPdfFont;
+            requiresOutlines |= !face.CanEmbedAsStaticPdfFont ||
+                !visual.FeatureSettings.IsDefault ||
+                ContainsColorGlyph(face.Program, run.Text);
         }
         if (!requiresOutlines) {
             foreach (OutlinedFontRun run in resolvedRuns) {
@@ -67,6 +69,7 @@ internal static partial class HtmlPdfRenderedConverter {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeTextShapingResult? shapingResult = ShapeOutlinedRun(
                 run,
+                visual.FeatureSettings,
                 webFonts,
                 cancellationToken,
                 out string? shapedText);
@@ -110,6 +113,7 @@ internal static partial class HtmlPdfRenderedConverter {
             lineHeights,
             baselineOffsets);
         var allContours = new List<List<OfficePoint>>();
+        var paintGroups = new List<OutlinedPaintContours>();
         int retainedPointCount = 0;
         double cursor = textX;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
@@ -121,72 +125,110 @@ internal static partial class HtmlPdfRenderedConverter {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
             double runTop = lineMetrics.Baseline - baselineOffsets[runIndex];
-            List<List<OfficePoint>> contours;
-            if (bounded is IOfficeCffBoundedFontProgram cff) {
-                contours = run.ShapingResult == null
-                    ? cff.GetTextContoursBounded(
+            var sourcePaintGroups = new List<OutlinedPaintContours>();
+            if (run.Face.Program is OfficeTrueTypeFont trueType &&
+                (run.ShapingResult == null
+                    ? trueType.TryGetColorTextContours(
                         run.Text,
                         cursor,
                         runTop,
                         visual.Font.Size,
+                        visual.FontPalette,
+                        visual.Color,
                         availablePoints,
                         cancellationToken,
-                        webFonts.OutlineBudget.CffOperationBudget)
-                    : cff.GetShapedTextContoursBounded(
+                        out List<OfficeColorGlyphContours> colorLayers)
+                    : trueType.TryGetShapedColorTextContours(
                         run.ShapedText!,
                         run.ShapingResult,
                         cursor,
                         runTop,
                         visual.Font.Size,
+                        visual.FontPalette,
+                        visual.Color,
                         availablePoints,
                         cancellationToken,
-                        webFonts.OutlineBudget.CffOperationBudget);
+                        out colorLayers))) {
+                foreach (OfficeColorGlyphContours layer in colorLayers) {
+                    sourcePaintGroups.Add(new OutlinedPaintContours(layer.Color, layer.Contours));
+                }
             } else {
-                contours = run.ShapingResult == null
-                    ? bounded.GetTextContoursBounded(
-                        run.Text,
-                        cursor,
-                        runTop,
-                        visual.Font.Size,
-                        availablePoints,
-                        cancellationToken)
-                    : bounded.GetShapedTextContoursBounded(
-                        run.ShapedText!,
-                        run.ShapingResult,
-                        cursor,
-                        runTop,
-                        visual.Font.Size,
-                        availablePoints,
-                        cancellationToken);
+                List<List<OfficePoint>> contours;
+                if (bounded is IOfficeCffBoundedFontProgram cff) {
+                    contours = run.ShapingResult == null
+                        ? cff.GetTextContoursBounded(
+                            run.Text,
+                            cursor,
+                            runTop,
+                            visual.Font.Size,
+                            availablePoints,
+                            cancellationToken,
+                            webFonts.OutlineBudget.CffOperationBudget)
+                        : cff.GetShapedTextContoursBounded(
+                            run.ShapedText!,
+                            run.ShapingResult,
+                            cursor,
+                            runTop,
+                            visual.Font.Size,
+                            availablePoints,
+                            cancellationToken,
+                            webFonts.OutlineBudget.CffOperationBudget);
+                } else {
+                    contours = run.ShapingResult == null
+                        ? bounded.GetTextContoursBounded(
+                            run.Text,
+                            cursor,
+                            runTop,
+                            visual.Font.Size,
+                            availablePoints,
+                            cancellationToken)
+                        : bounded.GetShapedTextContoursBounded(
+                            run.ShapedText!,
+                            run.ShapingResult,
+                            cursor,
+                            runTop,
+                            visual.Font.Size,
+                            availablePoints,
+                            cancellationToken);
+                }
+                sourcePaintGroups.Add(new OutlinedPaintContours(visual.Color, contours));
             }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
             double italicBottom = runTop + lineHeights[runIndex];
             double boldOffset = Math.Max(1D, visual.Font.Size / 22D);
             int copies = run.SimulateBold ? 2 : 1;
-            foreach (List<OfficePoint> contour in contours) {
-                int retainedForContour = checked(contour.Count * copies);
-                if (retainedForContour > availablePoints - runPointCount) {
-                    throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
-                }
-                runPointCount += retainedForContour;
-                retainedPointCount += retainedForContour;
-                allContours.Add(contour.Select(point => TransformOutlinedPoint(
-                    point,
-                    textX,
-                    scaleX,
-                    italicBottom,
-                    run.SimulateItalic,
-                    0D)).ToList());
-                if (run.SimulateBold) {
-                    allContours.Add(contour.Select(point => TransformOutlinedPoint(
+            foreach (OutlinedPaintContours sourceGroup in sourcePaintGroups) {
+                var transformedGroup = new List<List<OfficePoint>>();
+                foreach (List<OfficePoint> contour in sourceGroup.Contours) {
+                    int retainedForContour = checked(contour.Count * copies);
+                    if (retainedForContour > availablePoints - runPointCount) {
+                        throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
+                    }
+                    runPointCount += retainedForContour;
+                    retainedPointCount += retainedForContour;
+                    List<OfficePoint> transformed = contour.Select(point => TransformOutlinedPoint(
                         point,
                         textX,
                         scaleX,
                         italicBottom,
                         run.SimulateItalic,
-                        boldOffset)).ToList());
+                        0D)).ToList();
+                    transformedGroup.Add(transformed);
+                    allContours.Add(transformed);
+                    if (run.SimulateBold) {
+                        List<OfficePoint> bold = contour.Select(point => TransformOutlinedPoint(
+                            point,
+                            textX,
+                            scaleX,
+                            italicBottom,
+                            run.SimulateItalic,
+                            boldOffset)).ToList();
+                        transformedGroup.Add(bold);
+                        allContours.Add(bold);
+                    }
                 }
+                if (transformedGroup.Count > 0) paintGroups.Add(new OutlinedPaintContours(sourceGroup.Color, transformedGroup));
             }
             cursor += run.Advance;
         }
@@ -211,19 +253,11 @@ internal static partial class HtmlPdfRenderedConverter {
             maximumY);
         double outlineOffsetX = frame.OffsetX;
         double outlineOffsetY = frame.OffsetY;
-        var commands = new List<OfficePathCommand>();
-        AppendContours(
-            commands,
-            allContours,
-            outlineOffsetX,
-            outlineOffsetY,
-            webFonts.OutlineBudget,
-            cancellationToken);
-
         double decorationThickness = Math.Max(0.5D, visual.Font.Size / 16D);
+        var decorationCommands = new List<OfficePathCommand>();
         if (visual.Font.IsUnderline) {
             AppendRectangle(
-                commands,
+                decorationCommands,
                 textX + outlineOffsetX,
                 lineMetrics.TextTop + (lineMetrics.LineHeight * 0.86D) + outlineOffsetY,
                 resolvedAdvance,
@@ -232,24 +266,39 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (visual.Font.IsStrikethrough) {
             AppendRectangle(
-                commands,
+                decorationCommands,
                 textX + outlineOffsetX,
                 lineMetrics.TextTop + (lineMetrics.LineHeight * 0.52D) + outlineOffsetY,
                 resolvedAdvance,
                 decorationThickness,
                 webFonts.OutlineBudget);
         }
-        if (commands.Count == 0) return false;
+        if (paintGroups.Count == 0 && decorationCommands.Count == 0) return false;
 
         double drawingWidth = frame.Width;
         double drawingHeight = frame.Height;
-        var path = OfficeShape.Path(drawingWidth, drawingHeight, commands);
-        path.FillColor = visual.Color;
-        path.FillRule = OfficeFillRule.NonZero;
-        path.StrokeColor = null;
-        var drawing = new OfficeDrawing(drawingWidth, drawingHeight)
-            .AddShape(path, 0D, 0D);
-        string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
+        var drawing = new OfficeDrawing(drawingWidth, drawingHeight);
+        foreach (OutlinedPaintContours group in paintGroups) {
+            var commands = new List<OfficePathCommand>();
+            AppendContours(commands, group.Contours, outlineOffsetX, outlineOffsetY, webFonts.OutlineBudget, cancellationToken);
+            if (commands.Count == 0) continue;
+            var path = OfficeShape.Path(drawingWidth, drawingHeight, commands);
+            path.FillColor = group.Color;
+            path.FillRule = OfficeFillRule.NonZero;
+            path.StrokeColor = null;
+            drawing.AddShape(path, 0D, 0D);
+        }
+        if (decorationCommands.Count > 0) {
+            var decoration = OfficeShape.Path(drawingWidth, drawingHeight, decorationCommands);
+            decoration.FillColor = visual.DecorationColor;
+            decoration.FillRule = OfficeFillRule.NonZero;
+            decoration.StrokeColor = null;
+            drawing.AddShape(decoration, 0D, 0D);
+        }
+        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = IsFragmentLink(visual.LinkUri)
+            ? MapNamedDestination(visual.LinkUri!.Substring(1))
+            : null;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
             frame.X * PointsPerCssPixel,
@@ -259,9 +308,21 @@ internal static partial class HtmlPdfRenderedConverter {
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
             linkUri: link,
             linkContents: link == null ? null : visual.Text);
+        Action<PdfCore.PdfPageCanvas> addDrawingAndLink = target => {
+            addDrawing(target);
+            if (linkDestination != null) {
+                target.LinkToNamedDestination(
+                    linkDestination,
+                    frame.X * PointsPerCssPixel,
+                    frame.Y * PointsPerCssPixel,
+                    drawingWidth * PointsPerCssPixel,
+                    drawingHeight * PointsPerCssPixel,
+                    visual.Text);
+            }
+        };
 
         if (logicalTextOwned) {
-            addDrawing(canvas);
+            addDrawingAndLink(canvas);
         } else {
             PdfCore.PdfCanvasTextStructureRole role = asSpan
                 ? PdfCore.PdfCanvasTextStructureRole.Span
@@ -271,14 +332,14 @@ internal static partial class HtmlPdfRenderedConverter {
                     visual.Text,
                     visual.X * PointsPerCssPixel,
                     (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
-                    addDrawing);
+                    addDrawingAndLink);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
                         visual.Text,
                         visual.X * PointsPerCssPixel,
                         (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
-                        addDrawing));
+                        addDrawingAndLink));
             }
         }
 
@@ -302,17 +363,35 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
+    private static bool ContainsColorGlyph(IOfficeFontProgram program, string text) {
+        if (program is not IOfficeColorFontProgram colorProgram) return false;
+        for (int index = 0; index < text.Length;) {
+            int scalar;
+            char first = text[index++];
+            if (char.IsHighSurrogate(first) && index < text.Length && char.IsLowSurrogate(text[index])) {
+                scalar = char.ConvertToUtf32(first, text[index++]);
+            } else {
+                scalar = first;
+            }
+            if (program.TryGetGlyphMetrics(scalar, out int glyphId, out _) && colorProgram.HasColorGlyph(glyphId)) return true;
+        }
+        return false;
+    }
+
     private static OfficeTextShapingResult? ShapeOutlinedRun(
         OutlinedFontRun run,
+        OfficeTextFeatureSettings featureSettings,
         RegisteredWebFonts webFonts,
         CancellationToken cancellationToken,
         out string? shapedText) {
         shapedText = null;
-        if (webFonts.TextShapingProvider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
+        IOfficeTextShapingProvider? provider = webFonts.TextShapingProvider;
+        if (provider == null && !featureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
         shapedText = OfficeArabicTextShaper.ToLogicalText(run.Text);
         cancellationToken.ThrowIfCancellationRequested();
         IOfficeFontProgram program = run.Face.Program;
-        OfficeTextShapingResult? shapingResult = webFonts.TextShapingProvider.ShapeText(new OfficeTextShapingRequest(
+        OfficeTextShapingResult? shapingResult = provider.ShapeText(new OfficeTextShapingRequest(
             shapedText,
             program.DisplayName ?? run.Face.FamilyName,
             program.GetFontDataForShaping(),
@@ -324,7 +403,8 @@ internal static partial class HtmlPdfRenderedConverter {
             program.CollectionIndex,
             run.Face.VariationCoordinatesForShaping,
             cloneFontData: false,
-            fontProgramCacheKey: program));
+            fontProgramCacheKey: program,
+            featureSettings: featureSettings));
         if (shapingResult == null) shapedText = null;
         return shapingResult;
     }
@@ -581,6 +661,16 @@ internal static partial class HtmlPdfRenderedConverter {
         internal double Advance { get; }
         internal string? ShapedText { get; }
         internal OfficeTextShapingResult? ShapingResult { get; }
+    }
+
+    private sealed class OutlinedPaintContours {
+        internal OutlinedPaintContours(OfficeColor color, List<List<OfficePoint>> contours) {
+            Color = color;
+            Contours = contours;
+        }
+
+        internal OfficeColor Color { get; }
+        internal List<List<OfficePoint>> Contours { get; }
     }
 
     internal readonly struct OutlinedTextFrame {

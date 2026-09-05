@@ -143,7 +143,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         InlineContainingRect? bounds,
         IReadOnlyList<HtmlRenderVisual> visuals) {
-        if (bounds == null || visuals.Count == 0) return visuals;
+        if (bounds == null) return visuals;
+        IReadOnlyList<HtmlRenderVisual> decoratedVisuals = ApplyInlineBoxDecoration(element, style, bounds, visuals);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (style.UnsupportedOpacity.Length > 0) {
             _diagnostics.Add(
@@ -209,9 +210,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
-        if (!hasTransform && !hasOpacity && !hasClipPath) return visuals;
+        if (!hasTransform && !hasOpacity && !hasClipPath) return decoratedVisuals;
         IReadOnlyList<HtmlRenderVisual> effectVisuals = ReplaceDescendantFormFieldsForPaintEffect(
-            visuals,
+            decoratedVisuals,
             hasTransform ? "ancestor-transform=" + source
                 : hasOpacity ? "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "ancestor-clip-path=" + style.ClipPath);
@@ -239,5 +240,64 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 0,
                 source)
         };
+    }
+
+    private IReadOnlyList<HtmlRenderVisual> ApplyInlineBoxDecoration(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        InlineContainingRect bounds,
+        IReadOnlyList<HtmlRenderVisual> content) {
+        if (!HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
+
+        var backgroundsAndBorders = new List<HtmlRenderVisual>();
+        var outlines = new List<HtmlRenderVisual>();
+        bool clone = string.Equals(style.BoxDecorationBreak, "clone", StringComparison.Ordinal);
+        for (int index = 0; index < bounds.Fragments.Count; index++) {
+            InlineFragmentRect fragment = bounds.Fragments[index];
+            bool includeStartEdge = clone || index == 0 && !bounds.IsContinuation;
+            bool includeEndEdge = clone || index == bounds.Fragments.Count - 1;
+            HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(style, includeStartEdge, includeEndEdge);
+            double leftInset = includeStartEdge ? fragmentStyle.BorderLeftWidth + fragmentStyle.PaddingLeft : 0D;
+            double rightInset = includeEndEdge ? fragmentStyle.BorderRightWidth + fragmentStyle.PaddingRight : 0D;
+            double topInset = fragmentStyle.BorderTopWidth + fragmentStyle.PaddingTop;
+            double bottomInset = fragmentStyle.BorderBottomWidth + fragmentStyle.PaddingBottom;
+            double x = fragment.X - leftInset;
+            double y = fragment.Y - topInset;
+            double width = Math.Max(0.01D, fragment.Width + leftInset + rightInset);
+            double height = Math.Max(0.01D, fragment.Height + topInset + bottomInset);
+            AddBoxPaint(backgroundsAndBorders, fragmentStyle, x, y, width, height, element);
+            AddBoxOutlinePaint(outlines, fragmentStyle, x, y, width, height, element);
+        }
+
+        var decorated = new List<HtmlRenderVisual>(backgroundsAndBorders.Count + content.Count + outlines.Count);
+        decorated.AddRange(backgroundsAndBorders);
+        decorated.AddRange(content);
+        decorated.AddRange(outlines);
+        return decorated;
+    }
+
+    private static HtmlRenderBoxStyle CreateInlineFragmentPaintStyle(
+        HtmlRenderBoxStyle source,
+        bool includeStartEdge,
+        bool includeEndEdge) {
+        HtmlRenderBoxStyle style = source.Clone();
+        HtmlRenderBorderSide left = includeStartEdge
+            ? source.Borders.Left
+            : source.Borders.Left.WithStyle("none");
+        HtmlRenderBorderSide right = includeEndEdge
+            ? source.Borders.Right
+            : source.Borders.Right.WithStyle("none");
+        style.Borders = new HtmlRenderBorderEdges(source.Borders.Top, right, source.Borders.Bottom, left);
+        if (!includeStartEdge) {
+            style.PaddingLeft = 0D;
+            style.BorderTopLeftRadius = "0";
+            style.BorderBottomLeftRadius = "0";
+        }
+        if (!includeEndEdge) {
+            style.PaddingRight = 0D;
+            style.BorderTopRightRadius = "0";
+            style.BorderBottomRightRadius = "0";
+        }
+        return style;
     }
 }

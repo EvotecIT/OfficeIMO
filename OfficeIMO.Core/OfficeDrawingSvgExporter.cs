@@ -86,9 +86,14 @@ public static partial class OfficeDrawingSvgExporter {
             .Append("\";src:url(data:font/ttf;base64,");
         OfficeSvgImageRenderer.AppendBase64(sb, fontData, cancellationToken);
         sb.Append(") format(\"truetype\");font-weight:")
-            .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+            .Append(face.Descriptor.Weight.ToString(CultureInfo.InvariantCulture))
+            .Append(";font-stretch:")
+            .Append(face.Descriptor.StretchPercent.ToString("0.###", CultureInfo.InvariantCulture))
+            .Append('%')
             .Append(";font-style:")
-            .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal");
+            .Append(face.Descriptor.Slant == OfficeFontSlant.Oblique
+                ? "oblique " + face.Descriptor.ObliqueAngleDegrees.ToString("0.###", CultureInfo.InvariantCulture) + "deg"
+                : face.Descriptor.Slant == OfficeFontSlant.Italic ? "italic" : "normal");
         if (includeUnicodeRange && !face.UnicodeRanges.IsAll) {
             sb.Append(";unicode-range:");
             for (int index = 0; index < face.UnicodeRanges.Ranges.Count; index++) {
@@ -191,6 +196,15 @@ public static partial class OfficeDrawingSvgExporter {
                 case OfficeDrawingEffectGroup effectGroup:
                     AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
+                case OfficeDrawingLink link:
+                    sb.Append("<a").AppendAttribute("href", link.Uri);
+                    if (link.AlternativeText != null) sb.AppendAttribute("aria-label", link.AlternativeText);
+                    sb.Append("><rect x=\"").Append(Format(link.X))
+                        .Append("\" y=\"").Append(Format(link.Y))
+                        .Append("\" width=\"").Append(Format(link.Width))
+                        .Append("\" height=\"").Append(Format(link.Height))
+                        .Append("\" fill=\"transparent\" pointer-events=\"all\"/></a>");
+                    break;
             }
         }
     }
@@ -199,8 +213,12 @@ public static partial class OfficeDrawingSvgExporter {
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
-        sb.Append("<g")
-            .AppendClipPathReference(groupClipPathId)
+        sb.Append("<g");
+        if (drawingGroup.ActualText != null) {
+            sb.AppendAttribute("role", "img")
+                .AppendAttribute("aria-label", drawingGroup.ActualText);
+        }
+        sb.AppendClipPathReference(groupClipPathId)
             .Append(transform)
             .Append('>');
         bool hasContentOffset = Math.Abs(drawingGroup.ContentOffsetX) > 0.0000001D || Math.Abs(drawingGroup.ContentOffsetY) > 0.0000001D;
@@ -577,9 +595,12 @@ public static partial class OfficeDrawingSvgExporter {
                 text.TextAdvanceWidth.Value,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                OfficeTextBaseline.Normal);
+                OfficeTextBaseline.Normal,
+                text.DecorationColor,
+                text.FeatureSettings,
+                text.FontPalette);
         } else {
-            sb.AppendSvgTextElement(
+            sb.AppendSvgFeaturedTextElement(
                 text.Text,
                 x,
                 y,
@@ -597,7 +618,10 @@ public static partial class OfficeDrawingSvgExporter {
                 (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                OfficeTextBaseline.Normal);
+                OfficeTextBaseline.Normal,
+                text.DecorationColor,
+                text.FeatureSettings,
+                text.FontPalette);
         }
 
         if (useFrameTransform) {
@@ -678,7 +702,8 @@ public static partial class OfficeDrawingSvgExporter {
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
             underlineStyle: text.UnderlineStyle,
             strikethroughStyle: text.StrikethroughStyle,
-            baseline: OfficeTextBaseline.Normal);
+            baseline: OfficeTextBaseline.Normal,
+            decorationColor: text.DecorationColor);
     }
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {
@@ -838,7 +863,19 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendStrokeStyle(StringBuilder sb, OfficeShape shape) {
-        sb.AppendStrokeDashStyleAttribute(shape.StrokeDashStyle, shape.StrokeWidth);
+        if (shape.StrokeDashArray.Count > 0) {
+            sb.Append(" stroke-dasharray=\"");
+            for (int index = 0; index < shape.StrokeDashArray.Count; index++) {
+                if (index > 0) sb.Append(' ');
+                sb.Append(Format(shape.StrokeDashArray[index]));
+            }
+            sb.Append('"');
+            if (Math.Abs(shape.StrokeDashOffset) > 0.000000000001D) {
+                sb.Append(" stroke-dashoffset=\"").Append(Format(shape.StrokeDashOffset)).Append('"');
+            }
+        } else {
+            sb.AppendStrokeDashStyleAttribute(shape.StrokeDashStyle, shape.StrokeWidth);
+        }
 
         if (shape.StrokeLineCap.HasValue) {
             sb.AppendStrokeLineCapAttribute(shape.StrokeLineCap.Value);
@@ -846,6 +883,10 @@ public static partial class OfficeDrawingSvgExporter {
 
         if (shape.StrokeLineJoin.HasValue) {
             sb.AppendStrokeLineJoinAttribute(shape.StrokeLineJoin.Value);
+        }
+
+        if (Math.Abs(shape.StrokeMiterLimit - 4D) > 0.000000000001D) {
+            sb.Append(" stroke-miterlimit=\"").Append(Format(shape.StrokeMiterLimit)).Append('"');
         }
     }
 

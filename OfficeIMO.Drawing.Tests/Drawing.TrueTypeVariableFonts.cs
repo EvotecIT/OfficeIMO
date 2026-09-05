@@ -280,6 +280,20 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void TrueTypeDefaultInstanceIgnoresNeutralMvarDeltas() {
+        byte[] original = ReadAsset("RobotoFlex.ttf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(original));
+        OfficeFontVariationModel model = OfficeFontVariationModel.Create(reader, requestedValues: null);
+        byte[] withMvar = ReplaceHvarWithMvar(original, CreateHorizontalMetricsMvar(model));
+        OfficeTrueTypeFont baseline = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(original));
+
+        OfficeTrueTypeFont defaultInstance = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(withMvar));
+
+        Assert.Equal(baseline.LineHeight(24D), defaultInstance.LineHeight(24D), 6);
+        Assert.Equal(baseline.LineSpacingRatio, defaultInstance.LineSpacingRatio, 6);
+    }
+
+    [Fact]
     public void CompositeUseMyMetricsSuppliesSelectedComponentAdvanceWhenHvarIsAbsent() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         RenameTable(data, "HVAR", "HVAX");

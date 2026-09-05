@@ -219,6 +219,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeColor = OfficeColor.White;
         shape.StrokeWidth = primitive.StrokeWidth;
         shape.StrokeDashStyle = primitive.StrokeDashStyle;
+        ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         var source = new OfficeDrawing(sourceWidth, sourceHeight);

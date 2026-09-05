@@ -297,6 +297,40 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_CollapsedThreeDimensionalBordersPreserveConflictOrderAndTwoTonePaint() {
+        const string html = "<table id='three-d' style='width:80px;margin:4px;table-layout:fixed;border-collapse:collapse;font-size:8px;line-height:10px'><tr>"
+            + "<td style='border:2px solid black;border-right:6px groove #808080'>LeftPdf</td>"
+            + "<td style='border:2px solid black;border-left:6px ridge #808080'>RightPdf</td></tr></table>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        List<HtmlRenderShape> shared = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("table#three-d:collapsed-border-v-1-0", StringComparison.Ordinal))
+            .ToList();
+        OfficeColor dark = OfficeColorTransforms.Shade(OfficeColor.Gray, 0.55D);
+        OfficeColor light = OfficeColorTransforms.Tint(OfficeColor.Gray, 0.55D);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(2, shared.Count);
+        Assert.Contains(shared, shape => shape.Shape.StrokeColor == dark);
+        Assert.Contains(shared, shape => shape.Shape.StrokeColor == light);
+        Assert.All(shared, shape => Assert.Equal(3D, shape.Shape.StrokeWidth, 3));
+        Assert.Contains("stroke=\"#464646\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#B9B9B9\"", svg, StringComparison.Ordinal);
+        Assert.Contains("LeftPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlTables_CollapsedHiddenBorderSuppressesSharedCellEdge() {
         const string html = "<table id='hidden-conflict' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse'><tr>"
             + "<td style='border:1px solid black;border-right:5px solid red'>Left</td>"

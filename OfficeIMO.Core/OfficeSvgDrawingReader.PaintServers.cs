@@ -30,12 +30,14 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeLinearGradient? LinearGradient { get; }
         internal OfficeRadialGradient? RadialGradient { get; }
         internal SvgGradientDefinition? DeferredGradient { get; }
+        internal XElement? Pattern { get; }
 
         internal SvgResolvedPaint(OfficeColor color) {
             Color = color;
             LinearGradient = null;
             RadialGradient = null;
             DeferredGradient = null;
+            Pattern = null;
         }
 
         internal SvgResolvedPaint(OfficeLinearGradient gradient) {
@@ -43,6 +45,7 @@ public static partial class OfficeSvgDrawingReader {
             LinearGradient = gradient;
             RadialGradient = null;
             DeferredGradient = null;
+            Pattern = null;
         }
 
         internal SvgResolvedPaint(OfficeRadialGradient gradient) {
@@ -50,6 +53,7 @@ public static partial class OfficeSvgDrawingReader {
             LinearGradient = null;
             RadialGradient = gradient;
             DeferredGradient = null;
+            Pattern = null;
         }
 
         internal SvgResolvedPaint(SvgGradientDefinition gradient) {
@@ -57,6 +61,15 @@ public static partial class OfficeSvgDrawingReader {
             LinearGradient = null;
             RadialGradient = null;
             DeferredGradient = gradient;
+            Pattern = null;
+        }
+
+        internal SvgResolvedPaint(XElement pattern) {
+            Color = null;
+            LinearGradient = null;
+            RadialGradient = null;
+            DeferredGradient = null;
+            Pattern = pattern;
         }
     }
 
@@ -74,7 +87,13 @@ public static partial class OfficeSvgDrawingReader {
             if (!TryReadLocalReference(value, requireUrl: true, out string id)
                 || !_definitions.TryGetUnique(id, out XElement? element)
                 || (!element!.Name.LocalName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
-                    && !element.Name.LocalName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase))) return false;
+                    && !element.Name.LocalName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)
+                    && !element.Name.LocalName.Equals("pattern", StringComparison.OrdinalIgnoreCase))) return false;
+
+            if (element.Name.LocalName.Equals("pattern", StringComparison.OrdinalIgnoreCase)) {
+                paint = new SvgResolvedPaint(element);
+                return true;
+            }
 
             if (!_resolved.TryGetValue(id, out SvgGradientDefinition? definition)) {
                 if (_invalid.Contains(id)) return false;

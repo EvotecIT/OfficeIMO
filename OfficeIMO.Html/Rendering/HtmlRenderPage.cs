@@ -20,7 +20,8 @@ public sealed class HtmlRenderPage {
         string? pageName = null,
         OfficeFontFaceCollection? fonts = null,
         HtmlCssRunningStringPageContext? runningStrings = null,
-        HtmlRenderMargins? margins = null) {
+        HtmlRenderMargins? margins = null,
+        HtmlRenderPrintProductionSettings? printProduction = null) {
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -34,6 +35,7 @@ public sealed class HtmlRenderPage {
         Height = height;
         Margins = margins ?? HtmlRenderMargins.All(0D);
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
+        PrintProduction = printProduction;
         _scene = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
             .ToList()
@@ -58,6 +60,9 @@ public sealed class HtmlRenderPage {
 
     /// <summary>CSS named-page identifier selected for this page, or <see langword="null"/> for the generic page master.</summary>
     public string? PageName { get; }
+
+    /// <summary>Resolved CSS bleed and printer-mark contract, when requested for this page.</summary>
+    public HtmlRenderPrintProductionSettings? PrintProduction { get; }
 
     /// <summary>Ordered backend-neutral visuals on this page.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
@@ -134,10 +139,15 @@ public sealed class HtmlRenderPage {
                     baseline: text.Baseline,
                     baselineLevel: text.BaselineLevel,
                     baselineScale: text.BaselineScale,
-                    baselineOffset: text.BaselineOffset);
+                    baselineOffset: text.BaselineOffset,
+                    decorationColor: text.DecorationColor,
+                    featureSettings: text.FeatureSettings,
+                    fontPalette: text.FontPalette);
             } else if (text.UnderlineStyle != OfficeTextDecorationStyle.None ||
                        text.StrikethroughStyle != OfficeTextDecorationStyle.None ||
-                       text.Baseline != OfficeTextBaseline.Normal) {
+                       text.Baseline != OfficeTextBaseline.Normal ||
+                       !text.FeatureSettings.IsDefault ||
+                       !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase)) {
                 drawing.AddStyledText(
                     drawingText,
                     text.X,
@@ -164,7 +174,10 @@ public sealed class HtmlRenderPage {
                     text.Baseline,
                     text.BaselineLevel,
                     text.BaselineScale,
-                    text.BaselineOffset);
+                    text.BaselineOffset,
+                    text.DecorationColor,
+                    text.FeatureSettings,
+                    text.FontPalette);
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }

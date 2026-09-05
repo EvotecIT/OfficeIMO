@@ -1562,6 +1562,37 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeShape_PreservesExactStrokeDashPhaseAndMiterAcrossCloneAndSvg() {
+        var drawing = new OfficeDrawing(120, 40);
+        OfficeShape shape = OfficeShape.Line(0, 0, 100, 0);
+        shape.StrokeColor = OfficeColor.Black;
+        shape.StrokeWidth = 2D;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.StrokeMiterLimit = 7.5D;
+        shape.SetStrokeDashArray(new[] { 9D, 3D, 1D }, -2.5D);
+        drawing.AddShape(shape, 10D, 20D);
+
+        OfficeShape clone = Assert.Single(drawing.Clone().Shapes).Shape;
+        Assert.Equal(new[] { 9D, 3D, 1D }, clone.StrokeDashArray);
+        Assert.Equal(-2.5D, clone.StrokeDashOffset);
+        Assert.Equal(7.5D, clone.StrokeMiterLimit);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stroke-dasharray=\"9 3 1\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-dashoffset=\"-2.5\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-miterlimit=\"7.5\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeShape_RejectsInvalidExactStrokeDashContracts() {
+        OfficeShape shape = OfficeShape.Rectangle(10D, 10D);
+        Assert.Throws<ArgumentException>(() => shape.SetStrokeDashArray(new[] { 0D, 0D }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => shape.SetStrokeDashArray(new[] { 1D, -1D }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => shape.SetStrokeDashArray(new[] { 1D, 1D }, double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => shape.StrokeMiterLimit = 0.5D);
+    }
+
+    [Fact]
     public void OfficeDrawingLineMarkersRenderThroughSharedSvgAndRasterExporters() {
         var drawing = new OfficeDrawing(120, 80);
         var shape = OfficeShape.Line(0, 0, 80, 0);

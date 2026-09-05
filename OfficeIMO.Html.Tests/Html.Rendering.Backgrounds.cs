@@ -147,6 +147,47 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBackgroundOriginAndClip_UseIndependentPerLayerBoxesAcrossBackends() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<div class='origin-clip' style=\"width:40px;height:30px;padding:6px;border:4px solid black;"
+            + "background-color:blue;background-image:url('data:image/png;base64,"
+            + imageData
+            + "');background-origin:border-box;background-clip:content-box;background-size:100% 100%;background-repeat:no-repeat\"></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 90D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderImage background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        HtmlRenderShape color = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillColor == OfficeColor.Blue);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.Equal(18D, background.X, 3);
+        Assert.Equal(18D, background.Y, 3);
+        Assert.Equal(40D, background.Width, 3);
+        Assert.Equal(30D, background.Height, 3);
+        Assert.Equal(1D / 6D, background.SourceCrop.Left, 3);
+        Assert.Equal(1D / 5D, background.SourceCrop.Top, 3);
+        Assert.Equal(18D, color.X, 3);
+        Assert.Equal(18D, color.Y, 3);
+        Assert.Equal(40D, color.Width, 3);
+        Assert.Equal(30D, color.Height, 3);
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 20));
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlBackgroundColorAlpha_FlowsThroughThePdfDrawingAdapter() {
         const string html = "<div style='width:80px;height:40px;background:rgba(255,255,255,.2)'>Alpha</div>";
 

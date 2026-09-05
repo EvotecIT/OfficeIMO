@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
-        if (!_generatedContent.TryGet(element, kind, out string content)
+        if (!_generatedContent.TryGetContent(element, kind, out HtmlGeneratedContent content)
             || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)
             || style.Display == "none") {
             return;
@@ -23,14 +23,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = DescribePseudoSource(element, kind);
         ReportUnsupportedGeneratedLayout(style, source);
         ResolvePositionPaintOffset(style, width, containingHeight, source, out double offsetX, out double offsetY);
-        runs.Add(new HtmlInlineRun(
-            ApplyTextTransform(content, style),
+        AddGeneratedInlineFragments(
+            content,
+            element,
             style,
             link,
             source,
+            width,
             inheritedPaintOffsetX + offsetX,
             inheritedPaintOffsetY + offsetY,
-            element));
+            runs);
     }
 
     private void AddGeneratedContentBlock(
@@ -39,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlPseudoElementKind kind,
         double containingWidth,
         HtmlRenderBoxStyle parentStyle) {
-        if (!_generatedContent.TryGet(element, kind, out string content)
+        if (!_generatedContent.TryGetContent(element, kind, out HtmlGeneratedContent content)
             || !_styleResolver.TryResolvePseudo(element, kind, containingWidth, parentStyle, out HtmlRenderBoxStyle style)
             || style.Display == "none") {
             return;
@@ -53,8 +55,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = string.Equals(element.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.GetAttribute("href"), element)
             : null;
-        var run = new HtmlInlineRun(ApplyTextTransform(content, style), style, link, source, ownerElement: element);
-        HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
+        var runs = new List<HtmlInlineRun>();
+        AddGeneratedInlineFragments(content, element, style, link, source, contentWidth, 0D, 0D, runs);
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
@@ -84,6 +87,74 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Widows,
             pageName: style.PageName ?? parentStyle.PageName);
         blocks.Add(ApplyPositioning(block, style, containingWidth, ResolveContainingBlockHeight(parentStyle), source));
+    }
+
+    private void AddGeneratedInlineFragments(
+        HtmlGeneratedContent content,
+        IElement element,
+        HtmlRenderBoxStyle style,
+        string? link,
+        string source,
+        double containingWidth,
+        double paintOffsetX,
+        double paintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
+        for (int index = 0; index < content.Fragments.Count; index++) {
+            HtmlGeneratedContentFragment fragment = content.Fragments[index];
+            string fragmentSource = fragment.Kind == HtmlGeneratedContentFragmentKind.Text
+                ? source
+                : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()
+                    + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
+            if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
+                string text = ApplyTextTransform(fragment.Value, style);
+                if (text.Length > 0) {
+                    runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
+                }
+                continue;
+            }
+
+            if (fragment.Kind == HtmlGeneratedContentFragmentKind.Leader) {
+                runs.Add(new HtmlInlineRun(
+                    string.Empty,
+                    style,
+                    link,
+                    fragmentSource,
+                    paintOffsetX,
+                    paintOffsetY,
+                    element,
+                    logicalText: string.Empty,
+                    leaderPattern: fragment.Value));
+                continue;
+            }
+
+            if (fragment.Kind == HtmlGeneratedContentFragmentKind.TargetPage) {
+                int pageNumber = _generatedContent.TryGetTargetPage(fragment.Value, out int resolvedPage) ? resolvedPage : 8888;
+                string counterStyle = string.IsNullOrWhiteSpace(fragment.Format) ? "decimal" : fragment.Format!;
+                string pageText = _counterStyles.TryFormat(pageNumber, counterStyle, out string custom, out _)
+                    ? custom
+                    : HtmlCounterStyleFormatter.TryFormat(pageNumber, counterStyle, out string standard, out _)
+                        ? standard
+                        : pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                runs.Add(new HtmlInlineRun(pageText, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
+                continue;
+            }
+
+            IDocument? owner = element.Owner;
+            if (owner == null) continue;
+            IElement imageElement = owner.CreateElement("img");
+            imageElement.SetAttribute("src", fragment.Value);
+            double imageWidth = ResolveFloatingImageOuterWidth(imageElement, style);
+            HtmlRenderFlowBlock image = LayoutImage(imageElement, imageWidth, style, link);
+            runs.Add(new HtmlInlineRun(
+                image,
+                style,
+                link,
+                fragmentSource,
+                paintOffsetX,
+                paintOffsetY,
+                element,
+                isReplacedImage: true));
+        }
     }
 
     private void AddGeneratedBoxPaint(
@@ -119,7 +190,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string DescribePseudoSource(IElement element, HtmlPseudoElementKind kind) =>
         HtmlRenderStyleResolver.DescribeSource(element)
-        + (kind == HtmlPseudoElementKind.Before ? "::before" : "::after");
+        + (kind switch {
+            HtmlPseudoElementKind.Before => "::before",
+            HtmlPseudoElementKind.After => "::after",
+            HtmlPseudoElementKind.Marker => "::marker",
+            HtmlPseudoElementKind.FootnoteCall => "::footnote-call",
+            _ => "::footnote-marker"
+        });
 
     private void ReportUnsupportedGeneratedLayout(HtmlRenderBoxStyle style, string source) {
         string display = style.Display;

@@ -28,6 +28,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.Borders.HasPaint) return;
         if (style.Borders.IsUniform) {
             HtmlRenderBorderSide border = style.Borders.Top;
+            if (IsThreeDimensionalStroke(border.Style)) {
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Top, border, x, y, width, height, radii, sourceDescription);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Right, border, x, y, width, height, radii, sourceDescription);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, border, x, y, width, height, radii, sourceDescription);
+                AddBorderSidePaint(visuals, HtmlBorderEdge.Left, border, x, y, width, height, radii, sourceDescription);
+                return;
+            }
             if (border.Style == "double") {
                 double strokeWidth = Math.Max(0.01D, border.Width / 3D);
                 AddStrokeVisual(visuals, x, y, width, height, radii, border.Color, strokeWidth, "solid", sourceDescription + ":border-outer");
@@ -67,6 +74,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         if (style.OutlineWidth <= 0D || style.OutlineStyle == "none" || style.OutlineStyle == "hidden") return;
+        if (IsThreeDimensionalStroke(style.OutlineStyle)) {
+            double expansion = style.OutlineOffset + style.OutlineWidth / 2D;
+            double outlineWidth = width + expansion * 2D;
+            double outlineHeight = height + expansion * 2D;
+            if (outlineWidth <= 0.01D || outlineHeight <= 0.01D) return;
+            var outlineSide = new HtmlRenderBorderSide(style.OutlineWidth, style.OutlineStyle, style.OutlineColor);
+            HtmlResolvedBorderRadii outlineRadii = radii.Expand(expansion, outlineWidth, outlineHeight);
+            AddBorderSidePaint(visuals, HtmlBorderEdge.Top, outlineSide, x - expansion, y - expansion, outlineWidth, outlineHeight, outlineRadii, sourceDescription + ":outline");
+            AddBorderSidePaint(visuals, HtmlBorderEdge.Right, outlineSide, x - expansion, y - expansion, outlineWidth, outlineHeight, outlineRadii, sourceDescription + ":outline");
+            AddBorderSidePaint(visuals, HtmlBorderEdge.Bottom, outlineSide, x - expansion, y - expansion, outlineWidth, outlineHeight, outlineRadii, sourceDescription + ":outline");
+            AddBorderSidePaint(visuals, HtmlBorderEdge.Left, outlineSide, x - expansion, y - expansion, outlineWidth, outlineHeight, outlineRadii, sourceDescription + ":outline");
+            return;
+        }
         if (style.OutlineStyle == "double") {
             double strokeWidth = Math.Max(0.01D, style.OutlineWidth / 3D);
             AddExpandedStrokeVisual(visuals, x, y, width, height, radii, style.OutlineColor, strokeWidth, "solid", style.OutlineOffset + style.OutlineWidth / 6D, sourceDescription + ":outline-inner");
@@ -160,6 +180,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source) {
         if (!border.IsPainted) return;
         string edgeSource = source + ":border-" + edge.ToString().ToLowerInvariant();
+        if (IsThreeDimensionalStroke(border.Style)) {
+            AddThreeDimensionalBorderSidePaint(visuals, edge, border, x, y, width, height, radii, edgeSource);
+            return;
+        }
         if (border.Style != "double") {
             AddBorderSideStroke(visuals, edge, border.Color, border.Width, border.Style, x, y, width, height, radii, edgeSource);
             return;
@@ -174,6 +198,55 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii innerRadii = radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
         AddBorderSideStroke(visuals, edge, border.Color, strokeWidth, "solid", x + inset, y + inset, innerWidth, innerHeight, innerRadii, edgeSource + "-inner");
     }
+
+    private static void AddThreeDimensionalBorderSidePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlBorderEdge edge,
+        HtmlRenderBorderSide border,
+        double x,
+        double y,
+        double width,
+        double height,
+        HtmlResolvedBorderRadii radii,
+        string source) {
+        if (border.Style == "inset" || border.Style == "outset") {
+            AddBorderSideStroke(
+                visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
+                border.Width, "solid", x, y, width, height, radii, source);
+            return;
+        }
+
+        double strokeWidth = Math.Max(0.01D, border.Width / 2D);
+        AddBorderSideStroke(
+            visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
+            strokeWidth, "solid", x, y, width, height, radii, source + "-outer");
+        double inset = border.Width / 2D;
+        double innerWidth = width - inset * 2D;
+        double innerHeight = height - inset * 2D;
+        if (innerWidth <= 0.01D || innerHeight <= 0.01D) return;
+        HtmlResolvedBorderRadii innerRadii = radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
+        AddBorderSideStroke(
+            visuals, edge, ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
+            strokeWidth, "solid", x + inset, y + inset, innerWidth, innerHeight, innerRadii, source + "-inner");
+    }
+
+    private static OfficeColor ResolveThreeDimensionalColor(
+        OfficeColor color,
+        string style,
+        HtmlBorderEdge edge,
+        bool inner) {
+        bool leadingEdge = edge == HtmlBorderEdge.Top || edge == HtmlBorderEdge.Left;
+        bool dark = style switch {
+            "inset" => leadingEdge,
+            "outset" => !leadingEdge,
+            "groove" => inner ? !leadingEdge : leadingEdge,
+            _ => inner ? leadingEdge : !leadingEdge
+        };
+        return dark ? OfficeColorTransforms.Shade(color, 0.55D) : OfficeColorTransforms.Tint(color, 0.55D);
+    }
+
+    private static bool IsThreeDimensionalStroke(string style) =>
+        style == "groove" || style == "ridge" || style == "inset" || style == "outset";
 
     private static void AddBorderSideStroke(
         ICollection<HtmlRenderVisual> visuals,

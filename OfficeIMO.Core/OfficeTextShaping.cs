@@ -24,6 +24,7 @@ public sealed class OfficeTextShapingRequest {
     private readonly byte[] _fontData;
     private readonly object? _fontProgramCacheKey;
     private readonly IReadOnlyDictionary<string, float> _variationCoordinates;
+    private readonly OfficeTextFeatureSettings _featureSettings;
 
     /// <summary>Creates an immutable text-shaping request.</summary>
     /// <param name="text">Original UTF-16 text to shape.</param>
@@ -52,7 +53,33 @@ public sealed class OfficeTextShapingRequest {
             default,
             fontCollectionIndex: null,
             variationCoordinates: null,
-            cloneFontData: true) {
+            cloneFontData: true,
+            featureSettings: null) {
+    }
+
+    /// <summary>Creates an immutable text-shaping request with explicit OpenType feature values.</summary>
+    public OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        OfficeTextFeatureSettings featureSettings)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            default,
+            fontCollectionIndex: null,
+            variationCoordinates: null,
+            cloneFontData: true,
+            featureSettings: featureSettings) {
     }
 
     /// <summary>Creates an immutable text-shaping request with cooperative cancellation.</summary>
@@ -76,7 +103,8 @@ public sealed class OfficeTextShapingRequest {
             cancellationToken,
             fontCollectionIndex: null,
             variationCoordinates: null,
-            cloneFontData: true) {
+            cloneFontData: true,
+            featureSettings: null) {
     }
 
     /// <summary>Creates an immutable text-shaping request for a selected face in a font collection.</summary>
@@ -101,7 +129,8 @@ public sealed class OfficeTextShapingRequest {
             cancellationToken,
             fontCollectionIndex,
             variationCoordinates: null,
-            cloneFontData: true) {
+            cloneFontData: true,
+            featureSettings: null) {
     }
 
     /// <summary>Creates an immutable text-shaping request for a selected variable-font instance.</summary>
@@ -127,7 +156,36 @@ public sealed class OfficeTextShapingRequest {
             cancellationToken,
             fontCollectionIndex,
             variationCoordinates,
-            cloneFontData: true) {
+            cloneFontData: true,
+            featureSettings: null) {
+    }
+
+    /// <summary>Creates an immutable text-shaping request for a selected variable-font instance with explicit OpenType feature values.</summary>
+    public OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        System.Threading.CancellationToken cancellationToken,
+        int? fontCollectionIndex,
+        IReadOnlyDictionary<string, float>? variationCoordinates,
+        OfficeTextFeatureSettings featureSettings)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            cancellationToken,
+            fontCollectionIndex,
+            variationCoordinates,
+            cloneFontData: true,
+            featureSettings: featureSettings) {
     }
 
     internal OfficeTextShapingRequest(
@@ -142,7 +200,8 @@ public sealed class OfficeTextShapingRequest {
         int? fontCollectionIndex,
         IReadOnlyDictionary<string, float>? variationCoordinates,
         bool cloneFontData,
-        object? fontProgramCacheKey = null) {
+        object? fontProgramCacheKey = null,
+        OfficeTextFeatureSettings? featureSettings = null) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
             throw new ArgumentNullException(nameof(fontData));
@@ -169,6 +228,7 @@ public sealed class OfficeTextShapingRequest {
         Language = string.IsNullOrWhiteSpace(language) ? null : language;
         CancellationToken = cancellationToken;
         _variationCoordinates = SnapshotVariationCoordinates(variationCoordinates);
+        _featureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
     }
 
     /// <summary>Original UTF-16 text to shape.</summary>
@@ -206,6 +266,9 @@ public sealed class OfficeTextShapingRequest {
     public IReadOnlyDictionary<string, float> VariationCoordinates => _variationCoordinates;
 
     internal IReadOnlyDictionary<string, float> VariationCoordinatesForShaping => _variationCoordinates;
+
+    /// <summary>Explicit OpenType feature values for this run.</summary>
+    public OfficeTextFeatureSettings FeatureSettings => _featureSettings;
 
     private static IReadOnlyDictionary<string, float> SnapshotVariationCoordinates(
         IReadOnlyDictionary<string, float>? coordinates) {
@@ -295,11 +358,12 @@ public readonly struct OfficeShapedGlyph {
         int textIndex,
         int? advanceWidth,
         int offsetX,
-        int offsetY) {
+        int offsetY,
+        bool allowEmptyUnicode = false) {
         if (glyphId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(glyphId), "Shaped glyph identifiers must be positive.");
         }
-        if (string.IsNullOrEmpty(unicodeText)) {
+        if (!allowEmptyUnicode && string.IsNullOrEmpty(unicodeText)) {
             throw new ArgumentException("Shaped glyphs must preserve non-empty Unicode extraction text.", nameof(unicodeText));
         }
         if (textIndex < 0) {
@@ -313,6 +377,19 @@ public readonly struct OfficeShapedGlyph {
         OffsetX = offsetX;
         OffsetY = offsetY;
     }
+
+    internal static OfficeShapedGlyph CreatePositionedUsingNominalAdvance(
+        int glyphId,
+        string unicodeText,
+        int textIndex,
+        int offsetX,
+        int offsetY) => new OfficeShapedGlyph(glyphId, unicodeText, textIndex, advanceWidth: null, offsetX, offsetY);
+
+    internal static OfficeShapedGlyph CreateUnicodeContinuation(
+        int glyphId,
+        int textIndex,
+        int offsetX,
+        int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth: null, offsetX, offsetY, allowEmptyUnicode: true);
 
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }

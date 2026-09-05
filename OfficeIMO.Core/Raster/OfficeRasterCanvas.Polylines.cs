@@ -49,12 +49,14 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="thickness">Stroke thickness in canvas pixels.</param>
     /// <param name="dashPattern">Alternating dash and gap lengths in canvas pixels.</param>
     /// <param name="resetDashPatternForEachSegment">Whether the dash pattern should restart for every segment.</param>
+    /// <param name="dashOffset">Distance into the dash pattern at which stroking begins.</param>
     public void DrawPatternedPolyline(
         IReadOnlyList<OfficePoint> points,
         OfficeColor color,
         double thickness,
         IReadOnlyList<double>? dashPattern,
-        bool resetDashPatternForEachSegment = false) {
+        bool resetDashPatternForEachSegment = false,
+        double dashOffset = 0D) {
         if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
@@ -65,12 +67,15 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double patternPosition = 0D;
+        double cycle = 0D;
+        for (int index = 0; index < pattern.Count; index++) cycle = SaturatingDashCycle(cycle, pattern[index]);
+        double patternPosition = AdvancePatternPosition(0D, dashOffset, cycle);
         for (int i = 1; i < points.Count; i++) {
             OfficePoint previous = points[i - 1];
             OfficePoint current = points[i];
             if (resetDashPatternForEachSegment) {
-                DrawPatternedLine(previous.X, previous.Y, current.X, current.Y, color, thickness, pattern);
+                double segmentPatternPosition = AdvancePatternPosition(0D, dashOffset, cycle);
+                DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref segmentPatternPosition);
             } else {
                 DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref patternPosition);
             }

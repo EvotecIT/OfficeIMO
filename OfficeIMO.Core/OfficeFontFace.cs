@@ -14,6 +14,7 @@ public sealed class OfficeFontFace {
         string resourceFamilyName,
         byte[] data,
         OfficeFontStyle style,
+        OfficeFontFaceDescriptor descriptor,
         OfficeFontUnicodeRangeSet unicodeRanges,
         IOfficeFontProgram parsedFont,
         OfficeFontContainerFormat containerFormat,
@@ -21,6 +22,7 @@ public sealed class OfficeFontFace {
         bool useDataSnapshot = false) {
         FamilyName = familyName;
         ResourceFamilyName = resourceFamilyName;
+        Descriptor = descriptor;
         Style = NormalizeStyle(style);
         UnicodeRanges = unicodeRanges;
         _data = useDataSnapshot ? data : (byte[])data.Clone();
@@ -37,6 +39,9 @@ public sealed class OfficeFontFace {
 
     /// <summary>Bold and italic face attributes.</summary>
     public OfficeFontStyle Style { get; }
+
+    /// <summary>Numeric weight, stretch, and slant attributes used for CSS-compatible face selection.</summary>
+    public OfficeFontFaceDescriptor Descriptor { get; }
 
     /// <summary>Unicode scalars this face is allowed to serve.</summary>
     public OfficeFontUnicodeRangeSet UnicodeRanges { get; }
@@ -68,10 +73,10 @@ public sealed class OfficeFontFace {
         (ParsedFont as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping;
 
     internal OfficeFontFace Clone() =>
-        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
+        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
 
     internal OfficeFontFace CreateAlias(string familyName, string resourceFamilyName) =>
-        new OfficeFontFace(familyName, resourceFamilyName, _data, Style, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
+        new OfficeFontFace(familyName, resourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
 
     internal bool Covers(string text) => UnicodeRanges.ContainsFontCoverageText(text) && ParsedFont.HasGlyphs(text);
 

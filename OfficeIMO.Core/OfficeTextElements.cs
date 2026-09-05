@@ -98,6 +98,21 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Determines whether a grapheme remains upright in mixed-orientation vertical text.</summary>
+    public static bool IsVerticalMixedOrientationUpright(string? textElement) {
+        if (string.IsNullOrEmpty(textElement) || char.IsWhiteSpace(textElement!, 0)) return true;
+        int codePoint = char.ConvertToUtf32(textElement!, 0);
+        return (codePoint >= 0x1100 && codePoint <= 0x11FF)
+            || (codePoint >= 0x2E80 && codePoint <= 0xA4CF)
+            || (codePoint >= 0xAC00 && codePoint <= 0xD7AF)
+            || (codePoint >= 0xF900 && codePoint <= 0xFAFF)
+            || (codePoint >= 0xFE10 && codePoint <= 0xFE1F)
+            || (codePoint >= 0xFE30 && codePoint <= 0xFE6F)
+            || (codePoint >= 0xFF01 && codePoint <= 0xFF60)
+            || (codePoint >= 0xFFE0 && codePoint <= 0xFFE6)
+            || codePoint >= 0x1F000;
+    }
+
     /// <summary>Determines whether text contains a Unicode variation selector.</summary>
     public static bool ContainsVariationSelector(string? value) {
         if (string.IsNullOrEmpty(value)) return false;

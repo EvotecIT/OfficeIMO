@@ -120,6 +120,33 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
+        if (TryTrimPseudoElement(value, "::marker", out hostSelector)) {
+            kind = HtmlPseudoElementKind.Marker;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::footnote-call", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FootnoteCall;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::footnote-marker", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FootnoteMarker;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::first-letter", out hostSelector)
+            || TryTrimPseudoElement(value, ":first-letter", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FirstLetter;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::first-line", out hostSelector)
+            || TryTrimPseudoElement(value, ":first-line", out hostSelector)) {
+            kind = HtmlPseudoElementKind.FirstLine;
+            return true;
+        }
+
         hostSelector = string.Empty;
         kind = HtmlPseudoElementKind.Before;
         return false;
@@ -200,7 +227,8 @@ public static partial class HtmlComputedStyleEngine {
                     }
 
                     if (string.Equals(pseudoName, "before", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(pseudoName, "after", StringComparison.OrdinalIgnoreCase)) {
+                        || string.Equals(pseudoName, "after", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(pseudoName, "marker", StringComparison.OrdinalIgnoreCase)) {
                         elements++;
                         i = nameEnd;
                         continue;
