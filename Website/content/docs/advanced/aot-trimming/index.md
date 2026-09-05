@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **114 of 117 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge and local HTML/PDF workbench use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **114 of 118 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and OfficeIMO Studio desktop app use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 114 native-validated projects are not all proved in the same way:
 
@@ -13,7 +13,7 @@ The 114 native-validated projects are not all proved in the same way:
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 - **1 build-time source generator** emits an explicit row mapper that compiles into and executes from the main native host. The analyzer itself is not deployed as a runtime assembly.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 117 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 118 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
 
 ## Publish your application
 
@@ -45,7 +45,7 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 | Bounded Google APIs adapter | 1 | `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` constructs its data-store adapter and round-trips a value in the native executable. | The validated adapter path is native. Treat live OAuth/provider flows as application-specific until your chosen Google dependency graph publishes cleanly. |
 | Native command-line tools | 1 | `OfficeIMO.Tool` publishes and starts as a native executable on Windows and Linux with namespaced HTML, Reader, and Markup commands. | Native CLI deployment is supported; validate the concrete commands and formats used by your job. |
 | Native build analyzer | 1 | `OfficeIMO.Data.Generators` emits a row-mapping plan that compiles into and executes from the native host. | Install the analyzer at build time; only its generated application code is deployed. |
-| Managed cross-platform integrations | 2 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime. | Use managed .NET deployment for these optional integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
+| Managed cross-platform applications and integrations | 3 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime; OfficeIMO Studio uses the managed Avalonia desktop runtime. | Use managed .NET deployment for these applications and integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |
 
 CI fails if a production project is added, removed, or renamed without being classified in this matrix.

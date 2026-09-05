@@ -59,6 +59,11 @@ $managedOnly = @(
         evidence = 'The local ASP.NET Core workbench is validated as a managed browser-hosted tool and is not distributed or advertised as NativeAOT-compatible.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Studio'
+        classification = 'managed-cross-platform'
+        evidence = 'The Avalonia desktop application is validated in its managed cross-platform deployment model and is not distributed or advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
         classification = 'managed-windows'
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'

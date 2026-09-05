@@ -37,7 +37,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>Yes, for the packages and workflows covered by the OfficeIMO validation matrix. CI validates production libraries, a bounded native workflow for the optional Google APIs credential adapter, and the production CLI tool on Windows and Linux. The Chromium browser-PDF bridge and local HTML/PDF workbench use managed cross-platform deployment, while the WPF/WebView2 renderer uses managed Windows deployment. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the current project counts, exact package coverage, and runtime path.</p>"
+          "answer": "<p>Yes, for the packages and workflows covered by the OfficeIMO validation matrix. CI validates production libraries, a bounded native workflow for the optional Google APIs credential adapter, and the production CLI tool on Windows and Linux. The Chromium browser-PDF bridge, local HTML/PDF workbench, and OfficeIMO Studio desktop app use managed cross-platform deployment, while the WPF/WebView2 renderer uses managed Windows deployment. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the current project counts, exact package coverage, and runtime path.</p>"
         }
       ]
     },
