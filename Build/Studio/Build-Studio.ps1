@@ -27,7 +27,7 @@ $configPath = Join-Path $PSScriptRoot 'powerforge.dotnetpublish.json'
 $previousNuGetPackages = $env:NUGET_PACKAGES
 $env:NUGET_PACKAGES = Join-Path $repositoryRoot '.nuget/packages'
 
-Import-Module PSPublishModule -MinimumVersion 3.0.131 -Force
+Import-Module PSPublishModule -MinimumVersion 3.0.135 -Force
 
 $parameters = @{
     ConfigPath = $configPath
