@@ -318,6 +318,23 @@ internal static partial class PdfAnnotationEditor {
             annotation.Items["C"] = CreateColorArray(options.Color);
             invalidateAppearance = true;
         }
+        if (options.InteriorColor is not null) { annotation.Items["IC"] = CreateColorArray(options.InteriorColor); invalidateAppearance = true; }
+        if (options.Opacity.HasValue) { annotation.Items["CA"] = new PdfNumber(options.Opacity.Value); invalidateAppearance = true; }
+        if (options.BorderWidth.HasValue || options.BorderStyle.HasValue || options.BorderDashPattern is not null) {
+            var border = new PdfDictionary();
+            if (annotation.Items.TryGetValue("BS", out PdfObject? borderObject) && PdfObjectLookup.Resolve(objects, borderObject) is PdfDictionary existingBorder) {
+                foreach (KeyValuePair<string, PdfObject> item in existingBorder.Items) border.Items[item.Key] = item.Value;
+            }
+            if (options.BorderWidth.HasValue) border.Items["W"] = new PdfNumber(options.BorderWidth.Value);
+            if (options.BorderStyle.HasValue) {
+                border.Items["S"] = new PdfName(GetAnnotationBorderStyleName(options.BorderStyle.Value));
+                if (options.BorderStyle.Value != PdfAnnotationBorderStyle.Dashed && options.BorderDashPattern is null) border.Items.Remove("D");
+            }
+            else if (options.BorderDashPattern is not null) border.Items["S"] = new PdfName("D");
+            if (options.BorderDashPattern is not null) border.Items["D"] = CreateNumberArray(options.BorderDashPattern);
+            annotation.Items["BS"] = border;
+            invalidateAppearance = true;
+        }
 
         if (options.RemoveActions) {
             annotation.Items.Remove("A");
@@ -386,6 +403,15 @@ internal static partial class PdfAnnotationEditor {
         return color;
     }
 
+    private static string GetAnnotationBorderStyleName(PdfAnnotationBorderStyle style) => style switch {
+        PdfAnnotationBorderStyle.Solid => "S",
+        PdfAnnotationBorderStyle.Dashed => "D",
+        PdfAnnotationBorderStyle.Beveled => "B",
+        PdfAnnotationBorderStyle.Inset => "I",
+        PdfAnnotationBorderStyle.Underline => "U",
+        _ => throw new ArgumentOutOfRangeException(nameof(style))
+    };
+
     private static double ClampColor(double value) {
         if (value < 0D) {
             return 0D;
@@ -417,6 +443,14 @@ internal static partial class PdfAnnotationEditor {
                 }
             }
         }
+        if (options.InteriorColor is not null) {
+            if (options.InteriorColor.Count is not (1 or 3 or 4) || options.InteriorColor.Any(static component => double.IsNaN(component) || double.IsInfinity(component))) throw new ArgumentException("InteriorColor must contain one gray, three RGB, or four CMYK finite color components.", nameof(options));
+        }
+        if (options.Opacity.HasValue && (double.IsNaN(options.Opacity.Value) || double.IsInfinity(options.Opacity.Value) || options.Opacity.Value < 0D || options.Opacity.Value > 1D)) throw new ArgumentOutOfRangeException(nameof(options), "Opacity must be from 0 through 1.");
+        if (options.BorderWidth.HasValue && (double.IsNaN(options.BorderWidth.Value) || double.IsInfinity(options.BorderWidth.Value) || options.BorderWidth.Value < 0D)) throw new ArgumentOutOfRangeException(nameof(options), "BorderWidth must be finite and non-negative.");
+        if (options.BorderStyle.HasValue && options.BorderStyle.Value is < PdfAnnotationBorderStyle.Solid or > PdfAnnotationBorderStyle.Underline) throw new ArgumentOutOfRangeException(nameof(options), "BorderStyle is not defined.");
+        if (options.BorderDashPattern is not null && (options.BorderDashPattern.Count == 0 || options.BorderDashPattern.Any(static value => double.IsNaN(value) || double.IsInfinity(value) || value < 0D) || options.BorderDashPattern.All(static value => value == 0D))) throw new ArgumentException("BorderDashPattern must contain finite non-negative values and at least one positive length.", nameof(options));
+        if (options.BorderDashPattern is not null && options.BorderStyle.HasValue && options.BorderStyle.Value != PdfAnnotationBorderStyle.Dashed) throw new ArgumentException("BorderDashPattern requires the Dashed border style.", nameof(options));
 
         ValidateCoordinateArray(options.Rectangle, 4, 4, nameof(options.Rectangle));
         ValidateCoordinateArray(options.QuadPoints, 8, 0, nameof(options.QuadPoints));
@@ -440,6 +474,7 @@ internal static partial class PdfAnnotationEditor {
             options.Name is null &&
             !options.Flags.HasValue &&
             options.Color is null &&
+            options.InteriorColor is null && !options.Opacity.HasValue && !options.BorderWidth.HasValue && !options.BorderStyle.HasValue && options.BorderDashPattern is null &&
             !options.RemoveActions && options.Rectangle is null && options.QuadPoints is null && options.Vertices is null && options.Line is null && options.InkPaths is null && options.LineStartEnding is null && options.LineEndEnding is null && !options.InReplyToObjectNumber.HasValue && options.ReplyType is null && !options.ReviewState.HasValue && options.Subject is null && options.Intent is null && !options.PopupOpen.HasValue && options.PopupRectangle is null && !options.RegenerateAppearance) {
             throw new ArgumentException("At least one annotation update option must be provided.", nameof(options));
         }

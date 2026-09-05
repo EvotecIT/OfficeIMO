@@ -38,7 +38,21 @@ internal static partial class PdfRedactionApplier {
             else if (op == "v" || op == "y") { StartPath(args, ref pathStart); for (int i = Math.Max(0, args.Count - 4); i + 1 < args.Count; i += 2) AddPoint(ctm, args[i].Number, args[i + 1].Number, ref minX, ref minY, ref maxX, ref maxY); }
             else if (op == "re" && args.Count >= 4) { StartPath(args, ref pathStart); int start = args.Count - 4; double x = args[start].Number, y = args[start + 1].Number, width = args[start + 2].Number, height = args[start + 3].Number; AddPoint(ctm, x, y, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x + width, y, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x, y + height, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x + width, y + height, ref minX, ref minY, ref maxX, ref maxY); }
             else if (op == "n") { pathStart = -1; minX = minY = double.MaxValue; maxX = maxY = double.MinValue; }
-            else if (IsPathPaintOperator(op)) { double strokePadding = IsPathStrokePaintOperator(op) ? GetRenderedStrokeWidth(lineWidth, ctm) / 2D : 0D; if (pathStart >= 0 && maxX >= minX && maxY >= minY && areas.Any(area => Intersects(area.X, area.Y, area.Width, area.Height, minX - strokePadding, minY - strokePadding, maxX - minX + strokePadding * 2D, maxY - minY + strokePadding * 2D))) ranges.Add(new RemovalRange(pathStart, opEnd)); pathStart = -1; minX = minY = double.MaxValue; maxX = maxY = double.MinValue; }
+            else if (IsPathPaintOperator(op)) {
+                double strokePadding = IsPathStrokePaintOperator(op) ? GetRenderedStrokeWidth(lineWidth, ctm) / 2D : 0D;
+                double pathX = minX - strokePadding;
+                double pathY = minY - strokePadding;
+                double pathWidth = maxX - minX + strokePadding * 2D;
+                double pathHeight = maxY - minY + strokePadding * 2D;
+                if (pathStart >= 0 && maxX >= minX && maxY >= minY) {
+                    PdfRedactionArea[] intersections = areas.Where(area => area.IntersectsRectangle(pathX, pathY, pathWidth, pathHeight)).ToArray();
+                    if (intersections.Any(area => area.ExactGeometry is not null && !area.ContainsRectangle(pathX, pathY, pathWidth, pathHeight))) {
+                        throw new NotSupportedException("An exact non-rectangular redaction intersects only part of a vector path. The engine refuses to remove content outside the reviewed geometry.");
+                    }
+                    if (intersections.Length > 0) ranges.Add(new RemovalRange(pathStart, opEnd));
+                }
+                pathStart = -1; minX = minY = double.MaxValue; maxX = maxY = double.MinValue;
+            }
             args.Clear();
         }
         return RemoveRanges(content, ranges);
