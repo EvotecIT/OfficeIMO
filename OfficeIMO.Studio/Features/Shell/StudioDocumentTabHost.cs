@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -58,22 +59,30 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;
-        string fullPath = Path.GetFullPath(path);
-        return Tabs.All(tab =>
-            ReferenceEquals(tab.Document, document) ||
-            !string.Equals(
-                tab.Document.DocumentPath,
-                fullPath,
-                MainWindowViewModel.RecentDocumentPathComparison));
+        try {
+            string fullPath = Path.GetFullPath(path);
+            return Tabs.All(tab => ReferenceEquals(tab.Document, document) ||
+                !DocumentOwnsPath(tab.Document, fullPath));
+        } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
+            // An uninspectable destination cannot safely be authorized for publication.
+            return false;
+        }
     }
 
     internal async Task OpenDocumentAsync(string path, CancellationToken cancellationToken = default) {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_openingDocument || string.IsNullOrWhiteSpace(path)) return;
 
-        string fullPath = Path.GetFullPath(path);
-        StudioDocumentTabViewModel? existing = Tabs.FirstOrDefault(tab =>
-            string.Equals(tab.Document.DocumentPath, fullPath, MainWindowViewModel.RecentDocumentPathComparison));
+        string fullPath;
+        StudioDocumentTabViewModel? existing;
+        try {
+            fullPath = Path.GetFullPath(path);
+            existing = Tabs.FirstOrDefault(tab =>
+                DocumentOwnsPath(tab.Document, fullPath));
+        } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
+            ActiveDocument.ErrorMessage = exception.Message;
+            return;
+        }
         if (existing is not null) {
             SelectedTab = existing;
             return;
@@ -115,6 +124,12 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
             _openingDocument = false;
         }
     }
+
+    private static bool IsPathIdentityFailure(Exception exception) =>
+        exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException;
+
+    private static bool DocumentOwnsPath(MainWindowViewModel document, string path) =>
+        document.DocumentPath is { Length: > 0 } source && OfficePathIdentity.AreEquivalent(source, path);
 
     internal async Task CloseTabAsync(StudioDocumentTabViewModel tab) {
         if (_disposed || !Tabs.Contains(tab)) return;
