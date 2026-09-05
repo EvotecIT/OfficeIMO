@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Result returned by file and stream output operations.
 /// </summary>
-public sealed class PdfSaveResult : IOfficeResult {
+public sealed class PdfSaveResult : IOfficeOutputResult {
     private PdfSaveResult(
         string? outputPath,
         long bytesWritten,

@@ -23,9 +23,9 @@ public enum PdfPowerPointImportMode {
 /// <summary>
 /// Options for importing PDF content into a PowerPoint presentation.
 /// </summary>
-public sealed class PdfPowerPointImportOptions {
+public sealed class PdfToPowerPointOptions {
     /// <summary>Cancellation observed during page rendering and at page, slide, and table boundaries.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    internal CancellationToken CancellationToken { get; set; }
 
     /// <summary>Import strategy. Defaults to the richest safe projection available from the supplied source model.</summary>
     public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.Auto;
@@ -53,22 +53,22 @@ public sealed class PdfPowerPointImportOptions {
     public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
 
     /// <summary>Creates the visual-page profile that places one rendered PDF page image on each slide.</summary>
-    public static PdfPowerPointImportOptions CreateVisualPages() => new PdfPowerPointImportOptions {
+    public static PdfToPowerPointOptions CreateVisualPages() => new PdfToPowerPointOptions {
         Mode = PdfPowerPointImportMode.VisualPages
     };
 
     /// <summary>Creates the editable-table reconstruction profile.</summary>
-    public static PdfPowerPointImportOptions CreateEditableTables() => new PdfPowerPointImportOptions {
+    public static PdfToPowerPointOptions CreateEditableTables() => new PdfToPowerPointOptions {
         Mode = PdfPowerPointImportMode.EditableTables
     };
 
     /// <summary>Creates the hybrid visual-page plus editable-table overlay profile.</summary>
-    public static PdfPowerPointImportOptions CreateHybrid() => new PdfPowerPointImportOptions {
+    public static PdfToPowerPointOptions CreateHybrid() => new PdfToPowerPointOptions {
         Mode = PdfPowerPointImportMode.HybridVisualAndEditableTables
     };
 
     /// <summary>Creates the semantic editable-content reconstruction profile.</summary>
-    public static PdfPowerPointImportOptions CreateEditableContent() => new PdfPowerPointImportOptions {
+    public static PdfToPowerPointOptions CreateEditableContent() => new PdfToPowerPointOptions {
         Mode = PdfPowerPointImportMode.EditableContent
     };
 

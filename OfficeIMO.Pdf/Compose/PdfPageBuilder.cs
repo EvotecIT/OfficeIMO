@@ -258,7 +258,7 @@ public sealed class PdfPageBuilder {
     }
 
     /// <summary>Sets or clears page-scoped TrimBox and BleedBox geometry.</summary>
-    public PdfPageCompose PrintProductionPageBoxes(PdfPrintProductionPageBoxes? boxes) {
+    public PdfPageBuilder PrintProductionPageBoxes(PdfPrintProductionPageBoxes? boxes) {
         Options.PrintProductionPageBoxes = boxes;
         return this;
     }

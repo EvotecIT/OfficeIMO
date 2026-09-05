@@ -96,7 +96,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-docx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfWordImportOptions {
+                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfToWordOptions {
                     CancellationToken = cancellationToken
                 });
                 using WordDocument document = conversion.Value;
@@ -110,7 +110,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-xlsx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfExcelTableImportOptions {
+                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
                     CancellationToken = cancellationToken
                 });
                 using ExcelDocument document = conversion.Value;
@@ -144,7 +144,7 @@ public sealed partial class OfficeWorkflowRunner {
             case "pdf-html": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 int maximumOutputCharacters = (int)Math.Min(int.MaxValue, maximumOutputBytes);
-                PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
+                PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfToHtmlOptions {
                     Profile = PdfHtmlProfile.PositionedReview,
                     IncludeLinkAnnotations = true,
                     IncludeFormWidgets = true,

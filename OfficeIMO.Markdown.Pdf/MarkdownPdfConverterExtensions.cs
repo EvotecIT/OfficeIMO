@@ -13,8 +13,9 @@ public static partial class MarkdownPdfConverterExtensions {
     /// <summary>
     /// Converts a Markdown document model to a first-party OfficeIMO PDF document model.
     /// </summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this MarkdownDoc document, MarkdownToPdfOptions? options = null) {
-        return document.ToPdfDocumentResult(options).Value;
+    public static PdfCore.PdfDocument ToPdfDocument(this MarkdownDoc document, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return document.ToPdfDocumentResult(options, cancellationToken).Value;
     }
 
     internal static PdfCore.PdfDocument ConvertToPdfDocument(MarkdownDoc document, MarkdownToPdfOptions options) {
@@ -55,12 +56,14 @@ public static partial class MarkdownPdfConverterExtensions {
     /// <summary>
     /// Converts a Markdown document model to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MarkdownDoc document, MarkdownToPdfOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MarkdownDoc document, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
         MarkdownToPdfOptions operation = (options ?? new MarkdownToPdfOptions()).CloneForConversion();
+        operation.CancellationToken = cancellationToken;
         PdfCore.PdfDocument pdf = ConvertToPdfDocument(document, operation);
         return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
     }
@@ -88,23 +91,26 @@ public static partial class MarkdownPdfConverterExtensions {
     /// Converts a Markdown document model to PDF bytes.
     /// </summary>
     /// <example><code>byte[] pdf = document.ToPdfBytes();</code></example>
-    public static byte[] ToPdfBytes(this MarkdownDoc document, MarkdownToPdfOptions? options = null) {
-        return document.ToPdfDocument(options).ToBytes();
+    public static byte[] ToPdfBytes(this MarkdownDoc document, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return document.ToPdfDocument(options, cancellationToken).ToBytes(cancellationToken);
     }
 
     /// <summary>
     /// Saves a Markdown document model as a PDF file.
     /// </summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this MarkdownDoc document, string path, MarkdownToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).Save(path);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this MarkdownDoc document, string path, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
     /// <summary>
     /// Attempts to save a Markdown document model as a PDF file and returns output diagnostics instead of throwing.
     /// </summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MarkdownDoc document, string path, MarkdownToPdfOptions? options = null) {
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MarkdownDoc document, string path, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return document.ToPdfDocumentResult(options).SaveResult(path);
-        } catch (Exception ex) {
+            return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken);
+        } catch (OperationCanceledException) { throw; }
+        catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
@@ -112,16 +118,18 @@ public static partial class MarkdownPdfConverterExtensions {
     /// <summary>
     /// Writes a Markdown document model as PDF to a stream.
     /// </summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this MarkdownDoc document, Stream stream, MarkdownToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).Save(stream);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this MarkdownDoc document, Stream stream, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
     /// <summary>
     /// Attempts to write a Markdown document model as PDF to a stream and returns output diagnostics instead of throwing.
     /// </summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MarkdownDoc document, Stream stream, MarkdownToPdfOptions? options = null) {
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MarkdownDoc document, Stream stream, MarkdownToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return document.ToPdfDocumentResult(options).SaveResult(stream);
-        } catch (Exception ex) {
+            return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken);
+        } catch (OperationCanceledException) { throw; }
+        catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
@@ -133,7 +141,7 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously saves a Markdown PDF to a caller-owned stream.</summary>
@@ -143,7 +151,7 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken);
     }
 
     /// <summary>Attempts to asynchronously save a Markdown document model as PDF at the specified path.</summary>
@@ -154,7 +162,7 @@ public static partial class MarkdownPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            return await document.ToPdfDocumentResult(options)
+            return await document.ToPdfDocumentResult(options, cancellationToken)
                 .SaveResultAsync(path, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -172,7 +180,7 @@ public static partial class MarkdownPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            return await document.ToPdfDocumentResult(options)
+            return await document.ToPdfDocumentResult(options, cancellationToken)
                 .SaveResultAsync(stream, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {

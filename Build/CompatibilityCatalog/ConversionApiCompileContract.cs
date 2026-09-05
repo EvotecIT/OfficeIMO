@@ -75,7 +75,7 @@ internal static class ConversionApiCompileContract {
         powerPointOptions.DocumentOutput = output.Clone();
         RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput = output.Clone();
-        PdfHtmlSaveOptions pdfOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        PdfToHtmlOptions pdfOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
         pdfOptions.DocumentOutput = output.Clone();
         HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
         HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;

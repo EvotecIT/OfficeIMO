@@ -10,53 +10,57 @@ namespace OfficeIMO.Latex.Pdf;
 /// <summary>Converts bounded-profile LaTeX documents through the loss-aware Markdown projection to first-party PDFs.</summary>
 public static class LatexPdfConverterExtensions {
     /// <summary>Converts a LaTeX document to a first-party PDF document.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this LatexDocument document, LatexToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).Value;
+    public static PdfCore.PdfDocument ToPdfDocument(this LatexDocument document, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).Value;
 
     /// <summary>Converts a LaTeX document and combines parser, semantic-projection, and PDF diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this LatexDocument document, LatexToPdfOptions? options = null) =>
-        LatexPdfConversionEngine.Convert(document, options);
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this LatexDocument document, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        LatexPdfConversionEngine.Convert(document, options, cancellationToken);
 
     /// <summary>Converts a LaTeX document to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this LatexDocument document, LatexToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).ToBytes();
+    public static byte[] ToPdfBytes(this LatexDocument document, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).ToBytes(cancellationToken);
 
     /// <summary>Saves a LaTeX document as PDF and returns combined conversion diagnostics.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, string path, LatexToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).Save(path);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, string path, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
     /// <summary>Writes a LaTeX document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null) =>
-        document.ToPdfDocumentResult(options).Save(stream);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
     /// <summary>Attempts to save a LaTeX PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, string path, LatexToPdfOptions? options = null) {
-        try { return document.ToPdfDocumentResult(options).SaveResult(path); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, string path, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
 
     /// <summary>Attempts to write a LaTeX PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null) {
-        try { return document.ToPdfDocumentResult(options).SaveResult(stream); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a path.</summary>
     public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, string path, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a caller-owned stream.</summary>
     public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then attempts to asynchronously save a LaTeX PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, string path, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -64,7 +68,7 @@ public static class LatexPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously write a LaTeX PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }

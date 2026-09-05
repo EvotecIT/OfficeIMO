@@ -144,14 +144,14 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-html":
-                string html = logical.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic });
+                string html = logical.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
                 Assert.Contains("<!doctype html", html, StringComparison.OrdinalIgnoreCase);
                 Assert.Equal(logical.Pages.Count, Regex.Matches(html, "class=\"pdf-page\"[^>]*data-page-number=", RegexOptions.CultureInvariant).Count);
                 AssertTokenRecall(sourceTokens, Regex.Replace(html, "<[^>]+>", " "), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
                 return;
             case "pdf-to-xlsx":
                 using (var stream = new MemoryStream()) {
-                    PdfExcelTableImportReport report = logical.SaveTablesAsExcel(stream);
+                    PdfExcelTableImportReport report = logical.SaveTablesAsExcel(stream).RequireSuccess().Report!;
                     byte[] workbook = stream.ToArray();
                     if (expectedTables) Assert.NotEmpty(report.Entries);
                     HashSet<string>? tableTokens = null;
@@ -173,7 +173,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             case "pdf-to-pptx":
                 PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(source)
-                    .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+                    .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
                 using (result.Value) {
                     using var stream = new MemoryStream();
                     result.Value.Save(stream);
@@ -209,7 +209,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-odp": {
-                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
                 byte[] artifact = odpResult.Value.ToBytes();
                 OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
                 Assert.Equal(logical.Pages.Count, reopened.Slides.Count);

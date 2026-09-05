@@ -256,7 +256,7 @@ public static class PdfImageExportExtensions {
             token => {
                 token.ThrowIfCancellationRequested();
                 PdfReadDocument document = PdfReadDocument.Open(
-                    conversion.ToBytes(),
+                    conversion.ToBytes(token),
                     options: null,
                     cancellationToken: token);
                 token.ThrowIfCancellationRequested();

@@ -29,7 +29,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         string inputPath = Path.Combine(directory, prefix + ".input.html");
         artifacts.Add(HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", document.SourceHtml));
 
-        byte[] pdf = document.ToPdf(new HtmlPdfSaveOptions(options.RenderOptions));
+        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(options.RenderOptions));
         string pdfPath = Path.Combine(directory, prefix + ".pdf");
         WriteBytes(pdfPath, pdf);
         artifacts.Add(HtmlCapabilityGalleryArtifact.FromFile("pdf", "paged-pdf", pdfPath, "application/pdf"));

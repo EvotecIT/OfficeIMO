@@ -49,7 +49,7 @@ powerPoint.Profile = OfficeHtmlConversionProfile.PowerPointVisualReview;
 RtfToHtmlOptions rtf = RtfToHtmlOptions.CreatePrintReviewProfile();
 rtf.DocumentOutput = output.Clone();
 rtf.Profile = OfficeHtmlConversionProfile.RtfPrintReview;
-PdfHtmlSaveOptions pdf = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+PdfToHtmlOptions pdf = PdfToHtmlOptions.CreatePositionedReviewProfile();
 pdf.DocumentOutput = output.Clone();
 
 if (word.SharedProfile != HtmlConversionProfile.Document ||

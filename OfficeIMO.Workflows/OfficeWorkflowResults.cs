@@ -91,7 +91,7 @@ public sealed class PdfHealthReport {
 }
 
 /// <summary>Completed, cancelled, or failed workflow result.</summary>
-public sealed class OfficeWorkflowResult {
+public sealed class OfficeWorkflowResult : IOfficeResult {
     internal OfficeWorkflowResult(
         string requestId,
         OfficeWorkflowOperation operation,

@@ -17,6 +17,6 @@ internal static class VisioPdfConversionEngine {
             operation.SourceName,
             operation.VisioOptions,
             cancellationToken);
-        return PdfCore.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(normalized, operation.ProjectionOptions);
+        return PdfCore.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(normalized, operation.ProjectionOptions, cancellationToken);
     }
 }

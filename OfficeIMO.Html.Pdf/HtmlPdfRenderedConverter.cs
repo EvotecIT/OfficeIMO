@@ -14,10 +14,10 @@ internal static partial class HtmlPdfRenderedConverter {
     private const int MaximumLoadedSystemFontFamilies = 32;
     private static readonly ConditionalWeakTable<byte[], CachedPdfImageResources> PdfImageResources = new();
 
-    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options) {
+    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken = default) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions);
-        return CreatePdf(rendered, options, CancellationToken.None);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions, cancellationToken);
+        return CreatePdf(rendered, options, cancellationToken);
     }
 
     internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken) {

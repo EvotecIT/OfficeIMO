@@ -11,46 +11,51 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Converts an opened PDF into an editable Word document.</summary>
         public static WordDocument ToWordDocument(
             this PdfCore.PdfDocument document,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options).ToWordDocument(options);
+            return ReadForWord(document, options, cancellationToken).ToWordDocument(options, cancellationToken);
         }
 
         /// <summary>Converts an opened PDF into an editable Word document with conversion diagnostics.</summary>
         public static PdfWordConversionResult ToWordDocumentResult(
             this PdfCore.PdfDocument document,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options).ToWordDocumentResult(options);
+            return ReadForWord(document, options, cancellationToken).ToWordDocumentResult(options, cancellationToken);
         }
 
         /// <summary>Converts an opened PDF and saves the editable Word document to a file.</summary>
-        public static PdfWordConversionReport SaveAsWord(
+        public static OfficeOutputResult<PdfWordConversionReport> SaveAsWord(
             this PdfCore.PdfDocument document,
             string path,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options).SaveAsWord(path, options);
+            return ReadForWord(document, options, cancellationToken).SaveAsWord(path, options, cancellationToken);
         }
 
         /// <summary>Converts an opened PDF and saves the editable Word document to a caller-owned stream.</summary>
-        public static PdfWordConversionReport SaveAsWord(
+        public static OfficeOutputResult<PdfWordConversionReport> SaveAsWord(
             this PdfCore.PdfDocument document,
             Stream stream,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options).SaveAsWord(stream, options);
+            return ReadForWord(document, options, cancellationToken).SaveAsWord(stream, options, cancellationToken);
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a file.</summary>
-        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<OfficeOutputResult<PdfWordConversionReport>> SaveAsWordAsync(
             this PdfCore.PdfDocument document,
             string path,
-            PdfWordImportOptions? options = null,
+            PdfToWordOptions? options = null,
             CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            PdfToWordOptions operation = (options ?? new PdfToWordOptions()).CloneForConversion();
+            CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForWord(document, operation, effectiveCancellationToken)
                 .SaveAsWordAsync(path, operation, effectiveCancellationToken)
@@ -58,14 +63,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a caller-owned stream.</summary>
-        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<OfficeOutputResult<PdfWordConversionReport>> SaveAsWordAsync(
             this PdfCore.PdfDocument document,
             Stream stream,
-            PdfWordImportOptions? options = null,
+            PdfToWordOptions? options = null,
             CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            PdfToWordOptions operation = (options ?? new PdfToWordOptions()).CloneForConversion();
+            CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForWord(document, operation, effectiveCancellationToken)
                 .SaveAsWordAsync(stream, operation, effectiveCancellationToken)
@@ -74,105 +80,99 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfDocumentReadResult ReadForWord(
             PdfCore.PdfDocument document,
-            PdfWordImportOptions? options,
+            PdfToWordOptions? options,
             CancellationToken cancellationToken = default) {
-            CancellationToken effectiveCancellationToken = cancellationToken.CanBeCanceled
-                ? cancellationToken
-                : options?.CancellationToken ?? default;
-            return document.Read(options?.ReadOptions, effectiveCancellationToken);
+            return document.Read(options?.ReadOptions, cancellationToken);
         }
 
         /// <summary>Converts a logical PDF model into an editable Word document.</summary>
         public static WordDocument ToWordDocument(
             this PdfCore.PdfDocumentReadResult document,
-            PdfWordImportOptions? options = null) => document.ToWordDocumentResult(options).Value;
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) => document.ToWordDocumentResult(options, cancellationToken).Value;
 
         /// <summary>Converts a logical PDF model into an editable Word document with conversion diagnostics.</summary>
         public static PdfWordConversionResult ToWordDocumentResult(
             this PdfCore.PdfDocumentReadResult document,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
 
-            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
+            PdfToWordOptions operation = (options ?? new PdfToWordOptions()).CloneForConversion();
+        operation.CancellationToken = cancellationToken;
             WordDocument word = PdfWordConverter.Convert(document, operation);
             return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Converts a logical PDF model and saves the editable Word document to a file.</summary>
-        public static PdfWordConversionReport SaveAsWord(
+        public static OfficeOutputResult<PdfWordConversionReport> SaveAsWord(
             this PdfCore.PdfDocumentReadResult document,
             string path,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
-            PdfWordConversionResult result = document.ToWordDocumentResult(options);
+            PdfWordConversionResult result = document.ToWordDocumentResult(options, cancellationToken);
             using (result.Value) {
+                cancellationToken.ThrowIfCancellationRequested();
                 result.Value.Save(path);
             }
-            return result.Report;
+            return OfficeOutputResult<PdfWordConversionReport>.FromSuccess(path, result.Report);
         }
 
         /// <summary>Converts a logical PDF model and saves the editable Word document to a caller-owned stream.</summary>
-        public static PdfWordConversionReport SaveAsWord(
+        public static OfficeOutputResult<PdfWordConversionReport> SaveAsWord(
             this PdfCore.PdfDocumentReadResult document,
             Stream stream,
-            PdfWordImportOptions? options = null) {
+            PdfToWordOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
-            PdfWordConversionResult result = document.ToWordDocumentResult(options);
+            PdfWordConversionResult result = document.ToWordDocumentResult(options, cancellationToken);
             using (result.Value) {
+                cancellationToken.ThrowIfCancellationRequested();
                 result.Value.Save(stream);
             }
-            return result.Report;
+            return OfficeOutputResult<PdfWordConversionReport>.FromSuccess(null, result.Report);
         }
 
         /// <summary>Converts a logical PDF model and asynchronously saves the editable Word document to a file.</summary>
-        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<OfficeOutputResult<PdfWordConversionReport>> SaveAsWordAsync(
             this PdfCore.PdfDocumentReadResult document,
             string path,
-            PdfWordImportOptions? options = null,
+            PdfToWordOptions? options = null,
             CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
-            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            PdfToWordOptions operation = (options ?? new PdfToWordOptions()).CloneForConversion();
+            CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
-            PdfWordConversionResult result = document.ToWordDocumentResult(operation);
+            PdfWordConversionResult result = document.ToWordDocumentResult(operation, cancellationToken);
             using (result.Value) {
                 await result.Value.SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
             }
-            return result.Report;
+            return OfficeOutputResult<PdfWordConversionReport>.FromSuccess(path, result.Report);
         }
 
         /// <summary>Converts a logical PDF model and asynchronously saves the editable Word document to a caller-owned stream.</summary>
-        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<OfficeOutputResult<PdfWordConversionReport>> SaveAsWordAsync(
             this PdfCore.PdfDocumentReadResult document,
             Stream stream,
-            PdfWordImportOptions? options = null,
+            PdfToWordOptions? options = null,
             CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
-            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            PdfToWordOptions operation = (options ?? new PdfToWordOptions()).CloneForConversion();
+            CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
-            PdfWordConversionResult result = document.ToWordDocumentResult(operation);
+            PdfWordConversionResult result = document.ToWordDocumentResult(operation, cancellationToken);
             using (result.Value) {
                 await result.Value.SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
             }
-            return result.Report;
+            return OfficeOutputResult<PdfWordConversionReport>.FromSuccess(null, result.Report);
         }
 
-        private static CancellationTokenSource? LinkCancellationTokens(
-            CancellationToken optionsToken,
-            CancellationToken methodToken,
-            out CancellationToken effectiveToken) {
-            if (optionsToken.CanBeCanceled && methodToken.CanBeCanceled && optionsToken != methodToken) {
-                CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(optionsToken, methodToken);
-                effectiveToken = linked.Token;
-                return linked;
-            }
-            effectiveToken = methodToken.CanBeCanceled ? methodToken : optionsToken;
-            return null;
-        }
+
     }
 }

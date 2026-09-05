@@ -768,8 +768,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         return Encoding.UTF8.GetBytes(value);
     }
 
-    private static PdfPowerPointImportOptions CreatePowerPointImportOptions(CancellationToken cancellationToken) {
-        PdfPowerPointImportOptions options = PdfPowerPointImportOptions.CreateEditableContent();
+    private static PdfToPowerPointOptions CreatePowerPointImportOptions(CancellationToken cancellationToken) {
+        PdfToPowerPointOptions options = PdfToPowerPointOptions.CreateEditableContent();
         options.CancellationToken = cancellationToken;
         return options;
     }

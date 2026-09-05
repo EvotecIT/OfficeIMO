@@ -8,7 +8,8 @@ namespace OfficeIMO.Rtf.Pdf;
 /// supported document metadata, page breaks, headings, grouped paragraphs, and list markers, but
 /// it is not a visual reconstruction of arbitrary fixed-layout PDF content.
 /// </remarks>
-public sealed class PdfRtfImportOptions {
+public sealed class PdfToRtfOptions {
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
     /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
     /// Null uses <see cref="OfficeIMO.Pdf.PdfReadOptions.Default"/>. This setting is ignored when the source is already a
@@ -37,7 +38,7 @@ public sealed class PdfRtfImportOptions {
     internal OfficeIMO.Pdf.PdfConversionReport Report { get; } = new OfficeIMO.Pdf.PdfConversionReport();
 
     /// <summary>Creates a reusable copy of this option set.</summary>
-    public PdfRtfImportOptions Clone() => new PdfRtfImportOptions {
+    public PdfToRtfOptions Clone() => new PdfToRtfOptions {
         ReadOptions = ReadOptions,
         IncludeMetadata = IncludeMetadata,
         PreservePageBreaks = PreservePageBreaks,
@@ -47,5 +48,5 @@ public sealed class PdfRtfImportOptions {
         CreateHeadingStyles = CreateHeadingStyles
     };
 
-    internal PdfRtfImportOptions CloneForConversion() => Clone();
+    internal PdfToRtfOptions CloneForConversion() => Clone();
 }

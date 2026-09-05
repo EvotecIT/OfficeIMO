@@ -28,18 +28,19 @@ public static class OfficeDocumentReadResultPdfExtensions {
     /// <summary>Projects a Reader result into PDF through <see cref="OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions"/>.</summary>
     public static OfficeIMO.Pdf.PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentReadResult source,
-        OfficeIMO.Pdf.PdfProjectionOptions? options = null) {
+        OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(source);
 #else
         if (source == null) throw new ArgumentNullException(nameof(source));
 #endif
-        CoreModel model = ToNeutralModel(source);
-        return OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(model, options);
+        CoreModel model = ToNeutralModel(source, cancellationToken);
+        return OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(model, options, cancellationToken);
     }
 
-    private static CoreModel ToNeutralModel(OfficeDocumentReadResult source) {
-        var context = new NeutralMappingContext();
+    private static CoreModel ToNeutralModel(OfficeDocumentReadResult source, System.Threading.CancellationToken cancellationToken) {
+        var context = new NeutralMappingContext(cancellationToken);
         CoreBlock[] blocks = source.Blocks.Select(context.MapBlock).ToArray();
         CoreTable[] tables = source.Tables.Select(context.MapTable).ToArray();
         CoreAsset[] assets = source.Assets.Select(context.MapAsset).ToArray();
@@ -261,6 +262,8 @@ public static class OfficeDocumentReadResultPdfExtensions {
     };
 
     private sealed class NeutralMappingContext {
+        private readonly System.Threading.CancellationToken _cancellationToken;
+        internal NeutralMappingContext(System.Threading.CancellationToken cancellationToken) { _cancellationToken = cancellationToken; }
         private readonly Dictionary<ReaderBlock, CoreBlock> _blocks = new(ReferenceIdentityComparer<ReaderBlock>.Instance);
         private readonly Dictionary<ReaderTable, CoreTable> _tables = new(ReferenceIdentityComparer<ReaderTable>.Instance);
         private readonly Dictionary<ReaderAsset, CoreAsset> _assets = new(ReferenceIdentityComparer<ReaderAsset>.Instance);
@@ -282,10 +285,11 @@ public static class OfficeDocumentReadResultPdfExtensions {
         internal CoreForm MapForm(ReaderForm source) =>
             GetOrAdd(_forms, source, OfficeDocumentReadResultPdfExtensions.MapForm);
 
-        private static TTarget GetOrAdd<TSource, TTarget>(
+        private TTarget GetOrAdd<TSource, TTarget>(
             IDictionary<TSource, TTarget> map,
             TSource source,
             Func<TSource, TTarget> factory) where TSource : class {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (map.TryGetValue(source, out TTarget? mapped)) return mapped;
             mapped = factory(source);
             map.Add(source, mapped);

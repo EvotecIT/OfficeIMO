@@ -5,53 +5,57 @@ namespace OfficeIMO.OneNote.Pdf;
 /// <summary>Converts offline OneNote sections to semantic PDF documents.</summary>
 public static class OneNoteSectionPdfConverterExtensions {
     /// <summary>Converts a section to a first-party PDF document.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this OneNoteSection section, OneNoteToPdfOptions? options = null) =>
-        section.ToPdfDocumentResult(options).Value;
+    public static PdfCore.PdfDocument ToPdfDocument(this OneNoteSection section, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        section.ToPdfDocumentResult(options, cancellationToken).Value;
 
     /// <summary>Converts a section and returns explicit source, projection, and PDF diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this OneNoteSection section, OneNoteToPdfOptions? options = null) =>
-        OneNotePdfConversionEngine.Convert(section, options);
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this OneNoteSection section, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        OneNotePdfConversionEngine.Convert(section, options, cancellationToken);
 
     /// <summary>Converts a section to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this OneNoteSection section, OneNoteToPdfOptions? options = null) =>
-        section.ToPdfDocumentResult(options).ToBytes();
+    public static byte[] ToPdfBytes(this OneNoteSection section, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        section.ToPdfDocumentResult(options, cancellationToken).ToBytes(cancellationToken);
 
     /// <summary>Saves a section as PDF and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null) =>
-        section.ToPdfDocumentResult(options).Save(path);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        section.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
     /// <summary>Writes a section as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null) =>
-        section.ToPdfDocumentResult(options).Save(stream);
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        section.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
     /// <summary>Attempts to save a section as PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null) {
-        try { return section.ToPdfDocumentResult(options).SaveResult(path); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try { return section.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
 
     /// <summary>Attempts to write a section as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null) {
-        try { return section.ToPdfDocumentResult(options).SaveResult(stream); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try { return section.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a section PDF to a path.</summary>
     public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return section.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+        return section.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a section PDF to a caller-owned stream.</summary>
     public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return section.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+        return section.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then attempts to asynchronously save a section PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OneNoteSection section, string path, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await section.ToPdfDocumentResult(options).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await section.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -59,7 +63,7 @@ public static class OneNoteSectionPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously write a section PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OneNoteSection section, Stream stream, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await section.ToPdfDocumentResult(options).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await section.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }

@@ -14,7 +14,8 @@ public static class OfficeDocumentModelPdfExtensions {
     /// </summary>
     public static PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentModel source,
-        PdfProjectionOptions? options = null) {
+        PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(source);
 #else
@@ -24,13 +25,14 @@ public static class OfficeDocumentModelPdfExtensions {
         options.Validate();
 
         var report = new PdfConversionReport();
-        AddSourceDiagnostics(source, report);
+        AddSourceDiagnostics(source, report, cancellationToken);
         PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
         PdfDocument document = PdfDocument.Create(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
+        rasterDecodeOptions.CancellationToken = cancellationToken;
         var identities = new ProjectionIdentitySet();
         AssetProjectionSummary assetSummary = default;
 
@@ -39,6 +41,7 @@ public static class OfficeDocumentModelPdfExtensions {
 
         if (source.Pages.Count > 0) {
             for (int index = 0; index < source.Pages.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 OfficeDocumentModelPage page = source.Pages[index];
                 if (!string.IsNullOrWhiteSpace(page.Name)) document.H2(page.Name!);
                 assetSummary = assetSummary.Combine(ComposeContent(
@@ -52,7 +55,7 @@ public static class OfficeDocumentModelPdfExtensions {
                     rasterDecodeOptions,
                     !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                     report,
-                    BuildSourceLabel(source, page, index)));
+                    BuildSourceLabel(source, page, index), cancellationToken));
                 if (options.PagePolicy == PdfProjectionPagePolicy.PreserveSourcePages && index + 1 < source.Pages.Count) document.PageBreak();
             }
 
@@ -67,7 +70,7 @@ public static class OfficeDocumentModelPdfExtensions {
                 rasterDecodeOptions,
                 !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                 report,
-                source.Format + "/document"));
+                source.Format + "/document", cancellationToken));
         } else {
             assetSummary = ComposeContent(
                 document,
@@ -80,7 +83,7 @@ public static class OfficeDocumentModelPdfExtensions {
                 rasterDecodeOptions,
                 !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                 report,
-                source.Format.ToString());
+                source.Format.ToString(), cancellationToken);
         }
 
         AddSourceSpecificPolicyEvidence(source, options, assetSummary, report);
@@ -98,11 +101,11 @@ public static class OfficeDocumentModelPdfExtensions {
         OfficeRasterDecodeOptions rasterDecodeOptions,
         bool allowRelativeUriLinks,
         PdfConversionReport report,
-        string sourceLabel) {
-        ComposeBlocksAndTables(document, blocks, tables, report, sourceLabel);
-        AssetProjectionSummary assetSummary = ComposeAssets(document, assets, options.AssetPolicy, rasterDecodeOptions, report, sourceLabel);
-        ComposeLinks(document, links, options.LinkPolicy, allowRelativeUriLinks, report, sourceLabel);
-        ComposeForms(document, forms, options.FormPolicy, report, sourceLabel);
+        string sourceLabel, System.Threading.CancellationToken cancellationToken) {
+        ComposeBlocksAndTables(document, blocks, tables, report, sourceLabel, cancellationToken);
+        AssetProjectionSummary assetSummary = ComposeAssets(document, assets, options.AssetPolicy, rasterDecodeOptions, report, sourceLabel, cancellationToken);
+        ComposeLinks(document, links, options.LinkPolicy, allowRelativeUriLinks, report, sourceLabel, cancellationToken);
+        ComposeForms(document, forms, options.FormPolicy, report, sourceLabel, cancellationToken);
         return assetSummary;
     }
 
@@ -111,10 +114,11 @@ public static class OfficeDocumentModelPdfExtensions {
         IReadOnlyList<OfficeDocumentModelBlock> blocks,
         IReadOnlyList<OfficeDocumentModelTable> tables,
         PdfConversionReport report,
-        string sourceLabel) {
+        string sourceLabel, System.Threading.CancellationToken cancellationToken) {
         var matchedBlocks = new HashSet<OfficeDocumentModelBlock>(ReferenceIdentityComparer<OfficeDocumentModelBlock>.Instance);
         var items = new List<ProjectionContentItem>(blocks.Count + tables.Count);
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentModelTable table = tables[tableIndex];
             OfficeDocumentModelBlock? correlated = FindCorrelatedTableBlock(blocks, table, out int correlatedIndex);
             if (correlated != null) matchedBlocks.Add(correlated);
@@ -125,12 +129,14 @@ public static class OfficeDocumentModelPdfExtensions {
                 correlatedIndex >= 0 ? correlatedIndex : blocks.Count + tableIndex));
         }
         for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentModelBlock block = blocks[blockIndex];
             if (matchedBlocks.Contains(block)) continue;
             items.Add(ProjectionContentItem.ForBlock(block, blockIndex));
         }
 
         foreach (ProjectionContentItem item in items.OrderBy(static item => item.Position).ThenBy(static item => item.InsertionIndex)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item.Block != null) ComposeBlock(document, item.Block);
             else ComposeTable(document, item.Table!, item.TableIndex, report, sourceLabel);
         }
@@ -168,7 +174,7 @@ public static class OfficeDocumentModelPdfExtensions {
         PdfProjectionAssetPolicy policy,
         OfficeRasterDecodeOptions rasterDecodeOptions,
         PdfConversionReport report,
-        string sourceLabel) {
+        string sourceLabel, System.Threading.CancellationToken cancellationToken) {
         if (assets.Count == 0) return default;
         int imageCandidates = assets.Count(IsImageCandidate);
         if (policy == PdfProjectionAssetPolicy.Omit) {
@@ -180,6 +186,7 @@ public static class OfficeDocumentModelPdfExtensions {
         int embedded = 0;
         int listed = 0;
         foreach (OfficeDocumentModelAsset asset in assets) {
+            cancellationToken.ThrowIfCancellationRequested();
             string label = asset.Title ?? asset.FileName ?? asset.Id ?? "asset";
             if (policy == PdfProjectionAssetPolicy.EmbedSupportedImages &&
                 asset.PayloadBytes != null &&
@@ -301,7 +308,7 @@ public static class OfficeDocumentModelPdfExtensions {
         PdfProjectionLinkPolicy policy,
         bool allowRelativeUriLinks,
         PdfConversionReport report,
-        string sourceLabel) {
+        string sourceLabel, System.Threading.CancellationToken cancellationToken) {
         if (links.Count == 0) return;
         if (policy == PdfProjectionLinkPolicy.Omit) {
             report.Add(Warning("pdf-projection-links-omitted", sourceLabel, links.Count + " normalized links were omitted by policy."));
@@ -310,6 +317,7 @@ public static class OfficeDocumentModelPdfExtensions {
 
         document.H3("Links");
         foreach (OfficeDocumentModelLink link in links) {
+            cancellationToken.ThrowIfCancellationRequested();
             string text = link.Text ?? link.Uri ?? link.DestinationName ?? link.RemoteFile ?? link.Id ?? "link";
             bool canPreserveUri = Uri.TryCreate(link.Uri, UriKind.RelativeOrAbsolute, out Uri? uri) &&
                 (uri.IsAbsoluteUri || allowRelativeUriLinks);
@@ -325,7 +333,7 @@ public static class OfficeDocumentModelPdfExtensions {
         }
     }
 
-    private static void ComposeForms(PdfDocument document, IReadOnlyList<OfficeDocumentModelFormField> forms, PdfProjectionFormPolicy policy, PdfConversionReport report, string sourceLabel) {
+    private static void ComposeForms(PdfDocument document, IReadOnlyList<OfficeDocumentModelFormField> forms, PdfProjectionFormPolicy policy, PdfConversionReport report, string sourceLabel, System.Threading.CancellationToken cancellationToken) {
         if (forms.Count == 0) return;
         if (policy == PdfProjectionFormPolicy.Omit) {
             report.Add(Warning("pdf-projection-forms-omitted", sourceLabel, forms.Count + " normalized form fields were omitted by policy."));
@@ -347,8 +355,9 @@ public static class OfficeDocumentModelPdfExtensions {
         }
     }
 
-    private static void AddSourceDiagnostics(OfficeDocumentModel source, PdfConversionReport report) {
+    private static void AddSourceDiagnostics(OfficeDocumentModel source, PdfConversionReport report, System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDocumentModelDiagnostic diagnostic in source.Diagnostics) {
+            cancellationToken.ThrowIfCancellationRequested();
             report.Add(new PdfConversionWarning(
                 ConverterName,
                 string.IsNullOrWhiteSpace(diagnostic.Code) ? "pdf-projection-source-diagnostic" : diagnostic.Code,

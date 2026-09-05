@@ -20,6 +20,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocument(this PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         return presentation.ToPdfDocumentResult(options, cancellationToken).Value;
     }
 
@@ -71,6 +72,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
@@ -86,21 +88,23 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     /// <example><code>byte[] pdf = presentation.ToPdfBytes();</code></example>
     public static byte[] ToPdfBytes(this PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        return presentation.ToPdfDocument(options, cancellationToken).ToBytes();
+        cancellationToken.ThrowIfCancellationRequested();
+        return presentation.ToPdfDocument(options, cancellationToken).ToBytes(cancellationToken);
     }
 
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.
     /// </summary>
     public static PdfCore.PdfSaveResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-        presentation.ToPdfDocumentResult(options, cancellationToken).Save(path);
+        presentation.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
     /// <summary>
     /// Attempts to save a PowerPoint presentation as a PDF file and returns output diagnostics instead of throwing.
     /// </summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this PptCore.PowerPointPresentation presentation, string path, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return presentation.ToPdfDocumentResult(options, cancellationToken).SaveResult(path);
+            return presentation.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken);
         } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) {
@@ -112,14 +116,15 @@ public static partial class PowerPointPdfConverterExtensions {
     /// Writes a PowerPoint presentation as PDF to a stream.
     /// </summary>
     public static PdfCore.PdfSaveResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-        presentation.ToPdfDocumentResult(options, cancellationToken).Save(stream);
+        presentation.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
     /// <summary>
     /// Attempts to write a PowerPoint presentation as PDF to a stream and returns output diagnostics instead of throwing.
     /// </summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return presentation.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream);
+            return presentation.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken);
         } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) {
@@ -134,8 +139,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out PowerPointToPdfOptions operation);
-        return await presentation.ToPdfDocumentResult(operation, operation.CancellationToken).SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
+        return await presentation.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Converts synchronously, then asynchronously saves a PowerPoint presentation PDF to a caller-owned stream.</summary>
@@ -145,8 +149,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out PowerPointToPdfOptions operation);
-        return await presentation.ToPdfDocumentResult(operation, operation.CancellationToken).SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
+        return await presentation.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Attempts to asynchronously save a PowerPoint presentation as PDF at the specified path.</summary>
@@ -157,9 +160,8 @@ public static partial class PowerPointPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out PowerPointToPdfOptions operation);
-            return await presentation.ToPdfDocumentResult(operation, operation.CancellationToken)
-                .SaveResultAsync(path, operation.CancellationToken)
+            return await presentation.ToPdfDocumentResult(options, cancellationToken)
+                .SaveResultAsync(path, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) {
             throw;
@@ -176,9 +178,8 @@ public static partial class PowerPointPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out PowerPointToPdfOptions operation);
-            return await presentation.ToPdfDocumentResult(operation, operation.CancellationToken)
-                .SaveResultAsync(stream, operation.CancellationToken)
+            return await presentation.ToPdfDocumentResult(options, cancellationToken)
+                .SaveResultAsync(stream, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) {
             throw;
@@ -187,20 +188,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static CancellationTokenSource? CreateAsyncConversionOptions(
-        PowerPointToPdfOptions? options,
-        CancellationToken methodToken,
-        out PowerPointToPdfOptions operation) {
-        operation = (options ?? new PowerPointToPdfOptions()).CloneForConversion();
-        if (!methodToken.CanBeCanceled || operation.CancellationToken == methodToken) return null;
-        if (!operation.CancellationToken.CanBeCanceled) {
-            operation.CancellationToken = methodToken;
-            return null;
-        }
-        var linked = CancellationTokenSource.CreateLinkedTokenSource(operation.CancellationToken, methodToken);
-        operation.CancellationToken = linked.Token;
-        return linked;
-    }
+
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options) {
         pdf.Canvas(canvas => {

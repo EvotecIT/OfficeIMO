@@ -14,21 +14,21 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>Converts an opened PDF into a PowerPoint presentation.</summary>
     public static PptCore.PowerPointPresentation ToPowerPointPresentation(
         this PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions? options = null) =>
-        document.ToPowerPointPresentationResult(options).Value;
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        document.ToPowerPointPresentationResult(options, cancellationToken).Value;
 
     /// <summary>Converts an opened PDF into a PowerPoint presentation with conversion diagnostics.</summary>
     public static PdfPowerPointConversionResult ToPowerPointPresentationResult(
         this PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions? options = null) =>
-        ToPowerPointPresentationResult(document, options, CancellationToken.None);
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        ConvertOpenedPdf(document, options, cancellationToken);
 
-    private static PdfPowerPointConversionResult ToPowerPointPresentationResult(
+    private static PdfPowerPointConversionResult ConvertOpenedPdf(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions? options,
+        PdfToPowerPointOptions? options,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PdfPowerPointImportOptions operation = options ?? new PdfPowerPointImportOptions();
+        PdfToPowerPointOptions operation = options ?? new PdfToPowerPointOptions();
         cancellationToken = cancellationToken.CanBeCanceled
             ? cancellationToken
             : operation.CancellationToken;
@@ -54,7 +54,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfCore.PdfDocumentReadResult ReadBoundedLogicalDocument(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.MaxPages <= 0) {
@@ -76,7 +76,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void ValidateLogicalPageCount(
         PdfCore.PdfDocumentReadResult logical,
-        PdfPowerPointImportOptions options) {
+        PdfToPowerPointOptions options) {
         if (logical.Pages.Count > options.MaxPages) {
             throw new InvalidOperationException(
                 $"PDF import page count {logical.Pages.Count} exceeded the configured limit of {options.MaxPages}.");
@@ -84,112 +84,121 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Converts an opened PDF and saves the PowerPoint presentation to a file.</summary>
-    public static PdfPowerPointConversionReport SaveAsPowerPoint(
+    public static OfficeOutputResult<PdfPowerPointConversionReport> SaveAsPowerPoint(
         this PdfCore.PdfDocument document,
         string presentationPath,
-        PdfPowerPointImportOptions? options = null) {
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
         using (result.Value) result.Value.Save(presentationPath);
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Converts an opened PDF and saves the PowerPoint presentation to a caller-owned stream.</summary>
-    public static PdfPowerPointConversionReport SaveAsPowerPoint(
+    public static OfficeOutputResult<PdfPowerPointConversionReport> SaveAsPowerPoint(
         this PdfCore.PdfDocument document,
         Stream presentationStream,
-        PdfPowerPointImportOptions? options = null) {
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
-        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
         using (result.Value) result.Value.Save(presentationStream);
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Converts an opened PDF and asynchronously saves the PowerPoint presentation to a file.</summary>
-    public static async Task<PdfPowerPointConversionReport> SaveAsPowerPointAsync(
+    public static async Task<OfficeOutputResult<PdfPowerPointConversionReport>> SaveAsPowerPointAsync(
         this PdfCore.PdfDocument document,
         string presentationPath,
-        PdfPowerPointImportOptions? options = null,
+        PdfToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-        using CancellationTokenSource? linked = LinkCancellationTokens(options?.CancellationToken ?? default, cancellationToken, out CancellationToken effectiveCancellationToken);
+        CancellationToken effectiveCancellationToken = cancellationToken;
         effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, effectiveCancellationToken);
         using (result.Value) await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Converts an opened PDF and asynchronously saves the PowerPoint presentation to a caller-owned stream.</summary>
-    public static async Task<PdfPowerPointConversionReport> SaveAsPowerPointAsync(
+    public static async Task<OfficeOutputResult<PdfPowerPointConversionReport>> SaveAsPowerPointAsync(
         this PdfCore.PdfDocument document,
         Stream presentationStream,
-        PdfPowerPointImportOptions? options = null,
+        PdfToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
-        using CancellationTokenSource? linked = LinkCancellationTokens(options?.CancellationToken ?? default, cancellationToken, out CancellationToken effectiveCancellationToken);
+        CancellationToken effectiveCancellationToken = cancellationToken;
         effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, effectiveCancellationToken);
         using (result.Value) await result.Value.SaveAsync(presentationStream, effectiveCancellationToken).ConfigureAwait(false);
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Imports logical PDF tables into a new PowerPoint presentation at <paramref name="presentationPath"/>.</summary>
-    public static PdfPowerPointConversionReport SaveAsPowerPoint(
+    public static OfficeOutputResult<PdfPowerPointConversionReport> SaveAsPowerPoint(
         this PdfCore.PdfDocumentReadResult document,
         string presentationPath,
-        PdfPowerPointImportOptions? options = null) {
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
 
-        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
         using (result.Value) {
+            cancellationToken.ThrowIfCancellationRequested();
             result.Value.Save(presentationPath);
         }
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Imports logical PDF tables into a PowerPoint presentation written to a caller-owned stream.</summary>
-    public static PdfPowerPointConversionReport SaveAsPowerPoint(
+    public static OfficeOutputResult<PdfPowerPointConversionReport> SaveAsPowerPoint(
         this PdfCore.PdfDocumentReadResult document,
         Stream presentationStream,
-        PdfPowerPointImportOptions? options = null) {
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
 
-        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
         using (result.Value) {
+            cancellationToken.ThrowIfCancellationRequested();
             result.Value.Save(presentationStream);
         }
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Imports logical PDF tables into a new editable PowerPoint presentation.</summary>
     public static PptCore.PowerPointPresentation ToPowerPointPresentation(
         this PdfCore.PdfDocumentReadResult document,
-        PdfPowerPointImportOptions? options = null) => document.ToPowerPointPresentationResult(options).Value;
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) => document.ToPowerPointPresentationResult(options, cancellationToken).Value;
 
     /// <summary>Imports logical PDF tables into an editable PowerPoint presentation plus an explicit table-scope report.</summary>
     public static PdfPowerPointConversionResult ToPowerPointPresentationResult(
         this PdfCore.PdfDocumentReadResult document,
-        PdfPowerPointImportOptions? options = null) {
-        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
+        PdfToPowerPointOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfToPowerPointOptions operation = options ?? PdfToPowerPointOptions.CreateEditableTables();
         return ConvertLogicalResult(
             document,
             operation,
             applyPageSelection: true,
-            operation.CancellationToken);
+            cancellationToken);
     }
 
     private static PdfPowerPointConversionResult ConvertLogicalResult(
         PdfCore.PdfDocumentReadResult document,
-        PdfPowerPointImportOptions operation,
+        PdfToPowerPointOptions operation,
         bool applyPageSelection,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -197,7 +206,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfDocumentReadResult selected = applyPageSelection
             ? document.ProjectPages(
                 operation.ReadOptions?.PageSelection,
-                nameof(PdfPowerPointImportOptions.ReadOptions),
+                nameof(PdfToPowerPointOptions.ReadOptions),
                 cancellationToken)
             : document;
         if (operation.MaxPages <= 0) {
@@ -223,15 +232,16 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously imports logical PDF tables into a PowerPoint presentation written to a file.</summary>
-    public static async Task<PdfPowerPointConversionReport> SaveAsPowerPointAsync(
+    public static async Task<OfficeOutputResult<PdfPowerPointConversionReport>> SaveAsPowerPointAsync(
         this PdfCore.PdfDocumentReadResult document,
         string presentationPath,
-        PdfPowerPointImportOptions? options = null,
+        PdfToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
-        using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+        PdfToPowerPointOptions operation = options ?? PdfToPowerPointOptions.CreateEditableTables();
+        CancellationToken effectiveCancellationToken = cancellationToken;
         effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ConvertLogicalResult(
             document,
@@ -241,20 +251,21 @@ public static partial class PowerPointPdfConverterExtensions {
         using (result.Value) {
             await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
         }
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Asynchronously imports logical PDF tables into a PowerPoint presentation written to a caller-owned stream.</summary>
-    public static async Task<PdfPowerPointConversionReport> SaveAsPowerPointAsync(
+    public static async Task<OfficeOutputResult<PdfPowerPointConversionReport>> SaveAsPowerPointAsync(
         this PdfCore.PdfDocumentReadResult document,
         Stream presentationStream,
-        PdfPowerPointImportOptions? options = null,
+        PdfToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
-        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
-        using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+        PdfToPowerPointOptions operation = options ?? PdfToPowerPointOptions.CreateEditableTables();
+        CancellationToken effectiveCancellationToken = cancellationToken;
         effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ConvertLogicalResult(
             document,
@@ -264,26 +275,15 @@ public static partial class PowerPointPdfConverterExtensions {
         using (result.Value) {
             await result.Value.SaveAsync(presentationStream, effectiveCancellationToken).ConfigureAwait(false);
         }
-        return result.Report;
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
-    private static CancellationTokenSource? LinkCancellationTokens(
-        CancellationToken optionsToken,
-        CancellationToken methodToken,
-        out CancellationToken effectiveToken) {
-        if (optionsToken.CanBeCanceled && methodToken.CanBeCanceled && optionsToken != methodToken) {
-            CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(optionsToken, methodToken);
-            effectiveToken = linked.Token;
-            return linked;
-        }
-        effectiveToken = methodToken.CanBeCanceled ? methodToken : optionsToken;
-        return null;
-    }
+
 
     private static IReadOnlyList<PdfPowerPointTableImportEntry> ImportTables(
         PdfCore.PdfDocumentReadResult document,
         PptCore.PowerPointPresentation presentation,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
@@ -364,7 +364,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportVisualPages(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         using var presentationOwner = new PresentationConstructionScope();
@@ -391,7 +391,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportHybridPages(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
@@ -518,7 +518,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfLogicalTableData data,
         TableSegment segment,
         bool headerRowIncluded,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
@@ -545,7 +545,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static IReadOnlyList<PdfCore.PdfPageRenderResult> RenderPages(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         var renderOptions = new PdfCore.PdfPageRenderOptions {
             Format = PdfCore.PdfPageRenderFormat.Png,
@@ -686,7 +686,7 @@ public static partial class PowerPointPdfConverterExtensions {
             height);
     }
 
-    private static void AddEmptyPresentationSlide(PptCore.PowerPointPresentation presentation, PdfPowerPointImportOptions options) {
+    private static void AddEmptyPresentationSlide(PptCore.PowerPointPresentation presentation, PdfToPowerPointOptions options) {
         PptCore.PowerPointSlide slide = presentation.AddSlide();
         string title = string.IsNullOrWhiteSpace(options.EmptyPresentationTitle)
             ? "PDF Tables"
@@ -720,7 +720,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static List<TableSegment> BuildTableSegments(
         PdfCore.PdfLogicalTableData data,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         int sourceColumnCount = Math.Max(data.Columns.Count, 1);
         int columnLimit = options.MaxColumnsPerSlide > 0
@@ -765,7 +765,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfLogicalTableData data,
         TableSegment segment,
         bool headerRowIncluded,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         table.HeaderRow = headerRowIncluded;

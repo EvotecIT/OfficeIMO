@@ -6,7 +6,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
-        private static ImportNavigationMap BuildNavigationMap(PdfCore.PdfDocumentReadResult source, PdfWordImportOptions options) {
+        private static ImportNavigationMap BuildNavigationMap(PdfCore.PdfDocumentReadResult source, PdfToWordOptions options) {
             if (!options.ImportInternalLinks) {
                 return ImportNavigationMap.Empty;
             }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryResolveWordLinkTarget(
             PdfCore.PdfLogicalLinkAnnotation link,
-            PdfWordImportOptions options,
+            PdfToWordOptions options,
             ImportNavigationMap navigation,
             out WordLinkTarget target) {
             if (options.ImportUriLinks &&

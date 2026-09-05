@@ -158,10 +158,10 @@ public sealed class HtmlPdfTests {
     public void Pdf_SaveAsHtmlAsync_LinksTheMethodTokenIntoRenderOptions() {
         using var optionsCancellation = new System.Threading.CancellationTokenSource();
         using var methodCancellation = new System.Threading.CancellationTokenSource();
-        var options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        var options = PdfToHtmlOptions.CreateSemanticProfile();
         options.CancellationToken = optionsCancellation.Token;
 
-        PdfHtmlSaveOptions renderOptions = PdfHtmlConverterExtensions.CreateAsyncRenderOptions(
+        PdfToHtmlOptions renderOptions = PdfHtmlConverterExtensions.CreateAsyncRenderOptions(
             options,
             methodCancellation.Token,
             out System.Threading.CancellationTokenSource? linkedCancellation);
@@ -176,7 +176,7 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtmlResult_StopsAtTheConfiguredOutputCharacterLimit() {
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         options.MaximumOutputCharacters = 128;
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -195,7 +195,7 @@ public sealed class HtmlPdfTests {
             })
             .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
             .ToBytes();
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreateSemanticProfile();
         options.MaximumOutputCharacters = 250_000;
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -207,24 +207,24 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtmlResult_DoesNotTranslateInvalidProfileAsAnOutputLimitFailure() {
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreateSemanticProfile();
         options.Profile = (PdfHtmlProfile)int.MaxValue;
         options.MaximumOutputCharacters = 128;
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options));
 
-        Assert.Equal(nameof(PdfHtmlSaveOptions.Profile), exception.ParamName);
+        Assert.Equal(nameof(PdfToHtmlOptions.Profile), exception.ParamName);
         Assert.DoesNotContain("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Pdf_ToHtmlResult_EnforcesTheLimitAfterRequestedNewlineNormalization() {
         PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
-        PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions unbounded = PdfToHtmlOptions.CreateSemanticProfile();
         unbounded.NewLine = "\r\n";
         string expected = document.ToHtmlResult(unbounded).Value;
-        PdfHtmlSaveOptions bounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions bounded = PdfToHtmlOptions.CreateSemanticProfile();
         bounded.NewLine = "\r\n";
         bounded.MaximumOutputCharacters = expected.Length - 1;
 
@@ -238,10 +238,10 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_AllowsOutputExactlyAtThePostNormalizationLimit() {
         PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
-        PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions unbounded = PdfToHtmlOptions.CreateSemanticProfile();
         unbounded.NewLine = "\n";
         string expected = document.ToHtmlResult(unbounded).Value;
-        PdfHtmlSaveOptions bounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions bounded = PdfToHtmlOptions.CreateSemanticProfile();
         bounded.NewLine = "\n";
         bounded.MaximumOutputCharacters = expected.Length;
 
@@ -253,7 +253,7 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void PdfToHtml_ResultAndBodyClassAreImmutableComposedContracts() {
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreateSemanticProfile();
         options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options);
@@ -1264,8 +1264,8 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void PdfHtml_NamedProfiles_ApplyCoherentReviewDefaults() {
-        PdfHtmlSaveOptions semantic = PdfHtmlSaveOptions.CreateSemanticProfile(OfficeVisualThemeKind.TechnicalDocument);
-        PdfHtmlSaveOptions positioned = PdfHtmlSaveOptions.CreatePositionedReviewProfile(OfficeVisualThemeKind.Report);
+        PdfToHtmlOptions semantic = PdfToHtmlOptions.CreateSemanticProfile(OfficeVisualThemeKind.TechnicalDocument);
+        PdfToHtmlOptions positioned = PdfToHtmlOptions.CreatePositionedReviewProfile(OfficeVisualThemeKind.Report);
 
         Assert.Equal(PdfHtmlProfile.Semantic, semantic.Profile);
         Assert.Equal(OfficeVisualThemeKind.TechnicalDocument, semantic.Theme);
@@ -1286,7 +1286,7 @@ public sealed class HtmlPdfTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile(OfficeVisualThemeKind.TechnicalDocument);
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreateSemanticProfile(OfficeVisualThemeKind.TechnicalDocument);
 
         string html = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtml(options);
 
@@ -1314,7 +1314,7 @@ public sealed class HtmlPdfTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
 
         string html = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtml(options);
 
@@ -1375,7 +1375,7 @@ public sealed class HtmlPdfTests {
             block.XStart > tableRight + 1D && block.Text.Contains("Ready", StringComparison.Ordinal));
 
         string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(
-            PdfHtmlSaveOptions.CreatePositionedReviewProfile());
+            PdfToHtmlOptions.CreatePositionedReviewProfile());
 
         Assert.Equal(2, CountOccurrences(html, "Ready"));
     }
@@ -1386,7 +1386,7 @@ public sealed class HtmlPdfTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1422,7 +1422,7 @@ public sealed class HtmlPdfTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
@@ -1451,7 +1451,7 @@ public sealed class HtmlPdfTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeOutlines = false
         };
@@ -1466,7 +1466,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_ReportsAcroFormXfaAsInertReviewMetadata() {
         byte[] pdf = CreateAcroFormXfaPdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
@@ -1493,7 +1493,7 @@ public sealed class HtmlPdfTests {
     public void Pdf_ToHtmlResult_SnapshotsConversionReportWhenOptionsAreReused() {
         byte[] imagePdf = CreateImageSamplePdf();
         byte[] textPdf = CreateLogicalSamplePdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             MaxEmbeddedImageBytes = 0
         };
@@ -1532,7 +1532,7 @@ public sealed class HtmlPdfTests {
             .PageBreak()
             .TextField("SecondPageField", width: 120, value: "second")
             .ToBytes();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             PageRanges = new[] {
                 PdfCore.PdfPageRange.From(2, 2)
@@ -1552,7 +1552,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewFragment_IncludesPositioningCss() {
         byte[] pdf = CreateLogicalSamplePdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             EmitDocumentShell = false
         };
@@ -1569,7 +1569,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_RejectsInvalidNamedThemeWhenSharedStylesAreEnabled() {
         byte[] pdf = CreateLogicalSamplePdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Theme = (OfficeVisualThemeKind)999,
             IncludeDefaultStyles = true
         };
@@ -1580,7 +1580,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewWithoutDefaultStyles_RetainsOnlyStructuralCss() {
         byte[] pdf = CreateLogicalSamplePdf();
-        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         options.IncludeDefaultStyles = false;
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options);
@@ -1605,7 +1605,7 @@ public sealed class HtmlPdfTests {
             })
             .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
             .ToBytes();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
@@ -1621,7 +1621,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_CanForceImagePlaceholders() {
         byte[] pdf = CreateImageSamplePdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly
         };
@@ -1647,7 +1647,7 @@ public sealed class HtmlPdfTests {
             .H1("Repeated Page")
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
                 PdfCore.PdfPageRange.From(1, 1),
@@ -1666,7 +1666,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_SemanticProfile_EmbedsExtractedImageData() {
         byte[] pdf = CreateImageSamplePdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic
         };
 
@@ -1691,7 +1691,7 @@ public sealed class HtmlPdfTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second PDF page"))
             .ToBytes();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
                 PdfCore.PdfPageRange.From(2, 2)
@@ -1716,7 +1716,7 @@ public sealed class HtmlPdfTests {
             })
             .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
             .ToBytes();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
                 PdfCore.PdfPageRange.From(1, 1),
@@ -1745,7 +1745,7 @@ public sealed class HtmlPdfTests {
             .Paragraph(paragraph => paragraph.Text("Second logical page"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
                 PdfCore.PdfPageRange.From(2, 2)
@@ -1761,7 +1761,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_AccountsForRotatedPages() {
         byte[] pdf = CreateRotatedLinkAnnotationPdf(90, "https://example.com/rotated");
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1776,7 +1776,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_FlipsCoordinatesForRotated180Pages() {
         byte[] pdf = CreateRotatedLinkAnnotationPdf(180, "https://example.com/rotated-180");
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1792,11 +1792,11 @@ public sealed class HtmlPdfTests {
     public void Pdf_ToHtml_LinkAnnotations_RenderUnsafeUriAsInertText() {
         const string unsafeUri = "javascript:alert(1)";
         byte[] pdf = CreateLinkAnnotationPdf(unsafeUri);
-        var semanticOptions = new PdfHtmlSaveOptions {
+        var semanticOptions = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
             IncludeLinkAnnotations = true
         };
-        var positionedOptions = new PdfHtmlSaveOptions {
+        var positionedOptions = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1813,7 +1813,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_ReportsActiveActionDiagnosticsWithoutPayloads() {
         byte[] pdf = CreateActiveContentDiagnosticsPdf();
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1849,7 +1849,7 @@ public sealed class HtmlPdfTests {
 
         try {
             OfficeIMO.Html.HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).SaveAsPdf(pdfPath, new HtmlToPdfOptions());
-            PdfCore.PdfDocumentReadResult.Load(pdfPath).SaveAsHtml(htmlPath, new PdfHtmlSaveOptions {
+            PdfCore.PdfDocumentReadResult.Load(pdfPath).SaveAsHtml(htmlPath, new PdfToHtmlOptions {
                 Profile = PdfHtmlProfile.PositionedReview,
                 IncludeLinkAnnotations = true
             });

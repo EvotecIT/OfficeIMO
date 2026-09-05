@@ -80,6 +80,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case RtfParagraph paragraph:
                 RenderParagraph(document, paragraph, pdf, options, state);

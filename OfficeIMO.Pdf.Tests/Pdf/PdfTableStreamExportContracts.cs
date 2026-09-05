@@ -17,7 +17,7 @@ public class PdfTableStreamExportContracts {
         PdfDocumentReadResult logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
-        logical.SaveAsWord(destination, PdfWordImportOptions.CreateTablesOnly());
+        logical.SaveAsWord(destination, PdfToWordOptions.CreateTablesOnly());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.MainDocumentPart);
@@ -38,7 +38,7 @@ public class PdfTableStreamExportContracts {
     public async Task TableConversions_ProvideReportsAndAsyncCallerOwnedStreamWrites() {
         PdfDocumentReadResult logical = CreateLogicalDocument();
 
-        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfWordImportOptions.CreateTablesOnly());
+        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
         PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
         PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult();
 
@@ -62,7 +62,7 @@ public class PdfTableStreamExportContracts {
         using var wordStream = new MemoryStream();
         using var excelStream = new MemoryStream();
         using var powerPointStream = new MemoryStream();
-        await logical.SaveAsWordAsync(wordStream, PdfWordImportOptions.CreateTablesOnly());
+        await logical.SaveAsWordAsync(wordStream, PdfToWordOptions.CreateTablesOnly());
         await logical.SaveTablesAsExcelAsync(excelStream);
         await logical.SaveAsPowerPointAsync(powerPointStream);
 
@@ -82,25 +82,22 @@ public class PdfTableStreamExportContracts {
         cancellation.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            logical.SaveAsWordAsync(destination, PdfWordImportOptions.CreateTablesOnly(), cancellation.Token));
+            logical.SaveAsWordAsync(destination, PdfToWordOptions.CreateTablesOnly(), cancellation.Token));
         Assert.Equal(0, destination.Length);
     }
 
     [Fact]
-    public async Task TableConversionAsyncWrites_LinkOptionsAndMethodCancellationTokens() {
+    public async Task TableConversionAsyncWrites_ObserveMethodCancellation() {
         PdfDocumentReadResult logical = CreateLogicalDocument();
         PdfDocument opened = PdfDocument.Load(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Opened cancellation proof"))
             .ToBytes());
-        using var optionsCancellation = new CancellationTokenSource();
         using var methodCancellation = new CancellationTokenSource();
-        optionsCancellation.Cancel();
+        methodCancellation.Cancel();
 
-        var wordOptions = PdfWordImportOptions.CreateTablesOnly();
-        wordOptions.CancellationToken = optionsCancellation.Token;
-        var excelOptions = new PdfExcelTableImportOptions { CancellationToken = optionsCancellation.Token };
-        var powerPointOptions = PdfPowerPointImportOptions.CreateEditableTables();
-        powerPointOptions.CancellationToken = optionsCancellation.Token;
+        var wordOptions = PdfToWordOptions.CreateTablesOnly();
+        var excelOptions = new PdfTablesToExcelOptions();
+        var powerPointOptions = PdfToPowerPointOptions.CreateEditableTables();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             logical.SaveAsWordAsync(new MemoryStream(), wordOptions, methodCancellation.Token));
@@ -190,7 +187,7 @@ public class PdfTableStreamExportContracts {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
-            PdfPowerPointImportOptions.CreateEditableContent());
+            PdfToPowerPointOptions.CreateEditableContent());
 
         using (result.Value) {
             Assert.Equal(1, logical.Pages.Count);

@@ -5,9 +5,9 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options for extracting logical PDF tables into an Excel workbook.
     /// </summary>
-public sealed class PdfExcelTableImportOptions {
+public sealed class PdfTablesToExcelOptions {
         /// <summary>Cancellation observed at table, row, and column-analysis boundaries.</summary>
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
@@ -103,7 +103,7 @@ public sealed class PdfExcelTableImportOptions {
         /// </summary>
         public string EmptyWorkbookSheetName { get; set; } = "PDF Tables";
 
-        internal PdfExcelTableImportOptions CloneForConversion() =>
-            (PdfExcelTableImportOptions)MemberwiseClone();
+        internal PdfTablesToExcelOptions CloneForConversion() =>
+            (PdfTablesToExcelOptions)MemberwiseClone();
     }
 }

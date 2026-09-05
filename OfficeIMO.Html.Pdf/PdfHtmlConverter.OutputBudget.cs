@@ -6,7 +6,7 @@ namespace OfficeIMO.Html.Pdf;
 public static partial class PdfHtmlConverterExtensions {
     private const int HtmlEncodingChunkCharacters = 4096;
 
-    private static StringBuilder CreateOutputBuilder(PdfHtmlSaveOptions options) {
+    private static StringBuilder CreateOutputBuilder(PdfToHtmlOptions options) {
         if (!options.MaximumOutputCharacters.HasValue) {
             return new StringBuilder();
         }
@@ -19,7 +19,7 @@ public static partial class PdfHtmlConverterExtensions {
         return new StringBuilder(Math.Min(256, maximum), checked((int)rawMaximum));
     }
 
-    private static string NormalizeOutputNewLinesWithinBudget(StringBuilder value, PdfHtmlSaveOptions options) {
+    private static string NormalizeOutputNewLinesWithinBudget(StringBuilder value, PdfToHtmlOptions options) {
         string newLine = options.NewLine;
         int sourceLength = value.Length;
         while (sourceLength > 0 && value[sourceLength - 1] is '\r' or '\n') sourceLength--;
@@ -62,7 +62,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void AddHtmlItem(
         List<HtmlItem> items,
         HtmlItem item,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         ref long retainedHtmlCharacters) {
         retainedHtmlCharacters = checked(retainedHtmlCharacters + item.Html.Length);
         if (options.MaximumOutputCharacters.HasValue &&
@@ -75,7 +75,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static string RenderPageItemWithinBudget(
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         long retainedHtmlCharacters,
         Action<StringBuilder> render) {
         StringBuilder builder;
@@ -119,7 +119,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static void ThrowPageItemLimit(PdfHtmlSaveOptions options) {
+    private static void ThrowPageItemLimit(PdfToHtmlOptions options) {
         throw new InvalidOperationException(
             $"Generated HTML exceeded the configured {options.MaximumOutputCharacters!.Value:N0}-character output limit while page items were being rendered.");
     }

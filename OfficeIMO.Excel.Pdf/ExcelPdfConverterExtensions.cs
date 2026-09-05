@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// Converts an Excel workbook to a first-party OfficeIMO PDF document model.
         /// </summary>
         public static PdfCore.PdfDocument ToPdfDocument(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             return document.ToPdfDocumentResult(options, cancellationToken).Value;
         }
 
@@ -98,6 +99,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// Converts an Excel workbook to a PDF document and returns conversion diagnostics with it.
         /// </summary>
         public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -123,21 +125,23 @@ namespace OfficeIMO.Excel.Pdf {
         /// </summary>
         /// <example><code>byte[] pdf = workbook.ToPdfBytes();</code></example>
         public static byte[] ToPdfBytes(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-            return document.ToPdfDocument(options, cancellationToken).ToBytes();
+        cancellationToken.ThrowIfCancellationRequested();
+            return document.ToPdfDocument(options, cancellationToken).ToBytes(cancellationToken);
         }
 
         /// <summary>
         /// Saves an Excel workbook as a PDF file.
         /// </summary>
         public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, string path, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-            document.ToPdfDocumentResult(options, cancellationToken).Save(path);
+            document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
         /// <summary>
         /// Attempts to save an Excel workbook as a PDF file and returns output diagnostics instead of throwing.
         /// </summary>
         public static PdfCore.PdfSaveResult SaveAsPdfResult(this ExcelDocument document, string path, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             try {
-                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path);
+                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken);
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
@@ -149,14 +153,15 @@ namespace OfficeIMO.Excel.Pdf {
         /// Writes an Excel workbook as PDF to a stream.
         /// </summary>
         public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, Stream stream, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-            document.ToPdfDocumentResult(options, cancellationToken).Save(stream);
+            document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
         /// <summary>
         /// Attempts to write an Excel workbook as PDF to a stream and returns output diagnostics instead of throwing.
         /// </summary>
         public static PdfCore.PdfSaveResult SaveAsPdfResult(this ExcelDocument document, Stream stream, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
             try {
-                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream);
+                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken);
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
@@ -171,8 +176,7 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelToPdfOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelToPdfOptions operation);
-            return await document.ToPdfDocumentResult(operation, operation.CancellationToken).SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
+            return await document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF to a caller-owned stream.</summary>
@@ -182,8 +186,7 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelToPdfOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelToPdfOptions operation);
-            return await document.ToPdfDocumentResult(operation, operation.CancellationToken).SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
+            return await document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Attempts to asynchronously save an Excel workbook as PDF at the specified path.</summary>
@@ -194,9 +197,8 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelToPdfOptions operation);
-                return await document.ToPdfDocumentResult(operation, operation.CancellationToken)
-                    .SaveResultAsync(path, operation.CancellationToken)
+                return await document.ToPdfDocumentResult(options, cancellationToken)
+                    .SaveResultAsync(path, cancellationToken)
                     .ConfigureAwait(false);
             } catch (OperationCanceledException) {
                 throw;
@@ -213,9 +215,8 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelToPdfOptions operation);
-                return await document.ToPdfDocumentResult(operation, operation.CancellationToken)
-                    .SaveResultAsync(stream, operation.CancellationToken)
+                return await document.ToPdfDocumentResult(options, cancellationToken)
+                    .SaveResultAsync(stream, cancellationToken)
                     .ConfigureAwait(false);
             } catch (OperationCanceledException) {
                 throw;
@@ -224,20 +225,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static CancellationTokenSource? CreateAsyncConversionOptions(
-            ExcelToPdfOptions? options,
-            CancellationToken methodToken,
-            out ExcelToPdfOptions operation) {
-            operation = (options ?? new ExcelToPdfOptions()).CloneForConversion();
-            if (!methodToken.CanBeCanceled || operation.CancellationToken == methodToken) return null;
-            if (!operation.CancellationToken.CanBeCanceled) {
-                operation.CancellationToken = methodToken;
-                return null;
-            }
-            var linked = CancellationTokenSource.CreateLinkedTokenSource(operation.CancellationToken, methodToken);
-            operation.CancellationToken = linked.Token;
-            return linked;
-        }
+
 
     }
 }

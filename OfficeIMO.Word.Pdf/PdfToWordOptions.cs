@@ -11,9 +11,9 @@ namespace OfficeIMO.Word.Pdf {
     /// supported metadata, page breaks, headings, paragraphs, list items, logical tables, and source
     /// placeholders, but it is not a pixel-perfect fixed-layout PDF to DOCX renderer.
     /// </remarks>
-    public sealed class PdfWordImportOptions {
+    public sealed class PdfToWordOptions {
         /// <summary>Cancellation observed at page and import-item boundaries.</summary>
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// Canonical semantic-read settings used when importing an opened <see cref="PdfCore.PdfDocument"/>.
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         /// <summary>Creates an import profile that reconstructs only detected PDF tables.</summary>
-        public static PdfWordImportOptions CreateTablesOnly() => new PdfWordImportOptions {
+        public static PdfToWordOptions CreateTablesOnly() => new PdfToWordOptions {
             IncludeMetadata = false,
             PreservePageBreaks = false,
             IncludeEmptyPages = false,
@@ -117,7 +117,7 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         /// <summary>Creates a reusable copy of this option set.</summary>
-        public PdfWordImportOptions Clone() => new PdfWordImportOptions {
+        public PdfToWordOptions Clone() => new PdfToWordOptions {
             CancellationToken = CancellationToken,
             ReadOptions = ReadOptions,
             IncludeMetadata = IncludeMetadata,
@@ -143,9 +143,9 @@ namespace OfficeIMO.Word.Pdf {
             EmptyDocumentMessage = EmptyDocumentMessage
         }.CopyAllowedHyperlinkUriSchemesFrom(AllowedHyperlinkUriSchemes);
 
-        internal PdfWordImportOptions CloneForConversion() => Clone();
+        internal PdfToWordOptions CloneForConversion() => Clone();
 
-        private PdfWordImportOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
+        private PdfToWordOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
             AllowedHyperlinkUriSchemes.Clear();
             foreach (string scheme in schemes) {
                 if (!string.IsNullOrWhiteSpace(scheme)) {

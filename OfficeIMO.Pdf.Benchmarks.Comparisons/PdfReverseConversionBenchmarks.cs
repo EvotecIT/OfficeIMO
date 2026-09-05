@@ -50,7 +50,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToHtml() {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
-        return logical.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic }).Length;
+        return logical.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic }).Length;
     }
 
     [Benchmark]
@@ -64,7 +64,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToPptx() {
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);
@@ -87,7 +87,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToOdp() {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
-        return logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent()).Value.ToBytes().Length;
+        return logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent()).Value.ToBytes().Length;
     }
 
     [Benchmark]
@@ -104,7 +104,7 @@ public class PdfReverseConversionBenchmarks {
             W.Body body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("DOCX reverse conversion did not produce a document body.");
             ValidateContent(string.Join(" ", body.Descendants<W.Text>().Select(static text => text.Text)), "DOCX");
         }
-        string html = logical.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic });
+        string html = logical.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
         int htmlPages = Regex.Matches(html, "class=\"pdf-page\"[^>]*data-page-number=", RegexOptions.CultureInvariant).Count;
         if (htmlPages != _scenario.PageCount) throw new InvalidOperationException($"HTML reverse conversion retained {htmlPages} of {_scenario.PageCount} page scopes.");
         ValidateContent(WebUtility.HtmlDecode(Regex.Replace(html, "<[^>]+>", " ")), "HTML");
@@ -117,7 +117,7 @@ public class PdfReverseConversionBenchmarks {
             PdfBenchmarkValidation.ValidateTableScenarioContent(GetSpreadsheetText(package), _scenario, Producer + " " + Scale + " XLSX");
         }
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);
@@ -133,7 +133,7 @@ public class PdfReverseConversionBenchmarks {
         OdsDocument odsDocument = OdsDocument.Load(new MemoryStream(ods));
         if (odsDocument.Sheets.Count == 0) throw new InvalidOperationException("ODS reverse conversion did not produce a sheet.");
         PdfBenchmarkValidation.ValidateTableScenarioContent(ReadOpenDocumentText(ods), _scenario, Producer + " " + Scale + " ODS");
-        byte[] odp = logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent()).Value.ToBytes();
+        byte[] odp = logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent()).Value.ToBytes();
         OdpPresentation odpDocument = OdpPresentation.Load(new MemoryStream(odp));
         if (odpDocument.Slides.Count != _scenario.PageCount) throw new InvalidOperationException($"ODP reverse conversion produced {odpDocument.Slides.Count} of {_scenario.PageCount} slides.");
         ValidateContent(ReadOpenDocumentText(odp), "ODP");

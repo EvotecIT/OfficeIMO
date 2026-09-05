@@ -150,13 +150,13 @@ public class RtfPdfImportTests {
     }
 
     [Fact]
-    public void PdfRtfImportOptions_Clone_IsIndependent() {
-        var options = new PdfRtfImportOptions {
+    public void PdfToRtfOptions_Clone_IsIndependent() {
+        var options = new PdfToRtfOptions {
             PreservePageBreaks = false,
             IncludeMetadata = false
         };
 
-        PdfRtfImportOptions clone = options.Clone();
+        PdfToRtfOptions clone = options.Clone();
         clone.PreservePageBreaks = true;
         clone.IncludeMetadata = true;
 
@@ -208,7 +208,7 @@ public class RtfPdfImportTests {
         Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
     }
 
-    private static PdfRtfImportOptions CreateImportOptions() => new PdfRtfImportOptions();
+    private static PdfToRtfOptions CreateImportOptions() => new PdfToRtfOptions();
 
     private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
         PdfCore.PdfDocumentReadResult.Load(pdf, CreateLayoutOptions());

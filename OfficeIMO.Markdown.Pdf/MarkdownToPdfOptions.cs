@@ -6,6 +6,8 @@ namespace OfficeIMO.Markdown.Pdf;
 /// Options for converting OfficeIMO.Markdown documents to first-party PDF documents.
 /// </summary>
 public sealed class MarkdownToPdfOptions {
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
     private double _defaultImageWidth = 320D;
     private double _defaultImageHeight = 180D;
     private int _maximumDataUriImageBytes = 5 * 1024 * 1024;

@@ -102,20 +102,20 @@ public sealed class PdfBridgeApiContracts {
     [Fact]
     public void FourPointZeroOptionNamesDescribeTheirOwningBridgeAndDirection() {
         Assert.Null(typeof(WordToPdfOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfSaveOptions"));
-        Assert.Null(typeof(PdfWordImportOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfWordReadOptions"));
-        Assert.Null(typeof(PdfExcelTableImportOptions).Assembly.GetType("OfficeIMO.Excel.Pdf.PdfExcelImportOptions"));
-        Assert.Null(typeof(PdfPowerPointImportOptions).Assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportOptions"));
-        Assert.Null(typeof(PdfRtfImportOptions).Assembly.GetType("OfficeIMO.Rtf.Pdf.PdfRtfReadOptions"));
+        Assert.Null(typeof(PdfToWordOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfWordReadOptions"));
+        Assert.Null(typeof(PdfTablesToExcelOptions).Assembly.GetType("OfficeIMO.Excel.Pdf.PdfExcelImportOptions"));
+        Assert.Null(typeof(PdfToPowerPointOptions).Assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportOptions"));
+        Assert.Null(typeof(PdfToRtfOptions).Assembly.GetType("OfficeIMO.Rtf.Pdf.PdfRtfReadOptions"));
     }
 
     [Fact]
     public void OpenedDocumentAdaptersExposeTheCanonicalSemanticReadOptions() {
         foreach (Type optionType in new[] {
-            typeof(PdfWordImportOptions),
-            typeof(PdfExcelTableImportOptions),
-            typeof(PdfRtfImportOptions),
-            typeof(PdfHtmlSaveOptions),
-            typeof(PdfPowerPointImportOptions),
+            typeof(PdfToWordOptions),
+            typeof(PdfTablesToExcelOptions),
+            typeof(PdfToRtfOptions),
+            typeof(PdfToHtmlOptions),
+            typeof(PdfToPowerPointOptions),
             typeof(ReaderPdfOptions)
         }) {
             PropertyInfo property = Assert.IsAssignableFrom<PropertyInfo>(optionType.GetProperty("ReadOptions"));
@@ -138,15 +138,15 @@ public sealed class PdfBridgeApiContracts {
         };
 
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToWordDocument(new PdfWordImportOptions { ReadOptions = readOptions }));
+            document.ToWordDocument(new PdfToWordOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ImportTablesToExcelDocument(new PdfExcelTableImportOptions { ReadOptions = readOptions }));
+            document.ImportTablesToExcelDocument(new PdfTablesToExcelOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToRtfDocument(new PdfRtfImportOptions { ReadOptions = readOptions }));
+            document.ToRtfDocument(new PdfToRtfOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToHtml(new PdfHtmlSaveOptions { ReadOptions = readOptions }));
+            document.ToHtml(new PdfToHtmlOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToPowerPointPresentation(new PdfPowerPointImportOptions { ReadOptions = readOptions }));
+            document.ToPowerPointPresentation(new PdfToPowerPointOptions { ReadOptions = readOptions }));
         using var stream = new MemoryStream(pdf, writable: false);
         Assert.Throws<PdfReadLimitException>(() =>
             PdfReaderAdapter.ReadDocument(stream, pdfOptions: new ReaderPdfOptions { ReadOptions = readOptions }));
@@ -160,7 +160,7 @@ public sealed class PdfBridgeApiContracts {
             .Paragraph(paragraph => paragraph.Text("Second page marker"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(pdf);
-        var options = new PdfWordImportOptions {
+        var options = new PdfToWordOptions {
             ReadOptions = new PdfReadOptions {
                 PageSelection = PdfPageSelection.From(2),
                 Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }

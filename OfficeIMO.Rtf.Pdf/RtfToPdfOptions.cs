@@ -6,6 +6,8 @@ namespace OfficeIMO.Rtf.Pdf;
 /// Controls conversion from an RTF document model to a first-party PDF document.
 /// </summary>
 public sealed class RtfToPdfOptions {
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Default number of distinct document font families allowed to probe installed system fonts.</summary>
     public const int DefaultMaximumSystemFontFamilies = 32;
 

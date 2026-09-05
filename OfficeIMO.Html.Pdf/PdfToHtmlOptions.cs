@@ -8,9 +8,9 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>
 /// Options for exporting parser-supported PDFs to HTML through the first-party OfficeIMO logical PDF model.
 /// </summary>
-public sealed class PdfHtmlSaveOptions {
+public sealed class PdfToHtmlOptions {
     /// <summary>Cancellation observed at page and export-summary boundaries.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
 
     private OfficeHtmlDocumentOptions _documentOutput = new() {
         Title = "OfficeIMO PDF Export",
@@ -20,7 +20,7 @@ public sealed class PdfHtmlSaveOptions {
     };
 
     /// <summary>Creates polished semantic PDF review HTML using the shared OfficeIMO document shell.</summary>
-    public static PdfHtmlSaveOptions CreateSemanticProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
+    public static PdfToHtmlOptions CreateSemanticProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
         Profile = PdfHtmlProfile.Semantic,
         Theme = theme,
         IncludeDefaultStyles = true
@@ -30,7 +30,7 @@ public sealed class PdfHtmlSaveOptions {
     /// Creates positioned PDF review HTML with page geometry, images, links, and form widgets enabled.
     /// The output remains inert review HTML and never executes PDF actions or JavaScript.
     /// </summary>
-    public static PdfHtmlSaveOptions CreatePositionedReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
+    public static PdfToHtmlOptions CreatePositionedReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
         Profile = PdfHtmlProfile.PositionedReview,
         Theme = theme,
         IncludeDefaultStyles = true,
@@ -143,7 +143,7 @@ public sealed class PdfHtmlSaveOptions {
 
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
-    internal PdfHtmlSaveOptions CloneForConversion() => new() {
+    internal PdfToHtmlOptions CloneForConversion() => new() {
         CancellationToken = CancellationToken,
         Profile = Profile,
         ReadOptions = ReadOptions,

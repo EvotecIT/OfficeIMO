@@ -9,6 +9,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderBlock(PdfCore.PdfDocument pdf, IMarkdownBlock block, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case HeadingBlock heading:
                 RenderHeading(pdf, heading, document, visualTheme);

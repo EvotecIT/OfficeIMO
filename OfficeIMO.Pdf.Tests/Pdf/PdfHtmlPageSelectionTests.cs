@@ -14,7 +14,7 @@ public sealed class PdfHtmlPageSelectionTests {
             source.PageBreak().Paragraph(paragraph => paragraph.Text("Page " + capturedPageNumber));
         }
         PdfDocument document = PdfDocument.Load(source.ToBytes());
-        var options = new PdfHtmlSaveOptions {
+        var options = new PdfToHtmlOptions {
             ReadOptions = new PdfReadOptions {
                 Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
             },

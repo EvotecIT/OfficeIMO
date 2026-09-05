@@ -18,7 +18,7 @@ public sealed class ReaderDirectPdfAdapterTests {
             "The delivery is ready for review.\r\n");
         using var stream = new MemoryStream(source);
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EmailToPdfBytes(stream);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EmailToPdfDocumentResult(stream);
         byte[] pdf = conversion.ToBytes();
 
         Assert.Contains("delivery is ready", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.OrdinalIgnoreCase);
@@ -29,7 +29,7 @@ public sealed class ReaderDirectPdfAdapterTests {
     public void EpubFacade_PreservesChapterOrderAndReportsEpubPolicy() {
         using MemoryStream source = CreateEpub();
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EpubToPdfBytes(source);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EpubToPdfDocumentResult(source);
         string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
 
         Assert.True(text.IndexOf("First chapter", StringComparison.Ordinal) <
@@ -44,7 +44,7 @@ public sealed class ReaderDirectPdfAdapterTests {
         page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
         using var stream = new MemoryStream(source.ToBytes());
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.VisioToPdfBytes(stream);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.VisioToPdfDocumentResult(stream);
         string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
 
         Assert.Contains("Gateway service", text, StringComparison.Ordinal);
