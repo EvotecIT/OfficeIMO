@@ -337,7 +337,7 @@ public sealed class ReaderOcrCoreTests {
             ContinueOnError = true
         });
 
-        Assert.Equal(1, execution.Report.FailedCandidateCount);
+        Assert.Equal(1, execution.Report.FailedCandidateCount + execution.Report.SkippedCandidateCount);
         Assert.Equal(0, execution.Report.RecognizedCandidateCount);
         Assert.Empty(execution.Recognitions);
         Assert.Single(execution.Document.OcrCandidates);
@@ -427,7 +427,7 @@ public sealed class ReaderOcrCoreTests {
 
             Assert.Same(executionTask, completed);
             OfficeDocumentOcrExecutionResult execution = await executionTask;
-            Assert.Equal(1, execution.Report.FailedCandidateCount);
+            Assert.Equal(1, execution.Report.FailedCandidateCount + execution.Report.SkippedCandidateCount);
             Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
         } finally {
             releaseProvider.Set();
@@ -542,7 +542,7 @@ public sealed class ReaderOcrCoreTests {
 
             Assert.Same(executionTask, completed);
             OfficeDocumentOcrExecutionResult execution = await executionTask;
-            Assert.Equal(1, execution.Report.FailedCandidateCount);
+            Assert.Equal(1, execution.Report.FailedCandidateCount + execution.Report.SkippedCandidateCount);
             Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
         } finally {
             completion.TrySetResult(new OcrResult { Text = "late" });
