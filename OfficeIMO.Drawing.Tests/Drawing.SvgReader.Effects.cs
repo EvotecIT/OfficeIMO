@@ -186,6 +186,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_AppliesStaticFiltersDeclaredOnTheRootViewport() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10' filter='url(#shadow)'>"
+            + "<defs><filter id='shadow'><feDropShadow dx='2' dy='1' stdDeviation='0' flood-color='red'/></filter></defs>"
+            + "<rect x='2' y='2' width='4' height='4' fill='blue'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(3, 3).B > 200);
+        Assert.True(raster.GetPixel(7, 6).R > raster.GetPixel(7, 6).B);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_ComposesGaussianBlurAndOffsetWithoutRasterImages() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'><defs>"
             + "<filter id='moved'><feGaussianBlur stdDeviation='0'/><feOffset dx='2' dy='1'/></filter></defs>"

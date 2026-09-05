@@ -78,9 +78,36 @@ public static partial class OfficeSvgDrawingReader {
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
+            bool rootHasEffects = TryResolveSvgEffects(
+                root,
+                scene.Width,
+                scene.Height,
+                context,
+                paintServers,
+                references,
+                rootTransform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                0,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupportedFeatureCount,
+                out OfficeBlendMode rootBlendMode,
+                out OfficeDrawingSoftMask? rootSoftMask,
+                out SvgFilterEffect? rootFilterEffect);
+            OfficeDrawing rootContent = rootHasEffects ? new OfficeDrawing(viewWidth, viewHeight) : scene;
+            rootContent.Fonts.AddRange(options?.Fonts);
+            AddChildren(root, rootContent, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
+            if (rootHasEffects) {
+                TryApplySvgFilter(rootContent, rootFilterEffect, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
+                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
+            }
             if (visited > maximumElements) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
