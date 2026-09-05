@@ -143,6 +143,10 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
                 SelectedTab = tab;
                 if (!await tab.Document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
             }
+            foreach (StudioDocumentTabViewModel tab in candidates) {
+                SelectedTab = tab;
+                if (!await tab.Document.CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
+            }
             prepared = true;
         } finally {
             if (!prepared) {

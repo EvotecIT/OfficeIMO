@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class PdfWorkspaceTests {
+public sealed partial class PdfWorkspaceTests {
     [Fact]
     public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
@@ -627,7 +627,7 @@ public sealed class PdfWorkspaceTests {
 
             Assert.Equal(2, reopened.Pages.Count);
             Assert.True(reopened.IsDirty);
-            reopened.DiscardRecovery();
+            await reopened.DiscardRecoveryAsync();
             Assert.False(reopened.HasRecovery);
         } finally {
             Directory.Delete(root, recursive: true);

@@ -8,6 +8,38 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioRecoveryManagementTests {
     [Fact]
+    public async Task FailedExplicitDiscardRetainsRecoveryChoiceAndReportsFailure() {
+        if (!OperatingSystem.IsWindows()) return; // Windows sharing denies deletion of an open file.
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            string root = Path.Combine(Path.GetTempPath(), "studio-discard-failure-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try {
+                string source = Path.Combine(root, "source.pdf");
+                PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+                byte[] original = File.ReadAllBytes(source);
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+                string snapshot = await services.Recovery.WriteAsync(source,
+                    PdfWorkspaceRecoveryStore.Fingerprint(original), original, 1, CancellationToken.None);
+                using var reader = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+                await reader.OpenDocumentAsync(source);
+                Assert.True(reader.HasRecovery);
+                using (var locked = new FileStream(snapshot, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    await reader.DiscardRecoveryCommand.ExecuteAsync(null);
+                    Assert.True(reader.HasRecovery);
+                    Assert.False(string.IsNullOrWhiteSpace(reader.ErrorMessage));
+                    Assert.NotEqual(services.Localizer.Get("Workspace.RecoveryDiscarded"), reader.OperationStatus);
+                }
+                await reader.DiscardRecoveryCommand.ExecuteAsync(null);
+                Assert.False(reader.HasRecovery);
+                Assert.Null(reader.ErrorMessage);
+                Assert.Equal(original, File.ReadAllBytes(source));
+            } finally { Directory.Delete(root, recursive: true); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ConfirmedCleanupPreservesOpenEditsAndSourcesAndRefreshesRecoveryChoices() {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {

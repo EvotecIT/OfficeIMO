@@ -388,8 +388,14 @@ internal sealed partial class PdfWorkspace : IDisposable {
             Path = destination;
             _baseFingerprint = PdfWorkspaceRecoveryStore.Fingerprint(_bytes);
             _savedRevision = _revision;
-            _recoveryStore.Delete(previousPath);
-            _recoveryStore.Delete(Path);
+            // Publication has completed; cleanup must not be interrupted by late cancellation.
+            try {
+                await _recoveryStore.DeleteAsync(previousPath).ConfigureAwait(false);
+                if (previousPath != Path) await _recoveryStore.DeleteAsync(Path).ConfigureAwait(false);
+            } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+                Changed?.Invoke(this, EventArgs.Empty);
+                throw new IOException("The PDF was saved, but its stored recovery data could not be removed. Clear stored recovery data in Settings when storage is available.", error);
+            }
             RecoveryPath = null;
             progress?.Report(new PdfWorkspaceProgress("Saved", 1D));
             Changed?.Invoke(this, EventArgs.Empty);
@@ -434,11 +440,14 @@ internal sealed partial class PdfWorkspace : IDisposable {
         }
     }
 
-    internal void DiscardRecovery() {
+    internal async Task DiscardRecoveryAsync(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        _recoveryStore.Delete(Path);
-        RecoveryPath = null;
-        Changed?.Invoke(this, EventArgs.Empty);
+        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            await _recoveryStore.DeleteAsync(Path, cancellationToken).ConfigureAwait(false);
+            RecoveryPath = null;
+            Changed?.Invoke(this, EventArgs.Empty);
+        } finally { _operationGate.Release(); }
     }
 
     public void Dispose() {
@@ -557,6 +566,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 await _recoveryStore
                     .WriteAsync(Path, _baseFingerprint, restore.Bytes, restore.Revision, cancellationToken)
                     .ConfigureAwait(false);
+            } else {
+                // Keep history and in-memory edits intact if cleanup fails or is canceled.
+                await _recoveryStore.DeleteAsync(Path, cancellationToken).ConfigureAwait(false);
             }
 
             source.RemoveLast();
@@ -573,7 +585,6 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 Array.Empty<int>(),
                 DateTimeOffset.UtcNow));
             if (!IsDirty) {
-                _recoveryStore.Delete(Path);
                 RecoveryPath = null;
             }
             TrimHistory();

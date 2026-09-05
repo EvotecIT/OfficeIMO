@@ -3,6 +3,28 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class PdfWorkspaceRecoveryStoreTests {
+    [Fact]
+    public async Task ExplicitDeletionWaitsForAnotherDocumentsWriteLease() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-recovery-delete-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var store = new PdfWorkspaceRecoveryStore(root);
+            string source = Path.Combine(root, "source.pdf");
+            byte[] bytes = [1, 2, 3];
+            string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(bytes);
+            await store.WriteAsync(source, fingerprint, bytes, 1, CancellationToken.None);
+            Task deletion;
+            using (var lease = new FileStream(Path.Combine(root, PdfWorkspaceRecoveryStore.LockFileName),
+                FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
+                deletion = store.DeleteAsync(source);
+                Assert.False(deletion.IsCompleted);
+                Assert.Equal(bytes, store.ReadVerifiedSnapshot(source, fingerprint));
+            }
+            await deletion;
+            Assert.Null(store.Find(source, fingerprint));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

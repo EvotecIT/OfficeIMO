@@ -285,6 +285,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
 
+            if (!await CommitPreparedDiscardAsync().ConfigureAwait(true)) return;
+            if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
             ReplaceDocument(
                 candidateWorkspace,
                 session,
@@ -348,6 +350,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     internal async Task<bool> RequestCloseDocumentAsync() {
         if (!await PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+        if (!await CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
         CompletePreparedClose();
         return true;
     }
@@ -355,6 +358,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     internal Task<bool> PrepareCloseDocumentAsync() => PrepareDocumentTransitionAsync();
 
     internal void CancelPreparedClose() => _discardOnNextTransition = false;
+
+    internal async Task<bool> CommitPreparedDiscardAsync() {
+        if (!_discardOnNextTransition || _workspace is null) return true;
+        bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), CancellationToken.None).ConfigureAwait(true);
+        if (succeeded) _discardOnNextTransition = false;
+        return succeeded;
+    }
 
     internal void CompletePreparedClose() {
         _openCancellation?.Cancel();
@@ -475,8 +485,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         UnsavedChangesDecision decision = await _confirmUnsavedChanges().ConfigureAwait(true);
         if (decision == UnsavedChangesDecision.Save) {
-            await RunSaveAsync(path: null, CancellationToken.None).ConfigureAwait(true);
-            return !IsDirty;
+            bool saved = await RunSaveAsync(path: null, CancellationToken.None).ConfigureAwait(true);
+            return saved && !IsDirty;
         }
         if (decision == UnsavedChangesDecision.Discard) {
             _discardOnNextTransition = true;
@@ -505,7 +515,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _sceneCoordinator?.Dispose();
         _renderCoordinator?.Dispose();
         if (!ReferenceEquals(_workspace, workspace)) {
-            if (_discardOnNextTransition) _workspace?.DiscardRecovery();
             _workspace?.Dispose();
             _discardOnNextTransition = false;
         }

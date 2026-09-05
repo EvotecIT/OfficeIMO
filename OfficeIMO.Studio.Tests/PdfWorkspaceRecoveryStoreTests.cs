@@ -177,7 +177,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
             WriteFixture(legacy, metadata, first, legacy: true);
             await File.WriteAllBytesAsync(snapshot, [0]);
             Assert.Null(store.ReadVerifiedSnapshot(source, fingerprint));
-            store.Delete(source);
+            await store.DeleteAsync(source);
             Assert.Null(store.Find(source, fingerprint));
             Assert.Empty(RecoveryDataFiles(root));
         } finally {

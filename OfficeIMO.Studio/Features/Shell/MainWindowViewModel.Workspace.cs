@@ -162,10 +162,10 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private void DiscardRecovery() {
-        _workspace?.DiscardRecovery();
-        OperationStatus = UiText("Workspace.RecoveryDiscarded");
-        NotifyWorkspaceStateChanged();
+    private async Task DiscardRecoveryAsync(CancellationToken cancellationToken) {
+        if (_workspace is null) return;
+        bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), cancellationToken).ConfigureAwait(true);
+        if (succeeded) OperationStatus = UiText("Workspace.RecoveryDiscarded");
     }
 
     [RelayCommand]
@@ -329,12 +329,13 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private void CancelOperation() => CancelCurrentOperation();
 
-    private async Task RunSaveAsync(string? path, CancellationToken cancellationToken) {
-        if (_workspace is null) return;
+    private async Task<bool> RunSaveAsync(string? path, CancellationToken cancellationToken) {
+        if (_workspace is null) return false;
         bool succeeded = await RunStandaloneAsync(
             token => _workspace.SaveAsync(path, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
         if (succeeded) NotifyWorkspaceStateChanged();
+        return succeeded;
     }
 
     private async Task<bool> RunMutationAsync(

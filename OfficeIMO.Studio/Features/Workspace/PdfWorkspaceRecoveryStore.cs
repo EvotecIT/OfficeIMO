@@ -50,14 +50,15 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         return snapshotPath;
     }
 
-    internal void Delete(string sourcePath) {
+    internal async Task DeleteAsync(string sourcePath, CancellationToken token = default) {
+        token.ThrowIfCancellationRequested();
         if (!Directory.Exists(_root)) return;
-        using FileStream? lease = TryAcquireExclusive();
-        if (lease is null) return;
+        using FileStream lease = await AcquireExclusiveAsync(token).ConfigureAwait(false);
         string key = CreateKey(Canonicalize(sourcePath));
-        TryDelete(Path.Combine(_root, key + ".recovery"));
-        TryDelete(Path.Combine(_root, key + ".pdf"));
-        TryDelete(Path.Combine(_root, key + ".json"));
+        // Remove legacy data first so a failed deletion cannot expose older edits.
+        File.Delete(Path.Combine(_root, key + ".pdf"));
+        File.Delete(Path.Combine(_root, key + ".json"));
+        File.Delete(Path.Combine(_root, key + ".recovery"));
     }
 
     internal string? Find(string sourcePath, string baseFingerprint) {
