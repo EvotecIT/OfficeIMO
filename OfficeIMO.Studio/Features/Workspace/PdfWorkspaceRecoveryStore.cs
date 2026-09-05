@@ -88,8 +88,9 @@ internal sealed class PdfWorkspaceRecoveryStore {
 
     private static byte[]? ReadBounded(string path, long maximumBytes) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (stream.Length <= 0 || stream.Length > maximumBytes) return null;
-        var bytes = new byte[checked((int)stream.Length)];
+        long length = stream.Length;
+        if (length <= 0 || length > maximumBytes) return null;
+        var bytes = new byte[checked((int)length)];
         stream.ReadExactly(bytes);
         // Also reject a file that grew through an already-open writer on platforms
         // where sharing flags cannot exclude that writer.
