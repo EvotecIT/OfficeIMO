@@ -1,7 +1,20 @@
 async (page) => {
   await page.addInitScript(() => {
     const tools = Object.create(null);
+    const objectUrlBlobs = new Map();
+    const createObjectURL = URL.createObjectURL.bind(URL);
+    const revokeObjectURL = URL.revokeObjectURL.bind(URL);
     Object.defineProperty(window, '__officeImoWebMcpTools', { value: tools, configurable: true });
+    Object.defineProperty(window, '__officeImoObjectUrlBlobs', { value: objectUrlBlobs, configurable: true });
+    URL.createObjectURL = blob => {
+      const url = createObjectURL(blob);
+      objectUrlBlobs.set(url, blob);
+      return url;
+    };
+    URL.revokeObjectURL = url => {
+      objectUrlBlobs.delete(url);
+      revokeObjectURL(url);
+    };
     Object.defineProperty(document, 'modelContext', {
       configurable: true,
       value: {
@@ -113,7 +126,9 @@ async (page) => {
 
       const downloadUrl = await downloadLink.getAttribute('href');
       const pdfMagic = await page.evaluate(async url => {
-        const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+        const blob = window.__officeImoObjectUrlBlobs?.get(url);
+        if (!(blob instanceof Blob)) throw new Error(`Generated output blob is unavailable for ${url}.`);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
         return String.fromCharCode(...bytes.slice(0, 4));
       }, downloadUrl);
       const metrics = await summary.evaluate(element => ({

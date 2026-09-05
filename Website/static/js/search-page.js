@@ -7,6 +7,12 @@
     return;
   }
 
+  let entries = [];
+  let indexLoaded = false;
+  let webMcpResultsVisible = false;
+  const webMcpSearch = window.PowerForgeWebMcpSearch || {};
+  window.PowerForgeWebMcpSearch = webMcpSearch;
+
   const params = new URLSearchParams(window.location.search);
   const seededQuery = (params.get('q') || '').trim();
   if (seededQuery) {
@@ -63,7 +69,19 @@
     }).join('');
   }
 
-  let entries = [];
+  webMcpSearch.renderVisibleResults = function (response) {
+    webMcpResultsVisible = true;
+    input.value = response.query;
+    render(response.results, response.query);
+  };
+
+  input.addEventListener('input', function () {
+    webMcpResultsVisible = false;
+    if (indexLoaded) {
+      runSearch();
+    }
+  });
+
   try {
     let indexPath = '/search/index.json';
     const manifestResponse = await fetch('/search/manifest.json', { cache: 'no-cache' });
@@ -80,9 +98,12 @@
     }
 
     entries = await indexResponse.json();
+    indexLoaded = true;
   } catch (error) {
-    meta.textContent = 'Search index unavailable.';
-    results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
+    if (!webMcpResultsVisible) {
+      meta.textContent = 'Search index unavailable.';
+      results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
+    }
     return;
   }
 
@@ -114,6 +135,7 @@
     render(matches, query);
   }
 
-  input.addEventListener('input', runSearch);
-  runSearch();
+  if (!webMcpResultsVisible) {
+    runSearch();
+  }
 })();
