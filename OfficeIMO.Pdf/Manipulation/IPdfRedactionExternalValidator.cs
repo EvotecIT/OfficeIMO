@@ -1,9 +1,15 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Optional development-time validator seam for tools such as qpdf, mutool, Ghostscript, or organization-specific forensic checks.</summary>
+/// <summary>Optional independent validator seam for tools such as qpdf, mutool, Ghostscript, or organization-specific forensic checks.</summary>
 public interface IPdfRedactionExternalValidator {
     /// <summary>Validates one redacted artifact without becoming a runtime dependency of OfficeIMO.Pdf.</summary>
     PdfRedactionExternalValidationResult Validate(byte[] redactedPdf);
+}
+
+/// <summary>Independent redaction validator that can cooperatively stop a running validation operation.</summary>
+public interface IPdfRedactionCancellationAwareExternalValidator : IPdfRedactionExternalValidator {
+    /// <summary>Validates one redacted artifact with cooperative cancellation.</summary>
+    PdfRedactionExternalValidationResult Validate(byte[] redactedPdf, System.Threading.CancellationToken cancellationToken);
 }
 
 /// <summary>Result returned by an optional external redaction validator.</summary>

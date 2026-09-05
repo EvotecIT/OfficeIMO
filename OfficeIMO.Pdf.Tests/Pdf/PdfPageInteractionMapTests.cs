@@ -57,7 +57,8 @@ public class PdfPageInteractionMapTests {
         PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
         PdfPageInteractionRegion link = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Link);
 
-        Assert.Equal(642, map.Width);
+        Assert.True(PdfReadDocument.Open(source).Pages[0].GetGeometry().IsCropBoxClamped);
+        Assert.Equal(592, map.Width);
         Assert.Equal(595, map.Height);
         Assert.InRange(link.Quad.Left, 0, map.Width);
         Assert.InRange(link.Quad.Right, 0, map.Width);

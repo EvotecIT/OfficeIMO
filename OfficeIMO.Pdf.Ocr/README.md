@@ -46,6 +46,25 @@ Every selected page is rendered to a bounded raster request. Pixel, point, and n
 
 `NativeDocument` retains the native-only parse. `Document` is the canonical native-plus-OCR parse and can be passed directly to the existing PDF-to-Word, Excel, PowerPoint, HTML, RTF, or OpenDocument adapters. Page results retain accepted words, provider/model/language evidence, rejections, and diagnostics.
 
+## Discover scanned redaction candidates
+
+Use the same OCR geometry and native-overlap owner to map literal or bounded-regex matches into PDF user-space areas:
+
+```csharp
+var search = new PdfRedactionSearchOptions()
+    .AddLiteral("Account Secret")
+    .AddRegex(@"\b\d{3}-\d{2}-\d{4}\b");
+
+PdfOcrRedactionSearchResult candidates = await pdf
+    .SearchRedactionCandidatesWithOcrAsync(engine, search);
+
+foreach (PdfOcrRedactionCandidate candidate in candidates.Candidates) {
+    Console.WriteLine($"Page {candidate.Area.PageNumber}: {candidate.Criterion}, confidence {candidate.MinimumConfidence:0.00}");
+}
+```
+
+Candidate results intentionally omit recognized matched text. They retain the criterion index, geometry, minimum confidence, and provider/model/language evidence needed by a review workflow. Literal and regex search is isolated to provider-declared lines, with bounded geometric line inference only when hierarchy identifiers are unavailable, so candidates are not assembled across unrelated lines or columns. `OfficeIMO.Workflows` can combine these candidates with native matches, persist source-bound decisions, re-run the same provider after destructive application, and publish privacy-safe evidence.
+
 ## Add a searchable text layer
 
 ```csharp

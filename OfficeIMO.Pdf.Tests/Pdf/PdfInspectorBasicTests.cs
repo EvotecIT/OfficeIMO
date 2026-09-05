@@ -138,7 +138,11 @@ public partial class PdfInspectorTests {
         Assert.Equal(300, page.MediaBox.Height);
         Assert.Equal(10, page.CropBox!.Left);
         Assert.Equal(20, page.CropBox.Bottom);
-        Assert.Same(page.CropBox, page.Geometry.EffectiveBox);
+        Assert.Equal(page.CropBox.Left, page.Geometry.EffectiveBox!.Left);
+        Assert.Equal(page.CropBox.Bottom, page.Geometry.EffectiveBox.Bottom);
+        Assert.Equal(page.CropBox.Right, page.Geometry.EffectiveBox.Right);
+        Assert.Equal(page.CropBox.Top, page.Geometry.EffectiveBox.Top);
+        Assert.False(page.Geometry.IsCropBoxClamped);
         Assert.Equal(5, page.BleedBox!.Left);
         Assert.Equal(280, page.BleedBox.Height);
         Assert.Equal(20, page.TrimBox!.Left);
@@ -162,6 +166,30 @@ public partial class PdfInspectorTests {
         Assert.True(page.HasPageMetadata);
         Assert.Equal(5, page.Geometry.MetadataObjectNumber);
         Assert.True(page.HasPieceInfo);
+    }
+
+    [Fact]
+    public void Inspect_ClampsEffectivePageGeometryToMediaAndCropIntersection() {
+        byte[] pdf = PdfPageGeometrySupport.BuildBoundaryIntersectionPdf("[0 0 100 100]", "[-10 10 80 120]");
+
+        PdfPageGeometry geometry = Assert.Single(PdfInspector.Inspect(pdf).Pages).Geometry;
+        PdfPageBox effective = Assert.IsType<PdfPageBox>(geometry.EffectiveBox);
+
+        Assert.Equal(0D, effective.Left);
+        Assert.Equal(10D, effective.Bottom);
+        Assert.Equal(80D, effective.Right);
+        Assert.Equal(100D, effective.Top);
+        Assert.True(geometry.IsCropBoxClamped);
+        Assert.False(geometry.HasEmptyEffectiveBoxIntersection);
+    }
+
+    [Fact]
+    public void ReadPage_FailsClosedWhenMediaAndCropBoxesDoNotIntersect() {
+        byte[] pdf = PdfPageGeometrySupport.BuildBoundaryIntersectionPdf("[0 0 100 100]", "[200 200 300 300]");
+        PdfReadPage page = Assert.Single(PdfReadDocument.Open(pdf).Pages);
+
+        Assert.True(page.GetGeometry().HasEmptyEffectiveBoxIntersection);
+        Assert.Throws<InvalidOperationException>(() => page.GetPageSize());
     }
 
     [Fact]

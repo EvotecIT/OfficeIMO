@@ -139,8 +139,11 @@ public sealed partial class PdfLogicalPage {
         return new PdfPagePoint(mappedX, mappedY);
     }
 
-    private PdfPageBox GetVisualBoundaryBox() =>
-        CropBox ?? MediaBox ?? new PdfPageBox("MediaBox", 0D, 0D, Width, Height);
+    private PdfPageBox GetVisualBoundaryBox() {
+        if (Geometry.EffectiveBox is PdfPageBox effectiveBox) return effectiveBox;
+        if (Geometry.HasEmptyEffectiveBoxIntersection) throw new InvalidOperationException("The page CropBox does not intersect its MediaBox; visual coordinates cannot be mapped safely.");
+        return new PdfPageBox("MediaBox", 0D, 0D, Width, Height);
+    }
 
     /// <summary>Logical elements in extraction order.</summary>
     public IReadOnlyList<IPdfLogicalElement> Elements { get; }

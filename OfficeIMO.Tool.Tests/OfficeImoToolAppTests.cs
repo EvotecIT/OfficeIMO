@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OfficeIMO.Pdf;
 using OfficeIMO.Tool.Commands.Markup;
 using Xunit;
 
@@ -24,8 +25,160 @@ public sealed class OfficeImoToolAppTests {
         Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
         Assert.Contains("officeimo tabular", help, StringComparison.Ordinal);
         Assert.Contains("officeimo workflow", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo pdf redact", help, StringComparison.Ordinal);
         Assert.Contains("officeimo provenance", help, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public async Task PdfRedactionHelpDocumentsReviewSchemasAndPasswordEnvironmentVariables() {
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "--help"], input, output, error);
+        string help = Encoding.UTF8.GetString(output.ToArray());
+
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+        Assert.Contains("officeimo pdf redact plan", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo.pdf.redaction.decisions.v1", help, StringComparison.Ordinal);
+        Assert.Contains("--password-env", help, StringComparison.Ordinal);
+        Assert.DoesNotContain("--password <", help, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public async Task PdfRedactionCliPlansAndAppliesReviewedJsonWithoutLeakingMatchedText() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Redaction.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string source = Path.Combine(directory, "source.pdf");
+        string recipe = Path.Combine(directory, "recipe.json");
+        string plan = Path.Combine(directory, "plan.json");
+        string decisions = Path.Combine(directory, "decisions.json");
+        string redacted = Path.Combine(directory, "redacted.pdf");
+        string evidence = Path.Combine(directory, "evidence.json");
+        const string sensitive = "CliSecret-881";
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(sensitive)))))).Save(source);
+            await File.WriteAllTextAsync(recipe, """
+                {
+                  "schema": "officeimo.pdf.redaction.recipe.v1",
+                  "rules": [ { "name": "cli-secret", "kind": "Literal", "value": "CliSecret-881" } ]
+                }
+                """);
+            await using var input = new MemoryStream();
+            await using var planOutput = new MemoryStream();
+            using var planError = new StringWriter();
+            int planExit = await OfficeImoToolApp.RunAsync(["pdf", "redact", "plan", source, "--recipe", recipe, "--evidence", plan], input, planOutput, planError);
+            Assert.Equal((int)OfficeImoToolExitCode.Success, planExit);
+            Assert.DoesNotContain(sensitive, await File.ReadAllTextAsync(plan), StringComparison.Ordinal);
+            using JsonDocument planJson = JsonDocument.Parse(planOutput.ToArray());
+            string sourceSha = planJson.RootElement.GetProperty("sourceSha256").GetString()!;
+            string recipeSha = planJson.RootElement.GetProperty("recipeSha256").GetString()!;
+            string candidateId = planJson.RootElement.GetProperty("candidates")[0].GetProperty("id").GetString()!;
+            await File.WriteAllTextAsync(decisions, JsonSerializer.Serialize(new {
+                schema = "officeimo.pdf.redaction.decisions.v1",
+                sourceSha256 = sourceSha,
+                recipeSha256 = recipeSha,
+                approvedCandidateIds = new[] { candidateId },
+                rejectedCandidateIds = Array.Empty<string>()
+            }));
+            await using var applyOutput = new MemoryStream();
+            using var applyError = new StringWriter();
+
+            int applyExit = await OfficeImoToolApp.RunAsync(["pdf", "redact", "apply", source, "--recipe", recipe, "--decisions", decisions, "--output", redacted, "--evidence", evidence], input, applyOutput, applyError);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, applyExit);
+            Assert.DoesNotContain(sensitive, PdfDocument.Load(redacted).Read().Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(sensitive, await File.ReadAllTextAsync(evidence), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, applyError.ToString());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfRedactionForceCannotOverwriteRecipeInput() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Redaction.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string source = Path.Combine(directory, "source.pdf");
+        string recipe = Path.Combine(directory, "recipe.json");
+        const string recipeJson = """
+            {
+              "schema": "officeimo.pdf.redaction.recipe.v1",
+              "rules": [ { "name": "protected-recipe", "kind": "Literal", "value": "protected recipe" } ]
+            }
+            """;
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("protected recipe")))))).Save(source);
+            await File.WriteAllTextAsync(recipe, recipeJson);
+            await using var input = new MemoryStream();
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "plan", source, "--recipe", recipe, "--evidence", recipe, "--force"], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
+            Assert.Equal(recipeJson, await File.ReadAllTextAsync(recipe));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfRedactionBatchCliRunsStrictRequestAndPublishesManifest() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.RedactionBatch.Tests", Guid.NewGuid().ToString("N"));
+        string inputRoot = Path.Combine(directory, "input");
+        string evidenceRoot = Path.Combine(directory, "evidence");
+        string request = Path.Combine(directory, "batch-request.json");
+        string manifest = Path.Combine(directory, "batch-result.json");
+        Directory.CreateDirectory(inputRoot);
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("BatchCliSecret")))))).Save(Path.Combine(inputRoot, "source.pdf"));
+            await File.WriteAllTextAsync(request, JsonSerializer.Serialize(new {
+                schema = "officeimo.pdf.redaction.batch-request.v1",
+                mode = "PlanOnly",
+                inputRoot,
+                evidenceRoot,
+                manifestPath = manifest,
+                recipe = new {
+                    schema = "officeimo.pdf.redaction.recipe.v1",
+                    rules = new[] { new { name = "batch-cli", kind = "Literal", value = "BatchCliSecret" } }
+                }
+            }));
+            await using var input = new MemoryStream();
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "batch", "--request", request], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.True(File.Exists(Path.Combine(evidenceRoot, "source.redaction.json")));
+            Assert.True(File.Exists(manifest));
+            Assert.DoesNotContain("BatchCliSecret", await File.ReadAllTextAsync(manifest), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PdfRedactionBatchCliRejectsUnknownJsonMembers() {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.RedactionBatch.Tests-" + Guid.NewGuid().ToString("N") + ".json");
+        try {
+            await File.WriteAllTextAsync(path, "{\"schema\":\"officeimo.pdf.redaction.batch-request.v1\",\"unexpected\":true}");
+            await using var input = new MemoryStream();
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int exitCode = await OfficeImoToolApp.RunAsync(["pdf", "redact", "batch", "--request", path], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("Invalid redaction JSON", error.ToString(), StringComparison.Ordinal);
+            Assert.Contains("unexpected", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]

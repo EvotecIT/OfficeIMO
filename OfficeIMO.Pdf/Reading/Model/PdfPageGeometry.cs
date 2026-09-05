@@ -46,8 +46,32 @@ public sealed class PdfPageGeometry {
     /// <summary>Inherited /ArtBox boundary, when readable.</summary>
     public PdfPageBox? ArtBox { get; }
 
-    /// <summary>Effective page box used by OfficeIMO.Pdf for page size, preferring CropBox over MediaBox.</summary>
-    public PdfPageBox? EffectiveBox => CropBox ?? MediaBox;
+    /// <summary>
+    /// Effective page box used by OfficeIMO.Pdf for page size and coordinates. When both boxes are
+    /// readable, this is the intersection of CropBox and MediaBox as required by the PDF page model.
+    /// A null result with readable boxes means their intersection is empty and geometry consumers
+    /// must fail closed instead of using out-of-page coordinates.
+    /// </summary>
+    public PdfPageBox? EffectiveBox {
+        get {
+            if (CropBox is null) return MediaBox;
+            if (MediaBox is null) return CropBox;
+            double left = Math.Max(CropBox.Left, MediaBox.Left);
+            double bottom = Math.Max(CropBox.Bottom, MediaBox.Bottom);
+            double right = Math.Min(CropBox.Right, MediaBox.Right);
+            double top = Math.Min(CropBox.Top, MediaBox.Top);
+            return right > left && top > bottom
+                ? new PdfPageBox("EffectiveBox", left, bottom, right, top)
+                : null;
+        }
+    }
+
+    /// <summary>True when readable MediaBox and CropBox values do not overlap.</summary>
+    public bool HasEmptyEffectiveBoxIntersection => MediaBox is not null && CropBox is not null && EffectiveBox is null;
+
+    /// <summary>True when the readable CropBox was clamped to the MediaBox.</summary>
+    public bool IsCropBoxClamped => MediaBox is not null && CropBox is not null && EffectiveBox is PdfPageBox effective &&
+        (effective.Left != CropBox.Left || effective.Bottom != CropBox.Bottom || effective.Right != CropBox.Right || effective.Top != CropBox.Top);
 
     /// <summary>Inherited page user-unit scale from /UserUnit, when present and positive.</summary>
     public double? UserUnit { get; }

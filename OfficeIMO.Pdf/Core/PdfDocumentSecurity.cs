@@ -47,4 +47,11 @@ public sealed class PdfDocumentSecurity {
     /// <summary>Prepares, delegates signing, and completes an external signature in one operation.</summary>
     public PdfExternalSignatureCompletion SignExternal(IPdfExternalSigner signer, PdfExternalSignatureOptions? options = null) =>
         _document.SignExternal(signer, options);
+
+    /// <summary>
+    /// Creates an explicit full-rewrite derivative with invalidated PDF signature fields and revisions removed.
+    /// Encrypted sources require owner authorization and the returned derivative is unencrypted.
+    /// </summary>
+    public PdfUnsignedDerivativeResult CreateUnsignedDerivative(System.Threading.CancellationToken cancellationToken = default) =>
+        _document.CreateUnsignedDerivative(cancellationToken);
 }

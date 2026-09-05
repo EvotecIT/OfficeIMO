@@ -96,18 +96,20 @@ internal static partial class PdfRedactionApplier {
 
     private static bool RedactionAreaCoversMatch(PdfRedactionArea area, PdfRedactionMatch match) {
         return area.PageNumber == match.PageNumber &&
-            area.X <= match.X + ImageRedactionTolerance &&
-            area.Y <= match.Y + ImageRedactionTolerance &&
-            area.X + area.Width >= match.X + match.Width - ImageRedactionTolerance &&
-            area.Y + area.Height >= match.Y + match.Height - ImageRedactionTolerance;
+            area.ContainsRectangle(
+                match.X + ImageRedactionTolerance,
+                match.Y + ImageRedactionTolerance,
+                Math.Max(0D, match.Width - ImageRedactionTolerance * 2D),
+                Math.Max(0D, match.Height - ImageRedactionTolerance * 2D));
     }
 
     private static bool RedactionAreaIntersectsMatch(PdfRedactionArea area, PdfRedactionMatch match) {
         return area.PageNumber == match.PageNumber &&
-            area.X < match.X + match.Width - ImageRedactionTolerance &&
-            area.X + area.Width > match.X + ImageRedactionTolerance &&
-            area.Y < match.Y + match.Height - ImageRedactionTolerance &&
-            area.Y + area.Height > match.Y + ImageRedactionTolerance;
+            area.IntersectsRectangle(
+                match.X + ImageRedactionTolerance,
+                match.Y + ImageRedactionTolerance,
+                Math.Max(0D, match.Width - ImageRedactionTolerance * 2D),
+                Math.Max(0D, match.Height - ImageRedactionTolerance * 2D));
     }
 
     private static bool ScrubMatchedImageFormXObjects(

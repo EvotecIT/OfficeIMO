@@ -1012,9 +1012,33 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Each `PdfRedactionArea` carries two independent policies. `TextOnly` removes selected text while preserving intersecting images and paths; `TextAndUnderlay` also removes supported intersecting underlay content and fails closed when that cannot be done safely. The appearance can remain exact, merge nearby reviewed marks, round widths to a configured quantum, or cover the effective page line. Verification evaluates residue against the selected content scope rather than treating a deliberately preserved underlay as a failure.
+
+Review surfaces can also author standard PDF `/Redact` annotations and plan them later. Quadrilateral geometry is written as `/QuadPoints` and round-trips as exact destructive geometry:
+
+```csharp
+PdfDocument annotated = source.Redactions.AddAnnotation(new PdfRedactionAnnotationOptions(
+    PdfRedactionRegion.Quadrilateral(1, new[] {
+        new PdfRedactionPoint(72, 680),
+        new PdfRedactionPoint(260, 680),
+        new PdfRedactionPoint(250, 710),
+        new PdfRedactionPoint(72, 706)
+    })) {
+    Contents = "Reviewed for removal"
+});
+
+PdfRedactionPlan annotationPlan = annotated.Redactions.PlanAnnotations();
+```
+
+Rectangle, quadrilateral, polygon, freehand, and grouped review geometry normalize to the same `PdfRedactionArea` collection used by planning, application, verification, and evidence. Intersection tests retain exact polygon and quadrilateral boundaries for text, annotations, images, hidden text, and pixel rewriting; freehand regions use exact round-capped segments. Destructive granularity still follows the supported PDF object: text is rewritten by glyph, annotations by annotation object, and raster images by pixel. A vector path wholly contained by a reviewed shape can be removed, while a partial intersection fails closed because deleting the complete path would remove paint outside the approved geometry. Raster rewriting selects pixel centers inside the exact shape, so its boundary precision is limited by the source image resolution.
+
+Standard `/Redact` annotations honor every valid `/QuadPoints` quadrilateral instead of collapsing separated marks into the annotation `/Rect`; `/Rect` is the fallback when quad geometry is absent or invalid. Annotation authoring writes exact `/QuadPoints` for quadrilaterals. Polygon and freehand annotations use their bounded `/Rect` because PDF `/Redact` has no equivalent standard path geometry, while direct region planning retains their exact geometry. Annotation authoring defaults to 16 and permits at most 64 normalized areas because the current existing-page annotation writer performs one bounded full rewrite per area.
+
 Text redaction rewrites native text-show operations at glyph granularity. Encoded glyphs outside the reviewed areas retain their original font resource and position; removed glyph advances become `TJ` displacements so adjacent text does not reflow. When a glyph mapping cannot be proven safe, the complete PDF text object is removed instead.
 
 When `verificationOptions` is omitted, `ApplyWithEvidence` requires complete stream inspection and managed-rendering checks by default. Supply explicit options, as above, when the workflow also needs removed/retained markers or an external validator.
+
+Permanent redaction invalidates existing signatures. `document.Security.CreateUnsignedDerivative()` performs an explicit full rewrite, removes signature fields, widgets, permissions, and validation-store references, and returns the unsigned bytes plus the number of detected signatures removed. It requires owner authorization for encrypted input and never overwrites the signed source. A host can then apply and verify redaction before starting a new `SignExternal` workflow for the derivative.
 
 ### Stamp and watermark an existing PDF
 
@@ -1111,7 +1135,9 @@ PdfRegionText current = document.Text.Inspect(region);
 Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
 
 PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
-    Color = PdfColor.FromRgb(25, 110, 55)
+    Color = PdfColor.FromRgb(25, 110, 55),
+    RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit,
+    MinimumFontSize = 8
 });
 
 edited.Document.Text.Add(
@@ -1127,6 +1153,9 @@ text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
 keeps wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
+Region-based add and replace operations preserve the resolved font size by
+default. Select `RejectOverflow` to reject an over-wide line before mutation,
+or `ShrinkToFit` to reduce it no lower than `MinimumFontSize`.
 Unmatched glyphs remain encoded in their original font; newly inserted replacement text uses the closest standard PDF font unless the caller selects one.
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
@@ -1203,6 +1232,25 @@ PdfDocument.Load("application-form.pdf")
     })
     .Save("application-form-filled.pdf");
 ```
+
+To make both readable form fields and supported visual annotations static in one
+artifact, use the combined operation and retain its separate affected counts:
+
+```csharp
+PdfInteractiveContentFlattenResult flattened = PdfDocument
+    .Load("application-reviewed.pdf")
+    .FlattenInteractiveContent();
+
+Console.WriteLine($"Fields: {flattened.FlattenedFormFieldCount}");
+Console.WriteLine($"Annotations: {flattened.FlattenedAnnotationCount}");
+flattened.ToDocument().Save("application-static.pdf");
+```
+
+Annotation creation and updates accept gray, RGB, or CMYK interior colors,
+opacity, border width, solid/dashed/beveled/inset/underline styles, and bounded
+dash patterns. Creation generates supported appearances by default. Updates
+remove a stale appearance when visual properties change and can explicitly
+regenerate it with `RegenerateAppearance`.
 
 ### Generate and assess validator-backed PDF/A
 
