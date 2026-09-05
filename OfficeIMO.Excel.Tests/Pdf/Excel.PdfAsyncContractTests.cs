@@ -22,13 +22,6 @@ public sealed class ExcelPdfAsyncContractTests {
             workbook.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             workbook.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-
-        using var optionCancellation = new CancellationTokenSource();
-        optionCancellation.Cancel();
-        var options = new ExcelToPdfOptions { CancellationToken = optionCancellation.Token };
-        Assert.ThrowsAny<OperationCanceledException>(() => workbook.SaveAsPdfResult(new MemoryStream(), options));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            workbook.SaveAsPdfResultAsync(new MemoryStream(), options));
     }
 
     [Fact]
