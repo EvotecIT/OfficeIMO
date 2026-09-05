@@ -18,18 +18,21 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     private readonly IStudioLocalizer _localizer;
     private readonly IStudioDiagnostics _diagnostics;
     private readonly PdfWorkspaceRecoveryStore _recovery;
+    private readonly StudioDocumentHistory _history;
     private bool _synchronizing;
 
     internal StudioSettingsViewModel(
         StudioPreferencesService preferences,
         IStudioLocalizer localizer,
         IStudioDiagnostics diagnostics,
-        PdfWorkspaceRecoveryStore recovery) {
+        PdfWorkspaceRecoveryStore recovery,
+        StudioDocumentHistory history) {
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
         ArgumentNullException.ThrowIfNull(diagnostics);
         _diagnostics = diagnostics;
         _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        _history = history ?? throw new ArgumentNullException(nameof(history));
 
         Cultures = StudioCultureCatalog.Available
             .Select(culture => new StudioCultureChoice(
@@ -88,7 +91,16 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     [ObservableProperty] private bool _rememberSession;
 
     partial void OnRememberSessionChanged(bool value) {
-        if (!_synchronizing) _preferences.Update(current => current with { RememberSession = value });
+        if (_synchronizing) return;
+        try {
+            _history.SetRememberSession(value);
+            HistoryStatus = null;
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "SessionPrivacyChangeFailed", error);
+            HistoryStatus = _localizer.Get(_preferences.Current.RememberSession == value && !value
+                ? "Settings.SessionCleanupFailed" : "Settings.HistoryPreferenceFailed");
+            SynchronizeFromPreferences();
+        }
     }
 
     internal bool RestartRequired =>
@@ -122,6 +134,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             SelectedTheme = Themes.First(choice => choice.Value == _preferences.Current.Theme);
             SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
             RememberSession = _preferences.Current.RememberSession;
+            OnPropertyChanged(nameof(RememberDocumentHistory));
+            OnPropertyChanged(nameof(HistoryPersistenceAction));
             OnPropertyChanged(nameof(CreateRecoverySnapshots));
             OnPropertyChanged(nameof(RecoveryPersistenceAction));
         } finally {

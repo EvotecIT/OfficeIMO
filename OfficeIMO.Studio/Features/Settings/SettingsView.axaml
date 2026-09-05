@@ -69,8 +69,27 @@
           <StackPanel Spacing="10">
             <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />
             <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.PrivateDocumentsHelp}" TextWrapping="Wrap" Classes="muted" />
             <CheckBox IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}" />
             <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc Settings.DocumentHistory}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.HistoryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{Binding HistoryPersistenceAction}" Command="{Binding ToggleDocumentHistoryCommand}"
+                    HorizontalAlignment="Left" />
+            <TextBlock Text="{loc:Loc Settings.HistoryDisabled}" IsVisible="{Binding !RememberDocumentHistory}" TextWrapping="Wrap" />
+            <Button Classes="tool" Content="{loc:Loc Settings.ClearHistory}" Command="{Binding RequestHistoryClearCommand}"
+                    IsVisible="{Binding !ConfirmHistoryClear}" HorizontalAlignment="Left" />
+            <Border IsVisible="{Binding ConfirmHistoryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
+                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Loc Settings.HistoryClearWarning}" TextWrapping="Wrap" />
+                <WrapPanel>
+                  <Button Classes="tool" Content="{loc:Loc Settings.DeleteHistory}" Command="{Binding ClearHistoryCommand}" Margin="0,0,8,6" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelHistoryClearCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{Binding HistoryStatus}" IsVisible="{Binding HasHistoryStatus}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" FontWeight="SemiBold" Margin="0,4,0,0" />
             <TextBlock Text="{loc:Loc Settings.RecoveryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
             <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"

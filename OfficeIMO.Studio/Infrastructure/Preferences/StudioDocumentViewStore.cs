@@ -9,17 +9,20 @@ internal sealed class StudioDocumentViewStore {
     private const int MaximumEntries = 64;
     private const long MaximumFileBytes = 256 * 1024;
     private readonly string _path;
+    private readonly Func<bool> _enabled;
     private List<Entry> _entries;
 
-    internal StudioDocumentViewStore(string path) {
+    internal StudioDocumentViewStore(string path, Func<bool>? enabled = null) {
         _path = Path.GetFullPath(path);
+        _enabled = enabled ?? (() => true);
         _entries = Load();
     }
 
     internal StudioDocumentViewState Get(string documentPath) =>
-        _entries.FirstOrDefault(entry => entry.Key == Key(documentPath))?.State.Normalize() ?? new();
+        _enabled() ? _entries.FirstOrDefault(entry => entry.Key == Key(documentPath))?.State.Normalize() ?? new() : new();
 
     internal void Put(string documentPath, StudioDocumentViewState state) {
+        if (!_enabled()) return;
         string key = Key(documentPath);
         var next = _entries.Where(entry => entry.Key != key).Take(MaximumEntries - 1).ToList();
         next.Insert(0, new Entry(key, state.Normalize()));
@@ -32,6 +35,11 @@ internal sealed class StudioDocumentViewStore {
         } finally {
             if (File.Exists(temporary)) File.Delete(temporary);
         }
+    }
+
+    internal void Clear() {
+        File.Delete(_path);
+        _entries = [];
     }
 
     private List<Entry> Load() {

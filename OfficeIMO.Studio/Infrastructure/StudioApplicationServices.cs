@@ -19,7 +19,7 @@ internal sealed class StudioApplicationServices {
         Cultures = cultures;
         Localizer = localizer;
         Diagnostics = diagnostics;
-        DocumentViews = new StudioDocumentViewStore(paths.DocumentViewsPath);
+        DocumentHistory = new StudioDocumentHistory(paths, preferences);
         Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
     }
 
@@ -33,7 +33,9 @@ internal sealed class StudioApplicationServices {
 
     internal IStudioDiagnostics Diagnostics { get; }
 
-    internal StudioDocumentViewStore DocumentViews { get; }
+    internal StudioDocumentHistory DocumentHistory { get; }
+
+    internal StudioDocumentViewStore DocumentViews => DocumentHistory.ReadingPositions;
 
     internal PdfWorkspaceRecoveryStore Recovery { get; }
 

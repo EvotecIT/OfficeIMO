@@ -7,18 +7,25 @@ internal interface IRecentDocumentStore {
     IReadOnlyList<RecentDocumentViewModel> Load();
 
     void Save(IReadOnlyList<RecentDocumentViewModel> documents);
+
+    void Clear();
 }
 
 internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
     private const int MaximumEntries = 12;
     private readonly string _path;
+    private readonly Func<bool> _enabled;
 
-    public JsonRecentDocumentStore(string path) => _path = Path.GetFullPath(path);
+    public JsonRecentDocumentStore(string path, Func<bool>? enabled = null) {
+        _path = Path.GetFullPath(path);
+        _enabled = enabled ?? (() => true);
+    }
 
     public static JsonRecentDocumentStore CreateDefault() =>
         new(Infrastructure.StudioDataPaths.CreateDefault().RecentDocumentsPath);
 
     public IReadOnlyList<RecentDocumentViewModel> Load() {
+        if (!_enabled()) return [];
         try {
             if (!File.Exists(_path)) return [];
             RecentDocumentEntry?[]? entries = JsonSerializer.Deserialize<RecentDocumentEntry?[]>(File.ReadAllText(_path));
@@ -42,6 +49,7 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
     }
 
     public void Save(IReadOnlyList<RecentDocumentViewModel> documents) {
+        if (!_enabled()) return;
         try {
             string? directory = Path.GetDirectoryName(_path);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
@@ -55,6 +63,8 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
             // Recent history is a convenience. A read-only profile must not prevent document work.
         }
     }
+
+    public void Clear() => File.Delete(_path);
 
     private sealed record RecentDocumentEntry(string Path, DateTimeOffset OpenedAt);
 }

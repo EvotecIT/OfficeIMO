@@ -1427,6 +1427,19 @@
   <data name="Session.Remember" xml:space="preserve"><value>Remember open documents for next time</value></data>
   <data name="Session.RememberDescription" xml:space="preserve"><value>Stores document paths and reading positions locally for restart. Turning this off clears the session list; edit recovery and recent documents are separate.</value></data>
   <data name="Settings.RecoveryStorage" xml:space="preserve"><value>Edit recovery</value></data>
+  <data name="Settings.PrivateDocumentsHelp" xml:space="preserve"><value>Before working with private documents, turn off restart sessions, document history, and recovery storage. These are separate controls. Close other running Studio instances before changing privacy settings.</value></data>
+  <data name="Settings.DocumentHistory" xml:space="preserve"><value>Document history</value></data>
+  <data name="Settings.HistoryPrivacyHelp" xml:space="preserve"><value>Remember recently opened files and reading preferences between visits. Turning this off stops new history and saved reading preferences in this instance and future launches. Existing records remain until cleared below. Restart sessions can also retain paths and reading positions.</value></data>
+  <data name="Settings.DisableHistory" xml:space="preserve"><value>Turn off document history</value></data>
+  <data name="Settings.EnableHistory" xml:space="preserve"><value>Turn on document history</value></data>
+  <data name="Settings.HistoryDisabled" xml:space="preserve"><value>Document history is off. New recent files and reading preferences are not stored.</value></data>
+  <data name="Settings.ClearHistory" xml:space="preserve"><value>Clear stored document history…</value></data>
+  <data name="Settings.HistoryClearWarning" xml:space="preserve"><value>Clear recent files, saved reading preferences, and restart records? Documents, open edits, and recovery copies stay intact. Turn off history and restart sessions first to prevent new records.</value></data>
+  <data name="Settings.DeleteHistory" xml:space="preserve"><value>Clear history</value></data>
+  <data name="Settings.HistoryCleared" xml:space="preserve"><value>Stored document history and restart records were cleared.</value></data>
+  <data name="Settings.HistoryClearFailed" xml:space="preserve"><value>Some stored history could not be cleared. Close other Studio instances or check folder access, then retry. Records that were successfully removed stay cleared.</value></data>
+  <data name="Settings.HistoryPreferenceFailed" xml:space="preserve"><value>The privacy setting could not be saved. The previous setting remains in effect. Check folder access and retry.</value></data>
+  <data name="Settings.SessionCleanupFailed" xml:space="preserve"><value>Restart sessions are off, but the previous session record could not be deleted. Close other Studio instances or check folder access, then use Clear stored document history to retry.</value></data>
   <data name="Settings.RecoveryRetention" xml:space="preserve"><value>Recovery files contain document content. Studio checks for old recovery data at startup: copies expire after 30 days, and abandoned temporary files become eligible for cleanup after one day.</value></data>
   <data name="Settings.ClearRecovery" xml:space="preserve"><value>Clear stored recovery files…</value></data>
   <data name="Settings.RecoveryClearWarning" xml:space="preserve"><value>Delete stored recovery files? Unsaved edits from previous sessions cannot be recovered afterward. Open documents and original files stay intact. New edits can create new recovery copies.</value></data>

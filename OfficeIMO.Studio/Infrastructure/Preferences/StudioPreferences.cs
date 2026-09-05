@@ -28,6 +28,8 @@ internal sealed record StudioPreferences {
 
     public bool CreateRecoverySnapshots { get; init; } = true;
 
+    public bool RememberDocumentHistory { get; init; } = true;
+
     internal StudioPreferences Normalize() {
         string culture = Infrastructure.Localization.StudioCultureCatalog.NormalizeOrDefault(UiCulture);
         StudioThemePreference theme = Enum.IsDefined(Theme) ? Theme : StudioThemePreference.System;

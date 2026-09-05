@@ -131,7 +131,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             ocrService,
             canPublishPath ?? _canSaveAsPath,
             _localizer);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
+        _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -392,9 +393,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [RelayCommand]
     private void ClearRecentDocuments() {
-        RecentDocuments.Clear();
-        _recentDocumentStore?.Save(RecentDocuments);
-        OnPropertyChanged(nameof(HasRecentDocuments));
+        try {
+            _recentDocumentStore?.Clear();
+            RecentDocuments.Clear();
+            OnPropertyChanged(nameof(HasRecentDocuments));
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            ErrorMessage = _localizer.Get("Settings.HistoryClearFailed");
+        }
     }
 
     [RelayCommand]
@@ -456,6 +461,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         SaveDocumentViewState();
         _disposed = true;
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
+        _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
@@ -628,6 +634,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private void RecordRecentDocument(string path) {
+        if (!_services.DocumentHistory.RememberHistory) return;
         string fullPath = Path.GetFullPath(path);
         RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
             string.Equals(document.Path, fullPath, RecentDocumentPathComparison));

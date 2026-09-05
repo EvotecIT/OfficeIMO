@@ -92,7 +92,7 @@ public sealed partial class MainWindow : Window {
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: PickWorkflowFilesAsync,
-            recentDocumentStore: new JsonRecentDocumentStore(_services.Paths.RecentDocumentsPath),
+            recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
             openDocumentInTab: openDocumentInTab,

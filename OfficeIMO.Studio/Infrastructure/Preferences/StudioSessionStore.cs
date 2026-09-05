@@ -40,7 +40,7 @@ internal sealed class StudioSessionStore(string path) {
         }
     }
 
-    internal void Clear() { if (File.Exists(_path)) File.Delete(_path); }
+    internal void Clear() => File.Delete(_path);
 
     private static IReadOnlyList<StudioSessionDocument> Normalize(IEnumerable<StudioSessionDocument> documents) => documents
         .Where(document => document is not null && !string.IsNullOrWhiteSpace(document.Path) &&

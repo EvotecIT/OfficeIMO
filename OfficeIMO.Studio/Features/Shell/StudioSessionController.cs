@@ -33,7 +33,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     private readonly Func<CancellationToken, Task<string?>> _pickCopy;
     private readonly HashSet<MainWindowViewModel> _observed = [];
     private readonly DispatcherTimer _saveTimer;
-    private readonly string? _previousActivePath;
+    private string? _previousActivePath;
     private bool _frozen;
     private bool _disposed;
 
@@ -42,7 +42,8 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         _host = host;
         _services = services;
         _pickCopy = pickCopy;
-        _store = new(services.Paths.SessionPath);
+        _store = services.DocumentHistory.RestartSession;
+        services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _recovery = services.Recovery;
         _recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         StudioSessionSnapshot previous = services.Preferences.Current.RememberSession ? _store.Load() : new(1, DateTimeOffset.UtcNow, null, []);
@@ -60,6 +61,12 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
 
     public ObservableCollection<StudioSessionItem> Pending { get; } = [];
     public bool HasPending => Pending.Count > 0;
+    private void OnDocumentHistoryCleared(object? sender, StudioHistoryCleanupResult result) {
+        if (!result.RestartSession) return;
+        _previousActivePath = null;
+        Pending.Clear();
+        OnPropertyChanged(nameof(HasPending));
+    }
     private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Dispatcher.UIThread.Post(() => {
         if (_disposed) return;
         foreach (var item in Pending) item.HasRecovery = item.HasRecovery && _recovery.HasSnapshotFiles(item.SourcePath);
@@ -118,9 +125,12 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
 
     private async Task OpenItemAsync(StudioSessionItem item) {
         if (_disposed) return;
-        _services.DocumentViews.Put(item.SourcePath, item.Document.View);
         await _host.OpenDocumentAsync(item.SourcePath);
-        if (_host.Tabs.Any(tab => PathsEqual(tab.Document.DocumentPath, item.SourcePath))) RemovePending(item);
+        var opened = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, item.SourcePath));
+        if (opened is not null) {
+            opened.Document.RestoreSessionViewState(item.Document.View);
+            RemovePending(item);
+        }
         else Error = Text("RestoreFailed");
     }
 
@@ -142,9 +152,12 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
             byte[] recovered = _recovery.ReadVerifiedSnapshot(item.SourcePath, item.Document.Fingerprint) ?? throw new IOException();
             PdfDocument.Load(recovered).Save(staging);
             File.Move(staging, destination, overwrite: false);
-            _services.DocumentViews.Put(destination, item.Document.View);
             await _host.OpenDocumentAsync(destination);
-            if (_host.Tabs.Any(tab => PathsEqual(tab.Document.DocumentPath, destination))) RemovePending(item);
+            var opened = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, destination));
+            if (opened is not null) {
+                opened.Document.RestoreSessionViewState(item.Document.View);
+                RemovePending(item);
+            }
         } catch (Exception error) when (error is not OutOfMemoryException) {
             Error = Text("RecoverFailed");
         } finally {
@@ -182,6 +195,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     private void OnCloseAllPrepared(object? sender, EventArgs args) => CaptureForShutdown();
     private void OnPreferencesChanged(object? sender, EventArgs args) {
         if (!_services.Preferences.Current.RememberSession) {
+            _previousActivePath = null;
             Pending.Clear();
             OnPropertyChanged(nameof(HasPending));
         }
@@ -211,6 +225,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         if (_disposed) return;
         _disposed = true;
         _recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
+        _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _saveTimer.Stop();
         _host.Tabs.CollectionChanged -= OnTabsChanged;
         _host.PropertyChanged -= OnHostChanged;

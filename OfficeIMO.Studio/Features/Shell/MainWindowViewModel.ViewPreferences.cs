@@ -14,6 +14,12 @@ public sealed partial class MainWindowViewModel {
 
     internal StudioSessionController? Session { get; set; }
 
+    private void OnDocumentHistoryCleared(object? sender, StudioHistoryCleanupResult result) {
+        if (!result.RecentDocuments) return;
+        RecentDocuments.Clear();
+        OnPropertyChanged(nameof(HasRecentDocuments));
+    }
+
     internal StudioSessionDocument? CaptureSessionDocument() {
         if (_workspace is null) return null;
         CaptureDocumentViewState();
@@ -82,7 +88,15 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void RestoreDocumentViewState() {
-        _documentViewState = _persistDocumentViews && DocumentPath is { } path ? _services.DocumentViews.Get(path) : new();
+        ApplyDocumentViewState(_persistDocumentViews && DocumentPath is { } path ? _services.DocumentViews.Get(path) : new());
+    }
+
+    internal void RestoreSessionViewState(StudioDocumentViewState state) {
+        if (HasDocument) ApplyDocumentViewState(state);
+    }
+
+    private void ApplyDocumentViewState(StudioDocumentViewState state) {
+        _documentViewState = state.Normalize();
         SelectedReaderLayoutChoice = ReaderLayoutChoices.Single(choice => choice.Mode == _documentViewState.ReaderLayout);
         SelectedPage = Pages.Count == 0 ? null : Pages[Math.Clamp(_documentViewState.PageNumber - 1, 0, Pages.Count - 1)];
         _zoomMode = _documentViewState.ZoomMode;
