@@ -15,11 +15,14 @@ public static class HtmlBrowserPdfOfficeExtensions {
     /// </summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(
         this HtmlBrowserPdfResult captureResult,
-        PdfCore.PdfLoadOptions? readOptions = null) {
+        PdfCore.PdfLoadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
         if (captureResult == null) throw new ArgumentNullException(nameof(captureResult));
+        cancellationToken.ThrowIfCancellationRequested();
 
         using Stream stream = captureResult.OpenRead();
         PdfCore.PdfDocument document = PdfCore.PdfDocument.Load(stream, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         return CreateResult(captureResult, document);
     }
 
@@ -32,6 +35,7 @@ public static class HtmlBrowserPdfOfficeExtensions {
         PdfCore.PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (captureResult == null) throw new ArgumentNullException(nameof(captureResult));
+        cancellationToken.ThrowIfCancellationRequested();
 
         using Stream stream = captureResult.OpenRead();
         PdfCore.PdfDocument document = await PdfCore.PdfDocument

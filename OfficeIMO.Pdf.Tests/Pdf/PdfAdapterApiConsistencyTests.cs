@@ -37,6 +37,7 @@ public sealed class PdfAdapterApiConsistencyTests {
         yield return new object[] { typeof(OdsPdfConversionExtensions) };
         yield return new object[] { typeof(OdpPdfConversionExtensions) };
         yield return new object[] { typeof(VisioPdfConverterExtensions) };
+        yield return new object[] { typeof(OneNoteVisualPdfExtensions) };
     }
 
     public static IEnumerable<object[]> PdfOptionTypes() {
@@ -56,8 +57,9 @@ public sealed class PdfAdapterApiConsistencyTests {
     [MemberData(nameof(AdapterTypes))]
     public void TypedPdfAdaptersExposeOneConsistentLifecyclePerSourceType(Type adapterType) {
         MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+        string target = adapterType == typeof(OneNoteVisualPdfExtensions) ? "VisualPdf" : "Pdf";
         Type[] sourceTypes = methods
-            .Where(method => method.Name == "ToPdfBytes")
+            .Where(method => method.Name == $"To{target}Bytes")
             .Select(method => method.GetParameters()[0].ParameterType)
             .Distinct()
             .ToArray();
@@ -68,23 +70,23 @@ public sealed class PdfAdapterApiConsistencyTests {
                 .Where(method => method.GetParameters()[0].ParameterType == sourceType)
                 .ToArray();
 
-            Assert.Single(sourceMethods, method => method.Name == "ToPdfBytes");
-            Assert.Single(sourceMethods, method => method.Name == "ToPdfDocument");
-            Assert.Single(sourceMethods, method => method.Name == "ToPdfDocumentResult");
+            Assert.Single(sourceMethods, method => method.Name == $"To{target}Bytes");
+            Assert.Single(sourceMethods, method => method.Name == $"To{target}Document");
+            Assert.Single(sourceMethods, method => method.Name == $"To{target}DocumentResult");
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "SaveAsPdf" &&
+                method.Name == $"SaveAs{target}" &&
                 method.ReturnType == typeof(PdfSaveResult)));
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "SaveAsPdfResult" &&
+                method.Name == $"SaveAs{target}Result" &&
                 method.ReturnType == typeof(PdfSaveResult)));
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "SaveAsPdfAsync" &&
+                method.Name == $"SaveAs{target}Async" &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "SaveAsPdfResultAsync" &&
+                method.Name == $"SaveAs{target}ResultAsync" &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
 
-            string[] asynchronousConversionMethods = ["ToPdfBytesAsync", "ToPdfDocumentAsync", "ToPdfDocumentResultAsync"];
+            string[] asynchronousConversionMethods = [$"To{target}BytesAsync", $"To{target}DocumentAsync", $"To{target}DocumentResultAsync"];
             int asynchronousConversionMethodCount = sourceMethods.Count(method => asynchronousConversionMethods.Contains(method.Name));
             Assert.True(
                 asynchronousConversionMethodCount is 0 or 3,
@@ -94,7 +96,9 @@ public sealed class PdfAdapterApiConsistencyTests {
             }
         }
 
-        Assert.DoesNotContain(methods, method => method.Name is "ToPdf" or "ToPdfAsync" or "TrySaveAsPdf" or "TrySaveAsPdfAsync");
+        Assert.DoesNotContain(methods, method =>
+            method.Name == $"To{target}" || method.Name == $"To{target}Async" ||
+            method.Name == $"TrySaveAs{target}" || method.Name == $"TrySaveAs{target}Async");
         Assert.DoesNotContain(methods, method => method.GetParameters()[0].ParameterType == typeof(string));
         Assert.All(methods, method => {
             Assert.Equal(typeof(CancellationToken), method.GetParameters().Last().ParameterType);

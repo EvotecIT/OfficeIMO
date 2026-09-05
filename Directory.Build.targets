@@ -45,6 +45,7 @@
       Or '$(PackageId)' == 'OfficeIMO.PowerPoint.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Rtf.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.Html.Pdf.Browser'
       Or '$(PackageId)' == 'OfficeIMO.Markdown.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Mhtml.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.OneNote.Pdf'

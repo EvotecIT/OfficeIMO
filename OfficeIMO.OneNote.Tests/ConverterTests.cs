@@ -333,11 +333,11 @@ public sealed class ConverterTests {
         image.Payload = OneNoteBinaryPayload.FromBytes(
             OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
 
-        byte[] compressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+        byte[] compressed = section.ToVisualPdfBytes(new OneNoteVisualPdfOptions {
             RasterScale = 0.5D,
             PdfOptions = new PdfOptions { Language = "en-US" }
         });
-        byte[] uncompressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+        byte[] uncompressed = section.ToVisualPdfBytes(new OneNoteVisualPdfOptions {
             RasterScale = 0.5D,
             PdfOptions = new PdfOptions { CompressContentStreams = false }
         });

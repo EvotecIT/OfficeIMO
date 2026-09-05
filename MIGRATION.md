@@ -63,6 +63,11 @@ Forward PDF adapters use source-specific options and the same direct/result pair
 | `TrySaveAsPdf(...)` | `SaveAsPdfResult(...)` |
 | `TrySaveAsPdfAsync(...)` | `SaveAsPdfResultAsync(...)` |
 
+The OneNote visual adapter follows the same grammar: replace `ToVisualPdf(...)`
+with `ToVisualPdfBytes(...)`. Its model, result, and save methods accept a final
+cancellation token, and `SaveAsVisualPdfResult[Async]` captures output failures
+while allowing cancellation to propagate.
+
 PDF conversion options use directional names in both directions:
 
 | Previous reverse options | Current options |
@@ -80,6 +85,10 @@ stages. Native OpenDocument and AsciiDoc/LaTeX source projections and synchronou
 native-format writers cannot interrupt an individual projection or write; use
 async output where available for cancellation during output. Cancellation throws
 `OperationCanceledException`, including from `SaveAsPdfResult`.
+The browser-capture bridge also accepts a final token in
+`ToPdfDocumentResult(...)`; synchronous PDF loading checks cancellation before
+and after the load, while `ToPdfDocumentResultAsync(...)` supports cancellation
+during asynchronous input.
 
 `OfficeDocumentPdfConverter.EmailToPdfBytes`, `EpubToPdfBytes`, and
 `VisioToPdfBytes` return `byte[]`. Use their `ToPdfDocumentResult` counterparts

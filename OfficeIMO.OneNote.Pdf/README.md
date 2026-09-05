@@ -58,7 +58,7 @@ var visualOptions = new OneNoteVisualPdfOptions {
     Title = "Project notebook"
 };
 
-byte[] visualPdf = section.ToVisualPdf(visualOptions);
+byte[] visualPdf = section.ToVisualPdfBytes(visualOptions);
 var result = section.SaveAsVisualPdf("Section-visual.pdf", visualOptions);
 foreach (var warning in result.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
