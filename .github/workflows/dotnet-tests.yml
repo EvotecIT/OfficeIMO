@@ -398,7 +398,7 @@ jobs:
           [void] $nugetConfig.configuration.AppendChild($sourceMapping)
           $nugetConfig.Save($configPath)
           dotnet restore Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj @smokeProperties --configfile "$configPath" --no-http-cache
-          if (Test-Path (Join-Path $env:NUGET_PACKAGES 'officeimo.security')) {
+          if (Test-Path (Join-Path $consumerPackages 'officeimo.security')) {
             throw 'The ordinary OfficeIMO.OneNote package consumer restored optional OfficeIMO.Security.'
           }
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')

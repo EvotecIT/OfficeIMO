@@ -37,12 +37,14 @@
        suppression files so any additional public API regression fails package validation. -->
   <PropertyGroup Condition="
       '$(PackageId)' == 'OfficeIMO.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.ChartForgeX'
       Or '$(PackageId)' == 'OfficeIMO.Reader.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Word.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Excel.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.PowerPoint.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Rtf.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'">
+      Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.Markdown.Pdf'">
     <PackageValidationBaselineVersion>3.3.0</PackageValidationBaselineVersion>
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>
