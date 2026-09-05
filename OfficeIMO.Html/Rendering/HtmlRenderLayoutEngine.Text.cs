@@ -301,17 +301,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (tag != "img" && tag != "math" && style.Display == "inline-block") {
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-block") {
             AssignLogicalTextOrders(runs);
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && tag != "math" && style.Display == "inline-flex") {
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-flex") {
             AssignLogicalTextOrders(runs);
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && tag != "math" && style.Display == "inline-grid") {
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-grid") {
             AssignLogicalTextOrders(runs);
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
@@ -341,7 +341,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
-        if (tag == "img") {
+        if (IsReplacedImageElementTag(tag)) {
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
             AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;

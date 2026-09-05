@@ -295,6 +295,31 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_DiagnosesUnsupportedForeignObjectEffectsWithoutDroppingContent() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'><defs>"
+            + "<filter id='shadow'><feDropShadow dx='1' dy='1' stdDeviation='1'/></filter></defs>"
+            + "<foreignObject width='4' height='3' filter='url(#shadow)' style='mix-blend-mode:multiply'>"
+            + "<div xmlns='http://www.w3.org/1999/xhtml'>Foreign</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var nested = new OfficeDrawing(context.Width, context.Height);
+                nested.AddShape(OfficeShape.Rectangle(context.Width, context.Height), 0D, 0D);
+                return nested;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            options,
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.NotEmpty(drawing!.Elements);
+        Assert.Equal(1, unsupported);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_AppliesMasksToTextAndUseElements() {
         const string prefix = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 30'><defs>"
             + "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='20' height='30'><rect width='20' height='30' fill='white'/></mask>"

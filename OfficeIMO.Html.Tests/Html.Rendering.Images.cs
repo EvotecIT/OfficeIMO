@@ -256,6 +256,37 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_InlineSvgUsesTheSharedVectorEngineAcrossOutputs() {
+        const string html = "<body style='margin:0'><svg aria-label='Inline vector proof' viewBox='0 0 12 10' "
+            + "style='display:block;width:120px;height:100px' xmlns='http://www.w3.org/2000/svg'><defs>"
+            + "<filter id='shadow'><feDropShadow dx='2' dy='1' stdDeviation='1' flood-color='red' flood-opacity='.8'/></filter>"
+            + "</defs><rect x='2' y='2' width='4' height='4' fill='blue' filter='url(#shadow)'/>"
+            + "<foreignObject x='1' y='7' width='10' height='2'><div xmlns='http://www.w3.org/1999/xhtml' "
+            + "style='font:1.5px/2px Arial;color:navy'>InlineForeign</div></foreignObject></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
+        string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Empty(visual.Drawing.Images);
+        Assert.Contains("fill=\"#FF0000\"", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", exportedSvg, StringComparison.Ordinal);
+        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
+        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        Assert.Contains("InlineForeign", extracted, StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+    }
+
+    [Fact]
     public void HtmlImages_SvgForeignObjectUsesBoundedHtmlLayoutAndStaysSearchable() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 12'>"
             + "<foreignObject x='2' y='2' width='14' height='8'>"

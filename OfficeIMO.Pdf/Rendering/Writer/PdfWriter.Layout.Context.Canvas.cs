@@ -224,7 +224,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeTextShowCommand(" ", font, currentOpts), item.Height);
+            content.ShowText(EncodeActualTextAnchor(font, currentOpts), item.Height);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 
@@ -268,7 +268,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeTextShowCommand(" ", font, currentOpts), 1D);
+            content.ShowText(EncodeActualTextAnchor(font, currentOpts), 1D);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
             MarkSimpleFont(font);

@@ -59,12 +59,11 @@ const string embeddedSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0
     + "<rect x='1' y='1' width='12' height='12' fill='orange' filter='url(#s)'/>"
     + "<foreignObject x='17' y='1' width='20' height='14'><div xmlns='http://www.w3.org/1999/xhtml' "
     + "style='font:8px/12px Arial;color:navy;background:lime'>ForeignAot</div></foreignObject></svg>";
-string embeddedSvgData = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(embeddedSvg));
 string advancedHtml = "<style>@page{size:4in 3in;margin:24px;bleed:4px;marks:crop}"
     + "h2{text-shadow:1px 1px 1px #99a;writing-mode:vertical-rl;height:80px}"
     + "li::marker{content:'✓ ';color:green}</style>"
     + "<h2>VerticalAot</h2><ul><li>MarkerAot</li></ul>"
-    + "<img src='data:image/svg+xml;base64," + embeddedSvgData + "' style='width:160px;height:72px'>";
+    + embeddedSvg.Replace("<svg ", "<svg aria-label='Advanced vector proof' style='width:160px;height:72px' ", StringComparison.Ordinal);
 HtmlConversionDocument advancedSource = HtmlConversionDocument.Parse(advancedHtml);
 var advancedOptions = new HtmlRenderOptions {
     Mode = HtmlRenderMode.Paged,

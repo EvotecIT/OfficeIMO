@@ -16,6 +16,8 @@ public static partial class OfficeSvgDrawingReader {
         int maximumElements,
         ref int visited,
         ref int unsupported) {
+        if (HasUnsupportedForeignObjectEffect(element)) unsupported++;
+
         OfficeSvgForeignObjectRenderer? renderer = references.ForeignObjectRenderer;
         if (renderer == null
             || !TryViewportLength(element, "width", drawing.Width, out double width)
@@ -64,5 +66,20 @@ public static partial class OfficeSvgDrawingReader {
             contentOffsetX: 0D,
             contentOffsetY: 0D);
         drawing.AddEffectDrawing(layer, transform, style.Opacity);
+    }
+
+    private static bool HasUnsupportedForeignObjectEffect(XElement element) {
+        string? filter = ReadPresentationProperty(element, "filter");
+        string? mask = ReadPresentationProperty(element, "mask");
+        string? blend = ReadPresentationProperty(element, "mix-blend-mode");
+        return IsActiveEffectReference(filter)
+            || IsActiveEffectReference(mask)
+            || (!string.IsNullOrWhiteSpace(blend)
+                && !blend!.Trim().Equals("normal", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsActiveEffectReference(string? value) {
+        return !string.IsNullOrWhiteSpace(value)
+            && !value!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase);
     }
 }

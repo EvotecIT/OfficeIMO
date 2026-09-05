@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using System.Text;
 
 namespace OfficeIMO.Html;
 
@@ -9,18 +10,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
             ? HtmlRenderStyleResolver.DescribeSource(element)
             : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
-        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
+        IReadOnlyList<string> candidates = IsInlineSvgElement(element)
+            ? Array.Empty<string>()
+            : HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
         string contentType = string.Empty;
         OfficeImageInfo? imageInfo = null;
-        foreach (string candidate in candidates) {
-            if (TryResolveImageSource(candidate, sourceDescription, out bytes, out contentType, out imageInfo, reportDiagnostics: false)) {
-                source = candidate;
-                break;
+        if (TryReadInlineSvgSource(element, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
+            bytes = inlineSvg;
+            contentType = "image/svg+xml";
+            imageInfo = inlineSvgInfo;
+        } else {
+            foreach (string candidate in candidates) {
+                if (TryResolveImageSource(candidate, sourceDescription, out bytes, out contentType, out imageInfo, reportDiagnostics: false)) {
+                    source = candidate;
+                    break;
+                }
             }
+            if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         }
-        if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         if (bytes != null
             && OfficeImageOrientationNormalizer.TryNormalizeToPng(
                 bytes,
@@ -50,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
             : null);
-        string? alternativeText = element.GetAttribute("alt");
+        string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,
             contentSize.Width,
@@ -124,6 +133,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {
         return Math.Max(1D, style.MarginLeft + ResolveReplacedImageBoxWidth(element, style) + style.MarginRight);
+    }
+
+    private static bool IsReplacedImageElement(IElement element) =>
+        IsReplacedImageElementTag(element.LocalName);
+
+    private static bool IsReplacedImageElementTag(string tagName) =>
+        tagName.Equals("img", StringComparison.OrdinalIgnoreCase)
+        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInlineSvgElement(IElement element) =>
+        element.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryReadInlineSvgSource(
+        IElement element,
+        out byte[]? bytes,
+        out OfficeImageInfo? imageInfo) {
+        bytes = null;
+        imageInfo = null;
+        if (!IsInlineSvgElement(element)) return false;
+
+        bytes = Encoding.UTF8.GetBytes(element.OuterHtml);
+        if (OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo identified)) {
+            imageInfo = identified;
+        }
+        return true;
     }
 
     private bool TryReadSvgDrawing(

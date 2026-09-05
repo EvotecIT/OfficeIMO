@@ -299,6 +299,23 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasActualText_PreservesLogicalExtractionWithEmbeddedDefaultFont() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        if (fontPath == null) return;
+        var options = new PdfOptions { CompressContentStreams = false }
+            .UseFontFamily(new PdfEmbeddedFontFamily("ActualText Embedded", File.ReadAllBytes(fontPath)));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.ActualText("VerticalWeb", 20D, 30D, logical => logical
+                .Effect(OfficeIMO.Drawing.OfficeTransform.RotateDegrees(90D), 1D, effect => effect
+                    .Text("VerticalWeb", 20D, 10D, 80D, 20D))))
+            .ToBytes();
+
+        Assert.Contains("VerticalWeb", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasActualText_PositionedOverloadPreservesReadingOrderAndCoordinates() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
