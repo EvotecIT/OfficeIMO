@@ -53,7 +53,8 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
         : this(
             PdfImageExportDocumentSource.FromDeferred(
-                token => conversion.Value.GetReadSnapshot(cancellationToken: token).Document),
+                token => PdfReadDocument.Open(conversion.ToBytes(token), options: null, cancellationToken: token),
+                () => PdfImageExportEngine.MapConversionDiagnostics(conversion)),
             options?.Clone() ?? new PdfImageExportOptions(),
             new PageSelectionState(),
             initialDiagnostics) {
@@ -127,7 +128,8 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             format,
             options,
             selection.Resolve,
-            initialDiagnostics);
+            initialDiagnostics,
+            diagnosticsFactory: source.GetDiagnostics);
     }
 
     private static void ExportEach(
@@ -145,11 +147,14 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             selection.Resolve,
             consumer,
             initialDiagnostics,
+            source.GetDiagnostics,
             cancellationToken);
     }
 
     private sealed class PdfImageExportDocumentSource {
         private readonly Func<CancellationToken, PdfReadDocument>? _factory;
+        private readonly Func<IReadOnlyList<OfficeImageExportDiagnostic>>? _diagnosticsFactory;
+        private IReadOnlyList<OfficeImageExportDiagnostic> _diagnostics = Array.Empty<OfficeImageExportDiagnostic>();
         private readonly object _sync = new();
         private PdfReadDocument? _document;
 
@@ -157,8 +162,10 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             _document = document;
         }
 
-        private PdfImageExportDocumentSource(Func<CancellationToken, PdfReadDocument> factory) {
+        private PdfImageExportDocumentSource(Func<CancellationToken, PdfReadDocument> factory,
+            Func<IReadOnlyList<OfficeImageExportDiagnostic>>? diagnosticsFactory) {
             _factory = factory;
+            _diagnosticsFactory = diagnosticsFactory;
         }
 
         internal static PdfImageExportDocumentSource FromLoaded(PdfReadDocument document) {
@@ -166,18 +173,28 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             return new PdfImageExportDocumentSource(document);
         }
 
-        internal static PdfImageExportDocumentSource FromDeferred(Func<CancellationToken, PdfReadDocument> factory) {
+        internal static PdfImageExportDocumentSource FromDeferred(Func<CancellationToken, PdfReadDocument> factory,
+            Func<IReadOnlyList<OfficeImageExportDiagnostic>>? diagnosticsFactory = null) {
             Guard.NotNull(factory, nameof(factory));
-            return new PdfImageExportDocumentSource(factory);
+            return new PdfImageExportDocumentSource(factory, diagnosticsFactory);
+        }
+
+        internal IReadOnlyList<OfficeImageExportDiagnostic> GetDiagnostics() {
+            lock (_sync) return _diagnostics;
         }
 
         internal PdfReadDocument Get(CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_document != null) return _document;
-
             lock (_sync) {
                 cancellationToken.ThrowIfCancellationRequested();
-                return _document ??= _factory!(cancellationToken);
+                if (_document != null) return _document;
+                PdfReadDocument document = _factory!(cancellationToken);
+                IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = _diagnosticsFactory?.Invoke()
+                    ?? Array.Empty<OfficeImageExportDiagnostic>();
+                cancellationToken.ThrowIfCancellationRequested();
+                _diagnostics = diagnostics;
+                _document = document;
+                return document;
             }
         }
     }
@@ -204,7 +221,7 @@ public static class PdfImageExportExtensions {
             options?.Clone() ?? new PdfImageExportOptions(),
             _ => selection,
             initialDiagnostics: null,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Exports one loaded PDF page using the shared five-format result contract.</summary>
@@ -239,7 +256,7 @@ public static class PdfImageExportExtensions {
             options?.Clone() ?? new PdfImageExportOptions(),
             selection,
             initialDiagnostics: null,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
     /// <summary>
     /// Exports pages from a source-to-PDF conversion while preserving its conversion diagnostics.
@@ -265,7 +282,8 @@ public static class PdfImageExportExtensions {
             format,
             options?.Clone() ?? new PdfImageExportOptions(),
             _ => selection,
-            PdfImageExportEngine.MapConversionDiagnostics(conversion),
+            initialDiagnostics: null,
+            () => PdfImageExportEngine.MapConversionDiagnostics(conversion),
             cancellationToken);
     }
 
@@ -329,9 +347,6 @@ public static class PdfImageExportExtensions {
         PdfDocumentConversionResult conversion,
         PdfImageExportOptions? options) {
         Guard.NotNull(conversion, nameof(conversion));
-        return new PdfDocumentImageExportBuilder(
-            conversion,
-            options,
-            PdfImageExportEngine.MapConversionDiagnostics(conversion));
+        return new PdfDocumentImageExportBuilder(conversion, options);
     }
 }

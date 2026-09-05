@@ -30,6 +30,13 @@ public static class HtmlCapabilityGalleryManifestWriter {
         builder.AppendLine("## Artifacts");
         foreach (HtmlCapabilityGalleryArtifact artifact in manifest.Result.Artifacts) {
             builder.AppendLine("- " + artifact.Kind + ": " + Path.GetFileName(artifact.Path) + " (" + artifact.MediaType + ", " + artifact.Length + " bytes, sha256=" + artifact.Sha256 + ")");
+            if (artifact.Evidence != null) {
+                builder.AppendLine("  - Reported loss: " + artifact.Evidence.HasLoss + "; source pages: " + artifact.Evidence.PageCount);
+                foreach (HtmlCapabilityGalleryCheck check in artifact.Evidence.Checks)
+                    builder.AppendLine("  - Executed " + check.Name + ": " + (check.Passed ? "PASS" : "FAIL") + ". " + check.Detail);
+                foreach (HtmlDiagnostic diagnostic in artifact.Evidence.Diagnostics)
+                    builder.AppendLine("  - " + diagnostic.Code + " (" + diagnostic.Severity + ", " + diagnostic.LossKind + "): " + diagnostic.Message);
+            }
         }
 
         if (manifest.RoundTripScore != null) {
@@ -113,7 +120,10 @@ public static class HtmlCapabilityGalleryManifestWriter {
             return;
         }
 
-        builder.AppendLine("## Roundtrip Expectations");
+        builder.AppendLine("## Declared Expectations");
+        builder.AppendLine();
+        builder.AppendLine("These are caller declarations, not executed checks. See each artifact's evidence for checks that ran.");
+        builder.AppendLine();
         foreach (HtmlCapabilityGalleryExpectation expectation in expectations) {
             builder.AppendLine("- " + expectation.Outcome + ": " + expectation.Feature + " => " + expectation.Evidence);
         }

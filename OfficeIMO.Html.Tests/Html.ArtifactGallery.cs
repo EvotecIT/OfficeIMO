@@ -101,7 +101,7 @@ public partial class Html {
         Assert.Contains("Profile Contract", manifestMarkdown);
         Assert.Contains("Office Profile Contracts", manifestMarkdown);
         Assert.Contains("Word Document Roundtrip (Word -> Document)", manifestMarkdown);
-        Assert.Contains("Roundtrip Expectations", manifestMarkdown);
+        Assert.Contains("Declared Expectations", manifestMarkdown);
         Assert.Contains("Preserved: form controls => roundtrip HTML contains form control elements", manifestMarkdown);
         Assert.Contains("Preserved: images => roundtrip HTML contains image or SVG evidence", manifestMarkdown);
         Assert.Contains("Preserved: docx package => generated DOCX passes OpenXML validation", manifestMarkdown);

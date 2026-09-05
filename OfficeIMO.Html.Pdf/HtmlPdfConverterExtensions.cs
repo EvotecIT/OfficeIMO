@@ -64,7 +64,7 @@ public static partial class HtmlPdfConverterExtensions {
         return bytes;
     }
 
-    private static PdfCore.PdfDocumentConversionResult CreateResult(HtmlPdfRenderResult rendered) {
+    internal static PdfCore.PdfDocumentConversionResult CreateResult(HtmlPdfRenderResult rendered) {
         PdfCore.PdfConversionReport report = rendered.ConversionReport;
         foreach (HtmlDiagnostic diagnostic in rendered.Diagnostics) {
             var details = string.IsNullOrWhiteSpace(diagnostic.Detail)
@@ -76,6 +76,7 @@ public static partial class HtmlPdfConverterExtensions {
                 diagnostic.Source ?? "html-render",
                 diagnostic.Message,
                 MapSeverity(diagnostic.Severity),
+                diagnostic.LossKind,
                 details: details));
         }
 

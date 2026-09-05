@@ -57,11 +57,10 @@ internal static partial class PdfWriter {
 
             double originX = localCoordinates ? 0D : xShape;
             double originY = localCoordinates ? 0D : bottomY;
-            double x0 = originX + gradient.StartX * shape.Width;
-            double y0 = originY + shape.Height - gradient.StartY * shape.Height;
-            double x1 = originX + gradient.EndX * shape.Width;
-            double y1 = originY + shape.Height - gradient.EndY * shape.Height;
-            return EnsureAxialShading(currentPage!.Shadings, gradient, x0, y0, x1, y1);
+            OfficeLinearGradient projected = gradient.TransformCoordinates(
+                new OfficeTransform(shape.Width, 0D, 0D, -shape.Height, originX, originY + shape.Height));
+            return EnsureAxialShading(currentPage!.Shadings, gradient,
+                projected.StartX, projected.StartY, projected.EndX, projected.EndY);
         }
 
         private void DrawShapeShadowAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {

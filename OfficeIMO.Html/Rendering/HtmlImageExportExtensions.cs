@@ -76,7 +76,7 @@ public static partial class HtmlImageExportExtensions {
         return results.AsReadOnly();
     }
 
-    private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+    internal static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
         var exportDiagnostics = new List<OfficeImageExportDiagnostic>(MapDiagnostics(diagnostics));

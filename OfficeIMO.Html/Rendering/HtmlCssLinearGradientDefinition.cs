@@ -30,10 +30,19 @@ internal sealed class HtmlCssLinearGradientDefinition {
         OfficeLinearGradient geometry = ResolveGeometry(width, height);
         double dx = (geometry.EndX - geometry.StartX) * width;
         double dy = (geometry.EndY - geometry.StartY) * height;
+        if (!_explicitAngle) {
+            OfficeLinearGradient physical = geometry.TransformCoordinates(OfficeTransform.Scale(width, height));
+            dx = physical.EndX - physical.StartX;
+            dy = physical.EndY - physical.StartY;
+        }
         double lineLength = Math.Sqrt((dx * dx) + (dy * dy));
         if (!_stops.TryResolve(lineLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, _repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded) || stops == null) return false;
+        // CSS angle endpoints describe a physical color field. Drawing and SVG
+        // evaluate normalized bounding-box coordinates, including their normals.
         gradient = _explicitAngle
-            ? OfficeLinearGradient.CreateImported(geometry.StartX, geometry.StartY, geometry.EndX, geometry.EndY, stops)
+            ? OfficeLinearGradient.CreateImported(geometry.StartX * width, geometry.StartY * height,
+                geometry.EndX * width, geometry.EndY * height, stops)
+                .TransformCoordinates(OfficeTransform.Scale(1D / width, 1D / height))
             : new OfficeLinearGradient(geometry.StartX, geometry.StartY, geometry.EndX, geometry.EndY, stops);
         return true;
     }

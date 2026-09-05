@@ -27,7 +27,7 @@ internal static partial class HtmlPdfRenderedConverter {
         return CreatePdf(rendered, options, cancellationToken);
     }
 
-    private static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
+    internal static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
@@ -79,7 +79,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlToPdfOptions options, CancellationToken cancellationToken) {
+    internal static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlToPdfOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 

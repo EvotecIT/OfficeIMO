@@ -98,6 +98,15 @@ public sealed class HtmlCapabilityGalleryArtifact {
     /// </summary>
     public string Sha256 { get; }
 
+    /// <summary>Optional observations captured from the operation that produced these exact bytes.</summary>
+    public HtmlCapabilityGalleryArtifactEvidence? Evidence { get; private set; }
+
+    /// <summary>Returns a descriptor with immutable artifact observations attached.</summary>
+    public HtmlCapabilityGalleryArtifact WithEvidence(HtmlCapabilityGalleryArtifactEvidence evidence) =>
+        new HtmlCapabilityGalleryArtifact(Id, Kind, Path, MediaType, Length, Sha256) {
+            Evidence = evidence ?? throw new ArgumentNullException(nameof(evidence))
+        };
+
     private static string ToHex(byte[] bytes) {
         var builder = new StringBuilder(bytes.Length * 2);
         foreach (byte value in bytes) {

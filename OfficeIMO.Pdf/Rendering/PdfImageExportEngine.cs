@@ -10,6 +10,7 @@ internal static class PdfImageExportEngine {
         PdfImageExportOptions options,
         Func<PdfReadDocument, PdfPageSelection?> selectionFactory,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null,
+        Func<IReadOnlyList<OfficeImageExportDiagnostic>>? diagnosticsFactory = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
         ExportEach(
@@ -19,6 +20,7 @@ internal static class PdfImageExportEngine {
             selectionFactory,
             results.Add,
             initialDiagnostics,
+            diagnosticsFactory,
             cancellationToken);
         return results.AsReadOnly();
     }
@@ -30,6 +32,7 @@ internal static class PdfImageExportEngine {
         Func<PdfReadDocument, PdfPageSelection?> selectionFactory,
         OfficeImageExportConsumer consumer,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null,
+        Func<IReadOnlyList<OfficeImageExportDiagnostic>>? diagnosticsFactory = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(documentFactory, nameof(documentFactory));
         Guard.NotNull(options, nameof(options));
@@ -42,13 +45,20 @@ internal static class PdfImageExportEngine {
         try {
             PdfReadDocument document = documentFactory(execution.Token);
             execution.ThrowIfCancellationRequested();
+            IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = initialDiagnostics;
+            if (diagnosticsFactory != null) {
+                var combined = new List<OfficeImageExportDiagnostic>();
+                if (initialDiagnostics != null) combined.AddRange(initialDiagnostics);
+                combined.AddRange(diagnosticsFactory());
+                diagnostics = combined.AsReadOnly();
+            }
             ExportEach(
                 document,
                 format,
                 options,
                 selectionFactory(document),
                 consumer,
-                initialDiagnostics,
+                diagnostics,
                 execution.Token);
             execution.ThrowIfCancellationRequested();
         } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
@@ -274,7 +284,18 @@ internal static class PdfImageExportEngine {
                 },
                 warning.Code,
                 warning.Message,
-                string.IsNullOrWhiteSpace(warning.Source) ? warning.Converter : warning.Source));
+                string.IsNullOrWhiteSpace(warning.Source) ? warning.Converter : warning.Source,
+                warning.LossKind));
+        }
+        for (int index = 0; index < conversion.SourceConversionReports.Count; index++) {
+            if (conversion.SourceConversionReports[index].HasLoss) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    "SourceConversionLoss",
+                    "An upstream conversion stage reported content loss. Inspect the source conversion report for details.",
+                    "source-stage:" + (index + 1),
+                    OfficeConversionLossKind.Approximation));
+            }
         }
         return diagnostics.AsReadOnly();
     }

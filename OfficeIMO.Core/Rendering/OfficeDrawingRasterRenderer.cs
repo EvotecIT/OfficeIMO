@@ -556,9 +556,10 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeColor? fill = ApplyOpacity(shape.FillColor, shape.FillOpacity);
-        OfficeLinearGradient? fillGradient = shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
-        OfficeRadialGradient? fillRadialGradient = shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
+        bool hasFillArea = HasTransformedFillArea(shape);
+        OfficeColor? fill = hasFillArea ? ApplyOpacity(shape.FillColor, shape.FillOpacity) : null;
+        OfficeLinearGradient? fillGradient = !hasFillArea || shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
+        OfficeRadialGradient? fillRadialGradient = !hasFillArea || shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
 
         OfficeColor? stroke = ApplyOpacity(shape.StrokeColor, shape.StrokeOpacity);
         OfficeLinearGradient? strokeGradient = shape.StrokeGradient == null ? null : ApplyOpacity(shape.StrokeGradient, shape.StrokeOpacity);
@@ -581,6 +582,19 @@ public static partial class OfficeDrawingRasterRenderer {
                 RenderTransformedPath(canvas, drawingShape, scale, fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth);
                 break;
         }
+    }
+
+    private static bool HasTransformedFillArea(OfficeShape shape) {
+        if (shape.Width == 0D || shape.Height == 0D) return false;
+        OfficeTransform transform = shape.Transform ?? OfficeTransform.Identity;
+        double scale = Math.Max(Math.Max(Math.Abs(transform.M11), Math.Abs(transform.M12)),
+            Math.Max(Math.Abs(transform.M21), Math.Abs(transform.M22)));
+        if (scale == 0D) return false;
+        // A singular transform can leave a diagonal bounding box with positive
+        // width and height, but its fill still has no area. Keep stroke handling
+        // independent and do not attempt to invert that collapsed color field.
+        return (transform.M11 / scale) * (transform.M22 / scale)
+            - (transform.M12 / scale) * (transform.M21 / scale) != 0D;
     }
 
     private static void RenderTransformedLine(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor color, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
@@ -1167,24 +1181,15 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         OfficeShape shape = drawingShape.Shape;
-        OfficePoint start = TransformShapePoint(drawingShape, new OfficePoint(
-            gradient.StartX * shape.Width,
-            gradient.StartY * shape.Height), scale);
-        OfficePoint end = TransformShapePoint(drawingShape, new OfficePoint(
-            gradient.EndX * shape.Width,
-            gradient.EndY * shape.Height), scale);
         double width = right - left;
         double height = bottom - top;
-        double startX = (start.X - left) / width;
-        double startY = (start.Y - top) / height;
-        double endX = (end.X - left) / width;
-        double endY = (end.Y - top) / height;
-        if (startX.Equals(endX) && startY.Equals(endY)) {
-            return gradient;
-        }
-
-        return OfficeLinearGradient.CreateImported(startX, startY, endX, endY,
-            gradient.Stops);
+        OfficeTransform coordinates = OfficeTransform.Scale(shape.Width, shape.Height)
+            .Then(shape.Transform ?? OfficeTransform.Identity)
+            .Then(OfficeTransform.Translate(drawingShape.X, drawingShape.Y))
+            .Then(OfficeTransform.Scale(scale, scale))
+            .Then(OfficeTransform.Translate(-left, -top))
+            .Then(OfficeTransform.Scale(1D / width, 1D / height));
+        return gradient.TransformCoordinates(coordinates);
     }
 
     private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>

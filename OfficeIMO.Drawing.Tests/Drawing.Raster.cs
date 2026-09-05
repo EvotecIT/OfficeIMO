@@ -1857,11 +1857,9 @@ namespace OfficeIMO.Tests {
                 height,
                 transform);
 
-            OfficePoint start = transform.TransformPoint(new OfficePoint(
-                gradient.StartX * width, gradient.StartY * height));
-            OfficePoint end = transform.TransformPoint(new OfficePoint(
-                gradient.EndX * width, gradient.EndY * height));
-            double actualDegrees = Math.Atan2(end.Y - start.Y, end.X - start.X)
+            OfficeLinearGradient destination = gradient.TransformCoordinates(
+                OfficeTransform.Scale(width, height).Then(transform));
+            double actualDegrees = Math.Atan2(destination.EndY - destination.StartY, destination.EndX - destination.StartX)
                 * 180D / Math.PI;
             if (actualDegrees < 0D) actualDegrees += 360D;
 

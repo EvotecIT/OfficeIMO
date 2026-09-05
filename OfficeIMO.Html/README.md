@@ -183,6 +183,18 @@ The untrusted profile is the default. It rejects local-file navigation, does not
 
 ## Shared Diagnostics And Gallery Contracts
 
+Renderer diagnostics carry `OfficeConversionLossKind` independently of severity.
+Unsupported transforms and failed image resources remain loss-bearing even when
+reported at informational severity. Both `FidelityPolicy.RequireNoLoss` and image
+export `Policy.RequireNoLoss` reject these cases. Harmless informational diagnostics
+remain accepted.
+
+Gallery JSON uses schema version `1.1`. Artifact `evidence` records observed page
+geometry, loss diagnostics, and executed checks when the producer supplies them;
+it is `null` for descriptors without those observations. The `expectations` array
+contains caller declarations, marked `declared-not-executed`, and is separate from
+the artifact checks.
+
 ```csharp
 var report = new HtmlDiagnosticReport();
 report.Add("OfficeIMO.Word.Html", "HtmlCommentSkipped", "Comment skipped");
