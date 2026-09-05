@@ -50,7 +50,7 @@ public sealed class StudioWorkflowPublicationTests {
                     Assert.True(host.CanPublishDirectory(Path.Combine(root, "other")));
 
                     conversion.SelectedConflict = conversion.ConflictPolicies.Single(policy => policy.Value == OfficeWorkflowConflictPolicy.Rename);
-                    await conversion.RunQueueCommand.ExecuteAsync(null);
+                    await conversion.RetryFailedCommand.ExecuteAsync(null);
                     Assert.Equal("Completed", Assert.Single(conversion.Jobs).Status);
                     Assert.Equal(original, File.ReadAllBytes(output));
                     Assert.Equal(1, PdfDocument.Load(File.ReadAllBytes(Path.Combine(destinationFolder, "document (1).pdf"))).Inspect().PageCount);

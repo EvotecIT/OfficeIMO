@@ -24,6 +24,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - Fill, flatten, and author supported AcroForm controls.
 - Inspect protection and signatures; protect or decrypt a copy; apply certificate signatures, validate signatures, add Bates numbering, sanitize, repair, optimize, and perform verified redaction.
 - Convert supported document formats, export PDF pages to supported image formats, preview print sheets, and assemble PDFs from ordered PDFs, images, Office files, folders, and ZIP archives.
+- In the conversion queue, **Run pending** processes new entries and **Retry failed / cancelled** retries only those outcomes, using the current output settings. Completed entries keep their files and diagnostics. Aliases of a file are queued once per conversion route, while distinct files on case-sensitive volumes remain separate. If a runner stops without returning a result, **Check output** requires inspecting the destination before removing and re-adding that entry; it is excluded from automatic retries. To intentionally repeat a completed conversion, remove its queue entry and add the source again.
 - Create searchable PDFs with the public `OfficeIMO.Reader.Ocr` facade. The workbench supports page ranges, 28 typed language choices, confidence and rendering controls, checksum-verified language-data provisioning, cancellation, and safe output conflict policy.
 
 ## Capability ownership

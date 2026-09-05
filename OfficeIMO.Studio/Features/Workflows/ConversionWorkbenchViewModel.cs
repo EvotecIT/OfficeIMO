@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Internal;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
@@ -82,7 +83,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private string _status = string.Empty;
 
     public bool HasJobs => Jobs.Count > 0;
-    public bool CanRun => HasJobs && !IsBusy;
+    public bool CanRun => !IsBusy && Jobs.Any(job => job.State == ConversionJobState.Queued);
+    public bool CanRetryFailed => !IsBusy && Jobs.Any(job => job.CanRetry);
     public bool CanCancel => IsBusy;
     public bool CanEditQueue => !IsBusy;
     public string QueueSummary => Jobs.Count == 0
@@ -92,7 +94,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     partial void OnIsBusyChanged(bool value) {
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(CanEditQueue));
+        OnPropertyChanged(nameof(CanRetryFailed));
         RunQueueCommand.NotifyCanExecuteChanged();
+        RetryFailedCommand.NotifyCanExecuteChanged();
         AddFilesCommand.NotifyCanExecuteChanged();
         RemoveSelectedCommand.NotifyCanExecuteChanged();
         ClearQueueCommand.NotifyCanExecuteChanged();
@@ -105,7 +109,16 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         int added = 0;
         int skipped = 0;
         int skippedForLimit = 0;
-        foreach (string path in paths.Distinct(StringComparer.OrdinalIgnoreCase)) {
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        try {
+            foreach (ConversionJobViewModel job in Jobs.Where(job => job.Route.Route.Id == SelectedRoute.Route.Id)) {
+                identities.Add(OfficePathIdentity.GetPathIdentityKey(job.InputPath));
+            }
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
+            Status = _localizer.FormatOrDefault("Conversion.Add.IdentityFailed", "A queued input could not be inspected. Remove or restore it before adding files: {0}", exception.Message);
+            return;
+        }
+        foreach (string path in paths) {
             string extension = Path.GetExtension(path);
             bool accepts = SelectedRoute.Route.SourceExtensions.Any(item =>
                 string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
@@ -113,11 +126,22 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 skipped++;
                 continue;
             }
+            string fullPath;
+            try {
+                fullPath = Path.GetFullPath(path);
+                if (!identities.Add(OfficePathIdentity.GetPathIdentityKey(fullPath))) {
+                    skipped++;
+                    continue;
+                }
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
+                skipped++;
+                continue;
+            }
             if (Jobs.Count >= OfficeWorkflowRunner.MaximumBatchRequestCount) {
                 skippedForLimit++;
                 continue;
             }
-            var job = new ConversionJobViewModel(Path.GetFullPath(path), SelectedRoute, _localizer);
+            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer);
             Jobs.Add(job);
             SelectedJob ??= job;
             added++;
@@ -126,10 +150,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         Status = skippedForLimit > 0
             ? _localizer.FormatOrDefault("Conversion.Queue.Limit", "The queue is limited to {0:N0} jobs; {1:N0} additional file(s) were not added.", OfficeWorkflowRunner.MaximumBatchRequestCount, skippedForLimit)
             : added == 0
-            ? _localizer.FormatOrDefault("Conversion.Add.None", "No files matched {0}.", SelectedRoute.Route.Source)
+            ? _localizer.FormatOrDefault("Conversion.Add.NoNewFiles", "No files matched {0} that could be added; files already queued for this route were skipped.", SelectedRoute.Route.Source)
             : skipped == 0
                 ? _localizer.FormatOrDefault("Conversion.Add.Success", "Added {0:N0} {1}.", added, added == 1 ? T("Queue.File", "file") : T("Queue.Files", "files"))
-                : _localizer.FormatOrDefault("Conversion.Add.Partial", "Added {0:N0}; skipped {1:N0} file(s) that do not match this route.", added, skipped);
+                : _localizer.FormatOrDefault("Conversion.Add.SkippedInputs", "Added {0:N0}; skipped {1:N0} duplicate, unsupported, or uninspectable file(s).", added, skipped);
     }
 
     [RelayCommand]
@@ -158,57 +182,64 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     }
 
     [RelayCommand(CanExecute = nameof(CanRun))]
-    private async Task RunQueueAsync() {
+    private Task RunQueueAsync() => RunJobsAsync(Jobs.Where(job => job.State == ConversionJobState.Queued).ToArray());
+
+    [RelayCommand(CanExecute = nameof(CanRetryFailed))]
+    private Task RetryFailedAsync() => RunJobsAsync(Jobs.Where(job => job.CanRetry).ToArray());
+
+    private async Task RunJobsAsync(ConversionJobViewModel[] candidates) {
+        if (IsBusy || candidates.Length == 0) return;
         _cancellation?.Dispose();
         var operationCancellation = new CancellationTokenSource();
         _cancellation = operationCancellation;
         IsBusy = true;
         ProgressFraction = 0D;
-        foreach (ConversionJobViewModel job in Jobs) {
-            job.Status = T("Job.Queued", "Queued");
-            job.ProgressFraction = 0D;
-        }
+        foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
 
         try {
-            OfficeWorkflowRequest[] requests = Jobs.Select(CreateRequest).ToArray();
+            OfficeWorkflowRequest[] requests = candidates.Select(CreateRequest).ToArray();
             var progress = new Progress<OfficeWorkflowProgress>(update => {
+                if (!ReferenceEquals(_cancellation, operationCancellation) || !IsBusy) return;
                 ProgressFraction = update.OverallFraction;
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
-                ConversionJobViewModel? job = Jobs.FirstOrDefault(item => item.Id == update.RequestId);
-                if (job is not null) {
-                    job.Status = update.Stage == "complete"
-                        ? T("Job.Completed", "Completed")
-                        : _localizer.FormatOrDefault("Conversion.Job.Running", "Running · {0}", update.Stage.Replace('-', ' '));
-                    job.ProgressFraction = update.Fraction;
-                }
+                candidates.FirstOrDefault(item => item.Id == update.RequestId)?.ReportProgress(update);
             });
             IReadOnlyList<OfficeWorkflowResult> results = await _runner
                 .RunBatchAsync(requests, progress, operationCancellation.Token)
                 .ConfigureAwait(true);
+            var received = new HashSet<string>(StringComparer.Ordinal);
             foreach (OfficeWorkflowResult result in results) {
-                Jobs.First(job => job.Id == result.RequestId).Apply(result);
+                ConversionJobViewModel? job = candidates.FirstOrDefault(item => item.Id == result.RequestId);
+                if (job is null || !received.Add(result.RequestId)) {
+                    throw new InvalidOperationException("The workflow runner returned an unexpected job result.");
+                }
+                job.Apply(result);
             }
-            foreach (ConversionJobViewModel job in Jobs.Where(job => job.ProgressFraction == 0D)) {
-                job.Status = T("Job.Cancelled", "Cancelled");
+            foreach (ConversionJobViewModel job in candidates.Where(job => !received.Contains(job.Id))) {
+                job.EndWithoutResult(operationCancellation.IsCancellationRequested,
+                    operationCancellation.IsCancellationRequested
+                        ? T("Job.NotStarted", "Cancelled before this job started; completed outputs were retained.")
+                        : T("Job.NoResult", "No result was returned. Check the output folder before starting another attempt."));
             }
-            int completed = results.Count(result => result.Succeeded);
-            int failed = results.Count(result => result.Status == OfficeWorkflowStatus.Failed);
-            int cancelled = Jobs.Count - completed - failed;
             Status = _localizer.FormatOrDefault(
-                "Conversion.Queue.Finished",
-                "Queue finished · {0:N0} completed · {1:N0} failed · {2:N0} cancelled",
-                completed,
-                failed,
-                cancelled);
-            ProgressFraction = results.Count == Jobs.Count ? 1D : ProgressFraction;
-        } catch (OperationCanceledException) when (operationCancellation.IsCancellationRequested) {
-            Status = T("Queue.Cancelled", "Queue cancelled.");
+                "Conversion.Queue.Outcomes",
+                "{0:N0} completed · {1:N0} failed · {2:N0} cancelled · {3:N0} need checking",
+                Jobs.Count(job => job.State == ConversionJobState.Completed),
+                Jobs.Count(job => job.State == ConversionJobState.Failed),
+                Jobs.Count(job => job.State == ConversionJobState.Cancelled),
+                Jobs.Count(job => job.State == ConversionJobState.Unconfirmed));
+            ProgressFraction = 1D;
         } catch (Exception exception) {
+            string message = T("Job.UnconfirmedOutput", "The runner stopped without a result. Check the output folder before starting another attempt.");
+            foreach (ConversionJobViewModel job in candidates.Where(job => job.State is ConversionJobState.Queued or ConversionJobState.Running)) {
+                job.EndWithoutResult(cancelled: false, message);
+            }
             Status = _localizer.FormatOrDefault("Conversion.Queue.Failed", "The conversion queue could not finish: {0}", exception.Message);
         } finally {
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operationCancellation)) _cancellation = null;
             operationCancellation.Dispose();
+            NotifyQueueChanged();
         }
     }
 
@@ -241,8 +272,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private void NotifyQueueChanged() {
         OnPropertyChanged(nameof(HasJobs));
         OnPropertyChanged(nameof(CanRun));
+        OnPropertyChanged(nameof(CanRetryFailed));
         OnPropertyChanged(nameof(QueueSummary));
         RunQueueCommand.NotifyCanExecuteChanged();
+        RetryFailedCommand.NotifyCanExecuteChanged();
     }
 
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;

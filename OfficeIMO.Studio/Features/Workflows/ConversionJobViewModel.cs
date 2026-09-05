@@ -4,6 +4,22 @@ using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
+/// <summary>Presentation state of an in-memory conversion attempt.</summary>
+public enum ConversionJobState {
+    /// <summary>Waiting for its first execution or an explicitly requested retry.</summary>
+    Queued,
+    /// <summary>The owner has reported execution progress without a terminal result.</summary>
+    Running,
+    /// <summary>The owner confirmed completion and any output publication.</summary>
+    Completed,
+    /// <summary>The owner confirmed failure without a committed output.</summary>
+    Failed,
+    /// <summary>The owner confirmed cancellation or left this request unstarted.</summary>
+    Cancelled,
+    /// <summary>No trustworthy terminal result was received; publication must be checked before repeating.</summary>
+    Unconfirmed
+}
+
 public sealed partial class ConversionJobViewModel : ObservableObject {
     private readonly IStudioLocalizer _localizer;
 
@@ -43,7 +59,40 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     public bool HasWarnings => Diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning);
 
+    [ObservableProperty]
+    private ConversionJobState _state;
+
+    internal bool CanRetry => State is ConversionJobState.Failed or ConversionJobState.Cancelled;
+
+    internal void PrepareAttempt() {
+        State = ConversionJobState.Queued;
+        Status = T("Queued", "Queued");
+        ProgressFraction = 0D;
+        OutputPath = null;
+        Summary = null;
+        Diagnostics = Array.Empty<OfficeWorkflowDiagnostic>();
+        OnPropertyChanged(nameof(HasWarnings));
+    }
+
+    internal void ReportProgress(OfficeWorkflowProgress progress) {
+        if (State is not (ConversionJobState.Queued or ConversionJobState.Running)) return;
+        State = ConversionJobState.Running;
+        Status = _localizer.FormatOrDefault("Conversion.Job.Running", "Running · {0}", progress.Stage.Replace('-', ' '));
+        ProgressFraction = progress.Fraction;
+    }
+
+    internal void EndWithoutResult(bool cancelled, string message) {
+        State = cancelled ? ConversionJobState.Cancelled : ConversionJobState.Unconfirmed;
+        Status = cancelled ? T("Cancelled", "Cancelled") : T("Unconfirmed", "Check output");
+        Summary = message;
+    }
+
     internal void Apply(OfficeWorkflowResult result) {
+        State = result.Status switch {
+            OfficeWorkflowStatus.Completed => ConversionJobState.Completed,
+            OfficeWorkflowStatus.Cancelled => ConversionJobState.Cancelled,
+            _ => ConversionJobState.Failed
+        };
         OutputPath = result.OutputPath;
         Summary = result.Summary;
         Diagnostics = result.Diagnostics;

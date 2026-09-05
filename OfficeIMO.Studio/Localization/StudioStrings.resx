@@ -81,6 +81,12 @@
   <data name="ConversionWorkbench.Route" xml:space="preserve">
     <value>Route</value>
   </data>
+  <data name="ConversionWorkbench.RunPending" xml:space="preserve">
+    <value>Run pending</value>
+  </data>
+  <data name="ConversionWorkbench.RetryFailed" xml:space="preserve">
+    <value>Retry failed / cancelled</value>
+  </data>
   <data name="ConversionWorkbench.RunQueue" xml:space="preserve">
     <value>Run queue</value>
   </data>
