@@ -293,6 +293,33 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
+    internal PdfPageCanvas DrawingForClippedRendering(
+        OfficeDrawing drawing,
+        double x,
+        double y,
+        double width,
+        double height,
+        PdfDrawingStyle? style = null,
+        string? linkUri = null,
+        string? linkContents = null) {
+        Guard.NotNull(drawing, nameof(drawing));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        DrawingBlock block = PdfDocument.CreateDrawingBlock(
+            drawing,
+            PdfAlign.Left,
+            spacingBefore: 0D,
+            spacingAfter: 0D,
+            style,
+            linkUri,
+            linkContents,
+            allowClippedOverflow: true);
+        _items.Add(new PdfCanvasDrawingItem(block, x, y, width, height, rotationAngle: 0D));
+        return this;
+    }
+
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText, double rotationAngle) =>
         Image(imageBytes, x, y, width, height, style, linkUri, linkContents, alternativeText, rotationAngle, horizontalFlip: false, verticalFlip: false);

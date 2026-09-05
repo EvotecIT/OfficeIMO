@@ -309,7 +309,7 @@ public sealed partial class PdfDocument {
         return drawingStyle;
     }
 
-    internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, bool allowClippedOverflow = false) {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.Positive(drawing.Width, nameof(drawing.Width));
         Guard.Positive(drawing.Height, nameof(drawing.Height));
@@ -321,11 +321,14 @@ public sealed partial class PdfDocument {
         for (int i = 0; i < drawing.Shapes.Count; i++) {
             var item = drawing.Shapes[i];
             Guard.NotNull(item, nameof(drawing.Shapes));
-            Guard.NonNegative(item.X, nameof(drawing.Shapes));
-            Guard.NonNegative(item.Y, nameof(drawing.Shapes));
+            if (!allowClippedOverflow) {
+                Guard.NonNegative(item.X, nameof(drawing.Shapes));
+                Guard.NonNegative(item.Y, nameof(drawing.Shapes));
+            }
             CreateShapeBlock(item.Shape, PdfAlign.Left, 0, 0);
 
-            if (item.X + item.Shape.Width > drawing.Width || item.Y + item.Shape.Height > drawing.Height) {
+            if (!allowClippedOverflow
+                && (item.X + item.Shape.Width > drawing.Width || item.Y + item.Shape.Height > drawing.Height)) {
                 throw new System.ArgumentOutOfRangeException(nameof(drawing), "Drawing scene shapes must fit inside the drawing width and height.");
             }
         }
@@ -337,8 +340,10 @@ public sealed partial class PdfDocument {
             }
 
             Guard.NotNull(text.Text, nameof(drawing.Elements));
-            Guard.NonNegative(text.X, nameof(drawing.Elements));
-            Guard.NonNegative(text.Y, nameof(drawing.Elements));
+            if (!allowClippedOverflow) {
+                Guard.NonNegative(text.X, nameof(drawing.Elements));
+                Guard.NonNegative(text.Y, nameof(drawing.Elements));
+            }
             Guard.Positive(text.Width, nameof(drawing.Elements));
             Guard.Positive(text.Height, nameof(drawing.Elements));
             Guard.Positive(text.Font.Size, nameof(text.Font.Size));
@@ -346,7 +351,8 @@ public sealed partial class PdfDocument {
                 Guard.Positive(text.LineHeight.Value, nameof(text.LineHeight));
             }
 
-            if (text.X + text.Width > drawing.Width || text.Y + text.Height > drawing.Height) {
+            if (!allowClippedOverflow
+                && (text.X + text.Width > drawing.Width || text.Y + text.Height > drawing.Height)) {
                 throw new System.ArgumentOutOfRangeException(nameof(drawing), "Drawing scene text must fit inside the drawing width and height.");
             }
         }

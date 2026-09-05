@@ -259,4 +259,20 @@ public sealed partial class HtmlRenderingTests {
         options.MaxTextShadowLayers = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render(limitedHtml, options));
     }
+
+    [Fact]
+    public void HtmlTextShadows_DoNotDuplicateVerticalLogicalTextInPdf() {
+        const string html = "<p style='margin:0;width:30px;height:90px;font:12px/14px Arial;writing-mode:vertical-rl;text-shadow:1px 1px 2px navy'>VerticalOne</p>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(1D, 1.5D),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal("VerticalOne", extracted);
+    }
 }

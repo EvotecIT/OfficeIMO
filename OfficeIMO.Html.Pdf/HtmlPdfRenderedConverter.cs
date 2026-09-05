@@ -706,7 +706,7 @@ internal static partial class HtmlPdfRenderedConverter {
             void FlushShapes() {
                 if (shapeBatch.Elements.Count == 0) return;
                 cancellationToken.ThrowIfCancellationRequested();
-                target.Drawing(
+                target.DrawingForClippedRendering(
                     shapeBatch,
                     originX,
                     originY,
@@ -720,7 +720,9 @@ internal static partial class HtmlPdfRenderedConverter {
             foreach (OfficeDrawingElement element in elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (element is OfficeDrawingShape shape) {
-                    shapeBatch.AddShape(shape.Shape, shape.X, shape.Y);
+                    // Nested SVG clips, filters, and foreign-object viewports may retain
+                    // deliberately out-of-bounds paint that is clipped by an ancestor group.
+                    shapeBatch.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
                     continue;
                 }
                 if (element is OfficeDrawingGroup drawingGroup) {
