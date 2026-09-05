@@ -157,6 +157,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool ApproximateSmallCaps;
     internal string Language = string.Empty;
     internal string Direction = "ltr";
+    internal string UnicodeBidi = "normal";
     internal string WritingMode = "horizontal-tb";
     internal string TextOrientation = "mixed";
     internal string RubyPosition = "over";

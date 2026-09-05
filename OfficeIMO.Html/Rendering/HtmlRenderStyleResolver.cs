@@ -116,6 +116,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
+        string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
         string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
         string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
         string language = ResolveLanguage(element, parent?.Language);
@@ -184,6 +185,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             ApproximateSmallCaps = approximateSmallCaps,
             Language = language,
             Direction = direction,
+            UnicodeBidi = unicodeBidi,
             WritingMode = writingMode,
             TextOrientation = textOrientation,
             RubyPosition = ResolveRubyPosition(computed.GetValue("ruby-position"), parent?.RubyPosition),

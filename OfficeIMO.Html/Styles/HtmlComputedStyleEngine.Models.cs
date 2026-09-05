@@ -172,7 +172,11 @@ public static partial class HtmlComputedStyleEngine {
         private readonly Dictionary<string, List<StyleRule>> _classes = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<StyleRule>> _ids = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
 
-        internal StyleRuleIndex(IEnumerable<StyleRule> rules) {
+        internal StyleRuleIndex(
+            IEnumerable<StyleRule> rules,
+            IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+            CustomPropertyRegistrations = customPropertyRegistrations
+                ?? new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
             foreach (StyleRule rule in rules) {
                 switch (rule.CandidateKey.Kind) {
                     case SelectorCandidateKind.Tag:
@@ -190,6 +194,8 @@ public static partial class HtmlComputedStyleEngine {
                 }
             }
         }
+
+        internal IReadOnlyDictionary<string, CustomPropertyRegistration> CustomPropertyRegistrations { get; }
 
         internal IReadOnlyList<StyleRule> GetCandidates(AngleSharp.Dom.IElement element) {
             var candidates = new List<StyleRule>(_universal.Count + 8);
@@ -218,6 +224,20 @@ public static partial class HtmlComputedStyleEngine {
                 foreach (StyleRule rule in rules) candidates.Add(rule);
             }
         }
+    }
+
+    private sealed class CustomPropertyRegistration {
+        internal CustomPropertyRegistration(string name, string syntax, bool inherits, string? initialValue) {
+            Name = name;
+            Syntax = syntax;
+            Inherits = inherits;
+            InitialValue = initialValue;
+        }
+
+        internal string Name { get; }
+        internal string Syntax { get; }
+        internal bool Inherits { get; }
+        internal string? InitialValue { get; }
     }
 
     private sealed class ContainerRuleCondition {

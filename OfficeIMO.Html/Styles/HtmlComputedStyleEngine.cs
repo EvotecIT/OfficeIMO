@@ -15,6 +15,7 @@ public static partial class HtmlComputedStyleEngine {
         "border-spacing",
         "color",
         "direction",
+        "unicode-bidi",
         "font-family",
         "font-size",
         "font-stretch",
@@ -389,8 +390,10 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         var budget = new HtmlCssProcessingBudget(limits);
+        IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
+            ParseCustomPropertyRegistrations(document, environment);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
-        var ruleIndex = new StyleRuleIndex(rules);
+        var ruleIndex = new StyleRuleIndex(rules, customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
@@ -477,6 +480,20 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
             || string.Equals(directionAttribute, "rtl", StringComparison.OrdinalIgnoreCase)) {
             properties["direction"] = new CascadedProperty(directionAttribute!.ToLowerInvariant(), false, Specificity.PresentationalHint, -1);
+        } else if (string.Equals(directionAttribute, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(element.TagName, "bdi", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(directionAttribute)) {
+            OfficeIMO.Drawing.OfficeTextDirection resolvedDirection =
+                OfficeIMO.Drawing.OfficeTextElements.ResolveBaseDirection(element.TextContent);
+            properties["direction"] = new CascadedProperty(
+                resolvedDirection == OfficeIMO.Drawing.OfficeTextDirection.RightToLeft ? "rtl" : "ltr",
+                false,
+                Specificity.PresentationalHint,
+                -1);
+        }
+        if (string.Equals(element.TagName, "bdi", StringComparison.OrdinalIgnoreCase)) {
+            properties["unicode-bidi"] = new CascadedProperty("isolate", false, Specificity.PresentationalHint, -1);
+        } else if (string.Equals(element.TagName, "bdo", StringComparison.OrdinalIgnoreCase)) {
+            properties["unicode-bidi"] = new CascadedProperty("bidi-override", false, Specificity.PresentationalHint, -1);
         }
 
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
@@ -487,17 +504,18 @@ public static partial class HtmlComputedStyleEngine {
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
-                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder);
+                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder, customPropertyRegistrations: rules.CustomPropertyRegistrations);
                     }
                 }
             }
         }
 
-        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
+        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"), rules.CustomPropertyRegistrations);
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> specifiedProperties,
-            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities);
+            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+            rules.CustomPropertyRegistrations);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
         computed[element] = style;
@@ -511,7 +529,7 @@ public static partial class HtmlComputedStyleEngine {
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, candidateRules, pseudoElements, budget, childContainerContexts, environment);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, candidateRules, pseudoElements, budget, childContainerContexts, environment, rules.CustomPropertyRegistrations);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);
@@ -525,14 +543,15 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
-        MediaEnvironment environment) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
-        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment);
-        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment);
-        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment);
-        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment);
-        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment);
+        MediaEnvironment environment,
+        IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations) {
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations);
         if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null
             && firstLetter == null && firstLine == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair {
@@ -553,7 +572,8 @@ public static partial class HtmlComputedStyleEngine {
         HtmlPseudoElementKind kind,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
-        MediaEnvironment environment) {
+        MediaEnvironment environment,
+        IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations) {
         List<StyleRule>? matchedRules = null;
         foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
@@ -583,14 +603,16 @@ public static partial class HtmlComputedStyleEngine {
                     rule.Order,
                     rule.LayerOrder,
                     valueAlreadyValidated: true,
-                    declarationOrder: declaration.Value.DeclarationOrder);
+                    declarationOrder: declaration.Value.DeclarationOrder,
+                    customPropertyRegistrations: customPropertyRegistrations);
             }
         }
 
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> specifiedProperties,
-            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities);
+            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+            customPropertyRegistrations);
         return HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
     }

@@ -1,7 +1,11 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    private static void ApplyInlineDeclarations(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string? styleText) {
+    private static void ApplyInlineDeclarations(
+        IDictionary<string, CascadedProperty> properties,
+        IReadOnlyDictionary<string, string>? parentProperties,
+        string? styleText,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         if (string.IsNullOrWhiteSpace(styleText)) {
             return;
         }
@@ -19,13 +23,13 @@ public static partial class HtmlComputedStyleEngine {
             value = StripTrailingImportant(value, out isImportant);
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
             }
             declarationOrder++;
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -42,18 +46,18 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, shorthandValue)
             && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
-            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder);
-            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder);
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
         }
         if (string.Equals(name, "animation", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)
             && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
-            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder);
+            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
         }
         string imageSourceProperty = GetImageSourcePropertyName(name);
         if (!string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)) {
-            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder);
+            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
         }
 
         CascadedProperty? existing;
@@ -68,7 +72,7 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
-        var resolved = ResolveCssWideKeyword(name, value, parentProperties);
+        var resolved = ResolveCssWideKeyword(name, value, parentProperties, customPropertyRegistrations);
         if (!resolved.HasValue) {
             CascadedProperty? resetExisting;
             if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order, layerOrder, declarationOrder)) {
@@ -121,17 +125,21 @@ public static partial class HtmlComputedStyleEngine {
         return containerName.Length > 0 && containerType.Length > 0;
     }
 
-    private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
+    private static CssKeywordResolution ResolveCssWideKeyword(
+        string name,
+        string value,
+        IReadOnlyDictionary<string, string>? parentProperties,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         string trimmed = value.Trim();
         if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
-            || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name))) {
+            || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && IsInheritedProperty(name, customPropertyRegistrations))) {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
                 ? CssKeywordResolution.ForInheritedValue(inheritedValue)
                 : CssKeywordResolution.Clear;
         }
 
-        if (string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name)) {
+        if (string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase) && IsInheritedProperty(name, customPropertyRegistrations)) {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
                 ? CssKeywordResolution.ForInheritedValue(inheritedValue)

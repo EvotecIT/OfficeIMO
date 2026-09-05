@@ -339,10 +339,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? new List<HtmlInlineRun>()
             : null;
         ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
         if (IsReplacedImageElementTag(tag)) {
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
+            AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
             AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;
         }
@@ -350,6 +352,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AssignLogicalTextOrders(runs);
             if (!ReferenceEquals(targetRuns, runs)) AssignLogicalTextOrders(targetRuns);
             if (TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
+                AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
                 AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
                 return;
             }
@@ -360,7 +363,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
+        AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
+    }
+
+    private static void AddUnicodeBidiBoundaryRun(
+        HtmlRenderBoxStyle style,
+        IElement owner,
+        bool opening,
+        double paintOffsetX,
+        double paintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
+        string control = GetUnicodeBidiBoundary(style.UnicodeBidi, style.Direction, opening);
+        if (control.Length == 0) return;
+        runs.Add(new HtmlInlineRun(
+            control,
+            style,
+            null,
+            HtmlRenderStyleResolver.DescribeSource(owner),
+            paintOffsetX,
+            paintOffsetY,
+            owner));
+    }
+
+    private static string GetUnicodeBidiBoundary(string unicodeBidi, string direction, bool opening) {
+        bool rtl = string.Equals(direction, "rtl", StringComparison.Ordinal);
+        switch (unicodeBidi) {
+            case "embed": return opening ? rtl ? "\u202B" : "\u202A" : "\u202C";
+            case "bidi-override": return opening ? rtl ? "\u202E" : "\u202D" : "\u202C";
+            case "isolate": return opening ? rtl ? "\u2067" : "\u2066" : "\u2069";
+            case "isolate-override":
+                return opening
+                    ? (rtl ? "\u2067\u202E" : "\u2066\u202D")
+                    : "\u202C\u2069";
+            case "plaintext": return opening ? "\u2068" : "\u2069";
+            default: return string.Empty;
+        }
     }
 
     private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>

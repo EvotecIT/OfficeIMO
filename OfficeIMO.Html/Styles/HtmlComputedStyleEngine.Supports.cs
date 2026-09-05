@@ -373,6 +373,8 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "left", "right", "center", "justify", "start", "end", "match-parent");
             case "direction":
                 return IsKnownKeyword(normalized, "ltr", "rtl");
+            case "unicode-bidi":
+                return IsKnownKeyword(normalized, "normal", "embed", "isolate", "bidi-override", "isolate-override", "plaintext");
             case "white-space":
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
             case "hyphens":
@@ -455,8 +457,14 @@ public static partial class HtmlComputedStyleEngine {
         return false;
     }
 
-    private static bool IsInheritedProperty(string propertyName) =>
-        InheritedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal);
+    private static bool IsInheritedProperty(
+        string propertyName,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+        if (!propertyName.StartsWith("--", StringComparison.Ordinal)) return InheritedProperties.Contains(propertyName);
+        return customPropertyRegistrations == null
+            || !customPropertyRegistrations.TryGetValue(propertyName, out CustomPropertyRegistration? registration)
+            || registration.Inherits;
+    }
 
     private static Dictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
@@ -464,7 +472,8 @@ public static partial class HtmlComputedStyleEngine {
         out HashSet<string> inheritedProperties,
         out HashSet<string> resetProperties,
         out HashSet<string> specifiedProperties,
-        out Dictionary<string, HtmlCssCascadePriority> cascadePriorities) {
+        out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -472,7 +481,7 @@ public static partial class HtmlComputedStyleEngine {
         var priorities = new Dictionary<string, HtmlCssCascadePriority>(HtmlCssPropertyNameComparer.Instance);
         if (parentProperties != null) {
             foreach (KeyValuePair<string, string> pair in parentProperties) {
-                if (!IsInheritedProperty(pair.Key)) continue;
+                if (!IsInheritedProperty(pair.Key, customPropertyRegistrations)) continue;
                 raw[pair.Key] = pair.Value;
                 inherited.Add(pair.Key);
                 priorities[pair.Key] = new HtmlCssCascadePriority(
@@ -494,7 +503,7 @@ public static partial class HtmlComputedStyleEngine {
                     inherited.Remove(pair.Key);
                 }
             } else if ((effective?.RevertsLayer == true || effective == null && pair.Value.RevertsLayer)
-                  && IsInheritedProperty(pair.Key)
+                  && IsInheritedProperty(pair.Key, customPropertyRegistrations)
                   && parentProperties != null
                   && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
                 raw[pair.Key] = inheritedValue;
@@ -512,6 +521,7 @@ public static partial class HtmlComputedStyleEngine {
                 reset.Add(pair.Key);
             }
         }
+        ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
@@ -530,6 +540,41 @@ public static partial class HtmlComputedStyleEngine {
             .ToDictionary(pair => pair.Key, pair => pair.Value, HtmlCssPropertyNameComparer.Instance);
         cascadePriorities = priorities;
         return resolved;
+    }
+
+    private static void ApplyRegisteredCustomPropertyFallbacks(
+        IDictionary<string, string> raw,
+        IReadOnlyDictionary<string, string>? parentProperties,
+        ISet<string> specifiedProperties,
+        ISet<string> inheritedProperties,
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations) {
+        if (customPropertyRegistrations == null || customPropertyRegistrations.Count == 0) return;
+        foreach (CustomPropertyRegistration registration in customPropertyRegistrations.Values) {
+            bool locallySpecified = specifiedProperties.Contains(registration.Name);
+            if (locallySpecified && raw.TryGetValue(registration.Name, out string? authoredValue)) {
+                bool resolved = HtmlCssCustomPropertyResolver.TryResolve(
+                    authoredValue,
+                    name => raw.TryGetValue(name, out string? customValue) ? customValue : null,
+                    out string computedValue);
+                if (resolved && IsRegisteredCustomPropertyValueValid(registration.Syntax, computedValue)) {
+                    raw[registration.Name] = computedValue;
+                    continue;
+                }
+                raw.Remove(registration.Name);
+                specifiedProperties.Remove(registration.Name);
+            }
+
+            if (registration.Inherits
+                && parentProperties != null
+                && parentProperties.TryGetValue(registration.Name, out string? inheritedValue)
+                && IsRegisteredCustomPropertyValueValid(registration.Syntax, inheritedValue)) {
+                raw[registration.Name] = inheritedValue;
+                inheritedProperties.Add(registration.Name);
+            } else if (!string.IsNullOrWhiteSpace(registration.InitialValue)) {
+                raw[registration.Name] = registration.InitialValue!;
+                inheritedProperties.Remove(registration.Name);
+            }
+        }
     }
 
     private static HtmlCssCascadePriority ToCascadePriority(CascadedProperty property) =>
