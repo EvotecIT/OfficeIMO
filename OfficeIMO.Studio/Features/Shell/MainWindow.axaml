@@ -132,6 +132,13 @@
                 BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="12,8">
           <TextBlock Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
         </Border>
+        <Border IsVisible="{Binding Session.HasStorageError}" Background="{DynamicResource StudioWarningSoftBrush}"
+                BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="{Binding Session.StorageError}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="tool" Command="{Binding Session.RetryStorageCommand}" Content="{loc:Loc Session.RetryStorage}" />
+          </Grid>
+        </Border>
         <Border IsVisible="{Binding HasOperationStatus}" Background="{DynamicResource StudioAccentSoftBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="12,7">
           <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">

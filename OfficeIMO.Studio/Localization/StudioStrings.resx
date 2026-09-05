@@ -1427,6 +1427,9 @@
   <data name="Session.Remember" xml:space="preserve"><value>Remember open documents for next time</value></data>
   <data name="Session.RememberDescription" xml:space="preserve"><value>Stores document paths and reading positions locally for restart. Turning this off clears the session list; edit recovery and recent documents are separate.</value></data>
   <data name="Settings.RecoveryStorage" xml:space="preserve"><value>Edit recovery</value></data>
+  <data name="Session.StorageSaveFailed" xml:space="preserve"><value>Studio could not remember this session. Check available storage and folder access, then retry. Save document edits before closing.</value></data>
+  <data name="Session.StorageClearFailed" xml:space="preserve"><value>Session memory is off, but the old restart record could not be cleared. Check folder access, then retry.</value></data>
+  <data name="Session.RetryStorage" xml:space="preserve"><value>Retry</value></data>
   <data name="Settings.PrivateDocumentsHelp" xml:space="preserve"><value>Before working with private documents, turn off restart sessions, document history, and recovery storage. These are separate controls. Close other running Studio instances before changing privacy settings.</value></data>
   <data name="Settings.DocumentHistory" xml:space="preserve"><value>Document history</value></data>
   <data name="Settings.HistoryPrivacyHelp" xml:space="preserve"><value>Remember recently opened files and reading preferences between visits. Turning this off stops new history and saved reading preferences in this instance and future launches. Existing records remain until cleared below. Restart sessions can also retain paths and reading positions.</value></data>

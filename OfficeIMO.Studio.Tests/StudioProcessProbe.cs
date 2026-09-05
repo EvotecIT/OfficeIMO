@@ -8,7 +8,7 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Tests;
 
 /// <summary>Child-process entry point for crash/restart acceptance using the real Studio services.</summary>
-internal static class StudioProcessProbe {
+internal static partial class StudioProcessProbe {
     private static string _profile = string.Empty;
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder
@@ -17,14 +17,24 @@ internal static class StudioProcessProbe {
 
     public static async Task<int> Main(string[] args) {
         if (args is not ["--studio-process-probe", var mode, var root] ||
-            mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify")) return 2;
+            mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify" or "storage-full" or "storage-detach")) return 2;
         root = Path.GetFullPath(root);
         if (!Directory.Exists(root)) return 2;
-        _profile = Path.Combine(root, "profile");
+        _profile = mode == "storage-full" ? Path.Combine(root, "volume", "profile") : Path.Combine(root, "profile");
         var app = HeadlessUnitTestSession.StartNew(typeof(StudioProcessProbe), AvaloniaTestIsolationLevel.PerTest);
         try {
             await app.Dispatch(async () => {
                 var services = ((App)Application.Current!).Services;
+                if (mode == "storage-full") {
+                    await VerifyFullStorageAsync(root, services);
+                    Console.WriteLine("VERIFIED storage-full");
+                    return true;
+                }
+                if (mode == "storage-detach") {
+                    await VerifyDetachedStorageAsync(root, services);
+                    Console.WriteLine("VERIFIED storage-detach");
+                    return true;
+                }
                 string source = Path.Combine(root, "source.pdf");
                 string destination = Path.Combine(root, "recovered.pdf");
                 using var host = new StudioDocumentTabHost(open => new MainWindowViewModel(

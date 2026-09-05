@@ -75,6 +75,12 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     [ObservableProperty] private string? _error;
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
     partial void OnErrorChanged(string? value) => OnPropertyChanged(nameof(HasError));
+    [ObservableProperty] private string? _storageError;
+    public bool HasStorageError => !string.IsNullOrWhiteSpace(StorageError);
+    partial void OnStorageErrorChanged(string? value) => OnPropertyChanged(nameof(HasStorageError));
+
+    [RelayCommand]
+    private void RetryStorage() => Flush();
 
     internal async Task InspectAsync(CancellationToken token = default) {
         foreach (var item in Pending.ToArray()) {
@@ -182,11 +188,13 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     internal void Flush() {
         if (_frozen || _disposed) return;
         try {
-            if (!_services.Preferences.Current.RememberSession) { _store.Clear(); return; }
+            if (!_services.Preferences.Current.RememberSession) { _store.Clear(); StorageError = null; return; }
             var live = _host.Tabs.Select(tab => tab.Document.CaptureSessionDocument()).OfType<StudioSessionDocument>();
             _store.Save(new(1, DateTimeOffset.UtcNow, _host.ActiveDocument.DocumentPath ?? _previousActivePath,
                 live.Concat(Pending.Select(item => item.Document)).ToArray()));
+            StorageError = null;
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            StorageError = Text(_services.Preferences.Current.RememberSession ? "StorageSaveFailed" : "StorageClearFailed");
             _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Session", "SessionSaveFailed", error);
         }
     }

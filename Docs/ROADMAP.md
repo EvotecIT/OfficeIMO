@@ -90,7 +90,7 @@ Completion evidence: open a document, find text, switch modes, edit a supported 
 
 ### Phase 2: safe sessions and jobs
 
-- [ ] Complete unavailable-drive and disk-full acceptance for sessions and recovery while preserving source bytes and usable recovery copies.
+- [ ] Extend full-storage and unavailable-volume acceptance to native Windows and macOS, preserving source bytes and usable recovery copies.
 - [ ] Complete source/output identity checks across open tabs, OCR, conversion, assembly, recipes, and Save As. Exercise case rules, aliases, links, external replacement, read-only files, and provider-backed sources. Route reusable authorization and publication invariants through the shared owners rather than adding per-view checks.
 - [ ] Extend StorageProvider usage beyond `Path.LocalPath` with stream access, permission lifetime, and bounded app-owned staging when a canonical engine requires a seekable local file. Preserve source identity and conflict detection; explain provider guarantees where atomic replacement is unavailable. Cover macOS sandbox access and Linux portal paths before reusing the adapter on mobile.
 - [ ] Unify workflow presentation around inputs, intended result, output destination, preview, progress, cancellation, and next action. Introduce a Jobs surface over existing workflow execution with per-file status, bounded concurrency, retry of failed inputs, and result links. Cancellation must state whether any outputs were already committed; retry must not silently duplicate or overwrite them.
