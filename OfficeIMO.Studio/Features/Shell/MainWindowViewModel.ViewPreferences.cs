@@ -12,6 +12,14 @@ public sealed partial class MainWindowViewModel {
 
     internal StudioDocumentViewState DocumentViewState => _documentViewState;
 
+    internal StudioSessionController? Session { get; set; }
+
+    internal StudioSessionDocument? CaptureSessionDocument() {
+        if (_workspace is null) return null;
+        CaptureDocumentViewState();
+        return new(_workspace.Path, _workspace.BaseFingerprint, _documentViewState);
+    }
+
     public IReadOnlyList<StudioCommandItem> DocumentModeCommands =>
         [Commands["Read"], Commands["Comment"], Commands["Edit"], Commands["Pages"], Commands["Forms"], Commands["Protect"]];
 
@@ -54,6 +62,16 @@ public sealed partial class MainWindowViewModel {
 
     internal void SaveDocumentViewState() {
         if (!HasDocument || DocumentPath is not { } path) return;
+        CaptureDocumentViewState();
+        if (!_persistDocumentViews) return;
+        try {
+            _services.DocumentViews.Put(path, _documentViewState);
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "DocumentViewSaveFailed", exception);
+        }
+    }
+
+    private void CaptureDocumentViewState() {
         _documentViewState = (_documentViewState with {
             PageNumber = SelectedPage?.PageNumber ?? 1,
             Zoom = Zoom,
@@ -61,12 +79,6 @@ public sealed partial class MainWindowViewModel {
             ReaderLayout = ReaderLayout,
             FocusReading = IsFocusReading
         }).Normalize();
-        if (!_persistDocumentViews) return;
-        try {
-            _services.DocumentViews.Put(path, _documentViewState);
-        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
-            _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "DocumentViewSaveFailed", exception);
-        }
     }
 
     private void RestoreDocumentViewState() {

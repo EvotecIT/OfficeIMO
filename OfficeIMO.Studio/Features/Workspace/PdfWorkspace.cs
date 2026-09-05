@@ -52,6 +52,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal string Path { get; private set; }
 
+    internal string BaseFingerprint => _baseFingerprint;
+
     internal string FileName => System.IO.Path.GetFileName(Path);
 
     internal long FileSize => _bytes.LongLength;

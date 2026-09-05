@@ -1382,4 +1382,48 @@
   <data name="Settings.ReadingWorkspaceDescription" xml:space="preserve"><value>Studio remembers the page, zoom, and pane sizes for documents you reopen. Pane choices are kept separately for each document task.</value></data>
   <data name="Settings.FocusReadingHelp" xml:space="preserve"><value>Press F9 for focus reading. Press Escape or F9 to bring the document controls back.</value></data>
   <data name="Settings.DocumentAppearanceHelp" xml:space="preserve"><value>Application themes change the controls around your document. Document colors stay unchanged; page night mode is a separate reading option.</value></data>
+  <data name="Session.Title" xml:space="preserve">
+    <value>Continue your previous session</value>
+  </data>
+  <data name="Session.Description" xml:space="preserve">
+    <value>Reopen unchanged documents with their reading positions. Changed or missing sources need an individual choice. Pending edits are restored only when you choose recovery.</value>
+  </data>
+  <data name="Session.Restore" xml:space="preserve">
+    <value>Reopen unchanged documents</value>
+  </data>
+  <data name="Session.Ready" xml:space="preserve">
+    <value>Source unchanged. Ready to reopen.</value>
+  </data>
+  <data name="Session.Changed" xml:space="preserve">
+    <value>The source changed outside Studio. Open its current version or recover your edits into a new copy.</value>
+  </data>
+  <data name="Session.Missing" xml:space="preserve">
+    <value>The source is missing. A verified edit snapshot can still be recovered into a new copy.</value>
+  </data>
+  <data name="Session.Unavailable" xml:space="preserve">
+    <value>The source could not be checked. Verify access before reopening it.</value>
+  </data>
+  <data name="Session.RestoreFailed" xml:space="preserve">
+    <value>A document could not be reopened. Check its location and access, then try again.</value>
+  </data>
+  <data name="Session.RecoverFailed" xml:space="preserve">
+    <value>The recovery copy could not be created. Check the snapshot and destination, then try again.</value>
+  </data>
+  <data name="Session.NewCopyRequired" xml:space="preserve">
+    <value>Choose a new file name. Recovery never replaces an existing file or an open document.</value>
+  </data>
+  <data name="Session.OpenCurrent" xml:space="preserve">
+    <value>Open current source</value>
+  </data>
+  <data name="Session.RecoverCopy" xml:space="preserve">
+    <value>Recover edits as a new copy…</value>
+  </data>
+  <data name="Session.Forget" xml:space="preserve">
+    <value>Remove from session</value>
+  </data>
+  <data name="Session.Retention" xml:space="preserve">
+    <value>Session paths and reading positions stay on this device for up to 30 days, with at most 32 documents. Removing an entry leaves its edit-recovery snapshot intact.</value>
+  </data>
+  <data name="Session.Remember" xml:space="preserve"><value>Remember open documents for next time</value></data>
+  <data name="Session.RememberDescription" xml:space="preserve"><value>Stores document paths and reading positions locally for restart. Turning this off clears the session list; edit recovery and recent documents are separate.</value></data>
 </root>

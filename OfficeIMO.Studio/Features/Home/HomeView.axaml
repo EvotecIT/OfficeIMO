@@ -10,7 +10,10 @@
                 Background="{DynamicResource StudioPanelBrush}">
     <Grid Margin="28,24,28,30" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="22"
           MaxWidth="1160" HorizontalAlignment="Stretch">
-      <TextBlock TextWrapping="Wrap" Grid.Row="0" Text="{loc:Loc Home.Home}" Classes="pageTitle" />
+      <StackPanel Grid.Row="0" Spacing="16">
+        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Home}" Classes="pageTitle" />
+        <shell:StudioSessionView DataContext="{Binding Session}" />
+      </StackPanel>
 
       <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
               CornerRadius="8" Padding="24" Background="{DynamicResource StudioPanelMutedBrush}">

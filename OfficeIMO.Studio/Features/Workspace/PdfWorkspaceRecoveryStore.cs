@@ -46,6 +46,11 @@ internal sealed class PdfWorkspaceRecoveryStore {
     }
 
     internal string? Find(string sourcePath, string baseFingerprint) {
+        if (ReadVerifiedSnapshot(sourcePath, baseFingerprint) is null) return null;
+        return Path.Combine(_root, CreateKey(Canonicalize(sourcePath)) + ".pdf");
+    }
+
+    internal byte[]? ReadVerifiedSnapshot(string sourcePath, string baseFingerprint) {
         string canonicalPath = Canonicalize(sourcePath);
         string key = CreateKey(canonicalPath);
         string pdfPath = Path.Combine(_root, key + ".pdf");
@@ -53,14 +58,15 @@ internal sealed class PdfWorkspaceRecoveryStore {
         if (!File.Exists(pdfPath) || !File.Exists(metadataPath)) return null;
 
         try {
+            if (new FileInfo(metadataPath).Length > 64 * 1024) return null;
             RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(File.ReadAllBytes(metadataPath));
             if (metadata is null ||
                 !PathsEqual(canonicalPath, metadata.SourcePath) ||
-                !string.Equals(baseFingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(Fingerprint(File.ReadAllBytes(pdfPath)), metadata.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase)) {
+                !string.Equals(baseFingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
-            return pdfPath;
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            return string.Equals(Fingerprint(bytes), metadata.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase) ? bytes : null;
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             return null;
         }

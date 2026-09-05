@@ -24,6 +24,8 @@ internal sealed record StudioPreferences {
 
     public StudioDensityPreference Density { get; init; } = StudioDensityPreference.Comfortable;
 
+    public bool RememberSession { get; init; } = true;
+
     internal StudioPreferences Normalize() {
         string culture = Infrastructure.Localization.StudioCultureCatalog.NormalizeOrDefault(UiCulture);
         StudioThemePreference theme = Enum.IsDefined(Theme) ? Theme : StudioThemePreference.System;

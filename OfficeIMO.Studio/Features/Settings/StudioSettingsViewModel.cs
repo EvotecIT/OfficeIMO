@@ -79,6 +79,12 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     [ObservableProperty]
     private StudioDensityChoice _selectedDensity = null!;
 
+    [ObservableProperty] private bool _rememberSession;
+
+    partial void OnRememberSessionChanged(bool value) {
+        if (!_synchronizing) _preferences.Update(current => current with { RememberSession = value });
+    }
+
     internal bool RestartRequired =>
         !string.Equals(SelectedCulture.Name, _localizer.Culture.Name, StringComparison.OrdinalIgnoreCase);
 
@@ -109,6 +115,7 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
                 string.Equals(choice.Name, _preferences.Current.UiCulture, StringComparison.OrdinalIgnoreCase)) ?? Cultures[0];
             SelectedTheme = Themes.First(choice => choice.Value == _preferences.Current.Theme);
             SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
+            RememberSession = _preferences.Current.RememberSession;
         } finally {
             _synchronizing = false;
         }

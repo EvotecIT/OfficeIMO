@@ -22,6 +22,8 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     public ObservableCollection<StudioDocumentTabViewModel> Tabs { get; } = new();
 
+    internal event EventHandler? CloseAllPrepared;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasTabs))]
     private StudioDocumentTabViewModel? _selectedTab;
@@ -148,6 +150,8 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
                 if (previousSelection is not null && Tabs.Contains(previousSelection)) SelectedTab = previousSelection;
             }
         }
+        if (previousSelection is not null && Tabs.Contains(previousSelection)) SelectedTab = previousSelection;
+        CloseAllPrepared?.Invoke(this, EventArgs.Empty);
         foreach (StudioDocumentTabViewModel tab in candidates) {
             tab.Document.CompletePreparedClose();
             Tabs.Remove(tab);

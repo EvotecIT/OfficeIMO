@@ -26,6 +26,8 @@ public sealed partial class MainWindow : Window {
     private bool _changingActiveDocument;
     private readonly StudioApplicationServices _services;
     private bool _commandPaletteOpen;
+    private readonly StudioSessionController _session;
+    private bool _windowClosed;
 
     public MainWindow() : this((Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault()) { }
 
@@ -33,6 +35,8 @@ public sealed partial class MainWindow : Window {
         _services = services ?? throw new ArgumentNullException(nameof(services));
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument);
         ViewModel = TabHost.ActiveDocument;
+        _session = new StudioSessionController(TabHost, _services, PickSavePdfAsync);
+        ViewModel.Session = _session;
         InitializeComponent();
         DocumentTabs.DataContext = TabHost;
         OpenDocumentTabButton.DataContext = TabHost;
@@ -68,7 +72,7 @@ public sealed partial class MainWindow : Window {
         OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => TabHost.Dispose();
+        Closed += (_, _) => { _windowClosed = true; _session.Dispose(); TabHost.Dispose(); };
     }
 
     public StudioDocumentTabHost TabHost { get; }
@@ -94,6 +98,7 @@ public sealed partial class MainWindow : Window {
             pickAssemblyFolder: PickAssemblyFolderAsync,
             services: _services,
             canPublishPath: path => TabHost.CanPublishPath(path));
+        document.Session = _session;
         return document;
     }
 
@@ -307,6 +312,8 @@ public sealed partial class MainWindow : Window {
 
     private async void OnOpened(object? sender, EventArgs e) {
         ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
+        await _session.InspectAsync();
+        if (_windowClosed) return;
         if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;
         _initialDocumentOpened = true;
         await TabHost.OpenDocumentAsync(_initialDocumentPath);
@@ -389,7 +396,7 @@ public sealed partial class MainWindow : Window {
             TabHost.CancelAllOperations();
             return;
         }
-        if (!TabHost.HasDirtyDocuments) return;
+        if (!TabHost.HasDirtyDocuments) { _session.CaptureForShutdown(); return; }
         e.Cancel = true;
         if (_closePromptOpen) return;
         _closePromptOpen = true;
