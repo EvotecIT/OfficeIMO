@@ -1284,4 +1284,10 @@
   <data name="FormField.Kind.Choice" xml:space="preserve"><value>Choice</value></data>
   <data name="FormField.Kind.Signature" xml:space="preserve"><value>Signature</value></data>
   <data name="FormField.Kind.Unsupported" xml:space="preserve"><value>Unsupported</value></data>
+  <data name="DocumentWorkspace.Navigation" xml:space="preserve"><value>Navigation</value></data>
+  <data name="DocumentWorkspace.Properties" xml:space="preserve"><value>Properties</value></data>
+  <data name="DocumentWorkspace.ResizeNavigation" xml:space="preserve"><value>Resize navigation pane</value></data>
+  <data name="DocumentWorkspace.ResizeProperties" xml:space="preserve"><value>Resize properties pane</value></data>
+  <data name="PdfPage.RenderingNotes" xml:space="preserve"><value>Rendering notes</value></data>
+  <data name="Home.SupportedInputGuidance" xml:space="preserve"><value>Open a PDF to read and edit. Use Tools to convert or combine other files.</value></data>
 </root>

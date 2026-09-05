@@ -131,12 +131,14 @@ public sealed partial class MainWindow : Window {
 
     internal void ApplyResponsiveLayout(double width) {
         IsCompactLayout = width < 1180D;
-        FitWidthButton.IsVisible = !IsCompactLayout;
-        FitPageButton.IsVisible = !IsCompactLayout;
         double workspaceWidth = Math.Max(0D, width - 116D);
+        DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
     }
+
+    private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        DocumentWorkspace.FocusSearch();
 
     private void OnToggleThemeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         if (Application.Current is not { } application) return;

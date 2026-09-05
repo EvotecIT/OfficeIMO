@@ -17,19 +17,18 @@
         MinHeight="620"
         Background="{DynamicResource StudioWindowBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
-        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaToDecorationsHint="False"
         WindowDecorations="Full"
         ExtendClientAreaTitleBarHeightHint="42"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="42,*" ColumnDefinitions="116,*">
+  <Grid RowDefinitions="54,*" ColumnDefinitions="116,*">
     <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="170,*,260,Auto" Margin="12,0,138,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="12,0">
 
-        <Border Grid.Column="0" Background="Transparent"
-                WindowDecorationProperties.ElementRole="TitleBar" />
 
-        <Grid Grid.Column="1" ColumnDefinitions="*,Auto" Margin="22,5,10,0">
+
+        <Grid Grid.Column="0" ColumnDefinitions="*,Auto" Margin="0,6,0,0">
           <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
                    Grid.Column="0" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
                    IsVisible="{Binding HasTabs}" SelectionMode="Single"
@@ -70,18 +69,18 @@
                   ToolTip.Tip="{loc:Loc MainWindow.OpenAnotherDocument}" />
         </Grid>
 
-        <Border Grid.Column="2" IsVisible="{Binding ShowPdfDocumentControls}" Width="250" Height="28"
+        <Border Grid.Column="1" IsVisible="{Binding ShowPdfDocumentControls}" Width="240" MinHeight="36"
                 HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="6"
                 Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
                 >
           <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
             <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
             <TextBox Grid.Column="1" Text="{Binding SearchQuery}" PlaceholderText="{loc:Loc MainWindow.SearchThisDocument}" BorderThickness="0" Background="Transparent" FontSize="11" />
-            <Button Grid.Column="2" Classes="ghost" Command="{Binding SearchCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Find}" Content="{loc:Loc MainWindow.Find}" FontSize="10" Padding="5,2" />
+            <Button Grid.Column="2" Classes="ghost" Click="OnFindClick" Command="{Binding SearchCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Find}" Content="{loc:Loc MainWindow.Find}" FontSize="10" Padding="5,2" />
           </Grid>
         </Border>
 
-        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
           <Button Classes="tool" IsVisible="{Binding ShowPdfDocumentControls}" Command="{Binding SaveAsCommand}" AutomationProperties.Name="{loc:Loc MainWindow.SaveAs}" Content="{loc:Loc MainWindow.SaveAs}" />
           <Button Classes="tool" Click="OnToggleThemeClick" Width="36" Padding="7"
                   AutomationProperties.Name="{loc:Loc MainWindow.Theme}"
@@ -99,32 +98,32 @@
         <ToggleButton Grid.Row="0" Classes="nav"
                      IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding ShowHomeCommand}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Home}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="1" Classes="nav" IsEnabled="{Binding HasDocument}"
                      IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Document}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="2" Classes="nav"
                      IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding ShowToolsCommand}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="3" Classes="nav"
                      IsChecked="{Binding IsOcrMode, Mode=OneWay}" Command="{Binding ShowOcrCommand}"
                      AutomationProperties.Name="{loc:Loc MainWindow.OCR}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="4" Classes="nav"
                      IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding ShowJobsCommand}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Convert}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="6" Classes="nav"
                       IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Command="{Binding ShowSettingsCommand}"
                       AutomationProperties.Name="{loc:Loc Settings.Settings}" ToolTip.Tip="{loc:Loc Settings.Settings}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" FontSize="9" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" FontSize="11" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
       </Grid>
     </Border>
@@ -142,7 +141,7 @@
         <Border IsVisible="{Binding HasOperationStatus}" Background="{DynamicResource StudioAccentSoftBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="12,7">
           <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
-            <TextBlock Text="{Binding OperationStatus}" Foreground="{DynamicResource StudioAccentBrush}" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding OperationStatus}" Foreground="{DynamicResource StudioAccentBrush}" />
             <Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.RestoreRecoveredEdits}" Content="{loc:Loc MainWindow.RestoreRecoveredEdits}" IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
             <Button Grid.Column="2" Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.Discard}" Content="{loc:Loc MainWindow.Discard}" IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" Margin="6,0" />
             <ProgressBar Grid.Column="3" IsVisible="{Binding IsWorkspaceBusy}" Width="100" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
