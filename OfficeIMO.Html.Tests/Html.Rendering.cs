@@ -2955,6 +2955,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_ResolvesDirAutoAndHtmlBidiElementPresentationalHints() {
+        const string html = "<p><span id='rtl' dir='auto'>123 שלום</span><span id='ltr' dir='auto'>123 English</span><bdi id='isolate'>سلام</bdi><bdo id='override' dir='rtl'>abc</bdo></p>";
+        var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rtl", styles[document.QuerySelector("#rtl")!].GetValue("direction"));
+        Assert.Equal("ltr", styles[document.QuerySelector("#ltr")!].GetValue("direction"));
+        Assert.Equal("rtl", styles[document.QuerySelector("#isolate")!].GetValue("direction"));
+        Assert.Equal("isolate", styles[document.QuerySelector("#isolate")!].GetValue("unicode-bidi"));
+        Assert.Equal("bidi-override", styles[document.QuerySelector("#override")!].GetValue("unicode-bidi"));
+    }
+
+    [Fact]
+    public void HtmlRenderer_AppliesCssUnicodeBidiAndBdoWithoutPaintingControlCharacters() {
+        const string html = "<p style='margin:0'>Before <bdo dir='rtl'>abc</bdo> <span style='direction:rtl;unicode-bidi:isolate'>אבג</span> After</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup overrideGroup = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "abc");
+
+        Assert.Equal("cba", string.Concat(overrideGroup.Visuals.OfType<HtmlRenderText>().Select(item => item.Text)));
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => OfficeTextElements.ContainsBidiControl(item.Text));
+        Assert.Contains("Before abc אבג After", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRenderer_CarriesBidiOverridesAcrossInlineFormattingBoundaries() {
         const string html = "<p style='margin:0'><span>\u202E</span><b>abc</b><span>\u202C</span></p>";
 

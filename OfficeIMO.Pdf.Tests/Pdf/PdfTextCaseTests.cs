@@ -36,7 +36,8 @@ public class PdfTextCaseTests {
             fontSize: 14, baseline: PdfTextBaseline.Superscript,
             backgroundColor: PdfColor.FromRgb(240, 240, 240), fontFamily: "Aptos",
             underlineStyle: OfficeTextDecorationStyle.Dashed,
-            strikeStyle: OfficeTextDecorationStyle.Double);
+            strikeStyle: OfficeTextDecorationStyle.Double,
+            decorationColor: PdfColor.FromRgb(200, 10, 20));
 
         PdfTextRun actual = source.WithTextCase(OfficeTextCase.ToggleCase);
 
@@ -52,6 +53,7 @@ public class PdfTextCaseTests {
         Assert.Equal(source.BackgroundColor, actual.BackgroundColor);
         Assert.Equal(OfficeTextDecorationStyle.Dashed, actual.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Double, actual.StrikeStyle);
+        Assert.Equal(source.DecorationColor, actual.DecorationColor);
     }
 
     [Fact]
@@ -60,7 +62,8 @@ public class PdfTextCaseTests {
             "Decorated",
             color: PdfColor.FromRgb(10, 20, 30),
             underlineStyle: OfficeTextDecorationStyle.Dashed,
-            strikeStyle: OfficeTextDecorationStyle.Double);
+            strikeStyle: OfficeTextDecorationStyle.Double,
+            decorationColor: PdfColor.FromRgb(255, 0, 0));
 
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(run)))
@@ -72,6 +75,7 @@ public class PdfTextCaseTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("] 0 d", raw, System.StringComparison.Ordinal);
+        Assert.Contains("1 0 0 RG", raw, System.StringComparison.Ordinal);
         Assert.True(raw.Split(new[] { " RG" }, System.StringSplitOptions.None).Length >= 4,
             "Expected one dashed underline plus two lines for the double strikethrough.");
     }

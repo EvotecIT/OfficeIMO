@@ -37,7 +37,9 @@ public enum PdfCanvasStructureRole {
     /// <summary>Table data cell.</summary>
     TableCell,
     /// <summary>Caption associated with a figure or table.</summary>
-    Caption
+    Caption,
+    /// <summary>Footnote or endnote content associated with the document body.</summary>
+    Note
 }
 
 /// <summary>Scope of a tagged table header cell.</summary>

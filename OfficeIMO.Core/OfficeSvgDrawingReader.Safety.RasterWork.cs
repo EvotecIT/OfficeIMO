@@ -49,7 +49,7 @@ public static partial class OfficeSvgDrawingReader {
             SvgRasterStrokeStyle strokeStyle,
             SvgRasterTextStyle textStyle) {
             string name = element.Name.LocalName.ToLowerInvariant();
-            if (name is "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or
+            if (name is "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or "tref" or
                 "clippath" or "filter" or "marker" or "style" or "use" or "defs" or "title" or
                 "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
 

@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
@@ -181,12 +183,12 @@ internal static partial class PdfWriter {
         return width;
     }
 
-    private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options) {
+    private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
         if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
             string layoutText = text!;
             return layoutText
                 .Split(LayoutLineSeparators, StringSplitOptions.None)
-                .Max(line => EstimateSimpleTextWidthForOptions(line, font, fontSize, options));
+                .Max(line => EstimateSimpleTextWidthForOptions(line, font, fontSize, options, featureSettings));
         }
 
         if (options != null &&
@@ -206,7 +208,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
         }
 
         if (options != null &&
@@ -226,7 +228,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
@@ -237,11 +239,12 @@ internal static partial class PdfWriter {
         PdfStandardFont fallbackFont,
         PdfNamedFontFace? namedFont,
         double fontSize,
-        PdfOptions? options) {
+        PdfOptions? options,
+        OfficeTextFeatureSettings? featureSettings = null) {
         if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
             return text!
                 .Split(LayoutLineSeparators, StringSplitOptions.None)
-                .Max(line => EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options));
+                .Max(line => EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options, featureSettings));
         }
 
         if (namedFont.HasValue &&
@@ -262,7 +265,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
         }
 
         if (namedFont.HasValue &&
@@ -283,10 +286,10 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
         }
 
-        return EstimateSimpleTextWidthForOptions(text, fallbackFont, fontSize, options);
+        return EstimateSimpleTextWidthForOptions(text, fallbackFont, fontSize, options, featureSettings);
     }
 
     internal static double EstimateSimpleTextWidth1000(string? text, PdfStandardFont font) =>

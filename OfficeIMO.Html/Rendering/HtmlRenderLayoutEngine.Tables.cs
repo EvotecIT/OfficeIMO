@@ -176,6 +176,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double continuationHeight = 0D;
         double trailingStart = 0D;
         double trailingHeight = 0D;
+        var navigationDestinations = new List<HtmlRenderVisual>();
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
@@ -214,15 +215,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 groupHeight += verticalSpacing * Math.Max(0, groupRowCount - 1);
                 string groupSource = HtmlRenderStyleResolver.DescribeSource(row.GroupElement!);
                 AddBoxBackground(rowVisuals, row.GroupStyle, rowPaintX, rowY, rowPaintWidth, groupHeight, 0D, row.GroupElement!, groupSource, groupSource);
+                AddElementNamedDestination(navigationDestinations, row.GroupElement!, rowPaintX, rowY, navigationDestinations.Count);
             }
             string rowSource = HtmlRenderStyleResolver.DescribeSource(row.Element);
             AddBoxBackground(rowVisuals, row.Style, rowPaintX, rowY, rowPaintWidth, row.Height, 0D, row.Element, rowSource, rowSource);
+            AddElementNamedDestination(navigationDestinations, row.Element, rowPaintX, rowY, navigationDestinations.Count);
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
                 HtmlRenderBoxStyle paintStyle = style.BorderCollapse == "collapse" ? CreateCollapsedCellPaintStyle(cell.Style) : cell.Style;
                 var cellVisuals = new List<HtmlRenderVisual>();
                 AddBoxPaint(cellVisuals, paintStyle, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
@@ -312,7 +316,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double outerHeight = style.MarginTop + topCaptionHeight + tableHeight + bottomCaptionHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);
-        IReadOnlyList<HtmlRenderVisual> semanticVisuals = new[] {
+        var semanticVisuals = new List<HtmlRenderVisual> {
             new HtmlRenderSemanticGroup(
                 HtmlRenderSemanticGroupRole.Table,
                 style.MarginLeft,
@@ -323,6 +327,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 0,
                 source)
         };
+        semanticVisuals.AddRange(navigationDestinations);
         IReadOnlyList<HtmlRenderVisual> semanticContinuationVisuals = continuationVisuals.Count == 0
             ? Array.Empty<HtmlRenderVisual>()
             : new[] {

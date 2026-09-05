@@ -538,7 +538,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
-            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+            if (IsReplacedImageElement(child)) {
                 double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
                 result.Add(GridIntrinsicTextRun.Replaced(width, childStyle));
             } else {
@@ -580,7 +580,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
-            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+            if (IsReplacedImageElement(child)) {
                 contribution = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
             } else {
                 double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1);
@@ -600,7 +600,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contribution = Math.Max(1D, boxWidth + style.MarginLeft + style.MarginRight);
             return true;
         }
-        if (item.TagName == "img" && item.Element != null) {
+        if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
             contribution = Math.Max(1D, ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
             return true;
         }

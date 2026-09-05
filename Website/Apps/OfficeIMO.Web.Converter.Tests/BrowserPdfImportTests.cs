@@ -179,7 +179,7 @@ public sealed class BrowserPdfImportTests {
     }
 
     [Fact]
-    public void PdfToPowerPoint_VisualMode_PreservesShowcaseBase14PositionedText() {
+    public void PdfToPowerPoint_VisualMode_PreservesShowcaseBase14PositionedTextAndExactStrokeDashes() {
         string sourcePath = Path.Combine(AppContext.BaseDirectory, "samples", "showcase-dashboard.pdf");
         byte[] pdf = File.ReadAllBytes(sourcePath);
         var source = new SelectedDocument("OfficeIMO-Showcase.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
@@ -218,9 +218,10 @@ public sealed class BrowserPdfImportTests {
         Assert.NotNull(raster);
         Assert.Equal(1684, raster!.Width);
         Assert.Equal(1190, raster.Height);
+        // This snapshot pins both Base14 positioned text and the source PDF's exact dash array and phase.
         Assert.Equal(
-            "04244ff1d3428f5767a18ee6ed2aa5de395e53adb41ddb0bacef7e9ff61d8657",
-            Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
+            "6d588750480c3012d1865eab1108bf97fd347ad982f46b9dc5f72863a123a214",
+            Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 
     [Fact]

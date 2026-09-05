@@ -82,7 +82,7 @@ internal readonly struct PdfGlyphInfo {
 }
 
 internal readonly struct PdfTextShapingOptions {
-    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) {
+    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
         RecordGlyphUsage = recordGlyphUsage;
         ThrowOnMissingGlyph = throwOnMissingGlyph;
         SkipLayoutControls = skipLayoutControls;
@@ -93,6 +93,7 @@ internal readonly struct PdfTextShapingOptions {
         ShapingProvider = shapingProvider;
         ProviderShapedTextRecorder = providerShapedTextRecorder;
         Language = string.IsNullOrWhiteSpace(language) ? null : language;
+        FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
     }
 
     public bool RecordGlyphUsage { get; }
@@ -105,9 +106,10 @@ internal readonly struct PdfTextShapingOptions {
     public IOfficeTextShapingProvider? ShapingProvider { get; }
     public Action<string, string, bool>? ProviderShapedTextRecorder { get; }
     public string? Language { get; }
+    public OfficeTextFeatureSettings FeatureSettings { get; }
 
-    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) =>
-        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder, language: language);
+    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) =>
+        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder, language: language, featureSettings: featureSettings);
 
     public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);

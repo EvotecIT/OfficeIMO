@@ -16,6 +16,8 @@ public sealed class PdfTextRun {
     public bool Strike => StrikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
     /// <summary>Strikethrough pattern rendered by the PDF writer.</summary>
     public OfficeIMO.Drawing.OfficeTextDecorationStyle StrikeStyle { get; }
+    /// <summary>Optional underline and strikethrough color. Null uses the run foreground color.</summary>
+    public PdfColor? DecorationColor { get; }
     /// <summary>True when italic style is applied.</summary>
     public bool Italic { get; }
     /// <summary>Run foreground color (if any).</summary>
@@ -42,6 +44,8 @@ public sealed class PdfTextRun {
     public PdfTabAlignment TabAlignment { get; }
     /// <summary>Optional fixed-size visual carried by this run instead of text.</summary>
     public PdfInlineElement? InlineElement { get; }
+    /// <summary>Optional OpenType feature selections for this run.</summary>
+    public OfficeIMO.Drawing.OfficeTextFeatureSettings FeatureSettings { get; private set; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -70,7 +74,7 @@ public sealed class PdfTextRun {
     }
 
     /// <summary>Create a new run with the specified styles and tab alignment.</summary>
-    public PdfTextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
+    public PdfTextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, PdfColor? decorationColor = null) {
         Guard.NotNull(text, nameof(text));
         Guard.TextBaseline(baseline, nameof(baseline));
         Guard.TabLeaderStyle(tabLeader, nameof(tabLeader));
@@ -126,6 +130,7 @@ public sealed class PdfTextRun {
         StrikeStyle = strikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
             ? strikeStyle
             : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        DecorationColor = decorationColor;
         Color = color;
         BackgroundColor = backgroundColor;
         FontSize = fontSize;
@@ -138,6 +143,7 @@ public sealed class PdfTextRun {
         TabLeader = tabLeader;
         TabAlignment = tabAlignment;
         InlineElement = null;
+        FeatureSettings = OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
     }
 
     private PdfTextRun(PdfInlineElement inlineElement)
@@ -175,7 +181,20 @@ public sealed class PdfTextRun {
     public PdfTextRun WithTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         if (InlineElement != null) return this;
         string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
-        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle);
+        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor).WithFeatureSettings(FeatureSettings);
+    }
+
+    /// <summary>Creates a copy with explicit OpenType feature selections.</summary>
+    public PdfTextRun WithFeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings featureSettings) {
+#if NET6_0_OR_GREATER
+        System.ArgumentNullException.ThrowIfNull(featureSettings);
+#else
+        if (featureSettings == null) throw new System.ArgumentNullException(nameof(featureSettings));
+#endif
+        if (InlineElement != null) return this;
+        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        copy.FeatureSettings = featureSettings;
+        return copy;
     }
     /// <summary>Create a hyperlink run that points to a URI.</summary>
     public static PdfTextRun Link(

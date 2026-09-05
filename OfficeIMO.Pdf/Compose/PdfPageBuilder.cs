@@ -257,6 +257,12 @@ public sealed class PdfPageBuilder {
         return this;
     }
 
+    /// <summary>Sets or clears page-scoped TrimBox and BleedBox geometry.</summary>
+    public PdfPageCompose PrintProductionPageBoxes(PdfPrintProductionPageBoxes? boxes) {
+        Options.PrintProductionPageBoxes = boxes;
+        return this;
+    }
+
     /// <summary>Sets the first visible page number for this page or section flow.</summary>
     public PdfPageBuilder PageNumberStart(int start) {
         Options.PageNumberStart = start;

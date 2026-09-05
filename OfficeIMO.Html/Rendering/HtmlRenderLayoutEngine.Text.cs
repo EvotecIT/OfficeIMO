@@ -11,13 +11,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        string? prefix,
+        HtmlListMarker? marker,
         IElement? generatedContentOwner,
         int skipLogicalCharacters = 0) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
-        if (!string.IsNullOrEmpty(prefix)) {
-            runs.Add(new HtmlInlineRun(prefix!, parentStyle, null, "list-marker"));
+        if (marker != null && !marker.IsOutside) {
+            runs.Add(CreateListMarkerRun(marker, generatedContentOwner));
         }
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
@@ -34,6 +34,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         ApplyPendingInlineTextTransforms(runs);
+        ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
+        ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
@@ -42,8 +44,62 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AssignSemanticFragmentOrders(runs);
 
-        return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+        if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
+            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+        }
+
+        HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
+        outsideMarkerStyle.PreserveWhitespace = true;
+        outsideMarkerStyle.BreakSpaces = true;
+        var markerRuns = new List<HtmlInlineRun> {
+            marker.IsImage
+                ? new HtmlInlineRun(marker.Image!, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner, isReplacedImage: true)
+                : new HtmlInlineRun(marker.Content, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner)
+        };
+        ApplyPendingInlineTextTransforms(markerRuns);
+        markerRuns = ApplyScopedFontFallbacks(markerRuns);
+        double gap = Math.Max(2D, parentStyle.Font.Size * 0.25D);
+        double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
+        double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
+        HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters);
+        return CombineOutsideListMarker(markerLayout, bodyLayout, width, gutter, gap, parentStyle);
     }
+
+    private static HtmlInlineLayout CombineOutsideListMarker(
+        HtmlInlineLayout marker,
+        HtmlInlineLayout body,
+        double width,
+        double gutter,
+        double gap,
+        HtmlRenderBoxStyle style) {
+        var visuals = new List<HtmlRenderVisual>(marker.Visuals.Count + body.Visuals.Count);
+        if (marker.Visuals.Count > 0) {
+            (double markerX, _, double markerWidth, _) = ResolveSemanticBounds(marker.Visuals, width, Math.Max(marker.Height, style.LineHeight));
+            double offsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? width - markerX - markerWidth
+                : Math.Max(0D, gutter - gap - markerX - markerWidth);
+            foreach (HtmlRenderVisual visual in marker.Visuals) {
+                visuals.Add(visual.Translate(offsetX, 0D, visuals.Count));
+            }
+        }
+        foreach (HtmlRenderVisual visual in body.Visuals) {
+            double bodyOffsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase) ? 0D : gutter;
+            visuals.Add(visual.Translate(bodyOffsetX, 0D, visuals.Count));
+        }
+        return new HtmlInlineLayout(
+            visuals,
+            Math.Max(marker.Height, body.Height),
+            body.BreakOffsets,
+            body.RunningStringAssignments,
+            body.BreakProgress,
+            body.SupportsContinuationReflow);
+    }
+
+    private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
+        marker.IsImage
+            ? new HtmlInlineRun(marker.Image!, marker.Style, null, "list-marker", ownerElement: owner, isReplacedImage: true)
+            : new HtmlInlineRun(marker.Content, marker.Style, null, "list-marker", ownerElement: owner);
 
     private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
         var resolvedRuns = new List<HtmlInlineRun>();
@@ -53,7 +109,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(run.Text, run.Style.Font.FamilyName, run.Style.Font.Style);
+            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(
+                run.Text,
+                run.Style.Font.FamilyName,
+                run.Style.FontDescriptor);
             string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
             if (fallbacks.Count == 1
                 && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
@@ -147,8 +206,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
+        if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
+            // CSS footnote extraction is a paged-media behavior. Continuous output
+            // keeps the authored note in normal flow instead of dropping its body.
+            style.FloatSide = "none";
+            style.UnsupportedFloat = string.Empty;
+        }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+            AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
+        }
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -183,7 +251,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.FloatSide != "none") {
             AssignLogicalTextOrders(runs);
-            AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            if (style.FloatSide == "footnote") AddFootnoteRun(element, width, inheritedStyle, depth, style, runs);
+            else AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
             return;
         }
 
@@ -217,17 +286,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (tag != "img" && tag != "math" && style.Display == "inline-block") {
+        if (tag == "ruby") {
+            AssignLogicalTextOrders(runs);
+            AddInlineRubyRun(
+                element,
+                width,
+                inheritedStyle,
+                depth,
+                style,
+                link,
+                inheritedPaintOffsetX,
+                inheritedPaintOffsetY,
+                runs);
+            return;
+        }
+
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-block") {
             AssignLogicalTextOrders(runs);
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && tag != "math" && style.Display == "inline-flex") {
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-flex") {
             AssignLogicalTextOrders(runs);
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (tag != "img" && tag != "math" && style.Display == "inline-grid") {
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-grid") {
             AssignLogicalTextOrders(runs);
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
@@ -235,7 +319,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (style.Transform != "none"
             || style.OpacityWasSpecified && (style.Opacity < 1D || style.UnsupportedOpacity.Length > 0)
-            || style.ClipPath != "none") {
+            || style.ClipPath != "none"
+            || HasInlineBoxPaint(style)) {
             _inlineStackingElements.Add(element);
         }
 
@@ -254,10 +339,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? new List<HtmlInlineRun>()
             : null;
         ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
-        if (tag == "img") {
+        if (IsReplacedImageElementTag(tag)) {
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
+            AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
             AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;
         }
@@ -265,6 +352,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AssignLogicalTextOrders(runs);
             if (!ReferenceEquals(targetRuns, runs)) AssignLogicalTextOrders(targetRuns);
             if (TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
+                AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
                 AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
                 return;
             }
@@ -275,7 +363,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
+        AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
+    }
+
+    private static void AddUnicodeBidiBoundaryRun(
+        HtmlRenderBoxStyle style,
+        IElement owner,
+        bool opening,
+        double paintOffsetX,
+        double paintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
+        string control = GetUnicodeBidiBoundary(style.UnicodeBidi, style.Direction, opening);
+        if (control.Length == 0) return;
+        runs.Add(new HtmlInlineRun(
+            control,
+            style,
+            null,
+            HtmlRenderStyleResolver.DescribeSource(owner),
+            paintOffsetX,
+            paintOffsetY,
+            owner));
+    }
+
+    private static string GetUnicodeBidiBoundary(string unicodeBidi, string direction, bool opening) {
+        bool rtl = string.Equals(direction, "rtl", StringComparison.Ordinal);
+        switch (unicodeBidi) {
+            case "embed": return opening ? rtl ? "\u202B" : "\u202A" : "\u202C";
+            case "bidi-override": return opening ? rtl ? "\u202E" : "\u202D" : "\u202C";
+            case "isolate": return opening ? rtl ? "\u2067" : "\u2066" : "\u2069";
+            case "isolate-override":
+                return opening
+                    ? (rtl ? "\u2067\u202E" : "\u2066\u202D")
+                    : "\u202C\u2069";
+            case "plaintext": return opening ? "\u2068" : "\u2069";
+            default: return string.Empty;
+        }
     }
 
     private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>
@@ -342,14 +465,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedComplexTextShaping(IText textNode, HtmlRenderBoxStyle style) {
         IElement? element = textNode.ParentElement;
         if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedComplexTextShapingElements.Contains(element)) return;
-        if (!RequiresConfiguredTextShaping(textNode.Data)) return;
+        bool featureShaping = !style.TextFeatureSettings.IsDefault;
+        if (!featureShaping && !RequiresConfiguredTextShaping(textNode.Data)) return;
+        if (featureShaping && _options.TextShapingProvider != null) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
             textNode.Data,
             style.Font.FamilyName,
-            style.Font.Style);
+            style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
-            if (!RequiresConfiguredTextShaping(fallback.Text)) continue;
+            if (!featureShaping && !RequiresConfiguredTextShaping(fallback.Text)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
             fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
             if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
@@ -359,10 +484,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (allUnsupportedRunsShaped) return;
         _reportedComplexTextShapingElements.Add(element);
+        string diagnosticCode = featureShaping
+            ? HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported
+            : HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported;
+        string message = featureShaping
+            ? "A requested OpenType feature required a lookup outside the bounded managed shaping subset; scalar glyphs were used."
+            : "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.";
         _diagnostics.Add(
             ComponentName,
-            HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
-            "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.",
+            diagnosticCode,
+            message,
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
             "provider-declined",
@@ -377,12 +508,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
+        if (provider == null && !style.TextFeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             measured = 0D;
             return false;
         }
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
-        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, out measured)) return true;
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, out measured)) return true;
 
         IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
@@ -408,14 +540,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
             cloneFontData: false,
-            fontProgramCacheKey: font));
+            fontProgramCacheKey: font,
+            featureSettings: style.TextFeatureSettings));
         if (result == null) {
             measured = 0D;
             return false;
         }
 
         measured = font.MeasureShapedText(logicalText, result, effectiveFont.Size);
-        _shapedTextMeasurementCache.Store(text, effectiveFont, measured);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, measured);
         return true;
     }
 
@@ -473,6 +606,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;
+                continue;
+            }
+            if (run.LeaderPattern != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
                 continue;
             }
             if (run.AtomicBlock != null) {
@@ -624,6 +761,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
+        ExpandLeaderSegments(lines, width);
         int completeLogicalProgress = lines
             .SelectMany(candidate => candidate.Segments)
             .Select(segment => segment.LogicalEndProgress)
@@ -643,8 +781,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ApplyEndEllipsis(overflowingLine, width, lineLogicalProgress);
             }
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+        return RenderInlineLines(
+            lines,
+            width,
+            paragraphStyle,
+            formattingContainer,
+            supportsContinuationReflow: supportsContinuationReflow,
+            isInlineContinuation: skipLogicalCharacters > 0);
     }
+
+    private void ExpandLeaderSegments(IEnumerable<InlineLine> lines, double width) {
+        foreach (InlineLine line in lines) {
+            List<int> leaders = line.Segments
+                .Select((segment, index) => new { segment, index })
+                .Where(item => item.segment.Run.LeaderPattern != null)
+                .Select(item => item.index)
+                .ToList();
+            if (leaders.Count == 0) continue;
+            double availableWidth = line.HasExplicitPlacement ? line.AvailableWidth : width;
+            double share = Math.Max(0D, availableWidth - line.Width) / leaders.Count;
+            foreach (int index in leaders) line.SetSegmentWidth(index, share);
+        }
+    }
+
+    private static bool HasInlineBoxPaint(HtmlRenderBoxStyle style) =>
+        style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
+        || style.BackgroundImageLayerCount > 0
+        || style.Borders.HasPaint
+        || style.BoxShadowLayerCount > 0
+        || style.OutlineWidth > 0D && style.OutlineStyle != "none";
 
     private static bool HasRemainingInlineFlowContent(
         IReadOnlyList<HtmlInlineRun> runs,
@@ -1152,10 +1317,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {
-        if (string.IsNullOrWhiteSpace(rawHref)) return null;
+        if (rawHref == null) return null;
+        string candidate = rawHref.Trim();
+        if (candidate.Length == 0) return null;
+        if (candidate.Length > 1 && candidate[0] == '#') {
+            if (!TryDecodeFragment(candidate.Substring(1), out string fragment)) {
+                return ReportUnavailableFragment(element, candidate);
+            }
+            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase)) return "#top";
+            if (!_namedDestinationTargets.ContainsKey(fragment)) return ReportUnavailableFragment(element, candidate);
+            return "#" + fragment;
+        }
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawHref, _baseUri, _options.UrlPolicy);
         if (resolved.Length > 0) return resolved;
         _diagnostics.Add(ComponentName, "HyperlinkRejectedByPolicy", "A hyperlink target was rejected before entering the rendered document.", HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), rawHref);
+        return null;
+    }
+
+    private string? ReportUnavailableFragment(IElement element, string candidate) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable,
+            "A document-internal hyperlink target was not found and the link annotation was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            candidate,
+            OfficeConversionLossKind.Omission);
         return null;
     }
 
@@ -1354,6 +1541,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Segments.RemoveAt(index);
         }
 
+        internal void SetSegmentWidth(int index, double width) {
+            double normalized = Math.Max(0D, width);
+            Width += normalized - Segments[index].Width;
+            Segments[index].SetWidth(normalized);
+        }
+
         internal double ResolveLineHeight(double fallback) {
             if (!HasFlowContent) return 0D;
             double height = fallback;
@@ -1433,10 +1626,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal string Text { get; }
         internal string LogicalText { get; }
-        internal double Width { get; }
+        internal double Width { get; private set; }
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal int LogicalEndProgress { get; }
+        internal void SetWidth(double width) => Width = Math.Max(0D, width);
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {

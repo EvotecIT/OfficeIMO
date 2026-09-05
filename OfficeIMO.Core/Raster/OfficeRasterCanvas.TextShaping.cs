@@ -14,14 +14,18 @@ public sealed partial class OfficeRasterCanvas {
     private bool TryGetShapedTextRun(
         string text,
         IOfficeFontProgram font,
+        OfficeTextFeatureSettings? featureSettings,
         out OfficeTextShapingResult shapedRun) {
-        if (_textShapingProvider == null) {
+        OfficeTextFeatureSettings resolvedFeatures = featureSettings ?? OfficeTextFeatureSettings.Default;
+        IOfficeTextShapingProvider? provider = _textShapingProvider;
+        if (provider == null && !resolvedFeatures.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null) {
             shapedRun = null!;
             return false;
         }
 
         _cancellationToken.ThrowIfCancellationRequested();
-        var key = new ShapedTextKey(text, font);
+        var key = new ShapedTextKey(text, font, resolvedFeatures);
         Dictionary<ShapedTextKey, OfficeTextShapingResult?> cache =
             _shapedTextCache ??= new Dictionary<ShapedTextKey, OfficeTextShapingResult?>();
         if (cache.TryGetValue(key, out OfficeTextShapingResult? cached)) {
@@ -30,7 +34,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
-        OfficeTextShapingResult? result = _textShapingProvider.ShapeText(new OfficeTextShapingRequest(
+        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
             font.DisplayName ?? string.Empty,
             font.GetFontDataForShaping(),
@@ -42,7 +46,8 @@ public sealed partial class OfficeRasterCanvas {
             font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
             cloneFontData: false,
-            fontProgramCacheKey: font));
+            fontProgramCacheKey: font,
+            featureSettings: resolvedFeatures));
         OfficeTextShapingResult? resolved = result;
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();
         cache[key] = resolved;
@@ -50,9 +55,9 @@ public sealed partial class OfficeRasterCanvas {
         return resolved != null;
     }
 
-    private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize) {
+    private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize, OfficeTextFeatureSettings? featureSettings = null) {
         if (font.ProvidesComplexTextLayout) return font.Measure(text, fontSize);
-        if (TryGetShapedTextRun(text, font, out OfficeTextShapingResult run)) {
+        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
             return font.MeasureShapedText(OfficeArabicTextShaper.ToLogicalText(text), run, fontSize);
         }
         OfficeManagedTextFallback fallback = GetManagedTextFallback(text, font);
@@ -64,11 +69,12 @@ public sealed partial class OfficeRasterCanvas {
         IOfficeFontProgram font,
         double x,
         double y,
-        double fontSize) {
+        double fontSize,
+        OfficeTextFeatureSettings? featureSettings = null) {
         if (font.ProvidesComplexTextLayout) {
             return GetBoundedTextContours(font, text, x, y, fontSize);
         }
-        if (TryGetShapedTextRun(text, font, out OfficeTextShapingResult run)) {
+        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
             string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
             if (font is IOfficeCffBoundedFontProgram cff) {
                 return cff.GetShapedTextContoursBounded(
@@ -103,6 +109,43 @@ public sealed partial class OfficeRasterCanvas {
             x,
             y,
             fontSize);
+    }
+
+    private bool TryGetResolvedColorTextContours(
+        string text,
+        IOfficeFontProgram font,
+        double x,
+        double y,
+        double fontSize,
+        OfficeTextFeatureSettings? featureSettings,
+        string? fontPalette,
+        OfficeColor foreground,
+        out List<OfficeColorGlyphContours> layers) {
+        layers = new List<OfficeColorGlyphContours>();
+        if (font is not OfficeTrueTypeFont trueType) return false;
+        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
+            return trueType.TryGetShapedColorTextContours(
+                OfficeArabicTextShaper.ToLogicalText(text),
+                run,
+                x,
+                y,
+                fontSize,
+                fontPalette,
+                foreground,
+                MaximumTextOutlinePointsPerRun,
+                _cancellationToken,
+                out layers);
+        }
+        return trueType.TryGetColorTextContours(
+            GetManagedTextFallback(text, font).Text,
+            x,
+            y,
+            fontSize,
+            fontPalette,
+            foreground,
+            MaximumTextOutlinePointsPerRun,
+            _cancellationToken,
+            out layers);
     }
 
     private List<List<OfficePoint>> GetBoundedTextContours(
@@ -202,16 +245,19 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct ShapedTextKey : IEquatable<ShapedTextKey> {
-        internal ShapedTextKey(string text, IOfficeFontProgram font) {
+        internal ShapedTextKey(string text, IOfficeFontProgram font, OfficeTextFeatureSettings? featureSettings = null) {
             Text = text;
             Font = font;
+            FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         }
 
         private string Text { get; }
         private IOfficeFontProgram Font { get; }
+        private OfficeTextFeatureSettings FeatureSettings { get; }
 
         public bool Equals(ShapedTextKey other) =>
             ReferenceEquals(Font, other.Font) &&
+            FeatureSettings.Equals(other.FeatureSettings) &&
             string.Equals(Text, other.Text, StringComparison.Ordinal);
 
         public override bool Equals(object? obj) =>
@@ -220,7 +266,7 @@ public sealed partial class OfficeRasterCanvas {
         public override int GetHashCode() {
             unchecked {
                 return (StringComparer.Ordinal.GetHashCode(Text) * 397) ^
-                       RuntimeHelpers.GetHashCode(Font);
+                       RuntimeHelpers.GetHashCode(Font) ^ FeatureSettings.GetHashCode();
             }
         }
     }

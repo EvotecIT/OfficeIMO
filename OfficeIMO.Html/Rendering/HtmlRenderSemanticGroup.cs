@@ -41,7 +41,9 @@ public enum HtmlRenderSemanticGroupRole {
     /// <summary>Table or figure caption.</summary>
     Caption,
     /// <summary>Decorative content intentionally excluded from tagged-PDF structure.</summary>
-    Artifact
+    Artifact,
+    /// <summary>Footnote content associated with a call in the document body.</summary>
+    Footnote
 }
 
 /// <summary>Resolved scope of a semantic HTML table header.</summary>

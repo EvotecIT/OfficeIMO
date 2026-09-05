@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using global::ChartForgeX.Primitives;
-using global::ChartForgeX.Raster;
 using global::ChartForgeX.SvgRaster;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
@@ -99,7 +98,7 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
-    public void RasterFallbackWithoutNaturalSizeUsesDecodedPngDimensions() {
+    public void VectorImportWithoutNaturalSizeUsesSvgViewportDimensions() {
         VisualArtifact artifact = CreateArtifact();
         artifact.NaturalSize = null;
         var renderOptions = new VisualArtifactRenderOptions();
@@ -112,11 +111,12 @@ public sealed class OfficeVisualIntegrationTests {
             RenderOptions = renderOptions
         });
 
-        Assert.True(result.Report.UsedRasterFallback);
-        RgbaImage raster = RasterImageDecoder.Decode(result.GetPlacementBytes());
-        Assert.Equal(raster.Width * 0.75D, result.WidthPoints, 6);
-        Assert.Equal(raster.Height * 0.75D, result.HeightPoints, 6);
-        Assert.Equal(10D * result.WidthPoints / raster.Width, result.Regions[0].Left!.Value, 6);
+        Assert.True(result.Report.IsVector);
+        Assert.False(result.Report.UsedRasterFallback);
+        Assert.Equal(OfficeVisualMediaFormat.Svg, result.PlacementFormat);
+        Assert.Equal(result.Drawing.Width, result.WidthPoints, 6);
+        Assert.Equal(result.Drawing.Height, result.HeightPoints, 6);
+        Assert.Equal(7.5D, result.Regions[0].Left!.Value, 6);
 
         OfficeVisualConversionResult widthOnly = artifact.ToOfficeVisual(new OfficeVisualConversionOptions {
             WidthPoints = 300D,
@@ -124,7 +124,7 @@ public sealed class OfficeVisualIntegrationTests {
             RenderOptions = renderOptions
         });
         Assert.Equal(300D, widthOnly.WidthPoints, 6);
-        Assert.Equal(300D * raster.Height / raster.Width, widthOnly.HeightPoints, 6);
+        Assert.Equal(300D * result.HeightPoints / result.WidthPoints, widthOnly.HeightPoints, 6);
     }
 
     [Fact]

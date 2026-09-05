@@ -148,6 +148,7 @@ internal static partial class PdfWriter {
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double width = MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, options);
                 PdfColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
+                PdfColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
 
                 if (run.BackgroundColor.HasValue && width > 0D) {
                     double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
@@ -164,10 +165,10 @@ internal static partial class PdfWriter {
                 if (width > 0D && (run.Underline || run.Strike)) {
                     double decorationWidth = Math.Max(0.45D, effectiveFontSize * 0.055D);
                     if (run.Underline) {
-                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D), decorationWidth, runColor, run.UnderlineStyle);
+                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D), decorationWidth, decorationColor, run.UnderlineStyle);
                     }
                     if (run.Strike) {
-                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise + (effectiveFontSize * 0.28D), decorationWidth, runColor, run.StrikeStyle);
+                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise + (effectiveFontSize * 0.28D), decorationWidth, decorationColor, run.StrikeStyle);
                     }
                 }
 

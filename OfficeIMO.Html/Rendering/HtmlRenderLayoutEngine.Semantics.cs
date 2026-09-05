@@ -6,6 +6,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
+        block = AddTargetPageAnchor(block, element);
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
@@ -46,9 +47,72 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
+    private HtmlRenderFlowBlock AddTargetPageAnchor(HtmlRenderFlowBlock block, IElement element) {
+        var destinations = new List<HtmlRenderVisual>();
+        AddElementNamedDestination(destinations, element, 0D, 0D, block.Visuals.Count);
+        return destinations.Count == 0 ? block : block.WithVisuals(block.Visuals.Concat(destinations));
+    }
+
+    private void AddElementNamedDestination(
+        ICollection<HtmlRenderVisual> destinations,
+        IElement element,
+        double x,
+        double y,
+        int paintOrder) {
+        string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
+        foreach (string name in GetNamedDestinations(element)) {
+            destinations.Add(new HtmlRenderNamedDestination(name, x, y, paintOrder++, source));
+        }
+    }
+
+    private void AddInlineNamedDestinationRun(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double paintOffsetX,
+        double paintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
+        if (style.FloatSide == "footnote") return;
+        string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
+        foreach (string name in GetNamedDestinations(element)) {
+            var destination = new HtmlRenderNamedDestination(name, 0D, 0D, 0, source);
+            var markerBlock = new HtmlRenderFlowBlock(
+                0D,
+                0.01D,
+                new HtmlRenderVisual[] { destination },
+                HtmlPageBreakTarget.None,
+                HtmlPageBreakTarget.None,
+                false,
+                source);
+            runs.Add(new HtmlInlineRun(
+                markerBlock,
+                style,
+                null,
+                source,
+                paintOffsetX,
+                paintOffsetY,
+                element,
+                isBookmarkMarker: true));
+        }
+    }
+
+    private IEnumerable<string> GetNamedDestinations(IElement element) {
+        string? id = element.Id;
+        if (IsNamedDestinationTarget(id, element)) yield return id!;
+        string? name = element.GetAttribute("name");
+        if (!string.Equals(name, id, StringComparison.Ordinal) && IsNamedDestinationTarget(name, element)) yield return name!;
+    }
+
+    private bool IsNamedDestinationTarget(string? name, IElement element) {
+        if (name == null || name.Length == 0) return false;
+        return _namedDestinationIds.Contains(name)
+            && _namedDestinationTargets.TryGetValue(name, out IElement? target)
+            && ReferenceEquals(target, element);
+    }
+
     private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
+        block = AddTargetPageAnchor(block, element);
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
@@ -193,6 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
         bool firstFragment) {
+        if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element);
         string anchorText = boundary.AnchorText.Length > 0
             ? boundary.AnchorText
             : ResolveVisibleBookmarkText(boundary.Element);

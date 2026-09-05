@@ -39,6 +39,22 @@ public sealed partial class OfficeTrueTypeFont {
         return Kerning((ushort)leftGlyphId, (ushort)rightGlyphId, leftScalar, rightScalar);
     }
 
+    internal OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
+        IReadOnlyList<int> glyphs,
+        IReadOnlyList<int> scalars) => _kerning.PositionRun(glyphs, scalars);
+
+    bool IOfficeColorFontProgram.HasColorGlyph(int glyphId) => _colorGlyphs?.HasColorGlyph(glyphId) == true;
+
+    bool IOfficeColorFontProgram.TryGetColorLayers(
+        int glyphId,
+        string? palette,
+        OfficeColor foreground,
+        out IReadOnlyList<OfficeColorGlyphLayer> layers) {
+        if (_colorGlyphs != null) return _colorGlyphs.TryGetLayers(glyphId, palette, foreground, out layers);
+        layers = Array.Empty<OfficeColorGlyphLayer>();
+        return false;
+    }
+
     byte[] IOfficeFontProgram.GetFontDataForShaping() => (byte[])FontDataForShaping.Clone();
 
     bool IOfficeFontProgram.HasGlyphs(string text) => HasGlyphs(text);
@@ -153,7 +169,7 @@ public sealed partial class OfficeTrueTypeFont {
 
     internal sealed class ShapedTextRun {
         private readonly OfficeTrueTypeFont _font;
-        private readonly PositionedGlyph[] _glyphs;
+        internal readonly PositionedGlyph[] _glyphs;
         private readonly long _advanceWidth;
 
         internal ShapedTextRun(OfficeTrueTypeFont font, PositionedGlyph[] glyphs) {

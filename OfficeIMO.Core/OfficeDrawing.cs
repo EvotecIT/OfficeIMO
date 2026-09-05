@@ -186,11 +186,12 @@ public sealed partial class OfficeDrawing {
         bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding,
         OfficeTextParagraphIndent? paragraphIndent, OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel,
-        double baselineScale, double baselineOffset) =>
+        double baselineScale, double baselineOffset, OfficeColor? decorationColor = null,
+        OfficeTextFeatureSettings? featureSettings = null, string? fontPalette = null) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees,
             rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding,
             paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, underlineStyle, strikethroughStyle, baseline,
-            baselineLevel, baselineScale, baselineOffset, allowOverflow: false);
+            baselineLevel, baselineScale, baselineOffset, decorationColor, featureSettings, fontPalette, allowOverflow: false);
 
     /// <summary>
     /// Adds an already-positioned single text run. The frame width may be clipped independently
@@ -265,11 +266,13 @@ public sealed partial class OfficeDrawing {
         string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color,
         OfficeTextAlignment alignment, double? lineHeight, double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle,
-        OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset) =>
+        OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset,
+        OfficeColor? decorationColor = null, OfficeTextFeatureSettings? featureSettings = null,
+        string? fontPalette = null) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D,
             null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip,
             textAdvanceWidth ?? width, underlineStyle, strikethroughStyle, baseline, baselineLevel, baselineScale,
-            baselineOffset, allowOverflow: false);
+            baselineOffset, decorationColor, featureSettings, fontPalette, allowOverflow: false);
 
     private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline);
@@ -291,11 +294,11 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
-    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, bool allowOverflow) {
+    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor, OfficeTextFeatureSettings? featureSettings, string? fontPalette, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment,
             rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical,
             padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline,
-            baselineLevel, baselineScale, baselineOffset);
+            baselineLevel, baselineScale, baselineOffset, decorationColor, featureSettings, fontPalette);
         if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
@@ -557,6 +560,16 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds a non-painting interactive link rectangle to the drawing scene.</summary>
+    public OfficeDrawing AddLink(string uri, double x, double y, double width, double height, string? alternativeText = null) {
+        var item = new OfficeDrawingLink(uri, x, y, width, height, alternativeText);
+        if (x < 0D || y < 0D || x + width > Width || y + height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(width), "Drawing links must fit inside the drawing bounds.");
+        }
+        _elements.Add(item);
+        return this;
+    }
+
     /// <summary>Adds another drawing as a clipped nested group at a local destination offset.</summary>
     public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath) {
         return AddClippedDrawingCore(drawing, x, y, clipPath, 0D, 0D, null);
@@ -659,6 +672,13 @@ public sealed partial class OfficeDrawing {
                     translatedTransform = translatedTransform.Then(frameTransform.Value.CreateDestinationTransform());
                 }
                 AddEffectDrawing(effectGroup.InnerDrawing, translatedTransform, effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+            } else if (element is OfficeDrawingLink link) {
+                double linkX = link.X + x;
+                double linkY = link.Y + y;
+                if (!allowOverflow && (linkX < 0D || linkY < 0D || linkX + link.Width > Width || linkY + link.Height > Height)) {
+                    throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing links must fit inside the drawing bounds.");
+                }
+                _elements.Add(new OfficeDrawingLink(link.Uri, linkX, linkY, link.Width, link.Height, link.AlternativeText));
             } else if (element is OfficeDrawingGroup group) {
                 AddNestedGroup(group, x, y, frameTransform, allowOverflow);
             }
@@ -730,7 +750,10 @@ public sealed partial class OfficeDrawing {
             text.Baseline,
             text.BaselineLevel,
             text.BaselineScale,
-            text.BaselineOffset);
+            text.BaselineOffset,
+            text.DecorationColor,
+            text.FeatureSettings,
+            text.FontPalette);
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
@@ -809,7 +832,22 @@ public sealed partial class OfficeDrawing {
             double wrapperWidth = group.X + group.ClipPath.Width;
             double wrapperHeight = group.Y + group.ClipPath.Height;
             var wrapper = new OfficeDrawing(wrapperWidth, wrapperHeight);
-            wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value);
+            if (group.ActualText == null) {
+                wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value);
+            } else {
+                wrapper.Fonts.AddRange(group.InnerDrawing.Fonts);
+                wrapper._elements.Add(new OfficeDrawingGroup(
+                    group.InnerDrawing,
+                    group.X,
+                    group.Y,
+                    group.ClipPath,
+                    group.ContentOffsetX,
+                    group.ContentOffsetY,
+                    groupTransform.Value,
+                    group.ActualText,
+                    group.ActualTextAnchorX,
+                    group.ActualTextAnchorY));
+            }
             AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), 0D, 0D, frameTransform.Value, allowOverflow);
             return;
         }
@@ -819,13 +857,17 @@ public sealed partial class OfficeDrawing {
         }
 
         if (groupTransform.HasValue) {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
         } else {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
         }
     }
 
-    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
+    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow, string? actualText = null, double actualTextAnchorX = 0D, double actualTextAnchorY = 0D) {
+        if (actualText != null) {
+            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform, actualText, actualTextAnchorX, actualTextAnchorY));
+            return;
+        }
         if (allowOverflow) {
             _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform));
         } else if (frameTransform.HasValue) {

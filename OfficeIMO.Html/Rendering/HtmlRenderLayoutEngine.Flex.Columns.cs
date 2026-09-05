@@ -145,7 +145,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
-        if (tag == "img" && item.Element != null) {
+        if (IsReplacedImageElementTag(tag) && item.Element != null) {
             double imageOuter = ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight;
             return Math.Max(1D, Math.Min(contentWidth, imageOuter));
         }

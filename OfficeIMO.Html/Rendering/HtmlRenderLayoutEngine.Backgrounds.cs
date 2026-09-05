@@ -68,10 +68,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
-            OfficeShape fill = CreateBoxShape(width, height, radii);
+            BackgroundPaintBox colorBox = ResolveBackgroundBox(
+                style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
+            OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
             fill.FillColor = style.BackgroundColor;
             fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: visualSourceDescription));
+            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription));
         }
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -158,11 +160,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? "[" + layerIndex.ToString(CultureInfo.InvariantCulture) + "]"
             : string.Empty;
         string layerVisualSource = visualSourceDescription + ":background-image" + layerSuffix;
-        double areaX = x + borderInsets.Left;
-        double areaY = y + borderInsets.Top;
-        double areaWidth = Math.Max(0.01D, width - borderInsets.Horizontal);
-        double areaHeight = Math.Max(0.01D, height - borderInsets.Vertical);
-        HtmlResolvedBorderRadii innerRadii = radii.Inset(borderInsets.Left, borderInsets.Top, borderInsets.Right, borderInsets.Bottom, areaWidth, areaHeight);
+        BackgroundPaintBox originBox = ResolveBackgroundBox(layer.Origin, x, y, width, height, borderInsets, style, radii);
+        BackgroundPaintBox clipBox = ResolveBackgroundBox(layer.Clip, x, y, width, height, borderInsets, style, radii);
+        double areaX = originBox.X;
+        double areaY = originBox.Y;
+        double areaWidth = originBox.Width;
+        double areaHeight = originBox.Height;
+        if (layer.Attachment == "fixed") {
+            AddUnsupported(
+                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "CSS background-attachment:fixed used the element-local static-page positioning area.",
+                source,
+                "background-attachment=fixed",
+                OfficeConversionLossKind.Approximation);
+        }
         if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
             AddGradientBackground(
                 visuals,
@@ -172,7 +183,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 areaY,
                 areaWidth,
                 areaHeight,
-                innerRadii,
+                originBox.Radii,
+                clipBox,
                 source,
                 visualSourceDescription + ":background-gradient" + layerSuffix);
             return;
@@ -233,11 +245,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Font.Size);
         double tileX = areaX + offsetX;
         double tileY = areaY + offsetY;
-        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, areaX, areaWidth, tileX, imageSize.Width);
-        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, areaY, areaHeight, tileY, imageSize.Height);
+        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, clipBox.X, clipBox.Width, tileX, imageSize.Width);
+        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, clipBox.Y, clipBox.Height, tileY, imageSize.Height);
         if (horizontal.Repeat || vertical.Repeat) {
             var pattern = new OfficeImagePatternLayout(
-                new OfficeImagePlacement(areaX, areaY, areaWidth, areaHeight),
+                new OfficeImagePlacement(clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height),
                 new OfficeImagePlacement(horizontal.Origin, vertical.Origin, imageSize.Width, imageSize.Height),
                 horizontal.Repeat,
                 vertical.Repeat,
@@ -265,21 +277,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Error,
                     diagnosticSourceDescription,
                     "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
-                if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
-                else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+                if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
+                else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
             }
         } else {
-            if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
-            else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+            if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
+            else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
         }
         AddBoxClipVisuals(
             visuals,
             layerVisuals,
-            areaX,
-            areaY,
-            areaWidth,
-            areaHeight,
-            innerRadii,
+            clipBox.X,
+            clipBox.Y,
+            clipBox.Width,
+            clipBox.Height,
+            clipBox.Radii,
             layerVisualSource + ":clip");
 
     }
@@ -293,6 +305,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaWidth,
         double areaHeight,
         HtmlResolvedBorderRadii radii,
+        BackgroundPaintBox clipBox,
         IElement source,
         string visualSourceDescription) {
         if (!string.Equals(layer.Size.Trim(), "auto", StringComparison.OrdinalIgnoreCase)) {
@@ -323,7 +336,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var layerVisuals = new List<HtmlRenderVisual> {
                 HtmlRenderDrawing.CreateShared(drawing, areaX, areaY, areaWidth, areaHeight, 0, null, null, visualSourceDescription)
             };
-            AddBoxClipVisuals(visuals, layerVisuals, areaX, areaY, areaWidth, areaHeight, radii, visualSourceDescription + ":clip");
+            AddBoxClipVisuals(visuals, layerVisuals, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, clipBox.Radii, visualSourceDescription + ":clip");
             return;
         }
 
@@ -368,7 +381,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         fill.FillRadialGradient = radialGradient;
         fill.StrokeWidth = 0D;
-        visuals.Add(new HtmlRenderShape(fill, areaX, areaY, visuals.Count, source: visualSourceDescription));
+        var gradientVisuals = new List<HtmlRenderVisual> {
+            new HtmlRenderShape(fill, areaX, areaY, 0, source: visualSourceDescription)
+        };
+        AddBoxClipVisuals(visuals, gradientVisuals, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, clipBox.Radii, visualSourceDescription + ":clip");
+    }
+
+    private static BackgroundPaintBox ResolveBackgroundBox(
+        string box,
+        double x,
+        double y,
+        double width,
+        double height,
+        HtmlRenderBorderInsets borderInsets,
+        HtmlRenderBoxStyle style,
+        HtmlResolvedBorderRadii radii) {
+        double top = 0D;
+        double right = 0D;
+        double bottom = 0D;
+        double left = 0D;
+        if (box == "padding-box" || box == "content-box") {
+            top += borderInsets.Top;
+            right += borderInsets.Right;
+            bottom += borderInsets.Bottom;
+            left += borderInsets.Left;
+        }
+        if (box == "content-box") {
+            top += style.PaddingTop;
+            right += style.PaddingRight;
+            bottom += style.PaddingBottom;
+            left += style.PaddingLeft;
+        }
+
+        double boxWidth = Math.Max(0.01D, width - left - right);
+        double boxHeight = Math.Max(0.01D, height - top - bottom);
+        return new BackgroundPaintBox(
+            x + left,
+            y + top,
+            boxWidth,
+            boxHeight,
+            radii.Inset(left, top, right, bottom, boxWidth, boxHeight));
     }
 
     private HtmlResolvedBorderRadii ResolveBoxRadii(
@@ -644,6 +696,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsVerticalPosition(string value) => value == "top" || value == "bottom";
+
+    private readonly struct BackgroundPaintBox {
+        internal BackgroundPaintBox(double x, double y, double width, double height, HtmlResolvedBorderRadii radii) {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            Radii = radii;
+        }
+
+        internal double X { get; }
+        internal double Y { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal HtmlResolvedBorderRadii Radii { get; }
+    }
 
     private readonly struct BackgroundImageSize {
         internal BackgroundImageSize(double width, double height) {

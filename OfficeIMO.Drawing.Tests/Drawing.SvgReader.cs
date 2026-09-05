@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -192,6 +193,15 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderRejectsValidDefinitionThatExceedsTheDocumentPathBudget() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><clipPath id='clip'><path d='M0 0");
+        for (int index = 0; index < 20_000; index++) svg.Append(" L1 1");
+        svg.Append("'/></clipPath></defs><rect width='16' height='8' clip-path='url(#clip)'/></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()), out _));
+    }
+
+    [Fact]
     public void SvgSafetyPredicateCountsPathsInsideReferencedDefinitions() {
         var clipPath = new StringBuilder("M0 0");
         for (int index = 1; index < 20_000; index++) clipPath.Append(" L1 1");
@@ -357,6 +367,237 @@ public class DrawingSvgReaderTests {
         Assert.True(text.X < 20D);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
         OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderPaintsGradientPatternAndStrokeTextAsAccessibleVectorOutlines() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 70'>"
+            + "<defs>"
+            + "<linearGradient id='ink' x1='0%' y1='0%' x2='100%' y2='0%'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<pattern id='checks' patternUnits='userSpaceOnUse' width='6' height='6'><rect width='3' height='6' fill='gold'/><rect x='3' width='3' height='6' fill='green'/></pattern>"
+            + "</defs>"
+            + "<text x='8' y='28' font-family='Painted' font-size='22' fill='url(#ink)' stroke='black' stroke-width='1'>AB</text>"
+            + "<text x='8' y='60' font-family='Painted' font-size='22' fill='url(#checks)'>BA</text>"
+            + "</svg>";
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFont('A', 'B'));
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            options,
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup[] logicalPaint = drawing!.Elements.OfType<OfficeDrawingGroup>().ToArray();
+        Assert.Equal(new[] { "AB", "BA" }, logicalPaint.Select(group => group.ActualText));
+        Assert.All(logicalPaint, group => Assert.NotEmpty(group.Drawing.Shapes));
+        Assert.Contains(logicalPaint, group => group.Drawing.Elements.OfType<OfficeDrawingEffectGroup>().Any());
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("aria-label=\"AB\"", exported, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"BA\"", exported, StringComparison.Ordinal);
+        Assert.Contains("<linearGradient", exported, StringComparison.Ordinal);
+        Assert.DoesNotContain("<text", exported, StringComparison.Ordinal);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(Enumerable.Range(0, raster.Height).Any(y =>
+            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0)));
+    }
+
+    [Fact]
+    public void SvgReaderPlacesSearchableGraphemesAlongReferencedTextPath() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' fill='navy'>"
+            + "<defs><path id='curve' d='M 10 30 C 35 5 80 5 110 25'/></defs>"
+            + "<text font-size='8'><textPath href='#curve' startOffset='10%'>Path</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup[] glyphGroups = drawing!.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(4, glyphGroups.Length);
+        OfficeDrawingText[] glyphs = glyphGroups
+            .Select(group => Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingText>()))
+            .ToArray();
+        Assert.Equal("Path", string.Concat(glyphs.Select(glyph => glyph.Text)));
+        Assert.All(glyphGroups, group => Assert.NotEqual(OfficeTransform.Identity, group.Transform));
+        Assert.True(glyphs[0].X >= 10D);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains(">P</text>", exported, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderKeepsCjkUprightAndRotatesLatinInVerticalMixedText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60' fill='navy' "
+            + "writing-mode='vertical-rl' text-orientation='mixed'>"
+            + "<text x='30' y='20' font-size='10' text-anchor='middle'>縦A字</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] upright = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.Equal(new[] { "縦", "字" }, upright.Select(item => item.Text));
+        OfficeDrawingEffectGroup latinGroup = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingText latin = Assert.Single(latinGroup.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("A", latin.Text);
+        Assert.True(latinGroup.Transform.M12 > 0.9D);
+        Assert.All(upright, item => Assert.Equal(30D, item.X + (item.Width / 2D), 6));
+        Assert.True(upright[0].Y < latin.Y);
+        Assert.True(latin.Y < upright[1].Y);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains(">縦</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderMapsUserSpacePatternFillToBoundedVectorTiling() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><pattern id='checks' patternUnits='userSpaceOnUse' width='8' height='8'>"
+            + "<rect width='4' height='4' fill='red'/><rect x='4' y='4' width='4' height='4' fill='blue'/>"
+            + "</pattern></defs><rect x='4' y='2' width='28' height='16' rx='2' fill='url(#checks)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup patternHost = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup transformedPattern = Assert.Single(patternHost.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingGroup clippedPattern = Assert.Single(transformedPattern.Drawing.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingTilingPattern tiling = Assert.Single(clippedPattern.Drawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(8D, tiling.HorizontalStep);
+        Assert.Equal(8D, tiling.VerticalStep);
+        Assert.Equal(2, tiling.Tile.Shapes.Count);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(1, 1).A);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 3));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(13, 6));
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<clipPath", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderClipsVectorPatternsToStrokedGeometry() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><pattern id='stripe' patternUnits='userSpaceOnUse' width='4' height='4'>"
+            + "<rect width='2' height='4' fill='red'/><rect x='2' width='2' height='4' fill='blue'/>"
+            + "</pattern></defs><path d='M4 10 L20 4 L36 10' fill='none' stroke='url(#stripe)' "
+            + "stroke-width='6' stroke-linejoin='miter' stroke-miterlimit='6'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Equal(2, elementGroup.Drawing.Elements.Count);
+        OfficeDrawingEffectGroup strokePattern = Assert.IsType<OfficeDrawingEffectGroup>(elementGroup.Drawing.Elements[1]);
+        Assert.NotEmpty(strokePattern.Drawing.Elements);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(20, 15).A);
+        int paintedStrokePixels = Enumerable.Range(0, raster.Width * raster.Height)
+            .Count(index => raster.GetPixel(index % raster.Width, index / raster.Width).A > 0);
+        Assert.True(paintedStrokePixels > 40, $"Expected a visible patterned stroke, found {paintedStrokePixels} painted pixels.");
+        Assert.Contains("<clipPath", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderRendersReusableStartMidAndEndMarkerScenes() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='arrow' markerUnits='userSpaceOnUse' markerWidth='6' markerHeight='6' "
+            + "viewBox='0 0 10 10' refX='5' refY='5' orient='auto'>"
+            + "<path d='M0 0 L10 5 L0 10 Z' fill='context-stroke'/></marker></defs>"
+            + "<polyline points='5,15 20,5 35,15' fill='none' stroke='green' stroke-width='1' "
+            + "marker-start='url(#arrow)' marker-mid='url(#arrow)' marker-end='url(#arrow)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup[] markers = markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(3, markers.Length);
+        Assert.All(markers, marker => Assert.Single(marker.Drawing.Shapes));
+        Assert.All(markers, marker => Assert.Equal(OfficeColor.Green, marker.Drawing.Shapes[0].Shape.FillColor));
+        Assert.NotEqual(markers[0].Transform, markers[1].Transform);
+        Assert.NotEqual(markers[1].Transform, markers[2].Transform);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(20, 5).A > 0);
+        Assert.Contains("#008000", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SvgReader_DefaultMarkerUnitsScaleImplicitViewportWithStrokeWidth() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='square' markerWidth='3' markerHeight='3' refX='0' refY='0' orient='0'>"
+            + "<rect width='3' height='3' fill='red'/></marker></defs>"
+            + "<line x1='2' y1='5' x2='10' y2='5' stroke='black' stroke-width='4' marker-end='url(#square)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup marker = Assert.Single(markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficePoint origin = marker.Transform.TransformPoint(new OfficePoint(0D, 0D));
+        OfficePoint corner = marker.Transform.TransformPoint(new OfficePoint(3D, 3D));
+        Assert.Equal(12D, Math.Abs(corner.X - origin.X), 6);
+        Assert.Equal(12D, Math.Abs(corner.Y - origin.Y), 6);
+    }
+
+    [Fact]
+    public void SvgReader_SwitchRendersOnlyTheFirstSupportedChild() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<switch><rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></switch></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
+        Assert.Equal(0, raster.GetPixel(15, 5).A);
+    }
+
+    [Fact]
+    public void SvgReader_AppliesEmbeddedStylesheetCascadeSelectorsAndCustomProperties() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<style>g.theme > rect.hot{fill:var(--accent)} #override{fill:blue}</style>"
+            + "<g class='theme' style='--accent:red'><rect class='hot' width='10' height='10'/>"
+            + "<rect id='override' class='hot' x='10' width='10' height='10' style='fill:green!important'/></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Green, raster.GetPixel(15, 5));
+    }
+
+    [Fact]
+    public void SvgReader_ComposesMarkerPlacementWithTheOwningElementTransform() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='dot' markerUnits='userSpaceOnUse' markerWidth='1' markerHeight='1' "
+            + "viewBox='0 0 1 1' refX='0' refY='0' orient='0'><rect width='1' height='1' fill='red'/></marker></defs>"
+            + "<line x1='1' y1='2' x2='5' y2='2' transform='translate(10 3) scale(2 1)' stroke='blue' marker-end='url(#dot)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingShape line = Assert.Single(elementGroup.Drawing.Shapes);
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup marker = Assert.Single(markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.True(line.Shape.Transform.HasValue);
+        OfficePoint endpoint = line.Shape.Points[line.Shape.Points.Count - 1];
+        OfficePoint transformedEndpoint = line.Shape.Transform.Value.TransformPoint(endpoint);
+        OfficePoint expected = new OfficePoint(line.X + transformedEndpoint.X, line.Y + transformedEndpoint.Y);
+        OfficePoint actual = marker.Transform.TransformPoint(new OfficePoint(0D, 0D));
+
+        Assert.Equal(expected.X, actual.X, 6);
+        Assert.Equal(expected.Y, actual.Y, 6);
     }
 
     [Fact]
@@ -1136,5 +1377,135 @@ public class DrawingSvgReaderTests {
 
         Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
         Assert.Null(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesInteractiveLinksAsNonPaintingDrawingRegions() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='https://example.test/details' aria-label='Details'><rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingLink link = Assert.Single(drawing!.Elements.OfType<OfficeDrawingLink>());
+        Assert.Equal("https://example.test/details", link.Uri);
+        Assert.Equal("Details", link.AlternativeText);
+        Assert.Equal(5D, link.X, 3);
+        Assert.Equal(4D, link.Y, 3);
+        Assert.Equal(20D, link.Width, 3);
+        Assert.Equal(8D, link.Height, 3);
+
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("href=\"https://example.test/details\"", exported, StringComparison.Ordinal);
+        Assert.Contains("pointer-events=\"all\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesBoundedEmbeddedRasterImages() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<image x='5' y='4' width='20' height='14' preserveAspectRatio='xMidYMid meet' href='data:image/png;base64,"
+            + Convert.ToBase64String(png) + "'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 9));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 4));
+        Assert.Contains("data:image/png;base64,", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<line id='guide' x1='2' y1='10' x2='38' y2='10'/>")]
+    [InlineData("<polyline id='guide' points='2,10 20,2 38,10'/>")]
+    [InlineData("<rect id='guide' x='4' y='4' width='32' height='12'/>")]
+    [InlineData("<circle id='guide' cx='20' cy='10' r='8'/>")]
+    public void SvgReaderPlacesTextPathsOnBasicShapeReferences(string guide) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
+            + guide + "</defs><text font-size='5'><textPath href='#guide'>AB</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">B</text>", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderAppliesPerCharacterTextCoordinatesOffsetsAndRotations() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 40'>"
+            + "<text x='5 20 40' y='15 20 25' dx='1 2 3' dy='0 1 2' rotate='0 30 60' font-size='10'>ABC</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains("x=\"6\"", exported, StringComparison.Ordinal);
+        Assert.Contains("y=\"15\"", exported, StringComparison.Ordinal);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">B</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">C</text>", exported, StringComparison.Ordinal);
+        OfficeDrawingEffectGroup[] rotated = drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(2, rotated.Length);
+        Assert.Equal(Math.Cos(Math.PI / 6D), rotated[0].Transform.M11, 6);
+        Assert.Equal(Math.Cos(Math.PI / 3D), rotated[1].Transform.M11, 6);
+    }
+
+    [Fact]
+    public void SvgReaderConsumesAncestorPositionListsAcrossNestedTspans() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30'>"
+            + "<text x='5 25 45' y='15' font-size='10'><tspan>A</tspan><tspan x='70'>B</tspan>C</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains("x=\"5\"", exported, StringComparison.Ordinal);
+        Assert.Contains("x=\"70\"", exported, StringComparison.Ordinal);
+        Assert.Contains("x=\"45\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesLegacyTrefTextThroughTheBoundedReferenceRegistry() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'>"
+            + "<defs><text id='label'>Referenced label</text></defs>"
+            + "<text x='4' y='16' font-size='10'><tref href='#label'/></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Referenced label", text.Text);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesExactStrokeDashPhaseAndMiterLimit() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30'>"
+            + "<path d='M5 20 L45 5 L95 20' fill='none' stroke='black' stroke-width='2' "
+            + "stroke-dasharray='9 3 1' stroke-dashoffset='-2.5' stroke-linejoin='miter' stroke-miterlimit='7.5'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(new[] { 9D, 3D, 1D }, shape.StrokeDashArray);
+        Assert.Equal(-2.5D, shape.StrokeDashOffset);
+        Assert.Equal(7.5D, shape.StrokeMiterLimit);
+
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stroke-dasharray=\"9 3 1\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke-dashoffset=\"-2.5\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke-miterlimit=\"7.5\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesPercentageStrokeDashesAgainstTheNormalizedViewportDiagonal() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>"
+            + "<line x1='10' y1='50' x2='90' y2='50' stroke='black' stroke-dasharray='10% 5%' stroke-dashoffset='2.5%'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(new[] { 10D, 5D }, shape.StrokeDashArray);
+        Assert.Equal(2.5D, shape.StrokeDashOffset, 6);
     }
 }

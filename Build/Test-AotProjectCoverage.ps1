@@ -61,7 +61,7 @@ $managedOnly = @(
     [ordered]@{
         name = 'OfficeIMO.Studio'
         classification = 'managed-cross-platform'
-        evidence = 'The Avalonia desktop application is packaged and validated as a managed cross-platform app; its current distribution profiles are not advertised as NativeAOT-compatible.'
+        evidence = 'The Avalonia desktop application is distributed through managed cross-platform publish profiles and is not advertised as NativeAOT-compatible.'
     }
     [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'

@@ -51,13 +51,13 @@ internal static partial class PdfWriter {
                 text.FlipVertical,
                 text.Padding,
                 text.ParagraphIndent);
-            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset);
+            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, text.DecorationColor);
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY) {
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeColor? decorationColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
-            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y);
+            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, decorationColor);
             if (text.HasFrameTransform) {
                 OfficeTransform pageTransform = ToTopLeftPageTransform(
                     text.CreateFrameTransform().CreateDestinationTransform(),
@@ -69,14 +69,14 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY) {
+        private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY, OfficeColor? decorationColor) {
             double contentX = frameX + text.Padding.Left;
             double contentTopY = frameTopY - text.Padding.Top;
             double contentWidth = text.Width - text.Padding.Horizontal;
             double contentHeight = text.Height - text.Padding.Vertical;
             if (contentWidth <= 0D || contentHeight <= 0D) return;
 
-            DrawingRichTextLayout layout = CreateDrawingRichTextLayout(text, contentWidth, contentHeight);
+            DrawingRichTextLayout layout = CreateDrawingRichTextLayout(text, contentWidth, contentHeight, decorationColor);
             if (layout.Lines.Count == 0) return;
 
             double contentUsedHeight = MeasureRichLinesHeight(layout.LineHeights, layout.Lines.Count, layout.Leading);
@@ -112,13 +112,13 @@ internal static partial class PdfWriter {
             pageDirty = true;
         }
 
-        private DrawingRichTextLayout CreateDrawingRichTextLayout(OfficeDrawingRichText text, double width, double height) {
+        private DrawingRichTextLayout CreateDrawingRichTextLayout(OfficeDrawingRichText text, double width, double height, OfficeColor? decorationColor) {
             double maximumFontSize = text.Runs.Max(run => run.FontSize);
-            DrawingRichTextLayout fullSize = BuildDrawingRichTextLayout(text, width, 1D);
+            DrawingRichTextLayout fullSize = BuildDrawingRichTextLayout(text, width, 1D, decorationColor);
             if (!text.ShrinkToFit || DrawingRichTextFits(fullSize, height)) return fullSize;
 
             double minimumScale = maximumFontSize > 6D ? 6D / maximumFontSize : 1D;
-            DrawingRichTextLayout minimum = BuildDrawingRichTextLayout(text, width, minimumScale);
+            DrawingRichTextLayout minimum = BuildDrawingRichTextLayout(text, width, minimumScale, decorationColor);
             if (!DrawingRichTextFits(minimum, height)) return minimum;
 
             double low = minimumScale;
@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
             DrawingRichTextLayout best = minimum;
             for (int iteration = 0; iteration < 24; iteration++) {
                 double candidateScale = (low + high) / 2D;
-                DrawingRichTextLayout candidate = BuildDrawingRichTextLayout(text, width, candidateScale);
+                DrawingRichTextLayout candidate = BuildDrawingRichTextLayout(text, width, candidateScale, decorationColor);
                 if (DrawingRichTextFits(candidate, height)) {
                     best = candidate;
                     low = candidateScale;
@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
             return best;
         }
 
-        private DrawingRichTextLayout BuildDrawingRichTextLayout(OfficeDrawingRichText text, double width, double scale) {
+        private DrawingRichTextLayout BuildDrawingRichTextLayout(OfficeDrawingRichText text, double width, double scale, OfficeColor? decorationColor) {
             List<PdfTextRun> runs = text.Runs.Select(run => new PdfTextRun(
                 run.Text,
                 run.Bold,
@@ -152,7 +152,8 @@ internal static partial class PdfWriter {
                 fontFamily: run.FontFamily,
                 baseline: MapDrawingTextBaseline(run.Baseline),
                 underlineStyle: run.UnderlineStyle,
-                strikeStyle: run.StrikethroughStyle)).ToList();
+                strikeStyle: run.StrikethroughStyle,
+                decorationColor: ToPdfColor(decorationColor))).ToList();
 
             double baseFontSize = Math.Max(0.001D, text.Runs.Max(run => run.FontSize) * scale);
             double leading = text.LineHeight.HasValue ? text.LineHeight.Value * scale : baseFontSize * 1.2D;

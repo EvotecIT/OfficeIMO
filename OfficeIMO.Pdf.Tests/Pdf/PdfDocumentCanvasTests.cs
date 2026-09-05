@@ -299,6 +299,23 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasActualText_PreservesLogicalExtractionWithEmbeddedDefaultFont() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        if (fontPath == null) return;
+        var options = new PdfOptions { CompressContentStreams = false }
+            .UseFontFamily(new PdfEmbeddedFontFamily("ActualText Embedded", File.ReadAllBytes(fontPath)));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.ActualText("VerticalWeb", 20D, 30D, logical => logical
+                .Effect(OfficeIMO.Drawing.OfficeTransform.RotateDegrees(90D), 1D, effect => effect
+                    .Text("VerticalWeb", 20D, 10D, 80D, 20D))))
+            .ToBytes();
+
+        Assert.Contains("VerticalWeb", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasActualText_PositionedOverloadPreservesReadingOrderAndCoordinates() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
@@ -329,6 +346,26 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentNullException>(() => canvas.ActualText("Text", null!));
         Assert.Throws<ArgumentException>(() => canvas.ActualText("Text", _ => { }));
         Assert.Throws<ArgumentOutOfRangeException>(() => canvas.ActualText("Text", -1D, 0D, nested => nested.Text("x", 0D, 0D, 10D, 10D)));
+    }
+
+    [Fact]
+    public void CanvasNamedDestinations_CreateReusableInternalNavigation() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200D, PageHeight = 200D })
+            .Canvas(canvas => canvas
+                .NamedDestination("details", 10D, 120D)
+                .Text("Details", 10D, 120D, 80D, 20D)
+                .LinkToNamedDestination("details", 10D, 10D, 60D, 20D, "Jump to details"))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Contains("details", info.NamedDestinationNames);
+        Assert.Contains("details", info.LinkDestinationNames);
+
+        var canvas = new PdfPageCanvas();
+        Assert.Throws<ArgumentException>(() => canvas.NamedDestination(" ", 0D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.NamedDestination("target", -1D, 0D));
+        Assert.Throws<ArgumentException>(() => canvas.LinkToNamedDestination(" ", 0D, 0D, 10D, 10D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.LinkToNamedDestination("target", 0D, 0D, 0D, 10D));
     }
 
     [Fact]
@@ -683,6 +720,36 @@ public class PdfDocumentCanvasTests {
         Assert.Contains("30 100 60 20 re", content, StringComparison.Ordinal);
         Assert.Contains("1.25 w", content, StringComparison.Ordinal);
         Assert.Contains(" B", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasShape_PreservesExactStrokeDashPhaseAndMiterInPdfAndDrawingRoundTrip() {
+        OfficeShape shape = OfficeShape.Line(0D, 0D, 100D, 0D);
+        shape.StrokeColor = OfficeColor.Black;
+        shape.StrokeWidth = 2D;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.StrokeMiterLimit = 7.5D;
+        shape.SetStrokeDashArray(new[] { 9D, 3D, 1D }, 2.5D);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 160D,
+                PageHeight = 80D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Shape(shape, 20D, 30D))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("7.5 M", content, StringComparison.Ordinal);
+        Assert.Contains("[9 3 1] 2.5 d", content, StringComparison.Ordinal);
+
+        OfficeShape roundTripped = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].ToDrawing().Shapes).Shape;
+        Assert.Equal(new[] { 9D, 3D, 1D }, roundTripped.StrokeDashArray);
+        Assert.Equal(2.5D, roundTripped.StrokeDashOffset);
     }
 
     [Fact]

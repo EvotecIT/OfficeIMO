@@ -236,10 +236,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static int CollapsedBorderStyleRank(string style) => style switch {
-        "double" => 4,
-        "solid" => 3,
-        "dashed" => 2,
-        "dotted" => 1,
+        "double" => 8,
+        "solid" => 7,
+        "dashed" => 6,
+        "dotted" => 5,
+        "ridge" => 4,
+        "outset" => 3,
+        "groove" => 2,
+        "inset" => 1,
         _ => 0
     };
 
@@ -252,6 +256,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBorderSide border,
         string source) {
         if (length <= 0.0001D || border.Width <= 0D) return;
+        if (IsThreeDimensionalStroke(border.Style)) {
+            HtmlBorderEdge edge = horizontal ? HtmlBorderEdge.Top : HtmlBorderEdge.Left;
+            if (border.Style == "inset" || border.Style == "outset") {
+                AddCollapsedBorderStroke(
+                    visuals, horizontal, x, y, length,
+                    ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
+                    border.Width, "solid", source);
+                return;
+            }
+
+            double threeDimensionalStrokeWidth = Math.Max(0.01D, border.Width / 2D);
+            double offset = border.Width / 4D;
+            AddCollapsedBorderStroke(
+                visuals, horizontal, horizontal ? x : x - offset, horizontal ? y - offset : y, length,
+                ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
+                threeDimensionalStrokeWidth, "solid", source + "-outer");
+            AddCollapsedBorderStroke(
+                visuals, horizontal, horizontal ? x : x + offset, horizontal ? y + offset : y, length,
+                ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
+                threeDimensionalStrokeWidth, "solid", source + "-inner");
+            return;
+        }
         if (border.Style != "double") {
             AddCollapsedBorderStroke(visuals, horizontal, x, y, length, border.Color, border.Width, border.Style, source);
             return;

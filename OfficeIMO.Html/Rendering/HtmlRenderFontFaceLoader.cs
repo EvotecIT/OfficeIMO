@@ -73,7 +73,16 @@ internal static class HtmlRenderFontFaceLoader {
         }
 
         IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractFontFaceUrls(definition.Source);
-        OfficeFontStyle style = ResolveStyle(definition);
+        if (!TryResolveDescriptor(definition, out OfficeFontFaceDescriptor descriptor)) {
+            ReportOnce(
+                diagnostics,
+                reported,
+                HtmlRenderDiagnosticCodes.FontFaceInvalid,
+                "An @font-face rule has an unsupported weight, stretch, or style descriptor.",
+                definition.FamilyName,
+                "weight=" + definition.Weight + ";stretch=" + definition.Stretch + ";style=" + definition.Style);
+            return;
+        }
         OfficeFontUnicodeRangeSet ranges = OfficeFontUnicodeRangeSet.All;
         if (!string.IsNullOrWhiteSpace(definition.UnicodeRange)) {
             if (!OfficeFontUnicodeRangeSet.TryParseCss(definition.UnicodeRange, out OfficeFontUnicodeRangeSet? parsedRanges)
@@ -170,7 +179,7 @@ internal static class HtmlRenderFontFaceLoader {
             if (fonts.TryAddBounded(
                 definition.FamilyName,
                 bytes,
-                style,
+                descriptor,
                 ranges,
                 maximumDecodedBytes,
                 out int acceptedDecodedBytes,
@@ -204,22 +213,90 @@ internal static class HtmlRenderFontFaceLoader {
             definition.Source);
     }
 
-    private static OfficeFontStyle ResolveStyle(HtmlCssFontFaceDefinition definition) {
-        OfficeFontStyle style = OfficeFontStyle.Regular;
-        string weight = definition.Weight.Trim();
-        if (string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(weight, "bolder", StringComparison.OrdinalIgnoreCase)
-            || int.TryParse(weight, out int numericWeight) && numericWeight >= 600) {
-            style |= OfficeFontStyle.Bold;
+    private static bool TryResolveDescriptor(
+        HtmlCssFontFaceDefinition definition,
+        out OfficeFontFaceDescriptor descriptor) {
+        descriptor = default;
+        if (!TryResolveWeight(definition.Weight, out int weight)
+            || !TryResolveStretch(definition.Stretch, out double stretch)
+            || !TryResolveSlant(definition.Style, out OfficeFontSlant slant, out double obliqueAngle)) {
+            return false;
         }
+        descriptor = new OfficeFontFaceDescriptor(weight, stretch, slant, obliqueAngle);
+        return true;
+    }
 
-        string fontStyle = definition.Style.Trim();
-        if (fontStyle.StartsWith("italic", StringComparison.OrdinalIgnoreCase)
-            || fontStyle.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) {
-            style |= OfficeFontStyle.Italic;
+    private static bool TryResolveWeight(string? value, out int weight) {
+        string normalized = (value ?? string.Empty).Trim();
+        if (normalized.Length == 0 || normalized.Equals("normal", StringComparison.OrdinalIgnoreCase)) {
+            weight = 400;
+            return true;
         }
+        if (normalized.Equals("bold", StringComparison.OrdinalIgnoreCase)) {
+            weight = 700;
+            return true;
+        }
+        return int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out weight)
+            && weight >= 1
+            && weight <= 1000;
+    }
 
-        return style;
+    private static bool TryResolveStretch(string? value, out double stretch) {
+        string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized) {
+            case "":
+            case "normal": stretch = 100D; return true;
+            case "ultra-condensed": stretch = 50D; return true;
+            case "extra-condensed": stretch = 62.5D; return true;
+            case "condensed": stretch = 75D; return true;
+            case "semi-condensed": stretch = 87.5D; return true;
+            case "semi-expanded": stretch = 112.5D; return true;
+            case "expanded": stretch = 125D; return true;
+            case "extra-expanded": stretch = 150D; return true;
+            case "ultra-expanded": stretch = 200D; return true;
+        }
+        if (!normalized.EndsWith("%", StringComparison.Ordinal)) {
+            stretch = 0D;
+            return false;
+        }
+        return double.TryParse(
+                normalized.Substring(0, normalized.Length - 1),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out stretch)
+            && stretch >= 50D
+            && stretch <= 200D;
+    }
+
+    private static bool TryResolveSlant(
+        string? value,
+        out OfficeFontSlant slant,
+        out double obliqueAngle) {
+        string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+        obliqueAngle = 14D;
+        if (normalized.Length == 0 || normalized == "normal") {
+            slant = OfficeFontSlant.Normal;
+            return true;
+        }
+        if (normalized == "italic") {
+            slant = OfficeFontSlant.Italic;
+            return true;
+        }
+        if (!normalized.StartsWith("oblique", StringComparison.Ordinal)) {
+            slant = OfficeFontSlant.Normal;
+            return false;
+        }
+        slant = OfficeFontSlant.Oblique;
+        string angle = normalized.Substring("oblique".Length).Trim();
+        if (angle.Length == 0) return true;
+        if (!angle.EndsWith("deg", StringComparison.Ordinal)) return false;
+        return double.TryParse(
+                angle.Substring(0, angle.Length - 3).Trim(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out obliqueAngle)
+            && obliqueAngle > -90D
+            && obliqueAngle < 90D;
     }
 
     private static bool IsFontContentType(string contentType) {

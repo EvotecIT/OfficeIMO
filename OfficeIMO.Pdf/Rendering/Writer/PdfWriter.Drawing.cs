@@ -488,7 +488,7 @@ internal static partial class PdfWriter {
             content
                 .StrokeColor(strokeColor.GetValueOrDefault())
                 .LineWidth(shape.StrokeWidth);
-            ApplyStrokeStyle(content, shape.StrokeDashStyle, shape.StrokeWidth, shape.StrokeLineCap, shape.StrokeLineJoin);
+            ApplyStrokeStyle(content, shape);
         }
 
         switch (shape.Kind) {
@@ -531,6 +531,11 @@ internal static partial class PdfWriter {
 
         content.RestoreState();
     }
+
+    private static bool RequiresExactStrokeWriter(OfficeIMO.Drawing.OfficeShape shape) =>
+        shape.StrokeDashArray.Count > 0
+        || Math.Abs(shape.StrokeDashOffset) > 0.000000000001D
+        || Math.Abs(shape.StrokeMiterLimit - 4D) > 0.000000000001D;
 
     private static void AppendShapeClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, double x, double y) {
         var content = new ContentStreamBuilder(sb);
@@ -695,6 +700,23 @@ internal static partial class PdfWriter {
         }
 
         ApplyStrokeDashStyle(content, dashStyle, strokeWidth, strokeLineCap.HasValue);
+    }
+
+    private static void ApplyStrokeStyle(ContentStreamBuilder content, OfficeIMO.Drawing.OfficeShape shape) {
+        if (shape.StrokeLineCap.HasValue) {
+            content.LineCap(LineCapValue(shape.StrokeLineCap.GetValueOrDefault()));
+        }
+        if (shape.StrokeLineJoin.HasValue) {
+            content.LineJoin(LineJoinValue(shape.StrokeLineJoin.GetValueOrDefault()));
+        }
+        if (shape.StrokeMiterLimit >= 1D && !double.IsNaN(shape.StrokeMiterLimit) && !double.IsInfinity(shape.StrokeMiterLimit)) {
+            content.MiterLimit(shape.StrokeMiterLimit);
+        }
+        if (shape.StrokeDashArray.Count > 0) {
+            content.StrokeDash(shape.StrokeDashArray, shape.StrokeDashOffset);
+        } else {
+            ApplyStrokeDashStyle(content, shape.StrokeDashStyle, shape.StrokeWidth, shape.StrokeLineCap.HasValue);
+        }
     }
 
     private static void ApplyStrokeDashStyle(ContentStreamBuilder content, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double strokeWidth, bool hasExplicitLineCap) {

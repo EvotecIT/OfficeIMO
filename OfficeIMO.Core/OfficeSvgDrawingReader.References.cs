@@ -76,9 +76,14 @@ public static partial class OfficeSvgDrawingReader {
         private readonly SvgDefinitionRegistry _definitions;
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
 
-        internal SvgElementReferenceRegistry(SvgDefinitionRegistry definitions) {
+        internal SvgElementReferenceRegistry(
+            SvgDefinitionRegistry definitions,
+            OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null) {
             _definitions = definitions;
+            ForeignObjectRenderer = foreignObjectRenderer;
         }
+
+        internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
 
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
             return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;

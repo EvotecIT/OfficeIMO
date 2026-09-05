@@ -147,6 +147,19 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum CSS box-shadow layers accepted on one element.</summary>
     public int MaxBoxShadowLayers { get; set; } = 32;
 
+    /// <summary>Maximum CSS text-shadow layers accepted on one element.</summary>
+    public int MaxTextShadowLayers { get; set; } = 16;
+
+    /// <summary>Maximum nested SVG <c>foreignObject</c> HTML render depth.</summary>
+    public int MaxSvgForeignObjectDepth { get; set; } = 4;
+
+    /// <summary>Maximum DOM nodes accepted by one inline SVG <c>foreignObject</c> HTML viewport.</summary>
+    public int MaxSvgForeignObjectHtmlNodes { get; set; } = 1000;
+
+    // Propagated only by the managed SVG-to-HTML ownership bridge so recursive image payloads
+    // cannot restart the public depth budget from zero.
+    internal int SvgForeignObjectDepth { get; set; }
+
     /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
     public int MaxGradientStops { get; set; } = 64;
 
@@ -224,6 +237,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;
+        target.MaxTextShadowLayers = MaxTextShadowLayers;
+        target.MaxSvgForeignObjectDepth = MaxSvgForeignObjectDepth;
+        target.MaxSvgForeignObjectHtmlNodes = MaxSvgForeignObjectHtmlNodes;
+        target.SvgForeignObjectDepth = SvgForeignObjectDepth;
         target.MaxGradientStops = MaxGradientStops;
         target.ConicGradientQualitySegments = ConicGradientQualitySegments;
         target.MaxGridTracks = MaxGridTracks;
@@ -298,6 +315,18 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxBoxShadowLayers <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxBoxShadowLayers), "Maximum box-shadow layer count must be positive.");
+        }
+
+        if (MaxTextShadowLayers <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTextShadowLayers), "Maximum text-shadow layer count must be positive.");
+        }
+
+        if (MaxSvgForeignObjectDepth <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxSvgForeignObjectDepth), "Maximum SVG foreign-object nesting depth must be positive.");
+        }
+
+        if (MaxSvgForeignObjectHtmlNodes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxSvgForeignObjectHtmlNodes), "Maximum SVG foreign-object HTML node count must be positive.");
         }
 
         if (MaxGradientStops < 2) {

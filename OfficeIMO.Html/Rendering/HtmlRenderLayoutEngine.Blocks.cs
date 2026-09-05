@@ -294,7 +294,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (tag == "img") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
@@ -331,17 +331,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
             ? continuationTarget
             : null;
+        bool usesVerticalBlockFormatting = usesBlockFormatting && IsVerticalWritingMode(style.WritingMode);
+        double childContainingWidth = usesVerticalBlockFormatting
+            ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
+            : contentWidth;
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
             ? BuildChildBlocks(
                 element,
-                contentWidth,
+                childContainingWidth,
                 style,
                 depth,
                 descendantContinuationTarget,
                 descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
 
-        if (children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
+        if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
             HtmlRenderFlowBlock first = children[0];
             double childMargin = first.CollapsibleMarginTop;
             style = style.Clone();
@@ -351,7 +355,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .WithCollapsibleMargins(0D, first.CollapsibleMarginBottom, first.OwnerElement!);
             if (first.OwnerElement != null) RemoveNormalFlowTopMargin(first.OwnerElement);
         }
-        if (children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
+        if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
             int lastIndex = children.Count - 1;
             HtmlRenderFlowBlock last = children[lastIndex];
             double childMargin = last.CollapsibleMarginBottom;
@@ -363,7 +367,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
 
-        if (usesBlockFormatting) {
+        if (usesVerticalBlockFormatting) {
+            ArrangeVerticalBlockChildren(
+                children,
+                style,
+                contentWidth,
+                childPaintLayers,
+                contentBreakOffsets,
+                forcedBreaks,
+                lineBreakGroups,
+                continuationGroups,
+                trailingGroups,
+                runningStringAssignments,
+                continuationBreakProgress,
+                out contentHeight);
+            AppendFlowPaintLayers(contentVisuals, childPaintLayers);
+        } else if (usesBlockFormatting) {
             string? childPageName = children.Count > 0 ? children[0].PageName : null;
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
@@ -416,11 +435,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
-            string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
+            HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
             int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
                 ? continuationLogicalCharacters
                 : 0;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element, inlineSkipLogicalCharacters);
+            double inlineExtent = IsVerticalWritingMode(style.WritingMode)
+                ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
+                : contentWidth;
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, inlineExtent, style, depth, marker, element, inlineSkipLogicalCharacters);
+            if (IsVerticalWritingMode(style.WritingMode)) {
+                inline = TransformSidewaysVerticalInlineLayout(inline, style, element);
+            }
             inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
@@ -734,23 +759,131 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.MaxLayoutDepth);
     }
 
-    private string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
-        if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
+    private HtmlListMarker? ResolveListMarker(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
+        bool hasPseudoStyle = _styleResolver.TryResolvePseudo(
+            element, HtmlPseudoElementKind.Marker, containingWidth, style, out HtmlRenderBoxStyle markerStyle);
+        if (_generatedContent.Suppresses(element, HtmlPseudoElementKind.Marker)) return null;
+
+        string? markerContent = null;
+        if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.Marker, out HtmlGeneratedContent generatedContent)
+            && generatedContent.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)
+            && TryCreateGeneratedListMarker(element, markerStyle, containingWidth, generatedContent, out HtmlRenderFlowBlock generatedMarkerBlock)) {
+            return new HtmlListMarker(string.Empty, markerStyle, style.ListStylePosition, generatedMarkerBlock);
+        }
+        if (_generatedContent.TryGet(element, HtmlPseudoElementKind.Marker, out string generatedMarker)) {
+            markerContent = ApplyTextTransform(generatedMarker, markerStyle);
+        }
+        if (markerContent == null && TryCreateListImageMarker(element, style, hasPseudoStyle ? markerStyle : style, containingWidth, out HtmlRenderFlowBlock imageMarker)) {
+            return new HtmlListMarker(string.Empty, hasPseudoStyle ? markerStyle : style, style.ListStylePosition, imageMarker);
+        }
+        if (markerContent == null && string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
-        if (parent == null) return "• ";
-        bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
+        if (markerContent == null && parent == null) markerContent = "• ";
+        bool ordered = parent != null && string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
         int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
-        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
+        if (markerContent == null && _counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
             if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            return customMarker.Length == 0 ? null : customMarker;
+            markerContent = customMarker.Length == 0 ? null : customMarker;
         }
-        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
-            marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+        if (markerContent == null) {
+            if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
+                marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+            }
+            if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
+            if (marker.Length > 0) markerContent = marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
         }
-        if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
-        if (marker.Length == 0) return null;
-        return marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
+        if (string.IsNullOrEmpty(markerContent)) return null;
+        return new HtmlListMarker(markerContent!, hasPseudoStyle ? markerStyle : style, style.ListStylePosition);
+    }
+
+    private bool TryCreateGeneratedListMarker(
+        IElement element,
+        HtmlRenderBoxStyle markerStyle,
+        double containingWidth,
+        HtmlGeneratedContent content,
+        out HtmlRenderFlowBlock marker) {
+        string source = DescribePseudoSource(element, HtmlPseudoElementKind.Marker);
+        var runs = new List<HtmlInlineRun>();
+        AddGeneratedInlineFragments(content, element, markerStyle, null, source, containingWidth, 0D, 0D, runs);
+        runs = ApplyScopedFontFallbacks(runs);
+        if (runs.Count == 0) {
+            marker = null!;
+            return false;
+        }
+
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, containingWidth * 0.5D), markerStyle, element);
+        (double left, double top, double width, double height) = ResolveSemanticBounds(
+            inline.Visuals,
+            markerStyle.LineHeight,
+            inline.Height);
+        var label = new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.ListLabel,
+            left,
+            top,
+            width,
+            height,
+            inline.Visuals,
+            0,
+            "list-marker");
+        marker = new HtmlRenderFlowBlock(
+            width,
+            Math.Max(0.01D, inline.Height),
+            new HtmlRenderVisual[] { label },
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            true,
+            source);
+        return true;
+    }
+
+    private bool TryCreateListImageMarker(
+        IElement element,
+        HtmlRenderBoxStyle listStyle,
+        HtmlRenderBoxStyle markerStyle,
+        double containingWidth,
+        out HtmlRenderFlowBlock marker) {
+        marker = null!;
+        if (string.Equals(listStyle.ListStyleImage, "none", StringComparison.OrdinalIgnoreCase)) return false;
+        IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractCssUrls(listStyle.ListStyleImage);
+        if (sources.Count != 1) return false;
+        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element) + "::marker:list-style-image";
+        if (!TryResolveImageSource(sources[0], sourceDescription, out byte[]? bytes, out _, out OfficeImageInfo? imageInfo)
+            || bytes == null || imageInfo == null) return false;
+        IDocument? owner = element.Owner;
+        if (owner == null) return false;
+        IElement imageElement = owner.CreateElement("img");
+        imageElement.SetAttribute("src", sources[0]);
+        var imageStyle = new HtmlRenderBoxStyle {
+            Display = "inline",
+            PaintVisible = markerStyle.PaintVisible,
+            Font = markerStyle.Font,
+            Color = markerStyle.Color,
+            LineHeight = markerStyle.LineHeight,
+            SemanticRole = "list-marker",
+            ApplyEmbeddedImageOrientation = listStyle.ApplyEmbeddedImageOrientation,
+            ImageResolutionDpi = listStyle.ImageResolutionDpi
+        };
+        double imageWidth = ResolveFloatingImageOuterWidth(imageElement, imageStyle);
+        HtmlRenderFlowBlock image = LayoutImage(imageElement, imageWidth, imageStyle);
+        var markerVisual = new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.ListLabel,
+            0D,
+            0D,
+            Math.Max(0.01D, image.Width),
+            Math.Max(0.01D, image.Height),
+            image.Visuals,
+            0,
+            "list-marker");
+        marker = new HtmlRenderFlowBlock(
+            image.Width,
+            image.Height,
+            new[] { markerVisual },
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            true,
+            sourceDescription);
+        return true;
     }
 
     private void ReportCounterRepresentationLimit(IElement element, string style) {

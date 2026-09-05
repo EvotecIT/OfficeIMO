@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         string? link,
         ICollection<HtmlInlineRun> runs) {
-        double measuredOuterWidth = string.Equals(element.TagName, "img", StringComparison.OrdinalIgnoreCase)
+        double measuredOuterWidth = IsReplacedImageElement(element)
             ? ResolveFloatingImageOuterWidth(element, style)
             : ResolvePositionedOuterWidth(element, style, containingWidth, null, null);
         double outerWidth = Math.Min(Math.Max(1D, containingWidth), measuredOuterWidth);
@@ -128,6 +128,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
+                previousWasCollapsibleSpace = false;
+                continue;
+            }
+            if (run.LeaderPattern != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
                 previousWasCollapsibleSpace = false;
                 continue;
             }
@@ -252,6 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0) lines.Add(line);
+        ExpandLeaderSegments(lines, width);
         if (paragraphStyle.LineClamp.HasValue && lines.Count > paragraphStyle.LineClamp.Value) {
             lines.RemoveRange(paragraphStyle.LineClamp.Value, lines.Count - paragraphStyle.LineClamp.Value);
             ApplyEndEllipsis(lines[lines.Count - 1], width, completeLogicalProgress: 0);
@@ -371,7 +377,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? formattingContainer,
         IReadOnlyList<InlineFloatPlacement>? floatPlacements = null,
         double minimumHeight = 0D,
-        bool supportsContinuationReflow = false) {
+        bool supportsContinuationReflow = false,
+        bool isInlineContinuation = false) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
@@ -448,6 +455,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
+                } else if (segment.Run.LeaderPattern != null && segment.Width > 0.0001D) {
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, segment.Width, lineHeight, inlineBounds);
+                    if (segment.Run.Style.PaintVisible && segment.Run.LeaderPattern != " ") {
+                        HtmlRenderVisual leaderVisual = CreateLeaderVisual(segment.Run, x, lineY, segment.Width, lineHeight, visuals.Count);
+                        AddInlineOwnedVisual(
+                            visuals,
+                            ownedVisuals,
+                            leaderVisual,
+                            segment.Run.OwnerElement,
+                            formattingContainer);
+                    }
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
@@ -534,7 +552,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
                             baselineOffset: segment.Run.Style.BaselineOffset,
-                            textPaintWidth: paintSegment.Width));
+                            textPaintWidth: paintSegment.Width,
+                            decorationColor: segment.Run.Style.DecorationColor,
+                            featureSettings: segment.Run.Style.TextFeatureSettings,
+                            fontPalette: segment.Run.Style.FontPalette));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -551,6 +572,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source)
                         : textVisuals[0];
+                    AddTextShadowVisuals(
+                        visuals,
+                        ownedVisuals,
+                        segment.Run,
+                        formattingContainer,
+                        textVisuals);
                     AddInlineOwnedVisual(
                         visuals,
                         ownedVisuals,
@@ -589,12 +616,66 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height = Math.Max(flowY, minimumHeight);
         if (height > 0D) breakOffsets.Add(height);
         return new HtmlInlineLayout(
-            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
+            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
             height,
             breakOffsets,
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),
             breakProgress,
             supportsContinuationReflow);
+    }
+
+    private HtmlRenderVisual CreateLeaderVisual(
+        HtmlInlineRun run,
+        double x,
+        double y,
+        double width,
+        double lineHeight,
+        int paintOrder) {
+        HtmlRenderVisual paint;
+        if (run.LeaderPattern == "." || run.LeaderPattern == "_") {
+            double lineY = Math.Min(Math.Max(0.5D, lineHeight * 0.72D), Math.Max(0.5D, lineHeight - 0.5D));
+            OfficeShape shape = OfficeShape.Line(0D, 0D, Math.Max(0.01D, width), 0D);
+            shape.FillColor = null;
+            shape.StrokeColor = run.Style.Color;
+            shape.StrokeWidth = Math.Max(0.75D, run.Style.Font.Size / 16D);
+            shape.Height = shape.StrokeWidth;
+            shape.StrokeDashStyle = run.LeaderPattern == "." ? OfficeStrokeDashStyle.Dot : OfficeStrokeDashStyle.Solid;
+            paint = new HtmlRenderShape(shape, x, y + lineY, paintOrder, run.LinkUri, run.Source);
+        } else {
+            double unitWidth = Math.Max(0.01D, MeasureInlineText(run.LeaderPattern!, run.Style));
+            int count = Math.Max(1, (int)Math.Ceiling(width / unitWidth));
+            string repeated = string.Concat(Enumerable.Repeat(run.LeaderPattern!, count));
+            paint = new HtmlRenderText(
+                repeated,
+                x,
+                y,
+                Math.Max(0.01D, width),
+                Math.Max(0.01D, lineHeight),
+                run.Style.Font,
+                run.Style.Color,
+                OfficeTextAlignment.Left,
+                lineHeight,
+                paintOrder,
+                run.LinkUri,
+                run.Source,
+                semanticRole: null,
+                layoutY: null,
+                semanticNodeId: null,
+                textAdvanceWidth: Math.Max(0.01D, count * unitWidth),
+                textPaintWidth: Math.Max(0.01D, count * unitWidth),
+                featureSettings: run.Style.TextFeatureSettings,
+                fontPalette: run.Style.FontPalette);
+        }
+
+        return new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.Artifact,
+            x,
+            y,
+            Math.Max(0.01D, width),
+            Math.Max(0.01D, lineHeight),
+            new[] { paint },
+            paintOrder,
+            run.Source);
     }
 
     private sealed class InlineFloatContext {

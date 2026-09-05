@@ -14,24 +14,52 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing drawing,
         SvgPaintContext style,
         SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         double viewX,
         double viewY,
+        int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
+        ref int visited,
+        ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         var runs = new List<SvgTextRun>();
+        var textPaths = new List<SvgTextPathLayout>();
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
-        AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY,
-            drawing.Width, drawing.Height, runs, 0D, 0D, 0, ref cursor, ref unsupported);
+        AddTextElementRuns(element, style, paintServers, references, drawing.Fonts, transform, preserve, false, viewX, viewY,
+            drawing.Width, drawing.Height, runs, textPaths, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
-        foreach (SvgTextRun run in runs) AddTextRun(drawing, run, ref unsupported);
+        ApplyTextPaths(runs, textPaths, references, viewX, viewY, ref unsupported);
+        foreach (SvgTextRun run in runs) {
+            AddTextRun(
+                drawing,
+                run,
+                paintServers,
+                references,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported);
+        }
     }
 
     private static void AddTextElementRuns(
         XElement element,
         SvgPaintContext inheritedStyle,
         SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeFontFaceCollection fonts,
         OfficeTransform inheritedTransform,
         bool inheritedPreserve,
         bool resolveElement,
@@ -39,9 +67,11 @@ public static partial class OfficeSvgDrawingReader {
         double viewY,
         double viewportWidth,
         double viewportHeight,
-        ICollection<SvgTextRun> runs,
+        IList<SvgTextRun> runs,
+        ICollection<SvgTextPathLayout> textPaths,
         double inheritedBaselineShift,
         double inheritedOwnBaselineShift,
+        SvgTextPositioning? inheritedPositioning,
         int depth,
         ref SvgTextCursor cursor,
         ref int unsupported) {
@@ -74,7 +104,9 @@ public static partial class OfficeSvgDrawingReader {
             style.LineHeight.Resolve(style.FontSize),
             inheritedOwnBaselineShift);
         double baselineShift = inheritedBaselineShift + ownBaselineShift;
-        ApplyTextPosition(element, viewX, viewY, viewportWidth, viewportHeight, ref cursor, ref unsupported);
+        SvgTextPositioning? positioning = SvgTextPositioning.Create(
+            element, inheritedPositioning, viewportWidth, viewportHeight, ref unsupported);
+        if (cursor.Chunk < 0) cursor.Chunk = 0;
         int firstRun = runs.Count;
         double lengthOrigin = cursor.X;
         bool adjustGlyphs = TryReadTextLengthAdjustment(element, out double authoredLength, ref unsupported);
@@ -88,22 +120,179 @@ public static partial class OfficeSvgDrawingReader {
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
                 double fontSize = Math.Max(0.1D, style.FontSize);
-                double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
-                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline)
-                    - baselineShift;
-                runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform));
-                cursor.X += width;
-                cursor.HasText = true;
+                if (style.WritingMode != SvgWritingMode.HorizontalTb) {
+                    AddVerticalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
+                    continue;
+                }
+                AddHorizontalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor);
                 continue;
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
-                AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY,
-                    viewportWidth, viewportHeight, runs, baselineShift, ownBaselineShift, depth + 1, ref cursor, ref unsupported);
+                AddTextElementRuns(child, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
+                    viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
+            } else if (node is XElement textPath && textPath.Name.LocalName.Equals("textPath", StringComparison.OrdinalIgnoreCase)) {
+                int pathStart = runs.Count;
+                AddTextElementRuns(textPath, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
+                    viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift, positioning, depth + 1, ref cursor, ref unsupported);
+                if (runs.Count > pathStart) textPaths.Add(new SvgTextPathLayout(textPath, pathStart, runs.Count));
+            } else if (node is XElement tref && tref.Name.LocalName.Equals("tref", StringComparison.OrdinalIgnoreCase)) {
+                AddReferencedTextRuns(
+                    tref, style, paintServers, references, fonts, transform, preserve, viewX, viewY,
+                    viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift,
+                    positioning, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }
         }
         if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
+    }
+
+    private static void AddReferencedTextRuns(
+        XElement tref,
+        SvgPaintContext style,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeFontFaceCollection fonts,
+        OfficeTransform transform,
+        bool preserve,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight,
+        IList<SvgTextRun> runs,
+        ICollection<SvgTextPathLayout> textPaths,
+        double baselineShift,
+        double ownBaselineShift,
+        SvgTextPositioning? positioning,
+        int depth,
+        ref SvgTextCursor cursor,
+        ref int unsupported) {
+        SvgElementReferenceEntryResult entry = references.TryEnterDetailed(tref, out string referenceId, out XElement? target);
+        if (entry != SvgElementReferenceEntryResult.Entered || string.IsNullOrEmpty(target!.Value)) {
+            unsupported++;
+            return;
+        }
+        try {
+            var substitute = new XElement(tref.Name,
+                tref.Attributes().Where(attribute => !attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase)),
+                new XText(target.Value));
+            AddTextElementRuns(
+                substitute, style, paintServers, references, fonts, transform, preserve, true, viewX, viewY,
+                viewportWidth, viewportHeight, runs, textPaths, baselineShift, ownBaselineShift,
+                positioning, depth, ref cursor, ref unsupported);
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static void AddHorizontalTextRuns(
+        string text,
+        SvgPaintContext style,
+        OfficeFontFaceCollection fonts,
+        OfficeTransform transform,
+        double baselineShift,
+        SvgTextPositioning? positioning,
+        double viewX,
+        double viewY,
+        ICollection<SvgTextRun> runs,
+        ref SvgTextCursor cursor) {
+        double fontSize = Math.Max(0.1D, style.FontSize);
+        if (positioning == null || !positioning.RequiresPerCharacterRuns) {
+            double rotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
+            double width = MeasureSvgText(text, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline) - baselineShift;
+            runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform, fontProgram, rotation));
+            cursor.X += width;
+            cursor.HasText = true;
+            positioning?.Advance(OfficeTextElements.Split(text).Count);
+            return;
+        }
+        foreach (string glyph in OfficeTextElements.Split(text)) {
+            if (runs.Count >= MaximumTextRuns) return;
+            double rotation = positioning.Apply(ref cursor, viewX, viewY);
+            double width = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline) - baselineShift;
+            runs.Add(new SvgTextRun(
+                glyph, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor,
+                style, transform, fontProgram, rotation));
+            cursor.X += width;
+            cursor.HasText = true;
+            positioning.Advance(1);
+        }
+    }
+
+    private static void AddVerticalTextRuns(
+        string text,
+        SvgPaintContext style,
+        OfficeFontFaceCollection fonts,
+        OfficeTransform transform,
+        double baselineShift,
+        SvgTextPositioning? positioning,
+        double viewX,
+        double viewY,
+        ICollection<SvgTextRun> runs,
+        ref SvgTextCursor cursor) {
+        bool rightToLeftColumns = style.WritingMode is SvgWritingMode.VerticalRl or SvgWritingMode.SidewaysRl;
+        bool alwaysSideways = style.WritingMode is SvgWritingMode.SidewaysRl or SvgWritingMode.SidewaysLr
+            || style.TextOrientation == SvgTextOrientation.Sideways;
+        double fontSize = Math.Max(0.1D, style.FontSize);
+        foreach (string glyph in OfficeTextElements.Split(text)) {
+            if (runs.Count >= MaximumTextRuns) return;
+            double authoredRotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
+            double glyphWidth = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double advance = fontSize;
+            double centerX = cursor.X;
+            double centerY = cursor.Baseline + advance / 2D - baselineShift;
+            bool upright = !alwaysSideways
+                && (style.TextOrientation == SvgTextOrientation.Upright
+                    || OfficeTextElements.IsVerticalMixedOrientationUpright(glyph));
+            runs.Add(new SvgTextRun(
+                glyph,
+                centerX - glyphWidth / 2D,
+                centerY + fontSize / 2D,
+                glyphWidth,
+                fontSize,
+                cursor.Chunk,
+                style.TextAnchor,
+                style,
+                transform,
+                fontProgram,
+                authoredRotation + (upright ? 0D : rightToLeftColumns ? 90D : -90D),
+                centerX,
+                centerY,
+                isVertical: true,
+                inlineAdvance: advance));
+            cursor.Baseline += advance;
+            cursor.HasText = true;
+            positioning?.Advance(1);
+        }
+    }
+
+    private static double EstimateSvgTextWidth(string text, double fontSize) {
+        double width = 0D;
+        foreach (string glyph in OfficeTextElements.Enumerate(text)) {
+            width += char.IsWhiteSpace(glyph, 0)
+                ? fontSize * 0.33D
+                : OfficeTextElements.IsVerticalMixedOrientationUpright(glyph) ? fontSize : fontSize * 0.62D;
+        }
+        return Math.Max(0.1D, width);
+    }
+
+    private static double MeasureSvgText(
+        string text,
+        double fontSize,
+        SvgPaintContext style,
+        OfficeFontFaceCollection fonts,
+        out IOfficeFontProgram? program) {
+        program = fonts.ResolveForText(text, style.FontFamily, style.FontStyle, out _)
+            ?? OfficeTrueTypeFont.TryLoadFontFamily(style.FontFamily);
+        if (program != null && RequiresPaintedTextOutline(style)) {
+            double measured = program.Measure(text, fontSize);
+            if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {
+                return measured;
+            }
+        }
+        return EstimateSvgTextWidth(text, fontSize);
     }
 
     private static double ResolveOwnBaselineShift(
@@ -151,7 +340,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static void ApplyTextLengthAdjustment(
-        ICollection<SvgTextRun> runs,
+        IList<SvgTextRun> runs,
         int firstRun,
         double origin,
         double authoredLength,
@@ -176,49 +365,6 @@ public static partial class OfficeSvgDrawingReader {
             run.GlyphScale *= scale;
         }
         cursor.X = origin + ((cursor.X - origin) * scale);
-    }
-
-    private static void ApplyTextPosition(
-        XElement element,
-        double viewX,
-        double viewY,
-        double viewportWidth,
-        double viewportHeight,
-        ref SvgTextCursor cursor,
-        ref int unsupported) {
-        bool startsChunk = false;
-        if (TryTextLength(element, "x", viewportWidth, out double x, out _, ref unsupported)) {
-            cursor.X = x - viewX;
-            startsChunk = true;
-        }
-        if (TryTextLength(element, "y", viewportHeight, out double y, out _, ref unsupported)) {
-            cursor.Baseline = y - viewY;
-            startsChunk = true;
-        }
-        if (cursor.Chunk < 0 || startsChunk) {
-            cursor.Chunk++;
-            cursor.PendingSpace = false;
-        }
-        if (TryTextLength(element, "dx", viewportWidth, out double dx, out _, ref unsupported)) cursor.X += dx;
-        if (TryTextLength(element, "dy", viewportHeight, out double dy, out _, ref unsupported)) cursor.Baseline += dy;
-    }
-
-    private static bool TryTextLength(
-        XElement element,
-        string name,
-        double percentageReference,
-        out double value,
-        out bool percentage,
-        ref int unsupported) {
-        value = 0D;
-        percentage = false;
-        string? text = element.Attribute(name)?.Value;
-        if (string.IsNullOrWhiteSpace(text)) return false;
-        string[] values = text!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
-        if (values.Length != 1) unsupported++;
-        if (values.Length > 0 && TryViewportLength(values[0], percentageReference, out value, out percentage)) return true;
-        unsupported++;
-        return false;
     }
 
     private static double ResolveTextBaseline(double authoredY, double fontSize, SvgDominantBaseline baseline) {
@@ -263,6 +409,16 @@ public static partial class OfficeSvgDrawingReader {
         foreach (IGrouping<int, SvgTextRun> chunk in runs.GroupBy(run => run.Chunk)) {
             SvgTextRun first = chunk.First();
             if (first.Anchor == "start") continue;
+            if (first.IsVertical) {
+                double top = chunk.Min(run => run.RotationCenterY - (run.InlineAdvance / 2D));
+                double bottom = chunk.Max(run => run.RotationCenterY + (run.InlineAdvance / 2D));
+                double verticalShift = first.Anchor == "middle" ? -(bottom - top) / 2D : -(bottom - top);
+                foreach (SvgTextRun run in chunk) {
+                    run.Baseline += verticalShift;
+                    run.RotationCenterY += verticalShift;
+                }
+                continue;
+            }
             double left = chunk.Min(run => run.X);
             double right = chunk.Max(run => run.X + run.Width);
             double shift = first.Anchor == "middle" ? -(right - left) / 2D : -(right - left);
@@ -270,9 +426,40 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
-    private static void AddTextRun(OfficeDrawing drawing, SvgTextRun run, ref int unsupported) {
-        if (run.Style.FillGradient != null || run.Style.FillRadialGradient != null || run.Style.FillDeferredGradient != null) {
-            unsupported++;
+    private static void AddTextRun(
+        OfficeDrawing drawing,
+        SvgTextRun run,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        double viewX,
+        double viewY,
+        int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
+        ref int visited,
+        ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
+        ref int unsupported) {
+        bool requiresPaintedOutline = RequiresPaintedTextOutline(run.Style);
+        if (requiresPaintedOutline) {
+            if (!TryAddPaintedTextRun(
+                    drawing,
+                    run,
+                    paintServers,
+                    references,
+                    viewX,
+                    viewY,
+                    maximumElements,
+                    maximumViewportDimension,
+                    maximumViewportPixels,
+                    depth,
+                    ref visited,
+                    ref pathCommands,
+                    ref pathCommandLimitExceeded,
+                    ref unsupported)) {
+                unsupported++;
+            }
             return;
         }
         if (!run.Style.Fill.HasValue) return;
@@ -295,7 +482,10 @@ public static partial class OfficeSvgDrawingReader {
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
         OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
         var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontStyle);
-        bool usesEffect = run.Transform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
+        OfficeTransform textTransform = Math.Abs(run.RotationDegrees) <= 0.0000001D
+            ? run.Transform
+            : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
+        bool usesEffect = textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         try {
             double naturalWidth = width / run.GlyphScale;
@@ -318,11 +508,11 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (!ReferenceEquals(target, drawing)) {
                 OfficeTransform effect = run.GlyphScale.Equals(1D)
-                    ? run.Transform
+                    ? textTransform
                     : OfficeTransform.Translate(-x, 0D)
                         .Then(OfficeTransform.Scale(run.GlyphScale, 1D))
                         .Then(OfficeTransform.Translate(x, 0D))
-                        .Then(run.Transform);
+                        .Then(textTransform);
                 drawing.AddEffectDrawing(target, effect);
             }
         } catch (ArgumentOutOfRangeException) {
@@ -330,10 +520,21 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
+    private static bool RequiresPaintedTextOutline(SvgPaintContext style) =>
+        style.FillGradient != null
+        || style.FillRadialGradient != null
+        || style.FillDeferredGradient != null
+        || style.FillPattern != null
+        || style.Stroke.HasValue
+        || style.StrokeGradient != null
+        || style.StrokeRadialGradient != null
+        || style.StrokeDeferredGradient != null
+        || style.StrokePattern != null;
+
     private sealed class SvgTextRun {
         internal string Text { get; }
         internal double X { get; set; }
-        internal double Baseline { get; }
+        internal double Baseline { get; set; }
         internal double Width { get; set; }
         internal double GlyphScale { get; set; } = 1D;
         internal double FontSize { get; }
@@ -341,8 +542,15 @@ public static partial class OfficeSvgDrawingReader {
         internal string Anchor { get; }
         internal SvgPaintContext Style { get; }
         internal OfficeTransform Transform { get; }
+        internal IOfficeFontProgram? FontProgram { get; }
+        internal double RotationDegrees { get; }
+        internal double RotationCenterX { get; set; }
+        internal double RotationCenterY { get; set; }
+        internal bool IsVertical { get; }
+        internal double InlineAdvance { get; }
 
-        internal SvgTextRun(string text, double x, double baseline, double width, double fontSize, int chunk, string anchor, SvgPaintContext style, OfficeTransform transform) {
+        internal SvgTextRun(string text, double x, double baseline, double width, double fontSize, int chunk, string anchor, SvgPaintContext style, OfficeTransform transform, IOfficeFontProgram? fontProgram,
+            double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool isVertical = false, double inlineAdvance = 0D) {
             Text = text;
             X = x;
             Baseline = baseline;
@@ -352,7 +560,25 @@ public static partial class OfficeSvgDrawingReader {
             Anchor = anchor;
             Style = style;
             Transform = transform;
+            FontProgram = fontProgram;
+            RotationDegrees = rotationDegrees;
+            RotationCenterX = rotationCenterX ?? x + width / 2D;
+            RotationCenterY = rotationCenterY ?? baseline - fontSize / 2D;
+            IsVertical = isVertical;
+            InlineAdvance = inlineAdvance > 0D ? inlineAdvance : width;
         }
+    }
+
+    private readonly struct SvgTextPathLayout {
+        internal SvgTextPathLayout(XElement element, int firstRun, int endRun) {
+            Element = element;
+            FirstRun = firstRun;
+            EndRun = endRun;
+        }
+
+        internal XElement Element { get; }
+        internal int FirstRun { get; }
+        internal int EndRun { get; }
     }
 
     private struct SvgTextCursor {
