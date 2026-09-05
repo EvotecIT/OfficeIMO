@@ -47,7 +47,7 @@ public static partial class OfficeSvgDrawingReader {
                         source.Style,
                         source.Transform,
                         source.FontProgram,
-                        angleDegrees,
+                        angleDegrees + source.RotationDegrees,
                         point.X,
                         point.Y) {
                         GlyphScale = source.GlyphScale

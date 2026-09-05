@@ -1399,4 +1399,49 @@ public class DrawingSvgReaderTests {
         Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
         Assert.Contains(">B</text>", exported, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void SvgReaderAppliesPerCharacterTextCoordinatesOffsetsAndRotations() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 40'>"
+            + "<text x='5 20 40' y='15 20 25' dx='1 2 3' dy='0 1 2' rotate='0 30 60' font-size='10'>ABC</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains("x=\"6\"", exported, StringComparison.Ordinal);
+        Assert.Contains("y=\"15\"", exported, StringComparison.Ordinal);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">B</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">C</text>", exported, StringComparison.Ordinal);
+        OfficeDrawingEffectGroup[] rotated = drawing.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(2, rotated.Length);
+        Assert.Equal(Math.Cos(Math.PI / 6D), rotated[0].Transform.M11, 6);
+        Assert.Equal(Math.Cos(Math.PI / 3D), rotated[1].Transform.M11, 6);
+    }
+
+    [Fact]
+    public void SvgReaderConsumesAncestorPositionListsAcrossNestedTspans() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30'>"
+            + "<text x='5 25 45' y='15' font-size='10'><tspan>A</tspan><tspan x='70'>B</tspan>C</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains("x=\"5\"", exported, StringComparison.Ordinal);
+        Assert.Contains("x=\"70\"", exported, StringComparison.Ordinal);
+        Assert.Contains("x=\"45\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesLegacyTrefTextThroughTheBoundedReferenceRegistry() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'>"
+            + "<defs><text id='label'>Referenced label</text></defs>"
+            + "<text x='4' y='16' font-size='10'><tref href='#label'/></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Referenced label", text.Text);
+    }
 }
