@@ -366,9 +366,11 @@ jobs:
               throw "$packageId packed as $($packageVersions[$packageId]); expected $oneNoteVersion."
             }
           }
+          $consumerPackages = Join-Path $env:RUNNER_TEMP ('officeimo-onenote-consumer-cache-' + [Guid]::NewGuid().ToString('N'))
           $smokeProperties = @(
             '--property:EnableOfficeIMOOneNotePackageSmoke=true',
-            "--property:OfficeIMOOneNotePackageVersion=$oneNoteVersion"
+            "--property:OfficeIMOOneNotePackageVersion=$oneNoteVersion",
+            "--property:RestorePackagesPath=$consumerPackages"
           )
           dotnet new nugetconfig --output $configDirectory --force
           dotnet nuget add source "$feed" --name OfficeIMOLocal --configfile "$configPath"
@@ -402,7 +404,7 @@ jobs:
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($packageId in $packageIds) {
             $packageVersion = $packageVersions[$packageId]
-            $metadataPath = Join-Path $env:NUGET_PACKAGES "$($packageId.ToLowerInvariant())/$packageVersion/.nupkg.metadata"
+            $metadataPath = Join-Path $consumerPackages "$($packageId.ToLowerInvariant())/$packageVersion/.nupkg.metadata"
             $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
             $resolvedSource = (Resolve-Path $metadata.source).Path.TrimEnd('\', '/')
             if (-not $resolvedSource.Equals($expectedFeed, [StringComparison]::OrdinalIgnoreCase)) {
