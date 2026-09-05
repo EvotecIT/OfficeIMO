@@ -1476,7 +1476,7 @@ Console.WriteLine($"Non-table page content detected: {tableReport.HasOmittedPage
 PdfHtmlConverterExtensions.SaveAsHtml(
     "proposal.pdf",
     "proposal-review.html",
-    new PdfHtmlSaveOptions {
+    new PdfToHtmlOptions {
         Profile = PdfHtmlProfile.PositionedReview,
         IncludeLinkAnnotations = true,
         IncludeFormWidgets = true

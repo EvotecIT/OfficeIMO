@@ -89,6 +89,7 @@ public static class OdpPdfConversionExtensions {
             PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdpConversionResult(
                 odp.Value,
                 new PdfOdpConversionReport(pdf.Report, odp.Report));
@@ -109,6 +110,7 @@ public static class OdpPdfConversionExtensions {
             PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdpConversionResult(
                 odp.Value,
                 new PdfOdpConversionReport(pdf.Report, odp.Report));
@@ -119,6 +121,7 @@ public static class OdpPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdpConversionReport> SaveAsOdp(this PdfCore.PdfDocument source, string path, PowerPointPdf.PdfToPowerPointOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdpConversionReport>.FromSuccess(path, result.Report);
     }
@@ -127,6 +130,7 @@ public static class OdpPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdpConversionReport> SaveAsOdp(this PdfCore.PdfDocument source, Stream stream, PowerPointPdf.PdfToPowerPointOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdpConversionReport>.FromSuccess(null, result.Report);
     }
@@ -135,6 +139,7 @@ public static class OdpPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdpConversionReport> SaveAsOdp(this PdfCore.PdfDocumentReadResult source, string path, PowerPointPdf.PdfToPowerPointOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdpConversionReport>.FromSuccess(path, result.Report);
     }
@@ -143,6 +148,7 @@ public static class OdpPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdpConversionReport> SaveAsOdp(this PdfCore.PdfDocumentReadResult source, Stream stream, PowerPointPdf.PdfToPowerPointOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdpConversionReport>.FromSuccess(null, result.Report);
     }

@@ -93,7 +93,7 @@ using OfficeIMO.Word.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("packet.pdf");
 PdfWordConversionResult import = pdf.ToWordDocumentResult(
-    new PdfWordImportOptions());
+    new PdfToWordOptions());
 
 using WordDocument word = import.Value;
 word.Save("packet.docx");
@@ -110,7 +110,7 @@ For selected pages, Fast versus Structured reconstruction, or custom semantic bu
 ```csharp
 PdfWordConversionReport report = pdf.SaveAsWord(
     "packet-selection.docx",
-    new PdfWordImportOptions {
+    new PdfToWordOptions {
         ReadOptions = new PdfReadOptions {
             PageSelection = PdfPageSelection.Parse("1-3,5"),
             LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true },
@@ -126,7 +126,7 @@ For table-only recovery, use the same façade with the explicit profile:
 ```csharp
 pdf.SaveAsWord(
     "statement-tables.docx",
-    PdfWordImportOptions.CreateTablesOnly());
+    PdfToWordOptions.CreateTablesOnly());
 ```
 
 ## What it exports
@@ -142,9 +142,9 @@ pdf.SaveAsWord(
 - Parser-supported PDF metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, complete image-file payloads with transparency-mask fidelity metadata, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette PDF image streams into editable `.docx` content when their filters are supported.
 - Image fallback placeholders and form-widget placeholders with diagnostics instead of silently dropping unsupported objects.
 - Page-range filtered imports through `PdfDocument.Read(new PdfReadOptions { PageSelection = ... })`.
-- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordImportOptions.ImportUriLinks` and `PdfWordImportOptions.AllowedHyperlinkUriSchemes`.
-- Internal PDF destination reconstruction through `PdfWordImportOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
-- Native image embedding through `PdfWordImportOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfWordImportOptions.IncludeImagePlaceholders`.
+- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfToWordOptions.ImportUriLinks` and `PdfToWordOptions.AllowedHyperlinkUriSchemes`.
+- Internal PDF destination reconstruction through `PdfToWordOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
+- Native image embedding through `PdfToWordOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfToWordOptions.IncludeImagePlaceholders`.
 - Per-operation import warnings through `PdfWordConversionResult.Report`.
 
 ## Options and diagnostics

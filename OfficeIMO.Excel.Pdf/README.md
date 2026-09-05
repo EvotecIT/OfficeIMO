@@ -115,7 +115,7 @@ using OfficeIMO.Pdf;
 PdfDocument pdf = PdfDocument.Load("bank-statement.pdf");
 PdfExcelTableImportReport report = pdf.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",
-    new PdfExcelTableImportOptions {
+    new PdfTablesToExcelOptions {
         ReadOptions = new PdfReadOptions {
             PageSelection = PdfPageSelection.Parse("1-3")
         },

@@ -88,6 +88,7 @@ public static class OdsPdfConversionExtensions {
         ExcelPdf.PdfExcelTableImportResult pdf = ExcelPdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdsDocument> ods = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdsConversionResult(
                 ods.Value,
                 new PdfOdsConversionReport(pdf.Report, ods.Report));
@@ -105,6 +106,7 @@ public static class OdsPdfConversionExtensions {
         ExcelPdf.PdfExcelTableImportResult pdf = ExcelPdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdsDocument> ods = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdsConversionResult(
                 ods.Value,
                 new PdfOdsConversionReport(pdf.Report, ods.Report));
@@ -115,6 +117,7 @@ public static class OdsPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdsConversionReport> SaveAsOds(this PdfCore.PdfDocument source, string path, ExcelPdf.PdfTablesToExcelOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdsConversionReport>.FromSuccess(path, result.Report);
     }
@@ -123,6 +126,7 @@ public static class OdsPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdsConversionReport> SaveAsOds(this PdfCore.PdfDocument source, Stream stream, ExcelPdf.PdfTablesToExcelOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdsConversionReport>.FromSuccess(null, result.Report);
     }
@@ -131,6 +135,7 @@ public static class OdsPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdsConversionReport> SaveAsOds(this PdfCore.PdfDocumentReadResult source, string path, ExcelPdf.PdfTablesToExcelOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdsConversionReport>.FromSuccess(path, result.Report);
     }
@@ -139,6 +144,7 @@ public static class OdsPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdsConversionReport> SaveAsOds(this PdfCore.PdfDocumentReadResult source, Stream stream, ExcelPdf.PdfTablesToExcelOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdsConversionReport>.FromSuccess(null, result.Report);
     }

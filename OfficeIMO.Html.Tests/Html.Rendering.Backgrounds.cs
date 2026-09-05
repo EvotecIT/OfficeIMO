@@ -166,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.Equal(18D, background.X, 3);
         Assert.Equal(18D, background.Y, 3);

@@ -167,12 +167,12 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(typeof(Func<string, IReadOnlyList<int>>), typeof(PdfOptions).GetProperty(nameof(PdfOptions.TextLineBreakCallback))?.PropertyType);
 
         Assert.Equal(
-            2,
+            4,
             methods.Count(method =>
                 method.Name == nameof(PdfDocument.Save) &&
                 method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(
-            2,
+            4,
             methods.Count(method =>
                 method.Name == nameof(PdfDocument.SaveResult) &&
                 method.ReturnType == typeof(PdfSaveResult)));

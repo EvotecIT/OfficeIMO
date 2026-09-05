@@ -799,7 +799,7 @@ public class PowerPointPdfTableImportTests {
         PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
-            PdfToPowerPointOptions.CreateEditableTables());
+            PdfToPowerPointOptions.CreateEditableTables()).RequireSuccess().Report!;
 
         PdfPowerPointTableImportEntry result = Assert.Single(report.TableEntries);
         Assert.Equal(1, result.PageNumber);
@@ -865,7 +865,7 @@ public class PowerPointPdfTableImportTests {
                 Mode = PdfPowerPointImportMode.EditableTables,
                 MaxRows = 2,
                 IncludeSourceTitles = false
-            });
+            }).RequireSuccess().Report!;
 
         PdfPowerPointTableImportEntry result = Assert.Single(report.TableEntries);
         Assert.Equal(2, result.RowCount);
@@ -892,7 +892,7 @@ public class PowerPointPdfTableImportTests {
             new PdfToPowerPointOptions {
                 Mode = PdfPowerPointImportMode.EditableTables,
                 EmptyPresentationMessage = "Nothing tabular was detected."
-            });
+            }).RequireSuccess().Report!;
 
         Assert.Empty(emptyReport.TableEntries);
         using PresentationDocument emptyPackage = PresentationDocument.Open(new MemoryStream(emptyPresentation.ToArray()), false);
@@ -930,7 +930,7 @@ public class PowerPointPdfTableImportTests {
                 Mode = PdfPowerPointImportMode.EditableTables,
                 IncludeColumnHeaderRows = false,
                 EmptyPresentationMessage = "No table rows were imported."
-            });
+            }).RequireSuccess().Report!;
 
         Assert.Empty(report.TableEntries);
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
@@ -972,7 +972,7 @@ public class PowerPointPdfTableImportTests {
                 Mode = PdfPowerPointImportMode.EditableTables,
                 MaxRowsPerSlide = 2,
                 MaxColumnsPerSlide = 2
-            });
+            }).RequireSuccess().Report!;
 
         IReadOnlyList<PdfPowerPointTableImportEntry> results = report.TableEntries;
         Assert.Equal(4, results.Count);

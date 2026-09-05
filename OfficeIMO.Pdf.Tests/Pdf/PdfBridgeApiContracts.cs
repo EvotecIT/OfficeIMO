@@ -51,6 +51,24 @@ public sealed class PdfBridgeApiContracts {
         }
     }
 
+    [Theory]
+    [InlineData(typeof(PowerPointPdfConverterExtensions))]
+    [InlineData(typeof(PdfWordConverterExtensions))]
+    [InlineData(typeof(PdfExcelTableConverterExtensions))]
+    [InlineData(typeof(PdfHtmlConverterExtensions))]
+    public void ConversionFacadesExposeCancellationAsTheFinalOperationArgument(Type converterType) {
+        var methods = converterType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method => method.Name.StartsWith("To", StringComparison.Ordinal) ||
+                             method.Name.StartsWith("Save", StringComparison.Ordinal) ||
+                             method.Name.StartsWith("Import", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(methods);
+        Assert.All(methods, method => {
+            var parameters = method.GetParameters();
+            Assert.Equal(typeof(System.Threading.CancellationToken), parameters.Last().ParameterType);
+            Assert.True(parameters.Last().IsOptional, method.ToString());
+        });
+    }
+
     [Fact]
     public void ExcelTableRecoveryUsesTheSameNarrowFacadeOnOpenedAndLogicalPdfDocuments() {
         MethodInfo[] methods = typeof(PdfExcelTableConverterExtensions)

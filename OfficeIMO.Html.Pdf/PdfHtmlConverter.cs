@@ -49,7 +49,7 @@ public static partial class PdfHtmlConverterExtensions {
             path,
             CreateRenderOptionsAfterPreselection(options),
             cancellationToken).ConfigureAwait(false);
-    
+
     }
 
     /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -66,7 +66,7 @@ public static partial class PdfHtmlConverterExtensions {
             stream,
             CreateRenderOptionsAfterPreselection(options),
             cancellationToken).ConfigureAwait(false);
-    
+
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         await HtmlTextIO.WriteAsync(path, result.Value, cancellationToken).ConfigureAwait(false);
         return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(path, result.Report);
-    
+
     }
 
     /// <summary>Renders a logical PDF document, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -120,7 +120,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         await HtmlTextIO.WriteAsync(stream, result.Value, cancellationToken).ConfigureAwait(false);
         return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(null, result.Report);
-    
+
     }
 
 

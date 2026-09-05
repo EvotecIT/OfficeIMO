@@ -273,7 +273,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument sourcePdf = PdfDocument.Load("quarterly-update.pdf");
-PdfHtmlSaveOptions semanticOptions = PdfHtmlSaveOptions.CreateSemanticProfile(
+PdfToHtmlOptions semanticOptions = PdfToHtmlOptions.CreateSemanticProfile(
     OfficeVisualThemeKind.TechnicalDocument);
 semanticOptions.ReadOptions = new PdfReadOptions {
     PageSelection = PdfPageSelection.Parse("1-20"),
@@ -281,7 +281,7 @@ semanticOptions.ReadOptions = new PdfReadOptions {
 };
 string semantic = sourcePdf.ToHtml(semanticOptions);
 
-PdfHtmlSaveOptions reviewOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile(
+PdfToHtmlOptions reviewOptions = PdfToHtmlOptions.CreatePositionedReviewProfile(
     OfficeVisualThemeKind.Report);
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
 PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
@@ -296,9 +296,9 @@ The named profiles emit the shared responsive OfficeIMO document shell, stable p
 
 PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlToPdfOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
-Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfHtmlSaveOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
+Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfToHtmlOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 
-`PdfHtmlSaveOptions.ReadOptions` configures the canonical semantic read for an opened `PdfDocument`. Existing `PageRanges` take precedence over `ReadOptions.PageSelection`; the profile, layout, and semantic budgets still come from `ReadOptions`. The setting is ignored when the source is already a `PdfDocumentReadResult`.
+`PdfToHtmlOptions.ReadOptions` configures the canonical semantic read for an opened `PdfDocument`. Existing `PageRanges` take precedence over `ReadOptions.PageSelection`; the profile, layout, and semantic budgets still come from `ReadOptions`. The setting is ignored when the source is already a `PdfDocumentReadResult`.
 
 ## Targets and license
 

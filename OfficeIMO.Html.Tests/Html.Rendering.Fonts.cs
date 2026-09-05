@@ -372,9 +372,9 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg();
-        var pdfOptions = new HtmlPdfSaveOptions();
+        var pdfOptions = new HtmlToPdfOptions();
         pdfOptions.PdfOptions.CompressContentStreams = false;
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
 
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeDrawingGroup logicalPaint = Assert.Single(

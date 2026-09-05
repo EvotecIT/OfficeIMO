@@ -103,6 +103,7 @@ public static class OdtPdfConversionExtensions {
             WordPdf.PdfWordConverterExtensions.ToWordDocumentResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdtDocument> odt = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdtConversionResult(
                 odt.Value,
                 new PdfOdtConversionReport(pdf.Report, odt.Report));
@@ -127,6 +128,7 @@ public static class OdtPdfConversionExtensions {
             WordPdf.PdfWordConverterExtensions.ToWordDocumentResult(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdtDocument> odt = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdtConversionResult(
                 odt.Value,
                 new PdfOdtConversionReport(pdf.Report, odt.Report));
@@ -137,6 +139,7 @@ public static class OdtPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdtConversionReport> SaveAsOdt(this PdfCore.PdfDocument source, string path, WordPdf.PdfToWordOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdtConversionReport>.FromSuccess(path, result.Report);
     }
@@ -145,6 +148,7 @@ public static class OdtPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdtConversionReport> SaveAsOdt(this PdfCore.PdfDocument source, Stream stream, WordPdf.PdfToWordOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdtConversionReport>.FromSuccess(null, result.Report);
     }
@@ -153,6 +157,7 @@ public static class OdtPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdtConversionReport> SaveAsOdt(this PdfCore.PdfDocumentReadResult source, string path, WordPdf.PdfToWordOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(path);
         return OfficeOutputResult<PdfOdtConversionReport>.FromSuccess(path, result.Report);
     }
@@ -161,6 +166,7 @@ public static class OdtPdfConversionExtensions {
     public static OfficeOutputResult<PdfOdtConversionReport> SaveAsOdt(this PdfCore.PdfDocumentReadResult source, Stream stream, WordPdf.PdfToWordOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         result.Value.Save(stream);
         return OfficeOutputResult<PdfOdtConversionReport>.FromSuccess(null, result.Report);
     }

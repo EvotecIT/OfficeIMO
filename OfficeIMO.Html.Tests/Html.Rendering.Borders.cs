@@ -297,7 +297,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeColor dark = OfficeColorTransforms.Shade(OfficeColor.Gray, 0.55D);
         OfficeColor light = OfficeColorTransforms.Tint(OfficeColor.Gray, 0.55D);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.Equal(8, groove.Count);
         Assert.Equal(8, ridge.Count);

@@ -27,7 +27,7 @@ public sealed class HtmlPdfTests {
             <p>Print production</p>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
 
@@ -56,7 +56,7 @@ public sealed class HtmlPdfTests {
             <p>Alpha body <span id="pdf-note" class="note">Footnote payload</span> omega.</p>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
@@ -75,7 +75,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_FragmentLinksUseNamedDestinationsInsteadOfRelativeUriActions() {
         const string html = "<p><a href='#details'>Jump to details</a></p><p><span id='details'>Details</span></p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("html-fragment:details", info.NamedDestinationNames);
@@ -89,7 +89,7 @@ public sealed class HtmlPdfTests {
             + "<a href='https://example.test/svg-details' aria-label='SVG details'>"
             + "<rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("https://example.test/svg-details", info.LinkUris);
@@ -106,7 +106,7 @@ public sealed class HtmlPdfTests {
             + "<image x='5' y='4' width='20' height='10' href='data:image/png;base64,"
             + Convert.ToBase64String(png) + "'/></svg>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
 
         Assert.NotEmpty(PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetImages());
     }
@@ -116,7 +116,7 @@ public sealed class HtmlPdfTests {
         const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
             + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("html-fragment:empty target", info.NamedDestinationNames);
@@ -147,7 +147,7 @@ public sealed class HtmlPdfTests {
             + rows
             + "</tbody></table><p id='heading'>Duplicate</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(1, info.NamedDestinationNames.Count(name => name == "html-fragment:heading"));
@@ -155,23 +155,15 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
-    public void Pdf_SaveAsHtmlAsync_LinksTheMethodTokenIntoRenderOptions() {
-        using var optionsCancellation = new System.Threading.CancellationTokenSource();
-        using var methodCancellation = new System.Threading.CancellationTokenSource();
+    public async Task Pdf_SaveAsHtmlAsync_ObservesMethodCancellationAndKeepsOptionsReusable() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
         var options = PdfToHtmlOptions.CreateSemanticProfile();
-        options.CancellationToken = optionsCancellation.Token;
-
-        PdfToHtmlOptions renderOptions = PdfHtmlConverterExtensions.CreateAsyncRenderOptions(
-            options,
-            methodCancellation.Token,
-            out System.Threading.CancellationTokenSource? linkedCancellation);
-
-        using (linkedCancellation) {
-            Assert.NotSame(options, renderOptions);
-            Assert.False(renderOptions.CancellationToken.IsCancellationRequested);
-            methodCancellation.Cancel();
-            Assert.Throws<OperationCanceledException>(() => renderOptions.CancellationToken.ThrowIfCancellationRequested());
-        }
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(PdfCore.PdfDocument.Create().Paragraph(p => p.Text("Reusable options")).ToBytes());
+        cancellation.Cancel();
+        using var stream = new MemoryStream();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => pdf.SaveAsHtmlAsync(stream, options, cancellation.Token));
+        Assert.Equal(0, stream.Length);
+        Assert.True((await pdf.SaveAsHtmlAsync(stream, options)).Succeeded);
     }
 
     [Fact]
@@ -1506,7 +1498,7 @@ public sealed class HtmlPdfTests {
         Assert.Throws<InvalidOperationException>(() => imageResult.RequireNoLoss());
 
         using var output = new MemoryStream();
-        PdfCore.PdfConversionReport saveReport = PdfCore.PdfDocumentReadResult.Load(imagePdf).SaveAsHtml(output, options);
+        PdfCore.PdfConversionReport saveReport = PdfCore.PdfDocumentReadResult.Load(imagePdf).SaveAsHtml(output, options).RequireSuccess().Report!;
         Assert.True(saveReport.IsReadOnly);
         Assert.Throws<InvalidOperationException>(() => saveReport.Clear());
         Assert.True(saveReport.HasLoss);

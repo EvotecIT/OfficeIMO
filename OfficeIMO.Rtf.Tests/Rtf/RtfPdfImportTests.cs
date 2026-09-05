@@ -176,12 +176,12 @@ public class RtfPdfImportTests {
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
 
         using var sync = new MemoryStream();
-        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions());
+        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions()).RequireSuccess().Report!;
         Assert.False(syncReport.HasLoss);
         Assert.NotEmpty(sync.ToArray());
 
         using var asyncOutput = new MemoryStream();
-        PdfRtfConversionReport asyncReport = await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions());
+        PdfRtfConversionReport asyncReport = (await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions())).RequireSuccess().Report!;
         Assert.False(asyncReport.HasLoss);
         Assert.NotEmpty(asyncOutput.ToArray());
     }

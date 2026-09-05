@@ -51,6 +51,19 @@ public sealed class ReaderDirectPdfAdapterTests {
         Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
     }
 
+    [Fact]
+    public void ByteFacadesReturnReadableBytesAndDocumentFacadesRetainReports() {
+        foreach (string format in new[] { "Email", "Epub", "Visio" }) {
+            var methods = typeof(OfficeDocumentPdfConverter).GetMethods();
+            Assert.Equal(2, methods.Count(method => method.Name == format + "ToPdfBytes" && method.ReturnType == typeof(byte[])));
+            Assert.Equal(2, methods.Count(method => method.Name == format + "ToPdfDocumentResult" && method.ReturnType == typeof(PdfDocumentConversionResult)));
+        }
+        using var epub = CreateEpub();
+        byte[] bytes = OfficeDocumentPdfConverter.EpubToPdfBytes(epub);
+        Assert.Contains("First chapter", PdfReadDocument.Open(bytes).ExtractText());
+        Assert.True(epub.CanRead);
+    }
+
     private static MemoryStream CreateEpub() {
         var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {

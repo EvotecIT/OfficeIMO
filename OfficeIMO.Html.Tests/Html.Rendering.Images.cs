@@ -263,7 +263,7 @@ public sealed partial class HtmlRenderingTests {
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
         PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html)
-            .ToPdfDocumentResult(new HtmlPdfSaveOptions(options));
+            .ToPdfDocumentResult(new HtmlToPdfOptions(options));
         byte[] pdf = pdfResult.ToBytes();
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
@@ -294,7 +294,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
@@ -326,7 +326,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);

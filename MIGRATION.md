@@ -63,10 +63,40 @@ Forward PDF adapters use source-specific options and the same direct/result pair
 | `TrySaveAsPdf(...)` | `SaveAsPdfResult(...)` |
 | `TrySaveAsPdfAsync(...)` | `SaveAsPdfResultAsync(...)` |
 
-Word, Excel, and PowerPoint no longer store an operation-specific
-`CancellationToken` on their PDF option objects. Pass it as the final argument to
-the async conversion or save method. This makes reusable option profiles safe to
-share between operations.
+PDF conversion options use directional names in both directions:
+
+| Previous reverse options | Current options |
+| --- | --- |
+| `PdfWordImportOptions` | `PdfToWordOptions` |
+| `PdfPowerPointImportOptions` | `PdfToPowerPointOptions` |
+| `PdfExcelTableImportOptions` | `PdfTablesToExcelOptions` |
+| `PdfRtfImportOptions` | `PdfToRtfOptions` |
+| `PdfHtmlSaveOptions` | `PdfToHtmlOptions` |
+
+Pass `CancellationToken` as the final conversion or save argument in either
+direction, including synchronous methods. Options contain reusable configuration.
+Tokens propagate through supported reading, reconstruction, PDF layout, and output
+stages. Native OpenDocument and AsciiDoc/LaTeX source projections and synchronous
+native-format writers cannot interrupt an individual projection or write; use
+async output where available for cancellation during output. Cancellation throws
+`OperationCanceledException`, including from `SaveAsPdfResult`.
+
+`OfficeDocumentPdfConverter.EmailToPdfBytes`, `EpubToPdfBytes`, and
+`VisioToPdfBytes` return `byte[]`. Use their `ToPdfDocumentResult` counterparts
+when the generated document and conversion report are needed.
+
+Reverse saves return `OfficeOutputResult<TReport>`. Read `Report` for typed
+fidelity evidence, `OutputPath` for a file destination, and `Succeeded` through
+`IOfficeOutputResult` or `IOfficeResult`. Ordinary saves still throw on failure;
+`OfficeOutputResult<TReport>.FromFailure` supports application-owned failure
+boundaries. `RequireNoLoss()` first requires successful output. `PdfSaveResult`
+implements the same output-status interface and enforces the same guard.
+
+PDF stream saves leave the caller's stream open. They overwrite, truncate, and
+rewind seekable streams after success; non-seekable streams receive output at the
+current position. Direct document saves, conversion-result saves, and source
+adapters use this same writer. Cancellation or a failed write can leave partial
+bytes in a caller-owned stream; file saves use the canonical file-commit path.
 
 PDF operations use the same direct/result distinction. `PdfDocument.Merge(...)`
 returns the merged document, while `PdfDocument.MergeResult(...)` returns

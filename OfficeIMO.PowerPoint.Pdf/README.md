@@ -142,7 +142,7 @@ foreach (var page in report.EditablePages) {
 Use the explicit visual profile when a page image is the intended result. Each image is movable and resizable, but text, vectors, charts, and tables inside it are not editable:
 
 ```csharp
-var visual = PdfPowerPointImportOptions.CreateVisualPages();
+var visual = PdfToPowerPointOptions.CreateVisualPages();
 PdfPowerPointConversionReport visualReport = pdf.SaveAsPowerPoint(
     "handout-visual.pptx",
     visual);
@@ -157,7 +157,7 @@ This is a new semantic projection, not recovery of the original slide deck. Orig
 Use hybrid mode when the original page must remain visible while detected tables stay editable. Row and column caps split a large overlay across duplicate visual-page slides, and each overlay keeps the same centered, aspect-preserving page geometry as its background:
 
 ```csharp
-var hybrid = PdfPowerPointImportOptions.CreateHybrid();
+var hybrid = PdfToPowerPointOptions.CreateHybrid();
 hybrid.MaxRowsPerSlide = 18;
 hybrid.MaxColumnsPerSlide = 6;
 
@@ -172,7 +172,7 @@ Console.WriteLine($"Visual-only page content: {hybridReport.HasNonEditablePageCo
 Use editable-table mode when detected data is more important than page appearance:
 
 ```csharp
-var options = PdfPowerPointImportOptions.CreateEditableTables();
+var options = PdfToPowerPointOptions.CreateEditableTables();
 options.ReadOptions = new PdfReadOptions {
     Profile = PdfReadProfile.Structured,
     PageSelection = PdfPageSelection.Parse("1-3")
@@ -197,8 +197,8 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
-- `PdfPowerPointImportOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
-- `PdfPowerPointImportOptions.MaxPages` defaults to 100 and remains a destination import/rendering safety limit. It is separate from `ReadOptions.Pipeline.MaxPages`; both limits apply when semantic reconstruction is required.
+- `PdfToPowerPointOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
+- `PdfToPowerPointOptions.MaxPages` defaults to 100 and remains a destination import/rendering safety limit. It is separate from `ReadOptions.Pipeline.MaxPages`; both limits apply when semantic reconstruction is required.
 - `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.

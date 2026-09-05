@@ -282,7 +282,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     }
 
     /// <summary>Returns the generated PDF bytes.</summary>
-    public byte[] ToBytes(System.Threading.CancellationToken cancellationToken = default) {
+    public byte[] ToBytes() => ToBytes(default);
+
+    /// <summary>Renders the converted PDF while observing cancellation.</summary>
+    public byte[] ToBytes(System.Threading.CancellationToken cancellationToken) {
         try {
             return Value.ToBytes(cancellationToken);
         } finally {
@@ -293,7 +296,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Writes the generated PDF document to the supplied stream and returns conversion plus output evidence.
     /// </summary>
-    public PdfSaveResult Save(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public PdfSaveResult Save(Stream stream) => Save(stream, default);
+
+    /// <summary>Writes the converted PDF while observing cancellation.</summary>
+    public PdfSaveResult Save(Stream stream, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
             result = Value.Save(stream, cancellationToken);
@@ -306,7 +312,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
-    public PdfSaveResult Save(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public PdfSaveResult Save(string path) => Save(path, default);
+
+    /// <summary>Writes the converted PDF while observing cancellation.</summary>
+    public PdfSaveResult Save(string path, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
             result = Value.Save(path, cancellationToken);

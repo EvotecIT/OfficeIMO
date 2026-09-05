@@ -768,11 +768,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         return Encoding.UTF8.GetBytes(value);
     }
 
-    private static PdfToPowerPointOptions CreatePowerPointImportOptions(CancellationToken cancellationToken) {
-        PdfToPowerPointOptions options = PdfToPowerPointOptions.CreateEditableContent();
-        options.CancellationToken = cancellationToken;
-        return options;
-    }
+
 
     private static OfficeWorkflowResult CreateResult(
         ValidatedRequest request,

@@ -226,7 +226,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         string pdfText = string.Concat(PdfCore.PdfReadDocument
-            .Open(HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions()))
+            .Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions()))
             .ExtractText()
             .Where(character => !char.IsWhiteSpace(character)));
 

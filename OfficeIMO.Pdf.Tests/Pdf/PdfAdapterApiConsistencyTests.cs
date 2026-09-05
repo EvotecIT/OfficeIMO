@@ -96,6 +96,10 @@ public sealed class PdfAdapterApiConsistencyTests {
 
         Assert.DoesNotContain(methods, method => method.Name is "ToPdf" or "ToPdfAsync" or "TrySaveAsPdf" or "TrySaveAsPdfAsync");
         Assert.DoesNotContain(methods, method => method.GetParameters()[0].ParameterType == typeof(string));
+        Assert.All(methods, method => {
+            Assert.Equal(typeof(CancellationToken), method.GetParameters().Last().ParameterType);
+            Assert.True(method.GetParameters().Last().IsOptional, method.ToString());
+        });
         Assert.All(
             methods.SelectMany(static method => method.GetParameters())
                 .Where(static parameter => parameter.ParameterType == typeof(CancellationToken)),

@@ -15,7 +15,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("source.pdf");
-PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfRtfImportOptions {
+PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfToRtfOptions {
     ReadOptions = new PdfReadOptions {
         PageSelection = PdfPageSelection.Parse("1-10"),
         Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }

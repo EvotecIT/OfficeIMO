@@ -202,14 +202,14 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup red = Assert.Single(artifacts, group => group.Source == "span:text-shadow[0]");
         HtmlRenderSemanticGroup blue = Assert.Single(artifacts, group => group.Source == "span:text-shadow[1]");
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        var pdfOptions = new HtmlPdfSaveOptions {
+        var pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 28D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
         };
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, artifacts.Length);
@@ -263,14 +263,14 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlTextShadows_DoNotDuplicateVerticalLogicalTextInPdf() {
         const string html = "<p style='margin:0;width:30px;height:90px;font:12px/14px Arial;writing-mode:vertical-rl;text-shadow:1px 1px 2px navy'>VerticalOne</p>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(1D, 1.5D),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal("VerticalOne", extracted);

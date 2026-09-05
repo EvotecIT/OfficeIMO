@@ -314,7 +314,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeColor dark = OfficeColorTransforms.Shade(OfficeColor.Gray, 0.55D);
         OfficeColor light = OfficeColorTransforms.Tint(OfficeColor.Gray, 0.55D);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,

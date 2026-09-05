@@ -96,9 +96,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-docx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfToWordOptions {
-                    CancellationToken = cancellationToken
-                });
+                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfToWordOptions(), cancellationToken);
                 using WordDocument document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -110,9 +108,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-xlsx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions {
-                    CancellationToken = cancellationToken
-                });
+                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions(), cancellationToken);
                 using ExcelDocument document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -131,7 +127,7 @@ public sealed partial class OfficeWorkflowRunner {
             case "pdf-pptx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(
-                    CreatePowerPointImportOptions(cancellationToken));
+                    PdfToPowerPointOptions.CreateEditableContent(), cancellationToken);
                 using PowerPointPresentation document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -150,8 +146,7 @@ public sealed partial class OfficeWorkflowRunner {
                     IncludeFormWidgets = true,
                     MaximumOutputCharacters = maximumOutputCharacters,
                     MaxEmbeddedImageBytes = Math.Min(10L * 1024L * 1024L, maximumOutputBytes - maximumOutputBytes / 4L),
-                    CancellationToken = cancellationToken
-                });
+                }, cancellationToken);
                 bytes = EncodeUtf8Bounded(conversion.Value, maximumOutputBytes);
                 hasLoss = conversion.HasLoss;
                 AddMessages(conversion.Report.Warnings.Select(static warning => warning.ToString()), hasLoss, diagnostics);

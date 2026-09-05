@@ -83,7 +83,7 @@ if (advancedRender.Diagnostics.Any(diagnostic =>
         + string.Join(", ", advancedRender.Diagnostics.Select(diagnostic => diagnostic.Code)));
 }
 string advancedSvg = advancedSource.ToSvg(advancedOptions);
-byte[] advancedPdf = advancedSource.ToPdf(new HtmlPdfSaveOptions(advancedOptions));
+byte[] advancedPdf = advancedSource.ToPdfBytes(new HtmlToPdfOptions(advancedOptions));
 string advancedText = PdfReadDocument.Open(advancedPdf).ExtractText();
 string compactAdvancedText = string.Concat(advancedText.Where(character => !char.IsWhiteSpace(character)));
 if (!compactAdvancedText.Contains("VerticalAot", StringComparison.Ordinal)

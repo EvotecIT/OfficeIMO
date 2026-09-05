@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
         HtmlRenderText first = Assert.Single(texts, text => text.Text == "First");
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.Equal(new[] { "[IV] ", "[VII] " }, markers.Select(marker => marker.Text));
         Assert.All(markers, marker => Assert.Equal(OfficeColor.Red, marker.Color));
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
         HtmlRenderText fallback = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Source == "list-marker");
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.Equal(6D, image.Width, 3);
         Assert.Equal(4D, image.Height, 3);
