@@ -86,9 +86,14 @@ public static partial class OfficeDrawingSvgExporter {
             .Append("\";src:url(data:font/ttf;base64,");
         OfficeSvgImageRenderer.AppendBase64(sb, fontData, cancellationToken);
         sb.Append(") format(\"truetype\");font-weight:")
-            .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+            .Append(face.Descriptor.Weight.ToString(CultureInfo.InvariantCulture))
+            .Append(";font-stretch:")
+            .Append(face.Descriptor.StretchPercent.ToString("0.###", CultureInfo.InvariantCulture))
+            .Append('%')
             .Append(";font-style:")
-            .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal");
+            .Append(face.Descriptor.Slant == OfficeFontSlant.Oblique
+                ? "oblique " + face.Descriptor.ObliqueAngleDegrees.ToString("0.###", CultureInfo.InvariantCulture) + "deg"
+                : face.Descriptor.Slant == OfficeFontSlant.Italic ? "italic" : "normal");
         if (includeUnicodeRange && !face.UnicodeRanges.IsAll) {
             sb.Append(";unicode-range:");
             for (int index = 0; index < face.UnicodeRanges.Ranges.Count; index++) {

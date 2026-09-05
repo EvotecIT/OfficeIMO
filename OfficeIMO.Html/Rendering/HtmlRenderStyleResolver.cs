@@ -102,7 +102,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             : string.IsNullOrWhiteSpace(fontSizeValue)
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
             : ResolveFontSize(fontSizeValue, parentFontSize);
-        OfficeFontStyle fontStyle = ResolveFontStyle(pseudoElement ? string.Empty : tag, computed);
+        string fontTag = pseudoElement ? string.Empty : tag;
+        OfficeFontFaceDescriptor fontDescriptor = ResolveFontFaceDescriptor(
+            fontTag,
+            computed,
+            parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
+        OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
+        fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+        fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
         string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
             ? "Consolas"
@@ -142,6 +149,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
+            FontDescriptor = fontDescriptor,
             UnderlineStyle = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,

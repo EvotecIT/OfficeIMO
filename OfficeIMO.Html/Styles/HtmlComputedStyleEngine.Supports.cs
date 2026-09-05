@@ -356,6 +356,12 @@ public static partial class HtmlComputedStyleEngine {
                 return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
+            case "font-stretch":
+                return IsKnownKeyword(normalized, "normal", "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded", "wider", "narrower")
+                    || normalized.EndsWith("%", StringComparison.Ordinal)
+                    && double.TryParse(normalized.Substring(0, normalized.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double stretch)
+                    && stretch >= 50D
+                    && stretch <= 200D;
             case "font-weight":
                 int weight;
                 return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")

@@ -202,6 +202,52 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_SelectsNumericWeightStretchAndObliqueFontFaces() {
+        string encoded = Convert.ToBase64String(ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C'));
+        string source = "src:url('data:font/ttf;base64," + encoded + "');";
+        string html = "<style>"
+            + "@font-face{font-family:Scoped;" + source + "font-weight:300}"
+            + "@font-face{font-family:Scoped;" + source + "font-weight:500}"
+            + "@font-face{font-family:Scoped;" + source + "font-weight:700;font-stretch:condensed}"
+            + "@font-face{font-family:Scoped;" + source + "font-weight:700;font-style:oblique 10deg}"
+            + "@font-face{font-family:Scoped;" + source + "font-weight:700;font-style:oblique 20deg}"
+            + "span{font-family:Scoped;font-size:20px}"
+            + "</style><span style='font-weight:450'>A</span>"
+            + "<span style='font-weight:650;font-stretch:condensed'>B</span>"
+            + "<span style='font-weight:700;font-style:oblique 16deg'>C</span>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderText[] runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.Equal(5, rendered.Fonts.Faces.Count);
+        Assert.Equal(500, Assert.Single(rendered.Fonts.Faces, face => face.ResourceFamilyName == runs[0].Font.FamilyName).Descriptor.Weight);
+        Assert.Equal(75D, Assert.Single(rendered.Fonts.Faces, face => face.ResourceFamilyName == runs[1].Font.FamilyName).Descriptor.StretchPercent);
+        Assert.Equal(20D, Assert.Single(rendered.Fonts.Faces, face => face.ResourceFamilyName == runs[2].Font.FamilyName).Descriptor.ObliqueAngleDegrees);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceInvalid);
+    }
+
+    [Fact]
+    public void HtmlRender_KeepsRawFontDescriptorsAlignedWithApplicableMediaRules() {
+        string encoded = Convert.ToBase64String(ManagedTextShapingTestAssets.CreateFont('A'));
+        string source = "src:url('data:font/ttf;base64," + encoded + "');";
+        string html = "<style>"
+            + "@media screen{@font-face{font-family:Scoped;" + source + "font-weight:300;font-style:oblique 10deg}}"
+            + "@media print{@font-face{font-family:Scoped;" + source + "font-weight:700;font-style:oblique 20deg}}"
+            + "p{font-family:Scoped;font-weight:700;font-style:oblique 18deg}"
+            + "</style><p>A</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        OfficeFontFace face = Assert.Single(rendered.Fonts.Faces);
+        Assert.Equal(700, face.Descriptor.Weight);
+        Assert.Equal(OfficeFontSlant.Oblique, face.Descriptor.Slant);
+        Assert.Equal(20D, face.Descriptor.ObliqueAngleDegrees);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Font.FamilyName == face.ResourceFamilyName);
+    }
+
+    [Fact]
     public void HtmlRender_DiagnosesInvalidUnicodeRangeWithoutActivatingTheFace() {
         string encoded = Convert.ToBase64String(ManagedTextShapingTestAssets.CreateFont('A'));
         string html = "<style>@font-face{font-family:Scoped;src:url('data:font/ttf;base64,"

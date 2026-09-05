@@ -109,7 +109,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(run.Text, run.Style.Font.FamilyName, run.Style.Font.Style);
+            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(
+                run.Text,
+                run.Style.Font.FamilyName,
+                run.Style.FontDescriptor);
             string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
             if (fallbacks.Count == 1
                 && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
@@ -428,7 +431,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
             textNode.Data,
             style.Font.FamilyName,
-            style.Font.Style);
+            style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
             if (!RequiresConfiguredTextShaping(fallback.Text)) continue;
