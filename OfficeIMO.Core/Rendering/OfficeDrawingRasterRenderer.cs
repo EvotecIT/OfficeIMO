@@ -1167,24 +1167,15 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         OfficeShape shape = drawingShape.Shape;
-        OfficePoint start = TransformShapePoint(drawingShape, new OfficePoint(
-            gradient.StartX * shape.Width,
-            gradient.StartY * shape.Height), scale);
-        OfficePoint end = TransformShapePoint(drawingShape, new OfficePoint(
-            gradient.EndX * shape.Width,
-            gradient.EndY * shape.Height), scale);
         double width = right - left;
         double height = bottom - top;
-        double startX = (start.X - left) / width;
-        double startY = (start.Y - top) / height;
-        double endX = (end.X - left) / width;
-        double endY = (end.Y - top) / height;
-        if (startX.Equals(endX) && startY.Equals(endY)) {
-            return gradient;
-        }
-
-        return OfficeLinearGradient.CreateImported(startX, startY, endX, endY,
-            gradient.Stops);
+        OfficeTransform coordinates = OfficeTransform.Scale(shape.Width, shape.Height)
+            .Then(shape.Transform ?? OfficeTransform.Identity)
+            .Then(OfficeTransform.Translate(drawingShape.X, drawingShape.Y))
+            .Then(OfficeTransform.Scale(scale, scale))
+            .Then(OfficeTransform.Translate(-left, -top))
+            .Then(OfficeTransform.Scale(1D / width, 1D / height));
+        return gradient.TransformCoordinates(coordinates);
     }
 
     private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>

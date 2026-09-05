@@ -16,12 +16,35 @@ public sealed class PdfConversionWarning {
         string message,
         PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning,
         PdfLayoutDiagnostic? layoutDiagnostic = null,
+        IReadOnlyDictionary<string, string>? details = null)
+        : this(converter, code, source, message, severity,
+            severity == PdfConversionWarningSeverity.Error ? OfficeConversionLossKind.Failure
+                : severity == PdfConversionWarningSeverity.Information ? OfficeConversionLossKind.None : OfficeConversionLossKind.Approximation,
+            layoutDiagnostic, details) {
+    }
+
+    /// <summary>
+    /// Creates a warning with explicit fidelity impact, preserving loss-bearing
+    /// informational diagnostics from upstream renderers and format adapters.
+    /// </summary>
+    public PdfConversionWarning(
+        string converter,
+        string code,
+        string source,
+        string message,
+        PdfConversionWarningSeverity severity,
+        OfficeConversionLossKind lossKind,
+        PdfLayoutDiagnostic? layoutDiagnostic = null,
         IReadOnlyDictionary<string, string>? details = null) {
+        if (lossKind < OfficeConversionLossKind.None || lossKind > OfficeConversionLossKind.Failure)
+            throw new ArgumentOutOfRangeException(nameof(lossKind));
         Converter = string.IsNullOrWhiteSpace(converter) ? "OfficeIMO.Pdf" : converter;
         Code = string.IsNullOrWhiteSpace(code) ? "PdfConversionWarning" : code;
         Source = source ?? string.Empty;
         Message = message ?? string.Empty;
         Severity = severity;
+        LossKind = lossKind == OfficeConversionLossKind.None && severity == PdfConversionWarningSeverity.Error
+            ? OfficeConversionLossKind.Failure : lossKind;
         LayoutDiagnostic = layoutDiagnostic;
         Details = new ReadOnlyDictionary<string, string>(CopyDetails(details));
     }
@@ -40,6 +63,9 @@ public sealed class PdfConversionWarning {
 
     /// <summary>Severity assigned by the converter.</summary>
     public PdfConversionWarningSeverity Severity { get; }
+
+    /// <summary>Typed fidelity impact, independent of the diagnostic's presentation severity.</summary>
+    public OfficeConversionLossKind LossKind { get; }
 
     /// <summary>Optional shared layout diagnostic when the warning maps to visible PDF layout or clipping behavior.</summary>
     public PdfLayoutDiagnostic? LayoutDiagnostic { get; }

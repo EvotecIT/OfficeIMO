@@ -35,6 +35,33 @@ byte[] pdf = source.ToPdfBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+## Review every rendered page
+
+The capability gallery saves the input HTML, PDF, and image previews from one resolved
+layout. Each artifact has a SHA-256 hash and its own diagnostics. Image evidence records
+source page numbers, pixel dimensions, and format validation; PDF evidence runs the
+configured readback checks against the exact serialized bytes.
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+
+var gallery = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario(
+    "quarterly-update", "Quarterly update", "Reports", "Paged report export")) {
+    PreviewAllPages = true
+};
+gallery.PreviewFormats.Add(OfficeImageExportFormat.Webp);
+gallery.PdfProofOptions.RequiredTextMarkers.Add("Quarterly update");
+HtmlCapabilityGalleryManifest manifest = source.SaveRenderCapabilityGallery("review", gallery);
+```
+
+PNG and SVG are included by default; JPEG, TIFF, and WebP can also be selected.
+`PreviewAllPages = false` retains the selected-page preview filenames and uses
+`PreviewPageIndex`. Free-text `Expectations` are declarations, not test results.
+Executed checks appear under each artifact's `Evidence.Checks`; a passed readback or
+format check does not establish visual equivalence to a browser or source application.
+
 ## Data-driven reports and long tables
 
 Keep data binding outside the renderer. Build finalized, encoded HTML with Razor, Scriban, Handlebars, or the template system already used by the application, then pass that HTML to `HtmlConversionDocument.Parse`. OfficeIMO does not execute JavaScript or template expressions while rendering.

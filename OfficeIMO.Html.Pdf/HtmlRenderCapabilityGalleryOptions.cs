@@ -21,6 +21,19 @@ public sealed class HtmlRenderCapabilityGalleryOptions {
     /// <summary>Zero-based page used for the preview artifacts.</summary>
     public int PreviewPageIndex { get; set; }
 
-    /// <summary>Capability assertions and the artifact that proves each one.</summary>
+    /// <summary>Exports every page when true; otherwise uses PreviewPageIndex and the original preview filenames.</summary>
+    public bool PreviewAllPages { get; set; }
+
+    /// <summary>Image formats to include. Defaults to PNG and SVG.</summary>
+    public IList<OfficeIMO.Drawing.OfficeImageExportFormat> PreviewFormats { get; } =
+        new List<OfficeIMO.Drawing.OfficeImageExportFormat> {
+            OfficeIMO.Drawing.OfficeImageExportFormat.Png,
+            OfficeIMO.Drawing.OfficeImageExportFormat.Svg
+        };
+
+    /// <summary>Executed checks for the saved PDF bytes. Free-text Expectations remain declarations.</summary>
+    public OfficeIMO.Pdf.PdfConversionProofOptions PdfProofOptions { get; set; } = new();
+
+    /// <summary>Declared capability expectations, recorded separately from executed artifact checks.</summary>
     public IList<HtmlCapabilityGalleryExpectation> Expectations => _expectations;
 }

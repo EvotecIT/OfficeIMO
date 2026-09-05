@@ -124,7 +124,21 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Builds a reusable proof snapshot for the generated PDF and captured conversion diagnostics.
     /// </summary>
-    public PdfConversionProofReport AssessProof(PdfConversionProofOptions? options = null) {
+    public PdfConversionProofReport AssessProof(PdfConversionProofOptions? options = null) =>
+        AssessProofCore(ToBytes, options);
+
+    /// <summary>
+    /// Checks the supplied serialized artifact without serializing the document again.
+    /// Call after <see cref="ToBytes()"/> to bind readback and hash checks to the bytes actually saved.
+    /// Conversion diagnostics are taken from this result; the caller must supply its corresponding artifact.
+    /// </summary>
+    public PdfConversionProofReport AssessArtifactProof(byte[] artifact, PdfConversionProofOptions? options = null) {
+        Guard.NotNull(artifact, nameof(artifact));
+        byte[] snapshot = (byte[])artifact.Clone();
+        return AssessProofCore(() => snapshot, options);
+    }
+
+    private PdfConversionProofReport AssessProofCore(Func<byte[]> serialize, PdfConversionProofOptions? options) {
         options ??= new PdfConversionProofOptions();
 
         var issues = new List<PdfConversionProofIssue>();
@@ -140,7 +154,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         bool shouldCaptureArtifactHash = options.IncludeArtifactHash || !string.IsNullOrWhiteSpace(options.RequiredArtifactSha256);
         if (shouldReadGeneratedPdf || shouldCaptureArtifactHash) {
             try {
-                pdfBytes = ToBytes();
+                pdfBytes = serialize();
                 if (shouldCaptureArtifactHash) {
                     artifactByteCount = pdfBytes.LongLength;
                     artifactSha256 = ComputeSha256Hex(pdfBytes);
@@ -165,7 +179,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
 
         if (pdfBytes is null && ShouldCaptureSaveDiagnostics(options)) {
             try {
-                pdfBytes = ToBytes();
+                pdfBytes = serialize();
             } catch (Exception ex) {
                 issues.Add(new PdfConversionProofIssue(
                     "SaveDiagnostics",
@@ -454,7 +468,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
                 string.Equals(warning.Code, candidate.Code, StringComparison.Ordinal) &&
                 string.Equals(warning.Source, candidate.Source, StringComparison.Ordinal) &&
                 string.Equals(warning.Message, candidate.Message, StringComparison.Ordinal) &&
-                warning.Severity == candidate.Severity) {
+                warning.Severity == candidate.Severity && warning.LossKind == candidate.LossKind) {
                 return true;
             }
         }

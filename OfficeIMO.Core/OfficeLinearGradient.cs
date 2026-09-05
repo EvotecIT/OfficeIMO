@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 /// Coordinates use a top-left origin where 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
 /// Importers may preserve finite user-space vectors that cross those bounds without weakening public constructor validation.
 /// </summary>
-public sealed class OfficeLinearGradient {
+public sealed partial class OfficeLinearGradient {
     /// <summary>Normalized start X coordinate.</summary>
     public double StartX { get; }
 
@@ -58,6 +58,14 @@ public sealed class OfficeLinearGradient {
 
         if (startX.Equals(endX) && startY.Equals(endY)) {
             throw new ArgumentException("Linear gradient start and end points must be different.");
+        }
+        if (allowOutsideUnit) {
+            double dx = endX - startX;
+            double dy = endY - startY;
+            double lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared == 0D || double.IsNaN(lengthSquared) || double.IsInfinity(lengthSquared)) {
+                throw new ArgumentException("Imported linear gradient vector must have a representable non-zero squared length.");
+            }
         }
     }
 
@@ -146,18 +154,20 @@ public sealed class OfficeLinearGradient {
         }
         ValidatePositiveDimension(localWidth, nameof(localWidth));
         ValidatePositiveDimension(localHeight, nameof(localHeight));
-        if (!localToDestination.TryInvert(out OfficeTransform destinationToLocal)) {
+        if (!localToDestination.TryInvert(out _)) {
             throw new ArgumentException("The local-to-destination transform must be invertible.",
                 nameof(localToDestination));
         }
 
         double radians = OfficeGeometry.DegreesToRadians(
             NormalizeDegrees(destinationDegrees));
-        OfficePoint localOrigin = destinationToLocal.TransformPoint(default);
-        OfficePoint localDirection = destinationToLocal.TransformPoint(new OfficePoint(
-            Math.Cos(radians), Math.Sin(radians)));
-        double normalizedX = (localDirection.X - localOrigin.X) / localWidth;
-        double normalizedY = (localDirection.Y - localOrigin.Y) / localHeight;
+        // Pull the destination color-field normal back into the normalized box.
+        // An inverse-transformed endpoint vector gives the wrong field when the
+        // box is not square or the shape transform contains non-uniform scale.
+        double directionX = Math.Cos(radians);
+        double directionY = Math.Sin(radians);
+        double normalizedX = localWidth * (localToDestination.M11 * directionX + localToDestination.M12 * directionY);
+        double normalizedY = localHeight * (localToDestination.M21 * directionX + localToDestination.M22 * directionY);
         double localDegrees = Math.Atan2(normalizedY, normalizedX) * 180D / Math.PI;
         return FromAngle(stops, localDegrees);
     }

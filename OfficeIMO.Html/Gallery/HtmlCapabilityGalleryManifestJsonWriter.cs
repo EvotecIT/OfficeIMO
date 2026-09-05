@@ -5,9 +5,9 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Writes deterministic JSON manifests for OfficeIMO HTML capability gallery runs.
 /// </summary>
-public static class HtmlCapabilityGalleryManifestJsonWriter {
+public static partial class HtmlCapabilityGalleryManifestJsonWriter {
     private const string SchemaId = "officeimo.html.capability-gallery";
-    private const string SchemaVersion = "1.0";
+    private const string SchemaVersion = "1.1";
 
     /// <summary>
     /// Converts a gallery manifest to a deterministic JSON payload.
@@ -27,6 +27,7 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
         AppendScenario(builder, manifest, comma: true);
         AppendProfile(builder, contract, comma: true);
         AppendOfficeProfiles(builder, manifest.OfficeProfiles, comma: true);
+        AppendStringProperty(builder, 1, "expectationStatus", "declared-not-executed", comma: true);
         AppendExpectations(builder, manifest.Expectations, comma: true);
         AppendArtifacts(builder, manifest.Result.Artifacts, comma: true);
         AppendRoundTripScore(builder, manifest.RoundTripScore, comma: true);
@@ -113,7 +114,8 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
             AppendStringProperty(builder, 3, "path", artifact.Path, comma: true);
             AppendStringProperty(builder, 3, "mediaType", artifact.MediaType, comma: true);
             AppendNumberProperty(builder, 3, "length", artifact.Length, comma: true);
-            AppendStringProperty(builder, 3, "sha256", artifact.Sha256);
+            AppendStringProperty(builder, 3, "sha256", artifact.Sha256, comma: true);
+            AppendArtifactEvidence(builder, artifact.Evidence);
             AppendIndent(builder, 2).Append('}');
             AppendCommaAndLine(builder, i < artifacts.Count - 1);
         }
@@ -209,6 +211,7 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
             AppendStringProperty(builder, 3, "component", diagnostic.Component, comma: true);
             AppendStringProperty(builder, 3, "code", diagnostic.Code, comma: true);
             AppendStringProperty(builder, 3, "severity", diagnostic.Severity.ToString(), comma: true);
+            AppendStringProperty(builder, 3, "lossKind", diagnostic.LossKind.ToString(), comma: true);
             AppendStringProperty(builder, 3, "message", diagnostic.Message, comma: true);
             AppendNullableStringProperty(builder, 3, "source", diagnostic.Source, comma: true);
             AppendNullableStringProperty(builder, 3, "detail", diagnostic.Detail);

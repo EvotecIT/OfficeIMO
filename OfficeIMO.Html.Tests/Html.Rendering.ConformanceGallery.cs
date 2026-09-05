@@ -9,6 +9,51 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRenderCapabilityGallery_RecordsAllPagesFormatsAndFailedExecutedProof() {
+        const string html = "<style>@page { size: 200px 150px; margin: 10px; } body { margin: 0; }</style>" +
+            "<p>First page</p><p style='break-before:page;transform:rotateX(30deg)'>Second page</p>";
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.AllPageGallery." + Guid.NewGuid().ToString("N"));
+        try {
+            var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario(
+                "all-pages", "All pages", "Rendering", "Executed artifact checks")) {
+                PreviewAllPages = true
+            };
+            options.PreviewFormats.Clear();
+            foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Jpeg,
+                OfficeImageExportFormat.Tiff, OfficeImageExportFormat.Webp, OfficeImageExportFormat.Svg }) options.PreviewFormats.Add(format);
+            options.PdfProofOptions.RequiredPageCount = 2;
+            options.PdfProofOptions.RequiredTextMarkers.Add("Deliberately absent marker");
+            options.Expectations.Add(new HtmlCapabilityGalleryExpectation("unverified-visual", HtmlCapabilityGalleryExpectationOutcome.VisualProof, "Manual review required"));
+
+            HtmlCapabilityGalleryManifest manifest = HtmlConversionDocument.Parse(html).SaveRenderCapabilityGallery(directory, options);
+            Assert.Equal(12, manifest.Result.Artifacts.Count);
+            HtmlCapabilityGalleryArtifact pdf = Assert.Single(manifest.Result.Artifacts, artifact => artifact.Id == "pdf");
+            Assert.Equal(2, pdf.Evidence!.PageCount);
+            Assert.False(Assert.Single(pdf.Evidence.Checks).Passed);
+            Assert.Contains("Deliberately absent marker", Assert.Single(pdf.Evidence.Checks).Detail, StringComparison.Ordinal);
+            HtmlCapabilityGalleryArtifact[] images = manifest.Result.Artifacts.Where(artifact => artifact.Evidence?.PageNumber != null).ToArray();
+            Assert.Equal(10, images.Length);
+            Assert.All(images, artifact => {
+                OfficeImageInfo identified = OfficeImageReader.Identify(File.ReadAllBytes(artifact.Path));
+                Assert.Equal(identified.Width, artifact.Evidence!.Width);
+                Assert.Equal(identified.Height, artifact.Evidence.Height);
+                Assert.Equal(2, artifact.Evidence.PageCount);
+                Assert.True(Assert.Single(artifact.Evidence.Checks).Passed);
+                Assert.True(artifact.Evidence.HasLoss);
+                Assert.Contains(artifact.Evidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            });
+            Assert.Equal(5, images.Count(artifact => artifact.Evidence!.PageNumber == 1));
+            Assert.Equal(5, images.Count(artifact => artifact.Evidence!.PageNumber == 2));
+            using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "all-pages.manifest.json")));
+            Assert.Equal("1.1", json.RootElement.GetProperty("schemaVersion").GetString());
+            Assert.Equal("declared-not-executed", json.RootElement.GetProperty("expectationStatus").GetString());
+            Assert.False(json.RootElement.GetProperty("artifacts")[1].GetProperty("evidence").GetProperty("checks")[0].GetProperty("passed").GetBoolean());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void HtmlRenderCapabilityGallery_BindsInputPdfPreviewsDiagnosticsAndExpectations() {
         string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Capability Gallery Test", 0x7E26, 0x66F8, 0x304D) + "</style>" + """
             <style>

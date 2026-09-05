@@ -441,17 +441,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (diagnosticCode.Length > 0) {
                     _diagnostics.Add(ComponentName, diagnosticCode,
                         "An image data URI was rejected by the shared resource session.",
-                        HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail);
+                        HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail, OfficeConversionLossKind.Omission);
                 }
             } else if (!withinBudget && diagnosticCode.Length > 0) {
-                _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail);
+                _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail, OfficeConversionLossKind.Omission);
             }
         } else if (reportDiagnostics && !string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
             string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
             string message = resolvedSource.Length == 0
                 ? "An image was rejected before entering the rendered document."
                 : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";
-            _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, sourceDescription, source);
+            _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, sourceDescription, source, OfficeConversionLossKind.Omission);
         }
 
         if (bytes == null || bytes.Length == 0) {

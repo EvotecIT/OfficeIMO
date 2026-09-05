@@ -47,6 +47,11 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
         _diagnostics.Add(diagnostic);
     }
 
+    internal void Replace(int index, HtmlDiagnostic diagnostic) {
+        EnsureMutable();
+        _diagnostics[index] = diagnostic ?? throw new ArgumentNullException(nameof(diagnostic));
+    }
+
     /// <summary>
     /// Adds a diagnostic to the report.
     /// </summary>

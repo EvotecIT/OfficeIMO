@@ -44,7 +44,7 @@ internal sealed partial class PdfDocumentReader {
             options?.Clone() ?? new PdfImageExportOptions(),
             _ => selection,
             initialDiagnostics: null,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Renders all pages or a caller-ordered selection through the managed batch renderer.</summary>
