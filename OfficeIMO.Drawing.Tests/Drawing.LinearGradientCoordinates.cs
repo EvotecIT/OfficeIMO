@@ -5,6 +5,30 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeDrawingRasterRenderer_CollapsedGradientFillDoesNotAbortOtherContent(bool path) {
+        var drawing = new OfficeDrawing(400, 200);
+        OfficeShape shape = path ? OfficeShape.Path(200, 100,
+            OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(200, 0),
+            OfficePathCommand.LineTo(200, 100), OfficePathCommand.LineTo(0, 100), OfficePathCommand.Close())
+            : OfficeShape.Rectangle(200, 100);
+        shape.FillGradient = OfficeLinearGradient.DiagonalDown(OfficeColor.Red, OfficeColor.Blue);
+        shape.Transform = new OfficeTransform(1, 1, 1, 1, 0, 0);
+        shape.StrokeColor = OfficeColor.Black;
+        shape.StrokeWidth = 2;
+        drawing.AddShape(shape, 0, 0);
+        var visible = OfficeShape.Rectangle(20, 20);
+        visible.FillColor = OfficeColor.Green;
+        visible.StrokeWidth = 0;
+        drawing.AddShape(visible, 350, 20);
+
+        OfficeRasterImage result = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(OfficeColor.Green, result.GetPixel(360, 30));
+        Assert.Equal(OfficeColor.Black, result.GetPixel(50, 50));
+    }
+
+    [Theory]
     [InlineData("pad", 50, 229, 26)]
     [InlineData("pad", 350, 76, 179)]
     [InlineData("repeat", 550, 229, 26)]

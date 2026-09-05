@@ -57,6 +57,9 @@ HtmlCapabilityGalleryManifest manifest = source.SaveRenderCapabilityGallery("rev
 ```
 
 PNG and SVG are included by default; JPEG, TIFF, and WebP can also be selected.
+The shared output-count, total-raster-pixel, and total-encoded-byte budgets apply
+across all selected page/format previews. The rendering deadline includes preview
+production; the cancellation overload also accepts a caller token.
 `PreviewAllPages = false` retains the selected-page preview filenames and uses
 `PreviewPageIndex`. Free-text `Expectations` are declarations, not test results.
 Executed checks appear under each artifact's `Evidence.Checks`; a passed readback or

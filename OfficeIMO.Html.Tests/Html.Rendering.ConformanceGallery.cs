@@ -8,6 +8,46 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("count")]
+    [InlineData("pixels")]
+    [InlineData("bytes")]
+    public void HtmlRenderCapabilityGallery_EnforcesAggregatePreviewBudgets(string budget) {
+        const string html = "<style>@page { size: 80px 60px; margin: 0; } body { margin: 0; }" +
+            "div { width: 80px; height: 50px; background: red; } .next { break-before: page; }</style>" +
+            "<div></div><div class='next'></div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario("budget", "Budget", "Rendering", "Preview limits")) {
+            PreviewAllPages = true
+        };
+        options.PreviewFormats.Clear();
+        options.PreviewFormats.Add(OfficeImageExportFormat.Png);
+        IReadOnlyList<OfficeImageExportResult> baseline = document.ExportImages(OfficeImageExportFormat.Png, options.RenderOptions);
+        Assert.Equal(2, baseline.Count);
+        if (budget == "count") options.RenderOptions.MaximumOutputCount = 1;
+        else if (budget == "pixels") options.RenderOptions.MaximumTotalRasterPixels = 80 * 60;
+        else options.RenderOptions.MaximumTotalEncodedBytes = baseline.Max(image => image.Bytes.Length) + 1;
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.GalleryBudget." + Guid.NewGuid().ToString("N"));
+        try {
+            Assert.Throws<OfficeImageExportBatchLimitException>(() => document.SaveRenderCapabilityGallery(directory, options));
+            Assert.False(File.Exists(Path.Combine(directory, "budget.page-0002.png")));
+            Assert.False(File.Exists(Path.Combine(directory, "budget.manifest.json")));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void HtmlRenderCapabilityGallery_PreCanceledOperationDoesNotCreateArtifacts() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.GalleryCancel." + Guid.NewGuid().ToString("N"));
+        var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario("cancel", "Cancel", "Rendering", "Cancellation"));
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => HtmlConversionDocument.Parse("<p>Content</p>")
+            .SaveRenderCapabilityGallery(directory, options, cancellation.Token));
+        Assert.False(Directory.Exists(directory));
+    }
+
     [Fact]
     public void HtmlRenderCapabilityGallery_RecordsAllPagesFormatsAndFailedExecutedProof() {
         const string html = "<style>@page { size: 200px 150px; margin: 10px; } body { margin: 0; }</style>" +

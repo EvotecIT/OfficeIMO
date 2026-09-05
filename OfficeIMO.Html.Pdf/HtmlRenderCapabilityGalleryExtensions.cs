@@ -18,7 +18,16 @@ public static class HtmlRenderCapabilityGalleryExtensions {
     public static HtmlCapabilityGalleryManifest SaveRenderCapabilityGallery(
         this HtmlConversionDocument document,
         string directoryPath,
-        HtmlRenderCapabilityGalleryOptions options) {
+        HtmlRenderCapabilityGalleryOptions options) =>
+        SaveRenderCapabilityGallery(document, directoryPath, options, CancellationToken.None);
+
+    /// <summary>Writes a gallery while observing cancellation and the shared rendering deadline and preview budgets.</summary>
+    public static HtmlCapabilityGalleryManifest SaveRenderCapabilityGallery(
+        this HtmlConversionDocument document,
+        string directoryPath,
+        HtmlRenderCapabilityGalleryOptions options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Gallery output path cannot be empty.", nameof(directoryPath));
         if (options == null) throw new ArgumentNullException(nameof(options));
@@ -31,7 +40,19 @@ public static class HtmlRenderCapabilityGalleryExtensions {
 
         HtmlToPdfOptions pdfOptions = options.RenderOptions.ClonePdf();
         HtmlRenderOptions renderOptions = HtmlPdfRenderedConverter.ResolveRenderOptions(pdfOptions);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions);
+        return HtmlRenderEngine.ExecuteWithDeadline(renderOptions, cancellationToken, token =>
+            SaveGalleryCore(document, directoryPath, options, pdfOptions, renderOptions, formats, token));
+    }
+
+    private static HtmlCapabilityGalleryManifest SaveGalleryCore(
+        HtmlConversionDocument document,
+        string directoryPath,
+        HtmlRenderCapabilityGalleryOptions options,
+        HtmlToPdfOptions pdfOptions,
+        HtmlRenderOptions renderOptions,
+        OfficeImageExportFormat[] formats,
+        CancellationToken cancellationToken) {
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions, cancellationToken);
         if (!options.PreviewAllPages && options.PreviewPageIndex >= rendered.Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(options.PreviewPageIndex), "The selected preview page does not exist.");
 
@@ -44,11 +65,13 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         artifacts.Add(HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", document.SourceHtml));
 
         PdfCore.PdfDocumentConversionResult conversion = HtmlPdfConverterExtensions.CreateResult(
-            HtmlPdfRenderedConverter.CreatePdf(rendered, pdfOptions, CancellationToken.None));
-        byte[] pdf = conversion.ToBytes();
+            HtmlPdfRenderedConverter.CreatePdf(rendered, pdfOptions, cancellationToken));
+        byte[] pdf = conversion.ToBytes(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         string pdfPath = Path.Combine(directory, prefix + ".pdf");
         WriteBytes(pdfPath, pdf);
         PdfCore.PdfConversionProofReport proof = conversion.AssessArtifactProof(pdf, options.PdfProofOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlDiagnostic[] pdfDiagnostics = conversion.Warnings.Select(warning => new HtmlDiagnostic(
             warning.Converter, warning.Code, warning.Message,
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Error ? HtmlDiagnosticSeverity.Error :
@@ -61,10 +84,17 @@ public static class HtmlRenderCapabilityGalleryExtensions {
 
         IEnumerable<int> pages = options.PreviewAllPages
             ? Enumerable.Range(0, rendered.Pages.Count) : new[] { options.PreviewPageIndex };
-        foreach (int pageIndex in pages) {
-            foreach (OfficeImageExportFormat format in formats) {
-                OfficeImageExportResult image = HtmlImageExportExtensions.RenderPage(
-                    rendered.Pages[pageIndex], format, renderOptions, rendered.DiagnosticReport, CancellationToken.None);
+        var previews = pages.SelectMany(pageIndex => formats.Select(format => (PageIndex: pageIndex, Format: format))).ToArray();
+        int previewIndex = 0;
+        OfficeImageExportBatchProcessor.ForEachOrdered(
+            previews,
+            renderOptions.MaximumDegreeOfParallelism,
+            (preview, _, token) => HtmlImageExportExtensions.RenderPage(
+                rendered.Pages[preview.PageIndex], preview.Format, renderOptions, rendered.DiagnosticReport, token),
+            image => {
+                cancellationToken.ThrowIfCancellationRequested();
+                int pageIndex = previews[previewIndex++].PageIndex;
+                OfficeImageExportFormat format = image.Format;
                 string extension = format.GetFileExtension().TrimStart('.');
                 string suffix = options.PreviewAllPages ? ".page-" + (pageIndex + 1).ToString("D4", System.Globalization.CultureInfo.InvariantCulture) : ".preview";
                 string imagePath = Path.Combine(directory, prefix + suffix + "." + extension);
@@ -80,8 +110,10 @@ public static class HtmlRenderCapabilityGalleryExtensions {
                     .WithEvidence(new HtmlCapabilityGalleryArtifactEvidence(
                         rendered.Pages.Count, pageIndex + 1, image.Width, image.Height, "px", imageDiagnostics,
                         new[] { new HtmlCapabilityGalleryCheck("image-content", true, "Encoded format and dimensions validated by OfficeImageExportResult.") })));
-            }
-        }
+            },
+            cancellationToken,
+            renderOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new HtmlCapabilityGalleryResult(options.Scenario, artifacts, rendered.Diagnostics);
         var manifest = new HtmlCapabilityGalleryManifest(
             result,

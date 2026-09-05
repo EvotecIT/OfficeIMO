@@ -556,9 +556,10 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeColor? fill = ApplyOpacity(shape.FillColor, shape.FillOpacity);
-        OfficeLinearGradient? fillGradient = shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
-        OfficeRadialGradient? fillRadialGradient = shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
+        bool hasFillArea = HasTransformedFillArea(shape);
+        OfficeColor? fill = hasFillArea ? ApplyOpacity(shape.FillColor, shape.FillOpacity) : null;
+        OfficeLinearGradient? fillGradient = !hasFillArea || shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
+        OfficeRadialGradient? fillRadialGradient = !hasFillArea || shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
 
         OfficeColor? stroke = ApplyOpacity(shape.StrokeColor, shape.StrokeOpacity);
         OfficeLinearGradient? strokeGradient = shape.StrokeGradient == null ? null : ApplyOpacity(shape.StrokeGradient, shape.StrokeOpacity);
@@ -581,6 +582,19 @@ public static partial class OfficeDrawingRasterRenderer {
                 RenderTransformedPath(canvas, drawingShape, scale, fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth);
                 break;
         }
+    }
+
+    private static bool HasTransformedFillArea(OfficeShape shape) {
+        if (shape.Width == 0D || shape.Height == 0D) return false;
+        OfficeTransform transform = shape.Transform ?? OfficeTransform.Identity;
+        double scale = Math.Max(Math.Max(Math.Abs(transform.M11), Math.Abs(transform.M12)),
+            Math.Max(Math.Abs(transform.M21), Math.Abs(transform.M22)));
+        if (scale == 0D) return false;
+        // A singular transform can leave a diagonal bounding box with positive
+        // width and height, but its fill still has no area. Keep stroke handling
+        // independent and do not attempt to invert that collapsed color field.
+        return (transform.M11 / scale) * (transform.M22 / scale)
+            - (transform.M12 / scale) * (transform.M21 / scale) != 0D;
     }
 
     private static void RenderTransformedLine(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor color, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
