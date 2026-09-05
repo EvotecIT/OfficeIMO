@@ -119,13 +119,6 @@ public static partial class OfficeSvgDrawingReader {
             ? run.Transform
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         ApplyTransform(positioned, textTransform);
-        if (run.Style.StrokePattern != null) {
-            unsupported++;
-            positioned.Shape.StrokeColor = null;
-            positioned.Shape.StrokeGradient = null;
-            positioned.Shape.StrokeRadialGradient = null;
-        }
-
         bool hasPattern = TryAddSvgPatternFill(
             run.Style.FillPattern,
             positioned,
@@ -145,11 +138,31 @@ public static partial class OfficeSvgDrawingReader {
             ref pathCommandLimitExceeded,
             ref unsupported,
             out OfficeDrawing? patternLayer);
+        bool hasStrokePattern = TryAddSvgPatternStroke(
+            run.Style.StrokePattern,
+            positioned,
+            drawing,
+            run.Style,
+            paintServers,
+            references,
+            textTransform,
+            viewX,
+            viewY,
+            maximumElements,
+            maximumViewportDimension,
+            maximumViewportPixels,
+            depth,
+            ref visited,
+            ref pathCommands,
+            ref pathCommandLimitExceeded,
+            ref unsupported,
+            out OfficeDrawing? strokePatternLayer);
 
         var paint = new OfficeDrawing(drawing.Width, drawing.Height);
         paint.Fonts.AddRange(drawing.Fonts);
         if (hasPattern && patternLayer != null) paint.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
         paint.AddShape(positioned.Shape, positioned.X, positioned.Y);
+        if (hasStrokePattern && strokePatternLayer != null) paint.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
         OfficePoint anchor = textTransform.TransformPoint(new OfficePoint(run.X, run.Baseline));
         drawing.AddActualTextDrawing(run.Text, paint, anchor.X, anchor.Y);
         return true;

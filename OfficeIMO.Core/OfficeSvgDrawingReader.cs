@@ -77,7 +77,9 @@ public static partial class OfficeSvgDrawingReader {
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
-            var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
+            SvgPaintContext rootDefaults = SvgPaintContext.Default;
+            rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
+            var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
             bool rootHasEffects = TryResolveSvgEffects(
                 root,
@@ -846,6 +848,7 @@ public static partial class OfficeSvgDrawingReader {
         if (name is "title" or "desc" or "metadata" or "style" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
         if (name == "defs") return;
 
+        inherited.DashPercentageReference = NormalizedSvgDiagonal(drawing.Width, drawing.Height);
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
         if (!style.Visible) return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
@@ -993,12 +996,6 @@ public static partial class OfficeSvgDrawingReader {
         ApplyTransform(shape, transform);
 
         try {
-            if (style.StrokePattern != null) {
-                unsupported++;
-                shape.Shape.StrokeColor = null;
-                shape.Shape.StrokeGradient = null;
-                shape.Shape.StrokeRadialGradient = null;
-            }
             bool hasPattern = TryAddSvgPatternFill(
                 style.FillPattern,
                 shape,
@@ -1018,6 +1015,25 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeDrawing? patternLayer);
+            bool hasStrokePattern = TryAddSvgPatternStroke(
+                style.StrokePattern,
+                shape,
+                drawing,
+                style,
+                paintServers,
+                references,
+                transform,
+                viewX,
+                viewY,
+                maximumElements,
+                maximumViewportDimension,
+                maximumViewportPixels,
+                depth,
+                ref visited,
+                ref pathCommands,
+                ref pathCommandLimitExceeded,
+                ref unsupported,
+                out OfficeDrawing? strokePatternLayer);
             bool hasMarkers = TryAddSvgMarkers(
                 shape,
                 drawing,
@@ -1057,10 +1073,11 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
-            if (hasEffects || hasPattern || hasMarkers) {
+            if (hasEffects || hasPattern || hasStrokePattern || hasMarkers) {
                 var target = new OfficeDrawing(drawing.Width, drawing.Height);
                 if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShape(shape.Shape, shape.X, shape.Y);
+                if (strokePatternLayer != null) target.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
                 if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
                 TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
@@ -1233,8 +1250,10 @@ public static partial class OfficeSvgDrawingReader {
         shape.StrokeWidth = style.StrokeWidth;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
         shape.StrokeDashStyle = style.DashStyle;
+        shape.SetStrokeDashArray(style.DashArray, style.DashOffset);
         shape.StrokeLineCap = style.LineCap;
         shape.StrokeLineJoin = style.LineJoin;
+        shape.StrokeMiterLimit = style.MiterLimit;
         double x = Math.Min(x1, x2);
         double y = Math.Min(y1, y2);
         return new OfficeDrawingShape(shape, x, y);
@@ -1388,8 +1407,10 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("fill-opacity", element.Attribute("fill-opacity")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-opacity", element.Attribute("stroke-opacity")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-dasharray", element.Attribute("stroke-dasharray")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-dashoffset", element.Attribute("stroke-dashoffset")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-linecap", element.Attribute("stroke-linecap")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-miterlimit", element.Attribute("stroke-miterlimit")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
@@ -1522,9 +1543,20 @@ public static partial class OfficeSvgDrawingReader {
                 else style.StrokeOpacity = strokeOpacity;
                 break;
             case "stroke-dasharray":
-                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.DashStyle = OfficeStrokeDashStyle.Solid;
-                else if (TryParseNumberList(normalized, out IReadOnlyList<double> dash) && dash.Count >= 2) style.DashStyle = OfficeStrokeDashStyle.Dash;
+                if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                    style.DashStyle = OfficeStrokeDashStyle.Solid;
+                    style.DashArray = Array.Empty<double>();
+                    style.DashOffset = 0D;
+                }
+                else if (TryParseSvgDashArray(normalized, style.DashPercentageReference, out IReadOnlyList<double> dash)) {
+                    style.DashStyle = OfficeStrokeDashStyle.Dash;
+                    style.DashArray = dash;
+                }
                 else unsupported++;
+                break;
+            case "stroke-dashoffset":
+                if (!TrySvgStrokeLength(normalized, style.DashPercentageReference, out double dashOffset)) unsupported++;
+                else style.DashOffset = dashOffset;
                 break;
             case "stroke-linecap":
                 if (normalized.Equals("butt", StringComparison.OrdinalIgnoreCase)) style.LineCap = OfficeStrokeLineCap.Butt;
@@ -1537,6 +1569,11 @@ public static partial class OfficeSvgDrawingReader {
                 else if (normalized.Equals("round", StringComparison.OrdinalIgnoreCase)) style.LineJoin = OfficeStrokeLineJoin.Round;
                 else if (normalized.Equals("bevel", StringComparison.OrdinalIgnoreCase)) style.LineJoin = OfficeStrokeLineJoin.Bevel;
                 else unsupported++;
+                break;
+            case "stroke-miterlimit":
+                if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double miterLimit)
+                    || double.IsNaN(miterLimit) || double.IsInfinity(miterLimit) || miterLimit < 1D) unsupported++;
+                else style.MiterLimit = miterLimit;
                 break;
             case "fill-rule":
                 if (normalized.Equals("nonzero", StringComparison.OrdinalIgnoreCase)) style.FillRule = OfficeFillRule.NonZero;
@@ -1647,8 +1684,10 @@ public static partial class OfficeSvgDrawingReader {
         shape.FillOpacity = style.FillOpacity * style.Opacity;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
         shape.StrokeDashStyle = style.DashStyle;
+        shape.SetStrokeDashArray(style.DashArray, style.DashOffset);
         shape.StrokeLineCap = style.LineCap;
         shape.StrokeLineJoin = style.LineJoin;
+        shape.StrokeMiterLimit = style.MiterLimit;
         shape.FillRule = style.FillRule;
     }
 
@@ -1737,6 +1776,39 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
         TryParseNumberList(value, int.MaxValue, out values);
 
+    private static bool TryParseSvgDashArray(string value, double percentageReference, out IReadOnlyList<double> values) {
+        values = Array.Empty<double>();
+        string[] tokens = value.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0 || tokens.Length > 256) return false;
+        var result = new List<double>(tokens.Length);
+        bool hasPositive = false;
+        foreach (string token in tokens) {
+            if (!TrySvgStrokeLength(token, percentageReference, out double length) || length < 0D) return false;
+            result.Add(length);
+            hasPositive |= length > 0D;
+        }
+        if (!hasPositive) return false;
+        values = result.AsReadOnly();
+        return true;
+    }
+
+    private static bool TrySvgStrokeLength(string value, double percentageReference, out double result) {
+        result = 0D;
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+            if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
+                || double.IsNaN(percentage) || double.IsInfinity(percentage)
+                || double.IsNaN(percentageReference) || double.IsInfinity(percentageReference)) return false;
+            result = percentage * percentageReference / 100D;
+            return !double.IsNaN(result) && !double.IsInfinity(result);
+        }
+        return TrySvgLength(normalized, out result);
+    }
+
+    private static double NormalizedSvgDiagonal(double width, double height) =>
+        Math.Sqrt((width * width) + (height * height)) / Math.Sqrt(2D);
+
     private static bool TryParseNumberList(string? value, int maximumValues,
         out IReadOnlyList<double> values) =>
         TryParseNumberList(value, maximumValues, out values, out _);
@@ -1798,8 +1870,12 @@ public static partial class OfficeSvgDrawingReader {
         internal double FillOpacity;
         internal double StrokeOpacity;
         internal OfficeStrokeDashStyle DashStyle;
+        internal IReadOnlyList<double> DashArray;
+        internal double DashOffset;
+        internal double DashPercentageReference;
         internal OfficeStrokeLineCap LineCap;
         internal OfficeStrokeLineJoin LineJoin;
+        internal double MiterLimit;
         internal OfficeFillRule FillRule;
         internal string FontFamily;
         internal double FontSize;
@@ -1840,8 +1916,10 @@ public static partial class OfficeSvgDrawingReader {
             FillOpacity = 1D,
             StrokeOpacity = 1D,
             DashStyle = OfficeStrokeDashStyle.Solid,
+            DashArray = Array.Empty<double>(),
             LineCap = OfficeStrokeLineCap.Butt,
             LineJoin = OfficeStrokeLineJoin.Miter,
+            MiterLimit = 4D,
             FillRule = OfficeFillRule.NonZero,
             FontFamily = "Arial",
             FontSize = 16D,

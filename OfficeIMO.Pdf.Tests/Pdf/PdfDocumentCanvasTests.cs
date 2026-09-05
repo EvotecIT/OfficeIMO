@@ -723,6 +723,36 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasShape_PreservesExactStrokeDashPhaseAndMiterInPdfAndDrawingRoundTrip() {
+        OfficeShape shape = OfficeShape.Line(0D, 0D, 100D, 0D);
+        shape.StrokeColor = OfficeColor.Black;
+        shape.StrokeWidth = 2D;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.StrokeMiterLimit = 7.5D;
+        shape.SetStrokeDashArray(new[] { 9D, 3D, 1D }, 2.5D);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 160D,
+                PageHeight = 80D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Shape(shape, 20D, 30D))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("7.5 M", content, StringComparison.Ordinal);
+        Assert.Contains("[9 3 1] 2.5 d", content, StringComparison.Ordinal);
+
+        OfficeShape roundTripped = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].ToDrawing().Shapes).Shape;
+        Assert.Equal(new[] { 9D, 3D, 1D }, roundTripped.StrokeDashArray);
+        Assert.Equal(2.5D, roundTripped.StrokeDashOffset);
+    }
+
+    [Fact]
     public void CanvasShape_WithRotation_RendersUsingSharedShapeTransform() {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();

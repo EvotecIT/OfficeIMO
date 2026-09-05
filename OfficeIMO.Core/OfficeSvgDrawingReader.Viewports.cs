@@ -86,6 +86,7 @@ public static partial class OfficeSvgDrawingReader {
         // The viewport element's own transform is applied to the viewport below. Do not apply it
         // a second time to its local child coordinate system.
         if (element.Attribute("transform") != null) childTransform = OfficeTransform.Identity;
+        style.DashPercentageReference = NormalizedSvgDiagonal(childViewWidth, childViewHeight);
         AddChildren(
             element, scene, style, paintServers, references, childTransform, childViewX, childViewY,
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth,

@@ -9,6 +9,7 @@ namespace OfficeIMO.Drawing;
 /// Dimensions are expressed in the caller's layout unit, such as points for PDF.
 /// </summary>
 public sealed class OfficeShape {
+    private double _strokeMiterLimit = 4D;
     /// <summary>Shape type.</summary>
     public OfficeShapeKind Kind { get; set; }
 
@@ -26,6 +27,26 @@ public sealed class OfficeShape {
 
     /// <summary>Stroke dash style.</summary>
     public OfficeStrokeDashStyle StrokeDashStyle { get; set; }
+
+    /// <summary>
+    /// Optional exact alternating dash and gap lengths. When non-empty, renderers prefer this
+    /// pattern over <see cref="StrokeDashStyle"/>.
+    /// </summary>
+    public IReadOnlyList<double> StrokeDashArray { get; private set; } = Array.Empty<double>();
+
+    /// <summary>Offset into <see cref="StrokeDashArray"/> at which stroking begins.</summary>
+    public double StrokeDashOffset { get; private set; }
+
+    /// <summary>Maximum miter length as a multiple of the stroke width.</summary>
+    public double StrokeMiterLimit {
+        get => _strokeMiterLimit;
+        set {
+            if (double.IsNaN(value) || double.IsInfinity(value) || value < 1D) {
+                throw new ArgumentOutOfRangeException(nameof(value), "Stroke miter limit must be a finite value of at least one.");
+            }
+            _strokeMiterLimit = value;
+        }
+    }
 
     /// <summary>Optional stroke ending style for open paths. Null lets each renderer choose its default.</summary>
     public OfficeStrokeLineCap? StrokeLineCap { get; set; }
@@ -208,6 +229,36 @@ public sealed class OfficeShape {
     public static OfficeShape Path(IEnumerable<OfficePathCommand> commands) =>
         CreatePath(commands, null, null);
 
+    /// <summary>
+    /// Sets an exact stroke dash array and phase. Passing null or an empty sequence clears the
+    /// exact pattern and leaves <see cref="StrokeDashStyle"/> in control.
+    /// </summary>
+    public void SetStrokeDashArray(IEnumerable<double>? pattern, double offset = 0D) {
+        ValidateFinite(offset, nameof(offset), "Stroke dash offset must be finite.");
+        if (pattern == null) {
+            StrokeDashArray = Array.Empty<double>();
+            StrokeDashOffset = 0D;
+            return;
+        }
+
+        var snapshot = new List<double>();
+        bool hasPositive = false;
+        foreach (double value in pattern) {
+            ValidateFiniteNonNegative(value, nameof(pattern), "Stroke dash values must be finite non-negative numbers.");
+            snapshot.Add(value);
+            hasPositive |= value > 0D;
+        }
+        if (snapshot.Count == 0) {
+            StrokeDashArray = Array.Empty<double>();
+            StrokeDashOffset = 0D;
+            return;
+        }
+        if (!hasPositive) throw new ArgumentException("A stroke dash array cannot contain only zero values.", nameof(pattern));
+
+        StrokeDashArray = new ReadOnlyCollection<double>(snapshot);
+        StrokeDashOffset = offset;
+    }
+
     /// <summary>Creates a freeform path descriptor while preserving a declared local coordinate canvas.</summary>
     public static OfficeShape Path(double width, double height,
         params OfficePathCommand[] commands) =>
@@ -313,6 +364,9 @@ public sealed class OfficeShape {
         StrokeColor = StrokeColor,
         StrokeWidth = StrokeWidth,
         StrokeDashStyle = StrokeDashStyle,
+        StrokeDashArray = StrokeDashArray,
+        StrokeDashOffset = StrokeDashOffset,
+        StrokeMiterLimit = StrokeMiterLimit,
         StrokeLineCap = StrokeLineCap,
         StrokeLineJoin = StrokeLineJoin,
         StrokeStartMarker = StrokeStartMarker?.Clone(),
@@ -359,6 +413,12 @@ public sealed class OfficeShape {
 
     private static void ValidatePositiveFinite(double value, string paramName, string message) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) {
+            throw new ArgumentOutOfRangeException(paramName, message);
+        }
+    }
+
+    private static void ValidateFinite(double value, string paramName, string message) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(paramName, message);
         }
     }

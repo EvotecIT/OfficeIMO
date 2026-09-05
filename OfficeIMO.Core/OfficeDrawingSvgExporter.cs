@@ -859,7 +859,19 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendStrokeStyle(StringBuilder sb, OfficeShape shape) {
-        sb.AppendStrokeDashStyleAttribute(shape.StrokeDashStyle, shape.StrokeWidth);
+        if (shape.StrokeDashArray.Count > 0) {
+            sb.Append(" stroke-dasharray=\"");
+            for (int index = 0; index < shape.StrokeDashArray.Count; index++) {
+                if (index > 0) sb.Append(' ');
+                sb.Append(Format(shape.StrokeDashArray[index]));
+            }
+            sb.Append('"');
+            if (Math.Abs(shape.StrokeDashOffset) > 0.000000000001D) {
+                sb.Append(" stroke-dashoffset=\"").Append(Format(shape.StrokeDashOffset)).Append('"');
+            }
+        } else {
+            sb.AppendStrokeDashStyleAttribute(shape.StrokeDashStyle, shape.StrokeWidth);
+        }
 
         if (shape.StrokeLineCap.HasValue) {
             sb.AppendStrokeLineCapAttribute(shape.StrokeLineCap.Value);
@@ -867,6 +879,10 @@ public static partial class OfficeDrawingSvgExporter {
 
         if (shape.StrokeLineJoin.HasValue) {
             sb.AppendStrokeLineJoinAttribute(shape.StrokeLineJoin.Value);
+        }
+
+        if (Math.Abs(shape.StrokeMiterLimit - 4D) > 0.000000000001D) {
+            sb.Append(" stroke-miterlimit=\"").Append(Format(shape.StrokeMiterLimit)).Append('"');
         }
     }
 

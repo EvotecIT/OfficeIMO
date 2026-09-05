@@ -125,10 +125,15 @@ internal static partial class PdfWriter {
                     .GraphicsState(opacityState);
             }
 
-            if (shape.Transform.HasValue) {
+            if (shape.Transform.HasValue || RequiresExactStrokeWriter(shape)) {
                 pageDirty = true;
-                string? shadingName = EnsureFillGradient(shape, xShape, bottomY, localCoordinates: true);
-                DrawTransformedShape(sb, shape, shadingName == null ? ToPdfColor(shape.FillColor) : null, ToPdfColor(shape.StrokeColor), shadingName, xShape, bottomY);
+                OfficeIMO.Drawing.OfficeShape renderShape = shape;
+                if (!renderShape.Transform.HasValue) {
+                    renderShape = shape.Clone();
+                    renderShape.Transform = OfficeTransform.Identity;
+                }
+                string? shadingName = EnsureFillGradient(renderShape, xShape, bottomY, localCoordinates: true);
+                DrawTransformedShape(sb, renderShape, shadingName == null ? ToPdfColor(renderShape.FillColor) : null, ToPdfColor(renderShape.StrokeColor), shadingName, xShape, bottomY);
             } else {
                 if (shape.ClipPath != null) {
                     new ContentStreamBuilder(sb)

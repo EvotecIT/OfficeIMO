@@ -2062,6 +2062,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_AppliesExactDashOffset() {
+            var points = new[] { new OfficePoint(2D, 4D), new OfficePoint(20D, 4D) };
+            OfficeRasterImage unshifted = new OfficeRasterImage(24, 9, OfficeColor.Transparent);
+            OfficeRasterImage shifted = new OfficeRasterImage(24, 9, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(unshifted).DrawPatternedPolyline(points, OfficeColor.Black, 1D, new[] { 5D, 5D });
+            new OfficeRasterCanvas(shifted).DrawPatternedPolyline(points, OfficeColor.Black, 1D, new[] { 5D, 5D }, dashOffset: 5D);
+
+            Assert.True(unshifted.GetPixel(3, 4).A > 0);
+            Assert.Equal(0, shifted.GetPixel(3, 4).A);
+            Assert.Equal(0, unshifted.GetPixel(8, 4).A);
+            Assert.True(shifted.GetPixel(8, 4).A > 0);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_DrawsStyledPolylinesAndEllipsesThroughSharedDashStyles() {
             OfficeRasterImage polyline = new OfficeRasterImage(42, 14, OfficeColor.Transparent);
             new OfficeRasterCanvas(polyline).DrawStyledPolyline(

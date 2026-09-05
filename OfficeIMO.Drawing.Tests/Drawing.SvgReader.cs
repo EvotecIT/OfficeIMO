@@ -469,6 +469,30 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderClipsVectorPatternsToStrokedGeometry() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><pattern id='stripe' patternUnits='userSpaceOnUse' width='4' height='4'>"
+            + "<rect width='2' height='4' fill='red'/><rect x='2' width='2' height='4' fill='blue'/>"
+            + "</pattern></defs><path d='M4 10 L20 4 L36 10' fill='none' stroke='url(#stripe)' "
+            + "stroke-width='6' stroke-linejoin='miter' stroke-miterlimit='6'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Equal(2, elementGroup.Drawing.Elements.Count);
+        OfficeDrawingEffectGroup strokePattern = Assert.IsType<OfficeDrawingEffectGroup>(elementGroup.Drawing.Elements[1]);
+        Assert.NotEmpty(strokePattern.Drawing.Elements);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(0, raster.GetPixel(20, 15).A);
+        int paintedStrokePixels = Enumerable.Range(0, raster.Width * raster.Height)
+            .Count(index => raster.GetPixel(index % raster.Width, index / raster.Width).A > 0);
+        Assert.True(paintedStrokePixels > 40, $"Expected a visible patterned stroke, found {paintedStrokePixels} painted pixels.");
+        Assert.Contains("<clipPath", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderRendersReusableStartMidAndEndMarkerScenes() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><marker id='arrow' markerUnits='userSpaceOnUse' markerWidth='6' markerHeight='6' "
@@ -1443,5 +1467,36 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0, unsupported);
         OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
         Assert.Equal("Referenced label", text.Text);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesExactStrokeDashPhaseAndMiterLimit() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30'>"
+            + "<path d='M5 20 L45 5 L95 20' fill='none' stroke='black' stroke-width='2' "
+            + "stroke-dasharray='9 3 1' stroke-dashoffset='-2.5' stroke-linejoin='miter' stroke-miterlimit='7.5'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(new[] { 9D, 3D, 1D }, shape.StrokeDashArray);
+        Assert.Equal(-2.5D, shape.StrokeDashOffset);
+        Assert.Equal(7.5D, shape.StrokeMiterLimit);
+
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stroke-dasharray=\"9 3 1\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke-dashoffset=\"-2.5\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke-miterlimit=\"7.5\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesPercentageStrokeDashesAgainstTheNormalizedViewportDiagonal() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>"
+            + "<line x1='10' y1='50' x2='90' y2='50' stroke='black' stroke-dasharray='10% 5%' stroke-dashoffset='2.5%'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(new[] { 10D, 5D }, shape.StrokeDashArray);
+        Assert.Equal(2.5D, shape.StrokeDashOffset, 6);
     }
 }
