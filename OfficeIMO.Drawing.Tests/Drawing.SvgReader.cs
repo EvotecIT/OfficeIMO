@@ -528,6 +528,22 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReader_AppliesEmbeddedStylesheetCascadeSelectorsAndCustomProperties() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<style>g.theme > rect.hot{fill:var(--accent)} #override{fill:blue}</style>"
+            + "<g class='theme' style='--accent:red'><rect class='hot' width='10' height='10'/>"
+            + "<rect id='override' class='hot' x='10' width='10' height='10' style='fill:green!important'/></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Green, raster.GetPixel(15, 5));
+    }
+
+    [Fact]
     public void SvgReader_ComposesMarkerPlacementWithTheOwningElementTransform() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><marker id='dot' markerUnits='userSpaceOnUse' markerWidth='1' markerHeight='1' "

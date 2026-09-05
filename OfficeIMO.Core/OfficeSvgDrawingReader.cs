@@ -68,6 +68,7 @@ public static partial class OfficeSvgDrawingReader {
                 out double viewportHeight)) return false;
 
         try {
+            ApplySvgStylesheets(root, ref unsupportedFeatureCount);
             var scene = new OfficeDrawing(viewWidth, viewHeight);
             scene.Fonts.AddRange(options?.Fonts);
             int visited = 0;
@@ -842,7 +843,7 @@ public static partial class OfficeSvgDrawingReader {
         visited++;
         if (visited > maximumElements) return;
         string name = element.Name.LocalName.ToLowerInvariant();
-        if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
+        if (name is "title" or "desc" or "metadata" or "style" or "lineargradient" or "radialgradient" or "pattern" or "stop") return;
         if (name == "defs") return;
 
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
@@ -1598,7 +1599,8 @@ public static partial class OfficeSvgDrawingReader {
                 break;
             case "transform":
             case "clip-path":
-                unsupported++;
+                // Resolved by the geometry/effect owners after the cascade has produced
+                // the effective declaration for this element.
                 break;
             case "filter":
                 // Resolved at the element-group boundary after its complete source graphic exists.

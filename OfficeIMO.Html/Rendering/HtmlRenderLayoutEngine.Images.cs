@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
 using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Html;
 
@@ -145,7 +146,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsInlineSvgElement(IElement element) =>
         element.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryReadInlineSvgSource(
+    private bool TryReadInlineSvgSource(
         IElement element,
         out byte[]? bytes,
         out OfficeImageInfo? imageInfo) {
@@ -153,12 +154,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
         imageInfo = null;
         if (!IsInlineSvgElement(element)) return false;
 
-        bytes = Encoding.UTF8.GetBytes(element.OuterHtml);
+        string source = element.OuterHtml;
+        try {
+            XElement svg = XElement.Parse(source, LoadOptions.PreserveWhitespace);
+            IReadOnlyList<IElement> htmlElements = new[] { element }
+                .Concat(element.QuerySelectorAll("*").OfType<IElement>())
+                .ToArray();
+            IReadOnlyList<XElement> svgElements = svg.DescendantsAndSelf().ToArray();
+            int count = Math.Min(htmlElements.Count, svgElements.Count);
+            for (int index = 0; index < count; index++) {
+                if (!_computedStyles.Elements.TryGetValue(htmlElements[index], out HtmlComputedStyle? computed)) continue;
+                string computedSvgStyle = BuildInlineSvgComputedStyle(computed);
+                if (computedSvgStyle.Length > 0) svgElements[index].SetAttributeValue("style", computedSvgStyle);
+            }
+            source = svg.ToString(SaveOptions.DisableFormatting);
+        } catch (System.Xml.XmlException) {
+            // The bounded SVG reader reports malformed XML through its normal parse result.
+        }
+        bytes = Encoding.UTF8.GetBytes(source);
         if (OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo identified)) {
             imageInfo = identified;
         }
         return true;
     }
+
+    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed) {
+        var style = new StringBuilder();
+        foreach (KeyValuePair<string, string> property in computed.Properties) {
+            if (!property.Key.StartsWith("--", StringComparison.Ordinal)
+                && !IsSvgComputedStyleProperty(property.Key)) continue;
+            if (style.Length > 0) style.Append(';');
+            style.Append(property.Key).Append(':').Append(property.Value);
+        }
+        return style.ToString();
+    }
+
+    private static bool IsSvgComputedStyleProperty(string name) => name.ToLowerInvariant() is
+        "color" or "fill" or "fill-opacity" or "fill-rule" or "stroke" or "stroke-width"
+        or "stroke-opacity" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap"
+        or "stroke-linejoin" or "stroke-miterlimit" or "opacity" or "display" or "visibility"
+        or "font-family" or "font-size" or "font-style" or "font-weight" or "line-height"
+        or "writing-mode" or "text-orientation" or "text-anchor" or "dominant-baseline"
+        or "baseline-shift" or "transform" or "clip-path" or "filter" or "mask"
+        or "mix-blend-mode" or "marker-start" or "marker-mid" or "marker-end";
 
     private bool TryReadSvgDrawing(
         byte[] bytes,

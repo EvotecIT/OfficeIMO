@@ -11,6 +11,27 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_InlineSvgReceivesHostDocumentCssAndCustomProperties() {
+        const string html = "<style>svg{--accent:#ff0000} svg .host-painted{fill:var(--accent);stroke:#0000ff;stroke-width:2}</style>"
+            + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"
+            + "<rect class='host-painted' width='20' height='10'/></svg>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeDrawingShape shape = Assert.Single(drawing.Drawing.Shapes);
+
+        Assert.Equal(OfficeColor.Red, shape.Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, shape.Shape.StrokeColor);
+        Assert.Equal(2D, shape.Shape.StrokeWidth);
+    }
+
+    [Fact]
     public void HtmlImages_ImageOrientationIsConsistentAcrossManagedSceneAndCssOverride() {
         var source = new OfficeRasterImage(2, 1);
         source.SetPixel(0, 0, OfficeColor.Red);
