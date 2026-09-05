@@ -13,7 +13,7 @@ var imageOptions = new HtmlRenderOptions {
 
 string svg = source.ToSvg(imageOptions);
 byte[] png = source.ToPng(imageOptions);
-byte[] pdf = source.ToPdf(new HtmlPdfSaveOptions(imageOptions));
+byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions(imageOptions));
 string extractedText = PdfReadDocument.Open(pdf).ExtractText();
 
 if (!svg.Contains(marker, StringComparison.Ordinal)) throw new InvalidOperationException("The NativeAOT SVG output lost searchable text.");
@@ -44,7 +44,7 @@ var standardsOptions = new HtmlRenderOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
 };
 string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
-byte[] standardsPdf = standardsSource.ToPdf(new HtmlPdfSaveOptions(standardsOptions));
+byte[] standardsPdf = standardsSource.ToPdfBytes(new HtmlToPdfOptions(standardsOptions));
 PdfReadDocument standardsReadDocument = PdfReadDocument.Open(standardsPdf);
 string standardsText = standardsReadDocument.ExtractText();
 if (!secondPageSvg.Contains("Static standards page two", StringComparison.Ordinal)) throw new InvalidOperationException("The NativeAOT paged SVG output lost its second page.");

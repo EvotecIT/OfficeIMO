@@ -7,7 +7,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to extract pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryExtract(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> ExtractResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return TryPageExtractionOperation("Extract pages", effectiveOptions => Extract(ResolveSelector(selector, effectiveOptions), effectiveOptions), options);
     }
@@ -18,7 +18,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to delete pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryDelete(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions? effectiveOptions = options ?? _document.ReadOptions;
         return _document.TryMutationOperation(
@@ -35,7 +35,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to reorder pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryReorder(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions? effectiveOptions = options ?? _document.ReadOptions;
         return _document.TryMutationOperation(
@@ -52,7 +52,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to duplicate pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryDuplicate(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions? effectiveOptions = options ?? _document.ReadOptions;
         return _document.TryMutationOperation(
@@ -69,7 +69,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to move pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryMove(int insertBeforePageNumber, PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions? effectiveOptions = options ?? _document.ReadOptions;
         return _document.TryMutationOperation(
@@ -86,7 +86,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Attempts to rotate pages resolved from a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocument> TryRotate(int rotationDegrees, PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         PdfLoadOptions? effectiveOptions = options ?? _document.ReadOptions;
         return _document.TryMutationOperation(

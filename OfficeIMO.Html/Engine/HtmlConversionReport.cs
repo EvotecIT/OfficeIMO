@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Immutable view of the diagnostics and fidelity outcome from one HTML conversion.
 /// </summary>
-public sealed class HtmlConversionReport {
+public sealed class HtmlConversionReport : IOfficeConversionReport {
     private readonly IReadOnlyList<HtmlDiagnostic> _diagnostics;
 
     internal HtmlConversionReport(IReadOnlyList<HtmlDiagnostic> diagnostics) {

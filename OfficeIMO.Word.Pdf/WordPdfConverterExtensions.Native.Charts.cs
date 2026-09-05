@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
         private const double NativeWordChartTitleTopPadding = 31D;
         private const double NativeWordChartSpacingAfter = NativeDefaultParagraphSpacingAfter;
 
-        private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, WordPdfSaveOptions? options, string source) {
+        private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {
             if (chart == null) {
                 return false;
             }

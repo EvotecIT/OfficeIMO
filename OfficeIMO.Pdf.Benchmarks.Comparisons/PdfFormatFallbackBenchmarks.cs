@@ -32,7 +32,7 @@ public class PdfFormatFallbackBenchmarks {
             : PdfCore.PdfTextFallbackFeatures.None);
 
     [Benchmark]
-    public byte[] ConvertToPdf() => _result = _scenario.ConvertToPdf();
+    public byte[] ConvertToPdfBytes() => _result = _scenario.ConvertToPdfBytes();
 
     [GlobalCleanup]
     public void Validate() {

@@ -39,7 +39,7 @@ public partial class WordRtfConverterTests {
             await word.SaveAsRtfAsync(path, options, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             Assert.Equal(bytes, File.ReadAllBytes(path));
 
-            RtfReadResult fileRead = await RtfDocument.LoadAsync(path);
+            RtfReadResult fileRead = await RtfDocument.LoadResultAsync(path);
             using WordDocument fromFile = fileRead.Document.ToWordDocument();
             Assert.Contains("Async clinical ż", string.Concat(fromFile.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
         } finally {
@@ -51,7 +51,7 @@ public partial class WordRtfConverterTests {
         using WordDocument fromText = RtfDocument.Read(rtf).Document.ToWordDocument();
         Assert.Contains("Async clinical ż", string.Concat(fromText.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
-        using WordDocument fromBytes = RtfDocument.Load(bytes).Document.ToWordDocument();
+        using WordDocument fromBytes = RtfDocument.LoadResult(bytes).Document.ToWordDocument();
         Assert.Contains("Async clinical ż", string.Concat(fromBytes.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         using var input = new MemoryStream();
@@ -59,7 +59,7 @@ public partial class WordRtfConverterTests {
         input.Write(bytes, 0, bytes.Length);
         input.Position = 1;
 
-        RtfReadResult streamRead = await RtfDocument.LoadAsync(input);
+        RtfReadResult streamRead = await RtfDocument.LoadResultAsync(input);
         using WordDocument fromStream = streamRead.Document.ToWordDocument();
         Assert.Equal(1, input.Position);
         Assert.Contains("Async clinical ż", string.Concat(fromStream.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
@@ -74,6 +74,6 @@ public partial class WordRtfConverterTests {
         cts.Cancel();
 
         using var input = new MemoryStream(new byte[] { 123, 125 });
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RtfDocument.LoadAsync(input, cancellationToken: cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RtfDocument.LoadResultAsync(input, cancellationToken: cts.Token));
     }
 }

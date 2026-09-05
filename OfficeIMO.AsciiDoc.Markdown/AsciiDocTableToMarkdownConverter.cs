@@ -56,7 +56,7 @@ internal static class AsciiDocTableToMarkdownConverter {
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner) {
-        AsciiDocParagraph? paragraph = AsciiDocDocument.Parse(value).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
+        AsciiDocParagraph? paragraph = AsciiDocDocument.ParseResult(value).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
         return paragraph == null
             ? new InlineSequence { AutoSpacing = false }.Text(value)
             : AsciiDocInlineToMarkdownConverter.Convert(paragraph.Inlines, attributes, options, diagnostics, owner);

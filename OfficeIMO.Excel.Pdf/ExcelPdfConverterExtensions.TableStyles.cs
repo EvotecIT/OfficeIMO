@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
+        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
             int exportedRows = rowIndexes.Count;
             int headerRows = Math.Min(headerRowCount, exportedRows);
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.Pdf {
             return tableStyle;
         }
 
-        private static PdfCore.PdfTableStyle CreateBaseTableStyle(ExcelPdfSaveOptions options) {
+        private static PdfCore.PdfTableStyle CreateBaseTableStyle(ExcelToPdfOptions options) {
             PdfCore.PdfTableStyle? configuredStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? options.PdfOptions.DefaultTableStyle
                 : null;
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.Pdf {
             };
         }
 
-        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelPdfSaveOptions options) {
+        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelToPdfOptions options) {
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
             tableStyle.HeaderRowCount = 0;
             tableStyle.RepeatHeaderRowCount = null;
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel.Pdf {
             return columnWidths.ApproximateWidthPoints * chunkWeight / totalWeight;
         }
 
-        private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
+        private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
             if (!IsFitToHeight(pageSetup) || rowIndexes.Count == 0) {
                 return;
             }
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel.Pdf {
             return pageSetup?.FitToHeight is uint fitToHeight && fitToHeight > 0U;
         }
 
-        private static double CalculateFitToHeightMaxHeight(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static double CalculateFitToHeightMaxHeight(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PageMargins margins = GetEffectiveMargins(options, pageSetup);
             double pageContentHeight = Math.Max(24D, pageSize.Height - margins.Top - margins.Bottom);
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.Pdf {
             return value.HasValue ? Math.Max(0D, value.Value * scale) : null;
         }
 
-        private static double GetDefaultTableFontSize(ExcelPdfSaveOptions options) {
+        private static double GetDefaultTableFontSize(ExcelToPdfOptions options) {
             return options.PdfOptions?.DefaultFontSize ?? 11D;
         }
 
@@ -178,13 +178,13 @@ namespace OfficeIMO.Excel.Pdf {
             return Math.Max(0.1D, (value ?? defaultFontSize) * scale);
         }
 
-        private static double CalculateFitToWidthMaxWidth(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static double CalculateFitToWidthMaxWidth(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PageMargins margins = GetEffectiveMargins(options, pageSetup);
             return Math.Max(24D, pageSize.Width - margins.Left - margins.Right);
         }
 
-        private static PdfCore.PageSize GetEffectivePageSize(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static PdfCore.PageSize GetEffectivePageSize(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.PageSize.HasValue) {
                 PdfCore.PageSize pageSize = options.PageSize.Value;
                 if (pageSetup?.Orientation == OfficePageOrientation.Landscape) {
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel.Pdf {
             return new PdfCore.PageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
         }
 
-        private static PdfCore.PageMargins GetEffectiveMargins(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static PdfCore.PageMargins GetEffectiveMargins(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.Margins.HasValue) {
                 return options.Margins.Value;
             }

@@ -19,7 +19,7 @@ public class MarkdownSaveAsPdfOptionsTests {
     [Fact]
     public void ToPdfDocument_Markdown_ClonesCallerPdfOptionsBeforeApplyingAdapterDefaults() {
         var pdfOptions = new PdfCore.PdfOptions();
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             PdfOptions = pdfOptions,
             CreateOutlineFromHeadings = true
         };
@@ -31,7 +31,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_FontFamilyUsesSharedOfficeFontMapping() {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             FontFamily = "Georgia",
             PdfOptions = new PdfCore.PdfOptions {
                 CompressContentStreams = false
@@ -49,7 +49,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_PortableDeterministicResourcePolicyDoesNotEmbedSystemFonts() {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             FontFamily = "Georgia",
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -62,7 +62,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksPreserveCallerPdfOptionsFontSlots() {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             Style = MarkdownPdfStyle.Plain(),
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman,
@@ -80,7 +80,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksReserveCourierForCodeText() {
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`code` text").ToPdfDocument(new MarkdownPdfSaveOptions());
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`code` text").ToPdfDocument(new MarkdownToPdfOptions());
         PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = document.Options.EmbeddedFontFallbacks;
         if (fallbackSet == null) {
             return;
@@ -98,7 +98,7 @@ public class MarkdownSaveAsPdfOptionsTests {
             return;
         }
 
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`Zażółć` text").ToPdfDocument(new MarkdownPdfSaveOptions());
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`Zażółć` text").ToPdfDocument(new MarkdownToPdfOptions());
 
         Assert.True(document.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Courier));
     }
@@ -111,7 +111,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         }
 
         const string polish = "Zażółć gęślą jaźń Łódź";
-        byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse("# Faktura\n\n" + polish).ToPdfDocument(new MarkdownPdfSaveOptions()).ToBytes();
+        byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse("# Faktura\n\n" + polish).ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -131,7 +131,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 </table>
 """;
         MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
-        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions {
+        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 CompressContentStreams = false,
                 PageWidth = 320,
@@ -170,7 +170,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 </table>
 """;
 
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 240,
@@ -207,7 +207,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(1, table.HeaderCells[0].RowSpan);
-        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions()).ToBytes();
+        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
     }
 
@@ -228,7 +228,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         Assert.Equal(32, table.HeaderCells.Count);
         Assert.Equal(32, table.HeaderCells[0].ColumnSpan);
 
-        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions()).ToBytes();
+        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
     }
 

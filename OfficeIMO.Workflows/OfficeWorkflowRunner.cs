@@ -550,7 +550,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : Path.GetFullPath(request.OutputPath);
 
         if (request.Operation == OfficeWorkflowOperation.Convert) {
-            route = OfficeWorkflowCatalog.Find(request.ConversionRouteId)
+            route = OfficeWorkflowCatalog.FindExecutable(request.ConversionRouteId)
                 ?? throw new ArgumentException("Choose a supported conversion route.", nameof(request));
             string extension = Path.GetExtension(inputPath);
             if (!route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase))) {

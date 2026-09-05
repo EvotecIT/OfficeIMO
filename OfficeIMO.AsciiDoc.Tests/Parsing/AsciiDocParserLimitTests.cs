@@ -5,21 +5,21 @@ public sealed class AsciiDocParserLimitTests {
     public void MaximumInputLength_RejectsOversizedSourceBeforeParsing() {
         var options = new AsciiDocParseOptions { MaximumInputLength = 3 };
 
-        Assert.Throws<ArgumentException>(() => AsciiDocDocument.Parse("four", options));
+        Assert.Throws<ArgumentException>(() => AsciiDocDocument.ParseResult("four", options));
     }
 
     [Fact]
     public void MaximumBlockCount_RejectsAdditionalTopLevelBlocks() {
         var options = new AsciiDocParseOptions { MaximumBlockCount = 1 };
 
-        Assert.Throws<InvalidDataException>(() => AsciiDocDocument.Parse("one\n\ntwo", options));
+        Assert.Throws<InvalidDataException>(() => AsciiDocDocument.ParseResult("one\n\ntwo", options));
     }
 
     [Fact]
     public void MaximumBlockCount_AllowsTheExactConfiguredCount() {
         var options = new AsciiDocParseOptions { MaximumBlockCount = 1 };
 
-        AsciiDocParseResult result = AsciiDocDocument.Parse("one", options);
+        AsciiDocParseResult result = AsciiDocDocument.ParseResult("one", options);
 
         Assert.Single(result.Document.Blocks);
     }

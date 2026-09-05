@@ -140,7 +140,7 @@ public class RtfPdfImportTests {
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
             fromFile.Save(rtfPath, encoding: Encoding.UTF8);
-            RtfDocument saved = RtfDocument.Load(rtfPath, encoding: Encoding.UTF8).Document;
+            RtfDocument saved = RtfDocument.LoadResult(rtfPath, encoding: Encoding.UTF8).Document;
             Assert.Contains(saved.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
         } finally {
             if (Directory.Exists(directory)) {

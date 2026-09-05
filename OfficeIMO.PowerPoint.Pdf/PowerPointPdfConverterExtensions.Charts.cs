@@ -7,7 +7,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+    private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
         if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot)) {
             AddLayoutWarning(
                 options,
@@ -54,7 +54,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void AddChartQualityWarning(PowerPointPdfSaveOptions options, int slideNumber, PptCore.PowerPointChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport, double x, double y, double width, double height) {
+    private static void AddChartQualityWarning(PowerPointToPdfOptions options, int slideNumber, PptCore.PowerPointChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport, double x, double y, double width, double height) {
         if (!qualityReport.HasIssues) {
             return;
         }
@@ -80,7 +80,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Maps the native PowerPoint snapshot into the shared chart contract used by PDF rendering.
     /// </summary>
-    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfSaveOptions options) {
+    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointToPdfOptions options) {
         var series = snapshot.Data.Series
             .Select(item => item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,

@@ -5,31 +5,13 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>
 /// Result of a PDF to HTML export, including generated HTML and machine-readable proof metadata.
 /// </summary>
-public sealed class PdfHtmlConversionResult {
-    internal PdfHtmlConversionResult(string html, PdfHtmlExportSummary summary, PdfCore.PdfConversionReport conversionReport) {
-        Value = html;
+public sealed class PdfHtmlConversionResult : OfficeConversionResult<string, PdfCore.PdfConversionReport> {
+    internal PdfHtmlConversionResult(string html, PdfHtmlExportSummary summary, PdfCore.PdfConversionReport conversionReport)
+        : base(html, conversionReport.Snapshot()) {
         Summary = summary;
-        Report = conversionReport.Snapshot();
     }
-
-    /// <summary>Generated HTML output.</summary>
-    public string Value { get; }
 
     /// <summary>Machine-readable summary of selected pages, preserved logical objects, and output policy.</summary>
     public PdfHtmlExportSummary Summary { get; }
 
-    /// <summary>Conversion report snapshot populated during export.</summary>
-    public PdfCore.PdfConversionReport Report { get; }
-
-    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the generated HTML output.</summary>
-    public string RequireValue() => Value;
-
-    /// <summary>Returns the generated HTML only when conversion reported no possible content loss.</summary>
-    public string RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
 }

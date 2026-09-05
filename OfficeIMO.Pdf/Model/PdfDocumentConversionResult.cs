@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Result of a source-document to PDF conversion, pairing the generated PDF document with a snapshot of conversion diagnostics.
 /// </summary>
-public sealed partial class PdfDocumentConversionResult {
+public sealed partial class PdfDocumentConversionResult : IOfficeConversionResult<PdfDocument, PdfConversionReport> {
     private readonly PdfConversionReport _sourceReport;
 
     /// <summary>
@@ -41,6 +41,9 @@ public sealed partial class PdfDocumentConversionResult {
 
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
     public PdfDocument Value { get; }
+
+    /// <summary>True because a conversion result is created only after the PDF document model exists.</summary>
+    public bool Succeeded => true;
 
     /// <summary>Create/open and post-processing evidence accumulated by the generated PDF document.</summary>
     public PdfPipelineReport Pipeline => Value.Pipeline;
@@ -316,10 +319,10 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(Stream stream) {
+    public PdfSaveResult SaveResult(Stream stream) {
         PdfSaveResult result;
         try {
-            result = Value.TrySave(stream);
+            result = Value.SaveResult(stream);
         } finally {
             RefreshConversionReport();
         }
@@ -329,10 +332,10 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(string path) {
+    public PdfSaveResult SaveResult(string path) {
         PdfSaveResult result;
         try {
-            result = Value.TrySave(path);
+            result = Value.SaveResult(path);
         } finally {
             RefreshConversionReport();
         }
@@ -368,21 +371,21 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>
     /// Attempts to asynchronously write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
-    public System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         return TrySaveAsyncCore(stream, cancellationToken);
     }
 
     /// <summary>
     /// Attempts to asynchronously write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
-    public System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         return TrySaveAsyncCore(path, cancellationToken);
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = await Value.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            result = await Value.SaveResultAsync(stream, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
@@ -392,7 +395,7 @@ public sealed partial class PdfDocumentConversionResult {
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = await Value.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+            result = await Value.SaveResultAsync(path, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }

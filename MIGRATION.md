@@ -7,15 +7,100 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.4 completes the PDF authoring-model cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.4: one document and conversion grammar
+
+OfficeIMO 3.4 deliberately breaks inconsistent convenience and diagnostic names so native documents, conversion adapters, and PDF operations follow the same rules:
+
+- `Parse(...)` and `Load(...)` return the native document model.
+- `ParseResult(...)` and `LoadResult(...)` return the model plus diagnostics or source evidence.
+- `To{TargetModel}(...)` returns the destination document model.
+- `To{TargetModel}Result(...)` returns the model plus a conversion report.
+- `To{Format}Bytes(...)` returns serialized bytes.
+- `SaveAs{Format}(...)` writes an artifact and throws on failure.
+- `SaveAs{Format}Result(...)` captures a structured failure instead of throwing.
+- Async I/O methods use the same name with `Async`; their `CancellationToken` is the final parameter.
+- Conversion and PDF-operation `Try...` members are reserved for the .NET
+  boolean/out pattern and no longer name structured result-returning operations.
+
+The shared zero-dependency contracts live in `OfficeIMO.Core`: `IOfficeResult`,
+`IOfficeResult<T>`, and `IOfficeConversionResult<TValue, TReport>`. Format-specific
+results retain their useful typed reports while exposing a common `Succeeded`,
+`Value`, and value-requirement vocabulary to generic applications and workflows.
+Concrete result types continue to expose their typed diagnostics, warnings, and
+exceptions.
+
+Markdown, RTF, AsciiDoc, and LaTeX now expose the same native lifecycle. For example:
+
+```csharp
+MarkdownDoc document = MarkdownDoc.Load("README.md");
+MarkdownParseResult parsed = MarkdownDoc.LoadResult("README.md");
+
+AsciiDocDocument manual = AsciiDocDocument.Parse(source);
+AsciiDocParseResult manualResult = AsciiDocDocument.ParseResult(source);
+
+LatexDocument article = await LatexDocument.LoadAsync(path, cancellationToken: cancellationToken);
+RtfReadResult richText = await RtfDocument.LoadResultAsync(path, cancellationToken: cancellationToken);
+```
+
+Forward PDF adapters use source-specific options and the same direct/result pairs:
+
+| OfficeIMO 3.3 | OfficeIMO 3.4 |
+| --- | --- |
+| `WordPdfSaveOptions` | `WordToPdfOptions` |
+| `ExcelPdfSaveOptions` | `ExcelToPdfOptions` |
+| `PowerPointPdfSaveOptions` | `PowerPointToPdfOptions` |
+| `MarkdownPdfSaveOptions` | `MarkdownToPdfOptions` |
+| `HtmlPdfSaveOptions` | `HtmlToPdfOptions` |
+| `RtfPdfSaveOptions` | `RtfToPdfOptions` |
+| `AsciiDocPdfSaveOptions` | `AsciiDocToPdfOptions` |
+| `LatexPdfSaveOptions` | `LatexToPdfOptions` |
+| `OneNotePdfSaveOptions` | `OneNoteToPdfOptions` |
+| `VisioPdfSaveOptions` | `VisioToPdfOptions` |
+| `ToPdf(...)` | `ToPdfBytes(...)` |
+| `ToPdfAsync(...)` | `ToPdfBytesAsync(...)` |
+| `TrySaveAsPdf(...)` | `SaveAsPdfResult(...)` |
+| `TrySaveAsPdfAsync(...)` | `SaveAsPdfResultAsync(...)` |
+
+Word, Excel, and PowerPoint no longer store an operation-specific
+`CancellationToken` on their PDF option objects. Pass it as the final argument to
+the async conversion or save method. This makes reusable option profiles safe to
+share between operations.
+
+PDF operations use the same direct/result distinction. `PdfDocument.Merge(...)`
+returns the merged document, while `PdfDocument.MergeResult(...)` returns
+`PdfMergeResult`; `document.MergeWithResult(...)` retains mutation-oriented
+wording. Production splitting is available through both
+`pdf.Pages.SplitForProduction(...)` and `pdf.Pages.SplitForProductionResult(...)`.
+Result-returning `Try...` members were renamed with a `Result` suffix throughout
+loading, saving, inspection, forms, attachments, security, manipulation, and
+rendering. Boolean/out methods such as `TryGet...(..., out value)` keep their
+names.
+
+The workflow layer projects every route from the canonical conversion catalog
+through `OfficeWorkflowCatalog.Routes`. Use `ExecutableRoutes` when a host needs
+only the routes implemented by its local workflow runner. Each route includes its
+extensions, owning package, representative API/result, support and fidelity
+contracts, browser/agent availability, evidence, known limits, and `CanExecute`.
+The fluent entry point infers a route only when the extension pair identifies one
+locally executable route; ambiguous pairs require `Via(routeId)`:
+
+```csharp
+OfficeWorkflowResult result = await OfficeWorkflow
+    .Convert("report.docx")
+    .To("report.pdf")
+    .WithProfile(OfficeWorkflowOutputProfile.PrintReady)
+    .OnConflict(OfficeWorkflowConflictPolicy.Replace)
+    .RunAsync(cancellationToken: cancellationToken);
+```
 
 ## OfficeIMO 3.4: one PDF content builder
 
-PDF creation still starts at `PdfDocument.Create(...)`, and existing-document
-loading, reading, inspection, and manipulation APIs are unchanged. The breaking
-change is limited to authoring: every flow boundary now receives the same
-`PdfContentBuilder`, builder names describe their roles, row widths are explicit,
-and document defaults are configured through `PdfOptions`.
+PDF creation still starts at `PdfDocument.Create(...)`. The authoring model now
+uses one content builder at every flow boundary, builder names describe their
+roles, row widths are explicit, and document defaults are configured through
+`PdfOptions`.
 
 | OfficeIMO 3.3 | OfficeIMO 3.4 |
 | --- | --- |
@@ -551,7 +636,7 @@ methods with calls to those engines.
 Applications that intentionally rely on the former permissive behavior for trusted files must opt in:
 
 ```csharp
-RtfReadResult result = RtfDocument.Load(
+RtfReadResult result = RtfDocument.LoadResult(
     "trusted-legacy.rtf",
     RtfReadOptions.CreateCompatibilityProfile());
 ```
@@ -563,7 +648,7 @@ Do not use the compatibility profile for uploads or other untrusted inputs. Loss
 LaTeX file and stream loading now rejects encoded input larger than 64 MiB before decoding, independently of the existing decoded-character limit. Applications that intentionally load larger trusted documents must raise or disable the byte limit explicitly:
 
 ```csharp
-LatexParseResult result = LatexDocument.Load(
+LatexParseResult result = LatexDocument.LoadResult(
     "trusted-large-document.tex",
     new LatexParseOptions { MaximumInputBytes = null });
 ```
@@ -598,7 +683,7 @@ output policy.
 | `ReaderPdfAssetPolicy` | `PdfProjectionAssetPolicy` |
 | `ReaderPdfLinkPolicy` | `PdfProjectionLinkPolicy` |
 | `ReaderPdfFormPolicy` | `PdfProjectionFormPolicy` |
-| Reader options passed through `VisioPdfSaveOptions` | `VisioDocumentProjectionOptions` for source projection and `PdfProjectionOptions` for PDF output |
+| Reader options passed through `VisioToPdfOptions` | `VisioDocumentProjectionOptions` for source projection and `PdfProjectionOptions` for PDF output |
 
 `OfficeIMO.Visio.Pdf` now depends only on `OfficeIMO.Core`, `OfficeIMO.Visio`,
 and `OfficeIMO.Pdf`; it no longer installs `OfficeIMO.Reader.Visio` or
@@ -1189,14 +1274,14 @@ The common conversion grammar is:
 | --- | --- | --- |
 | Return a destination model | `To{TargetModel}` | `pdf.ToWordDocument()` |
 | Return a model plus diagnostics | `To{TargetModel}Result` | `pdf.ToWordDocumentResult()` |
-| Return serialized content | `To{Format}` | `word.ToPdf()` |
+| Return serialized content | `To{Format}` | `word.ToPdfBytes()` |
 | Write a converted artifact | `SaveAs{Format}` | `pdf.SaveAsPowerPoint(...)` |
 | Write asynchronously when the operation performs asynchronous I/O | `SaveAs{Format}Async` | `pdf.SaveAsRtfAsync(...)` |
 | Persist a document in its native format | `Save` / `SaveAsync` | `word.Save(...)` |
 | Recover a narrow feature | Name the feature | `pdf.SaveTablesAsExcel(...)` |
-| Configure forward PDF output | `{Source}PdfSaveOptions` | `WordPdfSaveOptions` |
-| Configure the shared writer inside direct save options | `PdfOptions` | `HtmlPdfSaveOptions.PdfOptions` |
-| Configure an intermediate conversion stage | `{Intermediate}Options` | `OneNotePdfSaveOptions.MarkdownOptions` |
+| Configure forward PDF output | `{Source}ToPdfOptions` | `WordToPdfOptions` |
+| Configure the shared writer inside direct save options | `PdfOptions` | `HtmlToPdfOptions.PdfOptions` |
+| Configure an intermediate conversion stage | `{Intermediate}Options` | `OneNoteToPdfOptions.MarkdownOptions` |
 | Configure reconstruction from PDF | `Pdf{Target}ImportOptions` | `PdfWordImportOptions` |
 | Report a general reverse conversion | `Pdf{Target}ConversionResult` | `PdfPowerPointConversionResult` |
 | Report narrow table recovery | `Pdf{Target}TableImportResult` | `PdfExcelTableImportResult` |
@@ -1396,7 +1481,7 @@ OpenDocument save methods now return `OdfSaveResult` directly. Replace the disca
 
 Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
 
-The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfDocumentReadResult` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
+The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfDocumentReadResult` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across the first-party forward PDF adapters available in that release, while `ToPdfBytes()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
 `VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
 limit before opening the package. For trusted documents that intentionally
@@ -1440,10 +1525,10 @@ stream overload.
 | phone compatibility properties | `OutlookContact.Phones` |
 | `TrackComments` | No replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking. |
 | `ToPdfResult()` | `ToPdfDocumentResult()` |
-| `HtmlPdfSaveOptions.DocumentOptions` | `HtmlPdfSaveOptions.PdfOptions` |
-| `AsciiDocPdfSaveOptions.PdfOptions` | `AsciiDocPdfSaveOptions.MarkdownOptions` |
-| `LatexPdfSaveOptions.PdfOptions` | `LatexPdfSaveOptions.MarkdownOptions` |
-| `OneNotePdfSaveOptions.PdfOptions` | `OneNotePdfSaveOptions.MarkdownOptions` |
+| `HtmlToPdfOptions.DocumentOptions` | `HtmlToPdfOptions.PdfOptions` |
+| `AsciiDocToPdfOptions.PdfOptions` | `AsciiDocToPdfOptions.MarkdownOptions` |
+| `LatexToPdfOptions.PdfOptions` | `LatexToPdfOptions.MarkdownOptions` |
+| `OneNoteToPdfOptions.PdfOptions` | `OneNoteToPdfOptions.MarkdownOptions` |
 | PDF `ToWordResult()` | `ToWordDocumentResult()` |
 | `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |
@@ -1454,7 +1539,7 @@ stream overload.
 | `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` or `ToImages().WithMaximumPages(...)` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
-Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdf()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
+Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdfBytes()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
 
 Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from the `OfficeIMO.Drawing` namespace supplied by `OfficeIMO.Core`. Replace the removed scale presets as follows:
 
@@ -1495,7 +1580,7 @@ Raw HTML is parsed once into `HtmlConversionDocument`. PDF, image, Word, Markdow
 
 Reader orchestration uses an immutable `OfficeDocumentReader` built from explicit typed handlers. Native packages retain parser ownership; Reader adapters project native models into `OfficeDocumentReadResult` and return diagnostics from the operation. Do not replace removed parser classes with another public Reader parser hierarchy.
 
-Markdown HTML and PDF options use the shared `MarkdownVisualTheme` through `Theme`; PDF-only overrides use `MarkdownPdfSaveOptions.Style` and `MarkdownPdfStyle.DocumentTheme`. Visio styling and package themes are separate contracts: `VisioStyleTheme` describes reusable diagram styling, while `VisioPackageTheme` represents theme data stored in a Visio package. Shared colors and hexadecimal formatting belong to `OfficeIMO.Drawing` rather than duplicate Word or Excel helpers.
+Markdown HTML and PDF options use the shared `MarkdownVisualTheme` through `Theme`; PDF-only overrides use `MarkdownToPdfOptions.Style` and `MarkdownPdfStyle.DocumentTheme`. Visio styling and package themes are separate contracts: `VisioStyleTheme` describes reusable diagram styling, while `VisioPackageTheme` represents theme data stored in a Visio package. Shared colors and hexadecimal formatting belong to `OfficeIMO.Drawing` rather than duplicate Word or Excel helpers.
 
 PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Replace the removed switches as follows:
 
@@ -1507,7 +1592,7 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
-Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNotePdfSaveOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
 
 ## Upgrade checklist
 

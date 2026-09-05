@@ -187,7 +187,7 @@ public sealed class PdfPowerPointEditablePageEntry {
 }
 
 /// <summary>Reports a PDF-to-PowerPoint conversion in visual, hybrid, table, or editable-content mode.</summary>
-public sealed class PdfPowerPointConversionReport {
+public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     private readonly bool _hasOmittedPageContent;
 
     internal PdfPowerPointConversionReport(
@@ -461,20 +461,9 @@ public sealed class PdfPowerPointConversionReport {
 }
 
 /// <summary>Contains a PowerPoint presentation and the corresponding PDF conversion report.</summary>
-public sealed class PdfPowerPointConversionResult {
-    internal PdfPowerPointConversionResult(PptCore.PowerPointPresentation value, PdfPowerPointConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-
-    /// <summary>Gets the generated PowerPoint presentation. The caller owns and disposes it.</summary>
-    public PptCore.PowerPointPresentation Value { get; }
-
-    /// <summary>Gets the immutable conversion report.</summary>
-    public PdfPowerPointConversionReport Report { get; }
-
-    /// <summary>Gets whether the conversion reported possible content loss.</summary>
-    public bool HasLoss => Report.HasLoss;
+public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCore.PowerPointPresentation, PdfPowerPointConversionReport> {
+    internal PdfPowerPointConversionResult(PptCore.PowerPointPresentation value, PdfPowerPointConversionReport report)
+        : base(value, report) { }
 
     /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
     public bool HasOmittedPageContent => Report.HasOmittedPageContent;
@@ -482,12 +471,4 @@ public sealed class PdfPowerPointConversionResult {
     /// <summary>Gets typed warnings for content that was retained only visually or omitted by the selected projection.</summary>
     public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings => Report.Warnings;
 
-    /// <summary>Returns the generated PowerPoint presentation.</summary>
-    public PptCore.PowerPointPresentation RequireValue() => Value;
-
-    /// <summary>Returns the generated presentation only when the selected conversion mode reported no loss.</summary>
-    public PptCore.PowerPointPresentation RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
 }

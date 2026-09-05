@@ -3,7 +3,7 @@ using OfficeIMO.Rtf.Diagnostics;
 namespace OfficeIMO.Rtf;
 
 /// <summary>Shared fidelity and policy report used by every RTF conversion adapter.</summary>
-public sealed class RtfConversionReport {
+public sealed class RtfConversionReport : IOfficeConversionReport {
     private readonly List<RtfConversionDiagnostic> _diagnostics = new List<RtfConversionDiagnostic>();
 
     /// <summary>Snapshot of recorded diagnostics in conversion order.</summary>

@@ -57,7 +57,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         HtmlPdfWorkbenchRequest request,
         CancellationToken cancellationToken) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(request.Html);
-        HtmlPdfSaveOptions options = CreateManagedOptions(request.Settings);
+        HtmlToPdfOptions options = CreateManagedOptions(request.Settings);
         if (!string.IsNullOrWhiteSpace(request.Css)) options.AdditionalStylesheets.Add(request.Css);
         PdfDocumentConversionResult conversion = await document
             .ToPdfDocumentResultAsync(options, cancellationToken)
@@ -137,7 +137,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             browserEvidence);
     }
 
-    private static HtmlPdfSaveOptions CreateManagedOptions(HtmlPdfWorkbenchSettings settings) {
+    private static HtmlToPdfOptions CreateManagedOptions(HtmlPdfWorkbenchSettings settings) {
         OfficePageSize pageSize = settings.PageSize switch {
             "Letter" => OfficePageSizes.Letter,
             "Legal" => OfficePageSizes.Legal,
@@ -147,7 +147,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         };
         if (settings.Landscape) pageSize = pageSize.Landscape();
         double marginPixels = settings.MarginMillimeters / 25.4D * HtmlRenderOptions.CssPixelsPerInch;
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             PageSize = pageSize,
             Margins = HtmlRenderMargins.All(marginPixels),
             HonorCssPageRules = settings.HonorCssPageSize,

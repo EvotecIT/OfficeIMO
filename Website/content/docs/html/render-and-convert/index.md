@@ -75,13 +75,13 @@ The tool accepts files or standard input, writes files atomically, and defaults 
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     MaxPageCount = 200,
     PdfOptions = new PdfOptions().EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm } body { color: hsl(215 35% 20%) }");
 
-byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
 ```
 
 PDF writer settings are snapshotted through `PdfOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.

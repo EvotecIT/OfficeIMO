@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf;
 
 /// <summary>Immutable diagnostics from one semantic PDF-to-Word conversion.</summary>
-public sealed class PdfWordConversionReport {
+public sealed class PdfWordConversionReport : IOfficeConversionReport {
     internal PdfWordConversionReport(PdfCore.PdfConversionReport report) {
         if (report == null) throw new ArgumentNullException(nameof(report));
         Warnings = Array.AsReadOnly(report.Warnings.ToArray());
@@ -28,27 +28,7 @@ public sealed class PdfWordConversionReport {
 }
 
 /// <summary>Editable Word output and immutable diagnostics from one semantic PDF import.</summary>
-public sealed class PdfWordConversionResult {
-    internal PdfWordConversionResult(WordDocument value, PdfCore.PdfConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new PdfWordConversionReport(report);
-    }
-
-    /// <summary>The imported Word document.</summary>
-    public WordDocument Value { get; }
-
-    /// <summary>Snapshot of diagnostics reported by the import.</summary>
-    public PdfWordConversionReport Report { get; }
-
-    /// <summary>True when the conversion reported possible content loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the imported Word document.</summary>
-    public WordDocument RequireValue() => Value;
-
-    /// <summary>Returns the imported Word document only when no possible content loss was reported.</summary>
-    public WordDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class PdfWordConversionResult : OfficeConversionResult<WordDocument, PdfWordConversionReport> {
+    internal PdfWordConversionResult(WordDocument value, PdfCore.PdfConversionReport report)
+        : base(value, new PdfWordConversionReport(report)) { }
 }

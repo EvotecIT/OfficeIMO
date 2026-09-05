@@ -8,10 +8,10 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.AsciiDoc.Pdf;
 
 internal static class AsciiDocPdfConversionEngine {
-    internal static PdfCore.PdfDocumentConversionResult Convert(AsciiDocDocument document, AsciiDocPdfSaveOptions? options) {
+    internal static PdfCore.PdfDocumentConversionResult Convert(AsciiDocDocument document, AsciiDocToPdfOptions? options) {
         if (document == null) throw new ArgumentNullException(nameof(document));
 
-        AsciiDocPdfSaveOptions operation = (options ?? new AsciiDocPdfSaveOptions()).CloneForConversion();
+        AsciiDocToPdfOptions operation = (options ?? new AsciiDocToPdfOptions()).CloneForConversion();
         AsciiDocToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
         PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions);
         return result

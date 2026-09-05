@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static void ReportAccountingUnderlineApproximations(
             IReadOnlyList<WorksheetPdfExportPlan> plans,
-            ExcelPdfSaveOptions options) {
+            ExcelToPdfOptions options) {
             foreach (WorksheetPdfExportPlan plan in plans) {
                 ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
                 if (styles == null) continue;
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelPdfSaveOptions options, int exportedColumns) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
                 options.UseWorksheetPageBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());

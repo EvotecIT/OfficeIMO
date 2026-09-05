@@ -7,8 +7,8 @@ The bounded profile covers headings and metadata, typed inline formatting and re
 ```csharp
 using OfficeIMO.AsciiDoc;
 
-AsciiDocParseResult result = AsciiDocDocument.Parse(source);
-AsciiDocDocument document = result.Document;
+AsciiDocDocument document = AsciiDocDocument.Parse(source);
+AsciiDocParseResult result = AsciiDocDocument.ParseResult(source);
 
 AsciiDocHeading title = document.Blocks.OfType<AsciiDocHeading>().First();
 title.Title = "Updated title";
@@ -32,7 +32,7 @@ Select a named parsing profile explicitly when the caller must pin the semantic 
 ```csharp
 AsciiDocDocument preserved = AsciiDocDocument.Parse(
     source,
-    AsciiDocParseOptions.CreateProfile(AsciiDocDocumentProfile.PreserveOnly)).Document;
+    AsciiDocParseOptions.CreateProfile(AsciiDocDocumentProfile.PreserveOnly));
 
 AsciiDocProcessorOptions bounded = AsciiDocProcessorOptions.CreateProfile(
     AsciiDocDocumentProfile.OfficeIMO);

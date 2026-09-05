@@ -30,9 +30,9 @@ public class PowerPointSaveAsPdfTests {
             new[] { "Discover", "Design", "Build", "Validate" },
             PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] pdf = presentation.ToPdf(options);
+        byte[] pdf = presentation.ToPdfBytes(options);
         string text = PdfCore.PdfReadDocument.Open(pdf).Pages[0].ExtractText();
 
         Assert.Contains("Discover", text, StringComparison.Ordinal);
@@ -61,9 +61,9 @@ public class PowerPointSaveAsPdfTests {
         flipped.Rotation = 23D;
         flipped.HorizontalFlip = true;
         flipped.VerticalFlip = true;
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] pdf = presentation.ToPdf(options);
+        byte[] pdf = presentation.ToPdfBytes(options);
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
@@ -119,13 +119,13 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
 
-        byte[] included = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] included = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             PageLayout = layout,
             IncludeAutoShapes = false,
             IncludeSmartArt = true,
             IncludeSpeakerNotes = false
         });
-        byte[] excluded = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] excluded = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             PageLayout = layout,
             IncludeAutoShapes = true,
             IncludeSmartArt = false,
@@ -153,9 +153,9 @@ public class PowerPointSaveAsPdfTests {
         geometry.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
         presentation.AddSlide().AddCustomGeometryPoints(geometry,
             60, 30, 200, 120, "PDF polygon");
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] pdf = presentation.ToPdf(options);
+        byte[] pdf = presentation.ToPdfBytes(options);
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
@@ -184,7 +184,7 @@ public class PowerPointSaveAsPdfTests {
 
     [Fact]
     public void SaveAsPdf_PowerPointShapingOnlyProfileAllowsPresentationFontDiscoveryUntilCallerConfiguresFonts() {
-        var options = new PowerPointPdfSaveOptions()
+        var options = new PowerPointToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -218,7 +218,7 @@ public class PowerPointSaveAsPdfTests {
 
         slide.AddPicture(new MemoryStream(CreateMinimalRgbPng()), OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(210), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(1, info.PageCount);
@@ -245,7 +245,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Unavailable font marker", 20, 24, 180, 40);
         textBox.FontName = unavailableFamily;
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         });
 
@@ -264,7 +264,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Portable font marker", 20, 24, 180, 40);
         textBox.FontName = "Arial";
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
 
@@ -286,7 +286,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextBox second = slide.AddTextBoxPoints("Second explicit family", 20, 74, 180, 40);
         second.FontName = "Helvetica";
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         _ = result.ToBytes();
@@ -314,7 +314,7 @@ public class PowerPointSaveAsPdfTests {
                 targetFamily,
                 PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
             PdfOptions = configured,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
@@ -377,7 +377,7 @@ public class PowerPointSaveAsPdfTests {
         bottom.FillColor = "FFFFFF";
         bottom.FillTransparency = 100;
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -403,7 +403,7 @@ public class PowerPointSaveAsPdfTests {
         });
         paragraphs[0].SetAlignment(PowerPointTextAlignment.Left);
         paragraphs[1].SetAlignment(PowerPointTextAlignment.Right);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
@@ -431,7 +431,7 @@ public class PowerPointSaveAsPdfTests {
                 paragraph.SetLeftMarginPoints(48);
                 paragraph.SetHangingPoints(18);
             });
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
@@ -449,7 +449,7 @@ public class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.AddSlide().AddShape(OfficePresetShapeType.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
@@ -468,9 +468,9 @@ public class PowerPointSaveAsPdfTests {
         slide.AddShapePoints(OfficePresetShapeType.Triangle, 20, 24, 58, 44).Fill("1F4E79").Stroke("1F4E79", 1D);
         slide.AddShapePoints(OfficePresetShapeType.Parallelogram, 96, 24, 74, 44).Fill("1976D2").Stroke("1976D2", 1D);
         slide.AddShapePoints(OfficePresetShapeType.RightArrow, 36, 94, 112, 34).Fill("16A34A").Stroke("16A34A", 1D);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -487,9 +487,9 @@ public class PowerPointSaveAsPdfTests {
         PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(-12, 20, 48, 30);
         shape.FillColor = "1E5A96";
         shape.OutlineColor = "1E5A96";
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -504,7 +504,7 @@ public class PowerPointSaveAsPdfTests {
         presentation.SlideSize.SetSizePoints(160, 100);
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Tiny", 20, 20, 6, 6);
         textBox.FillTransparency = 100;
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
@@ -520,9 +520,9 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         presentation.AddSlide().BackgroundColor = "112233";
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -536,9 +536,9 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         presentation.AddSlide().SetBackgroundGradient("112233", "445566", 45D);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -564,9 +564,9 @@ public class PowerPointSaveAsPdfTests {
                                 new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Accent2 }) { Position = 100000 }),
                     new LinearGradientFill { Angle = 5400000 })));
         slide.SlidePart.Slide.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -583,9 +583,9 @@ public class PowerPointSaveAsPdfTests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
             presentation.AddSlide().SetBackgroundImage(imagePath);
-            var options = new PowerPointPdfSaveOptions();
+            var options = new PowerPointToPdfOptions();
 
-            byte[] bytes = presentation.ToPdf(options);
+            byte[] bytes = presentation.ToPdfBytes(options);
 
             Assert.Empty(options.Warnings);
             string raw = PdfOperatorSearchText.From(bytes);
@@ -612,7 +612,7 @@ public class PowerPointSaveAsPdfTests {
             blipFill.SourceRectangle = new A.SourceRectangle { Left = 50000 };
             slide.SlidePart.Slide.Save();
 
-            byte[] bytes = presentation.ToPdf();
+            byte[] bytes = presentation.ToPdfBytes();
 
             string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("480 0 0 160 -240 0 cm", raw, StringComparison.Ordinal);
@@ -637,7 +637,7 @@ public class PowerPointSaveAsPdfTests {
                 new SolidFill(new RgbColorModelHex { Val = "112233" })));
         layoutPart.SlideLayout.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
@@ -654,9 +654,9 @@ public class PowerPointSaveAsPdfTests {
             new BackgroundStyleReference(
                 new SchemeColor { Val = SchemeColorValues.Background1 }) { Index = 1001U });
         slide.SlidePart.Slide.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -674,9 +674,9 @@ public class PowerPointSaveAsPdfTests {
             new BackgroundProperties(
                 new SolidFill(new SchemeColor { Val = SchemeColorValues.Background2 })));
         slide.SlidePart.Slide.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -696,9 +696,9 @@ public class PowerPointSaveAsPdfTests {
                     new SchemeColor(
                         new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Background2 })));
         slide.SlidePart.Slide.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -717,9 +717,9 @@ public class PowerPointSaveAsPdfTests {
                     new RgbColorModelHex(
                         new LuminanceModulation { Val = 50000 }) { Val = "654321" })));
         slide.SlidePart.Slide.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -739,7 +739,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointAutoShape hiddenShape = hidden.AddRectanglePoints(120, 24, 50, 20);
         hiddenShape.FillColor = "FF0000";
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -769,7 +769,7 @@ public class PowerPointSaveAsPdfTests {
                 new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
         layoutPart.SlideLayout.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
@@ -803,7 +803,7 @@ public class PowerPointSaveAsPdfTests {
         title.PlaceholderType = PowerPointPlaceholderType.Title;
         title.PlaceholderIndex = 0U;
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -822,9 +822,9 @@ public class PowerPointSaveAsPdfTests {
         PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second });
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -849,7 +849,7 @@ public class PowerPointSaveAsPdfTests {
         frame.FillTransparency = 100;
         slide.GroupShapes(new PowerPointShape[] { chart, frame });
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -873,7 +873,7 @@ public class PowerPointSaveAsPdfTests {
         frame.FillTransparency = 100;
         slide.GroupShapes(new PowerPointShape[] { smartArt, frame });
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -903,7 +903,7 @@ public class PowerPointSaveAsPdfTests {
         transform.ChildExtents.Cy = PowerPointUnits.FromPoints(20);
         slide.SlidePart.Slide.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 100 60 40 re", raw, StringComparison.Ordinal);
@@ -938,7 +938,7 @@ public class PowerPointSaveAsPdfTests {
                         new DocumentFormat.OpenXml.Drawing.Text("Layout Link"))))));
         layoutPart.SlideLayout.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(new[] { "https://officeimo.net/layout" }, info.LinkUris);
@@ -964,9 +964,9 @@ public class PowerPointSaveAsPdfTests {
                 new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Triangle },
                 new SolidFill(new RgbColorModelHex { Val = "1F4E79" }))));
         layoutPart.SlideLayout.Save();
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -985,9 +985,9 @@ public class PowerPointSaveAsPdfTests {
         textBox.FontSize = 12;
         var shape = (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element;
         shape.ShapeProperties!.GetFirstChild<PresetGeometry>()!.Preset = ShapeTypeValues.RoundRectangle;
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1019,7 +1019,7 @@ public class PowerPointSaveAsPdfTests {
                 new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
         layoutPart.SlideLayout.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.DoesNotContain("16 130 50 10 re", raw, StringComparison.Ordinal);
@@ -1041,8 +1041,8 @@ public class PowerPointSaveAsPdfTests {
             new PlaceholderShape { Type = PlaceholderValues.Title };
         placeholderShape.ShapeProperties!.Transform2D?.Remove();
 
-        var options = new PowerPointPdfSaveOptions();
-        byte[] bytes = presentation.ToPdf(options);
+        var options = new PowerPointToPdfOptions();
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1062,12 +1062,12 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(60),
             PowerPointUnits.FromPoints(30));
         picture.HorizontalFlip = true;
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             PictureFit = OfficeImageFit.Stretch,
             WarnOnPictureAspectRatioDistortion = false
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
@@ -1085,11 +1085,11 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(80),
             PowerPointUnits.FromPoints(80));
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             PictureFit = OfficeImageFit.Contain
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1108,9 +1108,9 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(80),
             PowerPointUnits.FromPoints(80));
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1129,7 +1129,7 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(80),
             PowerPointUnits.FromPoints(80));
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             PictureFit = OfficeImageFit.Stretch,
             WarnOnPictureAspectRatioDistortion = true
         };
@@ -1164,7 +1164,7 @@ public class PowerPointSaveAsPdfTests {
         picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Append(new HyperlinkOnClick { Id = rel.Id });
         slide.SlidePart.Slide.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         PdfCore.PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
@@ -1188,9 +1188,9 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(50),
             PowerPointUnits.FromPoints(30));
         picture.AltText = "Logo alt";
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1213,7 +1213,7 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(30));
         picture.Crop(leftPercent: 50D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
@@ -1235,7 +1235,7 @@ public class PowerPointSaveAsPdfTests {
         picture.Crop(leftPercent: 25D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
         picture.Rotation = 90D;
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         int imageTransform = raw.IndexOf("0 80 -30 0 75 55 cm", StringComparison.Ordinal);
@@ -1259,7 +1259,7 @@ public class PowerPointSaveAsPdfTests {
         textBox.Paragraphs[1].Alignment = PowerPointTextAlignment.Left;
         textBox.Paragraphs[1].SetBullet('*');
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -1285,7 +1285,7 @@ public class PowerPointSaveAsPdfTests {
             new DocumentFormat.OpenXml.Drawing.Break(),
             new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Second")));
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -1305,7 +1305,7 @@ public class PowerPointSaveAsPdfTests {
         textBox.FillTransparency = 50;
         textBox.OutlineColor = null;
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
@@ -1323,7 +1323,7 @@ public class PowerPointSaveAsPdfTests {
         textBox.FontSize = 10;
         textBox.SetTextMarginsPoints(left: 20D, top: 6D, right: 4D, bottom: 2D);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
@@ -1385,8 +1385,8 @@ public class PowerPointSaveAsPdfTests {
         score.HorizontalAlignment = PowerPointTextAlignment.Center;
         score.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
-        var options = new PowerPointPdfSaveOptions();
-        byte[] bytes = presentation.ToPdf(options);
+        var options = new PowerPointToPdfOptions();
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1479,7 +1479,7 @@ public class PowerPointSaveAsPdfTests {
             SpacingAfter = 11D
         };
 
-        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultTableStyle = configuredStyle
             }
@@ -1519,7 +1519,7 @@ public class PowerPointSaveAsPdfTests {
         table.FirstRow = false;
         table.GetCell(0, 0).Text = "Value";
 
-        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointPdfSaveOptions {
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     HeaderRowCount = 2,
@@ -1550,7 +1550,7 @@ public class PowerPointSaveAsPdfTests {
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
 
-        byte[] bytes = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             IncludeTextBoxes = false,
             IncludeTables = true
         });
@@ -1580,7 +1580,7 @@ public class PowerPointSaveAsPdfTests {
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
 
-        byte[] bytes = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             IncludeTextBoxes = true,
             IncludeTables = true
         });
@@ -1606,7 +1606,7 @@ public class PowerPointSaveAsPdfTests {
         styled.FontName = "Georgia";
         PowerPointTextBox plain = slide.AddTextBoxPoints("DefaultSerif", 30, 84, 120, 28);
 
-        byte[] bytes = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman
             }
@@ -1632,7 +1632,7 @@ public class PowerPointSaveAsPdfTests {
         presentation.SlideSize.SetSizePoints(260, 180);
         presentation.AddSlide().AddTextBoxPoints("ExplicitSerif", 30, 40, 150, 36);
 
-        byte[] bytes = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             FontFamily = "serif"
         });
 
@@ -1648,7 +1648,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("VisibleSans", 30, 40, 150, 36);
         textBox.FontName = "Aptos Display";
 
-        byte[] bytes = presentation.ToPdf(new PowerPointPdfSaveOptions {
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman
             }
@@ -1682,7 +1682,7 @@ public class PowerPointSaveAsPdfTests {
         textBody.Append(new DocumentFormat.OpenXml.Drawing.Paragraph(
             new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Third"))));
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -1713,7 +1713,7 @@ public class PowerPointSaveAsPdfTests {
                 new A.RunProperties { FontSize = 1800, Bold = true },
                 new A.Text("Large"))));
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
         string raw = PdfOperatorSearchText.From(bytes);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1732,7 +1732,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "A very dense PowerPoint table cell that cannot fit inside this tiny fixed PDF frame";
         cell.FontSize = 14;
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
@@ -1755,7 +1755,7 @@ public class PowerPointSaveAsPdfTests {
         table.Rotation = 90D;
         table.GetCell(0, 0).Text = "Rotated";
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         int transform = raw.IndexOf("0 1 -1 0 216 6 cm", StringComparison.Ordinal);
@@ -1778,11 +1778,11 @@ public class PowerPointSaveAsPdfTests {
             });
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(data, 40, 32, 240, 172);
         chart.SetTitle("Revenue Mix");
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             ChartLayout = new OfficeChartLayout(preventLabelOverlap: false)
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1824,7 +1824,7 @@ public class PowerPointSaveAsPdfTests {
         chart.Remove();
         layoutPart.SlideLayout.Save();
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -1849,7 +1849,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.StackedBar, snapshot.ChartKind);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -1874,7 +1874,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.StackedLine100, snapshot.ChartKind);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -1899,7 +1899,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.StackedArea, snapshot.ChartKind);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -1924,7 +1924,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
         Assert.Equal(PowerPointChartSnapshotKind.Radar, snapshot.ChartKind);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -1946,7 +1946,7 @@ public class PowerPointSaveAsPdfTests {
             });
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(data, 40, 32, 240, 172);
         ConvertSecondBarSeriesToLineChart(chart);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
         byte[] bytes = presentation.ToPdfDocument(options).ToBytes();
 
@@ -1965,9 +1965,9 @@ public class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddShapePoints(OfficePresetShapeType.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
         slide.AddShapePoints(OfficePresetShapeType.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -1985,9 +1985,9 @@ public class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
         slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -2006,7 +2006,7 @@ public class PowerPointSaveAsPdfTests {
         line.HorizontalFlip = true;
         line.Stroke("1E5A96", 1.5D);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("100 120 m", raw, StringComparison.Ordinal);
@@ -2028,7 +2028,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointChartSeries forecast = Assert.Single(snapshot.Data.Series, series => series.Name == "Forecast");
         Assert.Equal(new[] { 1.5D, 2.5D }, forecast.XValues);
 
-        byte[] bytes = presentation.ToPdf();
+        byte[] bytes = presentation.ToPdfBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
@@ -2109,7 +2109,7 @@ public class PowerPointSaveAsPdfTests {
             });
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(data, 38, 30, 270, 176);
         chart.SetTitle("Styled Slide Chart");
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             ChartStyle = new OfficeChartStyle(
                 palette: new[] {
                     OfficeColor.FromRgb(18, 52, 86),
@@ -2120,7 +2120,7 @@ public class PowerPointSaveAsPdfTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 2)
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        byte[] bytes = presentation.ToPdfBytes(options);
 
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
@@ -2150,7 +2150,7 @@ public class PowerPointSaveAsPdfTests {
             });
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(data, 32, 28, 240, 150);
         chart.SetTitle("Dense Slide Chart");
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
         };
 

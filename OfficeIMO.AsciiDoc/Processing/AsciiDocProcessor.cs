@@ -9,10 +9,10 @@ public static class AsciiDocProcessor {
         ValidateOptions(options);
 
         AsciiDocParseOptions parseOptions = AsciiDocParseOptions.CreateProfile(options.Profile);
-        AsciiDocDocument sourceDocument = AsciiDocDocument.Parse(source, parseOptions).Document;
+        AsciiDocDocument sourceDocument = AsciiDocDocument.ParseResult(source, parseOptions).Document;
         var state = new PreprocessorState(options);
         string processed = state.ProcessSource(source, options.SourceName, 0);
-        AsciiDocDocument document = AsciiDocDocument.Parse(processed, parseOptions).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(processed, parseOptions).Document;
         return new AsciiDocProcessingResult(sourceDocument, document, processed, state.Attributes, state.Diagnostics);
     }
 

@@ -42,9 +42,9 @@ public sealed partial class OfficeWorkflowRunner {
                 using (WordDocument document = WordDocument.LoadAsync(
                     source,
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
-                    var options = new WordPdfSaveOptions { CancellationToken = cancellationToken };
+                    var options = new WordToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
-                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
+                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
@@ -55,9 +55,9 @@ public sealed partial class OfficeWorkflowRunner {
                 using (ExcelDocument document = ExcelDocument.LoadAsync(
                     source,
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
-                    var options = new ExcelPdfSaveOptions { CancellationToken = cancellationToken };
+                    var options = new ExcelToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
-                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
+                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
@@ -68,9 +68,9 @@ public sealed partial class OfficeWorkflowRunner {
                 using (PowerPointPresentation document = PowerPointPresentation.LoadAsync(
                     source,
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
-                    var options = new PowerPointPdfSaveOptions { CancellationToken = cancellationToken };
+                    var options = new PowerPointToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
-                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
+                    PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
@@ -78,7 +78,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             case "html-pdf": {
                 long remainingInputBytes = Math.Max(0L, request.Limits.MaximumInputBytes - input.LongLength);
-                HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(
+                HtmlToPdfOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(
                     request.InputPath,
                     remainingInputBytes,
                     htmlResourceSnapshots);

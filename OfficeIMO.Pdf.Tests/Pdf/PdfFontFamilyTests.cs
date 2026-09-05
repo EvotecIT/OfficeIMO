@@ -1348,7 +1348,7 @@ public class PdfFontFamilyTests {
         Assert.Contains("Conversion result", PdfReadDocument.Open(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();
-        PdfSaveResult saveResult = processed.TrySave(output);
+        PdfSaveResult saveResult = processed.SaveResult(output);
 
         Assert.True(saveResult.Succeeded);
         Assert.True(saveResult.BytesWritten > 0);
@@ -1399,7 +1399,7 @@ public class PdfFontFamilyTests {
         report.Clear();
 
         using var stream = new MemoryStream();
-        PdfSaveResult streamResult = await result.TrySaveAsync(stream);
+        PdfSaveResult streamResult = await result.SaveResultAsync(stream);
 
         Assert.True(streamResult.Succeeded);
         Assert.True(streamResult.BytesWritten > 0);
@@ -1421,7 +1421,7 @@ public class PdfFontFamilyTests {
             string tryPath = Path.Combine(directory, "try-save.pdf");
             string savePath = Path.Combine(directory, "save.pdf");
 
-            PdfSaveResult pathResult = await result.TrySaveAsync(tryPath);
+            PdfSaveResult pathResult = await result.SaveResultAsync(tryPath);
             PdfSaveResult pathSaveResult = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);

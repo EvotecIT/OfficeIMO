@@ -5,9 +5,9 @@ using OfficeIMO.Markdown.Pdf;
 namespace OfficeIMO.Latex.Pdf;
 
 /// <summary>Controls the loss-aware LaTeX-to-PDF route.</summary>
-public sealed class LatexPdfSaveOptions {
+public sealed class LatexToPdfOptions {
     private LatexToMarkdownOptions _projectionOptions = new LatexToMarkdownOptions();
-    private MarkdownPdfSaveOptions _markdownOptions = new MarkdownPdfSaveOptions();
+    private MarkdownToPdfOptions _markdownOptions = new MarkdownToPdfOptions();
 
     /// <summary>LaTeX-to-Markdown semantic projection settings.</summary>
     public LatexToMarkdownOptions ProjectionOptions {
@@ -16,12 +16,12 @@ public sealed class LatexPdfSaveOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownPdfSaveOptions MarkdownOptions {
+    public MarkdownToPdfOptions MarkdownOptions {
         get => _markdownOptions;
         set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
 
-    internal LatexPdfSaveOptions CloneForConversion() => new LatexPdfSaveOptions {
+    internal LatexToPdfOptions CloneForConversion() => new LatexToPdfOptions {
         ProjectionOptions = new LatexToMarkdownOptions {
             PreserveUnsupportedAsSource = ProjectionOptions.PreserveUnsupportedAsSource,
             IncludePreambleAsFrontMatter = ProjectionOptions.IncludePreambleAsFrontMatter

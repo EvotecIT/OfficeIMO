@@ -13,7 +13,7 @@ using OfficeIMO.Visio.Pdf;
 VisioDocument diagram = VisioDocument.Load("architecture.vsdx");
 diagram.SaveAsPdf("architecture.pdf");
 
-byte[] pdf = diagram.ToPdf();
+byte[] pdf = diagram.ToPdfBytes();
 ```
 
 The conversion produces searchable diagram text and topology. It reports when

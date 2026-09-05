@@ -15,7 +15,7 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     internal static bool IsSupportedDependency(string path) =>
         SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
-    internal static HtmlPdfSaveOptions CreateOptions(
+    internal static HtmlToPdfOptions CreateOptions(
         string inputPath,
         long maximumResourceBytes,
         IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null) {
@@ -32,7 +32,7 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         HtmlUrlPolicy resourcePolicy = CreateResourcePolicy();
 
         long rendererResourceBudget = Math.Max(1L, maximumResourceBytes);
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             ResourceUrlPolicy = resourcePolicy,
             MaxResourceBytes = rendererResourceBudget,
             MaxTotalResourceBytes = rendererResourceBudget,
@@ -61,7 +61,7 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     }
 
     internal static HtmlResourcePipelineOptions CreatePdfResourcePipelineOptions(Uri? baseUri = null) {
-        var renderOptions = new HtmlPdfSaveOptions();
+        var renderOptions = new HtmlToPdfOptions();
         return new HtmlResourcePipelineOptions {
             BaseUri = baseUri,
             ResourceUrlPolicy = CreateResourcePolicy(),

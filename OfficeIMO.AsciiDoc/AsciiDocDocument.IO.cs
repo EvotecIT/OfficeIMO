@@ -8,29 +8,49 @@ public sealed partial class AsciiDocDocument {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
 
     /// <summary>Loads and parses an AsciiDoc document from a caller-owned stream.</summary>
-    public static AsciiDocParseResult Load(Stream stream, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
-        return Parse((encoding ?? Utf8WithoutBom).GetString(OfficeStreamReader.ReadAllBytes(stream)), options);
+    public static AsciiDocDocument Load(Stream stream, AsciiDocParseOptions? options = null, Encoding? encoding = null) =>
+        LoadResult(stream, options, encoding).Document;
+
+    /// <summary>Loads an AsciiDoc document from a caller-owned stream with syntax and recovery diagnostics.</summary>
+    public static AsciiDocParseResult LoadResult(Stream stream, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
+        return ParseResult((encoding ?? Utf8WithoutBom).GetString(OfficeStreamReader.ReadAllBytes(stream)), options);
     }
 
     /// <summary>Asynchronously loads and parses an AsciiDoc file.</summary>
-    public static async Task<AsciiDocParseResult> LoadAsync(
+    public static async Task<AsciiDocDocument> LoadAsync(
+        string path,
+        AsciiDocParseOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) =>
+        (await LoadResultAsync(path, options, encoding, cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>Asynchronously loads an AsciiDoc file with syntax and recovery diagnostics.</summary>
+    public static async Task<AsciiDocParseResult> LoadResultAsync(
         string path,
         AsciiDocParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously loads and parses an AsciiDoc document from a caller-owned stream.</summary>
-    public static async Task<AsciiDocParseResult> LoadAsync(
+    public static async Task<AsciiDocDocument> LoadAsync(
+        Stream stream,
+        AsciiDocParseOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) =>
+        (await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>Asynchronously loads an AsciiDoc stream with syntax and recovery diagnostics.</summary>
+    public static async Task<AsciiDocParseResult> LoadResultAsync(
         Stream stream,
         AsciiDocParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        return Parse((encoding ?? Utf8WithoutBom).GetString(bytes), options);
+        return ParseResult((encoding ?? Utf8WithoutBom).GetString(bytes), options);
     }
 
     /// <summary>Encodes the current document text.</summary>

@@ -31,7 +31,7 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("board-review.pptx");
 
-var options = new PowerPointPdfSaveOptions {
+var options = new PowerPointToPdfOptions {
     IncludeHiddenSlides = false,
     IncludeSlideBackgrounds = true,
     IncludePictures = true,
@@ -52,7 +52,7 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("training.pptx");
 
-byte[] pdfBytes = presentation.ToPdf();
+byte[] pdfBytes = presentation.ToPdfBytes();
 
 using var stream = File.Create("training.pdf");
 presentation.SaveAsPdf(stream);
@@ -66,12 +66,12 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("training.pptx");
 
-presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfSaveOptions {
+presentation.SaveAsPdf("training-notes.pdf", new PowerPointToPdfOptions {
     PageLayout = PowerPointPdfPageLayout.NotesPages,
     IncludeSpeakerNotes = true
 });
 
-presentation.SaveAsPdf("training-handout.pdf", new PowerPointPdfSaveOptions {
+presentation.SaveAsPdf("training-handout.pdf", new PowerPointToPdfOptions {
     PageLayout = PowerPointPdfPageLayout.Handouts,
     HandoutSlidesPerPage = 3,
     IncludeSpeakerNotes = true
@@ -88,7 +88,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 using var presentation = PowerPointPresentation.Load("complex-deck.pptx");
-var options = new PowerPointPdfSaveOptions {
+var options = new PowerPointToPdfOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true
 }.UseProfile(PdfExportProfile.Faithful);
@@ -96,7 +96,7 @@ var options = new PowerPointPdfSaveOptions {
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
 options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
-var result = presentation.TrySaveAsPdf("complex-deck.pdf", options);
+var result = presentation.SaveAsPdfResult("complex-deck.pdf", options);
 if (!result.Succeeded) {
     foreach (string diagnostic in result.Diagnostics) {
         Console.WriteLine(diagnostic);
@@ -118,7 +118,7 @@ result.Report.RequireNoErrorWarnings();
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
 - Full-slide PDF output always uses the native per-shape PDF renderer, including hyperlinks and rich text. Conversion no longer chooses a different renderer from document content or an option toggle.
 - PNG, SVG, visual-review HTML, and notes/handout thumbnails use the shared visual snapshot; those surfaces have a different scene/raster contract and do not select the PDF engine at runtime.
-- Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
+- Profile presets through `PowerPointToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Import PDF pages

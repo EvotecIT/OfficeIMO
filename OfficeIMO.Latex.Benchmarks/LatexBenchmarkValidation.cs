@@ -17,7 +17,7 @@ internal static class LatexBenchmarkValidation {
     }
 
     internal static LatexParseResult Validate(LatexBenchmarkFixture fixture) {
-        LatexParseResult result = LatexDocument.Parse(fixture.Source);
+        LatexParseResult result = LatexDocument.ParseResult(fixture.Source);
         if (result.HasErrors || !result.IsLossless) {
             throw new InvalidOperationException(fixture.Scale + " did not parse losslessly without errors.");
         }

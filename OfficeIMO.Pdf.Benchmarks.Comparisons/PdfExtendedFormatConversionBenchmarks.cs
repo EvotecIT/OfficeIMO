@@ -28,7 +28,7 @@ public class PdfExtendedFormatConversionBenchmarks {
     public void Setup() => _scenario = PdfExtendedFormatConversionScenario.Create(Format);
 
     [Benchmark]
-    public byte[] ConvertToPdf() => _result = _scenario.ConvertToPdf();
+    public byte[] ConvertToPdfBytes() => _result = _scenario.ConvertToPdfBytes();
 
     [GlobalCleanup]
     public void Validate() {

@@ -331,7 +331,7 @@ The unified API intentionally narrows the public surface around the fluent
 - `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
   return `PdfSaveResult`. It carries output path/length, conversion warnings,
   and an immutable `Pipeline` with create/open, mutation, hash, page-count,
-  execution-mode, timing, and final-output evidence. `TrySave(...)` keeps the
+  execution-mode, timing, and final-output evidence. `SaveResult(...)` keeps the
   same result shape while capturing exceptions instead of throwing.
 
 The target-framework support remains `netstandard2.0`, `net8.0`, and
@@ -790,7 +790,7 @@ PdfDocument second = PdfDocument.Load("second.pdf", new PdfLoadOptions {
     PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
 });
 
-PdfMergeResult merged = PdfDocument.MergeWithReport(
+PdfMergeResult merged = PdfDocument.MergeResult(
     new PdfMergeOptions(),
     first,
     second);
@@ -1332,7 +1332,7 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new WordPdfSaveOptions {
+var options = new WordToPdfOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);

@@ -39,7 +39,7 @@ public class PdfSecurityEditorTests {
             encrypted,
             PdfMutationOperation.ChangeEncryption,
             new PdfLoadOptions { Password = "open" });
-        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Load(encrypted).TryDecrypt("open");
+        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Load(encrypted).DecryptResult("open");
         PdfSecurityMutationResult result = PdfSecurityEditor.Decrypt(encrypted, "owner");
 
         Assert.Equal(PdfPasswordAuthenticationRole.User, userPlan.Preflight.Probe.Security.PasswordAuthenticationRole);

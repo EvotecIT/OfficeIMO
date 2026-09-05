@@ -9,15 +9,15 @@ namespace OfficeIMO.Html.Pdf;
 /// </summary>
 /// <example>
 /// <code>
-/// var options = new HtmlPdfSaveOptions {
+/// var options = new HtmlToPdfOptions {
 ///     PageSize = OfficePageSizes.A4,
 ///     Margins = HtmlRenderMargins.All(32),
 ///     DefaultFontFamily = "Arial"
 /// };
-/// byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+/// byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
 /// </code>
 /// </example>
-public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
+public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
@@ -28,7 +28,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
-    public HtmlPdfSaveOptions() {
+    public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
         UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
     }
@@ -39,8 +39,8 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// </summary>
     /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
     /// <remarks>Generic rendering settings are intersected with the PDF hyperlink policy so caller restrictions are preserved. PDF-specific snapshots preserve their explicitly configured URL policy.</remarks>
-    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
-        if (renderOptions is HtmlPdfSaveOptions pdfOptions) {
+    public HtmlToPdfOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
+        if (renderOptions is HtmlToPdfOptions pdfOptions) {
             CopyPdfSettingsFrom(pdfOptions);
         } else {
             UrlPolicy = HtmlUrlPolicy.Intersect(UrlPolicy, HtmlUrlPolicy.CreateHyperlinkProfile());
@@ -113,8 +113,8 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     }
 
     /// <summary>Creates an independent options snapshot for one PDF conversion.</summary>
-    public HtmlPdfSaveOptions ClonePdf() {
-        return new HtmlPdfSaveOptions(this);
+    public HtmlToPdfOptions ClonePdf() {
+        return new HtmlToPdfOptions(this);
     }
 
     /// <summary>Creates an independent options snapshot.</summary>
@@ -123,7 +123,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// <summary>Returns a snapshot of the active HTML resource policy.</summary>
     public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
 
-    private void CopyPdfSettingsFrom(HtmlPdfSaveOptions source) {
+    private void CopyPdfSettingsFrom(HtmlToPdfOptions source) {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;

@@ -576,9 +576,9 @@ public partial class Html {
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
         Assert.Equal("123456", printRun.ColorHex);
 
-        byte[] printPdf = print.ToPdf();
+        byte[] printPdf = print.ToPdfBytes();
         Assert.NotEmpty(printPdf);
-        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Open(screen.ToPdf()).ExtractText();
+        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Open(screen.ToPdfBytes()).ExtractText();
         Assert.Contains("Print target retained", retargetedPdfText, StringComparison.Ordinal);
     }
 
@@ -630,7 +630,7 @@ public partial class Html {
         Assert.DoesNotContain("https://example.test/images/ignored.apng", markdown);
         Assert.Contains("https://example.test/images/apng-fallback.png", markdown);
 
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdfBytes();
         Assert.NotEmpty(pdf);
 
         string filteredFragment = HtmlActiveMediaFilter.Filter(

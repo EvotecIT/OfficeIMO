@@ -18,8 +18,8 @@ public class AsciiDocParseBenchmarks {
     }
 
     [Benchmark(Baseline = true, Description = "Parse lossless")]
-    public AsciiDocParseResult ParseLossless() => AsciiDocDocument.Parse(_fixture.Source);
+    public AsciiDocParseResult ParseLossless() => AsciiDocDocument.ParseResult(_fixture.Source);
 
     [Benchmark(Description = "Parse + preserve write")]
-    public string ParseAndPreserveWrite() => AsciiDocDocument.Parse(_fixture.Source).Document.ToAsciiDoc();
+    public string ParseAndPreserveWrite() => AsciiDocDocument.ParseResult(_fixture.Source).Document.ToAsciiDoc();
 }

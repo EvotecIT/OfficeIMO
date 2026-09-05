@@ -50,6 +50,55 @@ public sealed class PdfPublicApiContractTests {
     };
 
     [Fact]
+    public void StructuredPdfOperationsUseResultSuffixAndTheSharedResultContract() {
+        MethodInfo[] methods = typeof(PdfDocument).Assembly
+            .GetExportedTypes()
+            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            .Where(static method => IsStructuredPdfResult(method.ReturnType))
+            .ToArray();
+
+        Assert.NotEmpty(methods);
+        Assert.DoesNotContain(methods, static method => method.Name.StartsWith("Try", StringComparison.Ordinal));
+
+        Type[] resultTypes = {
+            typeof(PdfSaveResult),
+            typeof(PdfBytesResult),
+            typeof(PdfOperationResult<PdfDocument>),
+            typeof(PdfMergeResult),
+            typeof(PdfProductionSplitResult)
+        };
+        Assert.All(resultTypes, static type => Assert.True(typeof(IOfficeResult).IsAssignableFrom(type), type.FullName));
+    }
+
+    [Fact]
+    public void MergeAndSplitExposeDirectAndStructuredFluentRoutes() {
+        MethodInfo[] mergeMethods = typeof(PdfDocument).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(static method => method.Name is "Merge" or "MergeResult")
+            .ToArray();
+
+        Assert.Contains(mergeMethods, static method => method.Name == "Merge" && method.ReturnType == typeof(PdfDocument));
+        Assert.Contains(mergeMethods, static method => method.Name == "MergeResult" && method.ReturnType == typeof(PdfMergeResult));
+        MethodInfo[] splitMethods = typeof(PdfDocumentPages).GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        Assert.Contains(splitMethods,
+            static method => method.Name == nameof(PdfDocumentPages.SplitForProduction) &&
+                             method.ReturnType == typeof(IReadOnlyList<PdfProductionSplitPart>));
+        Assert.Contains(splitMethods,
+            static method => method.Name == nameof(PdfDocumentPages.SplitForProductionResult) &&
+                             method.ReturnType == typeof(PdfProductionSplitResult));
+    }
+
+    private static bool IsStructuredPdfResult(Type returnType) {
+        Type type = returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)
+            ? returnType.GetGenericArguments()[0]
+            : returnType;
+        return type == typeof(PdfSaveResult) ||
+               type == typeof(PdfBytesResult) ||
+               type == typeof(PdfMergeResult) ||
+               type == typeof(PdfProductionSplitResult) ||
+               type.IsGenericType && type.GetGenericTypeDefinition() == typeof(PdfOperationResult<>);
+    }
+
+    [Fact]
     public void FacadeExposesOneCreateLoadReadAnalyzeWorkflowWithoutLegacyOpenOrResultLoaders() {
         MethodInfo[] methods = typeof(PdfDocument).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
@@ -125,7 +174,7 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(
             2,
             methods.Count(method =>
-                method.Name == nameof(PdfDocument.TrySave) &&
+                method.Name == nameof(PdfDocument.SaveResult) &&
                 method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(
             3,
@@ -142,7 +191,7 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(
             2,
             methods.Count(method =>
-                method.Name == nameof(PdfDocument.TrySaveAsync) &&
+                method.Name == nameof(PdfDocument.SaveResultAsync) &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
     }
 

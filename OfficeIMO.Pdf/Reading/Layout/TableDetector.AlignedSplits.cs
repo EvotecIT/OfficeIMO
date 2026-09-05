@@ -20,10 +20,10 @@ internal static partial class TableDetector {
             _maximumInkEnds = Enumerable.Repeat(double.NegativeInfinity, boundaryCount).ToArray();
             _maximumLastSpanStarts = Enumerable.Repeat(double.NegativeInfinity, boundaryCount).ToArray();
             _minimumNextStarts = Enumerable.Repeat(double.PositiveInfinity, boundaryCount).ToArray();
-            TryAppend(initialLines, requireValidSplits: false);
+            AppendResult(initialLines, requireValidSplits: false);
         }
 
-        internal bool TryAppend(
+        internal bool AppendResult(
             IReadOnlyList<TextLayoutEngine.TextLine> lines,
             bool requireValidSplits) {
             double[] maximumInkEnds = (double[])_maximumInkEnds.Clone();

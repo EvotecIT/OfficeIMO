@@ -6,9 +6,8 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options controlling first-party OfficeIMO Excel-to-PDF export.
     /// </summary>
-    public sealed class ExcelPdfSaveOptions {
-        /// <summary>Cancellation observed at worksheet and table-chunk boundaries during conversion.</summary>
-        public CancellationToken CancellationToken { get; set; }
+    public sealed class ExcelToPdfOptions {
+        internal CancellationToken CancellationToken { get; set; }
 
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
@@ -241,7 +240,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Worksheet selection and page layout remain owned by this converter.
         /// </summary>
-        public ExcelPdfSaveOptions UseRenderingProfile(
+        public ExcelToPdfOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
             if (profile == null) {
@@ -310,7 +309,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Applies a high-level export profile by setting the Excel PDF options that correspond to that profile.
         /// </summary>
-        public ExcelPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+        public ExcelToPdfOptions UseProfile(PdfCore.PdfExportProfile profile) {
             switch (profile) {
                 case PdfCore.PdfExportProfile.Faithful:
                     WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
@@ -395,8 +394,8 @@ namespace OfficeIMO.Excel.Pdf {
             return this;
         }
 
-        internal ExcelPdfSaveOptions CloneForConversion() {
-            var clone = (ExcelPdfSaveOptions)MemberwiseClone();
+        internal ExcelToPdfOptions CloneForConversion() {
+            var clone = (ExcelToPdfOptions)MemberwiseClone();
             clone.SheetNames = SheetNames?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();
             clone.Warnings = new List<ExcelPdfExportWarning>();

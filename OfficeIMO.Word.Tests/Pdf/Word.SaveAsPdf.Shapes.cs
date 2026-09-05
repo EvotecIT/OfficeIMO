@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 document.AddShape(WordShapeType.Line, 80, 0, "#ffffff", "#008000", 2);
                 document.AddParagraph("After native shapes");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(docPath)) {
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 star.FillColorHex = "#f4b183";
                 document.AddParagraph("After native DrawingML shapes");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddShapeDrawing(WordShapeType.Cube, 72, 60).FillColorHex = "#00ffff";
                 document.AddParagraph("After remaining native DrawingML shapes");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddShapeDrawing(WordShapeType.LeftRightArrow, 96, 40).FillColorHex = "#800000";
                 document.AddParagraph("After additional native DrawingML shapes");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(docPath)) {
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(docPath)) {
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
                 textBox.Paragraphs[0].Bold = true;
                 document.AddParagraph("After native text box");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }

@@ -10,7 +10,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private const double MinimumChartWidth = 240D;
     private const double MinimumChartHeight = 150D;
 
-    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (!IsChartSemanticFence(semantic)) {
             return false;
         }
@@ -39,7 +39,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool IsChartSemanticFence(SemanticFencedBlock semantic) =>
         string.Equals(semantic.SemanticKind, MarkdownSemanticKinds.Chart, StringComparison.OrdinalIgnoreCase);
 
-    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfStyle? visualTheme = null) {
+    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownToPdfOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfStyle? visualTheme = null) {
         snapshot = null;
         warningMessage = null;
         if (string.IsNullOrWhiteSpace(semantic.Content)) {
@@ -780,7 +780,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static MarkdownPdfStyle ResolveChartVisualTheme(MarkdownPdfSaveOptions options, MarkdownPdfStyle? visualTheme) {
+    private static MarkdownPdfStyle ResolveChartVisualTheme(MarkdownToPdfOptions options, MarkdownPdfStyle? visualTheme) {
         if (visualTheme != null) {
             return visualTheme.Clone();
         }
@@ -801,7 +801,7 @@ public static partial class MarkdownPdfConverterExtensions {
             : MarkdownPdfStyle.Plain();
     }
 
-    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme, ref double width, ref double height) {
+    private static void FitChartToPageFrame(MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme, ref double width, ref double height) {
         if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
             availableWidth = width;
         }
@@ -821,19 +821,19 @@ public static partial class MarkdownPdfConverterExtensions {
         height = Math.Max(MinimumChartHeight, height * scale);
     }
 
-    private static bool TryGetAvailablePdfContentWidth(MarkdownPdfSaveOptions options, out double availableWidth) {
+    private static bool TryGetAvailablePdfContentWidth(MarkdownToPdfOptions options, out double availableWidth) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
         availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
         return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
     }
 
-    private static bool TryGetAvailablePdfContentHeight(MarkdownPdfSaveOptions options, out double availableHeight) {
+    private static bool TryGetAvailablePdfContentHeight(MarkdownToPdfOptions options, out double availableHeight) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
         availableHeight = pdfOptions.PageHeight - pdfOptions.MarginTop - pdfOptions.MarginBottom;
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
-    private static bool TryGetAvailableChartContentHeight(MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme, out double availableHeight) {
+    private static bool TryGetAvailableChartContentHeight(MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme, out double availableHeight) {
         if (!TryGetAvailablePdfContentHeight(options, out availableHeight)) {
             return false;
         }

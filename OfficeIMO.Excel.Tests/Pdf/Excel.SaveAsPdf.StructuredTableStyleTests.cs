@@ -33,7 +33,7 @@ public partial class Excel {
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 4, 2), 16),
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 2, 2), 16));
 
-            pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
+            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
             });
@@ -77,7 +77,7 @@ public partial class Excel {
         var worksheetPart = Assert.Single(document.OpenXmlDocument.WorkbookPart!.WorksheetParts);
         Assert.False(worksheetPart.IsRootElementLoaded);
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -104,7 +104,7 @@ public partial class Excel {
         sheet.Cell(2, 1, "Platform");
         sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -139,7 +139,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Load(
             workbookPath,
             new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,

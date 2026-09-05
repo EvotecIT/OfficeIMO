@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfDocument pdf,
             ExcelDocument document,
             WorksheetPdfExportPlan plan,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily) {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
             WorksheetPdfExportPlan plan,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             int columns,
             double availableWidth,
             double availableHeight) {
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageCanvas canvas,
             WorksheetPdfExportPlan plan,
             TableChunk chunk,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily,
@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableStyle CreateWorksheetSceneTableStyle(
             WorksheetPdfExportPlan plan,
             TableChunk chunk,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             IReadOnlyList<double> columnWidths,
             IReadOnlyList<double> rowHeights,
             double scale) {
@@ -455,7 +455,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageCanvas canvas,
             WorksheetPdfExportPlan plan,
             TableChunk chunk,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             IReadOnlyList<double> columnWidths,
             IReadOnlyList<double> rowHeights,
             double sceneX,

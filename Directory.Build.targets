@@ -33,8 +33,9 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
-  <!-- PDF 3.4 intentionally redesigns the 3.3 authoring surface. Keep reviewed breaks in explicit
-       suppression files so any additional public API regression fails package validation. -->
+  <!-- OfficeIMO 3.4 intentionally redesigns the 3.3 document, conversion, and PDF surfaces.
+       Keep reviewed breaks in explicit suppression files so any additional public API regression
+       fails package validation. -->
   <PropertyGroup Condition="
       '$(PackageId)' == 'OfficeIMO.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.ChartForgeX'
@@ -44,7 +45,18 @@
       Or '$(PackageId)' == 'OfficeIMO.PowerPoint.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Rtf.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.Html.Pdf'
-      Or '$(PackageId)' == 'OfficeIMO.Markdown.Pdf'">
+      Or '$(PackageId)' == 'OfficeIMO.Markdown.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.Mhtml.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.OneNote.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.AsciiDoc.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.Latex.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Odt.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Ods.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.OpenDocument.Odp.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.Visio.Pdf'
+      Or '$(PackageId)' == 'OfficeIMO.AsciiDoc'
+      Or '$(PackageId)' == 'OfficeIMO.Latex'
+      Or '$(PackageId)' == 'OfficeIMO.Rtf'">
     <PackageValidationBaselineVersion>3.3.0</PackageValidationBaselineVersion>
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>

@@ -3,29 +3,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Markdown document plus explicit conversion diagnostics.</summary>
-public sealed class AsciiDocToMarkdownResult {
-    internal AsciiDocToMarkdownResult(MarkdownDoc value, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new AsciiDocToMarkdownReport(diagnostics);
-    }
-
-    /// <summary>Converted Markdown semantic document.</summary>
-    public MarkdownDoc Value { get; }
-
-    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
-    public AsciiDocToMarkdownReport Report { get; }
-
-    /// <summary>True when at least one feature was simplified, source-fallbacked, or omitted.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the converted document.</summary>
-    public MarkdownDoc RequireValue() => Value;
-
-    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
-    public MarkdownDoc RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDoc, AsciiDocToMarkdownReport> {
+    internal AsciiDocToMarkdownResult(MarkdownDoc value, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics)
+        : base(value, new AsciiDocToMarkdownReport(diagnostics)) { }
 }
 
 /// <summary>AsciiDoc-to-Markdown conversion diagnostics captured for one operation.</summary>

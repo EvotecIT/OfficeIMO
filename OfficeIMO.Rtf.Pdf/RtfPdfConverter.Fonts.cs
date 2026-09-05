@@ -6,7 +6,7 @@ internal static partial class RtfPdfConverter {
     private static IReadOnlyDictionary<int, PdfCore.PdfStandardFont> ConfigureDocumentFonts(
         RtfDocument document,
         PdfCore.PdfOptions pdfOptions,
-        RtfPdfSaveOptions options) {
+        RtfToPdfOptions options) {
         bool allowSystemFontEmbedding =
             options.ResourcePolicy.AllowSystemFontEmbedding &&
             options.ResourcePolicy.AllowDocumentFontEmbedding;
@@ -81,7 +81,7 @@ internal static partial class RtfPdfConverter {
     private static bool ResolveSystemFontPermission(
         string familyName,
         bool allowSystemFontEmbedding,
-        RtfPdfSaveOptions options,
+        RtfToPdfOptions options,
         ISet<string> systemFontFamilies,
         ref bool budgetReported) {
         if (!allowSystemFontEmbedding) return false;
@@ -159,7 +159,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfOptions pdfOptions,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
         bool allowSystemFontEmbedding,
-        RtfPdfSaveOptions options,
+        RtfToPdfOptions options,
         out PdfCore.PdfStandardFont fontSlot) {
         if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
             PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
@@ -212,7 +212,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ReportFontSlotExhaustion(
-        RtfPdfSaveOptions options,
+        RtfToPdfOptions options,
         string familyName,
         PdfCore.PdfStandardFont? fallbackSlot,
         string? occupyingFontFamily) {

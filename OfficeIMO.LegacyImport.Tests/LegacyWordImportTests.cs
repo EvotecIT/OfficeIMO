@@ -46,7 +46,7 @@ public sealed class LegacyWordImportTests {
         Assert.Contains("paragraph", imported.Value.ToHtml());
         Assert.Contains("First", imported.Value.ToMarkdown());
         Assert.Contains("paragraph", imported.Value.ToMarkdown());
-        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(imported.Value.ToPdf(), 0, 4));
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(imported.Value.ToPdfBytes(), 0, 4));
         using var odt = new MemoryStream();
         imported.Value.ToOpenDocument().Save(odt);
         Assert.True(odt.Length > 100);

@@ -101,7 +101,7 @@ public sealed class PdfBridgeApiContracts {
 
     [Fact]
     public void FourPointZeroOptionNamesDescribeTheirOwningBridgeAndDirection() {
-        Assert.Null(typeof(WordPdfSaveOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfSaveOptions"));
+        Assert.Null(typeof(WordToPdfOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfSaveOptions"));
         Assert.Null(typeof(PdfWordImportOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfWordReadOptions"));
         Assert.Null(typeof(PdfExcelTableImportOptions).Assembly.GetType("OfficeIMO.Excel.Pdf.PdfExcelImportOptions"));
         Assert.Null(typeof(PdfPowerPointImportOptions).Assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportOptions"));

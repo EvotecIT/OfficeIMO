@@ -47,7 +47,7 @@ public class RtfHtmlIoTests {
 
         Assert.Equal(0, output.Position);
         Assert.Equal(bytes, output.ToArray());
-        Assert.Equal("Clinical ż", Assert.Single(RtfDocument.Load(bytes).Document.Paragraphs).ToPlainText());
+        Assert.Equal("Clinical ż", Assert.Single(RtfDocument.LoadResult(bytes).Document.Paragraphs).ToPlainText());
     }
 
     [Fact]

@@ -117,16 +117,16 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 `ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
 
-Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF and all five image formats.
+Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF and all five image formats.
 
 ```csharp
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     Margins = HtmlRenderMargins.All(32)
 };
 
-byte[] pdf = source.ToPdf(options);
+byte[] pdf = source.ToPdfBytes(options);
 byte[] png = source.ToPng(options);
 string svg = source.ToSvg(options);
 ```

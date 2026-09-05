@@ -30,7 +30,7 @@ if (!string.Equals(edited.Pages[0].Title, "Edited packed page", StringComparison
 
 string markdown = edited.ToMarkdown();
 string html = edited.ToHtmlDocument();
-byte[] pdf = edited.ToPdf();
+byte[] pdf = edited.ToPdfBytes();
 if (markdown.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
     html.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
     pdf.Length < 5 ||

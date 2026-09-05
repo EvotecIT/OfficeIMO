@@ -31,7 +31,7 @@ string html = """
 """;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] pdf = source.ToPdf();
+byte[] pdf = source.ToPdfBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
@@ -51,12 +51,12 @@ In paged output, table cells measure and wrap through the shared layout engine. 
 </section>
 ```
 
-For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdf()`, and select forward-only PDF object serialization when the destination need not be seekable:
+For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdfBytes()`, and select forward-only PDF object serialization when the destination need not be seekable:
 
 ```csharp
 using OfficeIMO.Pdf;
 
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     PdfOptions = new PdfOptions {
         FileVersion = PdfFileVersion.Pdf17,
         ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
@@ -104,7 +104,7 @@ The managed path supports named page rules, margin boxes, page counters, running
 Use strict mode when the input must stay inside the declared static contract, and require the PDF-stage report as well:
 
 ```csharp
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
     PdfOptions = new OfficeIMO.Pdf.PdfOptions()
         .EnableTaggedPdfCatalogMarkers()
@@ -132,7 +132,7 @@ using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlPdfSaveOptions();
+var options = new HtmlToPdfOptions();
 options.Fonts.FontVariationResolver = request =>
     request.FamilyName == "Report Variable"
         ? new Dictionary<string, float> {
@@ -150,7 +150,7 @@ For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.Har
 ```csharp
 using OfficeIMO.Drawing.HarfBuzz;
 
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
     TextShapingLanguage = "ar"
 };
@@ -163,7 +163,7 @@ Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That brid
 
 Naming is consistent across the direct output APIs:
 
-- `ToPdf()` returns encoded bytes.
+- `ToPdfBytes()` returns encoded bytes.
 - `ToPdfDocument()` returns the first-party PDF model.
 - `ToPdfDocumentResult()` returns the PDF model plus diagnostics.
 - `ExportImage()` and `ExportImages()` return image output, dimensions, and diagnostics.
@@ -172,14 +172,14 @@ Naming is consistent across the direct output APIs:
 
 ## One options shape for PDF and all image formats
 
-`HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so one configured instance can drive PDF and all five direct image outputs.
+`HtmlToPdfOptions` derives from `HtmlRenderOptions`, so one configured instance can drive PDF and all five direct image outputs.
 
 ```csharp
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     PageSize = OfficePageSizes.A4,
     Margins = HtmlRenderMargins.All(32),
     DefaultFontFamily = "Arial",
@@ -191,7 +191,7 @@ var options = new HtmlPdfSaveOptions {
 options.AdditionalStylesheets.Add("@page { margin: 18mm }");
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] pdf = source.ToPdf(options);
+byte[] pdf = source.ToPdfBytes(options);
 byte[] png = source.ToPng(options);
 byte[] jpeg = source.ToJpeg(options);
 byte[] tiff = source.ToTiff(options);
@@ -206,7 +206,7 @@ PDF always uses paged layout. Image output honors the selected continuous or pag
 Options are reusable configuration and are not mutated with operation results. Request a result when diagnostics matter.
 
 ```csharp
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
     ResourceResolver = (request, cancellationToken) =>
         Task.FromResult<HtmlResolvedResource?>(null)
@@ -257,10 +257,10 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] markdownPdf = source.ToMarkdownDocument().ToPdf();
+byte[] markdownPdf = source.ToMarkdownDocument().ToPdfBytes();
 
 using var word = source.ToWordDocument();
-byte[] wordPdf = word.ToPdf();
+byte[] wordPdf = word.ToPdfBytes();
 ```
 
 Those adapters remain separate packages and are not dependencies of `OfficeIMO.Html.Pdf`.
@@ -294,7 +294,7 @@ foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
 
 The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. `PdfHtmlConversionResult.Report` and the report returned by save APIs retain the established `PdfConversionReport` type but are frozen snapshots (`IsReadOnly` is `true`); the mutable report used while conversion is in progress is never exposed as result state. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
 
-PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfSaveOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
+PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlToPdfOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
 Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfHtmlSaveOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 

@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Result of reading RTF into syntax and semantic models.
 /// </summary>
-public sealed partial class RtfReadResult {
+public sealed partial class RtfReadResult : IOfficeResult<RtfDocument> {
     private byte[]? _originalBytes;
 
     internal RtfReadResult(RtfDocument document, RtfSyntaxTree syntaxTree, IReadOnlyList<RtfDiagnostic> diagnostics) {
@@ -17,6 +17,15 @@ public sealed partial class RtfReadResult {
 
     /// <summary>Semantic document model.</summary>
     public RtfDocument Document { get; }
+
+    /// <inheritdoc />
+    public RtfDocument Value => Document;
+
+    /// <inheritdoc />
+    public bool Succeeded => true;
+
+    /// <inheritdoc />
+    public RtfDocument RequireValue() => Document;
 
     /// <summary>Loss-preserving syntax tree.</summary>
     public RtfSyntaxTree SyntaxTree { get; }

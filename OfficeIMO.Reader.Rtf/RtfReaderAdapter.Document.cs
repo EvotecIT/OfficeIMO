@@ -15,7 +15,7 @@ internal static partial class RtfReaderAdapter {
         ReaderRtfOptions effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
-        RtfReadResult readResult = RtfDocument.Load(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
         return BuildRtfDocumentResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken);
     }
 
@@ -32,7 +32,7 @@ internal static partial class RtfReaderAdapter {
             long start = parseStream.CanSeek ? parseStream.Position : 0L;
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, start);
             if (parseStream.CanSeek) parseStream.Position = start;
-            RtfReadResult readResult = RtfDocument.Load(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
             return BuildRtfDocumentResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken);
         } finally {
             if (ownsParseStream) parseStream.Dispose();

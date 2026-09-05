@@ -21,14 +21,14 @@ public sealed class ExcelPdfAsyncContractTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             workbook.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            workbook.TrySaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+            workbook.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
 
         using var optionCancellation = new CancellationTokenSource();
         optionCancellation.Cancel();
-        var options = new ExcelPdfSaveOptions { CancellationToken = optionCancellation.Token };
-        Assert.ThrowsAny<OperationCanceledException>(() => workbook.TrySaveAsPdf(new MemoryStream(), options));
+        var options = new ExcelToPdfOptions { CancellationToken = optionCancellation.Token };
+        Assert.ThrowsAny<OperationCanceledException>(() => workbook.SaveAsPdfResult(new MemoryStream(), options));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            workbook.TrySaveAsPdfAsync(new MemoryStream(), options));
+            workbook.SaveAsPdfResultAsync(new MemoryStream(), options));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ExcelPdfAsyncContractTests {
         second.SetHeaderFooter(headerCenter: "&D");
         using var cancellation = new CancellationTokenSource();
         int providerCalls = 0;
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             HeaderFooterDateTimeProvider = () => {
                 providerCalls++;
                 cancellation.Cancel();

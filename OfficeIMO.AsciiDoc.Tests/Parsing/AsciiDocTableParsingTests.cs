@@ -13,7 +13,7 @@ public sealed class AsciiDocTableParsingTests {
             "|last\n" +
             "|===\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocTableBlock block = Assert.Single(document.BlocksOfType<AsciiDocTableBlock>());
         AsciiDocTable table = block.Table;
 
@@ -34,7 +34,7 @@ public sealed class AsciiDocTableParsingTests {
     [Fact]
     public void EditingPsvCellValue_PreservesSeparatorsSpecifiersAndRowBoundaries() {
         const string source = "[cols=2*]\r\n|===\r\n|A |B\r\n2+|old\r\n|===\r\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocTableBlock block = Assert.Single(document.BlocksOfType<AsciiDocTableBlock>());
 
         block.Table.Cells[2].Value = "new";
@@ -56,9 +56,9 @@ public sealed class AsciiDocTableParsingTests {
             "|===\n\n";
 
         AsciiDocTable inferred = Assert.Single(
-            AsciiDocDocument.Parse(implicitHeader).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+            AsciiDocDocument.ParseResult(implicitHeader).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
         AsciiDocTable ordinary = Assert.Single(
-            AsciiDocDocument.Parse(trailingBlankLineOnly).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+            AsciiDocDocument.ParseResult(trailingBlankLineOnly).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
 
         Assert.True(inferred.Rows[0].IsHeader);
         Assert.False(ordinary.Rows[0].IsHeader);
@@ -68,7 +68,7 @@ public sealed class AsciiDocTableParsingTests {
     public void CustomPsvSeparator_DoesNotSplitLiteralPipes() {
         const string source = "[cols=2*,separator=¦]\n|===\n¦A | literal ¦B\n|===\n";
 
-        AsciiDocTable table = Assert.Single(AsciiDocDocument.Parse(source).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+        AsciiDocTable table = Assert.Single(AsciiDocDocument.ParseResult(source).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
 
         Assert.Equal("¦", table.Separator);
         Assert.Equal(2, table.Cells.Count);
@@ -78,7 +78,7 @@ public sealed class AsciiDocTableParsingTests {
     [Fact]
     public void CsvShorthand_ParsesQuotedCommasRowsAndEditsWithQuoting() {
         const string source = ",===\n\"A,B\",C\nD,E\n,===\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocTable table = Assert.Single(document.BlocksOfType<AsciiDocTableBlock>()).Table;
 
         Assert.Equal(AsciiDocTableFormat.Csv, table.Format);
@@ -95,7 +95,7 @@ public sealed class AsciiDocTableParsingTests {
     public void DsvShorthand_UsesColonAndHonorsEscapes() {
         const string source = ":===\nA:B\\:C\nD:E\n:===\n";
 
-        AsciiDocTable table = Assert.Single(AsciiDocDocument.Parse(source).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+        AsciiDocTable table = Assert.Single(AsciiDocDocument.ParseResult(source).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
 
         Assert.Equal(AsciiDocTableFormat.Dsv, table.Format);
         Assert.Equal(2, table.ColumnCount);
@@ -106,7 +106,7 @@ public sealed class AsciiDocTableParsingTests {
     [Fact]
     public void StyledDelimitedBlocks_ExposeAdmonitionAndStemSemantics() {
         const string source = "[WARNING]\n====\nDanger\n====\n[stem]\n++++\nx^2\n++++\n";
-        AsciiDocDelimitedBlock[] blocks = AsciiDocDocument.Parse(source).Document.BlocksOfType<AsciiDocDelimitedBlock>().ToArray();
+        AsciiDocDelimitedBlock[] blocks = AsciiDocDocument.ParseResult(source).Document.BlocksOfType<AsciiDocDelimitedBlock>().ToArray();
 
         Assert.Equal(AsciiDocAdmonitionKind.Warning, blocks[0].AdmonitionKind);
         Assert.True(blocks[1].IsStem);

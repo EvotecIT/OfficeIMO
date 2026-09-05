@@ -28,6 +28,31 @@ var loadOptions = new DocumentLoadOptions {
 
 Word, Excel, and PowerPoint expose format-specific options derived from these shared contracts.
 
+### Shared operation and conversion results
+
+OfficeIMO format packages keep their typed diagnostics while sharing a small result contract from
+`OfficeIMO.Core`:
+
+```csharp
+using OfficeIMO;
+
+IOfficeResult operation = result;
+if (!operation.Succeeded) {
+    // Inspect the concrete result for its typed failure details.
+}
+
+IOfficeResult<MyDocument> documentResult = result;
+MyDocument document = documentResult.RequireValue();
+
+IOfficeConversionResult<MyDocument, MyConversionReport> conversion = result;
+MyDocument losslessDocument = conversion.RequireNoLoss();
+```
+
+`IOfficeResult<T>` standardizes `Succeeded`, `Value`, and `RequireValue()`.
+`IOfficeConversionResult<TValue, TReport>` also exposes `Report`, `HasLoss`, and
+`RequireNoLoss()`. Concrete results continue to expose format-specific diagnostics, warnings,
+or exceptions; the shared interface does not reduce them to an untyped error string.
+
 ### Portable AES for restricted hosts
 
 Browser WebAssembly and other hosts without synchronous platform AES can explicitly supply the dependency-free managed

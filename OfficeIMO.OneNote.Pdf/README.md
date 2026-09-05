@@ -11,13 +11,13 @@ using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Pdf;
 
 OneNoteSection section = OneNoteSectionReader.Read("Section.one");
-byte[] pdf = section.ToPdf();
+byte[] pdf = section.ToPdfBytes();
 section.SaveAsPdf("Section.pdf");
 ```
 
 OneNote pages are free-form canvases. The current `SemanticDocument` mode intentionally flattens them into reading order. `ToPdfDocumentResult()` reports canvas flattening, formatting simplification, unresolved asset placeholders, link-only binary assets, opaque omissions, and source diagnostics. It does not claim pixel parity with the OneNote desktop canvas.
 
-Use `OneNotePdfSaveOptions.ProjectionOptions` for conflict/version inclusion and asset destinations, and `OneNotePdfSaveOptions.MarkdownOptions` for the intermediate Markdown-to-PDF layout, fonts, image policy, and diagnostics.
+Use `OneNoteToPdfOptions.ProjectionOptions` for conflict/version inclusion and asset destinations, and `OneNoteToPdfOptions.MarkdownOptions` for the intermediate Markdown-to-PDF layout, fonts, image policy, and diagnostics.
 
 OneNote PDF export adds multilingual fallback candidates in addition to the normal document, monospace, and symbol candidates. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit. Conversion clones both projection and PDF options so reusable caller configuration is not mutated:
 
@@ -26,8 +26,8 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.Pdf;
 
-var options = new OneNotePdfSaveOptions {
-    MarkdownOptions = new MarkdownPdfSaveOptions {
+var options = new OneNoteToPdfOptions {
+    MarkdownOptions = new MarkdownToPdfOptions {
         ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
     }
 };

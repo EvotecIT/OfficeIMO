@@ -8,6 +8,14 @@ namespace OfficeIMO.Markdown;
 public partial class MarkdownDoc {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
 
+    /// <summary>Parses Markdown text into the typed document model.</summary>
+    public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) =>
+        MarkdownReader.Parse(markdown, options);
+
+    /// <summary>Parses Markdown text and returns the document with syntax and transform evidence.</summary>
+    public static MarkdownParseResult ParseResult(string markdown, MarkdownReaderOptions? options = null) =>
+        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+
     /// <summary>Loads and parses a Markdown file.</summary>
     public static MarkdownDoc Load(string path, MarkdownReaderOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -18,6 +26,17 @@ public partial class MarkdownDoc {
     /// <summary>Loads and parses Markdown from a caller-owned stream.</summary>
     public static MarkdownDoc Load(Stream stream, MarkdownReaderOptions? options = null, Encoding? encoding = null) =>
         MarkdownReader.Parse(DecodeText(OfficeStreamReader.ReadAllBytes(stream), encoding ?? Utf8WithoutBom), options);
+
+    /// <summary>Loads Markdown from a file and returns the document with syntax and transform evidence.</summary>
+    public static MarkdownParseResult LoadResult(string path, MarkdownReaderOptions? options = null, Encoding? encoding = null) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return LoadResult(stream, options, encoding);
+    }
+
+    /// <summary>Loads Markdown from a caller-owned stream and returns syntax and transform evidence.</summary>
+    public static MarkdownParseResult LoadResult(Stream stream, MarkdownReaderOptions? options = null, Encoding? encoding = null) =>
+        ParseResult(DecodeText(OfficeStreamReader.ReadAllBytes(stream), encoding ?? Utf8WithoutBom), options);
 
     /// <summary>Asynchronously loads and parses a Markdown file.</summary>
     public static async Task<MarkdownDoc> LoadAsync(
@@ -39,6 +58,28 @@ public partial class MarkdownDoc {
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return MarkdownReader.Parse(DecodeText(bytes, encoding ?? Utf8WithoutBom), options);
+    }
+
+    /// <summary>Asynchronously loads Markdown from a file with syntax and transform evidence.</summary>
+    public static async Task<MarkdownParseResult> LoadResultAsync(
+        string path,
+        MarkdownReaderOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+        return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously loads Markdown from a caller-owned stream with syntax and transform evidence.</summary>
+    public static async Task<MarkdownParseResult> LoadResultAsync(
+        Stream stream,
+        MarkdownReaderOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) {
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ParseResult(DecodeText(bytes, encoding ?? Utf8WithoutBom), options);
     }
 
     /// <summary>Encodes this document as Markdown.</summary>

@@ -1,13 +1,20 @@
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Mhtml;
+using OfficeIMO.OneNote.Pdf;
+using OfficeIMO.OpenDocument.Odp.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Visio.Pdf;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 
@@ -23,6 +30,26 @@ public sealed class PdfAdapterApiConsistencyTests {
         yield return new object[] { typeof(RtfPdfConverterExtensions) };
         yield return new object[] { typeof(HtmlPdfConverterExtensions) };
         yield return new object[] { typeof(LatexPdfConverterExtensions) };
+        yield return new object[] { typeof(MhtmlPdfConverterExtensions) };
+        yield return new object[] { typeof(OneNoteSectionPdfConverterExtensions) };
+        yield return new object[] { typeof(OneNoteNotebookPdfConverterExtensions) };
+        yield return new object[] { typeof(OdtPdfConversionExtensions) };
+        yield return new object[] { typeof(OdsPdfConversionExtensions) };
+        yield return new object[] { typeof(OdpPdfConversionExtensions) };
+        yield return new object[] { typeof(VisioPdfConverterExtensions) };
+    }
+
+    public static IEnumerable<object[]> PdfOptionTypes() {
+        yield return new object[] { typeof(AsciiDocToPdfOptions) };
+        yield return new object[] { typeof(WordToPdfOptions) };
+        yield return new object[] { typeof(ExcelToPdfOptions) };
+        yield return new object[] { typeof(PowerPointToPdfOptions) };
+        yield return new object[] { typeof(MarkdownToPdfOptions) };
+        yield return new object[] { typeof(RtfToPdfOptions) };
+        yield return new object[] { typeof(HtmlToPdfOptions) };
+        yield return new object[] { typeof(LatexToPdfOptions) };
+        yield return new object[] { typeof(OneNoteToPdfOptions) };
+        yield return new object[] { typeof(VisioToPdfOptions) };
     }
 
     [Theory]
@@ -30,7 +57,7 @@ public sealed class PdfAdapterApiConsistencyTests {
     public void TypedPdfAdaptersExposeOneConsistentLifecyclePerSourceType(Type adapterType) {
         MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
         Type[] sourceTypes = methods
-            .Where(method => method.Name == "ToPdf")
+            .Where(method => method.Name == "ToPdfBytes")
             .Select(method => method.GetParameters()[0].ParameterType)
             .Distinct()
             .ToArray();
@@ -41,23 +68,23 @@ public sealed class PdfAdapterApiConsistencyTests {
                 .Where(method => method.GetParameters()[0].ParameterType == sourceType)
                 .ToArray();
 
-            Assert.Single(sourceMethods, method => method.Name == "ToPdf");
+            Assert.Single(sourceMethods, method => method.Name == "ToPdfBytes");
             Assert.Single(sourceMethods, method => method.Name == "ToPdfDocument");
             Assert.Single(sourceMethods, method => method.Name == "ToPdfDocumentResult");
             Assert.Equal(2, sourceMethods.Count(method =>
                 method.Name == "SaveAsPdf" &&
                 method.ReturnType == typeof(PdfSaveResult)));
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "TrySaveAsPdf" &&
+                method.Name == "SaveAsPdfResult" &&
                 method.ReturnType == typeof(PdfSaveResult)));
             Assert.Equal(2, sourceMethods.Count(method =>
                 method.Name == "SaveAsPdfAsync" &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
             Assert.Equal(2, sourceMethods.Count(method =>
-                method.Name == "TrySaveAsPdfAsync" &&
+                method.Name == "SaveAsPdfResultAsync" &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
 
-            string[] asynchronousConversionMethods = ["ToPdfAsync", "ToPdfDocumentAsync", "ToPdfDocumentResultAsync"];
+            string[] asynchronousConversionMethods = ["ToPdfBytesAsync", "ToPdfDocumentAsync", "ToPdfDocumentResultAsync"];
             int asynchronousConversionMethodCount = sourceMethods.Count(method => asynchronousConversionMethods.Contains(method.Name));
             Assert.True(
                 asynchronousConversionMethodCount is 0 or 3,
@@ -67,6 +94,23 @@ public sealed class PdfAdapterApiConsistencyTests {
             }
         }
 
+        Assert.DoesNotContain(methods, method => method.Name is "ToPdf" or "ToPdfAsync" or "TrySaveAsPdf" or "TrySaveAsPdfAsync");
         Assert.DoesNotContain(methods, method => method.GetParameters()[0].ParameterType == typeof(string));
+        Assert.All(
+            methods.SelectMany(static method => method.GetParameters())
+                .Where(static parameter => parameter.ParameterType == typeof(CancellationToken)),
+            static parameter => {
+                Assert.Equal("cancellationToken", parameter.Name);
+                Assert.Equal(((MethodBase)parameter.Member).GetParameters().Length - 1, parameter.Position);
+            });
+    }
+
+    [Theory]
+    [MemberData(nameof(PdfOptionTypes))]
+    public void PdfExportOptionsUseTargetNamingAndDoNotCaptureOperationCancellation(Type optionsType) {
+        Assert.EndsWith("ToPdfOptions", optionsType.Name, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            optionsType.GetProperties(BindingFlags.Public | BindingFlags.Instance),
+            static property => property.PropertyType == typeof(CancellationToken));
     }
 }

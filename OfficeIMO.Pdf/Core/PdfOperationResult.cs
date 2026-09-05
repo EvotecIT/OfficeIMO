@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Result returned by preflight-gated PDF operations.
 /// </summary>
 /// <typeparam name="T">Operation value type.</typeparam>
-public sealed class PdfOperationResult<T> where T : class {
+public sealed class PdfOperationResult<T> : IOfficeResult<T> where T : class {
     private PdfOperationResult(
         string operationName,
         PdfPreflightCapability capability,

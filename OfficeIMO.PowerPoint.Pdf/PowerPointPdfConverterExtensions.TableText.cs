@@ -18,7 +18,7 @@ public static partial class PowerPointPdfConverterExtensions {
         string text,
         string? fallbackFontFamily,
         int slideNumber,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         IReadOnlyList<A.TextCharacterPropertiesType> sources = ResolveTableTextPropertySources(cell, paragraph, directProperties);
         string? fontFamily = ReadRunFontName(cell, sources) ?? cell.FontName ?? fallbackFontFamily;
         A.TextUnderlineValues? underline = sources

@@ -368,7 +368,7 @@ public sealed class HtmlEditableLayoutProjectionTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
-        string pdfText = PdfCore.PdfReadDocument.Open(source.ToPdf()).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(source.ToPdfBytes()).ExtractText();
 
         Assert.Contains("Authored marker content", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Scene), visual =>

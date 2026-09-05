@@ -23,8 +23,8 @@ public sealed class PdfDocumentImageEditor {
         _document.Reader.Images(selector, readOptions);
 
     /// <summary>Attempts to extract images, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> TryExtract(PdfLoadOptions? readOptions = null) =>
-        _document.Reader.TryImages(readOptions);
+    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ExtractResult(PdfLoadOptions? readOptions = null) =>
+        _document.Reader.ImagesResult(readOptions);
 
     /// <summary>Returns every image placement invocation in page paint order.</summary>
     public IReadOnlyList<PdfImagePlacement> Placements(PdfLoadOptions? readOptions = null) =>
@@ -48,7 +48,7 @@ public sealed class PdfDocumentImageEditor {
     }
 
     /// <summary>Attempts to inspect image placements, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> TryPlacements(PdfLoadOptions? readOptions = null) =>
+    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> PlacementsResult(PdfLoadOptions? readOptions = null) =>
         _document.TryOperation(
             "Extract image placements",
             PdfPreflightCapability.ExtractImages,

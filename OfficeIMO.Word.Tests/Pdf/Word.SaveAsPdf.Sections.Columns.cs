@@ -28,7 +28,7 @@ public partial class Word {
             document.AddParagraph("RightColumnMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -69,7 +69,7 @@ public partial class Word {
             document.AddParagraph("WideColumnMarker starts in the wider second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -105,7 +105,7 @@ public partial class Word {
             document.AddParagraph("SeparatorRightMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -137,7 +137,7 @@ public partial class Word {
             document.AddParagraph("AutoRightColumnMarker starts in the second automatic Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -172,7 +172,7 @@ public partial class Word {
             document.AddParagraph("ColumnKeepBody follows the heading and should stay in the same automatic Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -219,7 +219,7 @@ public partial class Word {
             document.AddParagraph("StyledColumnKeepBody follows the styled paragraph.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)
@@ -255,7 +255,7 @@ public partial class Word {
             paragraph.AddText("InlineRightColumnMarker starts after the inline Word column break.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 792),
                 Margins = PdfCore.PageMargins.Uniform(36)

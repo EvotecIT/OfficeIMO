@@ -28,7 +28,7 @@ Use `Diagnostics` when you need fonts, streams, structure, repair, security, and
 
 ## Compose existing documents
 
-`PdfMerger` and `PdfDocument.MergeWithReport` combine PDFs with an explicit structure policy and return readback evidence. `PdfPageExtractor` extracts individual pages or ranges and provides split helpers for paths, streams, and byte arrays.
+`PdfDocument.Merge` combines PDFs directly, while `PdfDocument.MergeResult` returns readback evidence under an explicit structure policy. Page extraction and production splitting live on the opened document: `pdf.Pages.Split(...)` returns documents, `pdf.Pages.SplitForProduction(...)` returns generated parts, and `pdf.Pages.SplitForProductionResult(...)` adds bounded-probe evidence.
 
 Stamp and watermark operations support text and images. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
 

@@ -5,9 +5,9 @@ using OfficeIMO.Markdown.Pdf;
 namespace OfficeIMO.AsciiDoc.Pdf;
 
 /// <summary>Controls the loss-aware AsciiDoc-to-PDF route.</summary>
-public sealed class AsciiDocPdfSaveOptions {
+public sealed class AsciiDocToPdfOptions {
     private AsciiDocToMarkdownOptions _projectionOptions = new AsciiDocToMarkdownOptions();
-    private MarkdownPdfSaveOptions _markdownOptions = new MarkdownPdfSaveOptions();
+    private MarkdownToPdfOptions _markdownOptions = new MarkdownToPdfOptions();
 
     /// <summary>AsciiDoc-to-Markdown semantic projection settings.</summary>
     public AsciiDocToMarkdownOptions ProjectionOptions {
@@ -16,12 +16,12 @@ public sealed class AsciiDocPdfSaveOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownPdfSaveOptions MarkdownOptions {
+    public MarkdownToPdfOptions MarkdownOptions {
         get => _markdownOptions;
         set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
 
-    internal AsciiDocPdfSaveOptions CloneForConversion() => new AsciiDocPdfSaveOptions {
+    internal AsciiDocToPdfOptions CloneForConversion() => new AsciiDocToPdfOptions {
         ProjectionOptions = new AsciiDocToMarkdownOptions {
             IncludeDocumentAttributesAsFrontMatter = ProjectionOptions.IncludeDocumentAttributesAsFrontMatter,
             PreserveUnsupportedAsSource = ProjectionOptions.PreserveUnsupportedAsSource,

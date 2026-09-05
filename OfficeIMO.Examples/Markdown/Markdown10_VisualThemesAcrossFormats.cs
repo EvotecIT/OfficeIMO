@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Markdown {
                     .Headers("Surface", "Save API", "Theme source")
                     .Row("Markdown", "SaveAsMarkdown", "semantic source")
                     .Row("HTML", "SaveAsHtml", "HtmlOptions.Theme")
-                    .Row("PDF", "SaveAsPdf", "MarkdownPdfSaveOptions.Theme")
+                    .Row("PDF", "SaveAsPdf", "MarkdownToPdfOptions.Theme")
                     .Row("Word", "ToWordDocument", "MarkdownToWordOptions.Theme"))
                 .Callout("success", "Consistent visuals", "The same theme object controls the conversion-specific renderer details.")
                 .H2("Code")
@@ -52,7 +52,7 @@ var theme = MarkdownVisualTheme.Report()
     .WithTable(table => table.BorderWidth = 0.9);
 
 doc.SaveAsHtml(htmlPath, new HtmlOptions { Theme = theme });
-doc.SaveAsPdf(pdfPath, new MarkdownPdfSaveOptions { Theme = theme });
+doc.SaveAsPdf(pdfPath, new MarkdownToPdfOptions { Theme = theme });
 using var word = doc.ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 word.SaveCopy(docxPath);
 """);
@@ -71,7 +71,7 @@ word.SaveCopy(docxPath);
                 IncludeAnchorLinks = true,
                 BackToTopLinks = true
             });
-            doc.SaveAsPdf(pdfPath, new MarkdownPdfSaveOptions {
+            doc.SaveAsPdf(pdfPath, new MarkdownToPdfOptions {
                 Theme = theme
             });
 

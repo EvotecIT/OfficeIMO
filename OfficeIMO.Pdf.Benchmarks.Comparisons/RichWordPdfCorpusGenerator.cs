@@ -75,7 +75,7 @@ internal static class RichWordPdfCorpusGenerator {
             pdfOptions.RegisterFontFamily(
                 PdfStandardFont.Helvetica,
                 new PdfEmbeddedFontFamily("Carlito", PdfBenchmarkAssets.CarlitoRegular));
-            PdfSaveResult saveResult = document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            PdfSaveResult saveResult = document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 FontFamily = "Carlito",
                 PdfOptions = pdfOptions,
                 DefaultTableBorders = true

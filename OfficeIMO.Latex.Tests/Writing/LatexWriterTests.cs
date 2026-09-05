@@ -4,7 +4,7 @@ public sealed class LatexWriterTests {
     [Fact]
     public void SemanticEdits_ReplaceOnlyArgumentAndMathContentSpans() {
         const string source = "\\documentclass{article}\r\n\\begin{document}\r\n\\section[Old]{Old title}\r\nValue $x+1$.\r\n\\end{document}\r\n";
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         LatexHeading heading = Assert.Single(document.Headings);
         heading.Title = "New title";
@@ -18,7 +18,7 @@ public sealed class LatexWriterTests {
     [Fact]
     public void ParagraphEdit_PreservesSurroundingCommandsAndLineEndings() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section{One}\nOld paragraph.\n\n\\section{Two}\nOther.\n\\end{document}";
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
         LatexParagraph paragraph = Assert.Single(document.Paragraphs, item => item.Content == "Old paragraph.");
 
         paragraph.Content = "New paragraph with \\emph{markup}.";
@@ -29,7 +29,7 @@ public sealed class LatexWriterTests {
     [Fact]
     public void CanonicalMode_NormalizesMixedLineEndingsOnly() {
         const string source = "\\documentclass{article}\r\n\\begin{document}\rText\n\\end{document}";
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         string canonical = document.ToLatex(new LatexWriterOptions { Mode = LatexWriterMode.Canonical, LineEnding = "\n" });
 
@@ -39,7 +39,7 @@ public sealed class LatexWriterTests {
     [Fact]
     public void EditingContainerAndNestedArgumentTogether_IsRejected() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\textbf{old}\n\\end{document}";
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
         document.Body!.Content = "replacement";
         Assert.Single(document.Commands, command => command.Name == "textbf").GetRequiredArgument(0)!.Content = "new";
 

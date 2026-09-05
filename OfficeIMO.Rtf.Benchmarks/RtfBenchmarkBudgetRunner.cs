@@ -92,8 +92,8 @@ internal static class RtfBenchmarkBudgetRunner {
             string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)
             ? null
             : RtfDocument.Read(fixture.Rtf).Document;
-        RtfPdfSaveOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
-            ? RtfBenchmarkSupport.CreatePdfSaveOptions()
+        RtfToPdfOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
+            ? RtfBenchmarkSupport.CreatePdfOptions()
             : null;
         OfficeDocumentReader? preparedReader = string.Equals(operation, "Reader", StringComparison.OrdinalIgnoreCase)
             ? new OfficeDocumentReaderBuilder().AddRtfHandler().Build()

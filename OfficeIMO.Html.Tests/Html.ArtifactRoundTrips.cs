@@ -31,7 +31,7 @@ public class HtmlArtifactRoundTrips {
         RtfReadResult reopenedRtf = RtfDocument.Read(rtf);
 
         string markdown = source.ToMarkdown();
-        byte[] pdf = source.ToPdf();
+        byte[] pdf = source.ToPdfBytes();
         string svg = source.ToSvg();
 
         Assert.NotEmpty(reopenedWord.Find(Marker, StringComparison.Ordinal));

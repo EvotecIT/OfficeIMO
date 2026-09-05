@@ -9,7 +9,7 @@ internal static class ITextPdfHtmlGenerator {
         var writer = new PdfWriter(output, new WriterProperties().SetCompressionLevel(6));
         var pdf = new iText.Kernel.Pdf.PdfDocument(writer);
         pdf.SetTagged();
-        HtmlConverter.ConvertToPdf(html, pdf, new ConverterProperties());
+        HtmlConverter.ConvertToPdfBytes(html, pdf, new ConverterProperties());
         return output.ToArray();
     }
 }

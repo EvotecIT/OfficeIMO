@@ -18,13 +18,13 @@ document.AddParagraph().AddText("Quarterly report").SetBold();
 document.AddParagraph("Prepared by OfficeIMO");
 
 string rtf = document.ToRtf();
-RtfReadResult read = RtfDocument.Read(rtf);
+RtfDocument parsed = RtfDocument.Parse(rtf);
 ```
 
 `RtfDocument.ToRtf()` writes a normalized semantic document. Use the lossless path when untouched source syntax, unknown destinations, binary payloads, or trailing bytes must remain exact:
 
 ```csharp
-RtfReadResult read = RtfDocument.Load("input.rtf");
+RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 read.SaveLossless("unchanged-copy.rtf");
 ```
 
@@ -42,7 +42,7 @@ The default OfficeIMO profile is bounded, does not materialize embedded objects 
 RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
 using FileStream input = File.OpenRead("upload.rtf");
 
-RtfReadResult read = await RtfDocument.LoadAsync(
+RtfReadResult read = await RtfDocument.LoadResultAsync(
     input,
     options,
     cancellationToken: cancellationToken);
@@ -78,7 +78,7 @@ report.RequireNoLoss();
 Semantic editing produces normalized RTF and is the simplest option when the document meaning is more important than its original control-word layout:
 
 ```csharp
-RtfDocument document = RtfDocument.Load("input.rtf").Document;
+RtfDocument document = RtfDocument.Load("input.rtf");
 
 document.InsertParagraph(0, "Confidential");
 document.MoveBlock(0, document.Blocks.Count - 1);
@@ -97,7 +97,7 @@ merge.Report.RequireNoLoss();
 `RtfLosslessEditor` changes selected syntax nodes while retaining every untouched node:
 
 ```csharp
-RtfLosslessEditor editor = RtfDocument.Load("input.rtf").EditLossless();
+RtfLosslessEditor editor = RtfDocument.LoadResult("input.rtf").EditLossless();
 
 editor.ReplaceText("Old text", "New text");
 editor.SetInfo(RtfDocumentInfoField.Title, "Updated title");

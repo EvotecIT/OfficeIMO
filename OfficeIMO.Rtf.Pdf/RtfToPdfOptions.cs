@@ -5,13 +5,13 @@ namespace OfficeIMO.Rtf.Pdf;
 /// <summary>
 /// Controls conversion from an RTF document model to a first-party PDF document.
 /// </summary>
-public sealed class RtfPdfSaveOptions {
+public sealed class RtfToPdfOptions {
     /// <summary>Default number of distinct document font families allowed to probe installed system fonts.</summary>
     public const int DefaultMaximumSystemFontFamilies = 32;
 
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>Creates RTF to PDF save options.</summary>
-    public RtfPdfSaveOptions() {
+    public RtfToPdfOptions() {
     }
 
     /// <summary>Optional PDF engine options. The converter clones the instance before applying RTF page setup.</summary>
@@ -62,7 +62,7 @@ public sealed class RtfPdfSaveOptions {
     public int MaximumSystemFontFamilies { get; set; } = DefaultMaximumSystemFontFamilies;
 
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
-    internal RtfPdfSaveOptions CloneForConversion() {
+    internal RtfToPdfOptions CloneForConversion() {
         if (DefaultImageWidth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageWidth), "Default image width must be greater than zero.");
         }
@@ -74,7 +74,7 @@ public sealed class RtfPdfSaveOptions {
             throw new ArgumentOutOfRangeException(nameof(MaximumSystemFontFamilies));
         }
 
-        return new RtfPdfSaveOptions {
+        return new RtfToPdfOptions {
             PdfOptions = PdfOptions?.Clone(),
             ResourcePolicy = ResourcePolicy.Clone(),
             IncludeHiddenText = IncludeHiddenText,

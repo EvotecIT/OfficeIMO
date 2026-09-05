@@ -38,7 +38,7 @@ public class PdfCanvasStampTests {
         };
         PdfDocument target = PdfDocument.Load(encrypted, options);
 
-        PdfOperationResult<PdfDocument> result = target.Stamp.TryContent(
+        PdfOperationResult<PdfDocument> result = target.Stamp.ContentResult(
             (canvas, _) => canvas.Text("Authorized canvas stamp", 30D, 30D, 260D, 30D),
             options: options);
 

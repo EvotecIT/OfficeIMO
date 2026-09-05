@@ -60,7 +60,7 @@ public partial class Word {
             document.AddParagraph("ContinuousSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 300),
                 Margins = PdfCore.PageMargins.Uniform(50)
@@ -84,7 +84,7 @@ public partial class Word {
             document.AddParagraph("NextPageSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 300),
                 Margins = PdfCore.PageMargins.Uniform(50)
@@ -131,7 +131,7 @@ public partial class Word {
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
             document.AddParagraph("Native body text");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -159,7 +159,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -213,7 +213,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -253,7 +253,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -307,7 +307,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -365,7 +365,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -402,7 +402,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -447,7 +447,7 @@ public partial class Word {
             document.AddParagraph("NativeAlignedBody");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 300),
                 Margins = PdfCore.PageMargins.Uniform(50)
@@ -490,7 +490,7 @@ public partial class Word {
 
             document.AddParagraph("NativeTableZoneBody");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(520, 320),
                 Margins = PdfCore.PageMargins.Uniform(60)
@@ -542,7 +542,7 @@ public partial class Word {
 
             document.AddParagraph("Native blank paragraph header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(520, 340),
                 Margins = PdfCore.PageMargins.Uniform(60)
@@ -584,7 +584,7 @@ public partial class Word {
             document.AddParagraph("ClearanceBodyHeading").SetStyle(WordParagraphStyles.Heading1);
             document.AddParagraph("Body text after a multiline Word header.");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = PdfCore.PageSizes.Letter
             });
@@ -635,7 +635,7 @@ public partial class Word {
 
             document.AddParagraph(bodyText).SetStyle(WordParagraphStyles.Heading1);
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = PdfCore.PageSizes.Letter
             });
@@ -659,7 +659,7 @@ public partial class Word {
 
             document.AddParagraph("Native multiline header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(440, 340),
                 Margins = PdfCore.PageMargins.Uniform(60)
@@ -701,7 +701,7 @@ public partial class Word {
 
             document.AddParagraph("Native footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = PdfCore.PageSizes.Letter
             });
@@ -733,7 +733,7 @@ public partial class Word {
 
             document.AddParagraph("Large footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = PdfCore.PageSizes.Letter
             });
@@ -770,7 +770,7 @@ public partial class Word {
             "GetNativeMargins",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
             binder: null,
-            new[] { typeof(WordSection), typeof(WordPdfSaveOptions) },
+            new[] { typeof(WordSection), typeof(WordToPdfOptions) },
             modifiers: null)!;
         PdfCore.PageMargins margins = Assert.IsType<PdfCore.PageMargins>(method.Invoke(null, new object?[] { document.Sections[0], null }));
 

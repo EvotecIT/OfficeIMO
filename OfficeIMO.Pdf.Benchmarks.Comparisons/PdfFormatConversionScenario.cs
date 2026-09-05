@@ -61,7 +61,7 @@ internal sealed record PdfFormatConversionScenario(
             PdfFormatConversionKind.Pptx => ConvertPptx(stream, textFallbacksOverride),
             PdfFormatConversionKind.Html => ConvertHtml(source, textFallbacksOverride),
             PdfFormatConversionKind.Markdown => ConvertMarkdown(source, textFallbacksOverride),
-            PdfFormatConversionKind.Rtf => RtfDocument.Load(stream).Document.ToPdf(),
+            PdfFormatConversionKind.Rtf => RtfDocument.LoadResult(stream).Document.ToPdfBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
     }
@@ -69,36 +69,36 @@ internal sealed record PdfFormatConversionScenario(
     private static byte[] ConvertDocx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using WordDocument document = WordDocument.Load(stream);
         return textFallbacksOverride.HasValue
-            ? document.ToPdf(new WordPdfSaveOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdf();
+            ? document.ToPdfBytes(new WordToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdfBytes();
     }
 
     private static byte[] ConvertXlsx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using ExcelDocument document = ExcelDocument.Load(stream);
         return textFallbacksOverride.HasValue
-            ? document.ToPdf(new ExcelPdfSaveOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdf();
+            ? document.ToPdfBytes(new ExcelToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdfBytes();
     }
 
     private static byte[] ConvertPptx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
         return textFallbacksOverride.HasValue
-            ? presentation.ToPdf(new PowerPointPdfSaveOptions { TextFallbacks = textFallbacksOverride.Value })
-            : presentation.ToPdf();
+            ? presentation.ToPdfBytes(new PowerPointToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : presentation.ToPdfBytes();
     }
 
     private static byte[] ConvertHtml(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(Encoding.UTF8.GetString(source));
         return textFallbacksOverride.HasValue
-            ? document.ToPdf(new HtmlPdfSaveOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdf();
+            ? document.ToPdfBytes(new HtmlToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdfBytes();
     }
 
     private static byte[] ConvertMarkdown(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         OfficeIMO.Markdown.MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse(Encoding.UTF8.GetString(source));
         return textFallbacksOverride.HasValue
-            ? document.ToPdf(new MarkdownPdfSaveOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdf();
+            ? document.ToPdfBytes(new MarkdownToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdfBytes();
     }
 
     private static byte[] CreateDocx() {

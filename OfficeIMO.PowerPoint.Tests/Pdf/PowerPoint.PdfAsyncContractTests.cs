@@ -22,14 +22,14 @@ public sealed class PowerPointPdfAsyncContractTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             presentation.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            presentation.TrySaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+            presentation.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
 
         using var optionCancellation = new CancellationTokenSource();
         optionCancellation.Cancel();
-        var options = new PowerPointPdfSaveOptions { CancellationToken = optionCancellation.Token };
-        Assert.ThrowsAny<OperationCanceledException>(() => presentation.TrySaveAsPdf(new MemoryStream(), options));
+        var options = new PowerPointToPdfOptions { CancellationToken = optionCancellation.Token };
+        Assert.ThrowsAny<OperationCanceledException>(() => presentation.SaveAsPdfResult(new MemoryStream(), options));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            presentation.TrySaveAsPdfAsync(new MemoryStream(), options));
+            presentation.SaveAsPdfResultAsync(new MemoryStream(), options));
     }
 
     [Fact]

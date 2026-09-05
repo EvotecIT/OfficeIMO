@@ -3,11 +3,17 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Result of parsing markdown into both the object model and a syntax tree.
 /// </summary>
-public sealed class MarkdownParseResult {
+public sealed class MarkdownParseResult : IOfficeResult<MarkdownDoc> {
     private Dictionary<object, MarkdownSyntaxNode>? _finalNodeByAssociatedObject;
     private IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic>? _generatedSyntaxDiagnostics;
     /// <summary>The parsed markdown object model.</summary>
     public MarkdownDoc Document { get; }
+    /// <inheritdoc />
+    public MarkdownDoc Value => Document;
+    /// <inheritdoc />
+    public bool Succeeded => true;
+    /// <inheritdoc />
+    public MarkdownDoc RequireValue() => Document;
     /// <summary>
     /// The original syntax tree produced before document transforms were applied.
     /// When a transform replaces the document instance, this tree intentionally drops semantic

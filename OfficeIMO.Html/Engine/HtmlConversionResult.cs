@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 /// Shared result contract for HTML conversions that produce a native target artifact.
 /// </summary>
 /// <typeparam name="T">Value produced by the conversion.</typeparam>
-public abstract class HtmlConversionResult<T> {
+public abstract class HtmlConversionResult<T> : IOfficeConversionResult<T, HtmlConversionReport> where T : class {
     private readonly List<HtmlDiagnostic> _diagnostics = new List<HtmlDiagnostic>();
     private readonly IReadOnlyList<HtmlDiagnostic> _readOnlyDiagnostics;
 

@@ -8,12 +8,28 @@ namespace OfficeIMO.AsciiDoc.Tests;
 
 public sealed class AsciiDocDocumentIOTests {
     [Fact]
+    public void ParseAndLoadExposeDirectAndStructuredLifecycleResults() {
+        const string source = "= Title\n\nBody\n";
+
+        AsciiDocDocument direct = AsciiDocDocument.Parse(source);
+        AsciiDocParseResult parsed = AsciiDocDocument.ParseResult(source);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        AsciiDocDocument loaded = AsciiDocDocument.Load(stream);
+
+        Assert.Equal(source, direct.ToAsciiDoc());
+        Assert.Equal(source, loaded.ToAsciiDoc());
+        Assert.IsAssignableFrom<IOfficeResult<AsciiDocDocument>>(parsed);
+        Assert.Same(parsed.Document, parsed.Value);
+        Assert.Same(parsed.Document, parsed.RequireValue());
+    }
+
+    [Fact]
     public async Task StreamLifecycle_UsesCompleteArtifactsAndLeavesCallerStreamsOpen() {
         const string source = "= Title\n\nBody\n";
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(source));
         input.Position = 4;
 
-        AsciiDocParseResult loaded = await AsciiDocDocument.LoadAsync(input);
+        AsciiDocParseResult loaded = await AsciiDocDocument.LoadResultAsync(input);
 
         Assert.Equal(4, input.Position);
         input.ReadByte();
@@ -30,7 +46,7 @@ public sealed class AsciiDocDocumentIOTests {
 
     [Fact]
     public async Task AsyncLifecycle_HonorsPreCanceledTokensWithoutMutatingStreams() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("Body\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("Body\n").Document;
         using var output = new MemoryStream(new byte[] { 1, 2, 3 });
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

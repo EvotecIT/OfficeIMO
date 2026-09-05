@@ -8,7 +8,7 @@ internal sealed partial class PdfDocumentReader {
         Text(ResolveSelector(selector, readOptions), options, readOptions);
 
     /// <summary>Attempts to extract plain text from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<string> TryText(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<string> TextResult(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract text", PdfPreflightCapability.ExtractText, () => Text(selector, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -18,7 +18,7 @@ internal sealed partial class PdfDocumentReader {
         TextByPage(ResolveSelector(selector, readOptions), readOptions);
 
     /// <summary>Attempts to extract text per page resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<string>> TryTextByPage(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<string>> TextByPageResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract text by page", PdfPreflightCapability.ExtractText, () => TextByPage(selector, options), ResolveReadOptions(options));
     }
@@ -28,7 +28,7 @@ internal sealed partial class PdfDocumentReader {
         Markdown(ResolveSelector(selector, readOptions), options, markdownOptions, readOptions);
 
     /// <summary>Attempts to extract Markdown from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<string> TryMarkdown(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<string> MarkdownResult(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract Markdown", PdfPreflightCapability.ReadLogicalObjects, () => Markdown(selector, layoutOptions, markdownOptions, options), ResolveReadOptions(options));
     }
@@ -38,7 +38,7 @@ internal sealed partial class PdfDocumentReader {
         Logical(ResolveSelector(selector, readOptions), options, readOptions);
 
     /// <summary>Attempts to build the logical model for pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<PdfDocumentReadResult> TryLogical(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocumentReadResult> LogicalResult(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Read logical document", PdfPreflightCapability.ReadLogicalObjects, () => Logical(selector, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -48,7 +48,7 @@ internal sealed partial class PdfDocumentReader {
         TextBlocks(ResolveSelector(selector, readOptions), options, readOptions);
 
     /// <summary>Attempts to extract logical text blocks from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TryTextBlocks(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(PdfPageSelector selector, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract logical text blocks", PdfPreflightCapability.ReadLogicalObjects, () => TextBlocks(selector, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -58,7 +58,7 @@ internal sealed partial class PdfDocumentReader {
         Images(ResolveSelector(selector, readOptions), readOptions);
 
     /// <summary>Attempts to extract images from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> TryImages(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract images", PdfPreflightCapability.ExtractImages, () => Images(selector, options), ResolveReadOptions(options));
     }
@@ -68,7 +68,7 @@ internal sealed partial class PdfDocumentReader {
         ImagePlacements(ResolveSelector(selector, readOptions), readOptions);
 
     /// <summary>Attempts to extract image placements from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> TryImagePlacements(PdfPageSelector selector, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryOperation("Extract image placements", PdfPreflightCapability.ExtractImages, () => ImagePlacements(selector, options), ResolveReadOptions(options));
     }
@@ -81,7 +81,7 @@ internal sealed partial class PdfDocumentReader {
         Fonts(ResolveSelector(selector, readOptions), inspectionOptions, readOptions);
 
     /// <summary>Attempts to inspect fonts on pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<PdfFontInventory> TryFonts(
+    public PdfOperationResult<PdfFontInventory> FontsResult(
         PdfPageSelector selector,
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? options = null) {
@@ -102,7 +102,7 @@ internal sealed partial class PdfDocumentReader {
         ParagraphContinuations(ResolveSelector(selector, readOptions), continuationOptions, layoutOptions, readOptions);
 
     /// <summary>Attempts to recover paragraph continuation groups from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> TryParagraphContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> ParagraphContinuationsResult(
         PdfPageSelector selector,
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
@@ -124,7 +124,7 @@ internal sealed partial class PdfDocumentReader {
         TableContinuations(ResolveSelector(selector, readOptions), continuationOptions, layoutOptions, readOptions);
 
     /// <summary>Attempts to recover table continuation groups from pages resolved by a document-relative selector.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TryTableContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TableContinuationsResult(
         PdfPageSelector selector,
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,

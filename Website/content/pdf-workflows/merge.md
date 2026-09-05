@@ -37,7 +37,7 @@ using OfficeIMO.Pdf;
 PdfDocument first = PdfDocument.Load("cover.pdf");
 PdfDocument second = PdfDocument.Load("report.pdf");
 
-PdfMergeResult result = PdfDocument.MergeWithReport(
+PdfMergeResult result = PdfDocument.MergeResult(
     new PdfMergeOptions(),
     first,
     second);

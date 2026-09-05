@@ -6,7 +6,7 @@ public sealed class LatexRecoveryTests {
     [InlineData("$broken", "LATEX003")]
     [InlineData("\\begin{document}broken", "LATEX004")]
     public void UnterminatedStructure_IsDiagnosedAndLossless(string source, string code) {
-        LatexParseResult result = LatexDocument.Parse(source);
+        LatexParseResult result = LatexDocument.ParseResult(source);
 
         Assert.True(result.IsLossless);
         Assert.True(result.HasErrors);
@@ -18,7 +18,7 @@ public sealed class LatexRecoveryTests {
     public void MismatchedEnvironmentEnd_IsDiagnosedWithoutDiscardingEitherCommand() {
         const string source = "\\begin{figure}x\\end{table}";
 
-        LatexParseResult result = LatexDocument.Parse(source);
+        LatexParseResult result = LatexDocument.ParseResult(source);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LATEX005");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LATEX004");
@@ -29,6 +29,6 @@ public sealed class LatexRecoveryTests {
     public void NestingLimit_IsEnforced() {
         var options = new LatexParseOptions { MaximumNestingDepth = 3 };
 
-        Assert.Throws<InvalidDataException>(() => LatexDocument.Parse("{{{{x}}}}", options));
+        Assert.Throws<InvalidDataException>(() => LatexDocument.ParseResult("{{{{x}}}}", options));
     }
 }

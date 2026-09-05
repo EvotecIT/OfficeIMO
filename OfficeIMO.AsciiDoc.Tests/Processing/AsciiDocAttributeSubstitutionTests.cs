@@ -4,7 +4,7 @@ public sealed class AsciiDocAttributeSubstitutionTests {
     [Fact]
     public void DocumentAttributes_RespectSourceOrderSetAndUnset() {
         const string source = ":product: OfficeIMO\n:edition: {product} Pro\n:product!:\n";
-        AsciiDocDocumentAttributes attributes = AsciiDocDocument.Parse(source).Document.GetAttributes(
+        AsciiDocDocumentAttributes attributes = AsciiDocDocument.ParseResult(source).Document.GetAttributes(
             new Dictionary<string, string> { ["initial"] = "yes" });
 
         Assert.False(attributes.Contains("product"));
@@ -14,7 +14,7 @@ public sealed class AsciiDocAttributeSubstitutionTests {
 
     [Fact]
     public void Substitution_IsRecursiveCaseInsensitiveAndBounded() {
-        AsciiDocDocumentAttributes attributes = AsciiDocDocument.Parse(
+        AsciiDocDocumentAttributes attributes = AsciiDocDocument.ParseResult(
             ":product: OfficeIMO\n:edition: {PRODUCT} Pro\n").Document.GetAttributes();
 
         AsciiDocAttributeSubstitutionResult result = AsciiDocAttributeSubstitutor.Substitute("Use {edition}.", attributes);
@@ -25,7 +25,7 @@ public sealed class AsciiDocAttributeSubstitutionTests {
 
     [Fact]
     public void UndefinedAndCyclicReferences_AreDiagnosedWithoutDataLoss() {
-        AsciiDocDocumentAttributes attributes = AsciiDocDocument.Parse(":a: {b}\n:b: {a}\n").Document.GetAttributes();
+        AsciiDocDocumentAttributes attributes = AsciiDocDocument.ParseResult(":a: {b}\n:b: {a}\n").Document.GetAttributes();
 
         AsciiDocAttributeSubstitutionResult result = AsciiDocAttributeSubstitutor.Substitute("{a} {missing}", attributes);
 
@@ -36,7 +36,7 @@ public sealed class AsciiDocAttributeSubstitutionTests {
 
     [Fact]
     public void EscapedReference_RemainsLiteralWithoutDiagnostic() {
-        AsciiDocDocumentAttributes attributes = AsciiDocDocument.Parse(":name: value\n").Document.GetAttributes();
+        AsciiDocDocumentAttributes attributes = AsciiDocDocument.ParseResult(":name: value\n").Document.GetAttributes();
 
         AsciiDocAttributeSubstitutionResult result = AsciiDocAttributeSubstitutor.Substitute("\\{name} {name}", attributes);
 

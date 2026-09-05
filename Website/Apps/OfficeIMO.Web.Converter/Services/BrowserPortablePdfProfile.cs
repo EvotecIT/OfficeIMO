@@ -106,9 +106,9 @@ internal static class BrowserPortablePdfProfile {
         return options;
     }
 
-    internal static HtmlPdfSaveOptions CreateHtmlOptions(BrowserPdfProfile profile) {
+    internal static HtmlToPdfOptions CreateHtmlOptions(BrowserPdfProfile profile) {
         FontPackData data = Data.Value;
-        return new HtmlPdfSaveOptions {
+        return new HtmlToPdfOptions {
             DefaultFontFamily = DefaultLayoutFontFamilies,
             Fonts = CreateLayoutFonts(data),
             PdfOptions = CreateOptions(profile),

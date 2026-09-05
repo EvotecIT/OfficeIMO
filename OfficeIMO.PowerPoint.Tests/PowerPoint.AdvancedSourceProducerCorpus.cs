@@ -79,7 +79,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
                         out OfficeRasterImage? raster));
                     Assert.True(raster!.Width > 0 && raster.Height > 0);
                 }
-                byte[] pdf = presentation.ToPdf();
+                byte[] pdf = presentation.ToPdfBytes();
                 Assert.True(pdf.Length > 100);
                 Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(
                     pdf, 0, 5));

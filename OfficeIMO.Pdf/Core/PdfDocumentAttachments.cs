@@ -8,8 +8,8 @@ public sealed class PdfDocumentAttachments {
     public IReadOnlyList<PdfExtractedAttachment> Extract(PdfLoadOptions? readOptions = null) =>
         _document.Reader.Attachments(readOptions);
     /// <summary>Attempts to extract attachment payloads, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> TryExtract(PdfLoadOptions? readOptions = null) =>
-        _document.Reader.TryAttachments(readOptions);
+    public PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> ExtractResult(PdfLoadOptions? readOptions = null) =>
+        _document.Reader.AttachmentsResult(readOptions);
     /// <summary>Applies a transactional attachment collection edit.</summary>
     public PdfAttachmentEditResult Edit(Action<PdfAttachmentEditSession> edit) => PdfAttachmentEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions);
     /// <summary>Adds one attachment.</summary>

@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetPageSetup(PdfCore.PdfPageBuilder page, ExcelSheetPageSetup? pageSetup, ExcelPdfSaveOptions options) {
+        private static void ApplyWorksheetPageSetup(PdfCore.PdfPageBuilder page, ExcelSheetPageSetup? pageSetup, ExcelToPdfOptions options) {
             if (ShouldApplyPageSize(options, pageSetup)) {
                 page.Size(GetEffectivePageSize(options, pageSetup));
             }
@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static bool ShouldApplyPageSize(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static bool ShouldApplyPageSize(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.PageSize.HasValue) {
                 return true;
             }
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Pdf {
             return PdfCore.PageMargins.FromInches(margins.Left, margins.Top, margins.Right, margins.Bottom);
         }
 
-        private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelPdfSaveOptions options) {
+        private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelToPdfOptions options) {
             IReadOnlyList<string> requestedNames = options.SheetNames ?? Array.Empty<string>();
             if (requestedNames.Count == 0) {
                 return reader.GetSheetNames();
@@ -50,17 +50,17 @@ namespace OfficeIMO.Excel.Pdf {
             return names;
         }
 
-        private static bool HasExplicitSheetSelection(ExcelPdfSaveOptions options) {
+        private static bool HasExplicitSheetSelection(ExcelToPdfOptions options) {
             return options.SheetNames != null && options.SheetNames.Count > 0;
         }
 
-        private static bool ShouldSkipWorkbookSheet(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection) {
+        private static bool ShouldSkipWorkbookSheet(ExcelSheet? workbookSheet, ExcelToPdfOptions options, bool hasExplicitSheetSelection) {
             return !hasExplicitSheetSelection
                    && options.RespectWorkbookSheetVisibility
                    && workbookSheet?.Hidden == true;
         }
 
-        private static IReadOnlyList<WorksheetImageExportData> ReadWorksheetImages(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options, string sheetName) {
+        private static IReadOnlyList<WorksheetImageExportData> ReadWorksheetImages(ExcelSheet? workbookSheet, ExcelToPdfOptions options, string sheetName) {
             if (!options.UseWorksheetImages || workbookSheet == null) {
                 return Array.Empty<WorksheetImageExportData>();
             }
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel.Pdf {
             return images;
         }
 
-        private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options, string sheetName) {
+        private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelToPdfOptions options, string sheetName) {
             if (!options.UseWorksheetCharts || workbookSheet == null) {
                 return Array.Empty<WorksheetChartExportData>();
             }
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel.Pdf {
             return string.IsNullOrWhiteSpace(snapshot.Name) ? snapshot.ChartType.ToString() : snapshot.Name;
         }
 
-        private static void AddWarning(ExcelPdfSaveOptions options, string sheetName, string feature, string message) {
+        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message) {
             var warning = new ExcelPdfExportWarning(sheetName, feature, message);
             options.Warnings.Add(warning);
             options.Report.Add(warning.ToConversionWarning());

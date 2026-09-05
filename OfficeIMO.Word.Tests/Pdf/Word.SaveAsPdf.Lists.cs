@@ -45,7 +45,7 @@ public partial class Word {
         list.Numbering.Levels[0].LevelText = "Ź";
         list.AddItem("ASCII list item");
 
-        byte[] bytes = document.ToPdf();
+        byte[] bytes = document.ToPdfBytes();
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -67,7 +67,7 @@ public partial class Word {
             document.AddParagraph("After list chart");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -95,7 +95,7 @@ public partial class Word {
             document.AddParagraph("After list picture control");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }

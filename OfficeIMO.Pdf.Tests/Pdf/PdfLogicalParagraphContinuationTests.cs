@@ -142,7 +142,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
         PdfDocument source = PdfDocument.Load(pdf);
 
         PdfLogicalParagraphContinuationGroup group = Assert.Single(source.Reader.ParagraphContinuations());
-        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.TryParagraphContinuations();
+        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.ParagraphContinuationsResult();
 
         Assert.True(group.SpansPages);
         Assert.True(attempt.Succeeded);
@@ -158,7 +158,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
             secondPageX: 40));
 
         IReadOnlyList<PdfLogicalParagraphContinuationGroup> groups = source.Reader.ParagraphContinuations(PdfPageSelector.Parse("1..last"));
-        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.TryParagraphContinuations(PdfPageSelector.Parse("all"));
+        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.ParagraphContinuationsResult(PdfPageSelector.Parse("all"));
 
         Assert.True(Assert.Single(groups).SpansPages);
         Assert.True(attempt.Succeeded);

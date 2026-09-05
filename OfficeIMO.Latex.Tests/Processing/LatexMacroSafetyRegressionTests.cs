@@ -4,7 +4,7 @@ public sealed class LatexMacroSafetyRegressionTests {
     [Fact]
     public void RenewCommand_ReplacesEarlierDocumentLocalDefinitionInSourceOrder() {
         const string source = "\\newcommand{\\term}{old}\\renewcommand{\\term}{new}";
-        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
+        LatexDocument document = LatexDocument.ParseResult(source, new LatexParseOptions {
             MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
         }).Document;
 
@@ -23,7 +23,7 @@ public sealed class LatexMacroSafetyRegressionTests {
     public void UnsafeOrSideEffectingControlSequences_AreNotClassifiedAsSafe(string body) {
         string source = "\\newcommand{\\candidate}{" + body + "}";
 
-        LatexMacroDefinition definition = Assert.Single(LatexDocument.Parse(source).Document.MacroDefinitions);
+        LatexMacroDefinition definition = Assert.Single(LatexDocument.ParseResult(source).Document.MacroDefinitions);
 
         Assert.False(definition.IsSafe);
     }
@@ -36,7 +36,7 @@ public sealed class LatexMacroSafetyRegressionTests {
             "\\newcommand{\\wrapper}{\\unsafe}\n" +
             "\\begin{document}\\wrapper\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
+        LatexDocument document = LatexDocument.ParseResult(source, new LatexParseOptions {
             MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
         }).Document;
 
@@ -49,14 +49,14 @@ public sealed class LatexMacroSafetyRegressionTests {
     [InlineData("\\newcommand{\\candidate}[many]{value}")]
     [InlineData("\\newcommand{\\candidate}[0][default]{value}")]
     public void MalformedSimpleDefinitionOptions_AreNotClassifiedAsSafe(string source) {
-        LatexMacroDefinition definition = Assert.Single(LatexDocument.Parse(source).Document.MacroDefinitions);
+        LatexMacroDefinition definition = Assert.Single(LatexDocument.ParseResult(source).Document.MacroDefinitions);
 
         Assert.False(definition.IsSafe);
     }
 
     [Fact]
     public void MacroArgumentsUseTokenStructureSoCommentBracesCannotCloseTheGroup() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\foo}[1]{#1}",
             new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
 
@@ -68,7 +68,7 @@ public sealed class LatexMacroSafetyRegressionTests {
 
     [Fact]
     public void MacroNamesInsideCommentsAndVerbatimRemainOpaque() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\foo}[1]{<#1>}",
             new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
 
@@ -84,7 +84,7 @@ public sealed class LatexMacroSafetyRegressionTests {
             MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
         };
         options.VerbatimEnvironmentNames.Add("codeblock");
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\foo}[1]{<#1>}", options).Document;
 
         LatexMacroExpansionResult result = document.ExpandSimpleMacros(
@@ -96,7 +96,7 @@ public sealed class LatexMacroSafetyRegressionTests {
 
     [Fact]
     public void ContractingMacroUsesIndependentInputAndOutputBudgets() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\shorten}[1]{x}",
             new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
         string invocation = "\\shorten{" + new string('a', 80) + "}";
@@ -120,7 +120,7 @@ public sealed class LatexMacroSafetyRegressionTests {
 
     [Fact]
     public void InputBudgetAppliesOnlyToTheAuthoredInvocation() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\x}{hello}",
             new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions }).Document;
 
@@ -151,7 +151,7 @@ public sealed class LatexMacroSafetyRegressionTests {
 
     [Fact]
     public void SafeExpansionUsesAnAggregateTokenBudgetIndependentOfTheInputCharacterLimit() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\shorten}[1]{x}",
             new LatexParseOptions {
                 MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,
@@ -168,7 +168,7 @@ public sealed class LatexMacroSafetyRegressionTests {
 
     [Fact]
     public void EmptyMacroBodiesRemainValidUnderTheAggregateTokenBudget() {
-        LatexDocument document = LatexDocument.Parse(
+        LatexDocument document = LatexDocument.ParseResult(
             "\\newcommand{\\empty}{}",
             new LatexParseOptions {
                 MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,

@@ -55,7 +55,7 @@ public class RtfGoldenCorpusTests {
         foreach (CorpusFixture fixture in manifest.Fixtures) {
             string path = GetFixturePath(corpusPath, fixture.File);
             byte[] sourceBytes = File.ReadAllBytes(path);
-            RtfReadResult result = RtfDocument.Load(sourceBytes);
+            RtfReadResult result = RtfDocument.LoadResult(sourceBytes);
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
             Assert.Equal(sourceBytes, result.ToBytesLossless());
@@ -81,7 +81,7 @@ public class RtfGoldenCorpusTests {
         CorpusManifest manifest = LoadManifest(corpusPath);
 
         foreach (CorpusFixture fixture in manifest.Fixtures.Where(item => item.Adapters.Count > 1)) {
-            RtfDocument document = RtfDocument.Load(GetFixturePath(corpusPath, fixture.File)).Document;
+            RtfDocument document = RtfDocument.LoadResult(GetFixturePath(corpusPath, fixture.File)).Document;
             if (fixture.Adapters.Contains("Html")) {
                 Assert.False(string.IsNullOrWhiteSpace(document.ToHtml()), fixture.Id + ": Html");
             }
@@ -91,7 +91,7 @@ public class RtfGoldenCorpusTests {
             }
 
             if (fixture.Adapters.Contains("Pdf")) {
-                Assert.NotEmpty(document.ToPdf());
+                Assert.NotEmpty(document.ToPdfBytes());
             }
 
             if (fixture.Adapters.Contains("Word")) {

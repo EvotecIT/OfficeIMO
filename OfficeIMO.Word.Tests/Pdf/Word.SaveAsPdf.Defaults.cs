@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void SaveAsPdf_DefaultsDoNotEmbedDocumentNamedHostFontsOrAllowArbitraryResourceReads() {
-            var options = new WordPdfSaveOptions();
+            var options = new WordToPdfOptions();
 
             Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
             Assert.False(options.ResourcePolicy.AllowDocumentFontEmbedding);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SaveAsPdf_ShapingOnlyProfileDetectsLaterDirectFontConfiguration() {
-            var options = new WordPdfSaveOptions()
+            var options = new WordToPdfOptions()
                 .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
             Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SaveAsPdf_InvalidRenderingProfileDoesNotCreatePdfOptions() {
-            var options = new WordPdfSaveOptions();
+            var options = new WordToPdfOptions();
 
             Assert.Throws<ArgumentNullException>(
                 () => options.UseRenderingProfile(null!));
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     DefaultOrientation = OfficePageOrientation.Landscape,
                     DefaultPageSize = WordPageSize.A4
                 });

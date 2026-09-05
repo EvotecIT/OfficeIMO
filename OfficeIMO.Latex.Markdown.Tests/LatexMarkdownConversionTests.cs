@@ -16,7 +16,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void TechnicalLatex_ConvertsToTypedMarkdownWithExplicitMathAndCitationLoss() {
-        LatexToMarkdownResult result = LatexDocument.Parse(Source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(Source).Document.ToMarkdownDocumentResult();
 
         Assert.Equal("Guide", result.Value.Blocks.OfType<HeadingBlock>().First().Text);
         Assert.Contains(result.Value.Blocks.OfType<HeadingBlock>(), heading => heading.Text == "Start");
@@ -33,12 +33,12 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>());
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
-        Assert.Equal(Source, LatexDocument.Parse(Source).Document.ToLatex());
+        Assert.Equal(Source, LatexDocument.ParseResult(Source).Document.ToLatex());
     }
 
     [Fact]
     public void LatexProjection_UsesExistingWordBridge() {
-        LatexToMarkdownResult conversion = LatexDocument.Parse(Source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult conversion = LatexDocument.ParseResult(Source).Document.ToMarkdownDocumentResult();
 
         using var word = conversion.Value.ToWordDocument();
         string text = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
@@ -51,7 +51,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
-        var result = LatexDocument.Parse(Source).Document.ToPdfDocumentResult();
+        var result = LatexDocument.ParseResult(Source).Document.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
         LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));

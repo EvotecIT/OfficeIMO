@@ -252,7 +252,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@font-face{font-family:'Pdf Web Demo';src:url(\"data:font/ttf;base64,"
             + Convert.ToBase64String(fontData)
             + "\") format('truetype')}p{font-family:'Pdf Web Demo',sans-serif}</style><p>EmbeddedWebFontMarker</p>";
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        HtmlToPdfOptions options = new HtmlToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
@@ -283,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
             + "' alt='clipped font sample'>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        HtmlToPdfOptions options = new HtmlToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
@@ -305,7 +305,7 @@ public sealed partial class HtmlRenderingTests {
             + "' alt='scoped font sample'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
 
         HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Contains(drawing.InnerDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "A");
@@ -318,13 +318,13 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@font-face{font-family:Scoped;src:url('data:font/ttf;base64,"
             + Convert.ToBase64String(fontData)
             + "');unicode-range:U+0020,U+0041}p{font-family:Scoped,serif}</style><p>A</p><p>B</p>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
         options.PdfOptions.CompressContentStreams = false;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Scoped", rawPdf, StringComparison.Ordinal);
@@ -386,7 +386,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:120px 24px;background-repeat:repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
 
         HtmlRenderDrawing background = Assert.Single(
@@ -435,7 +435,7 @@ public sealed partial class HtmlRenderingTests {
             + "@font-face{font-family:WebTwo;src:url('data:font/ttf;base64," + encoded + "')}"
             + ".one{font-family:WebOne}.two{font-family:WebTwo}.serif{font-family:'Times New Roman'}.mono{font-family:Courier}"
             + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        HtmlToPdfOptions options = new HtmlToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
@@ -478,7 +478,7 @@ public sealed partial class HtmlRenderingTests {
                 .Append("</p>");
         }
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html.ToString()).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html.ToString()).ToPdfDocumentResult(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -507,7 +507,7 @@ public sealed partial class HtmlRenderingTests {
             + "@font-face{font-family:BeyondBudget;src:url('data:font/ttf;base64," + encoded + "')}"
             + "</style><p style='font-family:WithinBudget'>Embedded text</p>"
             + "<p style='font-family:BeyondBudget'>Fallback text</p>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
         options.ResourcePolicy.AllowSystemFontEmbedding = false;

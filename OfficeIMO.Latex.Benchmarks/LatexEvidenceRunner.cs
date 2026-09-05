@@ -97,8 +97,8 @@ internal static class LatexEvidenceRunner {
         using var sampler = new LatexManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
         object result = string.Equals(operation, "Parse", StringComparison.Ordinal)
-            ? LatexDocument.Parse(fixture.Source)
-            : LatexDocument.Parse(fixture.Source).Document.ToLatex();
+            ? LatexDocument.ParseResult(fixture.Source)
+            : LatexDocument.ParseResult(fixture.Source).Document.ToLatex();
         stopwatch.Stop();
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;

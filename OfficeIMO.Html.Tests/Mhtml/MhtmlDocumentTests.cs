@@ -577,7 +577,7 @@ public sealed class MhtmlDocumentTests {
             "<img src='https://example.test/allowed.png'><img src='https://example.test/escaped.png'>",
             contentLocation: "https://example.test/page.html");
         int calls = 0;
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
         MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);

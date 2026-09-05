@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Represents the destination artifact and report produced by an Excel file conversion.</summary>
-    public sealed class ExcelDocumentConversionResult {
+    public sealed class ExcelDocumentConversionResult : IOfficeConversionResult<string, ExcelDocumentConversionReport> {
         internal ExcelDocumentConversionResult(
             string sourcePath,
             string destinationPath,
@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets whether the conversion reported known content loss.</summary>
         public bool HasLoss => Report.HasLoss;
 
+        /// <summary>Gets whether the destination artifact was committed.</summary>
+        public bool Succeeded => Value != null;
+
         /// <summary>Returns the committed destination path or throws when no artifact was produced.</summary>
         public string RequireValue() => Value
             ?? throw new InvalidOperationException("The Excel conversion did not produce a destination artifact.");
@@ -60,7 +63,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Excel conversion.</summary>
-    public sealed class ExcelDocumentConversionReport {
+    public sealed class ExcelDocumentConversionReport : IOfficeConversionReport {
         internal ExcelDocumentConversionReport(
             string sourcePath,
             string destinationPath,

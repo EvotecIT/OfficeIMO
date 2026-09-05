@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 /// <summary>Immutable diagnostics from one semantic PDF-to-RTF conversion.</summary>
-public sealed class PdfRtfConversionReport {
+public sealed class PdfRtfConversionReport : IOfficeConversionReport {
     internal PdfRtfConversionReport(PdfCore.PdfConversionReport report) {
         if (report == null) throw new ArgumentNullException(nameof(report));
         Warnings = Array.AsReadOnly(report.Warnings.ToArray());
@@ -25,27 +25,7 @@ public sealed class PdfRtfConversionReport {
 }
 
 /// <summary>Editable RTF output and immutable diagnostics from one semantic PDF import.</summary>
-public sealed class PdfRtfConversionResult {
-    internal PdfRtfConversionResult(RtfDocument value, PdfCore.PdfConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new PdfRtfConversionReport(report);
-    }
-
-    /// <summary>The imported RTF document.</summary>
-    public RtfDocument Value { get; }
-
-    /// <summary>Snapshot of diagnostics reported by the import.</summary>
-    public PdfRtfConversionReport Report { get; }
-
-    /// <summary>True when the conversion reported possible content loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the imported RTF document.</summary>
-    public RtfDocument RequireValue() => Value;
-
-    /// <summary>Returns the imported RTF document only when no possible content loss was reported.</summary>
-    public RtfDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class PdfRtfConversionResult : OfficeConversionResult<RtfDocument, PdfRtfConversionReport> {
+    internal PdfRtfConversionResult(RtfDocument value, PdfCore.PdfConversionReport report)
+        : base(value, new PdfRtfConversionReport(report)) { }
 }

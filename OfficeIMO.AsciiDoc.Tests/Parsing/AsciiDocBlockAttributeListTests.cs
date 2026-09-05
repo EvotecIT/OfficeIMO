@@ -5,7 +5,7 @@ public sealed class AsciiDocBlockAttributeListTests {
     public void AttributeList_IsLosslessTypedAndBoundToFollowingBlock() {
         const string source = "[source,java,#sample,.wide,%nowrap,linenums=true,title=\"A, B\"]\r\n----\r\ncode\r\n----\r\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         AsciiDocBlockAttributeList metadata = Assert.Single(document.BlocksOfType<AsciiDocBlockAttributeList>());
         AsciiDocDelimitedBlock target = Assert.Single(document.BlocksOfType<AsciiDocDelimitedBlock>());
@@ -25,7 +25,7 @@ public sealed class AsciiDocBlockAttributeListTests {
     public void BlankLine_PreventsMetadataBinding() {
         const string source = "[source]\n\n----\ncode\n----\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         AsciiDocBlockAttributeList metadata = Assert.Single(document.BlocksOfType<AsciiDocBlockAttributeList>());
         AsciiDocDelimitedBlock target = Assert.Single(document.BlocksOfType<AsciiDocDelimitedBlock>());
@@ -37,7 +37,7 @@ public sealed class AsciiDocBlockAttributeListTests {
     [Fact]
     public void EditingContent_ReparsesSemanticAttributesAndKeepsFollowingSource() {
         const string source = "[source,java]\r\n----\r\ncode\r\n----\r\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocBlockAttributeList metadata = Assert.Single(document.BlocksOfType<AsciiDocBlockAttributeList>());
 
         metadata.Content = "source,csharp,#sample";

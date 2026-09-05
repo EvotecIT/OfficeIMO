@@ -24,7 +24,7 @@ internal static partial class RtfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
 
-        RtfReadResult readResult = RtfDocument.Load(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
         IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
         return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
     }
@@ -57,7 +57,7 @@ internal static partial class RtfReaderAdapter {
                 parseStream.Position = parseStartPosition;
             }
 
-            RtfReadResult readResult = RtfDocument.Load(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
             IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
             return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
         } finally {

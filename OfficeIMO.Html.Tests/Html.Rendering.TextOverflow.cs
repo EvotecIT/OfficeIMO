@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.EndsWith("\u2026", text.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("delta", text.Text, StringComparison.Ordinal);
         Assert.InRange(text.TextAdvanceWidth ?? text.Width, 0.01D, 90D);
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions())).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions())).ExtractText();
         Assert.Contains("\u2026", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("delta", pdfText, StringComparison.Ordinal);
     }
@@ -103,7 +103,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain('\t', string.Concat(compactText.Select(text => text.Text)));
         Assert.DoesNotContain('\t', string.Concat(wideText.Select(text => text.Text)));
         Assert.True(Assert.Single(wideText, text => text.Text == "B").X > Assert.Single(compactText, text => text.Text == "B").X);
-        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(wide).ToPdf(new HtmlPdfSaveOptions())).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(wide).ToPdfBytes(new HtmlToPdfOptions())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText after = Assert.Single(text, item => item.Text == " B");
 
         Assert.True(after.X > before.X + before.Width + 15D);
-        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "A", " ", "B" }, spacedGlyphs.Select(glyph => glyph.Text).ToArray());
         Assert.True(spacedGlyphs.Sum(glyph => glyph.TextAdvanceWidth ?? glyph.Width) > normalAdvance + 10D);
         Assert.True(spacedGlyphs[2].X - spacedGlyphs[0].X > normalAdvance / 2D);
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(spaced).ToPdf(new HtmlPdfSaveOptions())).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(spaced).ToPdfBytes(new HtmlToPdfOptions())).ExtractText();
         Assert.Contains("A B", pdfText, StringComparison.Ordinal);
     }
 
@@ -235,7 +235,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains(text, item => item.Text == " ");
         Assert.True(def.X - abc.X > baselineDef.X - baselineAbc.X + 10D);
-        Assert.Contains("abc def אבג", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("abc def אבג", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

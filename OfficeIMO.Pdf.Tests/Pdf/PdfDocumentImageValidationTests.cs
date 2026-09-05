@@ -543,7 +543,7 @@ public class PdfDocumentImageValidationTests {
         using var image = new MemoryStream(CreateMinimalGif());
         document.AddParagraph().AddImage(image, "pixel.gif", 24, 24);
 
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdfBytes();
 
         PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal("image/png", embedded.MimeType);
@@ -555,7 +555,7 @@ public class PdfDocumentImageValidationTests {
         ExcelSheet sheet = workbook.AddWorksheet("Raster");
         sheet.AddImage(1, 1, CreateMinimalGif(), "image/gif", 24, 24);
 
-        byte[] pdf = workbook.ToPdf();
+        byte[] pdf = workbook.ToPdfBytes();
 
         PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal("image/png", embedded.MimeType);

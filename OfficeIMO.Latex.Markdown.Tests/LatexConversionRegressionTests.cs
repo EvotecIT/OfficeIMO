@@ -12,7 +12,7 @@ public sealed class LatexConversionRegressionTests {
         int secondLevel) {
         string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" + headings + "\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         HeadingBlock[] converted = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
 
         Assert.Equal(new[] { firstLevel, secondLevel }, converted.Select(heading => heading.Level));
@@ -27,7 +27,7 @@ public sealed class LatexConversionRegressionTests {
         string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n" +
             "\\part{Part}\\section{Section}\\subsection{Subsection}\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         HeadingBlock[] headings = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
 
         Assert.Equal(new[] { "Part", "Section", "Subsection" }, headings.Select(heading => heading.Text));
@@ -38,7 +38,7 @@ public sealed class LatexConversionRegressionTests {
     public void Starred_Heading_State_Is_Exposed_And_Reported_As_Simplified() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section*{Unnumbered}\n\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
 
         Assert.True(Assert.Single(document.Headings).IsStarred);
@@ -58,7 +58,7 @@ public sealed class LatexConversionRegressionTests {
             "\\end{table}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Equal("tab:values", table.Attributes.ElementId);
@@ -72,7 +72,7 @@ public sealed class LatexConversionRegressionTests {
     public void BracedListItem_ConvertsItsVisibleContent() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\begin{itemize}\\item {Visible item}\\end{itemize}\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         UnorderedListBlock list = Assert.Single(result.Value.Blocks.OfType<UnorderedListBlock>());
         Assert.Single(list.Items);
@@ -135,7 +135,7 @@ public sealed class LatexConversionRegressionTests {
             "\\section{Start}\n\\label{sec:start}\nBody.\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         HeadingBlock heading = Assert.Single(result.Value.Blocks.OfType<HeadingBlock>());
         Assert.Equal("sec:start", heading.Attributes.ElementId);
@@ -153,7 +153,7 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{table}\n\\centering\n\\begin{tabular}{l}\nA\\\\\n\\end{tabular}\n\\end{table}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         Assert.Single(result.Value.Blocks.OfType<ImageBlock>());
         Assert.Single(result.Value.Blocks.OfType<TableBlock>());
@@ -170,7 +170,7 @@ public sealed class LatexConversionRegressionTests {
             "Text \\textsuperscript{two} \\textsubscript{sub} \\sout{gone}\\newline Next\\linebreak[4]Done.\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
 
         Assert.Single(paragraph.Inlines.Nodes.OfType<SuperscriptSequenceInline>());
@@ -205,7 +205,7 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{verbatim}literal % value { \\command\\end{verbatim}\n" +
             "After.\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         string markdown = result.Value.ToMarkdown();
 
         Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
@@ -226,7 +226,7 @@ public sealed class LatexConversionRegressionTests {
             "\\begin {Verbatim}[numbers=left]\nopaque();\n\\end {Verbatim}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         CodeBlock[] blocks = result.Value.Blocks.OfType<CodeBlock>().ToArray();
 
         Assert.Equal(3, blocks.Length);
@@ -246,7 +246,7 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{minted}\r\n[linenos]\r\n{csharp}\r\nConsole.WriteLine(1);\r\n\\end{minted}\r\n" +
             "\\end{document}\r\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         CodeBlock block = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
 
         Assert.Contains("Console.WriteLine(1);", block.Content, StringComparison.Ordinal);
@@ -259,7 +259,7 @@ public sealed class LatexConversionRegressionTests {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|a%b{c}| after.\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         string markdown = result.Value.ToMarkdown();
 
         Assert.Contains("`a%b{c}`", markdown, StringComparison.Ordinal);
@@ -274,7 +274,7 @@ public sealed class LatexConversionRegressionTests {
             "\\begin{unknown}Visible before.\\begin{comment}SECRET\\section{Hidden}\\end{comment}Visible after.\\end{unknown}\n" +
             "\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         string markdown = result.Value.ToMarkdown();
 
         Assert.Contains("Visible before", markdown, StringComparison.Ordinal);
@@ -291,7 +291,7 @@ public sealed class LatexConversionRegressionTests {
     public void UnterminatedInlineVerbPreservesEveryContentCharacter() {
         const string source = "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         Assert.Contains("`abc`", result.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD111");
@@ -302,7 +302,7 @@ public sealed class LatexConversionRegressionTests {
         const string source =
             "\\documentclass{article}\n\\begin{document}\nBefore \\verb|abc\n\\section{Next}\nAfter\n\\end{document}\n";
 
-        LatexToMarkdownResult result = LatexDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        LatexToMarkdownResult result = LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         string markdown = result.Value.ToMarkdown();
 
         Assert.Contains("`abc`", markdown, StringComparison.Ordinal);

@@ -530,7 +530,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another loaded or generated PDF, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryMergeWith(PdfDocument document, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> MergeWithResult(PdfDocument document, PdfLoadOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(document, options ?? ReadOptions), options: options);
     }
@@ -554,7 +554,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another PDF byte payload, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryMergeWith(byte[] pdf, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> MergeWithResult(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(pdf, options ?? ReadOptions), options: options);
     }
@@ -574,7 +574,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another PDF file, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryMergeWith(string path, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> MergeWithResult(string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(path, options ?? ReadOptions), options: options);
     }
@@ -600,7 +600,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another readable PDF stream, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryMergeWith(Stream stream, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> MergeWithResult(Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(stream, options ?? ReadOptions), options: options);
     }
@@ -615,7 +615,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFlattenVisualAnnotations(PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options = null) {
         return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations, _ => FlattenVisualAnnotations(), options: options);
     }
 
@@ -634,7 +634,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(
+    public PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(
         string? title = null,
         string? author = null,
         string? subject = null,
@@ -698,7 +698,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
-    internal PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfExternalSignaturePreparation> PrepareExternalSignatureResult(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) {
         return TryMutationOperation(
             "Prepare external signature",
             PdfPreflightCapability.PrepareExternalSignatureRevision,
@@ -742,7 +742,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts an Info/XMP synchronization through the planner-selected full-rewrite or append-only path.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TrySynchronizeMetadata(
+    public PdfOperationResult<PdfDocument> SynchronizeMetadataResult(
         string? title = null,
         string? author = null,
         string? subject = null,
@@ -781,7 +781,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryUpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> UpdateMetadataResult(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) {
         return TryMutationOperation(
             "Update metadata",
             PdfPreflightCapability.ManipulatePages,
@@ -806,7 +806,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to create a new PDF with exactly the supplied metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryReplaceMetadata(PdfMetadata metadata, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation(
             "Replace metadata",

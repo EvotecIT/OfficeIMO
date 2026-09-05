@@ -615,7 +615,7 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColor.FromRgb(47, 84, 150);
         }
 
-        private static PdfCore.PageSize GetNativePageSize(WordSection section, WordPdfSaveOptions? options) {
+        private static PdfCore.PageSize GetNativePageSize(WordSection section, WordToPdfOptions? options) {
             PdfCore.PageSize size;
             if (options?.PageSize != null) {
                 size = options.PageSize.Value;
@@ -662,11 +662,11 @@ namespace OfficeIMO.Word.Pdf {
                 _ => PdfCore.PageSizes.A4
             };
 
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordPdfSaveOptions? options) {
+        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options) {
             return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));
         }
 
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordPdfSaveOptions? options, (double Header, double Footer) headerFooterMarginExpansion) {
+        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options, (double Header, double Footer) headerFooterMarginExpansion) {
             if (options?.Margins != null) {
                 return options.Margins.Value;
             }
@@ -678,7 +678,7 @@ namespace OfficeIMO.Word.Pdf {
                 (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer);
         }
 
-        private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, WordPdfSaveOptions? options) {
+        private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, WordToPdfOptions? options) {
             if (options?.Margins != null) {
                 return (0D, 0D);
             }
@@ -837,7 +837,7 @@ namespace OfficeIMO.Word.Pdf {
             return lines;
         }
 
-        private static string GetNativePageNumberFormat(WordPdfSaveOptions? options) {
+        private static string GetNativePageNumberFormat(WordToPdfOptions? options) {
             string? format = options?.PageNumberFormat;
             if (string.IsNullOrWhiteSpace(format)) {
                 return "{page}/{pages}";
@@ -846,7 +846,7 @@ namespace OfficeIMO.Word.Pdf {
             return format!.Replace("{current}", "{page}").Replace("{total}", "{pages}");
         }
 
-        private static string? BuildNativeKeywords(WordPdfSaveOptions? options, WordBuiltinDocumentProperties properties) {
+        private static string? BuildNativeKeywords(WordToPdfOptions? options, WordBuiltinDocumentProperties properties) {
             return options?.Keywords ?? properties.Keywords;
         }
 

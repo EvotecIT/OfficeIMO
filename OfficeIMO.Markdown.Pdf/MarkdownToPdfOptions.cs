@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// <summary>
 /// Options for converting OfficeIMO.Markdown documents to first-party PDF documents.
 /// </summary>
-public sealed class MarkdownPdfSaveOptions {
+public sealed class MarkdownToPdfOptions {
     private double _defaultImageWidth = 320D;
     private double _defaultImageHeight = 180D;
     private int _maximumDataUriImageBytes = 5 * 1024 * 1024;
@@ -147,7 +147,7 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>
     /// Applies a high-level export profile by setting the Markdown PDF options that correspond to that profile.
     /// </summary>
-    public MarkdownPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+    public MarkdownToPdfOptions UseProfile(PdfCore.PdfExportProfile profile) {
         switch (profile) {
             case PdfCore.PdfExportProfile.Faithful:
                 IncludeImages = true;
@@ -189,8 +189,8 @@ public sealed class MarkdownPdfSaveOptions {
     /// </summary>
     internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
 
-    internal MarkdownPdfSaveOptions CloneForConversion() {
-        var clone = (MarkdownPdfSaveOptions)MemberwiseClone();
+    internal MarkdownToPdfOptions CloneForConversion() {
+        var clone = (MarkdownToPdfOptions)MemberwiseClone();
         clone._theme = _theme?.Clone();
         clone._style = _style?.Clone();
         clone.ResourcePolicy = ResourcePolicy.Clone();
@@ -200,5 +200,5 @@ public sealed class MarkdownPdfSaveOptions {
     }
 
     /// <summary>Creates an independent copy of these conversion options.</summary>
-    public MarkdownPdfSaveOptions Clone() => CloneForConversion();
+    public MarkdownToPdfOptions Clone() => CloneForConversion();
 }

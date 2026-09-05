@@ -33,6 +33,25 @@ if (!result.Succeeded) {
 Console.WriteLine(result.OutputPath);
 ```
 
+The same request has a fluent form. When a source/target extension pair maps to
+one locally executable route, the builder infers it; use `Via(routeId)` for an
+ambiguous pair or to pin a specific route contract.
+
+```csharp
+OfficeWorkflowResult result = await OfficeWorkflow
+    .Convert("report.docx")
+    .To("report.pdf")
+    .WithProfile(OfficeWorkflowOutputProfile.PrintReady)
+    .OnConflict(OfficeWorkflowConflictPolicy.Replace)
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+`OfficeWorkflowCatalog.Routes` projects the complete canonical first-party
+conversion catalog for discovery. `ExecutableRoutes` is the subset this local
+runner can invoke. Route metadata includes accepted extensions, the owning
+package, representative API and result contract, fidelity and support evidence,
+known limits, browser and agent availability, and `CanExecute`.
+
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
 Every request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.

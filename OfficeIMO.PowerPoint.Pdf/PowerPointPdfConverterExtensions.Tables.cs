@@ -9,7 +9,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static void RenderTable(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTable table, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+    private static void RenderTable(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTable table, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
         if (table.Rows == 0 || table.Columns == 0) {
             AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.");
             return;
@@ -76,7 +76,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
         int slideNumber,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         (int rowSpan, int columnSpan) = cell.Merge;
         return PdfCore.PdfTableCell.Merge(
             CreatePdfTableCellRuns(cell, fallbackFontFamily, slideNumber, options),
@@ -88,7 +88,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
         int slideNumber,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         var runs = new List<PdfCore.PdfTextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
@@ -116,7 +116,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointTableCell cell,
         string? fallbackFontFamily,
         int slideNumber,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         foreach (OpenXmlElement child in paragraph.ChildElements) {
             switch (child) {
                 case A.Run run:
@@ -153,7 +153,7 @@ public static partial class PowerPointPdfConverterExtensions {
             fontFamily: fontFamily);
     }
 
-    private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table, PowerPointPdfSaveOptions options) {
+    private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table, PowerPointToPdfOptions options) {
         PdfCore.PdfTableStyle style = CreateBaseTableStyle(options);
         bool includePresentationTableStyle = options.PdfOptions?.HasExplicitDefaultTableStyle != true;
         style.HeaderRowCount = table.FirstRow ? 1 : 0;
@@ -190,7 +190,7 @@ public static partial class PowerPointPdfConverterExtensions {
         return style;
     }
 
-    private static PdfCore.PdfTableStyle CreateBaseTableStyle(PowerPointPdfSaveOptions options) {
+    private static PdfCore.PdfTableStyle CreateBaseTableStyle(PowerPointToPdfOptions options) {
         PdfCore.PdfTableStyle? configuredStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
             ? options.PdfOptions.DefaultTableStyle
             : null;

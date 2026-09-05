@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             // Test Word -> PDF conversion
             Console.WriteLine("\n📑 WORD -> PDF CONVERSION");
             Console.WriteLine("-" + new string('-', 70));
-            TestWordToPdf(folderPath);
+            TestWordToPdfBytes(folderPath);
             
             // Test HTML -> Word conversion
             Console.WriteLine("\n🔄 HTML -> WORD CONVERSION");
@@ -154,7 +154,7 @@ namespace OfficeIMO.Examples.Word {
             }
         }
         
-        private static void TestWordToPdf(string folderPath) {
+        private static void TestWordToPdfBytes(string folderPath) {
             try {
                 string inputPath = Path.Combine(folderPath, "README_from_markdown.docx");
                 if (!File.Exists(inputPath)) {
@@ -164,7 +164,7 @@ namespace OfficeIMO.Examples.Word {
                 
                 using (var document = WordDocument.Load(inputPath)) {
                     string pdfPath = Path.Combine(folderPath, "README_to_pdf.pdf");
-                    document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                    document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                         Orientation = OfficePageOrientation.Portrait
                     });
                     

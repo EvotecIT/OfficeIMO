@@ -118,7 +118,7 @@ public class MarkdownSaveAsPdfVisualTests {
     public void ToPdfDocument_SharedMarkdownTheme_DoesNotOverrideExplicitPdfBackground() {
         MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
             .WithColors(background: "#112233");
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             Theme = sharedTheme,
             PdfOptions = new PdfCore.PdfOptions {
                 BackgroundColor = PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc)
@@ -203,7 +203,7 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownDoc document = MarkdownDoc.Create()
             .FrontMatter(new { theme = "report", pdfTheme = "technicalDocument" })
             .H1("Themed document");
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             UseFrontMatterTheme = true
         };
         MethodInfo method = typeof(MarkdownPdfConverterExtensions).GetMethod("ResolveVisualTheme", BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -309,7 +309,7 @@ _Figure 2. Revenue chart_
         Assert.DoesNotContain(renderedLabel, serializedMarkdown, StringComparison.Ordinal);
         Assert.All(serializedMarkdown, character => Assert.InRange((int) character, 0, 0x7F));
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new MarkdownPdfSaveOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new MarkdownToPdfOptions());
         byte[] bytes = result.ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -2495,7 +2495,7 @@ _Figure 3. Flow fallback_
         Assert.Contains("Figure 3. Flow fallback", text, StringComparison.Ordinal);
     }
 
-    private static MarkdownPdfSaveOptions CreateVisualOptions() => new MarkdownPdfSaveOptions {
+    private static MarkdownToPdfOptions CreateVisualOptions() => new MarkdownToPdfOptions {
         Style = MarkdownPdfStyle.Report(),
         PdfOptions = new PdfCore.PdfOptions {
             CompressContentStreams = false,

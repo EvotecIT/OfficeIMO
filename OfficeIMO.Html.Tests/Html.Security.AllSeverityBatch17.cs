@@ -20,7 +20,7 @@ public sealed class HtmlAllSeverityBatch17SecurityTests {
             UrlPolicy = callerPolicy
         };
 
-        var pdf = new HtmlPdfSaveOptions(generic);
+        var pdf = new HtmlToPdfOptions(generic);
 
         Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("file:///private/secret.txt", pdf.UrlPolicy));
         Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("data:text/html,secret", pdf.UrlPolicy));
@@ -37,11 +37,11 @@ public sealed class HtmlAllSeverityBatch17SecurityTests {
 
     [Fact]
     public void PdfSpecificOptionSnapshotsRetainExplicitPdfPolicy() {
-        var source = new HtmlPdfSaveOptions {
+        var source = new HtmlToPdfOptions {
             UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
         };
 
-        var copy = new HtmlPdfSaveOptions(source);
+        var copy = new HtmlToPdfOptions(source);
 
         Assert.False(copy.UrlPolicy.RestrictUrlSchemes);
     }

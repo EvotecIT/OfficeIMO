@@ -52,7 +52,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         int resolverCalls = 0;
         PdfCore.PdfResourcePolicy resourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         resourcePolicy.AllowEmbeddedPackageResources = allowEmbeddedResources;
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = (request, cancellationToken) => {
                 resolverCalls++;
@@ -81,7 +81,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         int fetcherCalls = 0;
         PdfCore.PdfResourcePolicy resourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         resourcePolicy.AllowEmbeddedPackageResources = false;
-        var options = new HtmlPdfSaveOptions { ResourcePolicy = resourcePolicy };
+        var options = new HtmlToPdfOptions { ResourcePolicy = resourcePolicy };
         MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile();
         remotePolicy.ResourceFetcher = (request, cancellationToken) => {
             fetcherCalls++;

@@ -45,12 +45,12 @@ public partial class Excel {
             Assert.Equal(3, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
-            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelPdfSaveOptions() }));
+            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
             Assert.Equal("Revenue Chart", sharedSnapshot.Title);
 
             document.Save();
 
-            var options = new ExcelPdfSaveOptions {
+            var options = new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -58,7 +58,7 @@ public partial class Excel {
             };
             result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
-            disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
+            disabledBytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 UseWorksheetCharts = false,
@@ -105,7 +105,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -138,7 +138,7 @@ public partial class Excel {
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
             PageSize = new PdfCore.PageSize(480, 360),
@@ -221,7 +221,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 520),
@@ -275,7 +275,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(520, 620),
@@ -316,7 +316,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -411,7 +411,7 @@ public partial class Excel {
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
             PageSize = new PdfCore.PageSize(480, 360),
@@ -569,7 +569,7 @@ public partial class Excel {
             Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
 
             document.Save();
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -612,7 +612,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -655,7 +655,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),

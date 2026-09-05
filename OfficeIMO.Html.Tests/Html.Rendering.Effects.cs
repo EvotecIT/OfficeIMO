@@ -129,15 +129,15 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        pdfOptions = new HtmlPdfSaveOptions {
+        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
+        pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(link));
 
@@ -170,9 +170,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup outer = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#outer");
         HtmlRenderEffectGroup inner = Assert.Single(EnumerateRenderVisuals(outer.Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#inner");
         OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(10, 10);
-        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        pdfOptions = new HtmlPdfSaveOptions(renderOptions);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
+        pdfOptions = new HtmlToPdfOptions(renderOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
@@ -275,7 +275,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup clip = Assert.Single(visuals.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "span#inline-effect");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.Equal(4D, effect.Transform.OffsetX, 3);
         Assert.Equal(.5D, effect.Opacity, 3);
@@ -300,7 +300,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options) {
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options) {
             PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         });
 
@@ -368,7 +368,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup circle = Assert.Single(clips, group => group.Source == "div#circle");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         Assert.Equal((-5D, 30D), (inset.X, inset.Width));
         Assert.Equal((-10D, 30D), (polygon.X, polygon.Width));
         Assert.Equal((-7D, 10D), (circle.X, circle.Width));
@@ -380,7 +380,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlClipPath_SignedInsetCrossingFarPageEdgesConvertsToPdf() {
+    public void HtmlClipPath_SignedInsetCrossingFarPageEdgesConvertsToPdfBytes() {
         const string html = "<x-box id='far-edge' style='display:block;width:20px;height:20px;margin:15px 0 0 15px;background:red;clip-path:inset(-5px)'></x-box>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 30D,
@@ -393,7 +393,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup clip = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>(),
             group => group.Source == "x-box#far-edge");
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
         Assert.True(clip.ClipX >= 0D && clip.ClipY >= 0D);
         Assert.True(clip.ClipPath.Width > 20D && clip.ClipPath.Height > 20D);
@@ -458,7 +458,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(5, clips.Count);
@@ -484,12 +484,12 @@ public sealed partial class HtmlRenderingTests {
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/inside'>Inside</a></div>"
             + "<div style='width:100px;height:20px;margin:0;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             Margins = HtmlRenderMargins.All(0D),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Single(logical.GetLinksByUri("https://example.com/inside"));
@@ -565,7 +565,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlClipPath_PreservesSearchablePdfAndTruthfullyRejectsUnsupportedGeometry() {
         const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
@@ -573,7 +573,7 @@ public sealed partial class HtmlRenderingTests {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(supported).ToPdf(options);
+        byte[] pdf = HtmlConversionDocument.Parse(supported).ToPdfBytes(options);
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("ClipPathPdfMarker", extracted, StringComparison.Ordinal);
 

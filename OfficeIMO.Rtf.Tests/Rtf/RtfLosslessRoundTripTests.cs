@@ -32,7 +32,7 @@ public class RtfLosslessRoundTripTests {
         try {
             File.WriteAllBytes(inputPath, bytes);
 
-            RtfReadResult result = RtfDocument.Load(inputPath);
+            RtfReadResult result = RtfDocument.LoadResult(inputPath);
             result.SaveLossless(outputPath);
 
             Assert.Equal(bytes, File.ReadAllBytes(outputPath));
@@ -49,7 +49,7 @@ public class RtfLosslessRoundTripTests {
             123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 92, 98, 105, 110, 49, 32, 0x80, 125
         };
 
-        RtfReadResult result = RtfDocument.Load(bytes);
+        RtfReadResult result = RtfDocument.LoadResult(bytes);
 
         Assert.Equal(bytes, result.ToBytesLossless());
         Assert.Equal(@"{\rtf1\ansi\bin1 " + (char)0x80 + "}", result.ToRtfLossless());
@@ -67,7 +67,7 @@ public class RtfLosslessRoundTripTests {
         try {
             File.WriteAllBytes(inputPath, bytes);
 
-            RtfReadResult result = await RtfDocument.LoadAsync(inputPath);
+            RtfReadResult result = await RtfDocument.LoadResultAsync(inputPath);
             await result.SaveLosslessAsync(outputPath);
 
             Assert.Equal(bytes, File.ReadAllBytes(outputPath));
@@ -85,7 +85,7 @@ public class RtfLosslessRoundTripTests {
         };
 
         using var input = new MemoryStream(bytes);
-        RtfReadResult result = await RtfDocument.LoadAsync(input);
+        RtfReadResult result = await RtfDocument.LoadResultAsync(input);
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
@@ -139,6 +139,6 @@ public class RtfLosslessRoundTripTests {
 
         using var input = new MemoryStream(new byte[] { 123, 125 });
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            RtfDocument.LoadAsync(input, cancellationToken: cts.Token));
+            RtfDocument.LoadResultAsync(input, cancellationToken: cts.Token));
     }
 }

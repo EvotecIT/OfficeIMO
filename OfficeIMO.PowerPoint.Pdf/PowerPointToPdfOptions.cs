@@ -17,9 +17,8 @@ public enum PowerPointPdfPageLayout {
 /// <summary>
 /// Options controlling first-party OfficeIMO PowerPoint-to-PDF export.
 /// </summary>
-public sealed class PowerPointPdfSaveOptions {
-    /// <summary>Cancellation observed at slide and page-layout boundaries during conversion.</summary>
-    public CancellationToken CancellationToken { get; set; }
+public sealed class PowerPointToPdfOptions {
+    internal CancellationToken CancellationToken { get; set; }
 
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;
@@ -141,7 +140,7 @@ public sealed class PowerPointPdfSaveOptions {
     /// Applies shared deterministic typography resources to the first-party PDF engine.
     /// Slide composition and feature switches remain owned by this converter.
     /// </summary>
-    public PowerPointPdfSaveOptions UseRenderingProfile(
+    public PowerPointToPdfOptions UseRenderingProfile(
         DrawingCore.OfficeRenderingProfile profile,
         DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
         if (profile == null) {
@@ -195,7 +194,7 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>
     /// Applies a high-level export profile by setting the PowerPoint PDF options that correspond to that profile.
     /// </summary>
-    public PowerPointPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+    public PowerPointToPdfOptions UseProfile(PdfCore.PdfExportProfile profile) {
         switch (profile) {
             case PdfCore.PdfExportProfile.Faithful:
                 IncludePictures = true;
@@ -253,8 +252,8 @@ public sealed class PowerPointPdfSaveOptions {
     /// </summary>
     internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
 
-    internal PowerPointPdfSaveOptions CloneForConversion() {
-        var clone = (PowerPointPdfSaveOptions)MemberwiseClone();
+    internal PowerPointToPdfOptions CloneForConversion() {
+        var clone = (PowerPointToPdfOptions)MemberwiseClone();
         clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<PowerPointPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();

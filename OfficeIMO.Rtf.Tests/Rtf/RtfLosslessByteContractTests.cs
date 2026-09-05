@@ -25,7 +25,7 @@ public sealed class RtfLosslessByteContractTests {
     public void ByteInputReturnsAnImmutableCopyOfTheExactSourceBytes() {
         byte[] source = { (byte)'{', (byte)'\\', (byte)'r', (byte)'t', (byte)'f', (byte)'1', (byte)' ', 0xFF, (byte)'}' };
 
-        RtfReadResult result = RtfDocument.Load(source);
+        RtfReadResult result = RtfDocument.LoadResult(source);
         source[0] = 0;
         byte[] first = result.ToBytesLossless();
         first[0] = 0;
@@ -42,7 +42,7 @@ public sealed class RtfLosslessByteContractTests {
         byte[] sourceBytes = Encoding.UTF8.GetBytes(source);
         using var stream = new MemoryStream(sourceBytes);
 
-        RtfReadResult result = RtfDocument.Load(stream, encoding: Encoding.UTF8);
+        RtfReadResult result = RtfDocument.LoadResult(stream, encoding: Encoding.UTF8);
 
         Assert.True(result.HasOriginalBytes);
         Assert.True(result.TryGetLosslessBytes(out byte[] bytes));
@@ -54,7 +54,7 @@ public sealed class RtfLosslessByteContractTests {
         byte[] payload = Encoding.UTF8.GetBytes("{\\rtf1 Unicode ż}");
         byte[] sourceBytes = Encoding.UTF8.GetPreamble().Concat(payload).ToArray();
         using var input = new MemoryStream(sourceBytes, writable: false);
-        RtfReadResult result = RtfDocument.Load(input, encoding: Encoding.UTF8);
+        RtfReadResult result = RtfDocument.LoadResult(input, encoding: Encoding.UTF8);
         using var stream = new MemoryStream();
 
         await result.SaveLosslessAsync(stream);

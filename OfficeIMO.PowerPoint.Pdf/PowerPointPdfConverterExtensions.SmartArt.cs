@@ -9,7 +9,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RenderSmartArt(PdfCore.PdfPageCanvas canvas,
         PptCore.PowerPointSmartArt smartArt, double x, double y,
         double width, double height, int slideNumber,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         if (!smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot source)) {
             AddLayoutWarning(options, slideNumber, "unsupported-smartart",

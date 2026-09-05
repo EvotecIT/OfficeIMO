@@ -671,11 +671,11 @@ namespace OfficeIMO.Tests {
             }
             Assert.Null(presentation.Slides[2].SlidePart.NotesSlidePart);
 
-            byte[] notesPdf = presentation.ToPdf(new PowerPointPdfSaveOptions {
+            byte[] notesPdf = presentation.ToPdfBytes(new PowerPointToPdfOptions {
                 PageLayout = PowerPointPdfPageLayout.NotesPages,
                 IncludeSpeakerNotes = true
             });
-            byte[] handoutPdf = presentation.ToPdf(new PowerPointPdfSaveOptions {
+            byte[] handoutPdf = presentation.ToPdfBytes(new PowerPointToPdfOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
@@ -688,7 +688,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Speaker note 1", notes.GetPage(1).Text, StringComparison.Ordinal);
             Assert.Contains("Speaker note 2", handout.GetPage(1).Text, StringComparison.Ordinal);
             Assert.Null(presentation.Slides[2].SlidePart.NotesSlidePart);
-            Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointPdfSaveOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointToPdfOptions {
                 HandoutSlidesPerPage = 5
             });
         }
@@ -707,15 +707,15 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
                 PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
 
-            var controlOptions = new PowerPointPdfSaveOptions { PageLayout = layout };
-            var pictureOptions = new PowerPointPdfSaveOptions { PageLayout = layout };
+            var controlOptions = new PowerPointToPdfOptions { PageLayout = layout };
+            var pictureOptions = new PowerPointToPdfOptions { PageLayout = layout };
             controlOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
             pictureOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
 
             byte[] controlThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                control.ToPdf(controlOptions));
+                control.ToPdfBytes(controlOptions));
             byte[] pictureThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                withPicture.ToPdf(pictureOptions));
+                withPicture.ToPdfBytes(pictureOptions));
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 controlThumbnail, pictureThumbnail, channelTolerance: 0, allowedDifferentPixels: 0);
 

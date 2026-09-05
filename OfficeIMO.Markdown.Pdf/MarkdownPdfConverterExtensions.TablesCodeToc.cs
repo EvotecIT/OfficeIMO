@@ -460,7 +460,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (TryRenderChartFencedBlock(pdf, semantic, options, visualTheme)) {
             return;
         }
@@ -489,7 +489,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderCalloutBlock(PdfCore.PdfDocument pdf, CalloutBlock callout, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderCalloutBlock(PdfCore.PdfDocument pdf, CalloutBlock callout, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         string title = string.IsNullOrWhiteSpace(callout.Title) ? FormatTitleFromKind(callout.Kind) : callout.Title;
 
         IReadOnlyList<IMarkdownBlock> children = callout.ChildBlocks;
@@ -560,7 +560,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderDetailsBlock(PdfCore.PdfDocument pdf, DetailsBlock details, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderDetailsBlock(PdfCore.PdfDocument pdf, DetailsBlock details, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (details.Summary != null) {
             pdf.PanelParagraph(builder => {
                 builder.Bold(details.Open ? "Details: " : "Collapsed details: ");
@@ -588,7 +588,7 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.KeyValueTable(rows, style: style);
     }
 
-    private static void RenderFootnoteDefinition(PdfCore.PdfDocument pdf, FootnoteDefinitionBlock footnote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderFootnoteDefinition(PdfCore.PdfDocument pdf, FootnoteDefinitionBlock footnote, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (string.IsNullOrWhiteSpace(footnote.Label)) {
             return;
         }

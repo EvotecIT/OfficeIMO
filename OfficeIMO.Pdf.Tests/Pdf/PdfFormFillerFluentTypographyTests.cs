@@ -45,7 +45,7 @@ public partial class PdfFormFillerTests {
         PdfOperationResult<PdfDocument> result = PdfDocument
             .Load(BuildTextWidgetFormPdf())
             .Forms
-            .TryFillAndFlatten(new Dictionary<string, string> {
+            .FillAndFlattenResult(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
             }, options, null);
 

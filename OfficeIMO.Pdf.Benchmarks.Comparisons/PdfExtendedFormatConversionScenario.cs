@@ -57,15 +57,15 @@ internal sealed record PdfExtendedFormatConversionScenario(
         using var stream = new MemoryStream(source, writable: false);
         return kind switch {
             PdfExtendedFormatConversionKind.AsciiDoc =>
-                AsciiDocDocument.Parse(Encoding.UTF8.GetString(source)).Document.ToPdf(),
+                AsciiDocDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
             PdfExtendedFormatConversionKind.Latex =>
-                LatexDocument.Parse(Encoding.UTF8.GetString(source)).Document.ToPdf(),
-            PdfExtendedFormatConversionKind.Mhtml => MhtmlDocument.Load(stream).ToPdf(),
-            PdfExtendedFormatConversionKind.OneNote => OneNoteSectionReader.Read(stream).ToPdf(),
-            PdfExtendedFormatConversionKind.Odt => OdtDocument.Load(stream).ToPdf(),
-            PdfExtendedFormatConversionKind.Ods => OdsDocument.Load(stream).ToPdf(),
-            PdfExtendedFormatConversionKind.Odp => OdpPresentation.Load(stream).ToPdf(),
-            PdfExtendedFormatConversionKind.Visio => VisioDocument.Load(stream).ToPdf(),
+                LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Mhtml => MhtmlDocument.Load(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.OneNote => OneNoteSectionReader.Read(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Odt => OdtDocument.Load(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Ods => OdsDocument.Load(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Odp => OdpPresentation.Load(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Visio => VisioDocument.Load(stream).ToPdfBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
     }

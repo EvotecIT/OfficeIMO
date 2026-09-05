@@ -10,14 +10,14 @@ public static class OdtPdfConversionExtensions {
     public static PdfCore.PdfDocument ToPdfDocument(
         this OdtDocument source,
         WordOpenDocumentConversionOptions? conversionOptions = null,
-        WordPdf.WordPdfSaveOptions? pdfOptions = null) =>
+        WordPdf.WordToPdfOptions? pdfOptions = null) =>
         source.ToPdfDocumentResult(conversionOptions, pdfOptions).Value;
 
     /// <summary>Converts an ODT document to PDF and preserves diagnostics from both conversion stages.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(
         this OdtDocument source,
         WordOpenDocumentConversionOptions? conversionOptions = null,
-        WordPdf.WordPdfSaveOptions? pdfOptions = null) {
+        WordPdf.WordToPdfOptions? pdfOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         OdfConversionResult<OfficeIMO.Word.WordDocument> conversion =
             source.ToWordDocumentResult(conversionOptions);
@@ -29,53 +29,53 @@ public static class OdtPdfConversionExtensions {
     }
 
     /// <summary>Converts an ODT document to PDF bytes.</summary>
-    public static byte[] ToPdf(this OdtDocument source, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null) =>
+    public static byte[] ToPdfBytes(this OdtDocument source, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null) =>
         source.ToPdfDocumentResult(conversionOptions, pdfOptions).ToBytes();
 
     /// <summary>Saves an ODT document as PDF.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null) =>
         source.ToPdfDocumentResult(conversionOptions, pdfOptions).Save(path);
 
     /// <summary>Writes an ODT document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null) =>
         source.ToPdfDocumentResult(conversionOptions, pdfOptions).Save(stream);
 
     /// <summary>Attempts to save an ODT document as PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null) {
-        try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions).TrySave(path); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null) {
+        try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveResult(path); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
     }
 
     /// <summary>Attempts to write an ODT document as PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null) {
-        try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions).TrySave(stream); }
+    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null) {
+        try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveResult(stream); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
 
     /// <summary>Converts synchronously, then asynchronously saves an ODT document as PDF.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes an ODT document as PDF.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveAsync(stream, cancellationToken);
     }
 
     /// <summary>Attempts to asynchronously save an ODT document as PDF and returns structured failure evidence.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OdtDocument source, string path, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions).TrySaveAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
     }
 
     /// <summary>Attempts to asynchronously write an ODT document as PDF and returns structured failure evidence.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordPdfSaveOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OdtDocument source, Stream stream, WordOpenDocumentConversionOptions? conversionOptions = null, WordPdf.WordToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }

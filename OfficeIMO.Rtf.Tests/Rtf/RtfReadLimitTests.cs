@@ -89,7 +89,7 @@ public class RtfReadLimitTests {
         using var stream = new MemoryStream(bytes);
         var options = new RtfReadOptions { MaxInputBytes = 4 };
 
-        RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.Load(stream, options));
+        RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.LoadResult(stream, options));
 
         Assert.Equal("RtfInputByteLimitExceeded", exception.Code);
         Assert.Equal(0, stream.Position);
@@ -102,7 +102,7 @@ public class RtfReadLimitTests {
         var options = new RtfReadOptions { MaxInputBytes = 4 };
 
         RtfReadLimitException exception = await Assert.ThrowsAsync<RtfReadLimitException>(() =>
-            RtfDocument.LoadAsync(stream, options));
+            RtfDocument.LoadResultAsync(stream, options));
 
         Assert.Equal("RtfInputByteLimitExceeded", exception.Code);
         Assert.Equal(nameof(RtfReadOptions.MaxInputBytes), exception.LimitSource);

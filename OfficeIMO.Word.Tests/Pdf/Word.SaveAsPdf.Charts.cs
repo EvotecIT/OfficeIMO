@@ -13,7 +13,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Word_Post_Chart_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false,
             PageSize = new PdfCore.PageSize(420, 520),
             Margins = PdfCore.PageMargins.Uniform(40)

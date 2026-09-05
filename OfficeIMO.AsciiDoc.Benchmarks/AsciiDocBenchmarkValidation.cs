@@ -16,7 +16,7 @@ internal static class AsciiDocBenchmarkValidation {
     }
 
     internal static AsciiDocParseResult Validate(AsciiDocBenchmarkFixture fixture) {
-        AsciiDocParseResult result = AsciiDocDocument.Parse(fixture.Source);
+        AsciiDocParseResult result = AsciiDocDocument.ParseResult(fixture.Source);
         if (result.HasErrors || !result.IsLossless) throw new InvalidOperationException(fixture.Scale + " did not parse losslessly.");
         string output = result.Document.ToAsciiDoc();
         if (!string.Equals(output, fixture.Source, StringComparison.Ordinal)) {

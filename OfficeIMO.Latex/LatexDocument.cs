@@ -103,21 +103,35 @@ public sealed partial class LatexDocument {
     /// <summary>True when an editable semantic region changed.</summary>
     public bool IsModified => GetSourceEdits().Any(static edit => edit.IsModified);
 
-    /// <summary>Parses LaTeX source without executing it.</summary>
-    public static LatexParseResult Parse(string source, LatexParseOptions? options = null) =>
+    /// <summary>Parses LaTeX source into the typed document model without executing it.</summary>
+    public static LatexDocument Parse(string source, LatexParseOptions? options = null) =>
+        ParseResult(source, options).Document;
+
+    /// <summary>Parses LaTeX source with syntax and recovery diagnostics without executing it.</summary>
+    public static LatexParseResult ParseResult(string source, LatexParseOptions? options = null) =>
         LatexParser.Parse(source, options);
 
-    /// <summary>Parses LaTeX source without executing it and cooperatively observes cancellation.</summary>
-    public static LatexParseResult Parse(
+    /// <summary>Parses LaTeX source into the typed model without executing it and cooperatively observes cancellation.</summary>
+    public static LatexDocument Parse(
+        string source,
+        LatexParseOptions? options,
+        CancellationToken cancellationToken) => ParseResult(source, options, cancellationToken).Document;
+
+    /// <summary>Parses LaTeX source with diagnostics and cooperatively observes cancellation.</summary>
+    public static LatexParseResult ParseResult(
         string source,
         LatexParseOptions? options,
         CancellationToken cancellationToken) => LatexParser.Parse(source, options, cancellationToken);
 
     /// <summary>Loads decoded text using Unicode BOM detection when no encoding is specified.</summary>
-    public static LatexParseResult Load(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
+    public static LatexDocument Load(string path, LatexParseOptions? options = null, Encoding? encoding = null) =>
+        LoadResult(path, options, encoding).Document;
+
+    /// <summary>Loads decoded text with syntax and recovery diagnostics using Unicode BOM detection when no encoding is specified.</summary>
+    public static LatexParseResult LoadResult(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Load(stream, options, encoding);
+        return LoadResult(stream, options, encoding);
     }
 
     /// <summary>Writes in preserve mode.</summary>
@@ -151,7 +165,7 @@ public sealed partial class LatexDocument {
 }
 
 /// <summary>Parse result and diagnostics.</summary>
-public sealed class LatexParseResult {
+public sealed class LatexParseResult : IOfficeResult<LatexDocument> {
     internal LatexParseResult(LatexDocument document, IReadOnlyList<LatexDiagnostic> diagnostics) {
         Document = document;
         Diagnostics = diagnostics;
@@ -159,6 +173,12 @@ public sealed class LatexParseResult {
 
     /// <summary>Parsed document.</summary>
     public LatexDocument Document { get; }
+    /// <inheritdoc />
+    public LatexDocument Value => Document;
+    /// <inheritdoc />
+    public bool Succeeded => true;
+    /// <inheritdoc />
+    public LatexDocument RequireValue() => Document;
     /// <summary>Diagnostics.</summary>
     public IReadOnlyList<LatexDiagnostic> Diagnostics { get; }
     /// <summary>True when complete source coverage is retained.</summary>

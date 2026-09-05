@@ -7,7 +7,7 @@ namespace OfficeIMO.AsciiDoc.Markdown.Tests;
 public sealed class AsciiDocPdfAdapterContractTests {
     [Fact]
     public void ParserDiagnostics_FlowIntoFinalPdfResult() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("= Parser proof\n\n----\nunterminated block\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("= Parser proof\n\n----\nunterminated block\n").Document;
 
         var result = document.ToPdfDocumentResult();
         var warning = Assert.Single(result.Warnings, item => item.Code == "ADOC001");
@@ -20,7 +20,7 @@ public sealed class AsciiDocPdfAdapterContractTests {
 
     [Fact]
     public void SaveAsPdf_LeavesCallerOwnedStreamOpen() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("= Stream proof\n\nCaller ownership marker.\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("= Stream proof\n\nCaller ownership marker.\n").Document;
         using var stream = new MemoryStream();
 
         document.SaveAsPdf(stream);
@@ -34,7 +34,7 @@ public sealed class AsciiDocPdfAdapterContractTests {
 
     [Fact]
     public async Task SaveAsPdfAsync_PreCanceled_DoesNotConvertOrWrite() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("= Cancellation proof\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("= Cancellation proof\n").Document;
         using var stream = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

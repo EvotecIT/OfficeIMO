@@ -7,9 +7,8 @@ namespace OfficeIMO.Word.Pdf {
     /// <summary>
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
-    public class WordPdfSaveOptions {
-        /// <summary>Cancellation observed at document-section and element boundaries during conversion.</summary>
-        public CancellationToken CancellationToken { get; set; }
+    public class WordToPdfOptions {
+        internal CancellationToken CancellationToken { get; set; }
 
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
@@ -136,7 +135,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Word pagination and layout settings remain owned by this converter.
         /// </summary>
-        public WordPdfSaveOptions UseRenderingProfile(
+        public WordToPdfOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
             if (profile == null) {
@@ -200,7 +199,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Applies a high-level export profile by setting the Word PDF options that correspond to that profile.
         /// </summary>
-        public WordPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+        public WordToPdfOptions UseProfile(PdfCore.PdfExportProfile profile) {
             switch (profile) {
                 case PdfCore.PdfExportProfile.Faithful:
                     IncludePageNumbers = false;
@@ -225,8 +224,8 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
-        internal WordPdfSaveOptions CloneForConversion() {
-            var clone = new WordPdfSaveOptions {
+        internal WordToPdfOptions CloneForConversion() {
+            var clone = new WordToPdfOptions {
                 CancellationToken = CancellationToken,
                 PdfOptions = PdfOptions,
                 FontFamily = FontFamily,

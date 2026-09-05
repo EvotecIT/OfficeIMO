@@ -100,7 +100,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to render the document into a PDF byte array and returns diagnostics instead of throwing.
     /// </summary>
-    public PdfBytesResult TryToBytes() {
+    public PdfBytesResult ToBytesResult() {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
@@ -137,7 +137,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(Stream stream) {
+    public PdfSaveResult SaveResult(Stream stream) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             return Save(stream);
@@ -174,7 +174,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to save the document to <paramref name="path"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(string path) {
+    public PdfSaveResult SaveResult(string path) {
         string? fullPath = null;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
@@ -203,7 +203,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to asynchronously write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             return await SaveAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -260,7 +260,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to asynchronously save the document to <paramref name="path"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         string? fullPath = null;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {

@@ -26,7 +26,7 @@ internal static class MarkdownToAsciiDocConverter {
 
         string source = string.Join(options.LineEnding + options.LineEnding, blocks);
         if (source.Length > 0) source += options.LineEnding;
-        AsciiDocDocument parsed = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument parsed = AsciiDocDocument.ParseResult(source).Document;
         return new MarkdownToAsciiDocResult(source, parsed, diagnostics);
     }
 

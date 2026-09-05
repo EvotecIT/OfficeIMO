@@ -136,7 +136,7 @@ internal static class PowerPointRoadmapVisualCorpus {
                 $"slide-{index + 1:00}.svg"), vectors[index].Bytes);
         }
 
-        byte[] pdf = reopened.ToPdf();
+        byte[] pdf = reopened.ToPdfBytes();
         ValidatePdf(pdf, reopened.Slides.Count);
         File.WriteAllBytes(Path.Combine(root,
             "powerpoint-roadmap-visual-corpus.pdf"), pdf);

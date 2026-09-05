@@ -9,7 +9,7 @@ public sealed class LatexPdfAdapterContractTests {
 
     [Fact]
     public void ParserDiagnostics_FlowIntoFinalPdfResult() {
-        LatexDocument document = LatexDocument.Parse("\\documentclass{article}\n\\begin{document}\nBroken $x^2\n").Document;
+        LatexDocument document = LatexDocument.ParseResult("\\documentclass{article}\n\\begin{document}\nBroken $x^2\n").Document;
 
         var result = document.ToPdfDocumentResult();
         var warning = Assert.Single(result.Warnings, item => item.Code == "LATEX003");
@@ -22,7 +22,7 @@ public sealed class LatexPdfAdapterContractTests {
 
     [Fact]
     public void SaveAsPdf_LeavesCallerOwnedStreamOpen() {
-        LatexDocument document = LatexDocument.Parse(MinimalDocument).Document;
+        LatexDocument document = LatexDocument.ParseResult(MinimalDocument).Document;
         using var stream = new MemoryStream();
 
         document.SaveAsPdf(stream);
@@ -36,7 +36,7 @@ public sealed class LatexPdfAdapterContractTests {
 
     [Fact]
     public async Task SaveAsPdfAsync_PreCanceled_DoesNotConvertOrWrite() {
-        LatexDocument document = LatexDocument.Parse(MinimalDocument).Document;
+        LatexDocument document = LatexDocument.ParseResult(MinimalDocument).Document;
         using var stream = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

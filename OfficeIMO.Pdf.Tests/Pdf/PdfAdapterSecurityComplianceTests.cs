@@ -56,9 +56,9 @@ public class PdfAdapterSecurityComplianceTests {
     public void FormatConversionDefaultsCompressContentButRespectAnExplicitOptOut() {
         const string Markdown = "# CONTENT-COMPRESSION-PROOF\n\nAdapter proof";
 
-        byte[] compressed = OfficeIMO.Markdown.MarkdownReader.Parse(Markdown).ToPdf();
-        byte[] uncompressed = OfficeIMO.Markdown.MarkdownReader.Parse(Markdown).ToPdf(
-            new MarkdownPdfSaveOptions {
+        byte[] compressed = OfficeIMO.Markdown.MarkdownReader.Parse(Markdown).ToPdfBytes();
+        byte[] uncompressed = OfficeIMO.Markdown.MarkdownReader.Parse(Markdown).ToPdfBytes(
+            new MarkdownToPdfOptions {
                 PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false },
                 TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
             });
@@ -183,58 +183,58 @@ public class PdfAdapterSecurityComplianceTests {
         "docx" => ConvertDocx(pdfOptions),
         "xlsx" => ConvertXlsx(pdfOptions),
         "pptx" => ConvertPptx(pdfOptions),
-        "html" => HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdf(new HtmlPdfSaveOptions {
+        "html" => HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdfBytes(new HtmlToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "markdown" => OfficeIMO.Markdown.MarkdownReader.Parse("# " + Marker(route) + "\n\nAdapter proof").ToPdf(new MarkdownPdfSaveOptions {
+        "markdown" => OfficeIMO.Markdown.MarkdownReader.Parse("# " + Marker(route) + "\n\nAdapter proof").ToPdfBytes(new MarkdownToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "rtf" => CreateRtf(route).ToPdf(new RtfPdfSaveOptions {
+        "rtf" => CreateRtf(route).ToPdfBytes(new RtfToPdfOptions {
             PdfOptions = pdfOptions
         }),
-        "asciidoc" => AsciiDocDocument.Parse("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdf(
-            new AsciiDocPdfSaveOptions {
+        "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdfBytes(
+            new AsciiDocToPdfOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
             }),
-        "latex" => LatexDocument.Parse(
+        "latex" => LatexDocument.ParseResult(
                 "\\documentclass{article}\\begin{document}\\section{" + Marker(route) + "}Adapter proof\\end{document}")
-            .Document.ToPdf(new LatexPdfSaveOptions {
+            .Document.ToPdfBytes(new LatexToPdfOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
             }),
         "mhtml" => new MhtmlDocument(
                 "<h1>" + Marker(route) + "</h1><p>Adapter proof</p>",
                 contentLocation: "https://proof.officeimo.test/report.html")
-            .ToPdf(CreateHtmlOptions(pdfOptions)),
-        "onenote" => CreateOneNote(route).ToPdf(new OneNotePdfSaveOptions {
+            .ToPdfBytes(CreateHtmlOptions(pdfOptions)),
+        "onenote" => CreateOneNote(route).ToPdfBytes(new OneNoteToPdfOptions {
             MarkdownOptions = CreateMarkdownOptions(pdfOptions)
         }),
-        "odt" => CreateOdt(route).ToPdf(pdfOptions: new WordPdfSaveOptions {
+        "odt" => CreateOdt(route).ToPdfBytes(pdfOptions: new WordToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "ods" => CreateOds(route).ToPdf(pdfOptions: new ExcelPdfSaveOptions {
+        "ods" => CreateOds(route).ToPdfBytes(pdfOptions: new ExcelToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "odp" => CreateOdp(route).ToPdf(pdfOptions: new PowerPointPdfSaveOptions {
+        "odp" => CreateOdp(route).ToPdfBytes(pdfOptions: new PowerPointToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "visio" => CreateVisio(route).ToPdf(new VisioPdfSaveOptions {
+        "visio" => CreateVisio(route).ToPdfBytes(new VisioToPdfOptions {
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
         }),
         _ => throw new ArgumentOutOfRangeException(nameof(route))
     };
 
-    private static HtmlPdfSaveOptions CreateHtmlOptions(PdfCore.PdfOptions pdfOptions) => new HtmlPdfSaveOptions {
+    private static HtmlToPdfOptions CreateHtmlOptions(PdfCore.PdfOptions pdfOptions) => new HtmlToPdfOptions {
         PdfOptions = pdfOptions,
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
     };
 
-    private static MarkdownPdfSaveOptions CreateMarkdownOptions(PdfCore.PdfOptions pdfOptions) =>
-        new MarkdownPdfSaveOptions {
+    private static MarkdownToPdfOptions CreateMarkdownOptions(PdfCore.PdfOptions pdfOptions) =>
+        new MarkdownToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
@@ -243,7 +243,7 @@ public class PdfAdapterSecurityComplianceTests {
         "docx" => ConvertAutomaticDocx(text),
         "xlsx" => ConvertAutomaticXlsx(text),
         "pptx" => ConvertAutomaticPptx(text),
-        "markdown" => OfficeIMO.Markdown.MarkdownReader.Parse("# " + text + "\n\nAdapter proof").ToPdf(),
+        "markdown" => OfficeIMO.Markdown.MarkdownReader.Parse("# " + text + "\n\nAdapter proof").ToPdfBytes(),
         _ => throw new ArgumentOutOfRangeException(nameof(route))
     };
 
@@ -251,7 +251,7 @@ public class PdfAdapterSecurityComplianceTests {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph(text);
         document.AddParagraph("Adapter proof");
-        return document.ToPdf();
+        return document.ToPdfBytes();
     }
 
     private static byte[] ConvertAutomaticXlsx(string text) {
@@ -259,7 +259,7 @@ public class PdfAdapterSecurityComplianceTests {
         ExcelSheet sheet = document.AddWorksheet("Proof");
         sheet.Cell(1, 1, text);
         sheet.Cell(2, 1, "Adapter proof");
-        return document.ToPdf();
+        return document.ToPdfBytes();
     }
 
     private static byte[] ConvertAutomaticPptx(string text) {
@@ -270,14 +270,14 @@ public class PdfAdapterSecurityComplianceTests {
             topPoints: 36,
             widthPoints: 420,
             heightPoints: 100);
-        return presentation.ToPdf();
+        return presentation.ToPdfBytes();
     }
 
     private static byte[] ConvertDocx(PdfCore.PdfOptions pdfOptions) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph(Marker("docx"));
         document.AddParagraph("Adapter proof");
-        return document.ToPdf(new WordPdfSaveOptions {
+        return document.ToPdfBytes(new WordToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         });
@@ -288,7 +288,7 @@ public class PdfAdapterSecurityComplianceTests {
         ExcelSheet sheet = document.AddWorksheet("Proof");
         sheet.Cell(1, 1, Marker("xlsx"));
         sheet.Cell(2, 1, "Adapter proof");
-        return document.ToPdf(new ExcelPdfSaveOptions {
+        return document.ToPdfBytes(new ExcelToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         });
@@ -302,7 +302,7 @@ public class PdfAdapterSecurityComplianceTests {
             topPoints: 36,
             widthPoints: 420,
             heightPoints: 100);
-        return presentation.ToPdf(new PowerPointPdfSaveOptions {
+        return presentation.ToPdfBytes(new PowerPointToPdfOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         });

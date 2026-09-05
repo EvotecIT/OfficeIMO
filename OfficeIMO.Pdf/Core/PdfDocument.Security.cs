@@ -8,7 +8,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts to encrypt this unencrypted PDF through the shared mutation planner.</summary>
-    internal PdfOperationResult<PdfSecurityMutationResult> TryEncrypt(PdfStandardEncryptionOptions encryption) {
+    internal PdfOperationResult<PdfSecurityMutationResult> EncryptResult(PdfStandardEncryptionOptions encryption) {
         Guard.NotNull(encryption, nameof(encryption));
         return TryMutationOperation(
             "Encrypt document",
@@ -26,7 +26,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts to remove Standard password security using the current owner password.</summary>
-    internal PdfOperationResult<PdfSecurityMutationResult> TryDecrypt(string ownerPassword) {
+    internal PdfOperationResult<PdfSecurityMutationResult> DecryptResult(string ownerPassword) {
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
         PdfLoadOptions readOptions = PdfLoadOptions.WithPassword(ReadOptions, ownerPassword);
         return TryMutationOperation(
@@ -48,7 +48,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts to replace Standard password security using the current owner password.</summary>
-    internal PdfOperationResult<PdfSecurityMutationResult> TryReencrypt(
+    internal PdfOperationResult<PdfSecurityMutationResult> ReencryptResult(
         string currentOwnerPassword,
         PdfStandardEncryptionOptions newEncryption) {
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));

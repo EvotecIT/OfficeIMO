@@ -114,7 +114,7 @@ public class PdfEncryptedWriteTests {
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, readOptions);
         PdfDocument opened = PdfDocument.Load(pdf, readOptions);
         string fluentText = opened.Reader.Text();
-        PdfOperationResult<string> tryText = opened.Reader.TryText();
+        PdfOperationResult<string> tryText = opened.Reader.TextResult();
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);

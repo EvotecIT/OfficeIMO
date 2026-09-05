@@ -133,7 +133,7 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return document.TrySaveAsPdf(output);
+                    return document.SaveAsPdfResult(output);
                 }
             case ".xlsx":
                 using (ExcelDocument document = ExcelDocument.Load(inputPath, new ExcelLoadOptions {
@@ -142,7 +142,7 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return document.TrySaveAsPdf(output);
+                    return document.SaveAsPdfResult(output);
                 }
             case ".pptx":
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(inputPath, new PowerPointLoadOptions {
@@ -151,7 +151,7 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return presentation.TrySaveAsPdf(output);
+                    return presentation.SaveAsPdfResult(output);
                 }
             default:
                 throw new OfficePdfUsageException("The convert command supports DOCX, XLSX, and PPTX input.");

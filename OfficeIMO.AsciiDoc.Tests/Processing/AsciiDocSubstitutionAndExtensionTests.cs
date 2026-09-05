@@ -4,7 +4,7 @@ public sealed class AsciiDocSubstitutionAndExtensionTests {
     [Fact]
     public void SubstitutionPlans_UseOrderedBlockDefaults() {
         const string source = "= Title\nParagraph\n----\ncode\n----\n++++\nraw\n++++\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         AsciiDocSubstitutionPlan heading = AsciiDocSubstitutionResolver.GetPlan(document.BlocksOfType<AsciiDocHeading>().Single());
         AsciiDocSubstitutionPlan paragraph = AsciiDocSubstitutionResolver.GetPlan(document.BlocksOfType<AsciiDocParagraph>().Single());
@@ -29,7 +29,7 @@ public sealed class AsciiDocSubstitutionAndExtensionTests {
     [Fact]
     public void SubsOverride_IsParsedAndRetainsMandatedOrder() {
         const string source = "[subs=\"macros,quotes,attributes\"]\n----\ncode\n----\n";
-        AsciiDocDelimitedBlock block = Assert.Single(AsciiDocDocument.Parse(source).Document.BlocksOfType<AsciiDocDelimitedBlock>());
+        AsciiDocDelimitedBlock block = Assert.Single(AsciiDocDocument.ParseResult(source).Document.BlocksOfType<AsciiDocDelimitedBlock>());
 
         AsciiDocSubstitutionPlan plan = AsciiDocSubstitutionResolver.GetPlan(block);
 

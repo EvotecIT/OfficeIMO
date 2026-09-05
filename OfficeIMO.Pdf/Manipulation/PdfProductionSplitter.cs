@@ -72,7 +72,7 @@ public sealed class PdfProductionSplitPart {
 }
 
 /// <summary>Generated production split artifacts and bounded-probe evidence.</summary>
-public sealed class PdfProductionSplitResult {
+public sealed class PdfProductionSplitResult : IOfficeResult<IReadOnlyList<PdfProductionSplitPart>> {
     internal PdfProductionSplitResult(int sourcePageCount, IReadOnlyList<PdfProductionSplitPart> parts, int artifactProbeCount, long cumulativeArtifactBytes) {
         SourcePageCount = sourcePageCount;
         Parts = parts;
@@ -84,6 +84,15 @@ public sealed class PdfProductionSplitResult {
     public int SourcePageCount { get; }
     /// <summary>Generated artifacts in source-page order.</summary>
     public IReadOnlyList<PdfProductionSplitPart> Parts { get; }
+
+    /// <inheritdoc />
+    public bool Succeeded => true;
+
+    /// <inheritdoc />
+    public IReadOnlyList<PdfProductionSplitPart> Value => Parts;
+
+    /// <inheritdoc />
+    public IReadOnlyList<PdfProductionSplitPart> RequireValue() => Parts;
     /// <summary>Number of candidate artifacts generated to satisfy the split policy.</summary>
     public int ArtifactProbeCount { get; }
     /// <summary>Cumulative candidate and final artifact bytes generated while planning the split.</summary>
@@ -91,7 +100,7 @@ public sealed class PdfProductionSplitResult {
 }
 
 /// <summary>Creates bounded, report-driven PDF production splits.</summary>
-public static class PdfProductionSplitter {
+internal static class PdfProductionSplitter {
     /// <summary>Splits a PDF using page-count, text-boundary, and target-size policies.</summary>
     public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));

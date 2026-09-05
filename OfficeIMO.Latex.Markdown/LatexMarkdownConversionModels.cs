@@ -65,48 +65,19 @@ public sealed class MarkdownToLatexOptions {
 }
 
 /// <summary>Markdown result from LaTeX.</summary>
-public sealed class LatexToMarkdownResult {
-    internal LatexToMarkdownResult(MarkdownDoc value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new LatexToMarkdownReport(diagnostics);
-    }
-    /// <summary>Converted Markdown document.</summary>
-    public MarkdownDoc Value { get; }
-    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
-    public LatexToMarkdownReport Report { get; }
-    /// <summary>True when any feature was not exactly converted.</summary>
-    public bool HasLoss => Report.HasLoss;
-    /// <summary>Returns the converted document.</summary>
-    public MarkdownDoc RequireValue() => Value;
-    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
-    public MarkdownDoc RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDoc, LatexToMarkdownReport> {
+    internal LatexToMarkdownResult(MarkdownDoc value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
+        : base(value, new LatexToMarkdownReport(diagnostics)) { }
 }
 
 /// <summary>Canonical LaTeX result from Markdown.</summary>
-public sealed class MarkdownToLatexResult {
-    internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
-        Source = source;
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new MarkdownToLatexReport(diagnostics);
+public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument, MarkdownToLatexReport> {
+    internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
+        : base(value, new MarkdownToLatexReport(diagnostics)) {
+        Source = source ?? throw new ArgumentNullException(nameof(source));
     }
     /// <summary>Generated source.</summary>
     public string Source { get; }
-    /// <summary>Lossless parsed generated source.</summary>
-    public LatexDocument Value { get; }
-    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
-    public MarkdownToLatexReport Report { get; }
-    /// <summary>True when any feature was not exactly converted.</summary>
-    public bool HasLoss => Report.HasLoss;
-    /// <summary>Returns the converted document.</summary>
-    public LatexDocument RequireValue() => Value;
-    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
-    public LatexDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
 }
 
 /// <summary>LaTeX-to-Markdown conversion diagnostics captured for one operation.</summary>
@@ -125,7 +96,7 @@ public sealed class LatexToMarkdownReport : IOfficeConversionReport {
 }
 
 /// <summary>Markdown-to-LaTeX conversion diagnostics captured for one operation.</summary>
-public sealed class MarkdownToLatexReport {
+public sealed class MarkdownToLatexReport : IOfficeConversionReport {
     internal MarkdownToLatexReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }

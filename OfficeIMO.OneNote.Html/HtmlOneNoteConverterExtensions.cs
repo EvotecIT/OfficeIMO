@@ -348,7 +348,7 @@ public static class HtmlOneNoteConverterExtensions {
         string? detail = null) =>
         result.AddImportDiagnostic(new HtmlDiagnostic(ComponentName, code, message, severity, detail: detail, lossKind: lossKind));
 
-    private static T Require<T>(HtmlConversionResult<T> result) {
+    private static T Require<T>(HtmlConversionResult<T> result) where T : class {
         if (result.Succeeded) return result.Value;
         throw new HtmlConversionException(result.Report.Diagnostics);
     }
