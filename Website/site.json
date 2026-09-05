@@ -300,6 +300,13 @@
         "Description": "Search OfficeIMO documentation, API references, articles, and examples.",
         "Kind": "site-search",
         "ReadOnly": true
+      },
+      {
+        "Name": "convert_selected_document",
+        "Route": "/apps/officeimo-converter/",
+        "Description": "Convert the document already selected in the visible OfficeIMO workspace using the current browser-local route and settings.",
+        "Kind": "page-tool",
+        "ReadOnly": false
       }
     ],
     "MarkdownNegotiation": false

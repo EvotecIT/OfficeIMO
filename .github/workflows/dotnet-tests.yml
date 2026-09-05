@@ -1646,10 +1646,32 @@ jobs:
         run: dotnet restore OfficeIMO.sln
 
       - name: Run AOT/Trim analyzers (net8.0)
-        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
+        shell: pwsh
+        run: |
+          # The solution includes net10-only products such as Studio. Preserve
+          # the existing net8 analyzer lane for every compatible solution project.
+          $projects = dotnet sln OfficeIMO.sln list | Where-Object {
+            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.Studio(\.Tests)?[\\/]'
+          } | ForEach-Object {
+            (Resolve-Path -LiteralPath $_).Path
+          }
+
+          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
+          dotnet new sln --name OfficeIMO.Aot --output $env:RUNNER_TEMP --format sln
+          dotnet sln $analyzerSolution add @($projects)
+          dotnet restore $analyzerSolution -p:TargetFramework=net8.0
+          dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
       - name: Run AOT/Trim analyzers (net10.0)
-        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
+        shell: pwsh
+        run: |
+          # The preceding net8 restore replaces shared project.assets.json files.
+          # Restore the complete graph, then use the filtered solution to avoid
+          # concurrent Avalonia generation through Studio and Studio.Tests.
+          dotnet restore OfficeIMO.sln
+          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
+          dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
+          dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
       - name: Publish and run supported NativeAOT scenarios
         shell: pwsh

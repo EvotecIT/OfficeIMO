@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+             xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
+             x:Class="OfficeIMO.Studio.Features.Organizer.PdfOrganizerPageView"
+             x:DataType="organizer:PdfOrganizerPageViewModel">
+  <StackPanel Margin="8" Spacing="7" HorizontalAlignment="Center">
+    <Border Width="124" Height="154"
+            Background="White"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="5">
+      <Grid>
+        <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
+                              Width="{Binding ThumbnailWidth}"
+                              Height="{Binding ThumbnailHeight}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsHitTestVisible="False"
+                              Scene="{Binding Scene}"
+                              FallbackImage="{Binding FallbackImage}" />
+        <ProgressBar IsVisible="{Binding IsLoading}"
+                     Width="54"
+                     IsIndeterminate="True"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+        <TextBlock IsVisible="{Binding HasError}"
+                   Text="{loc:Loc PdfOrganizerPage.PreviewUnavailable}"
+                   FontSize="10"
+                   Foreground="{DynamicResource StudioErrorBrush}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <TextBlock Text="{Binding Label}"
+               FontSize="11"
+               HorizontalAlignment="Center" />
+  </StackPanel>
+</UserControl>

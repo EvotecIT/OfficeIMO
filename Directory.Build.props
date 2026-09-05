@@ -5,6 +5,13 @@
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
     <OfficeIMOSharedSourceDir>$(MSBuildThisFileDirectory)OfficeIMO.SharedSource</OfficeIMOSharedSourceDir>
     <OfficeIMOTrimmingPolyfillsFile>$(OfficeIMOSharedSourceDir)\Compatibility\TrimmingAttributes.cs</OfficeIMOTrimmingPolyfillsFile>
+    <!-- Windows adds net472 to supported libraries while Unix builds do not. Keep a
+         lock file for each evaluated framework graph so locked restore stays valid
+         and reproducible on every supported Studio host. -->
+    <NuGetLockFilePath Condition="!$([MSBuild]::IsOsPlatform('Windows')) and '$(OfficeIMOStudioLockedRestore)' == 'true'">packages.nonwindows.lock.json</NuGetLockFilePath>
+    <!-- Normal Unix solution restores must not rewrite either platform's committed
+         release lock. Redirect projects that own a lock into ignored obj state. -->
+    <NuGetLockFilePath Condition="!$([MSBuild]::IsOsPlatform('Windows')) and '$(OfficeIMOStudioLockedRestore)' != 'true' and Exists('$(MSBuildProjectDirectory)/packages.lock.json')">$(BaseIntermediateOutputPath)packages.restore.lock.json</NuGetLockFilePath>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">

@@ -239,6 +239,11 @@ ClientBin/
 *.dbproj.schemaview
 *.jfm
 *.pfx
+*.p12
+AuthKey_*.p8
+*.mobileprovision
+*.provisionprofile
+*.keychain-db
 *.publishsettings
 orleans.codegen.cs
 
@@ -370,6 +375,7 @@ FodyWeavers.xsd
 Ignore/*
 Build/Artefacts/
 Artefacts/
+Artifacts/Studio/
 
 *.received.*
 dotnet-install.sh
