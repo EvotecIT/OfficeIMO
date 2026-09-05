@@ -875,7 +875,7 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             } else {
-                AddText(element, target, style, paintServers, transform, viewX, viewY, ref unsupported);
+                AddText(element, target, style, paintServers, references, transform, viewX, viewY, ref unsupported);
             }
             if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
@@ -1218,6 +1218,8 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("writing-mode", element.Attribute("writing-mode")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("text-orientation", element.Attribute("text-orientation")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
@@ -1377,6 +1379,22 @@ public static partial class OfficeSvgDrawingReader {
                     if (weight >= 600) style.FontStyle |= OfficeFontStyle.Bold;
                     else style.FontStyle &= ~OfficeFontStyle.Bold;
                 }
+                else unsupported++;
+                break;
+            case "writing-mode":
+                string writingMode = normalized.ToLowerInvariant();
+                if (writingMode == "horizontal-tb") style.WritingMode = SvgWritingMode.HorizontalTb;
+                else if (writingMode is "vertical-rl" or "tb" or "tb-rl") style.WritingMode = SvgWritingMode.VerticalRl;
+                else if (writingMode is "vertical-lr" or "tb-lr") style.WritingMode = SvgWritingMode.VerticalLr;
+                else if (writingMode == "sideways-rl") style.WritingMode = SvgWritingMode.SidewaysRl;
+                else if (writingMode == "sideways-lr") style.WritingMode = SvgWritingMode.SidewaysLr;
+                else unsupported++;
+                break;
+            case "text-orientation":
+                string orientation = normalized.ToLowerInvariant();
+                if (orientation == "mixed") style.TextOrientation = SvgTextOrientation.Mixed;
+                else if (orientation == "upright") style.TextOrientation = SvgTextOrientation.Upright;
+                else if (orientation == "sideways") style.TextOrientation = SvgTextOrientation.Sideways;
                 else unsupported++;
                 break;
             case "text-anchor":
@@ -1589,6 +1607,8 @@ public static partial class OfficeSvgDrawingReader {
         internal string TextAnchor;
         internal SvgDominantBaseline DominantBaseline;
         internal SvgBaselineShift BaselineShift;
+        internal SvgWritingMode WritingMode;
+        internal SvgTextOrientation TextOrientation;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -1624,8 +1644,24 @@ public static partial class OfficeSvgDrawingReader {
             TextAnchor = "start",
             DominantBaseline = SvgDominantBaseline.Alphabetic,
             BaselineShift = default,
+            WritingMode = SvgWritingMode.HorizontalTb,
+            TextOrientation = SvgTextOrientation.Mixed,
             Visible = true
         };
+    }
+
+    private enum SvgWritingMode {
+        HorizontalTb,
+        VerticalRl,
+        VerticalLr,
+        SidewaysRl,
+        SidewaysLr
+    }
+
+    private enum SvgTextOrientation {
+        Mixed,
+        Upright,
+        Sideways
     }
 
     private enum SvgDominantBaseline {

@@ -360,6 +360,53 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderPlacesSearchableGraphemesAlongReferencedTextPath() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' fill='navy'>"
+            + "<defs><path id='curve' d='M 10 30 C 35 5 80 5 110 25'/></defs>"
+            + "<text font-size='8'><textPath href='#curve' startOffset='10%'>Path</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup[] glyphGroups = drawing!.Elements.OfType<OfficeDrawingEffectGroup>().ToArray();
+        Assert.Equal(4, glyphGroups.Length);
+        OfficeDrawingText[] glyphs = glyphGroups
+            .Select(group => Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingText>()))
+            .ToArray();
+        Assert.Equal("Path", string.Concat(glyphs.Select(glyph => glyph.Text)));
+        Assert.All(glyphGroups, group => Assert.NotEqual(OfficeTransform.Identity, group.Transform));
+        Assert.True(glyphs[0].X >= 10D);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains(">P</text>", exported, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderKeepsCjkUprightAndRotatesLatinInVerticalMixedText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60' fill='navy' "
+            + "writing-mode='vertical-rl' text-orientation='mixed'>"
+            + "<text x='30' y='20' font-size='10' text-anchor='middle'>縦A字</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] upright = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.Equal(new[] { "縦", "字" }, upright.Select(item => item.Text));
+        OfficeDrawingEffectGroup latinGroup = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingText latin = Assert.Single(latinGroup.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("A", latin.Text);
+        Assert.True(latinGroup.Transform.M12 > 0.9D);
+        Assert.All(upright, item => Assert.Equal(30D, item.X + (item.Width / 2D), 6));
+        Assert.True(upright[0].Y < latin.Y);
+        Assert.True(latin.Y < upright[1].Y);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains(">縦</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
     public void SvgReaderResolvesPercentageTextPositionAndHangingBaseline() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100' fill='navy'>"
             + "<text x='50%' y='25%' font-size='10' text-anchor='middle' dominant-baseline='hanging'>Label</text></svg>";

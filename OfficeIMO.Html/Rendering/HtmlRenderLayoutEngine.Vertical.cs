@@ -190,7 +190,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visual.Y + visual.Height / 2D));
             cursor += advance;
 
-            bool upright = textOrientation == "upright" || IsMixedOrientationUpright(textElement);
+            bool upright = textOrientation == "upright" || OfficeTextElements.IsVerticalMixedOrientationUpright(textElement);
             double x = center.X - glyphWidth / 2D;
             double y = center.Y - visual.Height / 2D;
             var glyph = new HtmlRenderText(
@@ -237,20 +237,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 destination.Count,
                 source));
         }
-    }
-
-    private static bool IsMixedOrientationUpright(string textElement) {
-        if (string.IsNullOrEmpty(textElement) || char.IsWhiteSpace(textElement, 0)) return true;
-        int codePoint = char.ConvertToUtf32(textElement, 0);
-        return (codePoint >= 0x1100 && codePoint <= 0x11FF)
-            || (codePoint >= 0x2E80 && codePoint <= 0xA4CF)
-            || (codePoint >= 0xAC00 && codePoint <= 0xD7AF)
-            || (codePoint >= 0xF900 && codePoint <= 0xFAFF)
-            || (codePoint >= 0xFE10 && codePoint <= 0xFE1F)
-            || (codePoint >= 0xFE30 && codePoint <= 0xFE6F)
-            || (codePoint >= 0xFF01 && codePoint <= 0xFF60)
-            || (codePoint >= 0xFFE0 && codePoint <= 0xFFE6)
-            || codePoint >= 0x1F000;
     }
 
     private static double MaximumVerticalSourceRight(IEnumerable<HtmlRenderVisual> visuals) {
