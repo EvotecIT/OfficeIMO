@@ -84,6 +84,34 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_InlineSvgLinksRemainInteractivePdfAnnotations() {
+        const string html = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' style='width:80px;height:40px'>"
+            + "<a href='https://example.test/svg-details' aria-label='SVG details'>"
+            + "<rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("https://example.test/svg-details", info.LinkUris);
+        PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(
+            PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.test/svg-details"));
+        Assert.True(link.Width > 20D);
+        Assert.True(link.Height > 5D);
+    }
+
+    [Fact]
+    public void HtmlToPdf_InlineSvgEmbeddedImagesRemainPdfImageResources() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red));
+        string html = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' style='width:80px;height:40px'>"
+            + "<image x='5' y='4' width='20' height='10' href='data:image/png;base64,"
+            + Convert.ToBase64String(png) + "'/></svg>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.NotEmpty(PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetImages());
+    }
+
+    [Fact]
     public void HtmlToPdf_EmptyLegacyAndPercentEncodedFragmentTargetsRemainNavigable() {
         const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
             + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";

@@ -863,6 +863,10 @@ public static partial class OfficeSvgDrawingReader {
                 ref unsupported);
             return;
         }
+        if (name == "image") {
+            if (!TryAddEmbeddedSvgImage(element, drawing, style, transform, viewX, viewY)) unsupported++;
+            return;
+        }
         if (name is "g" or "svg" or "a" or "switch") {
             bool hasEffects = TryResolveSvgEffects(
                 element,
@@ -885,7 +889,8 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
-            OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+            bool capturesLink = name == "a";
+            OfficeDrawing target = hasEffects || capturesLink ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             if (name == "switch") {
                 AddFirstSupportedSwitchChild(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
@@ -898,6 +903,11 @@ public static partial class OfficeSvgDrawingReader {
             if (hasEffects) {
                 TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+            } else if (capturesLink) {
+                drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
+            }
+            if (capturesLink) {
+                TryAddSvgLink(element, target, drawing, ref unsupported);
             }
             return;
         }
@@ -1089,7 +1099,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool IsSupportedSwitchElement(string name) => name is
         "svg" or "g" or "a" or "switch" or "foreignobject" or "use" or "text"
-        or "rect" or "circle" or "ellipse" or "line" or "polygon" or "polyline" or "path";
+        or "image" or "rect" or "circle" or "ellipse" or "line" or "polygon" or "polyline" or "path";
 
     private static OfficeTransform ResolveTransform(
         XElement element,

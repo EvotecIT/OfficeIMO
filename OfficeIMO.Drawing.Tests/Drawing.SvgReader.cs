@@ -1345,4 +1345,58 @@ public class DrawingSvgReaderTests {
         Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
         Assert.Null(drawing);
     }
+
+    [Fact]
+    public void SvgReaderPreservesInteractiveLinksAsNonPaintingDrawingRegions() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='https://example.test/details' aria-label='Details'><rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingLink link = Assert.Single(drawing!.Elements.OfType<OfficeDrawingLink>());
+        Assert.Equal("https://example.test/details", link.Uri);
+        Assert.Equal("Details", link.AlternativeText);
+        Assert.Equal(5D, link.X, 3);
+        Assert.Equal(4D, link.Y, 3);
+        Assert.Equal(20D, link.Width, 3);
+        Assert.Equal(8D, link.Height, 3);
+
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("href=\"https://example.test/details\"", exported, StringComparison.Ordinal);
+        Assert.Contains("pointer-events=\"all\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesBoundedEmbeddedRasterImages() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<image x='5' y='4' width='20' height='14' preserveAspectRatio='xMidYMid meet' href='data:image/png;base64,"
+            + Convert.ToBase64String(png) + "'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 9));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 4));
+        Assert.Contains("data:image/png;base64,", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<line id='guide' x1='2' y1='10' x2='38' y2='10'/>")]
+    [InlineData("<polyline id='guide' points='2,10 20,2 38,10'/>")]
+    [InlineData("<rect id='guide' x='4' y='4' width='32' height='12'/>")]
+    [InlineData("<circle id='guide' cx='20' cy='10' r='8'/>")]
+    public void SvgReaderPlacesTextPathsOnBasicShapeReferences(string guide) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
+            + guide + "</defs><text font-size='5'><textPath href='#guide'>AB</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+        Assert.Contains(">A</text>", exported, StringComparison.Ordinal);
+        Assert.Contains(">B</text>", exported, StringComparison.Ordinal);
+    }
 }

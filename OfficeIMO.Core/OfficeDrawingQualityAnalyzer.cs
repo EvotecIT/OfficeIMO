@@ -125,6 +125,10 @@ public static class OfficeDrawingQualityAnalyzer {
             return new DrawingBounds(left, top, right, bottom);
         }
 
+        if (element is OfficeDrawingLink link) {
+            return new DrawingBounds(link.X, link.Y, link.X + link.Width, link.Y + link.Height);
+        }
+
         return new DrawingBounds(0D, 0D, 0D, 0D);
     }
 

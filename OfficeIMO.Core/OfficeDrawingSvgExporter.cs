@@ -196,6 +196,15 @@ public static partial class OfficeDrawingSvgExporter {
                 case OfficeDrawingEffectGroup effectGroup:
                     AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
+                case OfficeDrawingLink link:
+                    sb.Append("<a").AppendAttribute("href", link.Uri);
+                    if (link.AlternativeText != null) sb.AppendAttribute("aria-label", link.AlternativeText);
+                    sb.Append("><rect x=\"").Append(Format(link.X))
+                        .Append("\" y=\"").Append(Format(link.Y))
+                        .Append("\" width=\"").Append(Format(link.Width))
+                        .Append("\" height=\"").Append(Format(link.Height))
+                        .Append("\" fill=\"transparent\" pointer-events=\"all\"/></a>");
+                    break;
             }
         }
     }

@@ -558,6 +558,16 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds a non-painting interactive link rectangle to the drawing scene.</summary>
+    public OfficeDrawing AddLink(string uri, double x, double y, double width, double height, string? alternativeText = null) {
+        var item = new OfficeDrawingLink(uri, x, y, width, height, alternativeText);
+        if (x < 0D || y < 0D || x + width > Width || y + height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(width), "Drawing links must fit inside the drawing bounds.");
+        }
+        _elements.Add(item);
+        return this;
+    }
+
     /// <summary>Adds another drawing as a clipped nested group at a local destination offset.</summary>
     public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath) {
         return AddClippedDrawingCore(drawing, x, y, clipPath, 0D, 0D, null);
@@ -660,6 +670,13 @@ public sealed partial class OfficeDrawing {
                     translatedTransform = translatedTransform.Then(frameTransform.Value.CreateDestinationTransform());
                 }
                 AddEffectDrawing(effectGroup.InnerDrawing, translatedTransform, effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+            } else if (element is OfficeDrawingLink link) {
+                double linkX = link.X + x;
+                double linkY = link.Y + y;
+                if (!allowOverflow && (linkX < 0D || linkY < 0D || linkX + link.Width > Width || linkY + link.Height > Height)) {
+                    throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing links must fit inside the drawing bounds.");
+                }
+                _elements.Add(new OfficeDrawingLink(link.Uri, linkX, linkY, link.Width, link.Height, link.AlternativeText));
             } else if (element is OfficeDrawingGroup group) {
                 AddNestedGroup(group, x, y, frameTransform, allowOverflow);
             }

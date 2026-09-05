@@ -654,6 +654,14 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool IsFragmentLink(string? link) =>
         link != null && link.Length > 1 && link[0] == '#';
 
+    private static string DecodeFragmentName(string name) {
+        try {
+            return System.Uri.UnescapeDataString(name);
+        } catch (System.UriFormatException) {
+            return name;
+        }
+    }
+
     private static string MapNamedDestination(string name) => "html-fragment:" + name;
 
     private static PdfCore.PdfCanvasTextStructureRole MapStructureRole(string? semanticRole) {
@@ -823,6 +831,59 @@ internal static partial class HtmlPdfRenderedConverter {
                                 nested => AddElements(nested, tileDrawing.Elements));
                         }
                     });
+                    continue;
+                }
+                if (element is OfficeDrawingImage image) {
+                    FlushShapes();
+                    PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(
+                        image.EncodedBytes, image.ContentType);
+                    if (imageResource == null) continue;
+                    PdfCore.PdfImageStyle? imageStyle = image.Projection.HasCrop
+                        ? new PdfCore.PdfImageStyle {
+                            SourceCrop = new PdfCore.PdfImageSourceCrop(
+                                image.Projection.SourceCrop.Left,
+                                image.Projection.SourceCrop.Top,
+                                image.Projection.SourceCrop.Right,
+                                image.Projection.SourceCrop.Bottom)
+                        }
+                        : null;
+                    Action<PdfCore.PdfPageCanvas> addImage = imageTarget => imageTarget.ImageShared(
+                        imageResource,
+                        (visual.X + image.Projection.X * scaleX) * PointsPerCssPixel,
+                        (visual.Y + image.Projection.Y * scaleY) * PointsPerCssPixel,
+                        image.Projection.Width * scaleX * PointsPerCssPixel,
+                        image.Projection.Height * scaleY * PointsPerCssPixel,
+                        imageStyle,
+                        alternativeText: image.AlternativeText);
+                    OfficeTransform imageTransform = image.Projection.CreateFrameTransform().CreateDestinationTransform();
+                    if (imageTransform == OfficeTransform.Identity && image.Opacity >= 1D) {
+                        addImage(target);
+                    } else {
+                        OfficeTransform pageImageTransform = pageToDrawing.Then(imageTransform).Then(drawingToPage);
+                        target.Effect(pageImageTransform, image.Opacity, addImage);
+                    }
+                    continue;
+                }
+                if (element is OfficeDrawingLink link) {
+                    FlushShapes();
+                    double linkX = (visual.X + link.X * scaleX) * PointsPerCssPixel;
+                    double linkY = (visual.Y + link.Y * scaleY) * PointsPerCssPixel;
+                    double linkWidth = link.Width * scaleX * PointsPerCssPixel;
+                    double linkHeight = link.Height * scaleY * PointsPerCssPixel;
+                    if (IsFragmentLink(link.Uri)) {
+                        target.LinkToNamedDestination(
+                            MapNamedDestination(DecodeFragmentName(link.Uri.Substring(1))),
+                            linkX,
+                            linkY,
+                            linkWidth,
+                            linkHeight,
+                            link.AlternativeText);
+                    } else {
+                        OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
+                        linkArea.FillColor = null;
+                        linkArea.StrokeColor = null;
+                        target.Shape(linkArea, linkX, linkY, linkUri: link.Uri, linkContents: link.AlternativeText);
+                    }
                     continue;
                 }
                 if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;

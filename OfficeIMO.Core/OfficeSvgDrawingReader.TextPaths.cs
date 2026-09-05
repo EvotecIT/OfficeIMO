@@ -28,9 +28,12 @@ public static partial class OfficeSvgDrawingReader {
                 SvgTextRun source = runs[runIndex];
                 IReadOnlyList<string> glyphs = OfficeTextElements.Split(source.Text);
                 if (glyphs.Count == 0) continue;
-                double glyphAdvance = source.Width / glyphs.Count;
+                IReadOnlyList<double> glyphAdvances = MeasureTextPathGlyphAdvances(source, glyphs);
+                double runAdvance = 0D;
                 for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
-                    double distance = startOffset + ((source.X + ((glyphIndex + 0.5D) * glyphAdvance)) * path!.AuthorUnitScale);
+                    double glyphAdvance = glyphAdvances[glyphIndex];
+                    double distance = startOffset + ((source.X + runAdvance + (glyphAdvance / 2D)) * path!.AuthorUnitScale);
+                    runAdvance += glyphAdvance;
                     if (!path!.TryResolve(distance, out OfficePoint point, out double angleDegrees)) continue;
                     double glyphWidth = Math.Max(0.1D, glyphAdvance / source.GlyphScale);
                     replacements.Add(new SvgTextRun(
@@ -59,6 +62,23 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
+    private static IReadOnlyList<double> MeasureTextPathGlyphAdvances(SvgTextRun source, IReadOnlyList<string> glyphs) {
+        var advances = new double[glyphs.Count];
+        double measuredTotal = 0D;
+        for (int index = 0; index < glyphs.Count; index++) {
+            double measured = source.FontProgram?.Measure(glyphs[index], source.FontSize)
+                ?? EstimateSvgTextWidth(glyphs[index], source.FontSize);
+            if (double.IsNaN(measured) || double.IsInfinity(measured) || measured <= 0D) {
+                measured = EstimateSvgTextWidth(glyphs[index], source.FontSize);
+            }
+            advances[index] = measured;
+            measuredTotal += measured;
+        }
+        double normalization = measuredTotal > 0D ? source.Width / measuredTotal : 1D;
+        for (int index = 0; index < advances.Length; index++) advances[index] *= normalization;
+        return advances;
+    }
+
     private static void RemoveTextPathRuns(IList<SvgTextRun> runs, int first, int end) {
         for (int index = end - 1; index >= first; index--) runs.RemoveAt(index);
     }
@@ -75,7 +95,7 @@ public static partial class OfficeSvgDrawingReader {
         startOffset = 0D;
         SvgElementReferenceEntryResult entry = references.TryEnterDetailed(
             textPath,
-            "path",
+            expectedTargetName: null,
             out string referenceId,
             out XElement? target);
         if (entry != SvgElementReferenceEntryResult.Entered) {
@@ -84,9 +104,8 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         try {
-            if (!OfficeSvgPathDataParser.TryParse(target!.Attribute("d")?.Value, MaximumSvgPathCommands,
-                    out IReadOnlyList<OfficePathCommand> parsed, out bool limitExceeded)
-                || limitExceeded
+            XElement targetElement = target!;
+            if (!TryCreateTextPathCommands(targetElement, out IReadOnlyList<OfficePathCommand> parsed)
                 || parsed.Count == 0) {
                 unsupported++;
                 return false;
@@ -94,7 +113,7 @@ public static partial class OfficeSvgDrawingReader {
 
             var commands = new List<OfficePathCommand>(parsed.Count);
             foreach (OfficePathCommand command in parsed) commands.Add(command.Translate(viewX, viewY));
-            OfficeTransform pathTransform = ResolveTransform(target, OfficeTransform.Identity, viewX, viewY, ref unsupported);
+            OfficeTransform pathTransform = ResolveTransform(targetElement, OfficeTransform.Identity, viewX, viewY, ref unsupported);
             IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(commands, 0D, 0D, 1D);
             var segments = new List<SvgTextPathSegment>();
             double totalLength = 0D;
@@ -122,7 +141,7 @@ public static partial class OfficeSvgDrawingReader {
                 return false;
             }
             double authorUnitScale = 1D;
-            if (TrySvgLength(target.Attribute("pathLength")?.Value, out double authoredPathLength) && authoredPathLength > 0D) {
+            if (TrySvgLength(targetElement.Attribute("pathLength")?.Value, out double authoredPathLength) && authoredPathLength > 0D) {
                 authorUnitScale = totalLength / authoredPathLength;
                 if (!percentageOffset) startOffset *= authorUnitScale;
             }
@@ -131,6 +150,77 @@ public static partial class OfficeSvgDrawingReader {
         } finally {
             references.Exit(referenceId);
         }
+    }
+
+    private static bool TryCreateTextPathCommands(XElement target, out IReadOnlyList<OfficePathCommand> commands) {
+        var result = new List<OfficePathCommand>();
+        commands = result;
+        string name = target.Name.LocalName.ToLowerInvariant();
+        if (name == "path") {
+            return OfficeSvgPathDataParser.TryParse(target.Attribute("d")?.Value, MaximumSvgPathCommands,
+                out commands, out bool limitExceeded) && !limitExceeded;
+        }
+        if (name == "line") {
+            if (!TryBasicShapeCoordinate(target, "x1", out double x1)
+                || !TryBasicShapeCoordinate(target, "y1", out double y1)
+                || !TryBasicShapeCoordinate(target, "x2", out double x2)
+                || !TryBasicShapeCoordinate(target, "y2", out double y2)) return false;
+            result.Add(OfficePathCommand.MoveTo(x1, y1));
+            result.Add(OfficePathCommand.LineTo(x2, y2));
+            return true;
+        }
+        if (name is "polyline" or "polygon") {
+            if (!TryParseNumberList(target.Attribute("points")?.Value, MaximumSvgPathCommands * 2,
+                    out IReadOnlyList<double> values, out bool limitExceeded)
+                || limitExceeded || values.Count < 4 || values.Count % 2 != 0) return false;
+            result.Add(OfficePathCommand.MoveTo(values[0], values[1]));
+            for (int index = 2; index < values.Count; index += 2) {
+                result.Add(OfficePathCommand.LineTo(values[index], values[index + 1]));
+            }
+            if (name == "polygon") result.Add(OfficePathCommand.Close());
+            return true;
+        }
+        if (name == "rect") {
+            if (!TryBasicShapeCoordinate(target, "x", out double x, 0D)
+                || !TryBasicShapeCoordinate(target, "y", out double y, 0D)
+                || !TryBasicShapeCoordinate(target, "width", out double width)
+                || !TryBasicShapeCoordinate(target, "height", out double height)
+                || width <= 0D || height <= 0D) return false;
+            result.Add(OfficePathCommand.MoveTo(x, y));
+            result.Add(OfficePathCommand.LineTo(x + width, y));
+            result.Add(OfficePathCommand.LineTo(x + width, y + height));
+            result.Add(OfficePathCommand.LineTo(x, y + height));
+            result.Add(OfficePathCommand.Close());
+            return true;
+        }
+        if (name is "circle" or "ellipse") {
+            if (!TryBasicShapeCoordinate(target, "cx", out double centerX, 0D)
+                || !TryBasicShapeCoordinate(target, "cy", out double centerY, 0D)) return false;
+            double radiusX;
+            double radiusY;
+            if (name == "circle") {
+                if (!TryBasicShapeCoordinate(target, "r", out radiusX) || radiusX <= 0D) return false;
+                radiusY = radiusX;
+            } else if (!TryBasicShapeCoordinate(target, "rx", out radiusX)
+                       || !TryBasicShapeCoordinate(target, "ry", out radiusY)
+                       || radiusX <= 0D || radiusY <= 0D) return false;
+            OfficePoint start = new OfficePoint(centerX + radiusX, centerY);
+            result.Add(OfficePathCommand.MoveTo(start));
+            result.AddRange(OfficeGeometry.CreateEllipticalArcCubicBezierCommands(
+                start, radiusX, radiusY, 0D, Math.PI * 2D));
+            result.Add(OfficePathCommand.Close());
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryBasicShapeCoordinate(XElement element, string name, out double value, double fallback = double.NaN) {
+        string? text = element.Attribute(name)?.Value;
+        if (string.IsNullOrWhiteSpace(text)) {
+            value = fallback;
+            return !double.IsNaN(fallback);
+        }
+        return TrySvgLength(text, out value);
     }
 
     private static void AppendTextPathSegments(
