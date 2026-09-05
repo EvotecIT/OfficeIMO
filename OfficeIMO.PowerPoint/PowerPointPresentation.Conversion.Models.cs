@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Represents the destination artifact and report produced by a PowerPoint conversion.</summary>
-public sealed class PowerPointPresentationConversionResult {
+public sealed class PowerPointPresentationConversionResult : IOfficeConversionResult<string, PowerPointPresentationConversionReport> {
     internal PowerPointPresentationConversionResult(
         string sourcePath,
         string destinationPath,
@@ -37,6 +37,9 @@ public sealed class PowerPointPresentationConversionResult {
     /// <summary>Gets whether the conversion reports fidelity loss.</summary>
     public bool HasLoss => Report.HasLoss;
 
+    /// <summary>Gets whether the destination artifact was committed.</summary>
+    public bool Succeeded => Value != null;
+
     /// <summary>Returns the committed path or throws when no artifact was produced.</summary>
     public string RequireValue() => Value
         ?? throw new InvalidOperationException("The PowerPoint conversion did not produce a destination artifact.");
@@ -49,7 +52,7 @@ public sealed class PowerPointPresentationConversionResult {
 }
 
 /// <summary>Describes paths, formats, fidelity decisions, and commit behavior for one conversion.</summary>
-public sealed class PowerPointPresentationConversionReport {
+public sealed class PowerPointPresentationConversionReport : IOfficeConversionReport {
     internal PowerPointPresentationConversionReport(
         string sourcePath,
         string destinationPath,

@@ -19,7 +19,11 @@ public sealed class PublicApiNamingContracts {
     [Fact]
     public void CoreNeutralContractsUsePurposeBasedNamespaces() {
         Type[] rootContracts = {
+            typeof(IOfficeResult),
+            typeof(IOfficeResult<>),
             typeof(IOfficeConversionReport),
+            typeof(IOfficeConversionResult<,>),
+            typeof(OfficeConversionResult<,>),
             typeof(OfficeFormatDescriptor),
             typeof(OfficeCompatibilityReport),
             typeof(OfficeCompatibilityFinding),
@@ -247,14 +251,35 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void PdfConversionResultUsesValueReportAndLossContract() {
-        Type resultType = typeof(PdfDocumentConversionResult);
+    public void RouteBackedConversionResultsUseTheSharedValueReportAndLossContract() {
+        Type[] resultTypes = {
+            typeof(PdfDocumentConversionResult),
+            typeof(OfficeIMO.Word.Markdown.WordToMarkdownResult),
+            typeof(OfficeIMO.Word.Markdown.MarkdownToWordResult),
+            typeof(OfficeIMO.Rtf.RtfConversionResult<OfficeIMO.Rtf.RtfDocument>),
+            typeof(OfficeIMO.OpenDocument.OdfConversionResult<OfficeIMO.OpenDocument.OdtDocument>),
+            typeof(HtmlTextConversionResult),
+            typeof(OfficeIMO.Markup.OfficeMarkupConversionResult<WordDocument>),
+            typeof(OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConversionResult)
+        };
 
-        Assert.NotNull(resultType.GetProperty("Value"));
-        Assert.NotNull(resultType.GetProperty("Report"));
-        Assert.NotNull(resultType.GetProperty("HasLoss"));
-        Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-        Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+        Assert.All(resultTypes, static resultType => {
+            Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName);
+            Assert.Contains(resultType.GetInterfaces(), static contract =>
+                contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IOfficeConversionResult<,>));
+            Assert.NotNull(resultType.GetProperty("Value"));
+            Assert.NotNull(resultType.GetProperty("Report"));
+            Assert.NotNull(resultType.GetProperty("HasLoss"));
+            Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
+            Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+        });
+
+        Type[] parseResults = {
+            typeof(OfficeIMO.Markdown.MarkdownParseResult),
+            typeof(OfficeIMO.Rtf.RtfReadResult)
+        };
+        Assert.All(parseResults, static resultType =>
+            Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName));
     }
 
     [Fact]

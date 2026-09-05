@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
+    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options) {
         if (!options.IncludeMetadata) {
             return;
         }
@@ -60,7 +60,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfPageCompose page, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
         double width = setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0
             ? RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value)
             : inheritedOptions.PageWidth;
@@ -109,7 +109,7 @@ internal static partial class RtfPdfConverter {
                setup.MarginBottomTwips.HasValue;
     }
 
-    private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfPdfSaveOptions saveOptions) {
+    private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfToPdfOptions saveOptions) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }

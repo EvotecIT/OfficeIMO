@@ -104,7 +104,7 @@ public sealed class PdfExcelTableImportEntry {
     }
 
     /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
-    public sealed class PdfExcelTableImportReport {
+    public sealed class PdfExcelTableImportReport : IOfficeConversionReport {
         internal PdfExcelTableImportReport(
             IReadOnlyList<PdfExcelTableImportEntry> entries,
             OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
@@ -131,31 +131,11 @@ public sealed class PdfExcelTableImportEntry {
     }
 
     /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
-    public sealed class PdfExcelTableImportResult {
-        internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) {
-            Value = value ?? throw new ArgumentNullException(nameof(value));
-            Report = report ?? throw new ArgumentNullException(nameof(report));
-        }
-
-        /// <summary>Gets the generated editable Excel document. The caller owns and disposes it.</summary>
-        public ExcelDocument Value { get; }
-
-        /// <summary>Gets the immutable table import report.</summary>
-        public PdfExcelTableImportReport Report { get; }
-
-        /// <summary>Gets whether the import truncated content within a detected source table.</summary>
-        public bool HasLoss => Report.HasLoss;
+    public sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
+        internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) : base(value, report) { }
 
         /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
         public bool HasOmittedPageContent => Report.HasOmittedPageContent;
 
-        /// <summary>Returns the generated editable Excel document.</summary>
-        public ExcelDocument RequireValue() => Value;
-
-        /// <summary>Returns the generated editable workbook only when no detected table was truncated.</summary>
-        public ExcelDocument RequireNoLoss() {
-            Report.RequireNoLoss();
-            return Value;
-        }
     }
 }

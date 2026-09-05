@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))
                 .PanelParagraph(
                     p => p.Text("The same options should continue to render consistently after an explicit page break."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                         PaddingX = 9,

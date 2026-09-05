@@ -43,9 +43,9 @@ public sealed partial class BrowserConversionService {
         BrowserPdfProfile effectiveProfile = profile ?? BrowserPdfProfileCatalog.Faithful;
         var stopwatch = Stopwatch.StartNew();
         PdfConversionPayload payload = route.Id switch {
-            "docx-pdf" => ConvertWordToPdf(file, effectiveProfile),
-            "xlsx-pdf" => ConvertExcelToPdf(file, limitExcelRows, effectiveProfile),
-            "pptx-pdf" => ConvertPowerPointToPdf(file, effectiveProfile),
+            "docx-pdf" => ConvertWordToPdfBytes(file, effectiveProfile),
+            "xlsx-pdf" => ConvertExcelToPdfBytes(file, limitExcelRows, effectiveProfile),
+            "pptx-pdf" => ConvertPowerPointToPdfBytes(file, effectiveProfile),
             _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
         };
         stopwatch.Stop();
@@ -69,7 +69,7 @@ public sealed partial class BrowserConversionService {
         }
 
         return route.Id switch {
-            "html-pdf" => ConvertHtmlToPdf(input, profile ?? BrowserPdfProfileCatalog.Faithful, generateDebugOverlay),
+            "html-pdf" => ConvertHtmlToPdfBytes(input, profile ?? BrowserPdfProfileCatalog.Faithful, generateDebugOverlay),
             "markdown-html" => ConvertMarkdownToHtml(input),
             "html-markdown" => ConvertHtmlToMarkdown(input),
             "markdown-docx" => ConvertMarkdownToWord(input),
@@ -77,7 +77,7 @@ public sealed partial class BrowserConversionService {
         };
     }
 
-    private static ConversionResult ConvertHtmlToPdf(
+    private static ConversionResult ConvertHtmlToPdfBytes(
         string input,
         BrowserPdfProfile profile,
         bool generateDebugOverlay) {
@@ -110,14 +110,14 @@ public sealed partial class BrowserConversionService {
         return BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
     }
 
-    private static PdfConversionPayload ConvertWordToPdf(SelectedDocument file, BrowserPdfProfile profile) {
+    private static PdfConversionPayload ConvertWordToPdfBytes(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using WordDocument document = WordDocument.Load(stream,
             new WordLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = false,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
@@ -134,7 +134,7 @@ public sealed partial class BrowserConversionService {
             "includePageNumbers=false");
     }
 
-    private static PdfConversionPayload ConvertExcelToPdf(
+    private static PdfConversionPayload ConvertExcelToPdfBytes(
         SelectedDocument file,
         bool limitRowsPerSheet,
         BrowserPdfProfile profile) {
@@ -145,7 +145,7 @@ public sealed partial class BrowserConversionService {
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
         ExcelBrowserReadPlan readPlan = CreateExcelBrowserReadPlan(document, limitRowsPerSheet);
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             MaxRowsPerSheet = readPlan.MaxRowsPerSheet,
             UseBoundedWorksheetRead = readPlan.UsesBoundedRead,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
@@ -211,14 +211,14 @@ public sealed partial class BrowserConversionService {
             WasAutomaticallyBounded: !previewRequested && exceedsFullConversionBudget);
     }
 
-    private static PdfConversionPayload ConvertPowerPointToPdf(SelectedDocument file, BrowserPdfProfile profile) {
+    private static PdfConversionPayload ConvertPowerPointToPdfBytes(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
             new PowerPointLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             WarnOnPictureAspectRatioDistortion = true,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
             PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),

@@ -5,7 +5,7 @@ public sealed class AsciiDocPhase1BlockParsingTests {
     public void MixedBlockMetadata_BindsWithoutDuplicatingWriterOwnership() {
         const string source = ".*Code* example\n[[sample,Sample code]]\n[source,csharp,.wide]\n----\nConsole.WriteLine();\n----\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocDelimitedBlock block = Assert.Single(document.BlocksOfType<AsciiDocDelimitedBlock>());
 
         Assert.Equal("source", block.Style);
@@ -28,7 +28,7 @@ public sealed class AsciiDocPhase1BlockParsingTests {
     [InlineData("CAUTION", AsciiDocAdmonitionKind.Caution)]
     public void AdmonitionParagraphs_AreTypedAndEditable(string label, AsciiDocAdmonitionKind kind) {
         string source = label + ": Read *carefully*.\r\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocAdmonitionBlock admonition = Assert.Single(document.BlocksOfType<AsciiDocAdmonitionBlock>());
 
         Assert.Equal(kind, admonition.Kind);
@@ -42,7 +42,7 @@ public sealed class AsciiDocPhase1BlockParsingTests {
     [Fact]
     public void DescriptionLists_RetainDepthInlinesAndEdits() {
         const string source = "*Term*:: Definition with {product}\nNested::: `value`\r\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocDescriptionListBlock list = Assert.Single(document.BlocksOfType<AsciiDocDescriptionListBlock>());
 
         Assert.Equal(2, list.Items.Count);
@@ -67,7 +67,7 @@ public sealed class AsciiDocPhase1BlockParsingTests {
             "[source,csharp]\n" +
             "----\ncode\n----\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocListItem item = Assert.Single(document.BlocksOfType<AsciiDocListBlock>()).Items.Single();
         AsciiDocListContinuation[] continuations = document.BlocksOfType<AsciiDocListContinuation>().ToArray();
 

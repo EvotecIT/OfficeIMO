@@ -12,132 +12,120 @@ namespace OfficeIMO.Html.Pdf;
 /// </summary>
 public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML.</summary>
-    public static string ToHtml(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
+    public static string ToHtml(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, options?.CancellationToken ?? default)
-            .ToHtml(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, cancellationToken)
+            .ToHtml(CreateRenderOptionsAfterPreselection(options), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfHtmlSaveOptions? options = null) {
+    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, options?.CancellationToken ?? default)
-            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, cancellationToken)
+            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfHtmlSaveOptions? options = null) {
+    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, options?.CancellationToken ?? default)
-            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, cancellationToken)
+            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options), cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         string path,
-        PdfHtmlSaveOptions? options = null,
+        PdfToHtmlOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
-        using (linkedCancellation) {
-            renderOptions.CancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
-            return await logical.SaveAsHtmlAsync(
-                path,
-                CreateRenderOptionsAfterPreselection(renderOptions),
-                renderOptions.CancellationToken).ConfigureAwait(false);
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
+        return await logical.SaveAsHtmlAsync(
+            path,
+            CreateRenderOptionsAfterPreselection(options),
+            cancellationToken).ConfigureAwait(false);
+
     }
 
     /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         Stream stream,
-        PdfHtmlSaveOptions? options = null,
+        PdfToHtmlOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
-        using (linkedCancellation) {
-            renderOptions.CancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
-            return await logical.SaveAsHtmlAsync(
-                stream,
-                CreateRenderOptionsAfterPreselection(renderOptions),
-                renderOptions.CancellationToken).ConfigureAwait(false);
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
+        return await logical.SaveAsHtmlAsync(
+            stream,
+            CreateRenderOptionsAfterPreselection(options),
+            cancellationToken).ConfigureAwait(false);
+
     }
 
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML.
     /// </summary>
-    public static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions? options = null) {
-        return document.ToHtmlResult(options).Value;
+    public static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return document.ToHtmlResult(options, cancellationToken).Value;
     }
 
     /// <summary>Renders a logical PDF document, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfHtmlSaveOptions? options = null) {
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
+    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlTextIO.Write(path, result.Value);
-        return result.Report;
+        return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(path, result.Report);
     }
 
     /// <summary>Renders a logical PDF document, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfHtmlSaveOptions? options = null) {
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
+    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlTextIO.Write(stream, result.Value);
-        return result.Report;
+        return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(null, result.Report);
     }
 
     /// <summary>Renders a logical PDF document, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         string path,
-        PdfHtmlSaveOptions? options = null,
+        PdfToHtmlOptions? options = null,
         CancellationToken cancellationToken = default) {
-        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
-        using (linkedCancellation) {
-            renderOptions.CancellationToken.ThrowIfCancellationRequested();
-            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
-            await HtmlTextIO.WriteAsync(path, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
-            return result.Report;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
+        await HtmlTextIO.WriteAsync(path, result.Value, cancellationToken).ConfigureAwait(false);
+        return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(path, result.Report);
+
     }
 
     /// <summary>Renders a logical PDF document, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         Stream stream,
-        PdfHtmlSaveOptions? options = null,
+        PdfToHtmlOptions? options = null,
         CancellationToken cancellationToken = default) {
-        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
-        using (linkedCancellation) {
-            renderOptions.CancellationToken.ThrowIfCancellationRequested();
-            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
-            await HtmlTextIO.WriteAsync(stream, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
-            return result.Report;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
+        await HtmlTextIO.WriteAsync(stream, result.Value, cancellationToken).ConfigureAwait(false);
+        return OfficeOutputResult<PdfCore.PdfConversionReport>.FromSuccess(null, result.Report);
+
     }
 
-    internal static PdfHtmlSaveOptions CreateAsyncRenderOptions(
-        PdfHtmlSaveOptions? options,
-        CancellationToken cancellationToken,
-        out CancellationTokenSource? linkedCancellation) {
-        PdfHtmlSaveOptions renderOptions = options?.CloneForConversion() ?? new PdfHtmlSaveOptions();
-        CancellationToken optionsCancellation = renderOptions.CancellationToken;
-        linkedCancellation = null;
 
-        if (optionsCancellation.CanBeCanceled && cancellationToken.CanBeCanceled && optionsCancellation != cancellationToken) {
-            linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(optionsCancellation, cancellationToken);
-            renderOptions.CancellationToken = linkedCancellation.Token;
-        } else if (cancellationToken.CanBeCanceled) {
-            renderOptions.CancellationToken = cancellationToken;
-        }
 
-        return renderOptions;
-    }
-
-    private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlSaveOptions options) {
+    private static PdfCore.PdfPageRange[] CopyPageRanges(PdfToHtmlOptions options) {
         IReadOnlyList<PdfCore.PdfPageRange>? ranges = options.PageRanges;
         if (ranges == null || ranges.Count == 0) {
             return Array.Empty<PdfCore.PdfPageRange>();
@@ -153,7 +141,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static PdfCore.PdfDocumentReadResult ReadForHtml(
         PdfCore.PdfDocument document,
-        PdfHtmlSaveOptions? options,
+        PdfToHtmlOptions? options,
         CancellationToken cancellationToken = default) {
         PdfCore.PdfPageRange[] ranges = options is null
             ? Array.Empty<PdfCore.PdfPageRange>()
@@ -169,14 +157,14 @@ public static partial class PdfHtmlConverterExtensions {
         }, cancellationToken);
     }
 
-    private static PdfHtmlSaveOptions? CreateRenderOptionsAfterPreselection(PdfHtmlSaveOptions? options) {
+    private static PdfToHtmlOptions? CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options) {
         if (options?.PageRanges is null || options.PageRanges.Count == 0) return options;
-        PdfHtmlSaveOptions renderOptions = options.CloneForConversion();
+        PdfToHtmlOptions renderOptions = options.CloneForConversion();
         renderOptions.PageRanges = null;
         return renderOptions;
     }
 
-    private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
+    private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
         StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: false);
         if (options.EmitDocumentShell) {
@@ -216,7 +204,7 @@ public static partial class PdfHtmlConverterExtensions {
         return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
-    private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
+    private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
         StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
@@ -241,7 +229,7 @@ public static partial class PdfHtmlConverterExtensions {
         return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
-    private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions options) {
+    private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options) {
         PdfCore.PdfPageRange[] ranges = CopyPageRanges(options);
         if (ranges.Length == 0) {
             return document.Pages;
@@ -270,18 +258,18 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static int[] ExpandPageRanges(PdfCore.PdfPageRange[] pageRanges, int pageCount) {
         if (pageRanges.Length == 0) {
-            throw new ArgumentException("At least one page range must be specified.", nameof(PdfHtmlSaveOptions.PageRanges));
+            throw new ArgumentException("At least one page range must be specified.", nameof(PdfToHtmlOptions.PageRanges));
         }
 
         var pages = new List<int>();
         for (int i = 0; i < pageRanges.Length; i++) {
             PdfCore.PdfPageRange range = pageRanges[i];
             if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
-                throw new ArgumentOutOfRangeException(nameof(PdfHtmlSaveOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
+                throw new ArgumentOutOfRangeException(nameof(PdfToHtmlOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
             }
 
             if (range.LastPage > pageCount) {
-                throw new ArgumentOutOfRangeException(nameof(PdfHtmlSaveOptions.PageRanges), "Page range cannot exceed the document page count.");
+                throw new ArgumentOutOfRangeException(nameof(PdfToHtmlOptions.PageRanges), "Page range cannot exceed the document page count.");
             }
 
             for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
@@ -292,7 +280,7 @@ public static partial class PdfHtmlConverterExtensions {
         return pages.ToArray();
     }
 
-    private static void AppendDocumentStart(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions options, bool positioned) {
+    private static void AppendDocumentStart(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options, bool positioned) {
         if (!options.EmitDocumentShell) {
             return;
         }
@@ -346,7 +334,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("</style>");
     }
 
-    private static void AppendBodyStart(StringBuilder builder, PdfHtmlSaveOptions options, bool positioned) {
+    private static void AppendBodyStart(StringBuilder builder, PdfToHtmlOptions options, bool positioned) {
         PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(options.Profile);
         builder.Append("<body class=\"");
         builder.Append(HtmlAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
@@ -360,7 +348,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("\">");
     }
 
-    private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
+    private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
         if (!options.IncludeOutlines || document.Outlines.Count == 0) {
             return;
         }
@@ -539,7 +527,7 @@ public static partial class PdfHtmlConverterExtensions {
         return GetPageAnchorId(pageNumber);
     }
 
-    private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions options) {
+    private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options) {
         if (!document.HasAcroFormXfa || document.AcroFormXfa is null) {
             return;
         }
@@ -617,7 +605,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("</p>");
     }
 
-    private static string? FormatStringList(IReadOnlyList<string> values, PdfHtmlSaveOptions options) {
+    private static string? FormatStringList(IReadOnlyList<string> values, PdfToHtmlOptions options) {
         if (values.Count == 0) {
             return null;
         }
@@ -638,7 +626,7 @@ public static partial class PdfHtmlConverterExtensions {
         return builder.Length == 0 ? null : builder.ToString();
     }
 
-    private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlSaveOptions options) {
+    private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
         List<HtmlItem> items = BuildSemanticPageItems(page, options);
         items.Sort(CompareHtmlItems);
         for (int i = 0; i < items.Count; i++) {
@@ -646,7 +634,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfHtmlSaveOptions options) {
+    private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
         var items = new List<HtmlItem>();
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
             BuildReadingOrder(page, options.UseSharedPageReadingOrder);
@@ -775,7 +763,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static string RenderSemanticTable(
         PdfCore.PdfLogicalTable table,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         long retainedHtmlCharacters) {
         if (table.Rows.Count == 0) {
             return string.Empty;
@@ -825,7 +813,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static string RenderImageFigure(
         PdfCore.PdfLogicalImage image,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
             builder.Append(HtmlAttribute(image.ResourceName));
@@ -860,7 +848,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static bool TryBuildEmbeddedImageDataUri(
         PdfCore.PdfLogicalImage image,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         int remainingItemCharacters,
         out string? source) {
         source = null;
@@ -908,7 +896,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         List<HtmlItem> items,
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         ref int sequence,
         ref long retainedHtmlCharacters) {
         for (int i = 0; i < page.TextBlocks.Count; i++) {
@@ -923,7 +911,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static string RenderSemanticTextBlock(
         PdfCore.PdfLogicalTextBlock block,
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             (string Prefix, string Suffix) = block.Kind switch {
                 PdfCore.PdfLogicalElementKind.Header => ("<header class=\"pdf-header\">", "</header>"),
@@ -1283,7 +1271,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static void AddWarning(
-        PdfHtmlSaveOptions options,
+        PdfToHtmlOptions options,
         string code,
         string message,
         PdfCore.PdfConversionWarningSeverity severity) {

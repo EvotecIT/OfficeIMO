@@ -96,13 +96,13 @@ public sealed class MarkdownBodyRenderContext {
     /// Finds the final syntax-tree node associated with a parsed model object, or <c>null</c> for builder-only documents.
     /// </summary>
     public MarkdownSyntaxNode? FindSyntaxNode(object associatedObject) =>
-        Document.ParseResult?.FindFinalNodeForAssociatedObject(associatedObject);
+        Document.AttachedParseResult?.FindFinalNodeForAssociatedObject(associatedObject);
 
     /// <summary>
     /// Creates a normalized source slice for the final syntax node associated with a parsed model object.
     /// </summary>
     public bool TryCreateSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             return false;
@@ -115,7 +115,7 @@ public sealed class MarkdownBodyRenderContext {
     /// Creates a normalized source slice for the supplied final syntax node.
     /// </summary>
     public bool TryCreateSourceSlice(MarkdownSyntaxNode syntaxNode, out MarkdownSourceSlice slice) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             return false;
@@ -128,7 +128,7 @@ public sealed class MarkdownBodyRenderContext {
     /// Creates a normalized source slice for a token or field source span captured during parsing.
     /// </summary>
     public bool TryCreateSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             return false;
@@ -151,7 +151,7 @@ public sealed class MarkdownBodyRenderContext {
         object associatedObject,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
@@ -175,7 +175,7 @@ public sealed class MarkdownBodyRenderContext {
         MarkdownSyntaxNode syntaxNode,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
@@ -199,7 +199,7 @@ public sealed class MarkdownBodyRenderContext {
         MarkdownSourceSpan sourceSpan,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        var parseResult = Document.ParseResult;
+        var parseResult = Document.AttachedParseResult;
         if (parseResult == null) {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;

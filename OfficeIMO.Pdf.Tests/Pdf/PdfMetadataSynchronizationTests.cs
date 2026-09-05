@@ -138,7 +138,7 @@ public class PdfMetadataSynchronizationTests {
         byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, author: "First revision");
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(revised)
-            .TrySynchronizeMetadata(title: "Second revision", createXmpMetadata: true);
+            .SynchronizeMetadataResult(title: "Second revision", createXmpMetadata: true);
         PdfDocument updated = result.RequireValue();
         PdfDocumentInfo info = updated.Inspect();
 

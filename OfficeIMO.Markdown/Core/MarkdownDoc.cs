@@ -43,7 +43,7 @@ public partial class MarkdownDoc : MarkdownObject {
     /// <summary>Whether the document has front matter.</summary>
     public bool HasDocumentHeader => DocumentHeader != null;
 
-    internal MarkdownParseResult? ParseResult => _parseResult;
+    internal MarkdownParseResult? AttachedParseResult => _parseResult;
 
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>

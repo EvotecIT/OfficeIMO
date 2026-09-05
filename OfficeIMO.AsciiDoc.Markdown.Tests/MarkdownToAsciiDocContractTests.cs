@@ -30,7 +30,7 @@ public sealed class MarkdownToAsciiDocContractTests {
     [Fact]
     public void StructuredTableSpans_SurviveAsciiDocMarkdownAsciiDocRoundTrip() {
         const string source = "[cols=2*,%header]\n|===\n|A |B\n2+|wide\n|===\n";
-        AsciiDocToMarkdownResult markdown = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        AsciiDocToMarkdownResult markdown = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         MarkdownToAsciiDocResult roundTrip = markdown.Value.ToAsciiDocDocumentResult();
         AsciiDocTableBlock table = Assert.Single(roundTrip.Value.BlocksOfType<AsciiDocTableBlock>());

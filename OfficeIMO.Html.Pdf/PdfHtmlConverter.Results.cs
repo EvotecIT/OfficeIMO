@@ -5,21 +5,24 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
-    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
+    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, options?.CancellationToken ?? default)
-            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, cancellationToken)
+            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options), cancellationToken);
     }
 
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML and returns a machine-readable export summary.
     /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions? options = null) {
+    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
-        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
+        options = (options ?? new PdfToHtmlOptions()).CloneForConversion();
+        options.CancellationToken = cancellationToken;
         options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
@@ -48,7 +51,7 @@ public static partial class PdfHtmlConverterExtensions {
          string.Equals(argumentException.ParamName, "repeatCount", StringComparison.Ordinal)) &&
         argumentException.StackTrace?.IndexOf("System.Text.StringBuilder", StringComparison.Ordinal) >= 0;
 
-    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {
+    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options, int sourcePageCount) {
         int textBlockCount = 0;
         int headingCount = 0;
         int listItemCount = 0;

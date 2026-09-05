@@ -11,7 +11,7 @@ public sealed class AsciiDocToMarkdownContractTests {
             "* one\n** nested\n\n" +
             "----\ncode();\n----\n" +
             "image::diagram.png[Architecture]\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult();
 
@@ -30,7 +30,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     [Fact]
     public void UnsupportedBlockMacro_IsSourceFallbackWithLocatedDiagnostic() {
         const string source = "diagram::architecture[format=svg]\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult();
 
@@ -45,7 +45,7 @@ public sealed class AsciiDocToMarkdownContractTests {
 
     [Fact]
     public void TableSource_ConvertsToTypedMarkdownTable() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("|===\n|a |b\n|===\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("|===\n|a |b\n|===\n").Document;
 
         AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult(new AsciiDocToMarkdownOptions {
             PreserveUnsupportedAsSource = false
@@ -60,7 +60,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     public void DocumentTitleSectionsAndTableTitle_PreserveHierarchyAndCaptionMetadata() {
         const string source = "= Guide\n\n== Start\n\n.Important values\n|===\n|A |B\n|===\n";
 
-        AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        AsciiDocToMarkdownResult result = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         Assert.Equal(new[] { 1, 2 }, result.Value.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Level));
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
@@ -70,7 +70,7 @@ public sealed class AsciiDocToMarkdownContractTests {
 
     [Fact]
     public void Comments_AreOmittedByDefaultWithExplicitDiagnostic() {
-        AsciiDocDocument document = AsciiDocDocument.Parse("// internal note\nVisible\n").Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult("// internal note\nVisible\n").Document;
 
         AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult();
 
@@ -81,7 +81,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     [Fact]
     public void TypedMarkdownProjection_UsesExistingWordBridge() {
         const string source = "= Guide\n\n== Start\nParagraph text\n\n* one\n* two\n";
-        AsciiDocToMarkdownResult conversion = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        AsciiDocToMarkdownResult conversion = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         using var word = conversion.Value.ToWordDocument();
         string visibleText = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
@@ -95,7 +95,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
         const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
-        var result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
+        var result = AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));
@@ -113,7 +113,7 @@ public sealed class AsciiDocToMarkdownContractTests {
             ":product: OfficeIMO\n" +
             "Use *{product}* with _care_, `code`, <<intro,Introduction>>, image:icon.svg[Icon], and stem:[x^2].\n";
 
-        AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        AsciiDocToMarkdownResult result = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
         ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
 
         Assert.Contains(paragraph.Inlines.Nodes, node => node is BoldSequenceInline);
@@ -134,7 +134,7 @@ public sealed class AsciiDocToMarkdownContractTests {
             "[cols=2*,%header]\n" +
             "|===\n|Name |Value\n2+|spanning\n|===\n";
 
-        AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
+        AsciiDocToMarkdownResult result = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
         Assert.Single(result.Value.Blocks.OfType<DefinitionListBlock>());
         Assert.Single(result.Value.Blocks.OfType<CalloutBlock>());
@@ -152,7 +152,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     public void BlockMetadata_MapsToMarkdownAttributesCaptionAndCodeLanguage() {
         const string source = ".Example\n[[sample]]\n[source,csharp,.wide]\n----\ncode\n----\n";
 
-        CodeBlock code = Assert.Single(AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult().Value.Blocks.OfType<CodeBlock>());
+        CodeBlock code = Assert.Single(AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult().Value.Blocks.OfType<CodeBlock>());
 
         Assert.Equal("csharp", code.Language);
         Assert.Equal("Example", code.Caption);

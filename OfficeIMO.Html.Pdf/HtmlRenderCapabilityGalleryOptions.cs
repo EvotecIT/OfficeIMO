@@ -16,7 +16,7 @@ public sealed class HtmlRenderCapabilityGalleryOptions {
     public HtmlCapabilityGalleryScenario Scenario { get; }
 
     /// <summary>Direct-render settings shared by PDF, PNG, and SVG artifacts.</summary>
-    public HtmlPdfSaveOptions RenderOptions { get; set; } = new HtmlPdfSaveOptions();
+    public HtmlToPdfOptions RenderOptions { get; set; } = new HtmlToPdfOptions();
 
     /// <summary>Zero-based page used for the preview artifacts.</summary>
     public int PreviewPageIndex { get; set; }

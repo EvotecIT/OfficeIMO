@@ -18,7 +18,7 @@ public class PowerPointSaveAsPdfSecurityTests {
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            var options = new PowerPointPdfSaveOptions {
+            var options = new PowerPointToPdfOptions {
                 MaxGroupShapeDepth = 0
             };
 
@@ -44,14 +44,14 @@ public class PowerPointSaveAsPdfSecurityTests {
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 1,
                 MaxGroupShapeDepth = 0
             });
 
             Assert.Contains(result.Warnings, warning =>
-                warning.Message.Contains(nameof(PowerPointPdfSaveOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
+                warning.Message.Contains(nameof(PowerPointToPdfOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

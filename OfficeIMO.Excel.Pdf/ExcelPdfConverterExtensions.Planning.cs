@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static PdfCore.PdfOptions CreatePdfOptions(ExcelPdfSaveOptions options, out bool preserveConfiguredFontSlots) {
+        private static PdfCore.PdfOptions CreatePdfOptions(ExcelToPdfOptions options, out bool preserveConfiguredFontSlots) {
             PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             pdfOptions.UseContentStreamCompressionByDefault();
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void ApplyTextFallbacks(
             PdfCore.PdfOptions pdfOptions,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             bool preserveConfiguredFontSlots,
             IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
+        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void RegisterWorksheetHeaderFooterFonts(
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
             PdfCore.PdfOptions pdfOptions) {
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfOptions pdfOptions,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             string sheetName) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfOptions pdfOptions,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            ExcelPdfSaveOptions options,
+            ExcelToPdfOptions options,
             string sheetName,
             bool reportSubstitution = true) {
             if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
@@ -323,7 +323,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
+        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelToPdfOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
             var plans = new List<WorksheetPdfExportPlan>();
             for (int i = 0; i < sheetNames.Count; i++) {
                 string sheetName = sheetNames[i];
@@ -472,7 +472,7 @@ namespace OfficeIMO.Excel.Pdf {
             return ToA1Range(firstRow, firstColumn, limitedLastRow, lastColumn);
         }
 
-        private static WorksheetGeometryData CreateWorksheetGeometry(ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfSaveOptions options) {
+        private static WorksheetGeometryData CreateWorksheetGeometry(ExcelSheet? workbookSheet, string normalizedRange, ExcelToPdfOptions options) {
             A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
             return new WorksheetGeometryData(
                 Math.Max(1, firstRow),

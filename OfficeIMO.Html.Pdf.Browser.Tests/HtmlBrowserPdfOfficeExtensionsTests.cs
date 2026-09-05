@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using HtmlTinkerX;
 using OfficeIMO.Html.Pdf.Browser;
@@ -10,6 +11,18 @@ using Xunit;
 namespace OfficeIMO.Html.Pdf.Browser.Tests;
 
 public sealed class HtmlBrowserPdfOfficeExtensionsTests {
+    [Fact]
+    public async Task CancelledCaptureConversionStopsBeforeReadingInvalidPdfBytes() {
+        HtmlBrowserPdfResult capture = CreateCapture(new byte[] { 1, 2, 3 }, tagged: false);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            capture.ToPdfDocumentResult(cancellationToken: cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            capture.ToPdfDocumentResultAsync(cancellationToken: cancellation.Token));
+    }
+
     [Fact]
     public void CapturedPdfOpensIntoTheCanonicalDocumentModelWithBrowserDiagnostics() {
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content

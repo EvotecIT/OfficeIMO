@@ -50,6 +50,55 @@ public sealed class PdfPublicApiContractTests {
     };
 
     [Fact]
+    public void StructuredPdfOperationsUseResultSuffixAndTheSharedResultContract() {
+        MethodInfo[] methods = typeof(PdfDocument).Assembly
+            .GetExportedTypes()
+            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            .Where(static method => IsStructuredPdfResult(method.ReturnType))
+            .ToArray();
+
+        Assert.NotEmpty(methods);
+        Assert.DoesNotContain(methods, static method => method.Name.StartsWith("Try", StringComparison.Ordinal));
+
+        Type[] resultTypes = {
+            typeof(PdfSaveResult),
+            typeof(PdfBytesResult),
+            typeof(PdfOperationResult<PdfDocument>),
+            typeof(PdfMergeResult),
+            typeof(PdfProductionSplitResult)
+        };
+        Assert.All(resultTypes, static type => Assert.True(typeof(IOfficeResult).IsAssignableFrom(type), type.FullName));
+    }
+
+    [Fact]
+    public void MergeAndSplitExposeDirectAndStructuredFluentRoutes() {
+        MethodInfo[] mergeMethods = typeof(PdfDocument).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(static method => method.Name is "Merge" or "MergeResult")
+            .ToArray();
+
+        Assert.Contains(mergeMethods, static method => method.Name == "Merge" && method.ReturnType == typeof(PdfDocument));
+        Assert.Contains(mergeMethods, static method => method.Name == "MergeResult" && method.ReturnType == typeof(PdfMergeResult));
+        MethodInfo[] splitMethods = typeof(PdfDocumentPages).GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        Assert.Contains(splitMethods,
+            static method => method.Name == nameof(PdfDocumentPages.SplitForProduction) &&
+                             method.ReturnType == typeof(IReadOnlyList<PdfProductionSplitPart>));
+        Assert.Contains(splitMethods,
+            static method => method.Name == nameof(PdfDocumentPages.SplitForProductionResult) &&
+                             method.ReturnType == typeof(PdfProductionSplitResult));
+    }
+
+    private static bool IsStructuredPdfResult(Type returnType) {
+        Type type = returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)
+            ? returnType.GetGenericArguments()[0]
+            : returnType;
+        return type == typeof(PdfSaveResult) ||
+               type == typeof(PdfBytesResult) ||
+               type == typeof(PdfMergeResult) ||
+               type == typeof(PdfProductionSplitResult) ||
+               type.IsGenericType && type.GetGenericTypeDefinition() == typeof(PdfOperationResult<>);
+    }
+
+    [Fact]
     public void FacadeExposesOneCreateLoadReadAnalyzeWorkflowWithoutLegacyOpenOrResultLoaders() {
         MethodInfo[] methods = typeof(PdfDocument).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
@@ -59,10 +108,10 @@ public sealed class PdfPublicApiContractTests {
         Assert.Contains(methods, method =>
             method.Name == nameof(PdfDocument.Create) &&
             method.IsStatic &&
-            method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Action<PdfCompose>));
-        Assert.All(
-            methods.Where(method => method.Name == nameof(PdfDocument.Create) && method.IsStatic),
-            method => Assert.Equal(typeof(Action<PdfCompose>), method.GetParameters()[0].ParameterType));
+            method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Action<PdfDocumentBuilder>));
+        Assert.Contains(methods, method => method.Name == nameof(PdfDocument.Create) &&
+            method.IsStatic && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(PdfOptions));
+        Assert.Equal(typeof(PdfContentBuilder), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Content))?.PropertyType);
         Assert.Contains(methods, method =>
             method.Name == nameof(PdfDocument.Load) &&
             method.IsStatic &&
@@ -118,14 +167,14 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(typeof(Func<string, IReadOnlyList<int>>), typeof(PdfOptions).GetProperty(nameof(PdfOptions.TextLineBreakCallback))?.PropertyType);
 
         Assert.Equal(
-            2,
+            4,
             methods.Count(method =>
                 method.Name == nameof(PdfDocument.Save) &&
                 method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(
-            2,
+            4,
             methods.Count(method =>
-                method.Name == nameof(PdfDocument.TrySave) &&
+                method.Name == nameof(PdfDocument.SaveResult) &&
                 method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(
             3,
@@ -142,7 +191,7 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(
             2,
             methods.Count(method =>
-                method.Name == nameof(PdfDocument.TrySaveAsync) &&
+                method.Name == nameof(PdfDocument.SaveResultAsync) &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
     }
 
@@ -179,33 +228,108 @@ public sealed class PdfPublicApiContractTests {
     [Fact]
     public void ComposeBuildersAreClosedAndDoNotExposeInertPaddingApi() {
         Type[] builderTypes = {
-            typeof(PdfCompose),
-            typeof(PdfPageCompose),
-            typeof(PdfContentCompose),
-            typeof(PdfItemCompose),
-            typeof(PdfElementCompose),
-            typeof(PdfColumnCompose),
-            typeof(PdfRowCompose),
-            typeof(PdfRowColumnCompose),
-            typeof(PdfTextStyleCompose),
-            typeof(PdfHeaderCompose),
-            typeof(PdfFooterCompose),
+            typeof(PdfDocumentBuilder),
+            typeof(PdfPageBuilder),
+            typeof(PdfContentBuilder),
+            typeof(PdfElementBuilder),
+            typeof(PdfRowBuilder),
+            typeof(PdfTextStyleBuilder),
+            typeof(PdfHeaderBuilder),
+            typeof(PdfFooterBuilder),
             typeof(HeaderTextBuilder),
             typeof(FooterTextBuilder)
         };
 
         Assert.All(builderTypes, type => Assert.True(type.IsSealed, type.FullName));
-        Assert.Null(typeof(PdfContentCompose).GetMethod("PaddingBottom", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(PdfContentBuilder).GetMethod("PaddingBottom", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(PdfContentBuilder).GetMethod("Container", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(PdfDocumentBuilder).GetMethod("Defaults", BindingFlags.Public | BindingFlags.Instance));
+    }
+
+    [Fact]
+    public void AuthoringUsesOneContentReceiverAtEveryNestingBoundary() {
+        Type contentCallback = typeof(Action<PdfContentBuilder>);
+
+        Assert.Equal(contentCallback, typeof(PdfDocumentBuilder).GetMethod(nameof(PdfDocumentBuilder.Content))!.GetParameters()[0].ParameterType);
+        Assert.Equal(contentCallback, typeof(PdfPageBuilder).GetMethod(nameof(PdfPageBuilder.Content))!.GetParameters()[0].ParameterType);
+        Assert.Equal(contentCallback, typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Column))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(Action<PdfElementBuilder>), typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Element))!.GetParameters()[0].ParameterType);
+        Assert.Equal(contentCallback, typeof(PdfElementBuilder).GetMethod(nameof(PdfElementBuilder.Content))!.GetParameters()[0].ParameterType);
+        Assert.Equal(contentCallback, typeof(PdfRowBuilder).GetMethod(nameof(PdfRowBuilder.Column))!.GetParameters()[1].ParameterType);
+    }
+
+    [Fact]
+    public void AuthoringExposesSharedTypographyProfilesAtDocumentAndPageScope() {
+        MethodInfo documentTypography = typeof(PdfDocumentBuilder).GetMethod(nameof(PdfDocumentBuilder.Typography))!;
+        MethodInfo pageTypography = typeof(PdfPageBuilder).GetMethod(nameof(PdfPageBuilder.Typography))!;
+
+        Assert.Equal(typeof(OfficeRenderingProfile), documentTypography.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(OfficeRenderingProfileApplyMode), documentTypography.GetParameters()[1].ParameterType);
+        Assert.Equal(typeof(OfficeRenderingProfile), pageTypography.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(OfficeRenderingProfileApplyMode), pageTypography.GetParameters()[1].ParameterType);
+
+        PdfDocument document = PdfDocument.Create(pdf => pdf
+            .Typography(OfficeRenderingProfile.Managed)
+            .Content(content => content.Text("Profiled text")));
+
+        Assert.Same(OfficeRenderingProfile.Managed.TextShapingProvider, document.Options.TextShapingProvider);
+    }
+
+    [Fact]
+    public void DocumentTypographyAppliesToPagesCreatedEarlierInTheSameComposition() {
+        var profile = new OfficeRenderingProfile(
+            "late-document-typography",
+            textShapingProvider: OfficeManagedTextShapingProvider.Instance,
+            textShapingLanguage: "pl-PL");
+
+        PdfDocument document = PdfDocument.Create(pdf => pdf
+            .Page(page => page.Content(content => content.Text("Earlier page")))
+            .Typography(profile));
+        PageBlock page = Assert.IsType<PageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Same(profile.TextShapingProvider, page.Options.TextShapingProvider);
+        Assert.Equal("pl-PL", page.Options.Language);
+    }
+
+    [Fact]
+    public void IncrementalDocumentTypographyUpdatesExistingPageSnapshots() {
+        var profile = new OfficeRenderingProfile(
+            "incremental-document-typography",
+            textShapingProvider: OfficeManagedTextShapingProvider.Instance,
+            textShapingLanguage: "de-DE");
+        PdfDocument document = PdfDocument.Create(pdf => pdf
+            .Page(page => page.Content(content => content.Text("Existing page"))));
+
+        document.Compose(pdf => pdf.Typography(profile));
+        PageBlock page = Assert.IsType<PageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Same(profile.TextShapingProvider, page.Options.TextShapingProvider);
+        Assert.Equal("de-DE", page.Options.Language);
+    }
+
+    [Fact]
+    public void SupersededComposeReceiverTypesAreNotPublic() {
+        Assembly assembly = typeof(PdfDocument).Assembly;
+
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfPageCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfItemCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfContentCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfColumnCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfElementCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfRowColumnCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfRowCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfHeaderCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfFooterCompose"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfTextStyleCompose"));
     }
 
     [Fact]
     public void FacadeDoesNotDuplicateBuilderAuthoringMethods() {
         Type[] authoringBuilders = {
-            typeof(PdfCompose),
-            typeof(PdfPageCompose),
-            typeof(PdfContentCompose),
-            typeof(PdfItemCompose),
-            typeof(PdfElementCompose)
+            typeof(PdfDocumentBuilder),
+            typeof(PdfPageBuilder),
+            typeof(PdfContentBuilder)
         };
         HashSet<string> authoringMethodNames = authoringBuilders
             .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))

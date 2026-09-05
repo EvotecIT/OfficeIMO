@@ -55,7 +55,7 @@ internal static class MarkdownToLatexConverter {
         source.Append("\\end{document}").Append(options.LineEnding);
 
         string value = source.ToString();
-        LatexDocument parsed = LatexDocument.Parse(value).Document;
+        LatexDocument parsed = LatexDocument.ParseResult(value).Document;
         return new MarkdownToLatexResult(value, parsed, diagnostics);
     }
 

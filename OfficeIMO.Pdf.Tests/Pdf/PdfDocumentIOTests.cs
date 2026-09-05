@@ -76,7 +76,7 @@ public class PdfDocumentIOTests {
                 new[] { "Third", "Unexpected column" }
             }, batchSize: 2, style: style);
 
-        PdfSaveResult result = document.TrySave(stream);
+        PdfSaveResult result = document.SaveResult(stream);
 
         Assert.False(result.Succeeded);
         Assert.Equal(existing, stream.ToArray());
@@ -103,7 +103,7 @@ public class PdfDocumentIOTests {
     public void Save_WritesGeneratedPdfToNonSeekableStreamWithValidOffsets() {
         using var stream = new NonSeekableWriteStream();
 
-        PdfSaveResult result = BuildDocument("Non-seekable stream").TrySave(stream);
+        PdfSaveResult result = BuildDocument("Non-seekable stream").SaveResult(stream);
         byte[] bytes = stream.ToArray();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
@@ -146,7 +146,7 @@ public class PdfDocumentIOTests {
         cancellation.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled try-save").TrySaveAsync(stream, cancellation.Token));
+            BuildDocument("Canceled try-save").SaveResultAsync(stream, cancellation.Token));
 
         Assert.Equal(0, stream.Length);
     }
@@ -230,7 +230,7 @@ public class PdfDocumentIOTests {
         cancellation.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled path try-save").TrySaveAsync(outputPath, cancellation.Token));
+            BuildDocument("Canceled path try-save").SaveResultAsync(outputPath, cancellation.Token));
 
         Assert.False(Directory.Exists(directory));
         Assert.False(File.Exists(outputPath));

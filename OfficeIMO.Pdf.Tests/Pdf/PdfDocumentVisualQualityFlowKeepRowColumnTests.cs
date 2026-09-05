@@ -34,7 +34,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p
                                     .Text("ColumnKeepFirst")
                                     .LineBreak()
@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Bullets(new[] {
                                     "ColumnKeepListFirst",
                                     "ColumnKeepListMiddle",
@@ -117,7 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Numbered(new[] {
                                     "ColumnKeepNumberOne",
                                     "ColumnKeepNumberTwo"
@@ -160,7 +160,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnKeepWithNextLabel"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
@@ -197,7 +197,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnKeepWithListLabel"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
@@ -234,7 +234,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnChainKeepWithNext"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => {
+                            row.PercentColumn(100, column => {
                                 for (int i = 0; i < 768; i++) {
                                     column.Paragraph(
                                         paragraph => paragraph.Text("Keep" + i.ToString(CultureInfo.InvariantCulture)),
@@ -304,7 +304,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = 70
                                 })
@@ -339,7 +339,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = 70
                                 })
@@ -384,8 +384,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
-                                .PanelParagraph(p => p.Text("ColumnPanelKeepWithNext"), new PanelStyle {
+                            row.PercentColumn(100, column => column
+                                .PanelParagraph(p => p.Text("ColumnPanelKeepWithNext"), new PdfPanelStyle {
                                     KeepWithNext = true,
                                     PaddingY = 5,
                                     SpacingAfter = 0

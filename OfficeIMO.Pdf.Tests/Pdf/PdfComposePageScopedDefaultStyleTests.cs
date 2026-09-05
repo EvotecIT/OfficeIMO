@@ -8,7 +8,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void ComposePage_DefaultParagraphStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfParagraphStyle {
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposePage_DefaultPanelStyleAppliesOnlyToThatPageAndSnapshotsInput() {
-            var style = new PanelStyle {
+            var style = new PdfPanelStyle {
                 PaddingX = 16,
                 MaxWidth = 180,
                 Align = PdfAlign.Center,

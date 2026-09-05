@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("CellLarge").SetFontSize(18);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }

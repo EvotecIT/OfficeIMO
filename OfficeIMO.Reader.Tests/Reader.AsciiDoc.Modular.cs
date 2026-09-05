@@ -10,7 +10,7 @@ public sealed class ReaderAsciiDocModularTests {
     [Fact]
     public void ReadAsciiDocDocument_EmitsTypedBlockChunksWithSourceLines() {
         const string source = "= Guide\n\n== Start\nParagraph\n\n* one\n** nested\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(document, "guide.adoc").ToArray();
 
@@ -71,7 +71,7 @@ public sealed class ReaderAsciiDocModularTests {
             "[cols=2*]\n|===\n|A |B\n|===\n";
 
         ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(
-            AsciiDocDocument.Parse(source).Document,
+            AsciiDocDocument.ParseResult(source).Document,
             "phase1.adoc").ToArray();
 
         Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "description-list" && chunk.Text.Contains("Term: Definition", StringComparison.Ordinal));
@@ -88,7 +88,7 @@ public sealed class ReaderAsciiDocModularTests {
         const string source = ":product: OfficeIMO\n\nUse {product}.\n";
 
         ReaderChunk paragraph = Assert.Single(AsciiDocReaderAdapter.Read(
-            AsciiDocDocument.Parse(source).Document,
+            AsciiDocDocument.ParseResult(source).Document,
             "attributes.adoc"));
 
         Assert.Contains("OfficeIMO", paragraph.Markdown, StringComparison.Ordinal);

@@ -85,7 +85,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .HR(
                                     thickness: 3,
                                     color: PdfColor.FromRgb(26, 51, 77),
@@ -163,7 +163,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .HR(style: new PdfHorizontalRuleStyle {
                                     Thickness = 3,
                                     SpacingBefore = 0,
@@ -282,7 +282,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Image(png, 24, 24, style: new PdfImageStyle {
                                     KeepWithNext = true
                                 })
@@ -361,7 +361,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Shape(shape, style: new PdfDrawingStyle {
                                     KeepWithNext = true
                                 })
@@ -438,7 +438,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Drawing(drawing, style: new PdfDrawingStyle {
                                     KeepWithNext = true
                                 })
@@ -518,7 +518,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Table(new[] {
                                     new[] { "ColumnTableKeepHeader", "Ready" },
                                     new[] { "ColumnTableKeepValue", "Ready" }
@@ -562,7 +562,7 @@ public partial class PdfDocumentVisualQualityTests {
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Paragraph(p => p.Text("RowKeepColumn")));
                         });
                         content.Column(column =>
@@ -606,7 +606,7 @@ public partial class PdfDocumentVisualQualityTests {
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Paragraph(p => p.Text("RowChainKeepColumn")));
                         });
                         content.Column(column => {

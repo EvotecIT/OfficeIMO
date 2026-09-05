@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static PdfCore.PdfOptions CreateNativeOptions(
             WordDocument document,
-            WordPdfSaveOptions? options,
+            WordToPdfOptions? options,
             NativeFontMap nativeFontMap,
             IEnumerable<string?> generatedListMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ApplyNativeDefaultFont(
             WordDocument document,
             NativeDocumentDefaults defaults,
-            WordPdfSaveOptions? options,
+            WordToPdfOptions? options,
             PdfCore.PdfOptions pdfOptions,
             bool allowSystemFontEmbedding,
             bool allowDocumentFontEmbedding,
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTextFallbacks(
             WordDocument document,
-            WordPdfSaveOptions? options,
+            WordToPdfOptions? options,
             PdfCore.PdfOptions pdfOptions,
             HashSet<PdfCore.PdfStandardFont> reservedFontSlots,
             bool allowSystemFontEmbedding,
@@ -629,7 +629,7 @@ namespace OfficeIMO.Word.Pdf {
             return name;
         }
 
-        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, WordPdfSaveOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, WordToPdfOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
             var entries = new List<NativeTableOfContentsEntry>();
             int headingCount = CountNativeDocumentHeadings(document);
             int currentPage = 1;

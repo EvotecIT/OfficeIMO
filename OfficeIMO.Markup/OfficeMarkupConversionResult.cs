@@ -21,7 +21,7 @@ public sealed class OfficeMarkupConversionException : InvalidOperationException 
 }
 
 /// <summary>Immutable diagnostics from one OfficeIMO Markup conversion.</summary>
-public sealed class OfficeMarkupConversionReport {
+public sealed class OfficeMarkupConversionReport : IOfficeConversionReport {
     private readonly IReadOnlyList<OfficeMarkupDiagnostic> _diagnostics;
 
     /// <summary>Creates a conversion report.</summary>
@@ -53,42 +53,25 @@ public sealed class OfficeMarkupConversionReport {
 
 /// <summary>A native target document and immutable diagnostics from one OfficeIMO Markup conversion.</summary>
 /// <typeparam name="TDocument">Native target document type.</typeparam>
-public class OfficeMarkupConversionResult<TDocument> where TDocument : class {
+public class OfficeMarkupConversionResult<TDocument> : OfficeConversionResult<TDocument, OfficeMarkupConversionReport> where TDocument : class {
     /// <summary>Creates a conversion result.</summary>
     public OfficeMarkupConversionResult(TDocument value, IEnumerable<OfficeMarkupDiagnostic>? diagnostics = null)
         : this(value, new OfficeMarkupConversionReport(diagnostics)) {
     }
 
     /// <summary>Creates a conversion result from an existing immutable report.</summary>
-    public OfficeMarkupConversionResult(TDocument value, OfficeMarkupConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-
-    /// <summary>Native target document. The caller owns and disposes it when applicable.</summary>
-    public TDocument Value { get; }
-
-    /// <summary>Immutable conversion report.</summary>
-    public OfficeMarkupConversionReport Report { get; }
+    public OfficeMarkupConversionResult(TDocument value, OfficeMarkupConversionReport report)
+        : base(value, report) { }
 
     /// <summary>Immutable conversion diagnostics in emission order.</summary>
     public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => Report.Diagnostics;
 
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
-    public bool Succeeded => Report.Succeeded;
+    public override bool Succeeded => Report.Succeeded;
 
-    /// <summary>Whether conversion warned about, omitted, or failed any source content.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the native document when conversion succeeded.</summary>
-    public TDocument RequireValue() {
+    /// <summary>Returns the native document or throws the markup-specific exception when conversion failed.</summary>
+    public override TDocument RequireValue() {
         Report.RequireSuccess();
-        return Value;
-    }
-
-    /// <summary>Returns the native document only when conversion reported no possible loss.</summary>
-    public TDocument RequireNoLoss() {
-        Report.RequireNoLoss();
         return Value;
     }
 }

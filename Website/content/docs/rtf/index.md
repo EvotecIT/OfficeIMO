@@ -70,7 +70,7 @@ dotnet add package OfficeIMO.Rtf.Markdown
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 
-RtfReadResult read = RtfDocument.Load("input.rtf");
+RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 RtfConversionResult<string> conversion =
     read.Document.ToMarkdownResult();
 

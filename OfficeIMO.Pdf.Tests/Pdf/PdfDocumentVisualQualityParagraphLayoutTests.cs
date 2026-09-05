@@ -112,11 +112,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .Paragraph(p => p.Text("ColumnTopMarker")))))))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .Paragraph(p => p.Text("ColumnTopMarker"), style: new PdfParagraphStyle {
                     SpacingBefore = 28,
                     SpacingAfter = 0
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
         byte[] bytes = PdfDocument.Create(options)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .Paragraph(p => p.Text("TopMarker"), style: paragraphStyle)
                 .Spacer(20)
                 .Paragraph(p => p.Text("BottomMarker"), style: paragraphStyle))))))
@@ -498,7 +498,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p
                                     .Text("ColumnFirstIndent")
                                     .LineBreak()
@@ -539,7 +539,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .Paragraph(p => p
                                     .Text("ColumnDefaultFirst")
                                     .LineBreak()

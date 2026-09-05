@@ -17,7 +17,7 @@ public sealed class HtmlApiConsistencyTests {
         Type imageExtensions = typeof(HtmlImageExportExtensions);
 
         Assert.Contains(pdfExtensions.GetMethods(), method =>
-            method.Name == nameof(HtmlPdfConverterExtensions.ToPdf)
+            method.Name == nameof(HtmlPdfConverterExtensions.ToPdfBytes)
             && method.ReturnType == typeof(byte[])
             && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument));
 
@@ -35,11 +35,11 @@ public sealed class HtmlApiConsistencyTests {
             method => Assert.Contains(method.GetParameters()[1].ParameterType, new[] { typeof(string), typeof(Stream) }));
 
         Assert.Contains(pdfExtensions.GetMethods(), method =>
-            method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
+            method.Name == nameof(HtmlPdfConverterExtensions.SaveAsPdfResultAsync)
             && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument)
             && method.GetParameters()[1].ParameterType == typeof(string));
         Assert.Contains(pdfExtensions.GetMethods(), method =>
-            method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
+            method.Name == nameof(HtmlPdfConverterExtensions.SaveAsPdfResultAsync)
             && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument)
             && method.GetParameters()[1].ParameterType == typeof(Stream));
 
@@ -61,9 +61,9 @@ public sealed class HtmlApiConsistencyTests {
     public async Task PdfPngAndSvg_AcceptTheSameHtmlSources() {
         const string html = "<h1>Source parity</h1><p>String, document, and stream.</p>";
         HtmlConversionDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
-        var options = new HtmlPdfSaveOptions();
+        var options = new HtmlToPdfOptions();
 
-        Assert.NotEmpty(document.ToPdf(options));
+        Assert.NotEmpty(document.ToPdfBytes(options));
         Assert.NotEmpty(document.ToPng(options));
         Assert.StartsWith("<svg", document.ToSvg(options), StringComparison.Ordinal);
         OfficeImageExportResult pngResult = document.ExportImage(OfficeImageExportFormat.Png, options);
@@ -86,7 +86,7 @@ public sealed class HtmlApiConsistencyTests {
         HtmlConversionDocument svgDocument = await HtmlConversionDocument.LoadAsync(svgSource);
         HtmlConversionDocument pngResultDocument = await HtmlConversionDocument.LoadAsync(pngResultSource);
         HtmlConversionDocument svgResultDocument = await HtmlConversionDocument.LoadAsync(svgResultSource);
-        Assert.NotEmpty(await pdfDocument.ToPdfAsync(options));
+        Assert.NotEmpty(await pdfDocument.ToPdfBytesAsync(options));
         Assert.NotEmpty(await pngDocument.ToPngAsync(options));
         Assert.StartsWith("<svg", await svgDocument.ToSvgAsync(options), StringComparison.Ordinal);
         Assert.Equal(OfficeImageExportFormat.Png, (await pngResultDocument.ExportImageAsync(OfficeImageExportFormat.Png, options)).Format);
@@ -96,28 +96,28 @@ public sealed class HtmlApiConsistencyTests {
     [Fact]
     public void SharedPdfOptions_PreserveImageModeWhilePdfRemainsPaged() {
         const string html = "<div style='height:1800px;background:#336699'></div>";
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlPdfSaveOptions clone = options.ClonePdf();
-        HtmlPdfSaveOptions copied = new HtmlPdfSaveOptions(options);
+        HtmlToPdfOptions clone = options.ClonePdf();
+        HtmlToPdfOptions copied = new HtmlToPdfOptions(options);
 
         Assert.Equal(HtmlRenderMode.Continuous, clone.Mode);
         Assert.Equal(HtmlRenderMode.Continuous, copied.Mode);
         Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages);
         Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
         Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
-        Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).PageCount > 1);
+        Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(options)).PageCount > 1);
     }
 
     [Fact]
     public void HtmlPdfOptions_CopyConstructorPreservesPdfSpecificSettings() {
         var fontFamily = new PdfCore.PdfEmbeddedFontFamily("ContractFont", new byte[] { 1 });
         var shapingProvider = new NullShapingProvider();
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar,
             FontFamily = fontFamily,
@@ -128,7 +128,7 @@ public sealed class HtmlApiConsistencyTests {
             }.UsePdfUa(PdfCore.PdfComplianceProfile.PdfUa1, "pl-PL")
         };
 
-        var copied = new HtmlPdfSaveOptions(options);
+        var copied = new HtmlToPdfOptions(options);
         options.PdfOptions.Language = "en-US";
 
         Assert.Equal(PdfCore.PdfTextFallbackFeatures.None, copied.TextFallbacks);
@@ -145,7 +145,7 @@ public sealed class HtmlApiConsistencyTests {
 
     [Fact]
     public void HtmlPdfOptions_DefaultHyperlinkPolicyBlocksFileAndDataUrls() {
-        var options = new HtmlPdfSaveOptions();
+        var options = new HtmlToPdfOptions();
 
         Assert.True(options.UrlPolicy.DisallowFileUrls);
         Assert.False(options.UrlPolicy.AllowDataUrls);
@@ -163,7 +163,7 @@ public sealed class HtmlApiConsistencyTests {
             UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
         };
 
-        var copied = new HtmlPdfSaveOptions(source);
+        var copied = new HtmlToPdfOptions(source);
 
         Assert.True(copied.UrlPolicy.RestrictUrlSchemes);
         Assert.True(copied.UrlPolicy.DisallowFileUrls);
@@ -192,7 +192,7 @@ public sealed class HtmlApiConsistencyTests {
 
     [Fact]
     public void HtmlPdf_DependsOnlyOnDirectRenderingOwners() {
-        string[] references = typeof(HtmlPdfSaveOptions).Assembly
+        string[] references = typeof(HtmlToPdfOptions).Assembly
             .GetReferencedAssemblies()
             .Select(reference => reference.Name ?? string.Empty)
             .ToArray();

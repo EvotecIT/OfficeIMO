@@ -31,7 +31,7 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("board-review.pptx");
 
-var options = new PowerPointPdfSaveOptions {
+var options = new PowerPointToPdfOptions {
     IncludeHiddenSlides = false,
     IncludeSlideBackgrounds = true,
     IncludePictures = true,
@@ -52,7 +52,7 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("training.pptx");
 
-byte[] pdfBytes = presentation.ToPdf();
+byte[] pdfBytes = presentation.ToPdfBytes();
 
 using var stream = File.Create("training.pdf");
 presentation.SaveAsPdf(stream);
@@ -66,12 +66,12 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("training.pptx");
 
-presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfSaveOptions {
+presentation.SaveAsPdf("training-notes.pdf", new PowerPointToPdfOptions {
     PageLayout = PowerPointPdfPageLayout.NotesPages,
     IncludeSpeakerNotes = true
 });
 
-presentation.SaveAsPdf("training-handout.pdf", new PowerPointPdfSaveOptions {
+presentation.SaveAsPdf("training-handout.pdf", new PowerPointToPdfOptions {
     PageLayout = PowerPointPdfPageLayout.Handouts,
     HandoutSlidesPerPage = 3,
     IncludeSpeakerNotes = true
@@ -88,7 +88,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 using var presentation = PowerPointPresentation.Load("complex-deck.pptx");
-var options = new PowerPointPdfSaveOptions {
+var options = new PowerPointToPdfOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true
 }.UseProfile(PdfExportProfile.Faithful);
@@ -96,7 +96,7 @@ var options = new PowerPointPdfSaveOptions {
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
 options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
-var result = presentation.TrySaveAsPdf("complex-deck.pdf", options);
+var result = presentation.SaveAsPdfResult("complex-deck.pdf", options);
 if (!result.Succeeded) {
     foreach (string diagnostic in result.Diagnostics) {
         Console.WriteLine(diagnostic);
@@ -118,7 +118,7 @@ result.Report.RequireNoErrorWarnings();
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
 - Full-slide PDF output always uses the native per-shape PDF renderer, including hyperlinks and rich text. Conversion no longer chooses a different renderer from document content or an option toggle.
 - PNG, SVG, visual-review HTML, and notes/handout thumbnails use the shared visual snapshot; those surfaces have a different scene/raster contract and do not select the PDF engine at runtime.
-- Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
+- Profile presets through `PowerPointToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Import PDF pages
@@ -130,7 +130,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("handout.pdf");
-PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx");
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx").RequireSuccess().Report!;
 
 foreach (var page in report.EditablePages) {
     Console.WriteLine(
@@ -142,10 +142,10 @@ foreach (var page in report.EditablePages) {
 Use the explicit visual profile when a page image is the intended result. Each image is movable and resizable, but text, vectors, charts, and tables inside it are not editable:
 
 ```csharp
-var visual = PdfPowerPointImportOptions.CreateVisualPages();
+var visual = PdfToPowerPointOptions.CreateVisualPages();
 PdfPowerPointConversionReport visualReport = pdf.SaveAsPowerPoint(
     "handout-visual.pptx",
-    visual);
+    visual).RequireSuccess().Report!;
 
 foreach (var page in visualReport.VisualPages) {
     Console.WriteLine($"PDF page {page.PageNumber}, slide {page.SlideIndex + 1}");
@@ -157,13 +157,13 @@ This is a new semantic projection, not recovery of the original slide deck. Orig
 Use hybrid mode when the original page must remain visible while detected tables stay editable. Row and column caps split a large overlay across duplicate visual-page slides, and each overlay keeps the same centered, aspect-preserving page geometry as its background:
 
 ```csharp
-var hybrid = PdfPowerPointImportOptions.CreateHybrid();
+var hybrid = PdfToPowerPointOptions.CreateHybrid();
 hybrid.MaxRowsPerSlide = 18;
 hybrid.MaxColumnsPerSlide = 6;
 
 PdfPowerPointConversionReport hybridReport = pdf.SaveAsPowerPoint(
     "handout-hybrid.pptx",
-    hybrid);
+    hybrid).RequireSuccess().Report!;
 
 Console.WriteLine($"Editable table segments: {hybridReport.TableEntries.Count}");
 Console.WriteLine($"Visual-only page content: {hybridReport.HasNonEditablePageContent}");
@@ -172,7 +172,7 @@ Console.WriteLine($"Visual-only page content: {hybridReport.HasNonEditablePageCo
 Use editable-table mode when detected data is more important than page appearance:
 
 ```csharp
-var options = PdfPowerPointImportOptions.CreateEditableTables();
+var options = PdfToPowerPointOptions.CreateEditableTables();
 options.ReadOptions = new PdfReadOptions {
     Profile = PdfReadProfile.Structured,
     PageSelection = PdfPageSelection.Parse("1-3")
@@ -184,7 +184,7 @@ options.MergePageContinuations = true;
 
 PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint(
     "financial-statement-tables.pptx",
-    options);
+    options).RequireSuccess().Report!;
 
 foreach (var table in report.TableEntries) {
     Console.WriteLine($"Pages {string.Join(",", table.SourcePageNumbers)}, slide {table.SlideIndex + 1}");
@@ -197,8 +197,8 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
 - `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
-- `PdfPowerPointImportOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
-- `PdfPowerPointImportOptions.MaxPages` defaults to 100 and remains a destination import/rendering safety limit. It is separate from `ReadOptions.Pipeline.MaxPages`; both limits apply when semantic reconstruction is required.
+- `PdfToPowerPointOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
+- `PdfToPowerPointOptions.MaxPages` defaults to 100 and remains a destination import/rendering safety limit. It is separate from `ReadOptions.Pipeline.MaxPages`; both limits apply when semantic reconstruction is required.
 - `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.

@@ -74,7 +74,7 @@ public class PdfMutationPlannerTests {
         int originalRevisionCount = PdfInspector.Inspect(source).Security.RevisionCount;
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source)
-            .TryUpdateMetadata(title: "Planner tagged update");
+            .UpdateMetadataResult(title: "Planner tagged update");
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
@@ -108,8 +108,8 @@ public class PdfMutationPlannerTests {
             PdfMutationOperation.FillFormFields,
             fieldNames: new[] { "Account" });
         PdfOperationResult<PdfDocument> metadataResult = PdfDocument.Load(metadataSource)
-            .TryUpdateMetadata(title: "should not be appended");
-        PdfOperationResult<PdfDocument> formResult = PdfDocument.Load(formSource).Forms.TryFill(
+            .UpdateMetadataResult(title: "should not be appended");
+        PdfOperationResult<PdfDocument> formResult = PdfDocument.Load(formSource).Forms.FillResult(
             new Dictionary<string, string> { ["Account"] = "after" });
 
         Assert.False(metadataPlan.CanExecute);
@@ -130,7 +130,7 @@ public class PdfMutationPlannerTests {
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata);
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source)
-            .TryUpdateMetadata(title: "must not preserve GoToE");
+            .UpdateMetadataResult(title: "must not preserve GoToE");
 
         Assert.True(PdfInspector.Probe(source).HasActiveContent);
         Assert.False(plan.CanExecute);
@@ -228,7 +228,7 @@ public class PdfMutationPlannerTests {
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata, ownerOptions);
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source)
-            .TryUpdateMetadata(title: "Owner-planned update", options: ownerOptions);
+            .UpdateMetadataResult(title: "Owner-planned update", options: ownerOptions);
 
         Assert.True(plan.CanExecute);
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
@@ -245,7 +245,7 @@ public class PdfMutationPlannerTests {
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
         var values = new Dictionary<string, string> { ["Name"] = "Grace" };
 
-        PdfOperationResult<PdfDocument> result = PdfDocument.Load(source, ownerOptions).Forms.TryFill(values);
+        PdfOperationResult<PdfDocument> result = PdfDocument.Load(source, ownerOptions).Forms.FillResult(values);
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan!.ExecutionMode);
@@ -261,7 +261,7 @@ public class PdfMutationPlannerTests {
         byte[] primary = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
-        PdfOperationResult<PdfDocument> result = PdfDocument.Load(primary).TryMergeWith(incoming);
+        PdfOperationResult<PdfDocument> result = PdfDocument.Load(primary).MergeWithResult(incoming);
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
@@ -275,9 +275,9 @@ public class PdfMutationPlannerTests {
         byte[] target = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
-        PdfOperationResult<PdfDocument> appended = PdfDocument.Load(target).Pages.TryAppend(incoming);
-        PdfOperationResult<PdfDocument> prepended = PdfDocument.Load(target).Pages.TryPrepend(incoming);
-        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.TryInsert(1, incoming);
+        PdfOperationResult<PdfDocument> appended = PdfDocument.Load(target).Pages.AppendResult(incoming);
+        PdfOperationResult<PdfDocument> prepended = PdfDocument.Load(target).Pages.PrependResult(incoming);
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.InsertResult(1, incoming);
 
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
@@ -308,14 +308,14 @@ public class PdfMutationPlannerTests {
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
 
-        PdfOperationResult<PdfDocument> appended = PdfDocument.Load(target).Pages.TryAppend(
+        PdfOperationResult<PdfDocument> appended = PdfDocument.Load(target).Pages.AppendResult(
             incoming,
             options: targetReadOptions);
-        PdfOperationResult<PdfDocument> prepended = PdfDocument.Load(target).Pages.TryPrepend(
+        PdfOperationResult<PdfDocument> prepended = PdfDocument.Load(target).Pages.PrependResult(
             incoming,
             PdfPageSelection.From(2),
             options: targetReadOptions);
-        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.TryInsert(
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.InsertResult(
             2,
             incoming,
             PdfPageSelection.From(1),
@@ -364,7 +364,7 @@ public class PdfMutationPlannerTests {
         byte[] source = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(permissionLevel: 2);
         var values = new Dictionary<string, string> { ["Name"] = "Grace" };
 
-        PdfOperationResult<PdfDocument> result = PdfDocument.Load(source).Forms.TryFill(values);
+        PdfOperationResult<PdfDocument> result = PdfDocument.Load(source).Forms.FillResult(values);
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
@@ -423,7 +423,7 @@ public class PdfMutationPlannerTests {
         PdfAppendOnlyMutationReport appendOnly = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(source, readOptions);
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.PrepareExternalSignature, readOptions);
         PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Load(source, readOptions)
-            .TryPrepareExternalSignature(options: readOptions);
+            .PrepareExternalSignatureResult(options: readOptions);
 
         Assert.False(appendOnly.CanPrepareExternalSignature);
         Assert.False(plan.CanExecute);
@@ -628,7 +628,7 @@ public class PdfMutationPlannerTests {
             .ToBytes();
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source)
-            .TryAppendMetadataRevision(title: "Explicit append title");
+            .AppendMetadataRevisionResult(title: "Explicit append title");
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
@@ -646,9 +646,9 @@ public class PdfMutationPlannerTests {
             .ToBytes();
 
         PdfOperationResult<PdfDocument> ordinaryResult = PdfDocument.Load(ordinary)
-            .Pages.TryDelete(PdfPageSelection.Parse("2"));
+            .Pages.DeleteResult(PdfPageSelection.Parse("2"));
         PdfOperationResult<PdfDocument> signedResult = PdfDocument.Load(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
-            .Pages.TryDelete(PdfPageSelection.Parse("1"));
+            .Pages.DeleteResult(PdfPageSelection.Parse("1"));
 
         Assert.True(ordinaryResult.Succeeded, string.Join(" ", ordinaryResult.Diagnostics));
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, ordinaryResult.MutationPlan!.ExecutionMode);
@@ -667,7 +667,7 @@ public class PdfMutationPlannerTests {
         var readOptions = new PdfLoadOptions { Password = "open" };
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source, readOptions)
-            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+            .Pages.ExtractResult(PdfPageSelection.Parse("1"));
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
@@ -691,9 +691,9 @@ public class PdfMutationPlannerTests {
         PdfMutationPlan userPlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ExtractPages, userOptions);
         PdfMutationPlan ownerPlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ExtractPages, ownerOptions);
         PdfOperationResult<PdfDocument> userResult = PdfDocument.Load(source, userOptions)
-            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+            .Pages.ExtractResult(PdfPageSelection.Parse("1"));
         PdfOperationResult<PdfDocument> ownerResult = PdfDocument.Load(source, ownerOptions)
-            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+            .Pages.ExtractResult(PdfPageSelection.Parse("1"));
 
         Assert.False(userPlan.CanExecute);
         Assert.Contains("FullRewrite.Encryption", userPlan.BlockerCodes);

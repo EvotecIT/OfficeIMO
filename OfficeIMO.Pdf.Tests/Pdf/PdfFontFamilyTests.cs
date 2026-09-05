@@ -85,7 +85,7 @@ public class PdfFontFamilyTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .RichNumbered(new[] { new PdfListItem("Top item", marker: "1.") }, style: listStyle)
-            .Row(row => row.Column(100, column =>
+            .Row(row => row.PercentColumn(100, column =>
                 column.RichBullets(new[] { new PdfListItem("Column item", marker: "*") }, style: listStyle)))
             .ToBytes();
 
@@ -1348,7 +1348,7 @@ public class PdfFontFamilyTests {
         Assert.Contains("Conversion result", PdfReadDocument.Open(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();
-        PdfSaveResult saveResult = processed.TrySave(output);
+        PdfSaveResult saveResult = processed.SaveResult(output);
 
         Assert.True(saveResult.Succeeded);
         Assert.True(saveResult.BytesWritten > 0);
@@ -1399,7 +1399,7 @@ public class PdfFontFamilyTests {
         report.Clear();
 
         using var stream = new MemoryStream();
-        PdfSaveResult streamResult = await result.TrySaveAsync(stream);
+        PdfSaveResult streamResult = await result.SaveResultAsync(stream);
 
         Assert.True(streamResult.Succeeded);
         Assert.True(streamResult.BytesWritten > 0);
@@ -1421,7 +1421,7 @@ public class PdfFontFamilyTests {
             string tryPath = Path.Combine(directory, "try-save.pdf");
             string savePath = Path.Combine(directory, "save.pdf");
 
-            PdfSaveResult pathResult = await result.TrySaveAsync(tryPath);
+            PdfSaveResult pathResult = await result.SaveResultAsync(tryPath);
             PdfSaveResult pathSaveResult = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
@@ -2410,7 +2410,7 @@ public class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column.H3("Łódź"))))))
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.H3("Łódź"))))))
             .ToBytes();
 
         string topLevelRaw = Encoding.ASCII.GetString(topLevelBytes);
@@ -2485,7 +2485,7 @@ public class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column.Table(new[] {
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.Table(new[] {
                 new[] { "Name", "Value" },
                 new[] { "Beta", "2" }
             }, style: rowColumnStyle))))))

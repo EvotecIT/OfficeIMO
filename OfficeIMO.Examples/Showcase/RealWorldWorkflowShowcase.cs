@@ -57,7 +57,7 @@ internal static class RealWorldWorkflowShowcase {
 
         document.Save();
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(
-            new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseProfile(PdfExportProfile.Faithful));
+            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseProfile(PdfExportProfile.Faithful));
         SavePdf(
             conversion,
             Path.Combine(output, "customer-delivery-summary.pdf"));
@@ -133,7 +133,7 @@ internal static class RealWorldWorkflowShowcase {
                 "Production publication starts only after the service owner records approval.");
 
         File.WriteAllText(sourcePath, document.ToMarkdown(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        MarkdownPdfSaveOptions options = new MarkdownPdfSaveOptions {
+        MarkdownToPdfOptions options = new MarkdownToPdfOptions {
             Theme = theme
         }.UseProfile(PdfExportProfile.Faithful);
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);

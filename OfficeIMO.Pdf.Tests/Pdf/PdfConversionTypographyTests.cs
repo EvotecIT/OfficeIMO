@@ -84,12 +84,12 @@ public sealed class PdfConversionTypographyTests {
         }
 
         string unsupportedScalar = char.ConvertFromUtf32(0x10FFFF);
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
-        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => OfficeIMO.Markdown.MarkdownReader.Parse("# Missing Glyph\n\nUnsupported " + unsupportedScalar).ToPdf(options));
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => OfficeIMO.Markdown.MarkdownReader.Parse("# Missing Glyph\n\nUnsupported " + unsupportedScalar).ToPdfBytes(options));
 
         Assert.True(IsMissingEmbeddedGlyphFailure(exception));
         Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "missing-embedded-font-fallback-glyph", "unsupported-text-glyph" });
@@ -213,7 +213,7 @@ public sealed class PdfConversionTypographyTests {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "Київ";
             document.Save();
 
-            return document.ToPdf(new WordPdf.WordPdfSaveOptions {
+            return document.ToPdfBytes(new WordPdf.WordToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             });
@@ -237,7 +237,7 @@ public sealed class PdfConversionTypographyTests {
             sheet.Cell(4, 1, "Київ");
             document.Save();
 
-            var options = new ExcelPdfSaveOptions {
+            var options = new ExcelToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
@@ -253,7 +253,7 @@ public sealed class PdfConversionTypographyTests {
     }
 
     private static byte[] CreateMarkdownPdf(string fontPath) {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
@@ -274,7 +274,7 @@ Zażółć gęślą jaźń
     }
 
     private static byte[] CreateHtmlPdf(string fontPath) {
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             FontFamily = PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)
         };
 
@@ -312,7 +312,7 @@ Zażółć gęślą jaźń
         table.GetCell(2, 0).Text = "Україна";
         table.GetCell(2, 1).Text = "Київ";
 
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
@@ -334,7 +334,7 @@ Zażółć gęślą jaźń
             document.AddParagraph("office cafe\u0301");
             document.Save();
 
-            var options = new WordPdf.WordPdfSaveOptions {
+            var options = new WordPdf.WordToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             };
@@ -357,7 +357,7 @@ Zażółć gęślą jaźń
             document.Sheets[0].Cell(1, 1, "office cafe\u0301");
             document.Save();
 
-            var options = new ExcelPdfSaveOptions {
+            var options = new ExcelToPdfOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
@@ -372,7 +372,7 @@ Zażółć gęślą jaźń
     }
 
     private static PdfCore.PdfConversionReport CreateMarkdownOpenTypeReport(string fontPath) {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
@@ -388,7 +388,7 @@ Zażółć gęślą jaźń
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
         textBox.FontSize = 14;
 
-        var options = new PowerPointPdfSaveOptions {
+        var options = new PowerPointToPdfOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
@@ -405,7 +405,7 @@ Zażółć gęślą jaźń
             document.AddParagraph(text);
             document.Save();
 
-            var options = new WordPdf.WordPdfSaveOptions {
+            var options = new WordPdf.WordToPdfOptions {
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
@@ -427,7 +427,7 @@ Zażółć gęślą jaźń
             document.Sheets[0].Cell(1, 1, text);
             document.Save();
 
-            var options = new ExcelPdfSaveOptions {
+            var options = new ExcelToPdfOptions {
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
@@ -441,7 +441,7 @@ Zażółć gęślą jaźń
     }
 
     private static PdfCore.PdfConversionReport CreateMarkdownComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false
         };
         PdfCore.PdfDocumentConversionResult? result = null;
@@ -456,7 +456,7 @@ Zażółć gęślą jaźń
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(text, 32, 32, 220, 32);
         textBox.FontSize = 14;
 
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointToPdfOptions();
         PdfCore.PdfDocumentConversionResult? result = null;
         AssertRenderAttempt(() => (result = presentation.ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
         return result?.Report ?? new PdfCore.PdfConversionReport();

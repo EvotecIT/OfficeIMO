@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
         private const int NativeOfficeImoScaffoldCellWidthTwips = 2400;
         private const double NativeAutoFitGridMinimumScale = 0.8D;
 
-        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordPdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
@@ -312,13 +312,13 @@ namespace OfficeIMO.Word.Pdf {
             return widths.Select(width => (double?)width).ToList();
         }
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordPdfSaveOptions? options) =>
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordToPdfOptions? options) =>
             CreateNativeTableStyle(table, rowCount, options, null);
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordPdfSaveOptions? options, double? contentWidth) =>
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordToPdfOptions? options, double? contentWidth) =>
             CreateNativeTableStyle(table, rowCount, options, contentWidth, NativeDocumentDefaults.WordDefault);
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordPdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults) {
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordToPdfOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults) {
             bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
             NativeTableStyleDefaults tableStyleDefaults = GetNativeTableStyleDefaults(
                 table,
@@ -330,7 +330,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfTableStyle CreateNativeTableStyle(
             WordTable table,
             int rowCount,
-            WordPdfSaveOptions? options,
+            WordToPdfOptions? options,
             double? contentWidth,
             NativeDocumentDefaults nativeDefaults,
             NativeTableStyleDefaults tableStyleDefaults,
@@ -407,7 +407,7 @@ namespace OfficeIMO.Word.Pdf {
             return tableStyleDefaults.ParagraphLineHeight;
         }
 
-        private static PdfCore.PdfTableStyle CreateNativeDefaultTableStyle(WordPdfSaveOptions? options) {
+        private static PdfCore.PdfTableStyle CreateNativeDefaultTableStyle(WordToPdfOptions? options) {
             PdfCore.PdfTableStyle? configuredStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? options.PdfOptions.DefaultTableStyle
                 : null;

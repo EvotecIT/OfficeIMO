@@ -7,7 +7,7 @@ public sealed class LatexProfileRegressionTests {
     public void NamedProfilesAreExplicitBoundedAndLossless(LatexDocumentProfile profile, bool recognized) {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section{Profile} $x^2$ \\cite{source}\n\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source, LatexParseOptions.CreateProfile(profile)).Document;
+        LatexDocument document = LatexDocument.ParseResult(source, LatexParseOptions.CreateProfile(profile)).Document;
 
         Assert.Equal(profile, document.Profile);
         Assert.Equal(recognized, document.IsRecognizedProfile);
@@ -23,14 +23,14 @@ public sealed class LatexProfileRegressionTests {
 
     [Fact]
     public void DirectParseRejectsUnknownNamedProfile() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.ParseResult(
             "\\begin{document}Profile\\end{document}",
             new LatexParseOptions { Profile = (LatexDocumentProfile)999 }));
     }
 
     [Fact]
     public void DirectParseRejectsUnknownMacroExpansionMode() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.ParseResult(
             "\\begin{document}Macro\\end{document}",
             new LatexParseOptions { MacroExpansion = (LatexMacroExpansion)999 }));
     }
@@ -45,7 +45,7 @@ public sealed class LatexProfileRegressionTests {
             "\\begin{itemize}\\item One\\end{itemize}\n" +
             "\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
+        LatexDocument document = LatexDocument.ParseResult(source, new LatexParseOptions {
             Profile = LatexDocumentProfile.PreserveOnly
         }).Document;
 
@@ -74,7 +74,7 @@ public sealed class LatexProfileRegressionTests {
             "\\begin{tabular}[t]{ll}A & B\\\\\\end{tabular}\n" +
             "\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         LatexListItem item = Assert.Single(Assert.Single(document.Lists).Items);
         Assert.Equal("{Visible item}", item.Content);
@@ -89,7 +89,7 @@ public sealed class LatexProfileRegressionTests {
     public void StarredHeading_BindsItsTitleWithoutLosingTheModifier() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\section*{Unnumbered}\n\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         LatexHeading heading = Assert.Single(document.Headings);
         Assert.Equal("Unnumbered", heading.Title);
@@ -101,7 +101,7 @@ public sealed class LatexProfileRegressionTests {
     public void ZeroArgumentCommand_DoesNotClaimFollowingStandaloneGroup() {
         const string source = "\\documentclass{article}\n\\begin{document}\n\\maketitle\n{Visible group}\n\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         LatexCommand makeTitle = Assert.Single(document.Commands, static command => command.Name == "maketitle");
         Assert.Empty(makeTitle.Arguments);
@@ -113,7 +113,7 @@ public sealed class LatexProfileRegressionTests {
     public void LiteralSquareBrackets_AreTextUnlessACommandSignatureClaimsThem() {
         const string source = "\\documentclass{article}\n\\begin{document}\nText [literal] and [unterminated.\n\\end{document}\n";
 
-        LatexParseResult result = LatexDocument.Parse(source);
+        LatexParseResult result = LatexDocument.ParseResult(source);
 
         Assert.DoesNotContain(result.Document.SyntaxTree.Root.DescendantsAndSelf(),
             static node => node.Kind == LatexSyntaxKind.OptionalGroup);
@@ -132,7 +132,7 @@ public sealed class LatexProfileRegressionTests {
             "\\section{Real}\n" +
             "\\end{document}\n";
 
-        LatexParseResult result = LatexDocument.Parse(source);
+        LatexParseResult result = LatexDocument.ParseResult(source);
 
         LatexHeading heading = Assert.Single(result.Document.Headings);
         Assert.Equal("Real", heading.Title);
@@ -147,7 +147,7 @@ public sealed class LatexProfileRegressionTests {
     public void UnterminatedVerbatimIsOpaqueLosslessAndDiagnosed() {
         const string source = "\\begin{verbatim}\\section{Fake}";
 
-        LatexParseResult result = LatexDocument.Parse(source);
+        LatexParseResult result = LatexDocument.ParseResult(source);
 
         Assert.Empty(result.Document.Headings);
         Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "LATEX006");
@@ -164,7 +164,7 @@ public sealed class LatexProfileRegressionTests {
             "\\end{tabular}\n" +
             "\\end{document}\n";
 
-        LatexTable table = Assert.Single(LatexDocument.Parse(source).Document.Tables);
+        LatexTable table = Assert.Single(LatexDocument.ParseResult(source).Document.Tables);
 
         Assert.Equal(2, table.Rows.Count);
         Assert.All(table.Rows, static row => Assert.Single(row.Cells));

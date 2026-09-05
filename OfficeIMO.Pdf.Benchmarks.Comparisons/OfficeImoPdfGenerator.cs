@@ -34,7 +34,7 @@ internal static class OfficeImoPdfGenerator {
     }
 
     internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) =>
-        HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
+        HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
             FontFamily = fontFamily
         });
 

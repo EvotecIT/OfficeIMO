@@ -76,7 +76,7 @@ public sealed class PdfMergeReport {
 }
 
 /// <summary>Merged PDF bytes plus the policy decisions and readback evidence.</summary>
-public sealed class PdfMergeResult {
+public sealed class PdfMergeResult : IOfficeResult<PdfDocument> {
     private readonly byte[] _pdf;
     private readonly PdfReadDocument _readDocument;
     private readonly PdfLoadOptions _readOptions;
@@ -88,6 +88,15 @@ public sealed class PdfMergeResult {
     }
     /// <summary>Merge policy report.</summary>
     public PdfMergeReport Report { get; }
+
+    /// <inheritdoc />
+    public bool Succeeded => true;
+
+    /// <inheritdoc />
+    public PdfDocument Value => ToDocument();
+
+    /// <inheritdoc />
+    public PdfDocument RequireValue() => ToDocument();
     /// <summary>Returns a defensive copy of the merged artifact.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the merged artifact through the OfficeIMO.Pdf document surface.</summary>

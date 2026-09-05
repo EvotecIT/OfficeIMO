@@ -57,7 +57,7 @@ public partial class Excel {
             document.AddWorksheet("Empty two");
             document.Save();
 
-            bytes = document.ToPdf();
+            bytes = document.ToPdfBytes();
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -85,7 +85,7 @@ public partial class Excel {
             document.SetPrintArea(excluded, "A1:B2", save: false);
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions { UseWorksheetPrintAreas = true });
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions { UseWorksheetPrintAreas = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -117,7 +117,7 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            bytes = document.ToPdf();
+            bytes = document.ToPdfBytes();
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -137,7 +137,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "Explicit serif default");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 FontFamily = "serif",
                 IncludeSheetHeadings = false
             });
@@ -172,7 +172,7 @@ public partial class Excel {
             sheet.Cell(2, 2, 1250.5);
             document.Save();
 
-            pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
+            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
@@ -215,7 +215,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "Licenses");
             document.Save();
 
-            pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
+            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
@@ -250,7 +250,7 @@ public partial class Excel {
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 SheetNames = new[] { "summary" }
             });
         }
@@ -279,12 +279,12 @@ public partial class Excel {
             Assert.True(hidden.Hidden);
             document.Save();
 
-            visibleBytes = document.ToPdf(new ExcelPdfSaveOptions {
+            visibleBytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
 
-            explicitHiddenBytes = document.ToPdf(new ExcelPdfSaveOptions {
+            explicitHiddenBytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 SheetNames = new[] { "Hidden" },
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0

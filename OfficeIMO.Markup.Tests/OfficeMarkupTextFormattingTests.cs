@@ -12,6 +12,35 @@ namespace OfficeIMO.Tests.Markup;
 
 public class OfficeMarkupTextFormattingTests {
     [Fact]
+    public void SharedConversionResult_PreservesTypedMarkupFailure() {
+        var diagnostic = new OfficeMarkupDiagnostic(
+            OfficeMarkupDiagnosticSeverity.Error,
+            "Invalid markup contract.");
+        var result = new OfficeMarkupConversionResult<object>(new object(), new[] { diagnostic });
+
+        OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
+            () => result.RequireValue());
+
+        Assert.Same(diagnostic, Assert.Single(exception.Diagnostics));
+    }
+
+    [Fact]
+    public void PowerPointConversionResult_PreservesTypedMarkupFailure() {
+        var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
+        source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));
+
+        OfficeMarkupPowerPointConversionResult result = source.ToPowerPointPresentationResult(
+            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        using (result.Value) {
+            OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
+                () => result.RequireValue());
+
+            Assert.Contains(exception.Diagnostics, diagnostic =>
+                diagnostic.Severity == OfficeMarkupDiagnosticSeverity.Error);
+        }
+    }
+
+    [Fact]
     public void StyleResolver_ParsesCompleteTypographyAttributes() {
         var block = new OfficeMarkupTextBoxBlock("Mixed case");
         block.Attributes["font-family"] = "Aptos";

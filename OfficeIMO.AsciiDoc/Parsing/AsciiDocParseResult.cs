@@ -1,7 +1,7 @@
 namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Result of parsing AsciiDoc source.</summary>
-public sealed class AsciiDocParseResult {
+public sealed class AsciiDocParseResult : IOfficeResult<AsciiDocDocument> {
     internal AsciiDocParseResult(AsciiDocDocument document, IReadOnlyList<AsciiDocDiagnostic> diagnostics) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         Diagnostics = diagnostics ?? Array.Empty<AsciiDocDiagnostic>();
@@ -9,6 +9,15 @@ public sealed class AsciiDocParseResult {
 
     /// <summary>Best recoverable typed document.</summary>
     public AsciiDocDocument Document { get; }
+
+    /// <inheritdoc />
+    public AsciiDocDocument Value => Document;
+
+    /// <inheritdoc />
+    public bool Succeeded => true;
+
+    /// <inheritdoc />
+    public AsciiDocDocument RequireValue() => Document;
 
     /// <summary>Parser and recovery diagnostics.</summary>
     public IReadOnlyList<AsciiDocDiagnostic> Diagnostics { get; }

@@ -17,7 +17,7 @@ public sealed class ReaderLatexModularTests {
     [Fact]
     public void ParsedDocument_EmitsSemanticChunksWithHierarchyAndMathDiagnostics() {
         ReaderChunk[] chunks = LatexReaderAdapter.Read(
-            LatexDocument.Parse(Source).Document,
+            LatexDocument.ParseResult(Source).Document,
             "guide.tex").ToArray();
 
         Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Latex, chunk.Kind));
@@ -85,7 +85,7 @@ public sealed class ReaderLatexModularTests {
     [Fact]
     public void WholeDocumentChunk_TextIncludesAllProjectedSemanticBlocks() {
         ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(
-            LatexDocument.Parse(Source).Document,
+            LatexDocument.ParseResult(Source).Document,
             "guide.tex",
             latexOptions: new ReaderLatexOptions { ChunkByBlock = false }));
 
@@ -106,7 +106,7 @@ public sealed class ReaderLatexModularTests {
             "\\begin{figure}\\includegraphics{plot.png}\\caption{Plot caption}\\end{figure}\n" +
             "\\end{document}\n";
 
-        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source).Document).ToArray();
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.ParseResult(source).Document).ToArray();
 
         ReaderChunk definitions = Assert.Single(chunks, static chunk => chunk.Location.SourceBlockKind == "list-description");
         Assert.Contains("Term: Definition", definitions.Text, StringComparison.Ordinal);
@@ -125,7 +125,7 @@ public sealed class ReaderLatexModularTests {
             "\\end{document}\n";
 
         ReaderChunk table = Assert.Single(LatexReaderAdapter.Read(
-            LatexDocument.Parse(source).Document,
+            LatexDocument.ParseResult(source).Document,
             "table.tex"), static chunk => chunk.Location.SourceBlockKind == "table");
 
         Assert.Contains("Important values", table.Text, StringComparison.Ordinal);

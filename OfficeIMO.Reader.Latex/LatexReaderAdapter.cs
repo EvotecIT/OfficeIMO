@@ -14,7 +14,7 @@ internal static class LatexReaderAdapter {
         ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderLatexOptions adapter = ReaderLatexOptionsCloner.Clone(latexOptions);
-        LatexParseResult result = LatexDocument.Parse(File.ReadAllText(path), adapter.ParseOptions);
+        LatexParseResult result = LatexDocument.ParseResult(File.ReadAllText(path), adapter.ParseOptions);
         return ReadResult(result, path, reader, adapter, cancellationToken);
     }
 
@@ -32,7 +32,7 @@ internal static class LatexReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, reader.MaxInputBytes, cancellationToken, out bool ownsStream);
         try {
             using var textReader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
-            LatexParseResult result = LatexDocument.Parse(textReader.ReadToEnd(), adapter.ParseOptions);
+            LatexParseResult result = LatexDocument.ParseResult(textReader.ReadToEnd(), adapter.ParseOptions);
             string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
             return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();
         } finally {

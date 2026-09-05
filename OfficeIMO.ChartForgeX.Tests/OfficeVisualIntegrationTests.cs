@@ -429,7 +429,7 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
-    public void SymbolUseGroupsRemainVectorAndCanBeWrittenToPdf() {
+    public void SymbolUseGroupsRemainVectorAndCanBeWrittenToPdfBytes() {
         const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"80\" viewBox=\"0 0 120 80\"><defs><symbol id=\"badge\" viewBox=\"0 0 40 30\"><rect width=\"40\" height=\"30\" rx=\"4\" fill=\"#2563eb\"/><text x=\"20\" y=\"19\" text-anchor=\"middle\" fill=\"white\">OK</text></symbol></defs><use href=\"#badge\" x=\"20\" y=\"15\" width=\"80\" height=\"50\"/></svg>";
         var source = new OfficeVisualSource(svg) {
             AlternativeText = "Reusable status badge"

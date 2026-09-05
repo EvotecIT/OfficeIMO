@@ -101,7 +101,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            byte[] bytes = document.ToPdf();
+            byte[] bytes = document.ToPdfBytes();
             Assert.True(bytes.Length > 0);
         }
     }
@@ -122,15 +122,16 @@ public partial class Word {
     }
 
     [Fact]
-    public async Task TrySaveAsPdf_PropagatesCancellationFromOptions() {
+    public async Task SaveAsPdfResult_PropagatesCancellationFromParameter() {
         using WordDocument document = WordDocument.Create();
-        document.AddParagraph("Option cancellation");
+        document.AddParagraph("Parameter cancellation");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new WordPdfSaveOptions { CancellationToken = cancellation.Token };
+        var options = new WordToPdfOptions();
 
-        Assert.ThrowsAny<OperationCanceledException>(() => document.TrySaveAsPdf(new MemoryStream(), options));
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            document.SaveAsPdfResult(new MemoryStream(), options, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.TrySaveAsPdfAsync(new MemoryStream(), options));
+            document.SaveAsPdfResultAsync(new MemoryStream(), options, cancellation.Token));
     }
 }

@@ -581,7 +581,7 @@ public class PdfOcrTests {
         Assert.Single(odsResult.Value.Sheets);
 
         PdfPowerPointConversionResult presentationResult = result.Document
-            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
         using (presentationResult.Value) {
             Assert.Single(presentationResult.Report.EditablePages);
             Assert.Equal(1, presentationResult.Report.EditablePages[0].TableCount);

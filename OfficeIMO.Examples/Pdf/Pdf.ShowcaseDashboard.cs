@@ -34,25 +34,25 @@ namespace OfficeIMO.Examples.Pdf {
 
                             content.Row(row => {
                                 row.Gap(14)
-                                    .Column(25, column => column.PanelParagraph(p => p.Bold("92%").Text("\nSLA attainment"), MetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
-                                    .Column(25, column => column.PanelParagraph(p => p.Bold("1.8h").Text("\nMean response"), MetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
-                                    .Column(25, column => column.PanelParagraph(p => p.Bold("34").Text("\nOpen actions"), MetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
-                                    .Column(25, column => column.PanelParagraph(p => p.Bold("0").Text("\nCritical blockers"), MetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("92%").Text("\nSLA attainment"), MetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("1.8h").Text("\nMean response"), MetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("34").Text("\nOpen actions"), MetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("0").Text("\nCritical blockers"), MetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
                             });
 
                             content.Spacer(12);
                             content.Row(row => {
                                 row.Gap(18)
-                                    .Column(58, column => {
+                                    .PercentColumn(58, column => {
                                         column.Paragraph(p => p.Bold("Delivery trend"), style: SectionLabel());
                                         column.Drawing(CreateTrendDrawing(), PdfAlign.Left, spacingBefore: 2, spacingAfter: 8);
                                         column.Table(CreateRiskRows(), style: RiskTableStyle());
                                     })
-                                    .Column(42, column => {
+                                    .PercentColumn(42, column => {
                                         column.Paragraph(p => p.Bold("Narrative"), style: SectionLabel());
                                         column.PanelParagraph(
                                             p => p.Text("The dashboard deliberately avoids a domain-specific report object. It uses the same primitive surface that a Word, Excel, or PowerPoint exporter could target later: page setup, rows, tables, paragraphs, shapes, and themes."),
-                                            new PanelStyle {
+                                            new PdfPanelStyle {
                                                 Background = PdfColor.FromRgb(248, 250, 252),
                                                 BorderColor = PdfColor.FromRgb(203, 213, 225),
                                                 BorderWidth = 0.7,
@@ -83,8 +83,8 @@ namespace OfficeIMO.Examples.Pdf {
             }
         }
 
-        private static PanelStyle MetricPanel(PdfColor background, PdfColor border) {
-            return new PanelStyle {
+        private static PdfPanelStyle MetricPanel(PdfColor background, PdfColor border) {
+            return new PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
                 BorderWidth = 0.8,

@@ -45,6 +45,96 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+## Authoring model
+
+`PdfDocumentBuilder` owns document settings and page boundaries.
+`PdfContentBuilder` is the single flow receiver used by document content, page
+content, components, logical groups, and row columns. This keeps reusable content
+independent of where it is placed.
+
+For incremental authoring, use `var document = PdfDocument.Create(options)` and
+add blocks through `document.Content`. The same builder supports both ordinary
+statements and fluent chains; callbacks remain useful for grouping and page setup.
+
+```csharp
+PdfDocument.Create(document => document
+    .Settings(options => {
+        options.PageSize = PageSizes.A4;
+        options.Margins = PageMargins.Uniform(36);
+    })
+    .Content(content => content
+        .H1("Work items")
+        .Row(row => row
+            .FixedColumn(48, cell => cell.Text("ID"))
+            .AutoColumn(cell => cell.Text("Owner"), maximum: 100)
+            .RelativeColumn(cell => cell.Text("Description")))));
+```
+
+`Element(...)` is the uniform layout and semantics envelope. Its `Content(...)`
+callback receives the same `PdfContentBuilder`, so a reusable component or flow
+fragment does not need an element-specific API:
+
+```csharp
+PdfDocument.Create(document => document
+    .Typography(OfficeRenderingProfile.Managed)
+    .Settings(options => options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers)
+    .Content(content => content.Element(element => element
+        .Semantic(PdfSemanticRole.Article)
+        .Background(PdfColor.FromRgb(248, 250, 252))
+        .Border(PdfColor.FromRgb(148, 163, 184))
+        .Padding(vertical: 10, horizontal: 12)
+        .MaxWidth(420)
+        .Align(PdfAlign.Center)
+        .KeepTogether()
+        .Content(article => article
+            .H1("Accessible report")
+            .Text("One composition path from API to tagged output.")
+            .Row(row => row
+                .FixedColumn(64, cell => cell.Text("ID"))
+                .RelativeColumn(cell => cell.Text("Description")))))));
+```
+
+Decorated elements use a scoped flow frame rather than a second layout engine.
+Rows, sections, multi-column flow, layers, deferred content, nested elements, and
+explicit page breaks therefore retain their normal pagination behavior inside an
+element, while its background and borders continue across page fragments.
+`KeepTogether` and `KeepWithNext` are strict promises: content that depends on a
+dynamic page callback, automatic multi-column pagination, a deferred table, a
+generated table of contents, a canvas, or an explicit page boundary cannot be
+preflighted and is rejected when such a promise requires its complete height.
+Move that content outside the constrained element or flow instead of relying on
+best-effort pagination.
+
+Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
+`Managed` selects the dependency-light shaping provider for its documented
+core-Arabic/TrueType subset. Supply a profile containing your embedded font family,
+fallbacks, language, and shaping provider when the document contract requires
+broader scripts or reproducible font selection.
+
+For a complete generated sample, see
+[`Pdf.AuthoringModel.cs`](../OfficeIMO.Examples/Pdf/Pdf.AuthoringModel.cs). The
+existing report, invoice, label-sheet, ticket, table-style, drawing, dashboard,
+and statement examples build on the same public content model.
+
+Rows make width intent explicit: `FixedColumn` uses points, `AutoColumn` measures
+content within optional bounds, `RelativeColumn` divides remaining space by
+weight, and `PercentColumn` consumes a percentage of the available row width.
+Use `Column(PdfColumnWidth, ...)` when the sizing value is created separately.
+Mixed rows reject a relative column when fixed, automatic, and percentage columns
+leave it no positive width. Automatic sizing measures panel text and padding as
+well as ordinary text and fixed-size primitives.
+Columns can contain the normal flow primitives, including rich text, lists,
+tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
+Decorated elements, semantic groups, static components, and static flow with
+position capture or keep-together rules work inside rows. Page boundaries,
+sections, layers, automatic multi-column layouts, contextual or conditional flow,
+and nested rows remain outer layout boundaries.
+
+Percentages are literal in every row. Use relative weights for proportional fill.
+`Panel` and `Element` preserve child blocks through the same container layout;
+`PanelParagraph` adds one ordinary paragraph inside that container. Keep-together
+content must fit a complete frame, including padding. Otherwise allow splitting.
+
 ## What it does
 
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
@@ -241,7 +331,7 @@ The unified API intentionally narrows the public surface around the fluent
   including for randomized encrypted output.
 - Author new documents through `PdfDocument.Create(pdf => ...)` or append authored
   content through `Compose(...)`. Headings, paragraphs, tables, images, and other
-  flow primitives live on `PdfItemCompose`; they are no longer duplicated on the
+  flow primitives live on `PdfContentBuilder`; they are no longer duplicated on the
   root document.
 - Use the fluent `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`,
   `Stamp`, `Security`, `Redactions`, `Optimization`, `Proof`, and metadata operations instead of the former public
@@ -250,12 +340,12 @@ The unified API intentionally narrows the public surface around the fluent
 - `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
   return `PdfSaveResult`. It carries output path/length, conversion warnings,
   and an immutable `Pipeline` with create/open, mutation, hash, page-count,
-  execution-mode, timing, and final-output evidence. `TrySave(...)` keeps the
+  execution-mode, timing, and final-output evidence. `SaveResult(...)` keeps the
   same result shape while capturing exceptions instead of throwing.
 
 The target-framework support remains `netstandard2.0`, `net8.0`, and
 `net10.0`. See the [OfficeIMO migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md)
-for the OfficeIMO 3.3 breaking changes and old-to-new API map.
+for the OfficeIMO 3.4 authoring changes and old-to-new API map.
 
 ## Examples
 
@@ -431,8 +521,13 @@ var options = new PdfOptions {
 PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
         .TableOfContents()
         .Section("Summary", section => section
-            .Container(container => container
-                .Paragraph(p => p.Text("A styled, keep-together summary."))))
+            .Element(element => element
+                .Background(PdfColor.FromRgb(248, 250, 252))
+                .Border(PdfColor.FromRgb(148, 163, 184))
+                .Padding(10)
+                .KeepTogether()
+                .Content(summary => summary
+                    .Paragraph(p => p.Text("A styled, keep-together summary.")))))
         .Section("Details", section => section
             .Columns(columns => {
                 columns.Paragraph(p => p.Text("First column"));
@@ -704,7 +799,7 @@ PdfDocument second = PdfDocument.Load("second.pdf", new PdfLoadOptions {
     PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
 });
 
-PdfMergeResult merged = PdfDocument.MergeWithReport(
+PdfMergeResult merged = PdfDocument.MergeResult(
     new PdfMergeOptions(),
     first,
     second);
@@ -1246,7 +1341,7 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new WordPdfSaveOptions {
+var options = new WordToPdfOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);
@@ -1381,7 +1476,7 @@ Console.WriteLine($"Non-table page content detected: {tableReport.HasOmittedPage
 PdfHtmlConverterExtensions.SaveAsHtml(
     "proposal.pdf",
     "proposal-review.html",
-    new PdfHtmlSaveOptions {
+    new PdfToHtmlOptions {
         Profile = PdfHtmlProfile.PositionedReview,
         IncludeLinkAnnotations = true,
         IncludeFormWidgets = true

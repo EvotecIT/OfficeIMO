@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
             seriesLegendWidthRatio: 0.0001D,
             categoryLegendWidthRatio: 0.0001D);
 
-        private static void AddWorksheetChart(PdfCore.PdfItemCompose item, WorksheetChartExportData chart, string sheetName, ExcelPdfSaveOptions options) {
+        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelToPdfOptions options) {
             ExcelChartSnapshot snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
                 item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel.Pdf {
             item.Table(CreateChartLegendRows(snapshot), PdfCore.PdfAlign.Left, CreateChartLegendStyle(GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 
-        private static void AddChartQualityWarning(ExcelPdfSaveOptions options, string sheetName, ExcelChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
+        private static void AddChartQualityWarning(ExcelToPdfOptions options, string sheetName, ExcelChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
             if (!qualityReport.HasIssues) {
                 return;
             }
@@ -39,11 +39,11 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelToPdfOptions options) {
             return CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: false);
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options, bool preserveWorksheetLegend) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelToPdfOptions options, bool preserveWorksheetLegend) {
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }

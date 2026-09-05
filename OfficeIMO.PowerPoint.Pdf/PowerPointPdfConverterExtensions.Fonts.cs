@@ -7,7 +7,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static PdfCore.PdfOptions CreatePdfOptions(PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
+    private static PdfCore.PdfOptions CreatePdfOptions(PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions options) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
@@ -36,7 +36,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void ApplyTextFallbacks(
         PdfCore.PdfOptions pdfOptions,
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         bool preserveConfiguredFontSlots,
         IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
         PptCore.PowerPointPresentation presentation) {
@@ -68,7 +68,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool PresentationRequiresConservativeTextFallbacks(
         PptCore.PowerPointPresentation presentation,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
             if (!options.IncludeHiddenSlides && slide.Hidden) {
                 continue;
@@ -87,7 +87,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool ContainsPresentationConservativeFallbackShape(
         IReadOnlyList<PptCore.PowerPointShape> shapes,
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {
             if (shape.Hidden) {
@@ -115,7 +115,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static IEnumerable<string?> EnumeratePresentationFallbackText(
         PptCore.PowerPointPresentation presentation,
-        PowerPointPdfSaveOptions options) {
+        PowerPointToPdfOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
             if (!options.IncludeHiddenSlides && slide.Hidden) {
                 continue;
@@ -145,7 +145,7 @@ public static partial class PowerPointPdfConverterExtensions {
         return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
     }
 
-    private static HashSet<PdfCore.PdfStandardFont> RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options, bool preserveConfiguredFontSlots) {
+    private static HashSet<PdfCore.PdfStandardFont> RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointToPdfOptions options, bool preserveConfiguredFontSlots) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
         double pageWidth = presentation.SlideSize.WidthPoints;
@@ -182,7 +182,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool ContainsPresentationThemeFontUsage(
         IReadOnlyList<PptCore.PowerPointShape> shapes,
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         int groupDepth) {
         if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
             return false;
@@ -290,13 +290,13 @@ public static partial class PowerPointPdfConverterExtensions {
         return false;
     }
 
-    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options, int groupDepth) {
+    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options, int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {
             RegisterPresentationShapeFonts(shape, slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options, groupDepth);
         }
     }
 
-    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options, int groupDepth) {
+    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options, int groupDepth) {
         if (shape.Hidden) {
             return;
         }
@@ -326,7 +326,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+    private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options) {
         RegisterPresentationFontCandidate(textBox.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
             foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
@@ -335,7 +335,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+    private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options) {
         for (int row = 0; row < table.Rows; row++) {
             for (int column = 0; column < table.Columns; column++) {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
@@ -347,7 +347,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options) {
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody == null) {
             return;
@@ -379,7 +379,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfOptions pdfOptions,
         HashSet<string> registeredFamilies,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         int slideNumber,
         bool reportSubstitution = true) {
         if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {

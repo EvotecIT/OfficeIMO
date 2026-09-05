@@ -9,6 +9,11 @@ public sealed partial class PdfDocument {
         PdfFlowOptions? options = null,
         PdfLayoutPositionCapture? capture = null) {
         Guard.NotNull(component, nameof(component));
+        if (options == null && capture == null) {
+            component.Compose(new PdfContentBuilder(this));
+            return this;
+        }
+
         return Flow(component.Compose, options, capture);
     }
 
@@ -32,7 +37,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
     internal PdfDocument Flow(
-        Action<PdfItemCompose> compose,
+        Action<PdfContentBuilder> compose,
         PdfFlowOptions? options = null,
         PdfLayoutPositionCapture? capture = null) {
         Guard.NotNull(compose, nameof(compose));
@@ -42,7 +47,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Adds replayable content materialized from the live page context. Identical contexts are reused across layout stabilization passes.</summary>
     internal PdfDocument Deferred(
-        Func<PdfFlowContext, Action<PdfItemCompose>> composeFactory,
+        Func<PdfFlowContext, Action<PdfContentBuilder>> composeFactory,
         PdfFlowOptions? options = null,
         PdfLayoutPositionCapture? capture = null) {
         Guard.NotNull(composeFactory, nameof(composeFactory));
@@ -50,7 +55,7 @@ public sealed partial class PdfDocument {
         AddBlock(new FlowBlock(
             context => {
                 using GeneratedSectionMaterializationScope generatedSections = BeginGeneratedSectionMaterialization(generatedSectionOwner);
-                Action<PdfItemCompose> compose = composeFactory(context)
+                Action<PdfContentBuilder> compose = composeFactory(context)
                     ?? throw new InvalidOperationException("Deferred PDF flow factory returned null.");
                 return BuildFlowBlocks(compose);
             },
@@ -59,10 +64,10 @@ public sealed partial class PdfDocument {
         return this;
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<IPdfBlock> BuildFlowBlocks(Action<PdfItemCompose> compose) {
+    internal System.Collections.ObjectModel.ReadOnlyCollection<IPdfBlock> BuildFlowBlocks(Action<PdfContentBuilder> compose) {
         var blocks = new List<IPdfBlock>();
         using (PushBlockScope(blocks.Add)) {
-            compose(new PdfItemCompose(this));
+            compose(new PdfContentBuilder(this));
         }
 
         return blocks.AsReadOnly();

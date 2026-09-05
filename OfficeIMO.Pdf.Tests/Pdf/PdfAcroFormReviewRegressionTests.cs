@@ -18,7 +18,7 @@ public class PdfAcroFormReviewRegressionTests {
         var values = new Dictionary<string, string> { ["calculate"] = "Off" };
 
         if (useTryFill) {
-            PdfOperationResult<PdfDocument> result = PdfDocument.Load(authored).Forms.TryFill(values);
+            PdfOperationResult<PdfDocument> result = PdfDocument.Load(authored).Forms.FillResult(values);
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Contains("Push-button", StringComparison.Ordinal));
         } else {

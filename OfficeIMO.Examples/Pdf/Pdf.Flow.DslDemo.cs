@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
                                     .Bold("What this protects")
                                     .LineBreak()
                                     .Text("Page settings, composed content, explicit page breaks, header/footer tokens, and rich text inside composed items."),
-                                new PanelStyle {
+                                new PdfPanelStyle {
                                     Background = PdfColor.FromRgb(248, 250, 252),
                                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                                     PaddingX = 9,

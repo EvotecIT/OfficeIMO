@@ -137,7 +137,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "WWWWWWWW" }
                                 }, style: style))))))
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { new string('i', 20) }
                                 }, style: style))))))
@@ -272,7 +272,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Numbered(new[] { "WWWWWWWW" }))))))
             .ToBytes();
 
@@ -309,7 +309,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Numbered(new[] { new string('i', 20) }))))))
             .ToBytes();
 
@@ -406,7 +406,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Long", "Column-local table cells also get clipped to the cell content rectangle." }
@@ -569,7 +569,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column.Table(rows, style: style))))))
+                            row.PercentColumn(100, column => column.Table(rows, style: style))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -677,7 +677,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => {
+                            row.PercentColumn(100, column => {
                                 column.Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = 52
                                 });

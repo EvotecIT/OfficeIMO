@@ -367,7 +367,7 @@ public sealed class PdfFontInspectionTests {
 
     [Fact]
     public void TryFonts_UsesLogicalContentPermissionGate() {
-        PdfOperationResult<PdfFontInventory> result = PdfDocument.Load(BuildFontPdf()).Reader.TryFonts();
+        PdfOperationResult<PdfFontInventory> result = PdfDocument.Load(BuildFontPdf()).Reader.FontsResult();
 
         Assert.True(result.Succeeded);
         Assert.Equal(PdfPreflightCapability.ReadLogicalObjects, result.Capability);
@@ -379,7 +379,7 @@ public sealed class PdfFontInspectionTests {
         PdfDocument source = PdfDocument.Load(BuildFontPdf());
 
         PdfFontInventory inventory = source.Resources.Fonts(PdfPageSelector.Parse("last"));
-        PdfOperationResult<PdfFontInventory> attempt = source.Reader.TryFonts(PdfPageSelector.Parse("1"));
+        PdfOperationResult<PdfFontInventory> attempt = source.Reader.FontsResult(PdfPageSelector.Parse("1"));
 
         Assert.Equal(1, inventory.FontCount);
         Assert.True(attempt.Succeeded);

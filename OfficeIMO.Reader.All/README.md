@@ -31,9 +31,9 @@ not introduce a second renderer.
 ```csharp
 using OfficeIMO.Reader.All;
 
-PdfDocumentConversionResult email = OfficeDocumentPdfConverter.EmailToPdf("message.eml");
-PdfDocumentConversionResult book = OfficeDocumentPdfConverter.EpubToPdf("book.epub");
-PdfDocumentConversionResult diagram = OfficeDocumentPdfConverter.VisioToPdf("diagram.vsdx");
+PdfDocumentConversionResult email = OfficeDocumentPdfConverter.EmailToPdfBytes("message.eml");
+PdfDocumentConversionResult book = OfficeDocumentPdfConverter.EpubToPdfBytes("book.epub");
+PdfDocumentConversionResult diagram = OfficeDocumentPdfConverter.VisioToPdfBytes("diagram.vsdx");
 
 email.Save("message.pdf");
 book.Save("book.pdf");

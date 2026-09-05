@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Represents the destination artifact and report produced by a Word file conversion.</summary>
-    public sealed class WordDocumentConversionResult {
+    public sealed class WordDocumentConversionResult : IOfficeConversionResult<string, WordDocumentConversionReport> {
         internal WordDocumentConversionResult(
             string sourcePath,
             string destinationPath,
@@ -46,6 +46,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets whether the conversion reported known content loss.</summary>
         public bool HasLoss => Report.HasLoss;
 
+        /// <summary>Gets whether the destination artifact was committed.</summary>
+        public bool Succeeded => Value != null;
+
         /// <summary>Returns the committed destination path or throws when no artifact was produced.</summary>
         public string RequireValue() => Value
             ?? throw new InvalidOperationException("The Word conversion did not produce a destination artifact.");
@@ -58,7 +61,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Word conversion.</summary>
-    public sealed class WordDocumentConversionReport {
+    public sealed class WordDocumentConversionReport : IOfficeConversionReport {
         internal WordDocumentConversionReport(
             string sourcePath,
             string destinationPath,

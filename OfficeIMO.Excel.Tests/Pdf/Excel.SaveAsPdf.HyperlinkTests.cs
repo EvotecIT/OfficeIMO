@@ -31,7 +31,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -73,14 +73,14 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(24)
             });
 
-            summaryOnlyBytes = document.ToPdf(new ExcelPdfSaveOptions {
+            summaryOnlyBytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 SheetNames = new[] { "Summary" },
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
@@ -117,7 +117,7 @@ public partial class Excel {
             sheet.SetInternalLink(2, 1, "A1", display: "Back to Top");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -148,7 +148,7 @@ public partial class Excel {
             document.SetPrintArea(details, "A1:B2");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),

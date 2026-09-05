@@ -32,9 +32,9 @@ internal static partial class PdfWriter {
 
             double columnAreaWidth = contentWidth - totalGap;
             double[] colXs = new double[ncols];
-            double[] colWs = new double[ncols];
+            double[] colWs = ResolveRowColumnWidths(rb, columnAreaWidth);
             double xAcc = currentOpts.MarginLeft;
-            for (int i = 0; i < ncols; i++) { double wCol = Math.Max(0, columnAreaWidth * (rb.Columns[i].WidthPercent / 100.0)); colXs[i] = xAcc; colWs[i] = wCol; xAcc += wCol + rowGap; }
+            for (int i = 0; i < ncols; i++) { colXs[i] = xAcc; xAcc += colWs[i] + rowGap; }
 
             void DrawRowColumnSeparators(double topY, double bottomY) {
                 if (ncols <= 1 || rowStyle?.ColumnSeparatorColor == null || rowStyle.ColumnSeparatorWidth <= 0D || topY - bottomY <= 0.001D) {
@@ -51,6 +51,7 @@ internal static partial class PdfWriter {
 
             var colStates = CreateRowColumnStates(ncols);
             var colItems = BuildRowColumnItems(rb, colWs);
+            var columnGroups = Enumerable.Range(0, ncols).Select(_ => new List<ColumnGroup>()).ToArray();
             var columnListStructureElementIndexes = new int?[ncols];
             var columnListStructurePages = new LayoutResult.Page?[ncols];
             var columnActiveListGroupIds = new int[ncols];
@@ -99,7 +100,7 @@ internal static partial class PdfWriter {
             if (rowStyle?.KeepWithNext == true && nextBlock != null) {
                 double rowContentHeight = GetRowContentHeight();
                 double rowHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, rowHeight);
                 double keepHeight = rowHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -144,8 +145,25 @@ internal static partial class PdfWriter {
                     double yCol = y;
                     double consumed = 0;
                     double remain = avail;
-                    while (idx < items.Count && remain > 0.1) {
+                    List<ColumnGroup> activeGroups = columnGroups[ci];
+                    ResumeColumnGroups(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
+                    while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
                         var it = items[idx];
+                        xCol = colXs[ci] + it.ColumnXOffset;
+                        wCol = it.ColumnWidth;
+                        if (it is ColGroupStart groupStart) {
+                            if (!TryBeginColumnGroup(groupStart.Group, activeGroups, items, idx, colXs[ci], ref yCol, ref remain, ref consumed)) break;
+                            idx++;
+                            continue;
+                        }
+                        if (it is ColGroupEnd groupEnd) {
+                            EndColumnGroupFragment(groupEnd.Group, colXs[ci], ref yCol, ref remain, ref consumed);
+                            activeGroups.RemoveAt(activeGroups.Count - 1);
+                            double after = Math.Min(groupEnd.Group.Style?.SpacingAfter ?? 0D, Math.Max(0D, remain));
+                            ConsumeColumnSpace(after, ref yCol, ref remain, ref consumed);
+                            idx++;
+                            continue;
+                        }
                         if (it is ColListItem currentListItem) {
                             if (columnActiveListGroupIds[ci] != currentListItem.ListGroupId) {
                                 columnActiveListGroupIds[ci] = currentListItem.ListGroupId;
@@ -170,7 +188,7 @@ internal static partial class PdfWriter {
                             if (paragraphStyle?.KeepWithNext == true && line == 0 && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = spacingBefore + heights.Sum() + spacingAfter + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -180,7 +198,7 @@ internal static partial class PdfWriter {
 
                             if (paragraphStyle?.KeepTogether == true && line == 0) {
                                 double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (paragraphHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                 }
@@ -240,7 +258,7 @@ internal static partial class PdfWriter {
                             if (ch.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -290,7 +308,7 @@ internal static partial class PdfWriter {
                             double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(listItem.SpacingBefore, consumed) : 0D;
                             if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
                                 double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (keepGroupHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("List height exceeds the available page content height.");
                                 }
@@ -307,7 +325,7 @@ internal static partial class PdfWriter {
                                 if (nextItemIndex < items.Count) {
                                     double nextHeight = MeasureColKeepWithNextChainHeight(items, nextItemIndex);
                                     double keepHeight = listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore + nextHeight;
-                                    double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                    double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                     if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                         if (consumed > 0) break;
                                         remain = 0;
@@ -405,663 +423,14 @@ internal static partial class PdfWriter {
                                 idx++;
                                 line = 0;
                             }
-                        } else if (it is ColPanel panel) {
-                            var pblock = panel.Block;
-                            var panelStyle = panel.Style;
-                            var lines = panel.Lines;
-                            var heights = panel.Heights;
-                            double xPanel = xCol + panel.XOffset;
-                            double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(panelStyle.SpacingBefore, consumed) : 0D;
-                            if (line == 0 && panelStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
-                                double panelHeight = spacingBefore + panelStyle.PaddingY + heights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
-                                double keepHeight = panelHeight + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
-                                    if (consumed > 0) break;
-                                    remain = 0;
-                                    break;
-                                }
-                            }
-
-                            if (line == 0 && spacingBefore > 0) {
-                                if (spacingBefore > remain && consumed > 0) break;
-                                if (spacingBefore > remain && consumed == 0) { remain = 0; break; }
-                                yCol -= spacingBefore;
-                                remain -= spacingBefore;
-                                consumed += spacingBefore;
-                            }
-
-                            double keepTogetherTextHeight = heights.Sum();
-                            double keepTogetherPanelHeight = panelStyle.PaddingY + keepTogetherTextHeight + panelStyle.PaddingY;
-                            double keepTogetherAvailableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                            if (panelStyle.KeepTogether && panelStyle.PaddingY + panelStyle.PaddingY > keepTogetherAvailableHeight + 0.001D) {
-                                throw new ArgumentException("Panel vertical padding and first line height exceed the available page content height.");
-                            }
-
-                            bool keepPanelTogether = panelStyle.KeepTogether && keepTogetherPanelHeight <= keepTogetherAvailableHeight + 0.001;
-                            if (keepPanelTogether) {
-                                double panelHeight = keepTogetherPanelHeight;
-
-                                if (panelHeight > remain && consumed > 0) break;
-                                if (panelHeight > remain && consumed == 0) { remain = 0; break; }
-
-                                double panelTop = yCol;
-                                double panelBottom = yCol - panelHeight;
-                                if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure); }
-                                if (DrawPanelBorder(sb, panelStyle, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
-                                pageDirty = true;
-                                int? panelMarkedContentId = RegisterTextStructureElement("P");
-                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), lines, heights, currentOpts, panelTop - panelStyle.PaddingY - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
-                                MarkRichFonts(pblock.Runs);
-
-                                yCol = panelBottom;
-                                remain -= panelHeight;
-                                consumed += panelHeight;
-                                if (panelStyle.SpacingAfter > 0 && panelStyle.SpacingAfter <= remain) {
-                                    yCol -= panelStyle.SpacingAfter;
-                                    remain -= panelStyle.SpacingAfter;
-                                    consumed += panelStyle.SpacingAfter;
-                                }
-                                idx++;
-                                line = 0;
-                            } else {
-                                int start = line;
-                                double topPad = start == 0 ? panelStyle.PaddingY : 0;
-                                double minLine = heights[start];
-                                if (remain < topPad + minLine) {
-                                    EnsurePanelSegmentCanFitLine(topPad, minLine);
-                                    if (consumed > 0) break;
-                                    remain = 0;
-                                    break;
-                                }
-
-                                double roomForText = remain - topPad - panelStyle.PaddingY;
-                                if (roomForText < minLine) {
-                                    if (start == lines.Count - 1) {
-                                        EnsurePanelSegmentCanFitLine(topPad + panelStyle.PaddingY, minLine);
-                                        if (consumed > 0) break;
-                                        remain = 0;
-                                        break;
-                                    }
-
-                                    roomForText = remain - topPad;
-                                }
-
-                                int take = 0;
-                                double hsum = 0;
-                                for (int k = start; k < lines.Count; k++) {
-                                    double h = heights[k];
-                                    if (hsum + h > roomForText) break;
-                                    hsum += h;
-                                    take++;
-                                }
-
-                                if (take == 0) {
-                                    EnsurePanelSegmentCanFitLine(topPad, minLine);
-                                    break;
-                                }
-
-                                bool lastSeg = start + take >= lines.Count;
-                                if (lastSeg && topPad + hsum + panelStyle.PaddingY > remain + 0.001D) {
-                                    if (take > 1) {
-                                        take--;
-                                        hsum -= heights[start + take];
-                                        lastSeg = false;
-                                    } else {
-                                        EnsurePanelSegmentCanFitLine(topPad + panelStyle.PaddingY, minLine);
-                                        if (consumed > 0) break;
-                                        remain = 0;
-                                        break;
-                                    }
-                                }
-
-                                double panelTop = yCol;
-                                double usedBottomPad = lastSeg ? panelStyle.PaddingY : Math.Max(0, remain - (topPad + hsum));
-                                double panelBottom = yCol - (topPad + hsum + usedBottomPad);
-                                if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure); }
-                                if (DrawPanelBorder(sb, panelStyle, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
-
-                                var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
-                                var sliceHeights = new System.Collections.Generic.List<double>();
-                                for (int k = 0; k < take; k++) {
-                                    sliceLines.Add(lines[start + k]);
-                                    sliceHeights.Add(heights[start + k]);
-                                }
-
-                                pageDirty = true;
-                                int? panelMarkedContentId = RegisterTextStructureElement("P");
-                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
-                                MarkRichFonts(pblock.Runs);
-
-                                double segmentHeight = panelTop - panelBottom;
-                                yCol = panelBottom;
-                                remain -= segmentHeight;
-                                consumed += segmentHeight;
-                                line += take;
-                                if (line >= lines.Count) {
-                                    if (panelStyle.SpacingAfter > 0 && panelStyle.SpacingAfter <= remain) {
-                                        yCol -= panelStyle.SpacingAfter;
-                                        remain -= panelStyle.SpacingAfter;
-                                        consumed += panelStyle.SpacingAfter;
-                                    }
-                                    idx++;
-                                    line = 0;
-                                } else {
-                                    break;
-                                }
-                            }
                         } else if (it is ColTable table) {
-                            var tbColumn = table.Block;
-                            var tableStyle = table.Style;
-                            double padLeft = GetTableCellPaddingLeft(tableStyle);
-                            double padRight = GetTableCellPaddingRight(tableStyle);
-                            double padTop = GetTableCellPaddingTop(tableStyle);
-                            double padBottom = GetTableCellPaddingBottom(tableStyle);
-                            double columnGap = GetTableCellSpacing(tableStyle);
-                            double columnTableRowGap = columnGap;
-                            double xTable = ResolveTableX(tbColumn.Align, tableStyle, xCol, wCol, table.Width);
-
-                            double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                            double tableSpacingBefore = line == 0 && consumed > 0.001 ? tableStyle.SpacingBefore : 0D;
-                            if (line == 0 && tableStyle.KeepTogether) {
-                                double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
-                                if (keepHeight > maxContentHeight + 0.001) {
-                                    throw new ArgumentException("Table height exceeds the available page content height.");
-                                }
-
-                                if (keepHeight > remain + 0.001) {
-                                    if (consumed > 0) break;
-                                    remain = 0;
-                                    break;
-                                }
-                            }
-
-                            if (line == 0 && tableStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double tableHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
-                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
-                                double keepHeight = tableHeight + nextHeight;
-                                if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && keepHeight > remain + 0.001) {
-                                    if (consumed > 0) break;
-                                    remain = 0;
-                                    break;
-                                }
-                            }
-
-                            if (line == 0 && consumed > 0.001) {
-                                int minimumFirstPageBodyRows = Math.Min(
-                                    tableStyle.MinimumBodyRowsOnFirstPage,
-                                    Math.Max(0, table.FooterStartRowIndex - table.HeaderRowCount));
-                                if (minimumFirstPageBodyRows > 0) {
-                                    int firstPageRowCount = table.HeaderRowCount + minimumFirstPageBodyRows;
-                                    double firstPageGroupHeight =
-                                        tableSpacingBefore +
-                                        table.CaptionHeight +
-                                        GetTableRowsHeight(table.RowHeights, 0, firstPageRowCount, columnTableRowGap);
-                                    if (firstPageGroupHeight <= maxContentHeight + 0.001 &&
-                                        firstPageGroupHeight > remain + 0.001) {
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (line == 0 && tableSpacingBefore > 0) {
-                                if (tableSpacingBefore > remain && consumed > 0) break;
-                                if (tableSpacingBefore > remain && consumed == 0) { remain = 0; break; }
-                                yCol -= tableSpacingBefore;
-                                remain -= tableSpacingBefore;
-                                consumed += tableSpacingBefore;
-                            }
-
-                            int? tableStructureElementIndex = null;
-                            LayoutResult.Page? tableStructurePage = null;
-                            int? EnsureTableStructureElement() {
-                                if (!emitGeneratedStructure || currentPage == null) {
-                                    return null;
-                                }
-
-                                if (!ReferenceEquals(tableStructurePage, currentPage)) {
-                                    tableStructurePage = currentPage;
-                                    tableStructureElementIndex = RegisterStructureContainer("Table", alternativeText: tableStyle.AlternativeText);
-                                }
-
-                                return tableStructureElementIndex;
-                            }
-
-                            if (line == 0 && table.CaptionRuns != null && table.CaptionLines != null && table.CaptionLineHeights != null) {
-                                double firstRowHeight = table.RowHeights.Length > 0 ? table.RowHeights[0] : 0;
-                                double neededWithFirstRow = table.CaptionHeight + firstRowHeight;
-                                if (neededWithFirstRow > maxContentHeight + 0.001) {
-                                    throw new ArgumentException("Table caption and first row exceed the available page content height.");
-                                }
-                                if (neededWithFirstRow > remain && consumed > 0) break;
-                                if (neededWithFirstRow > remain && consumed == 0) { remain = 0; break; }
-
-                                double captionSize = tableStyle.CaptionFontSize ?? table.Size;
-                                var captionFont = ChooseNormal(currentOpts.DefaultFont);
-                                pageDirty = true;
-                                int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
-                                MarkRichFonts(table.CaptionRuns);
-                                WriteRichParagraph(sb, new RichParagraphBlock(table.CaptionRuns, tableStyle.CaptionAlign, tableStyle.CaptionColor), table.CaptionLines, table.CaptionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, yCol), captionSize, table.CaptionLeading, currentPage!.Annotations, xTable, table.Width, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
-                                yCol -= table.CaptionHeight;
-                                remain -= table.CaptionHeight;
-                                consumed += table.CaptionHeight;
-                            }
-
-                            double repeatHeaderHeight = 0;
-                            for (int headerIndex = 0; headerIndex < table.RepeatHeaderRowCount; headerIndex++) {
-                                repeatHeaderHeight += table.RowHeights[headerIndex] + GetTableRowGapAfter(headerIndex, tbColumn.Rows.Count, columnTableRowGap);
-                            }
-
-                            bool HasRepeatableHeader() =>
-                                table.RepeatHeaderRowCount > 0 &&
-                                tbColumn.Rows.Count > table.HeaderRowCount;
-
-                            bool AtContinuationPageTop() =>
-                                Math.Abs(yCol - yStart) <= 0.001;
-
-                            double MeasureColumnTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
-                                double rowLeading = table.RowLeadings[rowIndex];
-                                double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
-                                double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-                                double segmentHeight = rowLeading + rowPadTop + rowPadBottom;
-                                var cells = GetTableCellLayouts(tbColumn, rowIndex, table.Columns);
-                                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                                    TableCellLayout cell = cells[cellIndex];
-                                    double cellWidth = GetTableCellWidth(table.ColumnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                                    double cellPadLeft = GetTableCellPaddingLeft(tableStyle, rowIndex, cell.Column);
-                                    double cellPadRight = GetTableCellPaddingRight(tableStyle, rowIndex, cell.Column);
-                                    double innerW = cellWidth - cellPadLeft - cellPadRight;
-                                    TableCellTextLayout lines = table.RowLines[rowIndex][cell.Column];
-                                    int sourceStartLine = startLine;
-                                    int visibleLineCount = Math.Max(0, Math.Min(lineCount, lines.LineCount - sourceStartLine));
-                                    bool includeObjects = !suppressCellObjects && sourceStartLine == 0;
-                                    double cellContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW, includeObjects) +
-                                        GetTableCellPaddingTop(tableStyle, rowIndex, cell.Column) +
-                                        GetTableCellPaddingBottom(tableStyle, rowIndex, cell.Column);
-                                    segmentHeight = Math.Max(segmentHeight, cellContentHeight);
-                                }
-
-                                return segmentHeight;
-                            }
-
-                            int GetColumnTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available) {
-                                int remainingLines = table.RowLineCounts[rowIndex] - startLine;
-                                int best = 0;
-                                for (int candidate = 1; candidate <= remainingLines; candidate++) {
-                                    double candidateHeight = MeasureColumnTableRowSegmentHeight(rowIndex, startLine, candidate, suppressCellObjects: false);
-                                    if (candidateHeight > available + 0.001) {
-                                        break;
-                                    }
-
-                                    best = candidate;
-                                }
-
-                                return Math.Max(1, best);
-                            }
-
-                            bool CanSplitColumnTableRowIntoRemainingSpace(int rowIndex) =>
-                                rowIndex >= table.HeaderRowCount &&
-                                GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex) &&
-                                table.RowLineCounts[rowIndex] > 1 &&
-                                MeasureColumnTableRowSegmentHeight(rowIndex, 0, Math.Min(2, table.RowLineCounts[rowIndex]), suppressCellObjects: false) <= remain + 0.001;
-
-                            bool ShouldBreakBeforeFinalColumnTableBodyRows(int rowIndex) {
-                                int minimumBodyRows = Math.Min(tableStyle.MinimumBodyRowsOnLastPage, Math.Max(0, table.FooterStartRowIndex - table.HeaderRowCount));
-                                if (minimumBodyRows <= 0 || table.FooterStartRowIndex - rowIndex != minimumBodyRows) {
-                                    return false;
-                                }
-
-                                double currentRowHeight = table.RowHeights[rowIndex] + GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap);
-                                double finalGroupHeight = GetTableRowsHeight(table.RowHeights, rowIndex, table.RowHeights.Length, columnTableRowGap);
-                                return ShouldBreakBeforeFinalTableBodyRows(
-                                    rowIndex,
-                                    table.HeaderRowCount,
-                                    table.FooterStartRowIndex,
-                                    minimumBodyRows,
-                                    currentRowHeight,
-                                    finalGroupHeight,
-                                    remain,
-                                    HasRepeatableHeader() ? repeatHeaderHeight : 0D,
-                                    maxContentHeight,
-                                    consumed > 0.001);
-                            }
-
-                            void DrawColumnTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false) {
-                                bool renderAsFooter = rowIndex >= table.FooterStartRowIndex;
-                                bool rowUsesBold = table.RowBold[rowIndex];
-                                double rowSize = table.RowSizes[rowIndex];
-                                double rowLeading = table.RowLeadings[rowIndex];
-                                bool wholeRowSegment = startLine == 0 && lineCount == table.RowLineCounts[rowIndex];
-                                double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
-                                double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-                                double rowHeight = wholeRowSegment ? table.RowHeights[rowIndex] : MeasureColumnTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
-                                if (rowUsesBold) {
-                                    currentPage!.UsedBold = true;
-                                    usedBold = true;
-                                }
-
-                                var cells = GetTableCellLayouts(tbColumn, rowIndex, table.Columns);
-                                double rowBottom = yCol - rowHeight;
-                                int bodyRowIndex = rowIndex - table.HeaderRowCount;
-                                bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
-                                bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tbColumn, rowIndex, table.Columns);
-                                if (tableStyle.HeaderFill is not null && renderAsHeader) { pageDirty = true; DrawTableRowFill(sb, tableStyle.HeaderFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
-                                else if (tableStyle.FooterFill is not null && renderAsFooter) { pageDirty = true; DrawTableRowFill(sb, tableStyle.FooterFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
-                                else if (!renderAsHeader && !renderAsFooter && tableStyle.RowStripeFill is not null && stripeBodyRow) { pageDirty = true; DrawTableRowFill(sb, tableStyle.RowStripeFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
-
-                                if (!renderAsHeader && !renderAsFooter && tableStyle.BodyColumnFills != null) {
-                                    bool[] bodyColumnFillSkips = GetMergedCellContinuationSkipColumns(tbColumn, rowIndex, table.Columns);
-                                    double fillX = xTable;
-                                    for (int fillColumn = 0; fillColumn < table.Columns; fillColumn++) {
-                                        PdfColor? fill = fillColumn < tableStyle.BodyColumnFills.Count ? tableStyle.BodyColumnFills[fillColumn] : null;
-                                        if (fill.HasValue && (fillColumn >= bodyColumnFillSkips.Length || !bodyColumnFillSkips[fillColumn])) {
-                                            pageDirty = true;
-                                            DrawRowFill(sb, fill.Value, fillX, rowBottom, table.ColumnWidths[fillColumn], rowHeight, emitGeneratedStructure);
-                                        }
-                                        fillX += table.ColumnWidths[fillColumn] + columnGap;
-                                    }
-                                }
-
-                                if (tableStyle.CellFills != null && tableStyle.CellFills.Count > 0) {
-                                    double fillX = xTable;
-                                    for (int fillColumn = 0; fillColumn < table.Columns; fillColumn++) {
-                                        if (tableStyle.CellFills.TryGetValue((rowIndex, fillColumn), out PdfColor fill) &&
-                                            TryGetTableCellLayoutAtColumn(cells, fillColumn, out TableCellLayout fillCell) &&
-                                            (fillColumn >= rowFillSkips.Length || !rowFillSkips[fillColumn])) {
-                                            int span = wholeRowSegment ? fillCell.ColumnSpan : 1;
-                                            double fillHeight = rowHeight;
-                                            double fillBottom = rowBottom;
-                                            if (wholeRowSegment) {
-                                                if (fillCell.RowSpan > 1) {
-                                                    fillHeight = GetTableCellHeight(table.RowHeights, rowIndex, fillCell.RowSpan, columnTableRowGap);
-                                                    fillBottom = yCol - fillHeight;
-                                                }
-                                            }
-
-                                            pageDirty = true;
-                                            DrawRowFill(sb, fill, fillX, fillBottom, GetTableCellWidth(table.ColumnWidths, fillColumn, span, columnGap), fillHeight, emitGeneratedStructure);
-                                        }
-                                        fillX += table.ColumnWidths[fillColumn] + columnGap;
-                                    }
-                                }
-                                if (DrawTableCellDataBars(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
-                                    pageDirty = true;
-                                }
-                                if (DrawTableCellIcons(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
-                                    pageDirty = true;
-                                }
-
-                                var textColor = renderAsHeader ? tableStyle.HeaderTextColor : renderAsFooter ? tableStyle.FooterTextColor : tableStyle.TextColor;
-                                double xi = xTable;
-                                int? rowStructureElementIndex = RegisterStructureContainer("TR", EnsureTableStructureElement());
-                                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                                    TableCellLayout cell = cells[cellIndex];
-                                    int c = cell.Column;
-                                    xi = xTable;
-                                    for (int xColumn = 0; xColumn < c; xColumn++) {
-                                        xi += table.ColumnWidths[xColumn] + columnGap;
-                                    }
-
-                                    double cellWidth = GetTableCellWidth(table.ColumnWidths, c, cell.ColumnSpan, columnGap);
-                                    double cellPadLeft = GetTableCellPaddingLeft(tableStyle, rowIndex, c);
-                                    double cellPadRight = GetTableCellPaddingRight(tableStyle, rowIndex, c);
-                                    double cellPadTop = GetTableCellPaddingTop(tableStyle, rowIndex, c);
-                                    double cellPadBottom = GetTableCellPaddingBottom(tableStyle, rowIndex, c);
-                                    double innerW = cellWidth - cellPadLeft - cellPadRight;
-                                    double cellHeight = wholeRowSegment && cell.RowSpan > 1 ? GetTableCellHeight(table.RowHeights, rowIndex, cell.RowSpan, columnTableRowGap) : rowHeight;
-                                    double cellBottom = yCol - cellHeight;
-                                    PdfColumnAlign align = GetTableCellAlignment(tableStyle, rowIndex, c, cell.Text);
-                                    PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(tableStyle, rowIndex, c);
-                                    var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
-                                    TableCellTextLayout lines = table.RowLines[rowIndex][c];
-                                    int sourceStartLine = wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
-                                    int requestedLineCount = wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
-                                    double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
-                                    int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight);
-                                    double verticalOffset = 0;
-                                    double visibleTextHeight = 0D;
-                                    if (visibleLineCount > 0) {
-                                        visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
-                                        double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
-                                        double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);
-                                        if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
-                                        else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
-                                    }
-
-                                    double firstBaseline = yCol - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
-
-                                    pageDirty = true;
-                                    if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
-                                    if (cell.Runs.Any(run => run.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
-                                    if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
-                                    MarkRichFonts(cell.Runs);
-                                    string? linkUri = cell.LinkUri;
-                                    string? linkDestinationName = cell.LinkDestinationName;
-                                    string? linkContents = cell.LinkContents;
-                                    if (tbColumn.Links.TryGetValue((rowIndex, c), out var uri)) {
-                                        linkUri = uri;
-                                        linkDestinationName = null;
-                                        linkContents = cell.Text;
-                                    }
-
-                                    if (sourceStartLine == 0) {
-                                        AddTableCellNamedDestinationName(cell.NamedDestinationName, yCol);
-                                    }
-
-                                    int? cellLinkStructElementIndex = null;
-                                    if (visibleLineCount > 0) {
-                                        var visibleLines = SliceTableCellLines(lines, sourceStartLine, visibleLineCount);
-                                        visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
-                                        var visibleHeights = SliceTableCellLineHeights(lines, sourceStartLine, visibleLineCount, rowLeading);
-                                        var visibleAlignments = SliceTableCellLineAlignments(lines, sourceStartLine, visibleLineCount);
-                                        var visibleXOffsets = SliceTableCellLineXOffsets(lines, sourceStartLine, visibleLineCount);
-                                        var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
-                                        double textClipX = xi - TableCellClipBleed;
-                                        double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                                        ExpandTableCellTextClip(xi + cellPadLeft, innerW, cell.NoWrap, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
-                                        var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
-                                        string structureType = renderAsHeader ? "TH" : "TD";
-                                        int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
-                                        int tableRowSpan = wholeRowSegment && cell.RowSpan > 1 ? cell.RowSpan : 1;
-                                        bool cellHasLinkTarget = HasCellLinkTarget(linkUri, linkDestinationName);
-                                        int? markedContentId;
-                                        string markedStructureType = structureType;
-                                        if (cellHasLinkTarget && emitGeneratedStructure && currentPage != null) {
-                                            int? cellElementIndex = RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
-                                            markedStructureType = "Link";
-                                            markedContentId = RegisterTextStructureElement(markedStructureType, cellElementIndex);
-                                            cellLinkStructElementIndex = FindStructElementIndex(currentPage, markedContentId, markedStructureType);
-                                        } else {
-                                            markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
-                                        }
-
-                                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - TableCellClipBleed, textClipWidth, cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
-                                    }
-                                    if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
-                                        if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
-                                            RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
-                                        } else {
-                                            double formFieldTop = yCol - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
-                                            RenderTableCellObjects(currentPage!, cell, align, xi + cellPadLeft, innerW, formFieldTop);
-                                        }
-                                    }
-
-                                    if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                        double linkCellHeight = sourceStartLine == 0 && cell.RowSpan > 1
-                                            ? GetTableCellHeight(table.RowHeights, rowIndex, cell.RowSpan, columnTableRowGap)
-                                            : cellHeight;
-                                        currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft - TableCellClipBleed, Y1 = yCol - linkCellHeight - TableCellClipBleed, X2 = xi + cellWidth - cellPadRight + TableCellClipBleed, Y2 = yCol + TableCellClipBleed, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
-                                    }
-                                }
-
-                                if (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) {
-                                    pageDirty = true;
-                                    bool[] topBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns);
-                                    bool[] bottomBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns);
-                                    bool segmentBorderRows = HasSkippedColumns(topBorderSkips, table.Columns) || HasSkippedColumns(bottomBorderSkips, table.Columns);
-                                    if (segmentBorderRows) {
-                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
-                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                    } else {
-                                        DrawRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, emitGeneratedStructure);
-                                    }
-
-                                    double xi2 = xTable;
-                                    for (int c = 0; c < table.Columns - 1; c++) {
-                                        xi2 += table.ColumnWidths[c];
-                                        if (IsTableBoundaryInsideSpannedCell(tbColumn, rowIndex, c, table.Columns)) {
-                                            xi2 += columnGap;
-                                            continue;
-                                        }
-
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xi2, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                        xi2 += columnGap;
-                                    }
-                                }
-
-                                if (renderAsFooter && rowIndex == table.FooterStartRowIndex) {
-                                    PdfColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
-                                    double footerSeparatorWidth = tableStyle.FooterSeparatorWidth > 0 ? tableStyle.FooterSeparatorWidth : tableStyle.RowSeparatorWidth;
-                                    if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
-                                        pageDirty = true;
-                                        DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xTable, table.ColumnWidths, columnGap, yCol, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns), emitGeneratedStructure);
-                                    }
-                                }
-
-                                PdfColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
-                                double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth > 0 ? tableStyle.HeaderSeparatorWidth : tableStyle.RowSeparatorWidth;
-                                if (separatorColor is not null && separatorWidth > 0) {
-                                    pageDirty = true;
-                                    DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xTable, table.ColumnWidths, columnGap, rowBottom, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns), emitGeneratedStructure);
-                                }
-
-                                if (tableStyle.CellBorders != null && tableStyle.CellBorders.Count > 0) {
-                                    double borderX = xTable;
-                                    for (int borderColumn = 0; borderColumn < table.Columns; borderColumn++) {
-                                        if (tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
-                                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
-                                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                                            HasRenderableCellBorder(cellBorder)) {
-                                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
-                                            double borderHeight = rowHeight;
-                                            double borderBottom = rowBottom;
-                                            if (wholeRowSegment) {
-                                                if (borderCell.RowSpan > 1) {
-                                                    borderHeight = GetTableCellHeight(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap);
-                                                    borderBottom = yCol - borderHeight;
-                                                }
-                                            }
-
-                                            pageDirty = true;
-                                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
-                                        }
-                                        borderX += table.ColumnWidths[borderColumn] + columnGap;
-                                    }
-                                }
-
-                                double rowAdvance = rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) : 0D);
-                                yCol -= rowAdvance;
-                                remain -= rowAdvance;
-                                consumed += rowAdvance;
-                            }
-
-                            void DrawColumnTableRow(int rowIndex, bool renderAsHeader, bool suppressCellObjects = false) =>
-                                DrawColumnTableRowSegment(rowIndex, renderAsHeader, 0, table.RowLineCounts[rowIndex], suppressCellObjects);
-
-                            int rowIndex = line;
-                            int rowStartLine = subline;
-                            while (rowIndex < tbColumn.Rows.Count) {
-                                double rowHeight = table.RowHeights[rowIndex];
-                                if (rowHeight > maxContentHeight + 0.001) {
-                                    if (!GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex)) {
-                                        throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");
-                                    }
-
-                                    int totalLines = table.RowLineCounts[rowIndex];
-                                    double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
-                                    double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-                                    bool repeatHeaderBeforeSegment = rowIndex >= table.HeaderRowCount &&
-                                        HasRepeatableHeader() &&
-                                        AtContinuationPageTop() &&
-                                        repeatHeaderHeight + table.RowLeadings[rowIndex] + rowPadTop + rowPadBottom <= remain + 0.001;
-                                    double neededForFirstSegment = table.RowLeadings[rowIndex] + rowPadTop + rowPadBottom + (repeatHeaderBeforeSegment ? repeatHeaderHeight : 0);
-                                    if (neededForFirstSegment > remain && consumed > 0) break;
-                                    if (neededForFirstSegment > remain && consumed == 0) { remain = 0; break; }
-
-                                    if (repeatHeaderBeforeSegment) {
-                                        for (int headerIndex = 0; headerIndex < table.RepeatHeaderRowCount; headerIndex++) {
-                                            DrawColumnTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
-                                        }
-                                    }
-
-                                    int take = Math.Min(totalLines - rowStartLine, GetColumnTableRowSegmentLineCountThatFits(rowIndex, rowStartLine, remain));
-                                    DrawColumnTableRowSegment(rowIndex, renderAsHeader: rowIndex < table.HeaderRowCount && rowStartLine == 0, rowStartLine, take);
-                                    rowStartLine += take;
-
-                                    if (rowStartLine < totalLines) {
-                                        line = rowIndex;
-                                        subline = rowStartLine;
-                                        break;
-                                    }
-
-                                    double gapAfterSplitRow = GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap);
-                                    if (gapAfterSplitRow > 0) {
-                                        yCol -= gapAfterSplitRow;
-                                        remain -= gapAfterSplitRow;
-                                        consumed += gapAfterSplitRow;
-                                    }
-
-                                    rowIndex++;
-                                    line = rowIndex;
-                                    subline = 0;
-                                    rowStartLine = 0;
-                                    continue;
-                                }
-                                bool repeatHeaderBeforeRow = rowIndex >= table.HeaderRowCount &&
-                                    HasRepeatableHeader() &&
-                                    AtContinuationPageTop() &&
-                                    repeatHeaderHeight + rowHeight <= remain + 0.001;
-                                double neededForNextRow = rowHeight + GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) + (repeatHeaderBeforeRow ? repeatHeaderHeight : 0);
-                                if (rowHeight > remain + 0.001 && consumed > 0 && CanSplitColumnTableRowIntoRemainingSpace(rowIndex)) {
-                                    int take = Math.Min(table.RowLineCounts[rowIndex], GetColumnTableRowSegmentLineCountThatFits(rowIndex, 0, remain));
-                                    DrawColumnTableRowSegment(rowIndex, renderAsHeader: false, 0, take);
-                                    line = rowIndex;
-                                    subline = take;
-                                    break;
-                                }
-
-                                if (ShouldBreakBeforeFinalColumnTableBodyRows(rowIndex)) break;
-                                if (neededForNextRow > remain && consumed > 0) break;
-                                if (neededForNextRow > remain && consumed == 0) { remain = 0; break; }
-
-                                if (repeatHeaderBeforeRow) {
-                                    for (int headerIndex = 0; headerIndex < table.RepeatHeaderRowCount; headerIndex++) {
-                                        DrawColumnTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
-                                    }
-                                }
-
-                                DrawColumnTableRow(rowIndex, renderAsHeader: rowIndex < table.HeaderRowCount);
-                                rowIndex++;
-                                line = rowIndex;
-                                subline = 0;
-                                rowStartLine = 0;
-                            }
-
-                            if (rowIndex >= tbColumn.Rows.Count) {
-                                if (tableStyle.SpacingAfter > 0 && tableStyle.SpacingAfter <= remain) {
-                                    yCol -= tableStyle.SpacingAfter;
-                                    remain -= tableStyle.SpacingAfter;
-                                    consumed += tableStyle.SpacingAfter;
-                                }
-                                idx++;
-                                line = 0;
-                                subline = 0;
-                            } else {
-                                break;
-                            }
+                            var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
+                            bool completed = RenderColumnTable(table, items, state, xCol, wCol,
+                                GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D),
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.PaddingY ?? 0D));
+                            (idx, line, subline) = (state.Index, state.Line, state.Subline);
+                            (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
+                            if (!completed) break;
                         } else if (it is ColRule cr) {
                             PdfHorizontalRuleStyle hr2 = ResolveHorizontalRuleStyle(cr.Block, currentOpts);
                             ValidateHorizontalRule(hr2);
@@ -1071,7 +440,7 @@ internal static partial class PdfWriter {
                             if (line == 0 && hr2.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -1097,7 +466,7 @@ internal static partial class PdfWriter {
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -1126,7 +495,7 @@ internal static partial class PdfWriter {
                             if (shapeStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -1153,7 +522,7 @@ internal static partial class PdfWriter {
                             if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -1187,12 +556,38 @@ internal static partial class PdfWriter {
                             remain -= needed;
                             consumed += needed;
                             idx++;
+                        } else if (it is ColAnnotation annotation) {
+                            double spacingBefore = ResolveColumnSpacingBefore(GetAnnotationSpacingBefore(annotation.Block), consumed);
+                            double annotationWidth = GetAnnotationWidth(annotation.Block);
+                            double annotationHeight = GetAnnotationHeight(annotation.Block);
+                            double spacingAfter = GetAnnotationSpacingAfter(annotation.Block);
+                            double needed = spacingBefore + annotationHeight + spacingAfter;
+                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol);
+                            if (needed > remain && consumed > 0) break;
+                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (spacingBefore > 0) yCol -= spacingBefore;
+                            double xAnnotation = GetAlignedObjectX(xCol, wCol, annotationWidth, GetAnnotationAlign(annotation.Block));
+                            double bottomY = yCol - annotationHeight;
+                            if (annotation.Block is TextAnnotationBlock textAnnotation) {
+                                AddTextAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, textAnnotation.Contents, textAnnotation.Icon, textAnnotation.Color, textAnnotation.Open);
+                            } else if (annotation.Block is FreeTextAnnotationBlock freeTextAnnotation) {
+                                AddFreeTextAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, freeTextAnnotation.Contents, freeTextAnnotation.FontSize, freeTextAnnotation.TextColor, freeTextAnnotation.BorderColor, freeTextAnnotation.BorderWidth, freeTextAnnotation.FillColor, freeTextAnnotation.TextAlign, freeTextAnnotation.Padding, freeTextAnnotation.LineHeight);
+                            } else if (annotation.Block is HighlightAnnotationBlock highlightAnnotation) {
+                                AddHighlightAnnotation(xAnnotation, bottomY, annotationWidth, annotationHeight, highlightAnnotation.Contents, highlightAnnotation.Color);
+                            }
+
+                            DrawDebugFlowObjectBox(xAnnotation, bottomY, annotationWidth, annotationHeight);
+                            pageDirty = true;
+                            yCol -= annotationHeight + spacingAfter;
+                            remain -= needed;
+                            consumed += needed;
+                            idx++;
                         } else if (it is ColBookmark bookmarkItem) {
                             AddNamedDestination(bookmarkItem.Block, yCol);
                             idx++;
                         } else if (it is ColSpacer spacerItem) {
                             double needed = spacerItem.Block.Height;
-                            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                            double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
                             if (needed > availableHeight + 0.001) {
                                 throw new ArgumentException("Spacer height exceeds the available page content height.");
                             }
@@ -1205,6 +600,7 @@ internal static partial class PdfWriter {
                             idx++;
                         }
                     }
+                    FinishColumnGroupsFragment(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
                     colStates[ci] = (idx, line, subline);
                     if (colStates[ci] != startState) {
                         anyColumnAdvanced = true;
@@ -1213,7 +609,7 @@ internal static partial class PdfWriter {
                     if (consumed > maxConsumed) maxConsumed = consumed;
                 }
 
-                if (maxConsumed <= 0.01) {
+                if (!anyColumnAdvanced || maxConsumed <= 0.01) {
                     if (anyColumnAdvanced && !AnyRemaining()) {
                         break;
                     }
@@ -1235,6 +631,7 @@ internal static partial class PdfWriter {
                     !AnyRemaining());
                 y -= maxConsumed;
                 isFirstFragment = false;
+                if (AnyRemaining()) NewPage();
             }
 
             if (rowSpacingAfter > 0) {

@@ -13,7 +13,7 @@ public class RtfPdfIoTests {
     [Fact]
     public void RtfPdf_TypedDocument_WritesBytesStreamAndFile() {
         RtfDocument document = CreateDocument("Typed PDF");
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdfBytes();
 
         AssertPdfContains(pdf, "Typed PDF");
 
@@ -47,7 +47,7 @@ public class RtfPdfIoTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.TrySaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+            document.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -55,13 +55,13 @@ public class RtfPdfIoTests {
         RtfDocument document = CreateDocument("Try PDF");
         using var readOnly = new MemoryStream(Array.Empty<byte>(), writable: false);
 
-        PdfCore.PdfSaveResult failure = document.TrySaveAsPdf(readOnly);
+        PdfCore.PdfSaveResult failure = document.SaveAsPdfResult(readOnly);
 
         Assert.False(failure.Succeeded);
         Assert.NotEmpty(failure.Diagnostics);
 
         using var output = new MemoryStream();
-        PdfCore.PdfSaveResult success = await document.TrySaveAsPdfAsync(output);
+        PdfCore.PdfSaveResult success = await document.SaveAsPdfResultAsync(output);
         Assert.True(success.Succeeded);
         Assert.Equal(output.Length, success.BytesWritten);
     }

@@ -6,15 +6,16 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfComposeIncrementalAdapterTests {
+public class PdfDocumentBuilderIncrementalAdapterTests {
     [Fact]
-    public void Defaults_ConfigureTopLevelFlowWithoutAddingAPageBoundary() {
+    public void Settings_ConfigureTopLevelFlowWithoutAddingAPageBoundary() {
         PdfDocument document = PdfDocument.Create(_ => { });
 
-        document.Compose(compose => compose.Defaults(defaults => defaults
-            .Size(300, 400)
-            .Margin(24)
-            .Background(PdfColor.FromRgb(240, 248, 255))));
+        document.Compose(compose => compose.Settings(settings => {
+            settings.PageSize = new PageSize(300, 400);
+            settings.Margins = PageMargins.Uniform(24);
+            settings.BackgroundColor = PdfColor.FromRgb(240, 248, 255);
+        }));
         document.Compose(compose => compose.Content(content => content
             .Paragraph(paragraph => paragraph.Text("IncrementalAdapterMarker"))));
 

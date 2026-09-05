@@ -8,7 +8,8 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderBlock(PdfCore.PdfDocument pdf, IMarkdownBlock block, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderBlock(PdfCore.PdfDocument pdf, IMarkdownBlock block, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case HeadingBlock heading:
                 RenderHeading(pdf, heading, document, visualTheme);
@@ -107,7 +108,7 @@ public static partial class MarkdownPdfConverterExtensions {
                visualTheme.DocumentHeaderTitleColorSnapshot;
     }
 
-    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (TryRenderImageOnlyParagraph(pdf, inlines, options, visualTheme)) {
             return;
         }
@@ -127,7 +128,7 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.Paragraph(builder => builder.Text(text));
     }
 
-    private static void RenderOrderedList(PdfCore.PdfDocument pdf, OrderedListBlock list, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderOrderedList(PdfCore.PdfDocument pdf, OrderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var items = new List<PdfCore.PdfListItem>();
         for (int i = 0; i < list.Items.Count; i++) {
             ListItem item = list.Items[i];
@@ -142,7 +143,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderListChildren(pdf, list.Items, document, options, visualTheme);
     }
 
-    private static void RenderUnorderedList(PdfCore.PdfDocument pdf, UnorderedListBlock list, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderUnorderedList(PdfCore.PdfDocument pdf, UnorderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (list.Items.Any(item => item.IsTask)) {
             RenderMixedUnorderedTaskList(pdf, list.Items, options, visualTheme);
             RenderListChildren(pdf, list.Items, document, options, visualTheme);
@@ -153,7 +154,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderListChildren(pdf, list.Items, document, options, visualTheme);
     }
 
-    private static void RenderMixedUnorderedTaskList(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderMixedUnorderedTaskList(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var bulletItems = new List<ListItem>();
         var taskItems = new List<ListItem>();
 
@@ -252,7 +253,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return runs;
     }
 
-    private static void RenderListChildren(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> items, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderListChildren(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> items, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {

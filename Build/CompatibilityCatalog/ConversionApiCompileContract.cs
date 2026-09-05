@@ -75,7 +75,7 @@ internal static class ConversionApiCompileContract {
         powerPointOptions.DocumentOutput = output.Clone();
         RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput = output.Clone();
-        PdfHtmlSaveOptions pdfOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        PdfToHtmlOptions pdfOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
         pdfOptions.DocumentOutput = output.Clone();
         HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
         HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;
@@ -130,9 +130,9 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
         PdfHtmlConversionResult pdfHtmlResult = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
         PdfConversionReport pdfHtmlReport = pdfHtmlResult.Report;
-        PdfConversionReport pdfHtmlSaveReport = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
+        OfficeIMO.OfficeOutputResult<PdfConversionReport> pdfHtmlOutput = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
         _ = pdfHtmlReport.Warnings;
-        _ = pdfHtmlSaveReport.Warnings;
+        _ = pdfHtmlOutput.RequireSuccess().Report!.Warnings;
         var galleryResult = new HtmlCapabilityGalleryResult(
             new HtmlCapabilityGalleryScenario("compat", "Compatibility", "HTML", "Established gallery API"));
         galleryResult.AddArtifact(new HtmlCapabilityGalleryArtifact(

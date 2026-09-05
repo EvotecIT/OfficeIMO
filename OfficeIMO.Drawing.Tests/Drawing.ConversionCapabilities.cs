@@ -117,7 +117,7 @@ public sealed class DrawingConversionCapabilities {
         Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | FixedLayoutAppearance |", first, StringComparison.Ordinal);
         Assert.Contains("| Advanced | Realistic DOCX fixtures", first, StringComparison.Ordinal);
         Assert.DoesNotContain("RtfDocument.Parse", first, StringComparison.Ordinal);
-        Assert.Contains("RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
+        Assert.Contains("RtfDocument.LoadResult(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -9,7 +9,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void StandardFontNames_RejectInvalidValuesInsteadOfFallingBack() {
             Assert.Equal("Helvetica", PdfStandardFont.Helvetica.ToBaseFontName());

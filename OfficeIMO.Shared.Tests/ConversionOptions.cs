@@ -245,7 +245,7 @@ public class ConversionOptionsTests {
 
     [Fact]
     public void PdfOptions_ExposeFontFamily() {
-        var options = new WordPdfSaveOptions { FontFamily = "Times New Roman" };
+        var options = new WordToPdfOptions { FontFamily = "Times New Roman" };
         Assert.Equal("Times New Roman", options.FontFamily);
     }
 

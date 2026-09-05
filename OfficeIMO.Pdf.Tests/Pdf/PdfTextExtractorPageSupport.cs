@@ -41,10 +41,10 @@ public partial class PdfTextExtractorPageTests {
                     page.Content(content =>
                         content.Row(row => row
                             .Gap(36)
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .Paragraph(p => p.Text("Left Start marker"))
                                 .Paragraph(p => p.Text("Left Finish marker")))
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .Paragraph(p => p.Text("Right Start marker"))
                                 .Paragraph(p => p.Text("Right Finish marker")))))))
             .ToBytes();

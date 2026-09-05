@@ -1960,9 +1960,9 @@ public sealed class PdfRenderingProfileTests {
             textShapingProvider: OfficeManagedTextShapingProvider.Instance,
             textShapingLanguage: "pl");
 
-        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(profile);
-        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(profile);
-        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var word = new OfficeIMO.Word.Pdf.WordToPdfOptions().UseRenderingProfile(profile);
+        var excel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseRenderingProfile(profile);
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(profile);
 
         Assert.Same(OfficeManagedTextShapingProvider.Instance, word.PdfOptions?.TextShapingProvider);
@@ -1974,7 +1974,7 @@ public sealed class PdfRenderingProfileTests {
         Assert.False(word.HasExplicitPdfFontConfiguration);
         Assert.False(word.CloneForConversion().HasExplicitPdfFontConfiguration);
 
-        var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
+        var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordToPdfOptions {
             PdfOptions = new PdfOptions()
         }.UseRenderingProfile(profile);
         Assert.True(explicitlyConfiguredWord.HasExplicitPdfFontConfiguration);
@@ -1982,13 +1982,13 @@ public sealed class PdfRenderingProfileTests {
             .CloneForConversion()
             .HasExplicitPdfFontConfiguration);
 
-        var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions {
+        var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions {
             PdfOptions = new PdfOptions()
         }.UseRenderingProfile(profile);
         Assert.True(ReadExplicitPdfFontConfiguration(explicitlyConfiguredExcel));
 
         var explicitlyConfiguredPowerPoint =
-            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions {
+            new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions {
                 PdfOptions = new PdfOptions()
             }.UseRenderingProfile(profile);
         Assert.True(
@@ -2001,8 +2001,8 @@ public sealed class PdfRenderingProfileTests {
 
     [Fact]
     public void OfficePdfAdaptersRejectInvalidProfilesWithoutCreatingPdfOptions() {
-        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
-        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions();
+        var excel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions();
+        var word = new OfficeIMO.Word.Pdf.WordToPdfOptions();
         var profile = new OfficeRenderingProfile("invalid-mode");
         var invalidMode = (OfficeRenderingProfileApplyMode)int.MaxValue;
 
@@ -2019,9 +2019,9 @@ public sealed class PdfRenderingProfileTests {
 
     [Fact]
     public void ExcelShapingOnlyProfileDoesNotBecomeExplicitFontConfiguration() {
-        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+        var options = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)
+        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelToPdfOptions)
             .GetProperty(
                 "HasExplicitPdfFontConfiguration",
                 System.Reflection.BindingFlags.Instance
@@ -2037,7 +2037,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void RepeatedExcelFontlessReplacementPreservesCallerAssignment() {
         var fontless = new OfficeRenderingProfile("shaping-only");
-        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+        var options = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
             .UseRenderingProfile(fontless);
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
 
@@ -2045,7 +2045,7 @@ public sealed class PdfRenderingProfileTests {
             fontless,
             OfficeRenderingProfileApplyMode.Replace);
 
-        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)
+        System.Reflection.PropertyInfo state = typeof(OfficeIMO.Excel.Pdf.ExcelToPdfOptions)
             .GetProperty(
                 "HasExplicitPdfFontConfiguration",
                 System.Reflection.BindingFlags.Instance
@@ -2056,7 +2056,7 @@ public sealed class PdfRenderingProfileTests {
 
     [Fact]
     public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -2073,10 +2073,10 @@ public sealed class PdfRenderingProfileTests {
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
         sheet.CellValue(1, 1, "Profile page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
-        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+        var options = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
 
-        byte[] worksheetSized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
+        byte[] worksheetSized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfBytes(
             workbook,
             options);
         using (var pdf = UglyToad.PdfPig.PdfDocument.Open(worksheetSized)) {
@@ -2086,7 +2086,7 @@ public sealed class PdfRenderingProfileTests {
         }
 
         options.PdfOptions!.PageSize = new PageSize(300, 400);
-        byte[] explicitlySized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
+        byte[] explicitlySized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfBytes(
             workbook,
             options);
         using var explicitPdf = UglyToad.PdfPig.PdfDocument.Open(explicitlySized);
@@ -2111,13 +2111,13 @@ public sealed class PdfRenderingProfileTests {
         var configured = new OfficeRenderingProfile("configured", configuredFonts);
         var fontless = new OfficeRenderingProfile("fontless");
 
-        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var word = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(configured)
             .UseRenderingProfile(fontless);
-        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+        var excel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
             .UseRenderingProfile(configured)
             .UseRenderingProfile(fontless);
-        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(configured)
             .UseRenderingProfile(fontless);
 
@@ -2139,16 +2139,16 @@ public sealed class PdfRenderingProfileTests {
 
         var fontless = new OfficeRenderingProfile("fontless");
         var adapters = new object[] {
-            new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(fontless),
-            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(fontless),
-            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseRenderingProfile(fontless)
+            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions().UseRenderingProfile(fontless)
         };
 
         foreach (object adapter in adapters) {
             PdfOptions pdfOptions = adapter switch {
-                OfficeIMO.Word.Pdf.WordPdfSaveOptions word => word.PdfOptions!,
-                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel => excel.PdfOptions!,
-                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                OfficeIMO.Word.Pdf.WordToPdfOptions word => word.PdfOptions!,
+                OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel => excel.PdfOptions!,
+                OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint =>
                     powerPoint.PdfOptions!,
                 _ => throw new InvalidOperationException("Unknown PDF adapter.")
             };
@@ -2177,11 +2177,11 @@ public sealed class PdfRenderingProfileTests {
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
         sheet.CellValue(1, 1, "Explicit Letter page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
-        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+        var options = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
 
         options.PdfOptions!.PageSize = new PageSize(612, 792);
-        byte[] explicitlySized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
+        byte[] explicitlySized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfBytes(
             workbook,
             options);
 
@@ -2198,18 +2198,18 @@ public sealed class PdfRenderingProfileTests {
         using (var wordStream = new MemoryStream())
         using (OfficeIMO.Word.WordDocument word = OfficeIMO.Word.WordDocument.Create(wordStream)) {
             word.AddParagraph("Word profile proof");
-            wordPdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
+            wordPdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(
                 word,
-                new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(profile));
+                new OfficeIMO.Word.Pdf.WordToPdfOptions().UseRenderingProfile(profile));
         }
 
         byte[] excelPdf;
         using (OfficeIMO.Excel.ExcelDocument excel =
             OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream())) {
             excel.AddWorksheet("Profile").CellValue(1, 1, "Excel profile proof");
-            excelPdf = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
+            excelPdf = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfBytes(
                 excel,
-                new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(profile));
+                new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseRenderingProfile(profile));
         }
 
         byte[] powerPointPdf;
@@ -2221,9 +2221,9 @@ public sealed class PdfRenderingProfileTests {
                 24,
                 240,
                 40);
-            powerPointPdf = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdf(
+            powerPointPdf = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfBytes(
                 powerPoint,
-                new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+                new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
                     .UseRenderingProfile(profile));
         }
 
@@ -2244,7 +2244,7 @@ public sealed class PdfRenderingProfileTests {
                 OfficeFontStyle.Regular,
                 onlyA);
         byte[] pdf;
-        var saveOptions = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
+        var saveOptions = new OfficeIMO.Word.Pdf.WordToPdfOptions {
             PdfOptions = new PdfOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                     "SubstitutionTarget",
@@ -2261,7 +2261,7 @@ public sealed class PdfRenderingProfileTests {
         using (OfficeIMO.Word.WordDocument document =
             OfficeIMO.Word.WordDocument.Create(stream)) {
             document.AddParagraph("A").SetFontFamily("ScopedWord");
-            pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
+            pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(
                 document,
                 saveOptions);
         }
@@ -2277,7 +2277,7 @@ public sealed class PdfRenderingProfileTests {
 
     [Fact]
     public void PowerPointShapingOnlyProfileDoesNotBecomeExplicitFontConfiguration() {
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -2293,7 +2293,7 @@ public sealed class PdfRenderingProfileTests {
             "font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(profile);
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
@@ -2302,9 +2302,9 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void FreshFontlessOverlayDoesNotBecomeExplicitFontConfiguration() {
         var profile = new OfficeRenderingProfile("fontless-overlay");
-        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var word = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
-        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
 
         Assert.False(word.HasExplicitPdfFontConfiguration);
@@ -2313,7 +2313,7 @@ public sealed class PdfRenderingProfileTests {
 
     [Fact]
     public void EqualDefaultFontSizeAssignmentAfterFontlessProfileIsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -2329,7 +2329,7 @@ public sealed class PdfRenderingProfileTests {
             "word-font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(profile);
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
@@ -2340,37 +2340,37 @@ public sealed class PdfRenderingProfileTests {
     public void FontlessOverlayPreservesDirectCallerFontConfiguration() {
         var fontless = new OfficeRenderingProfile("fontless-overlay");
         var adapters = new object[] {
-            new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            new OfficeIMO.Word.Pdf.WordToPdfOptions()
                 .UseRenderingProfile(fontless),
-            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            new OfficeIMO.Excel.Pdf.ExcelToPdfOptions()
                 .UseRenderingProfile(fontless),
-            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
                 .UseRenderingProfile(fontless)
         };
 
         foreach (object adapter in adapters) {
             PdfOptions pdfOptions = adapter switch {
-                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                OfficeIMO.Word.Pdf.WordToPdfOptions word =>
                     word.PdfOptions!,
-                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel =>
                     excel.PdfOptions!,
-                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint =>
                     powerPoint.PdfOptions!,
                 _ => throw new InvalidOperationException()
             };
             pdfOptions.DefaultFont = PdfStandardFont.Courier;
             switch (adapter) {
-                case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                case OfficeIMO.Word.Pdf.WordToPdfOptions word:
                     word.UseRenderingProfile(
                         fontless,
                         OfficeRenderingProfileApplyMode.Overlay);
                     break;
-                case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                case OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel:
                     excel.UseRenderingProfile(
                         fontless,
                         OfficeRenderingProfileApplyMode.Overlay);
                     break;
-                case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                case OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint:
                     powerPoint.UseRenderingProfile(
                         fontless,
                         OfficeRenderingProfileApplyMode.Overlay);
@@ -2393,31 +2393,31 @@ public sealed class PdfRenderingProfileTests {
         }
         var oversized = new OfficeRenderingProfile("oversized", fonts);
         var adapters = new object[] {
-            new OfficeIMO.Word.Pdf.WordPdfSaveOptions(),
-            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions(),
-            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            new OfficeIMO.Word.Pdf.WordToPdfOptions(),
+            new OfficeIMO.Excel.Pdf.ExcelToPdfOptions(),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
         };
 
         foreach (object adapter in adapters) {
             Assert.Throws<InvalidOperationException>(() => {
                 switch (adapter) {
-                    case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                    case OfficeIMO.Word.Pdf.WordToPdfOptions word:
                         word.UseRenderingProfile(oversized);
                         break;
-                    case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                    case OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel:
                         excel.UseRenderingProfile(oversized);
                         break;
-                    case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                    case OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint:
                         powerPoint.UseRenderingProfile(oversized);
                         break;
                 }
             });
             Assert.Null(adapter switch {
-                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                OfficeIMO.Word.Pdf.WordToPdfOptions word =>
                     word.PdfOptions,
-                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel =>
                     excel.PdfOptions,
-                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint =>
                     powerPoint.PdfOptions,
                 _ => throw new InvalidOperationException()
             });
@@ -2439,7 +2439,7 @@ public sealed class PdfRenderingProfileTests {
             "word-font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(fontProfile);
 
         options.UseRenderingProfile(
@@ -2458,7 +2458,7 @@ public sealed class PdfRenderingProfileTests {
                 $"Family {index}",
                 ManagedTextShapingTestAssets.CreateFont('A'));
         }
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions();
 
         Assert.Throws<InvalidOperationException>(() =>
             options.UseRenderingProfile(new OfficeRenderingProfile(
@@ -2475,7 +2475,7 @@ public sealed class PdfRenderingProfileTests {
             "font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(fontProfile);
 
         options.UseRenderingProfile(
@@ -2492,7 +2492,7 @@ public sealed class PdfRenderingProfileTests {
             "word-font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(fontProfile);
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
 
@@ -2508,7 +2508,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void RepeatedWordFontlessReplacementPreservesCallerAssignment() {
         var fontless = new OfficeRenderingProfile("shaping-only");
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(fontless);
         options.PdfOptions!.DefaultFontSize = 13;
 
@@ -2527,7 +2527,7 @@ public sealed class PdfRenderingProfileTests {
             "powerpoint-font-profile",
             new OfficeFontFaceCollection()
                 .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(fontProfile);
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
 
@@ -2544,7 +2544,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void RepeatedPowerPointFontlessReplacementPreservesCallerAssignment() {
         var fontless = new OfficeRenderingProfile("shaping-only");
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions()
             .UseRenderingProfile(fontless);
         options.PdfOptions!.DefaultFontSize = 13;
 
@@ -2597,7 +2597,7 @@ public sealed class PdfRenderingProfileTests {
             OfficeIMO.Word.WordDocument.Create(stream);
         document.Settings.FontSize = 18;
         document.AddParagraph("A");
-        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile(
                 "word-font-profile",
                 new OfficeFontFaceCollection()
@@ -2605,7 +2605,7 @@ public sealed class PdfRenderingProfileTests {
                         "Profile",
                         ManagedTextShapingTestAssets.CreateFont('A'))));
 
-        byte[] pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
+        byte[] pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(
             document,
             options);
 

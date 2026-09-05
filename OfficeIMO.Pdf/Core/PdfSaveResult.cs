@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Result returned by file and stream output operations.
 /// </summary>
-public sealed class PdfSaveResult {
+public sealed class PdfSaveResult : IOfficeOutputResult {
     private PdfSaveResult(
         string? outputPath,
         long bytesWritten,
@@ -79,8 +79,9 @@ public sealed class PdfSaveResult {
         throw new InvalidOperationException(message, Exception);
     }
 
-    /// <summary>Returns this result or throws when any conversion stage reported possible content loss.</summary>
+    /// <summary>Requires a successful save without reported conversion loss.</summary>
     public PdfSaveResult RequireNoLoss() {
+        RequireSuccess();
         foreach (IOfficeConversionReport report in ConversionReports) {
             report.RequireNoLoss();
         }

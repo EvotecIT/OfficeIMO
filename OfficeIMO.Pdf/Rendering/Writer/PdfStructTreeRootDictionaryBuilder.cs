@@ -51,17 +51,20 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds);
     }
 
-    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
+    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
             .Append(" /P ")
-            .Append(PdfSyntaxEscaper.IndirectReference(parentId))
-            .Append(" /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /K ");
+            .Append(PdfSyntaxEscaper.IndirectReference(parentId));
+        if (includePageReference) {
+            sb.Append(" /Pg ")
+                .Append(PdfSyntaxEscaper.IndirectReference(pageId));
+        }
+
+        sb.Append(" /K ");
         AppendReferenceArray(sb, childElementIds);
         if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan)) {
             AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan);

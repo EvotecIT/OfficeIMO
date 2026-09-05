@@ -37,7 +37,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -80,7 +80,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(260, 260),
@@ -120,17 +120,17 @@ public partial class Excel {
             sheet.SetRowHeight(2, 60);
             document.Save();
 
-            var commonOptions = new ExcelPdfSaveOptions {
+            var commonOptions = new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(600, 500),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            authoredBytes = document.ToPdf(commonOptions);
+            authoredBytes = document.ToPdfBytes(commonOptions);
 
             commonOptions.UseWorksheetColumnWidths = false;
             commonOptions.UseWorksheetRowHeights = false;
-            uniformBytes = document.ToPdf(commonOptions);
+            uniformBytes = document.ToPdfBytes(commonOptions);
         }
 
         using PdfPigDocument authoredPdf = PdfPigDocument.Open(new MemoryStream(authoredBytes));
@@ -181,7 +181,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(320, 220),
@@ -220,7 +220,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),

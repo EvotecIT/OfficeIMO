@@ -9,7 +9,7 @@ public sealed class PdfTheme {
     private PdfTableStyle? _tableStyle;
     private PdfHeadingStyles? _headingStyles;
     private PdfListStyle? _listStyle;
-    private PanelStyle? _panelStyle;
+    private PdfPanelStyle? _panelStyle;
     private PdfHorizontalRuleStyle? _horizontalRuleStyle;
     private PdfImageStyle? _imageStyle;
     private PdfDrawingStyle? _drawingStyle;
@@ -46,7 +46,7 @@ public sealed class PdfTheme {
     }
 
     /// <summary>Default panel paragraph box style.</summary>
-    public PanelStyle? PanelStyle {
+    public PdfPanelStyle? PdfPanelStyle {
         get => _panelStyle?.Clone();
         set => _panelStyle = value?.Clone();
     }
@@ -140,7 +140,7 @@ public sealed class PdfTheme {
                 Color = bodyText
             },
             TableStyle = tableStyle,
-            PanelStyle = new PanelStyle {
+            PdfPanelStyle = new PdfPanelStyle {
                 Background = PdfColor.FromRgb(248, 250, 252),
                 BorderColor = ruleColor,
                 BorderWidth = 0.6,
@@ -175,7 +175,7 @@ public sealed class PdfTheme {
     public static PdfTheme TechnicalDocument() {
         PdfTheme theme = WordLike();
         theme.TableStyle = TableStyles.TechnicalDocument();
-        theme.PanelStyle = new PanelStyle {
+        theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
             BorderWidth = 0.5,
@@ -220,7 +220,7 @@ public sealed class PdfTheme {
             Color = bodyText
         };
         theme.TableStyle = TableStyles.Compact();
-        theme.PanelStyle = new PanelStyle {
+        theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
             BorderWidth = 0.4,
@@ -282,7 +282,7 @@ public sealed class PdfTheme {
             }
         };
         theme.TableStyle = TableStyles.Report();
-        theme.PanelStyle = new PanelStyle {
+        theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(239, 246, 255),
             BorderColor = Color(191, 219, 254),
             BorderWidth = 0.6,
@@ -309,7 +309,7 @@ public sealed class PdfTheme {
             TableStyle = _tableStyle?.Clone(),
             HeadingStyles = _headingStyles?.Clone(),
             ListStyle = _listStyle?.Clone(),
-            PanelStyle = _panelStyle?.Clone(),
+            PdfPanelStyle = _panelStyle?.Clone(),
             HorizontalRuleStyle = _horizontalRuleStyle?.Clone(),
             ImageStyle = _imageStyle?.Clone(),
             DrawingStyle = _drawingStyle?.Clone(),

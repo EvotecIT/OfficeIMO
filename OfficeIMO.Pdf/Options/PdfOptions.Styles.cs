@@ -50,7 +50,7 @@ public sealed partial class PdfOptions {
         set => _defaultListStyle = value?.Clone();
     }
     /// <summary>Default panel style applied when panel paragraphs do not specify their own style.</summary>
-    public PanelStyle? DefaultPanelStyle {
+    public PdfPanelStyle? DefaultPanelStyle {
         get => _defaultPanelStyle?.Clone();
         set => _defaultPanelStyle = value?.Clone();
     }
@@ -106,7 +106,7 @@ public sealed partial class PdfOptions {
     internal bool HasExplicitDefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle;
     internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => _defaultHeadingStyles;
     internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle;
-    internal PanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle;
+    internal PdfPanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle;
     internal PdfHorizontalRuleStyle? DefaultHorizontalRuleStyleSnapshot => _defaultHorizontalRuleStyle;
     internal PdfImageStyle? DefaultImageStyleSnapshot => _defaultImageStyle;
     internal PdfDrawingStyle? DefaultDrawingStyleSnapshot => _defaultDrawingStyle;

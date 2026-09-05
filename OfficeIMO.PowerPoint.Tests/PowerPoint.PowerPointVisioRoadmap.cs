@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(svg.Bytes);
                 Assert.Contains("Revenue", System.Text.Encoding.UTF8.GetString(svg.Bytes),
                     StringComparison.Ordinal);
-                byte[] pdf = presentation.ToPdf();
+                byte[] pdf = presentation.ToPdfBytes();
                 Assert.True(pdf.Length > 100);
                 Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(pdf, 0, 5));
             }

@@ -7,7 +7,7 @@ public sealed class AsciiDocInlineParsingTests {
             "A *strong _nested_* and Sara**h** with `code`, \\*literal*, {product}, " +
             "<<intro,Introduction>>, [[local]], image:icon.svg[Icon], stem:[x^2], and +{raw}+.\r\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocParagraph paragraph = Assert.Single(document.BlocksOfType<AsciiDocParagraph>());
 
         AsciiDocFormattedInline[] formatted = paragraph.Inlines.Items.OfType<AsciiDocFormattedInline>().ToArray();
@@ -29,7 +29,7 @@ public sealed class AsciiDocInlineParsingTests {
     [Fact]
     public void InlineEdits_RegenerateOnlyChangedNodes() {
         const string source = "Before *old* {name} <<old-id,Old label>> after.\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocParagraph paragraph = Assert.Single(document.BlocksOfType<AsciiDocParagraph>());
 
         AsciiDocFormattedInline strong = Assert.Single(paragraph.Inlines.Items.OfType<AsciiDocFormattedInline>());
@@ -46,7 +46,7 @@ public sealed class AsciiDocInlineParsingTests {
     [Fact]
     public void AssigningOriginalLiteralText_DoesNotMarkDocumentModified() {
         const string source = "Before *unchanged* after.\n";
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocParagraph paragraph = Assert.Single(document.BlocksOfType<AsciiDocParagraph>());
         AsciiDocTextInline text = Assert.Single(
             Assert.Single(paragraph.Inlines.Items.OfType<AsciiDocFormattedInline>()).Content.Items.OfType<AsciiDocTextInline>());
@@ -61,7 +61,7 @@ public sealed class AsciiDocInlineParsingTests {
     public void PunctuationAndEscapes_DoNotCreateFalseFormatting() {
         const string source = "2 * 3, snake_case, and \\*literal*.\n";
 
-        AsciiDocParagraph paragraph = Assert.Single(AsciiDocDocument.Parse(source).Document.BlocksOfType<AsciiDocParagraph>());
+        AsciiDocParagraph paragraph = Assert.Single(AsciiDocDocument.ParseResult(source).Document.BlocksOfType<AsciiDocParagraph>());
 
         Assert.Empty(paragraph.Inlines.Items.OfType<AsciiDocFormattedInline>());
         Assert.Equal(source.Substring(0, source.Length - 1), paragraph.Inlines.ToAsciiDoc());
@@ -71,7 +71,7 @@ public sealed class AsciiDocInlineParsingTests {
     public void MultilineInlineSequence_RetainsInternalMixedLineEndings() {
         const string source = "First *bold* line\r\nsecond {name} line\rLast line\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
         AsciiDocParagraph paragraph = Assert.Single(document.BlocksOfType<AsciiDocParagraph>());
 
         Assert.Equal("First *bold* line\r\nsecond {name} line\rLast line", paragraph.Inlines.Syntax.OriginalText);
@@ -82,14 +82,14 @@ public sealed class AsciiDocInlineParsingTests {
     public void InlineNodeLimit_IsEnforced() {
         var options = new AsciiDocParseOptions { MaximumInlineNodeCount = 2 };
 
-        Assert.Throws<InvalidDataException>(() => AsciiDocDocument.Parse("*one* {two} three", options));
+        Assert.Throws<InvalidDataException>(() => AsciiDocDocument.ParseResult("*one* {two} three", options));
     }
 
     [Fact]
     public void LongEscapeRuns_AreParsedLosslesslyWithoutBackwardRescanning() {
         string source = new string('\\', 100_000) + "*literal*\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
 
         Assert.Equal(source, document.ToAsciiDoc());
     }

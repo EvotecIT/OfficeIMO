@@ -4,13 +4,9 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Confluence;
 
 /// <summary>A converted Confluence body and its ADF fidelity evidence.</summary>
-public sealed class ConfluenceContentConversionResult<T> {
-    internal ConfluenceContentConversionResult(T value, AdfConversionReport report) {
-        Value = value;
-        Report = report;
-    }
-    public T Value { get; }
-    public AdfConversionReport Report { get; }
+public sealed class ConfluenceContentConversionResult<T> : OfficeConversionResult<T, AdfConversionReport> where T : class {
+    internal ConfluenceContentConversionResult(T value, AdfConversionReport report)
+        : base(value, report) { }
 }
 
 /// <summary>Creates and projects Confluence page bodies using OfficeIMO's ADF, Markdown, and HTML engines.</summary>

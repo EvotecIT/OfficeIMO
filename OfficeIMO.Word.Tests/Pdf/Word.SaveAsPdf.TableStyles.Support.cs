@@ -45,16 +45,16 @@ public partial class Word {
         return CreateNativeTableStyleForTest(table, null, null);
     }
 
-    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordPdfSaveOptions? options) {
+    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordToPdfOptions? options) {
         return CreateNativeTableStyleForTest(table, options, null);
     }
 
-    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordPdfSaveOptions? options, double? contentWidth) {
+    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordToPdfOptions? options, double? contentWidth) {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
             "CreateNativeTableStyle",
             BindingFlags.NonPublic | BindingFlags.Static,
             binder: null,
-            new[] { typeof(WordTable), typeof(int), typeof(WordPdfSaveOptions), typeof(double?) },
+            new[] { typeof(WordTable), typeof(int), typeof(WordToPdfOptions), typeof(double?) },
             modifiers: null)!;
         return Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, table.Rows.Count, options, contentWidth }));
     }

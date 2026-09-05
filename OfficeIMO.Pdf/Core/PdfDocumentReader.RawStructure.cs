@@ -7,7 +7,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to build a bounded raw object view with preflight diagnostics.</summary>
-    public PdfOperationResult<PdfRawDocumentView> TryRawStructure(PdfRawStructureOptions? structureOptions = null, PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfRawDocumentView> RawStructureResult(PdfRawStructureOptions? structureOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation(
             "Read raw structure",
             PdfPreflightCapability.ReadLogicalObjects,

@@ -97,8 +97,8 @@ internal static class AsciiDocEvidenceRunner {
         using var sampler = new AsciiDocManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
         object result = string.Equals(operation, "Parse", StringComparison.Ordinal)
-            ? AsciiDocDocument.Parse(fixture.Source)
-            : AsciiDocDocument.Parse(fixture.Source).Document.ToAsciiDoc();
+            ? AsciiDocDocument.ParseResult(fixture.Source)
+            : AsciiDocDocument.ParseResult(fixture.Source).Document.ToAsciiDoc();
         stopwatch.Stop();
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;

@@ -385,6 +385,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<int>? AdditionalAnnotationObjectIds { get; set; }
         public int? AnnotationStructParentIndex { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
+        public bool SpansPages { get; set; }
         public int ObjectId { get; set; }
     }
 

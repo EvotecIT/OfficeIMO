@@ -7,12 +7,12 @@ namespace OfficeIMO.Markdown.Pdf;
 /// </summary>
 public sealed partial class MarkdownPdfStyle {
     private PdfCore.PdfTheme? _documentTheme;
-    private PdfCore.PanelStyle? _codeBlockPanelStyle;
-    private PdfCore.PanelStyle? _semanticBlockPanelStyle;
-    private PdfCore.PanelStyle? _quotePanelStyle;
-    private PdfCore.PanelStyle? _calloutPanelStyle;
-    private PdfCore.PanelStyle? _detailsPanelStyle;
-    private PdfCore.PanelStyle? _tocPanelStyle;
+    private PdfCore.PdfPanelStyle? _codeBlockPanelStyle;
+    private PdfCore.PdfPanelStyle? _semanticBlockPanelStyle;
+    private PdfCore.PdfPanelStyle? _quotePanelStyle;
+    private PdfCore.PdfPanelStyle? _calloutPanelStyle;
+    private PdfCore.PdfPanelStyle? _detailsPanelStyle;
+    private PdfCore.PdfPanelStyle? _tocPanelStyle;
     private PdfCore.PdfTableStyle? _tableStyle;
     private PdfCore.PdfTableStyle? _checklistTableStyle;
     private PdfCore.PdfTableStyle? _definitionListTableStyle;
@@ -56,37 +56,37 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Panel style used for fenced code blocks.</summary>
-    public PdfCore.PanelStyle? CodeBlockPanelStyle {
+    public PdfCore.PdfPanelStyle? CodeBlockPanelStyle {
         get => _codeBlockPanelStyle?.Clone();
         set => _codeBlockPanelStyle = value?.Clone();
     }
 
     /// <summary>Panel style used for semantic fenced blocks such as diagrams or data blocks.</summary>
-    public PdfCore.PanelStyle? SemanticBlockPanelStyle {
+    public PdfCore.PdfPanelStyle? SemanticBlockPanelStyle {
         get => _semanticBlockPanelStyle?.Clone();
         set => _semanticBlockPanelStyle = value?.Clone();
     }
 
     /// <summary>Panel style used for block quotes.</summary>
-    public PdfCore.PanelStyle? QuotePanelStyle {
+    public PdfCore.PdfPanelStyle? QuotePanelStyle {
         get => _quotePanelStyle?.Clone();
         set => _quotePanelStyle = value?.Clone();
     }
 
     /// <summary>Base panel style used for callouts. The callout kind still controls the border color.</summary>
-    public PdfCore.PanelStyle? CalloutPanelStyle {
+    public PdfCore.PdfPanelStyle? CalloutPanelStyle {
         get => _calloutPanelStyle?.Clone();
         set => _calloutPanelStyle = value?.Clone();
     }
 
     /// <summary>Panel style used for details/summary blocks.</summary>
-    public PdfCore.PanelStyle? DetailsPanelStyle {
+    public PdfCore.PdfPanelStyle? DetailsPanelStyle {
         get => _detailsPanelStyle?.Clone();
         set => _detailsPanelStyle = value?.Clone();
     }
 
     /// <summary>Panel style used for generated Markdown table-of-contents blocks.</summary>
-    public PdfCore.PanelStyle? TocPanelStyle {
+    public PdfCore.PdfPanelStyle? TocPanelStyle {
         get => _tocPanelStyle?.Clone();
         set => _tocPanelStyle = value?.Clone();
     }
@@ -582,11 +582,11 @@ public sealed partial class MarkdownPdfStyle {
     };
 
     internal PdfCore.PdfTheme? DocumentThemeSnapshot => _documentTheme?.Clone();
-    internal PdfCore.PanelStyle CodeBlockPanelStyleSnapshot => (_codeBlockPanelStyle ?? Plain()._codeBlockPanelStyle)!.Clone();
-    internal PdfCore.PanelStyle SemanticBlockPanelStyleSnapshot => (_semanticBlockPanelStyle ?? Plain()._semanticBlockPanelStyle)!.Clone();
-    internal PdfCore.PanelStyle QuotePanelStyleSnapshot => (_quotePanelStyle ?? Plain()._quotePanelStyle)!.Clone();
-    internal PdfCore.PanelStyle DetailsPanelStyleSnapshot => (_detailsPanelStyle ?? Plain()._detailsPanelStyle)!.Clone();
-    internal PdfCore.PanelStyle TocPanelStyleSnapshot => (_tocPanelStyle ?? Plain()._tocPanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle CodeBlockPanelStyleSnapshot => (_codeBlockPanelStyle ?? Plain()._codeBlockPanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle SemanticBlockPanelStyleSnapshot => (_semanticBlockPanelStyle ?? Plain()._semanticBlockPanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle QuotePanelStyleSnapshot => (_quotePanelStyle ?? Plain()._quotePanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle DetailsPanelStyleSnapshot => (_detailsPanelStyle ?? Plain()._detailsPanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle TocPanelStyleSnapshot => (_tocPanelStyle ?? Plain()._tocPanelStyle)!.Clone();
     internal PdfCore.PdfTableStyle TableStyleSnapshot => (_tableStyle ?? PdfCore.TableStyles.Light()).Clone();
     internal PdfCore.PdfTableStyle ChecklistTableStyleSnapshot => (_checklistTableStyle ?? Plain()._checklistTableStyle)!.Clone();
     internal PdfCore.PdfTableStyle DefinitionListTableStyleSnapshot => (_definitionListTableStyle ?? Plain()._definitionListTableStyle)!.Clone();
@@ -631,8 +631,8 @@ public sealed partial class MarkdownPdfStyle {
         _pageDecoration?.Apply(pdf, options);
     }
 
-    internal PdfCore.PanelStyle CreateCalloutPanelStyle(string? kind) {
-        PdfCore.PanelStyle style = (_calloutPanelStyle ?? Plain()._calloutPanelStyle)!.Clone();
+    internal PdfCore.PdfPanelStyle CreateCalloutPanelStyle(string? kind) {
+        PdfCore.PdfPanelStyle style = (_calloutPanelStyle ?? Plain()._calloutPanelStyle)!.Clone();
         style.BorderColor = GetCalloutColor(kind);
         PdfCore.PdfPanelBorder? leftBorder = style.LeftBorder;
         if (leftBorder != null) {

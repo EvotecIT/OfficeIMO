@@ -36,7 +36,7 @@ public class PdfRawStructureTests {
             MaxCollectionItems = 1,
             MaxTextLength = 8
         });
-        PdfOperationResult<PdfRawDocumentView> attempted = document.Resources.TryRawStructure();
+        PdfOperationResult<PdfRawDocumentView> attempted = document.Resources.RawStructureResult();
 
         Assert.Equal(2, raw.Objects.Count);
         Assert.True(raw.IsTruncated);

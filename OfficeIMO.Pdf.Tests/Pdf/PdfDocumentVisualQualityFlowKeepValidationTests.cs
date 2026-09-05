@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void PanelParagraph_KeepTogetherSplitsContentTallerThanContentArea() {
+    public void PanelParagraph_SplitsContentTallerThanContentAreaWhenAllowed() {
         var options = new PdfOptions {
             PageWidth = 320,
             PageHeight = 170,
@@ -75,8 +75,8 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "panel" + i.ToString("000")));
 
         byte[] bytes = PdfDocument.Create(options)
-            .PanelParagraph(p => p.Text(longText), new PanelStyle {
-                KeepTogether = true,
+            .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
+                KeepTogether = false,
                 PaddingY = 8
             })
             .ToBytes();

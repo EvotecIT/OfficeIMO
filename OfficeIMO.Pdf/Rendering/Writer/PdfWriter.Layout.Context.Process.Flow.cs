@@ -27,8 +27,17 @@ internal static partial class PdfWriter {
             }
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
+            if (!measuredHeight.HasValue &&
+                (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
+                throw new NotSupportedException("KeepTogether and non-continuing overflow behavior require flow content whose height can be determined before rendering. Remove the constraint or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the flow.");
+            }
+
             bool cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
-            bool fitsFullPage = measuredHeight.HasValue && measuredHeight.Value <= GetFullPageContentHeight() + 0.001D;
+            double? fullPageMeasuredHeight = measuredHeight.HasValue
+                ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)
+                : null;
+            bool fitsFullPage = fullPageMeasuredHeight.HasValue &&
+                                fullPageMeasuredHeight.Value <= GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D;
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
             if ((moveForKeepTogether || moveForOverflow) && y < yStart - 0.001D) {
@@ -36,14 +45,16 @@ internal static partial class PdfWriter {
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
                     blocks = MaterializeFlow(flow, context);
-                    measuredHeight = MeasureFlowBlocks(blocks);
                 }
 
+                measuredHeight = MeasureFlowBlocks(blocks);
+                fullPageMeasuredHeight = measuredHeight;
                 available = y - currentOpts.MarginBottom;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
             }
 
-            if (flow.Options.KeepTogether && measuredHeight.HasValue && measuredHeight.Value > GetFullPageContentHeight() + 0.001D) {
+            if (flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue &&
+                fullPageMeasuredHeight.Value > GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D) {
                 throw new ArgumentException("Keep-together flow content exceeds the available full-page content height.");
             }
 
@@ -91,40 +102,7 @@ internal static partial class PdfWriter {
         }
 
         private double? MeasureFlowBlocks(IReadOnlyList<IPdfBlock> blocks) {
-            double measured = 0D;
-            for (int i = 0; i < blocks.Count; i++) {
-                IPdfBlock block = blocks[i];
-                if (block is BookmarkBlock) {
-                    continue;
-                }
-
-                if (block is PageBreakBlock || block is PageBlock || block is DeferredTableBlock) {
-                    return null;
-                }
-
-                if (block is FlowBlock nested) {
-                    if (nested.IsReplayable) {
-                        return null;
-                    }
-
-                    double? nestedHeight = MeasureFlowBlocks(nested.Materialize(CreateFlowContext()));
-                    if (!nestedHeight.HasValue) {
-                        return null;
-                    }
-
-                    measured += nestedHeight.Value;
-                    continue;
-                }
-
-                double height = MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
-                if (height <= 0D && block is not SpacerBlock) {
-                    return null;
-                }
-
-                measured += height;
-            }
-
-            return measured;
+            return MeasureBlockSequence(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
         }
 
         private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions) {

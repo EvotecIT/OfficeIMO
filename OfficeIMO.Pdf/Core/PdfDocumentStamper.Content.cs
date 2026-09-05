@@ -24,7 +24,7 @@ public sealed partial class PdfDocumentStamper {
     }
 
     /// <summary>Attempts to stamp arbitrary visual canvas content and returns diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<PdfDocument> TryContent(
+    public PdfOperationResult<PdfDocument> ContentResult(
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? stampOptions = null,
         PdfLoadOptions? options = null) {

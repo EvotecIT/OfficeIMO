@@ -64,7 +64,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             }, color: PdfColor.FromRgb(55, 65, 81))
             .PanelParagraph(
                 p => p.Bold("Panel check").LineBreak().Text("Text should sit comfortably inside its border and retain readable padding after rasterization."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -153,7 +153,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Paragraph(p => p.Text("This sample uses document-level defaults for text color, headers, footers, and the light table preset."))
             .PanelParagraph(
                 p => p.Text("The default table style should be good enough for a simple business report without every caller hand-tuning colors and padding."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -186,7 +186,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 p => p
                     .Bold("Inline styles")
                     .Text(" should remain readable in normal business-report text, not only in synthetic text extraction checks."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -266,7 +266,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 })
             .PanelParagraph(
                 p => p.Text("Tab leaders are paragraph primitives, not invoice-specific rendering. Dotted value rows should align while remaining extractable as leader rows."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,

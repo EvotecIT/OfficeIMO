@@ -73,7 +73,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.Span("MergedLink", 2, "https://evotec.xyz/row-column-spanned", "Row-column spanned metadata"),
@@ -160,7 +160,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.Merge("TallLink", rowSpan: 2, linkUri: "https://evotec.xyz/row-column-row-spanned", linkContents: "Row-column row-spanned metadata"),
@@ -279,7 +279,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.Merge("MergedBox", columnSpan: 2, rowSpan: 2, linkUri: "https://evotec.xyz/row-column-rectangular-merged", linkContents: "Row-column rectangular merged metadata"),
@@ -380,7 +380,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.Merge("MergedBox", columnSpan: 2, rowSpan: 2),
@@ -471,7 +471,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] {
                                         PdfTableCell.Merge("MergedBox", columnSpan: 2, rowSpan: 2),

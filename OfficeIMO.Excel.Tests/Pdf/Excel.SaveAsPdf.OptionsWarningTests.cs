@@ -17,13 +17,13 @@ public partial class Excel {
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Rejects_Invalid_Options() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { HeaderRowCount = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { MaxRowsPerSheet = 0 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelToPdfOptions { HeaderRowCount = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelToPdfOptions { MaxRowsPerSheet = 0 });
     }
 
     [Fact]
     public void SaveAsPdf_ExcelShapingOnlyProfileAllowsWorkbookFontDiscoveryUntilCallerConfiguresFonts() {
-        var options = new ExcelPdfSaveOptions()
+        var options = new ExcelToPdfOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -37,7 +37,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Reports_Unsupported_Export_Features() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfUnsupportedFeatureWarnings.xlsx");
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
             MaxRowsPerSheet = 2,
@@ -70,7 +70,7 @@ public partial class Excel {
             result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
             using var output = new MemoryStream();
-            saveResult = document.TrySaveAsPdf(output, options);
+            saveResult = document.SaveAsPdfResult(output, options);
         }
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {

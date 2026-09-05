@@ -37,7 +37,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
@@ -68,7 +68,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
@@ -94,7 +94,7 @@ public partial class Excel {
             sheet.SetRowHidden(2, true);
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 RespectWorksheetHiddenRowsAndColumns = true
             });
@@ -122,7 +122,7 @@ public partial class Excel {
             73, 69, 78, 68,
             0, 0, 0, 0
         };
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false
         };
 
@@ -147,7 +147,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Warns_And_Skips_Worksheet_Image_When_Declared_Type_Differs_From_Bytes() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMismatchedImageType.xlsx");
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false
         };
 
@@ -188,7 +188,7 @@ public partial class Excel {
             sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
@@ -231,7 +231,7 @@ public partial class Excel {
             sheet.AddImage(3, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
@@ -263,7 +263,7 @@ public partial class Excel {
             sheet.AddImage(42, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 48, heightPixels: 32, name: "Late page image");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(300, 220),
@@ -289,7 +289,7 @@ public partial class Excel {
             sheet.AddImage(55, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 32, name: "Terminal image");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(300, 220),
@@ -316,7 +316,7 @@ public partial class Excel {
             sheet.AddImage(8, 4, image, "image/png", widthPixels: 24, heightPixels: 16, name: "Lower image");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 300),

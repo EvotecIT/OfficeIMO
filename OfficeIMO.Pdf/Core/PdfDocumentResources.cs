@@ -43,7 +43,7 @@ public sealed class PdfDocumentResources {
     }
 
     /// <summary>Attempts to inspect fonts, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<PdfFontInventory> TryFonts(
+    public PdfOperationResult<PdfFontInventory> FontsResult(
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? loadOptions = null) =>
         _document.TryOperation(
@@ -59,7 +59,7 @@ public sealed class PdfDocumentResources {
         _document.GetReadDocument(loadOptions ?? _document.ReadOptions).RawStructure(structureOptions);
 
     /// <summary>Attempts to build a bounded raw object view with preflight diagnostics.</summary>
-    public PdfOperationResult<PdfRawDocumentView> TryRawStructure(
+    public PdfOperationResult<PdfRawDocumentView> RawStructureResult(
         PdfRawStructureOptions? structureOptions = null,
         PdfLoadOptions? loadOptions = null) =>
         _document.TryOperation(

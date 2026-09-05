@@ -7,12 +7,13 @@ internal static class PdfRtfConverter {
     private const int BulletListId = 1;
     private const int DecimalListId = 2;
 
-    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfRtfImportOptions? options) {
+    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToRtfOptions? options) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
 
-        PdfRtfImportOptions readOptions = options ?? new PdfRtfImportOptions();
+        PdfToRtfOptions readOptions = options ?? new PdfToRtfOptions();
+        readOptions.CancellationToken.ThrowIfCancellationRequested();
         RtfDocument document = RtfDocument.Create();
         var runStyles = new RunStyleCatalog(document);
         AddUnsupportedContentDiagnostics(source, readOptions);
@@ -30,6 +31,7 @@ internal static class PdfRtfConverter {
         }
 
         for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
+            readOptions.CancellationToken.ThrowIfCancellationRequested();
             ImportPage(source.Pages[pageIndex], document, readOptions, runStyles, pageIndex > 0 && readOptions.PreservePageBreaks);
         }
 
@@ -38,7 +40,7 @@ internal static class PdfRtfConverter {
 
     private static void AddUnsupportedContentDiagnostics(
         PdfCore.PdfDocumentReadResult source,
-        PdfRtfImportOptions options) {
+        PdfToRtfOptions options) {
         AddOmissionWarning(options, "TABLES_NOT_IMPORTED", "Table", source.Tables.Count,
             "Detected PDF tables are not reconstructed by the semantic RTF importer.");
         AddOmissionWarning(options, "IMAGES_NOT_IMPORTED", "Image", source.Images.Count,
@@ -50,7 +52,7 @@ internal static class PdfRtfConverter {
     }
 
     private static void AddOmissionWarning(
-        PdfRtfImportOptions options,
+        PdfToRtfOptions options,
         string code,
         string source,
         int count,
@@ -73,7 +75,7 @@ internal static class PdfRtfConverter {
     private static void ImportPage(
         PdfCore.PdfLogicalPage page,
         RtfDocument document,
-        PdfRtfImportOptions options,
+        PdfToRtfOptions options,
         RunStyleCatalog runStyles,
         bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
@@ -81,6 +83,7 @@ internal static class PdfRtfConverter {
         bool pendingPageBreak = pageBreakBeforeFirstParagraph;
 
         foreach (PdfCore.PdfLogicalTextBlock block in page.TextBlocks) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (consumed.Contains(block)) {
                 continue;
             }

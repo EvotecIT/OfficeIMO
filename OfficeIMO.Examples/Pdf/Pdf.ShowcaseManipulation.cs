@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .H1("Source A - details", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
-                    new PanelStyle {
+                    new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(148, 163, 184),
                         BorderWidth = 0.7,

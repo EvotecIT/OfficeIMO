@@ -14,10 +14,10 @@ namespace OfficeIMO.OneNote.Tests;
 public sealed class ConverterTests {
     [Fact]
     public void PdfOptionsNameTheMarkdownProjectionStageExplicitly() {
-        PropertyInfo? markdownOptions = typeof(OneNotePdfSaveOptions).GetProperty("MarkdownOptions");
+        PropertyInfo? markdownOptions = typeof(OneNoteToPdfOptions).GetProperty("MarkdownOptions");
 
-        Assert.Equal(typeof(MarkdownPdfSaveOptions), markdownOptions?.PropertyType);
-        Assert.Null(typeof(OneNotePdfSaveOptions).GetProperty("PdfOptions"));
+        Assert.Equal(typeof(MarkdownToPdfOptions), markdownOptions?.PropertyType);
+        Assert.Null(typeof(OneNoteToPdfOptions).GetProperty("PdfOptions"));
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class ConverterTests {
     public async Task PdfConversionProducesValidBytesAndLeavesCallerOwnedStreamOpen() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
 
-        byte[] bytes = section.ToPdf();
+        byte[] bytes = section.ToPdfBytes();
         using var stream = new MemoryStream();
         await section.SaveAsPdfAsync(stream);
 
@@ -169,7 +169,7 @@ public sealed class ConverterTests {
         var options = new OneNoteMarkdownOptions { AssetUriResolver = _ => null };
 
         OneNoteMarkdownConversionResult markdown = section.ToMarkdownDocumentResult(options);
-        PdfDocumentConversionResult pdf = section.ToPdfDocumentResult(new OneNotePdfSaveOptions {
+        PdfDocumentConversionResult pdf = section.ToPdfDocumentResult(new OneNoteToPdfOptions {
             ProjectionOptions = options
         });
 
@@ -188,13 +188,14 @@ public sealed class ConverterTests {
     public void PdfAdaptersExposeTheSharedLifecyclePerSourceType(Type adapterType) {
         MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
 
-        Assert.Single(methods, method => method.Name == "ToPdf");
+        Assert.Single(methods, method => method.Name == "ToPdfBytes");
+        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
         Assert.Single(methods, method => method.Name == "ToPdfDocument");
         Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult"));
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdfAsync"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync"));
     }
 
     [Fact]
@@ -207,7 +208,7 @@ public sealed class ConverterTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             section.SaveAsPdfAsync(stream, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            section.TrySaveAsPdfAsync(stream, cancellationToken: cancellation.Token));
+            section.SaveAsPdfResultAsync(stream, cancellationToken: cancellation.Token));
         Assert.Equal(0, stream.Length);
     }
 
@@ -332,11 +333,11 @@ public sealed class ConverterTests {
         image.Payload = OneNoteBinaryPayload.FromBytes(
             OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
 
-        byte[] compressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+        byte[] compressed = section.ToVisualPdfBytes(new OneNoteVisualPdfOptions {
             RasterScale = 0.5D,
             PdfOptions = new PdfOptions { Language = "en-US" }
         });
-        byte[] uncompressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+        byte[] uncompressed = section.ToVisualPdfBytes(new OneNoteVisualPdfOptions {
             RasterScale = 0.5D,
             PdfOptions = new PdfOptions { CompressContentStreams = false }
         });
@@ -427,7 +428,7 @@ public sealed class ConverterTests {
         string text = OneNoteMarkdownProjection.ToText(page);
         string markdown = section.ToMarkdown();
         string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
-        byte[] pdf = section.ToPdf();
+        byte[] pdf = section.ToPdfBytes();
 
         Assert.Contains("Native\ntitle", text, StringComparison.Ordinal);
         Assert.Contains("Alpha\nBeta??", text, StringComparison.Ordinal);
@@ -454,7 +455,7 @@ public sealed class ConverterTests {
 
         string markdown = section.ToMarkdown();
         string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
-        byte[] pdf = section.ToPdf();
+        byte[] pdf = section.ToPdfBytes();
         string expectedPrefix = new string(' ', OneNoteListInfo.MaxLevel * 2) + "- Bounded item";
 
         Assert.Contains(expectedPrefix, markdown, StringComparison.Ordinal);
@@ -475,7 +476,7 @@ public sealed class ConverterTests {
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => OneNoteMarkdownProjection.ToMarkdown(outline));
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToMarkdown());
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToHtmlDocument());
-        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToPdf());
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToPdfBytes());
     }
 
     [Fact]
@@ -571,7 +572,7 @@ public sealed class ConverterTests {
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => OneNoteMarkdownProjection.ToMarkdown(paragraph));
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToMarkdown());
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToHtmlDocument());
-        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToPdf());
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToPdfBytes());
     }
 
     [Fact]

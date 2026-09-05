@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
 
         Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -22,13 +22,13 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_DirectRenderer_ForcesPagedModeForSuppliedRenderOptions() {
         string html = string.Concat(Enumerable.Range(0, 40).Select(index => "<div style='line-height:20px'>Line" + index + "</div>"));
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
-        options = new HtmlPdfSaveOptions {
+        HtmlToPdfOptions options = new HtmlToPdfOptions();
+        options = new HtmlToPdfOptions {
             PageSize = new OfficePageSize(2D, 2D),
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(options);
 
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
         Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount > 1);
@@ -219,7 +219,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_MapsSansSerifToHelvetica() {
         const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Helvetica", rawPdf, StringComparison.Ordinal);

@@ -575,7 +575,7 @@ internal static partial class TableDetector {
                 bool nextRequiresAlignedCellSplits = !baseSplitsSeparateNextCells ||
                                                      (!splitsAreSimilar &&
                                                       (hasNonLeftAlignedCells || hasContinuousAlignedCells));
-                if (!alignedSplitAccumulator.TryAppend(
+                if (!alignedSplitAccumulator.AppendResult(
                     next.lines,
                     requiresAlignedCellSplits || nextRequiresAlignedCellSplits)) {
                     break;

@@ -316,9 +316,9 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         var result = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("Alpha\n", options);
 
-        Assert.NotNull(result.Document.ParseResult);
-        Assert.Same(result.FinalSyntaxTree, result.Document.ParseResult!.FinalSyntaxTree);
-        Assert.Same(result.Document, result.Document.ParseResult.Document);
+        Assert.NotNull(result.Document.AttachedParseResult);
+        Assert.Same(result.FinalSyntaxTree, result.Document.AttachedParseResult!.FinalSyntaxTree);
+        Assert.Same(result.Document, result.Document.AttachedParseResult.Document);
     }
 
     [Fact]

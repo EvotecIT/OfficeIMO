@@ -14,7 +14,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read catalog XMP metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfXmpMetadataInfo> TryXmpMetadata(PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfXmpMetadataInfo> XmpMetadataResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read XMP metadata", PdfPreflightCapability.ReadLogicalObjects, () => XmpMetadata(options) ?? throw new InvalidOperationException("No readable XMP metadata was found."), ResolveReadOptions(options));
     }
 
@@ -28,7 +28,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read catalog output-intent metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> TryOutputIntents(PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> OutputIntentsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read output intents", PdfPreflightCapability.ReadLogicalObjects, () => OutputIntents(options), ResolveReadOptions(options));
     }
 
@@ -42,7 +42,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read output intents with a matching /S subtype, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> TryOutputIntentsBySubtype(string subtype, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> OutputIntentsBySubtypeResult(string subtype, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read output intents", PdfPreflightCapability.ReadLogicalObjects, () => OutputIntentsBySubtype(subtype, options), ResolveReadOptions(options));
     }
 
@@ -56,7 +56,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read output intents with a matching /OutputConditionIdentifier, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> TryOutputIntentsByOutputConditionIdentifier(string outputConditionIdentifier, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> OutputIntentsByOutputConditionIdentifierResult(string outputConditionIdentifier, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read output intents", PdfPreflightCapability.ReadLogicalObjects, () => OutputIntentsByOutputConditionIdentifier(outputConditionIdentifier, options), ResolveReadOptions(options));
     }
 
@@ -70,7 +70,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read tagged PDF structure metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfTaggedContentInfo> TryTaggedContent(PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfTaggedContentInfo> TaggedContentResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read tagged content", PdfPreflightCapability.ReadLogicalObjects, () => TaggedContent(options) ?? throw new InvalidOperationException("No readable tagged content metadata was found."), ResolveReadOptions(options));
     }
 
@@ -84,7 +84,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read optional-content/layer metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfOptionalContentProperties> TryOptionalContent(PdfLoadOptions? options = null) {
+    public PdfOperationResult<PdfOptionalContentProperties> OptionalContentResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read optional content", PdfPreflightCapability.ReadLogicalObjects, () => OptionalContent(options) ?? throw new InvalidOperationException("No readable optional-content metadata was found."), ResolveReadOptions(options));
     }
 
@@ -98,7 +98,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read optional-content groups, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOptionalContentGroup>> TryOptionalContentGroups(PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfOptionalContentGroup>> OptionalContentGroupsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read optional content groups", PdfPreflightCapability.ReadLogicalObjects, () => OptionalContentGroups(options), ResolveReadOptions(options));
     }
 
@@ -112,7 +112,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read optional-content groups with a matching layer display name, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOptionalContentGroup>> TryOptionalContentGroupsByName(string name, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfOptionalContentGroup>> OptionalContentGroupsByNameResult(string name, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read optional content groups", PdfPreflightCapability.ReadLogicalObjects, () => OptionalContentGroupsByName(name, options), ResolveReadOptions(options));
     }
 
@@ -126,7 +126,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read attachment metadata without extracting attachment payload bytes, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> TryAttachmentMetadata(PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> AttachmentMetadataResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read attachment metadata", PdfPreflightCapability.ReadLogicalObjects, () => AttachmentMetadata(options), ResolveReadOptions(options));
     }
 
@@ -140,7 +140,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read attachment metadata with a matching name-tree key or associated-file fallback name.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> TryAttachmentMetadataByName(string name, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> AttachmentMetadataByNameResult(string name, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read attachment metadata", PdfPreflightCapability.ReadLogicalObjects, () => AttachmentMetadataByName(name, options), ResolveReadOptions(options));
     }
 
@@ -154,7 +154,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read attachment metadata with a matching file specification file name.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> TryAttachmentMetadataByFileName(string fileName, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> AttachmentMetadataByFileNameResult(string fileName, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read attachment metadata", PdfPreflightCapability.ReadLogicalObjects, () => AttachmentMetadataByFileName(fileName, options), ResolveReadOptions(options));
     }
 
@@ -168,7 +168,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read attachment metadata from a matching catalog source.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> TryAttachmentMetadataBySource(string source, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> AttachmentMetadataBySourceResult(string source, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read attachment metadata", PdfPreflightCapability.ReadLogicalObjects, () => AttachmentMetadataBySource(source, options), ResolveReadOptions(options));
     }
 
@@ -182,7 +182,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read attachment metadata with a matching associated-file relationship.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> TryAttachmentMetadataByRelationship(PdfAssociatedFileRelationship relationship, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> AttachmentMetadataByRelationshipResult(PdfAssociatedFileRelationship relationship, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read attachment metadata", PdfPreflightCapability.ReadLogicalObjects, () => AttachmentMetadataByRelationship(relationship, options), ResolveReadOptions(options));
     }
 }

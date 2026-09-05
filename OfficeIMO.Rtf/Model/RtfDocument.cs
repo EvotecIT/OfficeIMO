@@ -114,29 +114,49 @@ public sealed partial class RtfDocument {
         return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
     }
 
-    /// <summary>Loads RTF from a file.</summary>
-    public static RtfReadResult Load(string path, RtfReadOptions? options = null, Encoding? encoding = null) {
+    /// <summary>Parses RTF text into the semantic document model.</summary>
+    public static RtfDocument Parse(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
+        ParseResult(rtf, options, cancellationToken).Document;
+
+    /// <summary>Parses RTF text and returns the semantic document, lossless syntax, and diagnostics.</summary>
+    public static RtfReadResult ParseResult(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
+        Read(rtf, options, cancellationToken);
+
+    /// <summary>Loads RTF from a file into the semantic document model.</summary>
+    public static RtfDocument Load(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
+        LoadResult(path, options, encoding, cancellationToken).Document;
+
+    /// <summary>Loads RTF from a file with lossless syntax and diagnostics.</summary>
+    public static RtfReadResult LoadResult(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Load(stream, readOptions, encoding);
+        return LoadResult(stream, readOptions, encoding, cancellationToken);
     }
+
+    /// <summary>Loads RTF bytes into the semantic document model.</summary>
+    public static RtfDocument Load(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
+        LoadResult(bytes, options, cancellationToken).Document;
 
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
-    public static RtfReadResult Load(byte[] bytes, RtfReadOptions? options = null) {
+    public static RtfReadResult LoadResult(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
-        new RtfReadLimitGuard(readOptions, CancellationToken.None).CheckInputBytes(bytes.LongLength);
-        return Read(RtfBytePreservingEncoding.GetString(bytes), readOptions).AttachOriginalBytes(bytes);
+        new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
+        return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }
 
-    /// <summary>Loads RTF from a stream.</summary>
-    public static RtfReadResult Load(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null) {
+    /// <summary>Loads RTF from a stream into the semantic document model.</summary>
+    public static RtfDocument Load(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
+        LoadResult(stream, options, encoding, cancellationToken).Document;
+
+    /// <summary>Loads RTF from a stream with lossless syntax and diagnostics.</summary>
+    public static RtfReadResult LoadResult(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
-        byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.MaxInputBytes, CancellationToken.None);
+        byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.MaxInputBytes, cancellationToken);
         string rtf = DecodeInput(bytes, encoding);
-        return Read(rtf, readOptions).AttachOriginalBytes(bytes);
+        return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }
 
     private static string DecodeInput(byte[] bytes, Encoding? encoding) {

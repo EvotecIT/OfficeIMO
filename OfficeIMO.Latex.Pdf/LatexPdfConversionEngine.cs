@@ -8,12 +8,13 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Latex.Pdf;
 
 internal static class LatexPdfConversionEngine {
-    internal static PdfCore.PdfDocumentConversionResult Convert(LatexDocument document, LatexPdfSaveOptions? options) {
+    internal static PdfCore.PdfDocumentConversionResult Convert(LatexDocument document, LatexToPdfOptions? options, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
 
-        LatexPdfSaveOptions operation = (options ?? new LatexPdfSaveOptions()).CloneForConversion();
+        LatexToPdfOptions operation = (options ?? new LatexToPdfOptions()).CloneForConversion();
         LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions);
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions, cancellationToken);
         return result
             .WithSourceConversionReport(projection.Report)
             .WithAdditionalWarnings(ToPdfWarnings(document));

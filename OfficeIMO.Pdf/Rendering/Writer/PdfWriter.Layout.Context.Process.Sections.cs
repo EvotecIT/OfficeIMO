@@ -20,18 +20,23 @@ internal static partial class PdfWriter {
                 Reference = section.Options.Reference
             });
 
-            if (section.Options.IncludeHeading) {
-                ProcessBlocks(new IPdfBlock[] {
-                    new HeadingBlock(
-                        section.Options.Level,
-                        section.Title,
-                        PdfAlign.Left,
-                        color: null,
-                        style: section.Options.HeadingStyle)
-                });
-            }
+            flowSemanticScopes.Add(new FlowSemanticScope(PdfSemanticRole.Section, alternativeText: null));
+            try {
+                if (section.Options.IncludeHeading) {
+                    ProcessBlocks(new IPdfBlock[] {
+                        new HeadingBlock(
+                            section.Options.Level,
+                            section.Title,
+                            PdfAlign.Left,
+                            color: null,
+                            style: section.Options.HeadingStyle)
+                    });
+                }
 
-            ProcessBlocks(section.Blocks);
+                ProcessBlocks(section.Blocks);
+            } finally {
+                flowSemanticScopes.RemoveAt(flowSemanticScopes.Count - 1);
+            }
         }
 
         private void RenderTableOfContentsBlock(TableOfContentsBlock tableOfContents) {

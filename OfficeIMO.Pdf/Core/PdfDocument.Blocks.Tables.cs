@@ -18,14 +18,14 @@ public sealed partial class PdfDocument {
     /// PdfDocument.Create(pdf => pdf.Content(content => content
     ///     .Row(row => row
     ///         .Gap(16)
-    ///         .Column(35, column => column.H2("Signals").Bullets(new[] { "Healthy", "Watch", "Needs action" }))
-    ///         .Column(65, column => column.Panel("Right-side report callout.")))))
+    ///         .PercentColumn(35, column => column.H2("Signals").Bullets(new[] { "Healthy", "Watch", "Needs action" }))
+    ///         .PercentColumn(65, column => column.Panel("Right-side report callout.")))))
     ///     .Save("report.pdf");
     /// </code>
     /// </example>
-    internal PdfDocument Row(System.Action<PdfRowCompose> build) {
+    internal PdfDocument Row(System.Action<PdfRowBuilder> build) {
         Guard.NotNull(build, nameof(build));
-        var row = new PdfRowCompose(this);
+        var row = new PdfRowBuilder(this);
         build(row);
         row.Commit();
         return this;

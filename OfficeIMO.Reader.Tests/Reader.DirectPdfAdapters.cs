@@ -18,7 +18,7 @@ public sealed class ReaderDirectPdfAdapterTests {
             "The delivery is ready for review.\r\n");
         using var stream = new MemoryStream(source);
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EmailToPdf(stream);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EmailToPdfDocumentResult(stream);
         byte[] pdf = conversion.ToBytes();
 
         Assert.Contains("delivery is ready", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.OrdinalIgnoreCase);
@@ -29,7 +29,7 @@ public sealed class ReaderDirectPdfAdapterTests {
     public void EpubFacade_PreservesChapterOrderAndReportsEpubPolicy() {
         using MemoryStream source = CreateEpub();
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EpubToPdf(source);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.EpubToPdfDocumentResult(source);
         string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
 
         Assert.True(text.IndexOf("First chapter", StringComparison.Ordinal) <
@@ -44,11 +44,24 @@ public sealed class ReaderDirectPdfAdapterTests {
         page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
         using var stream = new MemoryStream(source.ToBytes());
 
-        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.VisioToPdf(stream);
+        PdfDocumentConversionResult conversion = OfficeDocumentPdfConverter.VisioToPdfDocumentResult(stream);
         string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
 
         Assert.Contains("Gateway service", text, StringComparison.Ordinal);
         Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
+    }
+
+    [Fact]
+    public void ByteFacadesReturnReadableBytesAndDocumentFacadesRetainReports() {
+        foreach (string format in new[] { "Email", "Epub", "Visio" }) {
+            var methods = typeof(OfficeDocumentPdfConverter).GetMethods();
+            Assert.Equal(2, methods.Count(method => method.Name == format + "ToPdfBytes" && method.ReturnType == typeof(byte[])));
+            Assert.Equal(2, methods.Count(method => method.Name == format + "ToPdfDocumentResult" && method.ReturnType == typeof(PdfDocumentConversionResult)));
+        }
+        using var epub = CreateEpub();
+        byte[] bytes = OfficeDocumentPdfConverter.EpubToPdfBytes(epub);
+        Assert.Contains("First chapter", PdfReadDocument.Open(bytes).ExtractText());
+        Assert.True(epub.CanRead);
     }
 
     private static MemoryStream CreateEpub() {

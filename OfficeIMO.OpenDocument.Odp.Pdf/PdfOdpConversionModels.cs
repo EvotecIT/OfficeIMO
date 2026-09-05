@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.Pdf;
 namespace OfficeIMO.OpenDocument.Odp.Pdf;
 
 /// <summary>Diagnostics from the PDF-to-PowerPoint and PowerPoint-to-ODP stages.</summary>
-public sealed class PdfOdpConversionReport {
+public sealed class PdfOdpConversionReport : IOfficeConversionReport {
     internal PdfOdpConversionReport(PdfPowerPointConversionReport pdfReport, OdfConversionReport openDocumentReport) {
         PdfReport = pdfReport ?? throw new ArgumentNullException(nameof(pdfReport));
         OpenDocumentReport = openDocumentReport ?? throw new ArgumentNullException(nameof(openDocumentReport));
@@ -27,22 +27,6 @@ public sealed class PdfOdpConversionReport {
 }
 
 /// <summary>An ODP presentation with diagnostics from both conversion stages.</summary>
-public sealed class PdfOdpConversionResult {
-    internal PdfOdpConversionResult(OdpPresentation value, PdfOdpConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-    /// <summary>The reconstructed ODP presentation.</summary>
-    public OdpPresentation Value { get; }
-    /// <summary>Diagnostics from both conversion stages.</summary>
-    public PdfOdpConversionReport Report { get; }
-    /// <summary>True when either stage reported possible loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-    /// <summary>Returns the reconstructed presentation.</summary>
-    public OdpPresentation RequireValue() => Value;
-    /// <summary>Returns the presentation only when neither stage reported possible loss.</summary>
-    public OdpPresentation RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class PdfOdpConversionResult : OfficeConversionResult<OdpPresentation, PdfOdpConversionReport> {
+    internal PdfOdpConversionResult(OdpPresentation value, PdfOdpConversionReport report) : base(value, report) { }
 }

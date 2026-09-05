@@ -6,10 +6,10 @@ namespace OfficeIMO.Visio.Pdf;
 internal static class VisioPdfConversionEngine {
     internal static PdfCore.PdfDocumentConversionResult Convert(
         VisioDocument document,
-        VisioPdfSaveOptions? options,
+        VisioToPdfOptions? options,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        VisioPdfSaveOptions operation = options ?? new VisioPdfSaveOptions();
+        VisioToPdfOptions operation = options ?? new VisioToPdfOptions();
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -17,6 +17,6 @@ internal static class VisioPdfConversionEngine {
             operation.SourceName,
             operation.VisioOptions,
             cancellationToken);
-        return PdfCore.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(normalized, operation.ProjectionOptions);
+        return PdfCore.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(normalized, operation.ProjectionOptions, cancellationToken);
     }
 }

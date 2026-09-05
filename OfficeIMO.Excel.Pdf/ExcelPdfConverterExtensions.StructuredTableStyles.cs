@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static IReadOnlyList<StructuredTableVisualData> ReadStructuredTableVisuals(
             ExcelDocument document,
             string sheetName,
-            ExcelPdfSaveOptions options) {
+            ExcelToPdfOptions options) {
             if (!options.UseWorksheetCellStyles) {
                 return Array.Empty<StructuredTableVisualData>();
             }

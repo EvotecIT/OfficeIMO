@@ -10,7 +10,7 @@ internal sealed partial class PdfDocumentReader {
         Logical(layoutOptions, readOptions).GetTableContinuationGroups(continuationOptions);
 
     /// <summary>Attempts to recover table continuation groups for the full document.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TryTableContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TableContinuationsResult(
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) =>
@@ -31,7 +31,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to recover table continuation groups for selected pages.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TryTableContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TableContinuationsResult(
         PdfPageSelection selection,
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,

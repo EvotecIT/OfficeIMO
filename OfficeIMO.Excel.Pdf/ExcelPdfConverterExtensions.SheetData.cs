@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Pdf {
                    workbookSheet.GetColumnDefinitions().Any(column => column.Hidden);
         }
 
-        private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) {
+        private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelToPdfOptions options) {
             string? printArea = GetWorksheetPrintArea(workbookSheet, options);
             if (!string.IsNullOrWhiteSpace(printArea)) {
                 if (ContainsMultiplePrintAreas(printArea!)) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Pdf {
             return sheet.GetUsedRangeA1();
         }
 
-        private static bool IsBoundedWorksheetRead(ExcelPdfSaveOptions options) =>
+        private static bool IsBoundedWorksheetRead(ExcelToPdfOptions options) =>
             options.UseBoundedWorksheetRead && options.MaxRowsPerSheet.HasValue;
 
         private static bool ContainsMultiplePrintAreas(string printArea) {
@@ -61,13 +61,13 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
+        private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelToPdfOptions options) =>
             !string.IsNullOrWhiteSpace(GetWorksheetPrintArea(workbookSheet, options));
 
-        private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
+        private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelToPdfOptions options) =>
             options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.GetPrintArea() : null;
 
-        private static SheetExportData ReadSheetExportData(ExcelDocument document, ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfSaveOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
+        private static SheetExportData ReadSheetExportData(ExcelDocument document, ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
             string normalizedRange = NormalizeA1Range(exportRange);
             A1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn);
             bool boundedRead = IsBoundedWorksheetRead(options);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel.Pdf {
             return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
         }
 
-        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ExcelPdfSaveOptions options) {
+        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ExcelToPdfOptions options) {
             ConditionalFillData? conditionalFills = ReadConditionalFillData(
                 workbookSheet,
                 values,
@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel.Pdf {
             return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills);
         }
 
-        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelPdfSaveOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {
+        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {
             object?[,] rawValues = sheet.ReadRange(normalizedRange);
             VisibilityLayoutData? visibility = ReadVisibilityLayoutData(
                 metadataSheet,

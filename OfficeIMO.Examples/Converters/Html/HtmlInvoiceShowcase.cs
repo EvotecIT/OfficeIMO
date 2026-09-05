@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Html {
                 .ToList();
             string html = BuildInvoiceHtml(purchases);
 
-            var options = new HtmlPdfSaveOptions {
+            var options = new HtmlToPdfOptions {
                 PageSize = OfficePageSizes.A4,
                 Margins = HtmlRenderMargins.All(24D),
                 BackgroundColor = OfficeColor.White,

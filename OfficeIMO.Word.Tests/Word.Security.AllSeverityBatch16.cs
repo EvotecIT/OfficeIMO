@@ -137,7 +137,7 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         paragraph.AddImage(new Uri("https://example.test/image.png"), 10, 10);
         paragraph.AddImage(new Uri("ftp://example.test/image.png"), 10, 10);
         paragraph.AddImage(new Uri("cid:linked-image@example.test"), 10, 10);
-        Assert.Null(Record.Exception(() => document.ToPdf()));
+        Assert.Null(Record.Exception(() => document.ToPdfBytes()));
         Assert.Throws<ArgumentException>(() =>
             paragraph.AddImage(new Uri("file:///private/secret.png"), 10, 10));
         Assert.Throws<ArgumentException>(() =>
@@ -159,10 +159,10 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         WordTable table = document.AddTable(2, 1);
         table.Rows[0].Cells[0].Paragraphs[0].SetText("visible");
         table.Rows[1].Cells[0].Paragraphs[0].SetText("removed-secret");
-        _ = document.ToPdf();
+        _ = document.ToPdfBytes();
 
         table.Rows[1].Remove();
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf());
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
         Assert.Contains("visible", text, StringComparison.Ordinal);

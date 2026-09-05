@@ -209,7 +209,7 @@ public interface IOfficeWorkflowRunner {
 
 /// <summary>One supported conversion route projected from the canonical OfficeIMO capability catalog.</summary>
 public sealed class OfficeWorkflowRoute {
-    internal OfficeWorkflowRoute(OfficeConversionCapability capability) {
+    internal OfficeWorkflowRoute(OfficeConversionCapability capability, bool canExecute) {
         Id = capability.Id;
         Source = capability.Source;
         Target = capability.Target;
@@ -220,6 +220,15 @@ public sealed class OfficeWorkflowRoute {
         SupportLevel = capability.SupportLevel.ToString();
         KnownLimitations = capability.KnownLimitations;
         Engine = capability.PackageId;
+        Api = capability.Api;
+        ResultContract = capability.ResultContract;
+        InputKind = capability.InputKind;
+        SupportEvidence = capability.SupportEvidence;
+        TextFormatting = capability.TextFormatting;
+        TextFormattingContract = capability.TextFormattingContract;
+        BrowserAvailable = capability.BrowserAvailable;
+        AgentDiscoverable = capability.AgentDiscoverable;
+        CanExecute = canExecute;
     }
 
     /// <summary>Stable route identifier.</summary>
@@ -242,29 +251,83 @@ public sealed class OfficeWorkflowRoute {
     public string KnownLimitations { get; }
     /// <summary>First-party package that owns conversion semantics.</summary>
     public string Engine { get; }
+    /// <summary>Representative public API owned by the route package.</summary>
+    public string Api { get; }
+    /// <summary>Public result type returned by the representative API.</summary>
+    public string ResultContract { get; }
+    /// <summary>How the route accepts its source.</summary>
+    public OfficeConversionInputKind InputKind { get; }
+    /// <summary>Evidence supporting the assigned support level.</summary>
+    public string SupportEvidence { get; }
+    /// <summary>Text and font formatting fidelity classification.</summary>
+    public OfficeConversionTextFormattingKind TextFormatting { get; }
+    /// <summary>Explicit text and font formatting promise.</summary>
+    public string TextFormattingContract { get; }
+    /// <summary>Whether the route is available in the shipped browser converter.</summary>
+    public bool BrowserAvailable { get; }
+    /// <summary>Whether the route is advertised through agent discovery.</summary>
+    public bool AgentDiscoverable { get; }
+    /// <summary>Whether this local workflow package can execute the route directly.</summary>
+    public bool CanExecute { get; }
     /// <summary>User-facing route label.</summary>
     public string Label => Source + " to " + Target;
 }
 
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
-    private static readonly HashSet<string> SupportedIds = new(StringComparer.Ordinal) {
+    private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
         "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
     };
 
-    private static readonly IReadOnlyList<OfficeWorkflowRoute> RoutesValue = Array.AsReadOnly(
+    private static readonly IReadOnlyList<OfficeWorkflowRoute> AllRoutesValue = Array.AsReadOnly(
         OfficeConversionCapabilityCatalog.All
-            .Where(capability => SupportedIds.Contains(capability.Id))
-            .Select(capability => new OfficeWorkflowRoute(capability))
+            .Select(capability => new OfficeWorkflowRoute(capability, ExecutableIds.Contains(capability.Id)))
             .OrderBy(route => route.Source, StringComparer.Ordinal)
             .ThenBy(route => route.Target, StringComparer.Ordinal)
             .ToArray());
 
-    /// <summary>The eight first-party Office/PDF conversion routes exposed by the local runner.</summary>
-    public static IReadOnlyList<OfficeWorkflowRoute> Routes => RoutesValue;
+    private static readonly IReadOnlyList<OfficeWorkflowRoute> ExecutableRoutesValue = Array.AsReadOnly(
+        AllRoutesValue.Where(static route => route.CanExecute).ToArray());
 
-    /// <summary>Finds a supported route by stable identifier.</summary>
+    /// <summary>All first-party conversion routes from the canonical capability catalog.</summary>
+    public static IReadOnlyList<OfficeWorkflowRoute> Routes => AllRoutesValue;
+
+    /// <summary>Routes this local workflow package can execute directly.</summary>
+    public static IReadOnlyList<OfficeWorkflowRoute> ExecutableRoutes => ExecutableRoutesValue;
+
+    /// <summary>Finds a catalog route by stable identifier.</summary>
     public static OfficeWorkflowRoute? Find(string? id) =>
-        RoutesValue.FirstOrDefault(route => string.Equals(route.Id, id, StringComparison.Ordinal));
+        AllRoutesValue.FirstOrDefault(route => string.Equals(route.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Finds a locally executable route by stable identifier.</summary>
+    public static OfficeWorkflowRoute? FindExecutable(string? id) =>
+        ExecutableRoutesValue.FirstOrDefault(route => string.Equals(route.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Finds the unique catalog route matching source and target extensions.</summary>
+    public static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, bool executableOnly = false) {
+        string source = NormalizeExtension(sourceExtension);
+        string target = NormalizeExtension(targetExtension);
+        IReadOnlyList<OfficeWorkflowRoute> routes = executableOnly ? ExecutableRoutesValue : AllRoutesValue;
+        OfficeWorkflowRoute? match = null;
+        foreach (OfficeWorkflowRoute route in routes) {
+            if (!route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase) ||
+                !string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            // Some text-oriented routes intentionally share .txt. Ambiguous extension pairs
+            // require an explicit route id instead of selecting a format by catalog order.
+            if (match != null) return null;
+            match = route;
+        }
+
+        return match;
+    }
+
+    private static string NormalizeExtension(string extension) {
+        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extension cannot be empty.", nameof(extension));
+        string value = extension.Trim();
+        return (value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value).ToLowerInvariant();
+    }
 }

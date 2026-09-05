@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         List<PdfCore.PdfTableCell[]> rows = new List<PdfCore.PdfTableCell[]>();
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
             RtfTableRow row = table.Rows[rowIndex];
@@ -72,7 +72,7 @@ internal static partial class RtfPdfConverter {
         return span;
     }
 
-    private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
+    private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfToPdfOptions options) {
         if (!TryGetRenderableImage(image, options, "Image", out byte[] imageBytes)) {
             return;
         }
@@ -80,7 +80,7 @@ internal static partial class RtfPdfConverter {
         pdf.Image(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options), image.Description);
     }
 
-    private static List<PdfCore.PdfTextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static List<PdfCore.PdfTextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state) {
         List<PdfCore.PdfTextRun> runs = new List<PdfCore.PdfTextRun>();
         int blockIndex = 0;
         foreach (IRtfBlock block in cell.Blocks) {
@@ -119,7 +119,7 @@ internal static partial class RtfPdfConverter {
                     .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 
-    private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfPdfSaveOptions options) {
+    private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfToPdfOptions options) {
         List<PdfCore.PdfTableCellImage> images = new List<PdfCore.PdfTableCellImage>();
         foreach (RtfParagraph paragraph in cell.Paragraphs) {
             foreach (IRtfInline inline in paragraph.Inlines) {
@@ -132,7 +132,7 @@ internal static partial class RtfPdfConverter {
         return images;
     }
 
-    private static bool TryGetRenderableImage(RtfImage image, RtfPdfSaveOptions options, string source, out byte[] imageBytes) {
+    private static bool TryGetRenderableImage(RtfImage image, RtfToPdfOptions options, string source, out byte[] imageBytes) {
         imageBytes = Array.Empty<byte>();
         if (!options.IncludeImages) {
             AddConversionWarning(
@@ -203,7 +203,7 @@ internal static partial class RtfPdfConverter {
         return false;
     }
 
-    private static void ReportImageSubstitution(RtfPdfSaveOptions options, string source, RtfImageFormat sourceFormat, string targetFormat, string message) {
+    private static void ReportImageSubstitution(RtfToPdfOptions options, string source, RtfImageFormat sourceFormat, string targetFormat, string message) {
         var details = new Dictionary<string, string> {
             ["SourceFormat"] = sourceFormat.ToString(),
             ["TargetFormat"] = targetFormat
@@ -218,7 +218,7 @@ internal static partial class RtfPdfConverter {
             details: details));
     }
 
-    private static double GetImageWidth(RtfImage image, RtfPdfSaveOptions options) {
+    private static double GetImageWidth(RtfImage image, RtfToPdfOptions options) {
         if (image.DesiredWidthTwips.HasValue && image.DesiredWidthTwips.Value > 0) {
             return RtfPdfMapping.TwipsToPoints(image.DesiredWidthTwips.Value);
         }
@@ -226,7 +226,7 @@ internal static partial class RtfPdfConverter {
         return options.DefaultImageWidth;
     }
 
-    private static double GetImageHeight(RtfImage image, RtfPdfSaveOptions options) {
+    private static double GetImageHeight(RtfImage image, RtfToPdfOptions options) {
         if (image.DesiredHeightTwips.HasValue && image.DesiredHeightTwips.Value > 0) {
             return RtfPdfMapping.TwipsToPoints(image.DesiredHeightTwips.Value);
         }

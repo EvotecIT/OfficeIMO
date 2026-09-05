@@ -772,7 +772,7 @@ public class RtfLosslessEditorTests {
 
         try {
             using var input = new MemoryStream(sourceBytes);
-            RtfLosslessEditor editor = RtfDocument.Load(input).EditLossless();
+            RtfLosslessEditor editor = RtfDocument.LoadResult(input).EditLossless();
             editor.ReplaceText("Old", "New");
 
             using var output = new MemoryStream();

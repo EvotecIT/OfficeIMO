@@ -37,7 +37,7 @@ public sealed class PdfLabelSheetComponent : IPdfComponent {
     public int Columns { get; }
 
     /// <inheritdoc />
-    public void Compose(PdfItemCompose content) {
+    public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         var rows = new List<string[]>();
         for (int index = 0; index < _labels.Length; index += Columns) {

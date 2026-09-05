@@ -196,7 +196,7 @@ public class PdfPageOverlayTests {
         try {
             PdfDocument fromPath = PdfDocument.Load(target).Stamp.OverlayPage(sourcePath);
             using var sourceStream = new MemoryStream(source, writable: false);
-            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Load(target).Stamp.TryUnderlayPage(sourceStream);
+            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Load(target).Stamp.UnderlayPageResult(sourceStream);
 
             Assert.Contains("Reusable overlay", fromPath.Reader.Text(), StringComparison.Ordinal);
             Assert.True(fromStream.Succeeded, string.Join(Environment.NewLine, fromStream.Diagnostics));

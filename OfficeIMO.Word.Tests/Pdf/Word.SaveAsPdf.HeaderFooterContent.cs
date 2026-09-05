@@ -38,7 +38,7 @@ public partial class Word {
             document.AddParagraph("Wide header footer body");
             document.Save();
 
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(260, 300),
                 Margins = PdfCore.PageMargins.Uniform(72)
@@ -76,7 +76,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_HeaderFooter_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
         using (WordDocument document = WordDocument.Create(docPath)) {
@@ -129,7 +129,7 @@ public partial class Word {
 
             document.AddParagraph("Hidden header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -164,7 +164,7 @@ public partial class Word {
 
             document.AddParagraph("Caps header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -184,7 +184,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -212,7 +212,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_TextBoxes() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -243,7 +243,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Vml_TextPath_Text() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -267,7 +267,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Shapes() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -305,7 +305,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -344,7 +344,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -381,7 +381,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_RepeatingSections_To_Text_Items() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -418,7 +418,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_FormControls_To_Static_Text() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Sets the document-wide default style for panel paragraphs.</summary>
-    internal PdfDocument DefaultPanelStyle(PanelStyle style) {
+    internal PdfDocument DefaultPanelStyle(PdfPanelStyle style) {
         Guard.NotNull(style, nameof(style));
         _options.DefaultPanelStyle = style;
         return this;

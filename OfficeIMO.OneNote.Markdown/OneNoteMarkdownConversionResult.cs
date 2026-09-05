@@ -26,29 +26,13 @@ public sealed class OneNoteMarkdownDiagnostic {
 }
 
 /// <summary>A Markdown document paired with explicit semantic-projection diagnostics.</summary>
-public sealed class OneNoteMarkdownConversionResult {
-    internal OneNoteMarkdownConversionResult(MarkdownDoc value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
-        Value = value;
-        Report = new OneNoteMarkdownConversionReport(diagnostics);
-    }
-
-    /// <summary>Projected Markdown document.</summary>
-    public MarkdownDoc Value { get; }
+public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDoc, OneNoteMarkdownConversionReport> {
+    internal OneNoteMarkdownConversionResult(MarkdownDoc value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
+        : base(value, new OneNoteMarkdownConversionReport(diagnostics)) { }
 
     /// <summary>Source and projection diagnostics captured for this operation.</summary>
     public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.Diagnostics;
 
-    /// <summary>Typed semantic-projection report for this operation.</summary>
-    public OneNoteMarkdownConversionReport Report { get; }
-
-    /// <summary>True when projection reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the converted document only when projection reported no possible content loss.</summary>
-    public MarkdownDoc RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
 }
 
 /// <summary>OneNote-to-Markdown semantic-projection diagnostics captured for one operation.</summary>

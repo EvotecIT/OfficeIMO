@@ -8,11 +8,11 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void ComposePage_RejectsNullConfigurationDelegates() {
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.DefaultTextStyle((Action<PdfTextStyleCompose>)null!))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.DefaultTextStyle((Action<PdfTextStyleBuilder>)null!))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.DefaultTextStyle((PdfTextStyle)null!))));
@@ -64,6 +64,12 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Column(column => column.Item().Element(null!))))));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Element(element => element.Padding(4))))));
+
+            Assert.Throws<ArgumentNullException>(() =>
+                PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Element(element => element.Content(null!))))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Row(null!)))));

@@ -3,13 +3,13 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    internal static PdfCore.PdfDocument Convert(RtfDocument document, RtfPdfSaveOptions? options) {
+    internal static PdfCore.PdfDocument Convert(RtfDocument document, RtfToPdfOptions? options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
         RtfTableTraversalGuard.ValidateDocument(document);
-        RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
+        RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
@@ -34,7 +34,7 @@ internal static partial class RtfPdfConverter {
         return pdf;
     }
 
-    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state, PdfCore.PdfOptions pdfOptions) {
+    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfOptions pdfOptions) {
         if (document.Sections.Count == 0) {
             RenderBlocks(document, document.Blocks, pdf, options, state);
             return;
@@ -64,7 +64,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void RenderBlocks(RtfDocument document, IEnumerable<IRtfBlock> blocks, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void RenderBlocks(RtfDocument document, IEnumerable<IRtfBlock> blocks, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         foreach (IRtfBlock block in blocks) {
             RenderBlock(document, block, pdf, options, state);
         }
@@ -79,7 +79,8 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case RtfParagraph paragraph:
                 RenderParagraph(document, paragraph, pdf, options, state);
@@ -108,11 +109,11 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
+    private static void AddConversionWarning(RtfToPdfOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
         AddConversionWarning(options, code, source, message, RtfConversionAction.Omitted, details);
     }
 
-    private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
+    private static void AddConversionWarning(RtfToPdfOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
         var warningDetails = new Dictionary<string, string>();
         if (details != null) {
             foreach (KeyValuePair<string, string> detail in details) {

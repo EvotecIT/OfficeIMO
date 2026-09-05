@@ -8,6 +8,21 @@ namespace OfficeIMO.Tests.Rtf;
 
 public partial class RtfDocumentReadWriteTests {
     [Fact]
+    public void NativeLifecycle_ExposesDirectAndStructuredParseResults() {
+        const string source = @"{\rtf1\ansi Body\par}";
+
+        RtfDocument direct = RtfDocument.Parse(source);
+        RtfReadResult parsed = RtfDocument.ParseResult(source);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        RtfDocument loaded = RtfDocument.Load(stream);
+
+        Assert.Equal(Assert.Single(direct.Paragraphs).ToPlainText(), Assert.Single(loaded.Paragraphs).ToPlainText());
+        Assert.IsAssignableFrom<IOfficeResult<RtfDocument>>(parsed);
+        Assert.Same(parsed.Document, parsed.Value);
+        Assert.Same(parsed.Document, parsed.RequireValue());
+    }
+
+    [Fact]
     public void Read_Binds_Paragraphs_Runs_Formatting_And_Unicode() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\colortbl;\red255\green0\blue0;}\pard Hello {\b bold} {\i italic} \u380? \cf1 red\par}";
 
@@ -91,7 +106,7 @@ public partial class RtfDocumentReadWriteTests {
         using MemoryStream memoryStream = document.ToStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
-        RtfReadResult read = RtfDocument.Load(bytes);
+        RtfReadResult read = RtfDocument.LoadResult(bytes);
         Assert.Equal("Generated ż", Assert.Single(read.Document.Paragraphs).ToPlainText());
     }
 
@@ -112,8 +127,8 @@ public partial class RtfDocumentReadWriteTests {
             Assert.Equal((byte)'{', asyncBytes[0]);
             Assert.False(syncBytes.Take(3).SequenceEqual(Encoding.UTF8.GetPreamble()));
             Assert.False(asyncBytes.Take(3).SequenceEqual(Encoding.UTF8.GetPreamble()));
-            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.Load(syncBytes).Document.Paragraphs).ToPlainText());
-            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.Load(asyncBytes).Document.Paragraphs).ToPlainText());
+            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.LoadResult(syncBytes).Document.Paragraphs).ToPlainText());
+            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.LoadResult(asyncBytes).Document.Paragraphs).ToPlainText());
         } finally {
             File.Delete(syncPath);
             File.Delete(asyncPath);

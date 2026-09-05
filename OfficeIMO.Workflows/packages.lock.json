@@ -82,6 +82,9 @@
           "OfficeIMO.Core": "[3.3.0, )"
         }
       },
+      "officeimo.ocr": {
+        "type": "Project"
+      },
       "officeimo.opendocument": {
         "type": "Project",
         "dependencies": {
@@ -92,6 +95,13 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.pdf.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
       "officeimo.powerpoint": {
@@ -225,6 +235,9 @@
           "OfficeIMO.Core": "[3.3.0, )"
         }
       },
+      "officeimo.ocr": {
+        "type": "Project"
+      },
       "officeimo.opendocument": {
         "type": "Project",
         "dependencies": {
@@ -235,6 +248,13 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.pdf.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
       "officeimo.powerpoint": {

@@ -245,7 +245,7 @@ public class PdfPermissionPolicyTests {
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
 
-        PdfMergeResult result = PdfDocument.MergeWithReport(
+        PdfMergeResult result = PdfDocument.MergeResult(
             new PdfMergeOptions(),
             PdfDocument.Load(first, firstOptions),
             PdfDocument.Load(second, secondOptions));
@@ -278,7 +278,7 @@ public class PdfPermissionPolicyTests {
             ResizePages = new PdfPageResizeOptions(PageSizes.A4)
         };
 
-        PdfMergeResult result = PdfDocument.MergeWithReport(
+        PdfMergeResult result = PdfDocument.MergeResult(
             mergeOptions,
             PdfDocument.Load(encrypted, sourceOptions),
             plain);
@@ -341,10 +341,10 @@ public class PdfPermissionPolicyTests {
             File.WriteAllBytes(path, incoming);
             using var stream = new MemoryStream(incoming, writable: false);
             PdfOperationResult<PdfDocument>[] results = {
-                PdfDocument.Load(target).TryMergeWith(PdfDocument.Load(incoming), options),
-                PdfDocument.Load(target).TryMergeWith(incoming, options),
-                PdfDocument.Load(target).TryMergeWith(path, options),
-                PdfDocument.Load(target).TryMergeWith(stream, options)
+                PdfDocument.Load(target).MergeWithResult(PdfDocument.Load(incoming), options),
+                PdfDocument.Load(target).MergeWithResult(incoming, options),
+                PdfDocument.Load(target).MergeWithResult(path, options),
+                PdfDocument.Load(target).MergeWithResult(stream, options)
             };
 
             Assert.All(results, result => {
@@ -379,7 +379,7 @@ public class PdfPermissionPolicyTests {
             importOptions);
         PdfDocument prepended = PdfDocument.Load(target).Pages.Prepend(source, importOptions);
         PdfDocument encryptedSourceDocument = PdfDocument.Load(source, sourceReadOptions);
-        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.TryInsert(
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Load(target).Pages.InsertResult(
             1,
             encryptedSourceDocument,
             PdfPageSelection.From(3),
@@ -417,20 +417,20 @@ public class PdfPermissionPolicyTests {
         Assert.StartsWith("Page three", reordered.Reader.Text(), StringComparison.Ordinal);
         Assert.Equal(4, duplicated.Inspect().PageCount);
 
-        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Load(source).Pages.TryRotate(180, PdfPageSelection.From(2), options);
+        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Load(source).Pages.RotateResult(180, PdfPageSelection.From(2), options);
         Assert.True(explicitOptions.Succeeded, string.Join(Environment.NewLine, explicitOptions.Diagnostics));
         Assert.Equal(180, explicitOptions.RequireValue().Inspect().Pages[1].RotationDegrees);
 
-        PdfOperationResult<PdfDocument> explicitDuplicateOptions = PdfDocument.Load(source).Pages.TryDuplicate(PdfPageSelection.From(1), options);
+        PdfOperationResult<PdfDocument> explicitDuplicateOptions = PdfDocument.Load(source).Pages.DuplicateResult(PdfPageSelection.From(1), options);
         Assert.True(explicitDuplicateOptions.Succeeded, string.Join(Environment.NewLine, explicitDuplicateOptions.Diagnostics));
         Assert.Equal(4, explicitDuplicateOptions.RequireValue().Inspect().PageCount);
 
         PdfOperationResult<PdfDocument>[] selectorResults = {
-            PdfDocument.Load(source).Pages.TryDelete(PdfPageSelector.Parse("last"), options),
-            PdfDocument.Load(source).Pages.TryReorder(PdfPageSelector.Parse("last..1"), options),
-            PdfDocument.Load(source).Pages.TryDuplicate(PdfPageSelector.Parse("1"), options),
-            PdfDocument.Load(source).Pages.TryMove(1, PdfPageSelector.Parse("last"), options),
-            PdfDocument.Load(source).Pages.TryRotate(270, PdfPageSelector.Parse("2"), options)
+            PdfDocument.Load(source).Pages.DeleteResult(PdfPageSelector.Parse("last"), options),
+            PdfDocument.Load(source).Pages.ReorderResult(PdfPageSelector.Parse("last..1"), options),
+            PdfDocument.Load(source).Pages.DuplicateResult(PdfPageSelector.Parse("1"), options),
+            PdfDocument.Load(source).Pages.MoveResult(1, PdfPageSelector.Parse("last"), options),
+            PdfDocument.Load(source).Pages.RotateResult(270, PdfPageSelector.Parse("2"), options)
         };
 
         Assert.All(selectorResults, result => Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics)));
@@ -464,7 +464,7 @@ public class PdfPermissionPolicyTests {
         Assert.False(filledAndFlattened.Inspect().HasForms);
         Assert.Equal("Imported", Assert.Single(imported.Inspect().FormFields).Value);
 
-        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Load(source).Forms.TryFlatten(options);
+        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Load(source).Forms.FlattenResult(options);
         Assert.True(explicitOptions.Succeeded, string.Join(Environment.NewLine, explicitOptions.Diagnostics));
         Assert.False(explicitOptions.RequireValue().Inspect().HasForms);
     }

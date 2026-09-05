@@ -17,7 +17,7 @@ public sealed partial class RtfDocument {
 #endif
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(rtf, effective);
-        RtfDocument document = Load(rtf, readOptions).Document;
+        RtfDocument document = Load(rtf, readOptions);
         return InspectRtfContentSafety(document, effective, targets: null);
     }
 
@@ -51,7 +51,7 @@ public sealed partial class RtfDocument {
         IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
         if (selected.Count == 0) return new OfficeContentCleanupResult((byte[])rtf.Clone(), before, before, Array.Empty<OfficeContentCleanupChange>());
 
-        RtfDocument document = Load(rtf, readOptions).Document;
+        RtfDocument document = Load(rtf, readOptions);
         var targets = new Dictionary<string, RtfContentSafetyTarget>(StringComparer.Ordinal);
         OfficeContentSafetyReport current = InspectRtfContentSafety(document, options.Inspection, targets);
         IReadOnlyList<OfficeContentSafetyFinding> currentSelection = OfficeContentSafetyBuilder.ResolveSelection(current, selection);

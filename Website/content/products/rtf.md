@@ -24,7 +24,7 @@ meta.software.price_currency: "USD"
 ```csharp
 using OfficeIMO.Rtf;
 
-RtfReadResult read = RtfDocument.Load("input.rtf");
+RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 RtfDocument document = read.Document;
 document.ReplaceText("Draft", "Approved");
 File.WriteAllText("approved.rtf", document.ToRtf());

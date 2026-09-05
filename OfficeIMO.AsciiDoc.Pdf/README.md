@@ -16,7 +16,7 @@ result.Pipeline.RequireSuccess(); // exact output pipeline gate
 
 `PdfSaveResult` combines native parser, semantic projection, PDF layout/resource/font diagnostics, and exact output-pipeline evidence. Use `ToPdfDocumentResult(...)` when conversion and post-processing should happen before save. Unsupported constructs remain visible when the projection policy allows source fallbacks; simplification, fallback, and omission are never silently reported as exact conversion.
 
-The zero-options resource policy is inherited from `MarkdownPdfSaveOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
+The zero-options resource policy is inherited from `MarkdownToPdfOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
 
 ## Dependency footprint
 

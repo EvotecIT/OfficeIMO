@@ -14,8 +14,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
-                document.SaveAsPdf(pdfNoNumbers, new WordPdfSaveOptions { IncludePageNumbers = false });
-                document.SaveAsPdf(pdfCustomNumbers, new WordPdfSaveOptions { PageNumberFormat = "Page {current} of {total}" });
+                document.SaveAsPdf(pdfNoNumbers, new WordToPdfOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfCustomNumbers, new WordToPdfOptions { PageNumberFormat = "Page {current} of {total}" });
             }
         }
     }

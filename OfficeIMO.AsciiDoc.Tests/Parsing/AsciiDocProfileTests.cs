@@ -7,7 +7,7 @@ public sealed class AsciiDocProfileTests {
     public void NamedParseProfilesAreExplicitAndLossless(AsciiDocDocumentProfile profile) {
         const string source = "= Profile\n\nNOTE: Typed content\ninclude::part.adoc[]\n";
 
-        AsciiDocDocument document = AsciiDocDocument.Parse(
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(
             source,
             AsciiDocParseOptions.CreateProfile(profile)).Document;
 
@@ -39,7 +39,7 @@ public sealed class AsciiDocProfileTests {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             AsciiDocProcessorOptions.CreateProfile((AsciiDocDocumentProfile)999));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            AsciiDocDocument.Parse("= Invalid profile", new AsciiDocParseOptions {
+            AsciiDocDocument.ParseResult("= Invalid profile", new AsciiDocParseOptions {
                 Profile = (AsciiDocDocumentProfile)999
             }));
     }

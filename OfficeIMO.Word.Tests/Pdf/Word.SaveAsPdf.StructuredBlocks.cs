@@ -42,7 +42,7 @@ public partial class Word {
             Assert.Equal(3, pageNumber);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -85,7 +85,7 @@ public partial class Word {
             document._document.Body!.Append(CreateNativeCoverPageBlock("Final native cover"));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -106,7 +106,7 @@ public partial class Word {
             document.AddParagraph("Body after existing separator");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -135,7 +135,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_Property_ContentControls() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageProperties.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -172,7 +172,7 @@ public partial class Word {
             document.AddParagraph("After ordinary content control");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -200,7 +200,7 @@ public partial class Word {
             document.AddParagraph("After structured footnote block");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -225,7 +225,7 @@ public partial class Word {
             document.AddParagraph("After ordinary inline content control");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -240,7 +240,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_Inline_Property_ContentControls() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -269,7 +269,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Resolves_CoverPage_TextBox_Property_Placeholders() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxProperties.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -304,7 +304,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Resolves_Vml_TextBox_Alias_And_Caps() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxAliasCaps.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxAliasCaps.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -348,7 +348,7 @@ public partial class Word {
             document.AddParagraph("Native textbox break body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -365,7 +365,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Drawing_On_First_Page() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -404,7 +404,7 @@ public partial class Word {
             document.AddParagraph("After nested VML cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -428,7 +428,7 @@ public partial class Word {
             document.AddParagraph("After VML gradient cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -455,7 +455,7 @@ public partial class Word {
             document.AddParagraph("After VML gradient stops cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -481,7 +481,7 @@ public partial class Word {
             document.AddParagraph("After VML stroke-only cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -507,7 +507,7 @@ public partial class Word {
             document.AddParagraph("After VML default stroke cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -539,7 +539,7 @@ public partial class Word {
             document.AddParagraph("After VML image cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -563,7 +563,7 @@ public partial class Word {
             document.AddParagraph("After VML oval and roundrect cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -589,7 +589,7 @@ public partial class Word {
             document.AddParagraph("After VML adjusted built-in cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -616,7 +616,7 @@ public partial class Word {
             document.AddParagraph("After VML formula cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -645,7 +645,7 @@ public partial class Word {
             document.AddParagraph("After VML aligned cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -670,7 +670,7 @@ public partial class Word {
             document.AddParagraph("After VML transformed cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -695,7 +695,7 @@ public partial class Word {
             document.AddParagraph("After VML z-index cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -724,7 +724,7 @@ public partial class Word {
             document.AddParagraph("After wrapped VML z-index cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -766,7 +766,7 @@ public partial class Word {
             document.AddParagraph("After VML shadow cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -797,7 +797,7 @@ public partial class Word {
             document.AddParagraph("After VML stroke style cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -826,7 +826,7 @@ public partial class Word {
             document.AddParagraph("After VML unit line cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -852,7 +852,7 @@ public partial class Word {
             document.AddParagraph("After VML cubic path cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -878,7 +878,7 @@ public partial class Word {
             document.AddParagraph("After VML quadratic path cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -904,7 +904,7 @@ public partial class Word {
             document.AddParagraph("After VML relative cubic path cover");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1074,7 +1074,7 @@ public partial class Word {
             document.AddParagraph("Native watermark body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1093,7 +1093,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1175,7 +1175,7 @@ public partial class Word {
                 new ParagraphProperties(new ParagraphStyleId { Val = "Heading1" }),
                 new Run(new Text("\nNative direct heading") { Space = SpaceProcessingModeValues.Preserve })));
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1197,7 +1197,7 @@ public partial class Word {
             document.AddParagraph("Native header newline body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1212,7 +1212,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Charts_Through_Shared_Renderer() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1259,7 +1259,7 @@ public partial class Word {
             extent.Cy = cy;
             document.AddParagraph("After normalized chart extent");
 
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
         Assert.Contains("After normalized chart extent", PdfTextExtractor.ExtractAllText(pdfPath));
@@ -1269,7 +1269,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Inline_Word_Charts_After_Text_Run() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1302,7 +1302,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, $"PdfNativeMalformedInlineWordChart{suffix}.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, $"PdfNativeMalformedInlineWordChart{suffix}.pdf");
         const string relationshipId = "rIdMalformedInlineChart";
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1329,7 +1329,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Pie_DataLabels() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieDataLabels.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieDataLabels.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1392,7 +1392,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Cartesian_DataLabels() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1521,7 +1521,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Rejects_Partial_Word_Combo_Chart_Export() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1564,7 +1564,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Chart_AxisTitles() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1596,7 +1596,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Line_Chart_NoMarkers() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1629,7 +1629,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Bar_Chart_Series_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1662,7 +1662,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Area_And_Plot_Area_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1705,7 +1705,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Axis_And_Gridline_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1772,7 +1772,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Title_Color() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1813,7 +1813,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Category_Label_Skip() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1846,7 +1846,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Word_Chart_Legend() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1880,7 +1880,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Bottom_Legend_Position() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1914,7 +1914,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Left_Legend_Position() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1948,7 +1948,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Scheme_Series_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -1991,7 +1991,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Pie_Chart_Slice_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -2026,7 +2026,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Uses_Word_Chart_Title_Band() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.pdf");
-        var options = new WordPdfSaveOptions {
+        var options = new WordToPdfOptions {
             IncludePageNumbers = false
         };
 
@@ -2065,7 +2065,7 @@ public partial class Word {
             paragraph.AddText("✓ Native symbol text").SetBold();
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 IncludePageNumbers = false
             });
@@ -2105,7 +2105,7 @@ public partial class Word {
                 new SdtContentBlock(paragraphNode)));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 IncludePageNumbers = false
             });
@@ -2607,7 +2607,7 @@ public partial class Word {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("BuildNativeTableOfContentsEntries", BindingFlags.NonPublic | BindingFlags.Static)!;
         return method.Invoke(null, new object[] {
             document,
-            new WordPdfSaveOptions { IncludePageNumbers = false },
+            new WordToPdfOptions { IncludePageNumbers = false },
             new Dictionary<Paragraph, string>()
         })!;
     }

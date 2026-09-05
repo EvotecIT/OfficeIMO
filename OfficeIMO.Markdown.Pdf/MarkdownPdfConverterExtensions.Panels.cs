@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (quote.ChildBlocks.Count > 0) {
             RenderBlocksWithPanelRuns(pdf, quote.ChildBlocks, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
@@ -28,10 +28,10 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfDocument pdf,
         IReadOnlyList<IMarkdownBlock> blocks,
         MarkdownDoc document,
-        MarkdownPdfSaveOptions options,
+        MarkdownToPdfOptions options,
         MarkdownPdfStyle visualTheme,
-        PdfCore.PanelStyle panelStyle,
-        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader = null) {
+        PdfCore.PdfPanelStyle panelStyle,
+        Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader = null) {
         var panelBlocks = new List<IMarkdownBlock>();
         bool renderedHeader = false;
 
@@ -58,10 +58,10 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfDocument pdf,
         List<IMarkdownBlock> panelBlocks,
         MarkdownDoc document,
-        MarkdownPdfSaveOptions options,
+        MarkdownToPdfOptions options,
         MarkdownPdfStyle visualTheme,
-        PdfCore.PanelStyle panelStyle,
-        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader,
+        PdfCore.PdfPanelStyle panelStyle,
+        Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader,
         ref bool renderedHeader) {
         if (panelBlocks.Count == 0) {
             return;
@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         IMarkdownBlock[] batch = panelBlocks.ToArray();
         panelBlocks.Clear();
-        Action<PdfCore.PdfItemCompose>? header = !renderedHeader ? renderFirstPanelHeader : null;
+        Action<PdfCore.PdfContentBuilder>? header = !renderedHeader ? renderFirstPanelHeader : null;
 
         pdf.Panel(panel => {
             if (header != null) {

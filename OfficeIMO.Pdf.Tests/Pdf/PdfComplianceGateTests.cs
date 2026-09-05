@@ -636,12 +636,12 @@ public class PdfComplianceGateTests {
             </body>
             </html>
             """;
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             DefaultFontFamily = "OfficeIMO Source Serif",
             FontFamily = new PdfEmbeddedFontFamily("OfficeIMO Source Serif", fontData),
             PdfOptions = CreatePdfUa1Options()
         };
-        return HtmlConversionDocument.Parse(html).ToPdf(options);
+        return HtmlConversionDocument.Parse(html).ToPdfBytes(options);
     }
 
     private static PdfDocument CreatePdfUa1Document() {

@@ -56,7 +56,7 @@ public partial class Word {
             ConfigurePlacementTable(rightTable, "RightTbl", WordTableAlignment.Right);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -104,7 +104,7 @@ public partial class Word {
             styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericCenteredTable" };
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 360),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -139,7 +139,7 @@ public partial class Word {
             positionedTable.Position.TablePositionXAlignment = WordTableHorizontalAlignment.Center;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 320),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -173,7 +173,7 @@ public partial class Word {
             positionedTable.Position.TablePositionX = 720;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 280),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -210,7 +210,7 @@ public partial class Word {
             defaultWidth.Rows[0].Cells[1].Paragraphs[0].Text = "FB";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -248,7 +248,7 @@ public partial class Word {
             table.Rows[0].Cells[1].Paragraphs[0].Text = "PctWide";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -291,7 +291,7 @@ public partial class Word {
             styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedIndentedTable" };
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 280),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -333,7 +333,7 @@ public partial class Word {
             styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedWidthTable" };
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 280),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -390,7 +390,7 @@ public partial class Word {
             styledTable.Rows[0].Cells[1].Paragraphs[0].Text = "StyledWide";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 300),
                 Margins = PdfCore.PageMargins.Uniform(40)

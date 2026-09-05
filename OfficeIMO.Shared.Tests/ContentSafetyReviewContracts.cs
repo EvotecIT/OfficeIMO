@@ -120,7 +120,7 @@ public sealed class ContentSafetyReviewContracts {
 
         OfficeContentCleanupResult cleaned = RtfDocument.RemoveSelectedContent(rtf, new OfficeContentCleanupSelection(new[] { unicode.Id }));
 
-        RtfDocument reopened = RtfDocument.Load(cleaned.Output).Document;
+        RtfDocument reopened = RtfDocument.LoadResult(cleaned.Output).Document;
         Assert.NotNull(reopened.HtmlEncapsulation);
         Assert.Contains("payload", reopened.HtmlEncapsulation!.Html, StringComparison.Ordinal);
     }

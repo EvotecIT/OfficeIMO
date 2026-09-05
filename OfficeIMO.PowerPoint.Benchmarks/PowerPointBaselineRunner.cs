@@ -199,7 +199,7 @@ internal static class PowerPointBaselineRunner {
         if (string.Equals(operation, "OpenPdfExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
-            byte[] pdf = presentation.ToPdf();
+            byte[] pdf = presentation.ToPdfBytes();
             return PowerPointOperationResult.Pdf(pdf,
                 presentation.Slides.Sum(slide => slide.Shapes.Count));
         }

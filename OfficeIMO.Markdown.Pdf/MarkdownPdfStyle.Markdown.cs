@@ -69,10 +69,10 @@ public sealed partial class MarkdownPdfStyle {
         pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth), 10, 8, 4, 9);
         pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth, 3, 11, 8, 4, 10);
         MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? PdfCore.PdfColor.White, border ?? PdfCore.PdfColor.LightGray, accent, muted, table.BorderWidth);
-        if (surface == null && figureStyle.PanelStyle != null) {
-            PdfCore.PanelStyle panelStyle = figureStyle.PanelStyle;
+        if (surface == null && figureStyle.PdfPanelStyle != null) {
+            PdfCore.PdfPanelStyle panelStyle = figureStyle.PdfPanelStyle;
             panelStyle.Background = null;
-            figureStyle.PanelStyle = panelStyle;
+            figureStyle.PdfPanelStyle = panelStyle;
         }
 
         pdfTheme.FigureStyle = figureStyle;
@@ -123,7 +123,7 @@ public sealed partial class MarkdownPdfStyle {
         }
     }
 
-    private static PdfCore.PanelStyle PanelFromShared(OfficeColor background, OfficeColor border, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PanelStyle {
+    private static PdfCore.PdfPanelStyle PanelFromShared(OfficeColor background, OfficeColor border, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PdfPanelStyle {
         Background = ToPdfColorOrNull(background),
         BorderColor = ToPdfColorOrNull(border),
         BorderWidth = borderWidth,
@@ -131,11 +131,11 @@ public sealed partial class MarkdownPdfStyle {
         PaddingY = paddingY,
         SpacingBefore = spacingBefore,
         SpacingAfter = spacingAfter,
-        KeepTogether = true
+        KeepTogether = false
     };
 
-    private static PdfCore.PanelStyle PanelWithLeftRuleFromShared(OfficeColor background, OfficeColor border, OfficeColor left, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
-        PdfCore.PanelStyle style = PanelFromShared(background, border, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
+    private static PdfCore.PdfPanelStyle PanelWithLeftRuleFromShared(OfficeColor background, OfficeColor border, OfficeColor left, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
+        PdfCore.PdfPanelStyle style = PanelFromShared(background, border, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
         style.LeftBorder = new PdfCore.PdfPanelBorder {
             Color = ToPdfColorOrNull(left),
             Width = leftWidth

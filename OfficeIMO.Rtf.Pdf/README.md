@@ -15,7 +15,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("source.pdf");
-PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfRtfImportOptions {
+PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfToRtfOptions {
     ReadOptions = new PdfReadOptions {
         PageSelection = PdfPageSelection.Parse("1-10"),
         Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }
@@ -40,7 +40,7 @@ using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Pdf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
-var options = new RtfPdfSaveOptions();
+var options = new RtfToPdfOptions();
 PdfDocumentConversionResult result = rtf.ToPdfDocumentResult(options);
 
 result.Report.RequireNoErrorWarnings();
@@ -49,9 +49,9 @@ result.Save("output.pdf");
 
 All PDF adapters expose the same `PdfResourcePolicy`. RTF conversion uses the balanced default: it may discover and embed installed fonts, but it does not allow arbitrary local-file or remote-resource reads. Use `PdfResourcePolicy.CreatePortableDeterministic()` when conversion must not inspect host fonts. RTF reads document content only from the typed model, so `CreateTrustedHost()` adds no access unless a format-specific resolver is explicitly configured.
 
-For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdf()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
+For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdfBytes()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
 
-PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfPdfSaveOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
+PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfToPdfOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
 
 ## Dependency footprint
 

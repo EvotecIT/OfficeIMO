@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocument document,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) {
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
         return ImportEditableContent(logical, options, document, cancellationToken);
@@ -16,13 +16,13 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocumentReadResult logical,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         CancellationToken cancellationToken) =>
         ImportEditableContent(logical, options, sourceDocument: null, cancellationToken);
 
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocumentReadResult logical,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         PdfCore.PdfDocument? sourceDocument,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -450,7 +450,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointSlide primarySlide,
         int primarySlideIndex,
         EditablePagePlacement placement,
-        PdfPowerPointImportOptions options,
+        PdfToPowerPointOptions options,
         ICollection<PdfPowerPointTableImportEntry> entries,
         int remainingObjects,
         CancellationToken cancellationToken) {
@@ -515,7 +515,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static EditableBounds GetContinuationTableBounds(
         PptCore.PowerPointPresentation presentation,
-        PdfPowerPointImportOptions options) {
+        PdfToPowerPointOptions options) {
         double slideWidth = Math.Max(1D, presentation.SlideSize.WidthPoints);
         double slideHeight = Math.Max(1D, presentation.SlideSize.HeightPoints);
         double left = Math.Min(Math.Max(0D, options.TableLeft / 12700D), slideWidth - 1D);

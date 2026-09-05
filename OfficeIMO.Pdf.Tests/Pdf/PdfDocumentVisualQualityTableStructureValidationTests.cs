@@ -249,7 +249,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { PdfTableCell.Merge("TooTall", rowSpan: 3), PdfTableCell.TextCell("A1") },
                                         new[] { PdfTableCell.TextCell("A2") }
@@ -305,7 +305,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { PdfTableCell.Merge("HeaderBody", rowSpan: 2), PdfTableCell.TextCell("H1") },
                                         new[] { PdfTableCell.TextCell("B1") },
@@ -328,7 +328,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { PdfTableCell.TextCell("B0"), PdfTableCell.TextCell("B1") },
                                         new[] { PdfTableCell.Merge("BodyFooter", rowSpan: 2), PdfTableCell.TextCell("B2") },
@@ -402,7 +402,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "B1", "B2" },
                                         new[] { "B3", "B4" }
@@ -424,7 +424,7 @@ public partial class PdfDocumentVisualQualityTests {
                     document.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column =>
+                                row.PercentColumn(100, column =>
                                     column.Table(new[] {
                                         new[] { "H1", "H2" },
                                         new[] { "B1", "B2" }

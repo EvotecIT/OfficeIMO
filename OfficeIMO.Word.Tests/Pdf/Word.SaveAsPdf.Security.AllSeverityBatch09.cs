@@ -44,7 +44,7 @@ public partial class Word {
                     new LevelOverride(new StartOverrideNumberingValue { Val = 4 }) { LevelIndex = 0 }) { NumberID = 7 });
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -66,7 +66,7 @@ public partial class Word {
                 "not-an-integer"));
             paragraph._paragraph.ParagraphProperties.Append(spacing);
 
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -87,7 +87,7 @@ public partial class Word {
                 FirstLine = "2147483647"
             };
 
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -105,7 +105,7 @@ public partial class Word {
             table.ConditionalFormattingFirstRow = true;
             table.ConditionalFormattingLastRow = true;
 
-            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -136,6 +136,6 @@ public partial class Word {
         }
 
         document.Save();
-        Assert.Throws<InvalidDataException>(() => document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false }));
+        Assert.Throws<InvalidDataException>(() => document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false }));
     }
 }

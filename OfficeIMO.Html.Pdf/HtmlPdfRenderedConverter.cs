@@ -14,20 +14,20 @@ internal static partial class HtmlPdfRenderedConverter {
     private const int MaximumLoadedSystemFontFamilies = 32;
     private static readonly ConditionalWeakTable<byte[], CachedPdfImageResources> PdfImageResources = new();
 
-    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlPdfSaveOptions options) {
+    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken = default) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions);
-        return CreatePdf(rendered, options, CancellationToken.None);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions, cancellationToken);
+        return CreatePdf(rendered, options, cancellationToken);
     }
 
-    internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+    internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, renderOptions, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return CreatePdf(rendered, options, cancellationToken);
     }
 
-    private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
+    private static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
@@ -79,7 +79,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+    private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlToPdfOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 

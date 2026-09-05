@@ -39,14 +39,14 @@ public class RtfBridgeStreamTests {
     }
 
     [Fact]
-    public void TrySaveAsPdf_Overwrites_And_Rewinds_Seekable_Stream() {
+    public void SaveAsPdfResult_Overwrites_And_Rewinds_Seekable_Stream() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical note");
 
         using var stream = new MemoryStream();
         stream.WriteByte(0x2A);
 
-        PdfCore.PdfSaveResult result = document.TrySaveAsPdf(stream);
+        PdfCore.PdfSaveResult result = document.SaveAsPdfResult(stream);
 
         byte[] bytes = stream.ToArray();
         Assert.True(result.Succeeded, result.Exception?.Message);

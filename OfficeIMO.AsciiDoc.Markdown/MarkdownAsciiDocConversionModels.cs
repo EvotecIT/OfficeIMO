@@ -49,40 +49,22 @@ public sealed class MarkdownAsciiDocConversionDiagnostic {
 }
 
 /// <summary>Canonical AsciiDoc source and its lossless parsed document.</summary>
-public sealed class MarkdownToAsciiDocResult {
+public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDocument, MarkdownToAsciiDocReport> {
     internal MarkdownToAsciiDocResult(
         string source,
         AsciiDocDocument value,
-        IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
-        Source = source;
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new MarkdownToAsciiDocReport(diagnostics);
+        IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics)
+        : base(value, new MarkdownToAsciiDocReport(diagnostics)) {
+        Source = source ?? throw new ArgumentNullException(nameof(source));
     }
 
     /// <summary>Generated canonical AsciiDoc.</summary>
     public string Source { get; }
 
-    /// <summary>Lossless parsed view of <see cref="Source"/>.</summary>
-    public AsciiDocDocument Value { get; }
-
-    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
-    public MarkdownToAsciiDocReport Report { get; }
-
-    /// <summary>True when any source feature was simplified, fallbacked, or omitted.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the converted document.</summary>
-    public AsciiDocDocument RequireValue() => Value;
-
-    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
-    public AsciiDocDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
 }
 
 /// <summary>Markdown-to-AsciiDoc conversion diagnostics captured for one operation.</summary>
-public sealed class MarkdownToAsciiDocReport {
+public sealed class MarkdownToAsciiDocReport : IOfficeConversionReport {
     internal MarkdownToAsciiDocReport(IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }

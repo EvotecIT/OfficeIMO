@@ -56501,9 +56501,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Optional OfficeIMO HTML to PDF save options.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HtmlPdfSaveOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HtmlToPdfOptions</command:parameterValue>
           <dev:type>
-            <maml:name>HtmlPdfSaveOptions</maml:name>
+            <maml:name>HtmlToPdfOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -56630,9 +56630,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Optional OfficeIMO HTML to PDF save options.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">HtmlPdfSaveOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HtmlToPdfOptions</command:parameterValue>
           <dev:type>
-            <maml:name>HtmlPdfSaveOptions</maml:name>
+            <maml:name>HtmlToPdfOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -56771,9 +56771,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Optional OfficeIMO HTML to PDF save options.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">HtmlPdfSaveOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">HtmlToPdfOptions</command:parameterValue>
         <dev:type>
-          <maml:name>HtmlPdfSaveOptions</maml:name>
+          <maml:name>HtmlToPdfOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -126435,9 +126435,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Advanced Markdown PDF options. Friendly PDF parameters override matching values.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownPdfSaveOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">MarkdownToPdfOptions</command:parameterValue>
           <dev:type>
-            <maml:name>MarkdownPdfSaveOptions</maml:name>
+            <maml:name>MarkdownToPdfOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -126857,9 +126857,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Advanced Markdown PDF options. Friendly PDF parameters override matching values.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">MarkdownPdfSaveOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">MarkdownToPdfOptions</command:parameterValue>
         <dev:type>
-          <maml:name>MarkdownPdfSaveOptions</maml:name>
+          <maml:name>MarkdownToPdfOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -137831,9 +137831,9 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <maml:description>
             <maml:para>Advanced Markdown PDF options. Friendly PDF parameters override matching values.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownPdfSaveOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">MarkdownToPdfOptions</command:parameterValue>
           <dev:type>
-            <maml:name>MarkdownPdfSaveOptions</maml:name>
+            <maml:name>MarkdownToPdfOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -138241,9 +138241,9 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <maml:description>
           <maml:para>Advanced Markdown PDF options. Friendly PDF parameters override matching values.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">MarkdownPdfSaveOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">MarkdownToPdfOptions</command:parameterValue>
         <dev:type>
-          <maml:name>MarkdownPdfSaveOptions</maml:name>
+          <maml:name>MarkdownToPdfOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

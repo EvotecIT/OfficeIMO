@@ -31,7 +31,7 @@ public partial class Excel {
                 footerRight: "Right Footer");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 PageSize = new PdfCore.PageSize(420, 320),
                 Margins = PdfCore.PageMargins.Uniform(54)
@@ -53,7 +53,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFields.xlsx");
         DateTime printedAt = new DateTime(2026, 5, 31, 14, 35, 0);
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             HeaderFooterDateTimeProvider = () => printedAt,
@@ -70,7 +70,7 @@ public partial class Excel {
                 footerRight: "Page &P of &N");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -87,7 +87,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Preserves_NonWinAnsi_Dynamic_File_Field() {
         string workbookPath = Path.Combine(_directoryWithFiles, "Zażółć-Źródło.xlsx");
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(720, 320),
@@ -101,7 +101,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "Source &F");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -114,7 +114,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Maps_Simple_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFormatting.xlsx");
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(420, 320),
@@ -130,7 +130,7 @@ public partial class Excel {
                 footerCenter: "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -153,7 +153,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Maps_Office_HeaderFooter_Font_Aliases() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFontAliases.xlsx");
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(420, 320),
@@ -169,7 +169,7 @@ public partial class Excel {
                 footerCenter: "&\"Consolas,Italic\"Alias Footer");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -188,7 +188,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Uses_Registered_Named_HeaderFooter_Fonts() {
         const string familyName = "Studio Serif";
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterNamedFont.xlsx");
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                     CompressContentStreams = false
                 }
@@ -210,7 +210,7 @@ public partial class Excel {
                 footerCenter: "&\"Studio Serif,Italic\"Named Footer");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -229,7 +229,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_DoesNotReserve_Escaped_HeaderFooter_Font_Tokens() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterEscapedFontToken.xlsx");
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(420, 320),
@@ -244,7 +244,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -261,7 +261,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Warns_For_Mixed_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterMixedFormatting.xlsx");
 
-        var options = new ExcelPdfSaveOptions {
+        var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(420, 320),
@@ -321,7 +321,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -359,7 +359,7 @@ public partial class Excel {
             sheet.SetEvenPageHeaderFooter();
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -405,14 +405,14 @@ public partial class Excel {
 
             document.Save();
 
-            var options = new ExcelPdfSaveOptions {
+            var options = new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 PageSize = new PdfCore.PageSize(420, 320),
                 Margins = PdfCore.PageMargins.Uniform(54)
             };
-            bytes = document.ToPdf(options);
+            bytes = document.ToPdfBytes(options);
 
-            disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
+            disabledBytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeaderFooterImages = false,
                 PageSize = new PdfCore.PageSize(420, 320),
@@ -466,7 +466,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -504,7 +504,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader &F", footerCenter: "DoNotExportFooter");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeadersAndFooters = false,
                 UseWorksheetHeaderFooterImages = true,

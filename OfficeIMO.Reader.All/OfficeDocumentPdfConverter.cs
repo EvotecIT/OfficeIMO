@@ -14,7 +14,7 @@ namespace OfficeIMO.Reader.All;
 /// </summary>
 public static class OfficeDocumentPdfConverter {
     /// <summary>Converts an Email artifact such as EML, MSG, OFT, or TNEF to a searchable PDF.</summary>
-    public static PdfDocumentConversionResult EmailToPdf(
+    public static PdfDocumentConversionResult EmailToPdfDocumentResult(
         Stream source,
         string sourceName = "message.eml",
         PdfProjectionOptions? pdfOptions = null,
@@ -31,7 +31,7 @@ public static class OfficeDocumentPdfConverter {
     }
 
     /// <summary>Converts an Email artifact such as EML, MSG, OFT, or TNEF to a searchable PDF.</summary>
-    public static PdfDocumentConversionResult EmailToPdf(
+    public static PdfDocumentConversionResult EmailToPdfDocumentResult(
         string path,
         PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
@@ -46,7 +46,7 @@ public static class OfficeDocumentPdfConverter {
     }
 
     /// <summary>Converts an EPUB package to a searchable PDF while retaining chapter order and policy diagnostics.</summary>
-    public static PdfDocumentConversionResult EpubToPdf(
+    public static PdfDocumentConversionResult EpubToPdfDocumentResult(
         Stream source,
         string sourceName = "book.epub",
         PdfProjectionOptions? pdfOptions = null,
@@ -63,7 +63,7 @@ public static class OfficeDocumentPdfConverter {
     }
 
     /// <summary>Converts an EPUB package to a searchable PDF while retaining chapter order and policy diagnostics.</summary>
-    public static PdfDocumentConversionResult EpubToPdf(
+    public static PdfDocumentConversionResult EpubToPdfDocumentResult(
         string path,
         PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
@@ -78,7 +78,7 @@ public static class OfficeDocumentPdfConverter {
     }
 
     /// <summary>Converts a Visio package to a searchable PDF with explicit preview or semantic-fallback evidence.</summary>
-    public static PdfDocumentConversionResult VisioToPdf(
+    public static PdfDocumentConversionResult VisioToPdfDocumentResult(
         Stream source,
         string sourceName = "diagram.vsdx",
         PdfProjectionOptions? pdfOptions = null,
@@ -95,7 +95,7 @@ public static class OfficeDocumentPdfConverter {
     }
 
     /// <summary>Converts a Visio package to a searchable PDF with explicit preview or semantic-fallback evidence.</summary>
-    public static PdfDocumentConversionResult VisioToPdf(
+    public static PdfDocumentConversionResult VisioToPdfDocumentResult(
         string path,
         PdfProjectionOptions? pdfOptions = null,
         ReaderOptions? readerOptions = null,
@@ -109,6 +109,36 @@ public static class OfficeDocumentPdfConverter {
             cancellationToken);
     }
 
+    /// <summary>Converts Email content to serialized PDF bytes.</summary>
+    public static byte[] EmailToPdfBytes(Stream source, string sourceName = "message.eml", PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, ReaderEmailOptions? emailOptions = null, CancellationToken cancellationToken = default) =>
+        EmailToPdfDocumentResult(source, sourceName, pdfOptions, readerOptions, emailOptions, cancellationToken).ToBytes(cancellationToken);
+
+    /// <summary>Converts Email content to serialized PDF bytes.</summary>
+    public static byte[] EmailToPdfBytes(string path, PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, ReaderEmailOptions? emailOptions = null, CancellationToken cancellationToken = default) =>
+        EmailToPdfDocumentResult(path, pdfOptions, readerOptions, emailOptions, cancellationToken).ToBytes(cancellationToken);
+
+    /// <summary>Converts Epub content to serialized PDF bytes.</summary>
+    public static byte[] EpubToPdfBytes(Stream source, string sourceName = "book.epub", PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, EpubReadOptions? epubOptions = null, CancellationToken cancellationToken = default) =>
+        EpubToPdfDocumentResult(source, sourceName, pdfOptions, readerOptions, epubOptions, cancellationToken).ToBytes(cancellationToken);
+
+    /// <summary>Converts Epub content to serialized PDF bytes.</summary>
+    public static byte[] EpubToPdfBytes(string path, PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, EpubReadOptions? epubOptions = null, CancellationToken cancellationToken = default) =>
+        EpubToPdfDocumentResult(path, pdfOptions, readerOptions, epubOptions, cancellationToken).ToBytes(cancellationToken);
+
+    /// <summary>Converts Visio content to serialized PDF bytes.</summary>
+    public static byte[] VisioToPdfBytes(Stream source, string sourceName = "diagram.vsdx", PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) =>
+        VisioToPdfDocumentResult(source, sourceName, pdfOptions, readerOptions, visioOptions, cancellationToken).ToBytes(cancellationToken);
+
+    /// <summary>Converts Visio content to serialized PDF bytes.</summary>
+    public static byte[] VisioToPdfBytes(string path, PdfProjectionOptions? pdfOptions = null,
+        ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) =>
+        VisioToPdfDocumentResult(path, pdfOptions, readerOptions, visioOptions, cancellationToken).ToBytes(cancellationToken);
+
     private static PdfDocumentConversionResult Convert(
         OfficeDocumentReader reader,
         Stream source,
@@ -119,7 +149,7 @@ public static class OfficeDocumentPdfConverter {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("Source name is required for format routing.", nameof(sourceName));
         OfficeDocumentReadResult normalized = reader.ReadDocument(source, sourceName, readerOptions, cancellationToken);
-        return normalized.ToPdfDocumentResult(pdfOptions);
+        return normalized.ToPdfDocumentResult(pdfOptions, cancellationToken);
     }
 
     private static PdfDocumentConversionResult Convert(
@@ -130,6 +160,6 @@ public static class OfficeDocumentPdfConverter {
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Source path is required.", nameof(path));
         OfficeDocumentReadResult normalized = reader.ReadDocument(path, readerOptions, cancellationToken);
-        return normalized.ToPdfDocumentResult(pdfOptions);
+        return normalized.ToPdfDocumentResult(pdfOptions, cancellationToken);
     }
 }

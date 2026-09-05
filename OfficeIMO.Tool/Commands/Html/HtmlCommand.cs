@@ -70,7 +70,7 @@ claim conformance without passing external validator evidence.
         TextWriter standardError,
         CancellationToken cancellationToken) {
         byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             MaxPageCount = arguments.MaxPages,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -152,7 +152,7 @@ claim conformance without passing external validator evidence.
     }
 
     internal static void ConfigureFontFamily(
-        HtmlPdfSaveOptions options,
+        HtmlToPdfOptions options,
         string familyName,
         byte[] regular,
         byte[]? bold,

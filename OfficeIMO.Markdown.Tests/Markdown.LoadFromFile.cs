@@ -8,6 +8,21 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
+        public void NativeLifecycle_ExposesDirectAndStructuredParseResults() {
+            const string source = "# Title\n\nBody\n";
+
+            OfficeIMO.Markdown.MarkdownDoc direct = OfficeIMO.Markdown.MarkdownDoc.Parse(source);
+            OfficeIMO.Markdown.MarkdownParseResult parsed = OfficeIMO.Markdown.MarkdownDoc.ParseResult(source);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+            OfficeIMO.Markdown.MarkdownDoc loaded = OfficeIMO.Markdown.MarkdownDoc.Load(stream);
+
+            Assert.Equal(direct.ToMarkdown(), loaded.ToMarkdown());
+            Assert.IsAssignableFrom<IOfficeResult<OfficeIMO.Markdown.MarkdownDoc>>(parsed);
+            Assert.Same(parsed.Document, parsed.Value);
+            Assert.Same(parsed.Document, parsed.RequireValue());
+        }
+
+        [Fact]
         public void Test_LoadFromMarkdown_Path_DefaultEncoding() {
             string tempDir = Path.Combine(AppContext.BaseDirectory, "TempMarkdown");
             Directory.CreateDirectory(tempDir);

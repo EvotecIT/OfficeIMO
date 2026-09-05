@@ -49,6 +49,7 @@ namespace OfficeIMO.Examples {
             Pdf.LinksAndRules.Example_Pdf_LinksAndRules(folderPath, false);
             Pdf.WriterStyleCheatsheet.Example_Pdf_StyleCheatsheet(folderPath, false);
             Pdf.DrawingGalleryPdf.Example_Pdf_DrawingGallery(folderPath, false);
+            Pdf.AuthoringModelPdf.Example_Pdf_AuthoringModel(folderPath, false);
             Pdf.RowColumnsPdf.Example_Pdf_RowColumns(folderPath, false);
             Pdf.TableStyleGalleryPdf.Example_Pdf_TableStyleGallery(folderPath, false);
             Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);

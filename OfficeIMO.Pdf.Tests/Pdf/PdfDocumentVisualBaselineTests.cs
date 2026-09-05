@@ -32,7 +32,7 @@ public class PdfDocumentVisualBaselineTests {
                 .Text(", proportional Helvetica spacing, wrapped table cells, lists, panels, and footer text."))
             .PanelParagraph(
                 p => p.Text("Panel content should sit inside the page margins with comfortable padding and without clipping."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(245, 248, 252),
                     BorderColor = PdfColor.FromRgb(150, 170, 190),
                     PaddingX = 8,
@@ -94,7 +94,7 @@ public class PdfDocumentVisualBaselineTests {
             .Shape(CreateAccentRibbon(), spacingBefore: 12, spacingAfter: 10)
             .PanelParagraph(
                 p => p.Text("Operator note: long values should wrap cleanly, tables should stay inside the page, and reusable drawing primitives should remain available to Word, Excel, PowerPoint, and PDF exporters."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -363,8 +363,8 @@ public class PdfDocumentVisualBaselineTests {
         return normalized.Length <= 120 ? normalized : normalized.Substring(0, 120);
     }
 
-    private static PanelStyle CreateStatusPanelStyle() {
-        return new PanelStyle {
+    private static PdfPanelStyle CreateStatusPanelStyle() {
+        return new PdfPanelStyle {
             Background = PdfColor.FromRgb(230, 247, 238),
             BorderColor = PdfColor.FromRgb(42, 132, 82),
             BorderWidth = 1.2,

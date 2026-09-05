@@ -7,8 +7,8 @@ The native parser retains every input character, exposes tokens, groups, command
 ```csharp
 using OfficeIMO.Latex;
 
-LatexParseResult result = LatexDocument.Parse(source);
-LatexDocument document = result.Document;
+LatexDocument document = LatexDocument.Parse(source);
+LatexParseResult result = LatexDocument.ParseResult(source);
 
 LatexHeading first = document.Headings[0];
 first.Command.GetRequiredArgument(0)!.Content = "Updated section";
@@ -21,11 +21,11 @@ Named profiles make semantic assumptions explicit and testable:
 ```csharp
 LatexDocument semantic = LatexDocument.Parse(
     source,
-    LatexParseOptions.CreateProfile(LatexDocumentProfile.OfficeIMO)).Document;
+    LatexParseOptions.CreateProfile(LatexDocumentProfile.OfficeIMO));
 
 LatexDocument preserved = LatexDocument.Parse(
     source,
-    LatexParseOptions.CreateProfile(LatexDocumentProfile.PreserveOnly)).Document;
+    LatexParseOptions.CreateProfile(LatexDocumentProfile.PreserveOnly));
 ```
 
 `OfficeIMO` binds the typed document semantics described below. `PreserveOnly` retains the structural syntax tree without profile-specific headings, paragraphs, lists, figures, tables, citations, references, labels, theorems, or macro-definition projections. Both profiles remain lossless and non-executing.
@@ -43,7 +43,7 @@ LatexDocument document = LatexDocument.Parse(
     source,
     new LatexParseOptions {
         MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
-    }).Document;
+    });
 
 LatexMacroExpansionResult expansion = document.ExpandSimpleMacros(@"\project{OfficeIMO}");
 ```

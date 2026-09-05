@@ -1510,7 +1510,8 @@ internal static partial class PdfWriter {
                         element.TableHeaderScope,
                         element.TableColumnSpan,
                         element.TableRowSpan,
-                        element.AlternativeText);
+                        element.AlternativeText,
+                        includePageReference: !element.SpansPages);
                 }
 
                 ReplaceObject(objects, element.ObjectId, structElement);

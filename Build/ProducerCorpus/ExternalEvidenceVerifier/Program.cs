@@ -45,7 +45,7 @@ static async Task<object[]> VerifyRtfAsync(JsonElement manifest, HttpClient clie
             Require(header.Contains(fragment.GetString()!, StringComparison.Ordinal), id + " header evidence changed");
         }
 
-        RtfReadResult read = RtfDocument.Load(bytes, RtfReadOptions.CreateUntrustedProfile());
+        RtfReadResult read = RtfDocument.LoadResult(bytes, RtfReadOptions.CreateUntrustedProfile());
         RtfToHtmlResult html = read.Document.ToHtmlResult(RtfToHtmlOptions.CreateWebSafeProfile());
         RtfConversionResult<string> markdown = read.Document.ToMarkdownResult();
         RtfConversionResult<OfficeIMO.Word.WordDocument> word = read.ToWordDocumentResult(sourceUrl);
@@ -62,7 +62,7 @@ static async Task<object[]> VerifyRtfAsync(JsonElement manifest, HttpClient clie
                 safeHtmlCharacters = html.Value.Length,
                 markdownCharacters = markdown.Value.Length,
                 wordBridgeDiagnostics = word.Report.Diagnostics.Count,
-                productPaths = new[] { "RtfDocument.Load(untrusted)", "ToHtmlResult(web-safe)", "ToMarkdownResult", "RtfReadResult.ToWordDocumentResult" }
+                productPaths = new[] { "RtfDocument.LoadResult(untrusted)", "ToHtmlResult(web-safe)", "ToMarkdownResult", "RtfReadResult.ToWordDocumentResult" }
             });
         }
     }

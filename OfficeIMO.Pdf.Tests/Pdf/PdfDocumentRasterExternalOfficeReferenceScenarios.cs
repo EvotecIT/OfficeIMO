@@ -10,7 +10,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
-using WordPdfSaveOptions = OfficeIMO.Word.Pdf.WordPdfSaveOptions;
+using WordToPdfOptions = OfficeIMO.Word.Pdf.WordToPdfOptions;
 
 namespace OfficeIMO.Tests.Pdf;
 
@@ -308,7 +308,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 using (WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
                 })) {
-                    var options = new WordPdfSaveOptions {
+                    var options = new WordToPdfOptions {
                         IncludePageNumbers = false
                     };
                     if (string.Equals(scenario.FontProfile, "officeimo-browser-compact", StringComparison.Ordinal)) {
@@ -324,21 +324,21 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
                     document.SaveAsPdf(
                         outputPath,
-                        new ExcelPdfSaveOptions().UseProfile(PdfCore.PdfExportProfile.Faithful));
+                        new ExcelToPdfOptions().UseProfile(PdfCore.PdfExportProfile.Faithful));
                 }
                 break;
             case "powerpoint":
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(
                     sourcePath,
                     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
-                    var options = new PowerPointPdfSaveOptions {
+                    var options = new PowerPointToPdfOptions {
                         ChartStyle = new OfficeChartStyle(
                             palette: new[] { OfficeColor.FromRgb(34, 126, 102) },
                             backgroundColor: OfficeColor.White,
                             titleColor: OfficeColor.FromRgb(26, 31, 43)),
                         ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 4)
                     };
-                    File.WriteAllBytes(outputPath, presentation.ToPdf(options));
+                    File.WriteAllBytes(outputPath, presentation.ToPdfBytes(options));
                 }
                 break;
             default:

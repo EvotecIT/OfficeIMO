@@ -167,7 +167,7 @@ public class PdfDrawingInteropTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column =>
+                            row.PercentColumn(100, column =>
                                 column.Shape(shape))))))
             .ToBytes();
 

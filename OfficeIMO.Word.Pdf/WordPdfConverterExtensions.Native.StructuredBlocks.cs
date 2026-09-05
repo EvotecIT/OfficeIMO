@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
         [ThreadStatic]
         private static int _nativeStructuredDocumentTagDepth;
 
-        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordPdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, options);
             RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas, nativeDefaults, nativeFontMap);
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordPdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (_nativeStructuredDocumentTagDepth >= MaximumNativeStructuredDocumentTagDepth) {
                 throw new InvalidDataException(
                     $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordPdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
                 pdf.Paragraph(builder => builder.Text(propertyValue!));
                 return;
@@ -296,7 +296,7 @@ namespace OfficeIMO.Word.Pdf {
                 : text.Replace(placeholder, value);
         }
 
-        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section, WordPdfSaveOptions? options) {
+        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
                 WordWatermark? defaultWatermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                 NativeAppliedWatermark defaultApplied = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
@@ -320,10 +320,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeAppliedWatermark ApplyNativeWatermark(
-            Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageCompose> applyText,
-            Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageCompose> applyImage,
+            Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageBuilder> applyText,
+            Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageBuilder> applyImage,
             WordWatermark? watermark,
-            WordPdfSaveOptions? options,
+            WordToPdfOptions? options,
             string source) {
             if (watermark == null) {
                 return default;
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeAppliedWatermark(textWatermark != null, imageWatermark != null);
         }
 
-        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark firstWatermark) {
+        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageBuilder page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark firstWatermark) {
             if (defaultWatermark.HasText && !firstWatermark.HasText) {
                 page.SuppressFirstPageTextWatermark();
             }
@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark evenWatermark) {
+        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageBuilder page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark evenWatermark) {
             if (defaultWatermark.HasText && !evenWatermark.HasText) {
                 page.SuppressEvenPagesTextWatermark();
             }
@@ -404,7 +404,7 @@ namespace OfficeIMO.Word.Pdf {
             return pdfWatermark;
         }
 
-        private static PdfCore.PdfImageWatermark? CreateNativeImageWatermark(WordWatermark? watermark, WordPdfSaveOptions? options, string source) {
+        private static PdfCore.PdfImageWatermark? CreateNativeImageWatermark(WordWatermark? watermark, WordToPdfOptions? options, string source) {
             if (watermark == null || !watermark.HasImage) {
                 return null;
             }

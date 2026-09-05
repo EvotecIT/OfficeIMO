@@ -172,7 +172,7 @@ public class PdfOutlineTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(1, column => column.H1(" ")))))));
+                                row.PercentColumn(1, column => column.H1(" ")))))));
     }
 
     private static int CountOccurrences(string text, string value) {

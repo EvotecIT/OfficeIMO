@@ -27,7 +27,7 @@ public sealed class AdfConversionDiagnostic {
 }
 
 /// <summary>Operation-scoped conversion evidence.</summary>
-public sealed class AdfConversionReport {
+public sealed class AdfConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report from operation-scoped diagnostics.</summary>
     public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) =>
         Diagnostics = diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics));
@@ -36,17 +36,21 @@ public sealed class AdfConversionReport {
     public IReadOnlyList<AdfConversionDiagnostic> Diagnostics { get; }
     public bool IsLossless => Diagnostics.All(item => item.Severity == AdfConversionSeverity.Information);
     public bool HasErrors => Diagnostics.Any(item => item.Severity == AdfConversionSeverity.Error);
+    /// <inheritdoc />
+    public bool HasLoss => !IsLossless;
+
+    /// <inheritdoc />
+    public void RequireNoLoss() {
+        if (HasLoss) {
+            throw new InvalidOperationException("The ADF conversion reported possible content loss. Inspect Report.Diagnostics for details.");
+        }
+    }
 }
 
 /// <summary>A converted value and its fidelity report.</summary>
-public sealed class AdfConversionResult<T> {
-    internal AdfConversionResult(T value, IReadOnlyList<AdfConversionDiagnostic> diagnostics) {
-        Value = value;
-        Report = new AdfConversionReport(diagnostics);
-    }
-
-    public T Value { get; }
-    public AdfConversionReport Report { get; }
+public sealed class AdfConversionResult<T> : OfficeConversionResult<T, AdfConversionReport> where T : class {
+    internal AdfConversionResult(T value, IReadOnlyList<AdfConversionDiagnostic> diagnostics)
+        : base(value, new AdfConversionReport(diagnostics)) { }
 }
 
 /// <summary>Options for ADF projections.</summary>

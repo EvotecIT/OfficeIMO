@@ -23,9 +23,9 @@ public class LatexParseBenchmarks {
 
     /// <summary>Parses the complete source into the lossless syntax and semantic models.</summary>
     [Benchmark(Baseline = true, Description = "Parse lossless")]
-    public LatexParseResult ParseLossless() => LatexDocument.Parse(_fixture.Source);
+    public LatexParseResult ParseLossless() => LatexDocument.ParseResult(_fixture.Source);
 
     /// <summary>Parses and writes the complete source through preserve mode.</summary>
     [Benchmark(Description = "Parse + preserve write")]
-    public string ParseAndPreserveWrite() => LatexDocument.Parse(_fixture.Source).Document.ToLatex();
+    public string ParseAndPreserveWrite() => LatexDocument.ParseResult(_fixture.Source).Document.ToLatex();
 }

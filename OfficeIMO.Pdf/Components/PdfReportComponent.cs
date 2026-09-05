@@ -54,7 +54,7 @@ public sealed class PdfReportComponent : IPdfComponent {
     public string? Summary { get; }
 
     /// <inheritdoc />
-    public void Compose(PdfItemCompose content) {
+    public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.H1(Title).HR();
         if (!string.IsNullOrWhiteSpace(Summary)) content.Paragraph(paragraph => paragraph.Text(Summary!));

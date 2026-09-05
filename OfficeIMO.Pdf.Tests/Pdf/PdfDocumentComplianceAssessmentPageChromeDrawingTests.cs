@@ -107,7 +107,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .HR(thickness: 1.2, color: PdfColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
             .Paragraph(paragraph => paragraph.Text("After top-level rule."))
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
-                .Column(100, column => column
+                .PercentColumn(100, column => column
                     .Paragraph(paragraph => paragraph.Text("Before row rule."))
                     .HR(thickness: 0.8, color: PdfColor.FromRgb(203, 213, 225), spacingBefore: 2, spacingAfter: 2)
                     .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
@@ -122,7 +122,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedDecorativeLayoutChromeEmitsArtifactMarkedContent() {
-        var panelStyle = new PanelStyle {
+        var panelStyle = new PdfPanelStyle {
             Background = PdfColor.FromRgb(248, 250, 252),
             BorderColor = PdfColor.FromRgb(37, 99, 235),
             BorderWidth = 0.8,

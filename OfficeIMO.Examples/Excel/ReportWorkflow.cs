@@ -67,7 +67,7 @@ namespace OfficeIMO.Examples.Excel {
                     return;
                 }
 
-                document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new ExcelToPdfOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,
                     PageSize = new PdfCore.PageSize(560, 520),

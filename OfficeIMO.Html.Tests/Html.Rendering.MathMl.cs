@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText above = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Above");
         HtmlRenderText below = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Below");
         string svg = source.ToSvg(options);
-        byte[] pdf = source.ToPdf(new HtmlPdfSaveOptions {
+        byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,

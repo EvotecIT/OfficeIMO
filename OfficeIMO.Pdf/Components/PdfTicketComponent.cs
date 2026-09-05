@@ -38,7 +38,7 @@ public sealed class PdfTicketComponent : IPdfComponent {
     public string? Instructions { get; }
 
     /// <inheritdoc />
-    public void Compose(PdfItemCompose content) {
+    public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.Panel(panel => {
             panel.H1(Title, PdfAlign.Center);
@@ -49,7 +49,7 @@ public sealed class PdfTicketComponent : IPdfComponent {
             if (!string.IsNullOrWhiteSpace(Holder)) details.Add(new[] { "Holder", Holder! });
             if (details.Count > 0) panel.Table(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
             if (!string.IsNullOrWhiteSpace(Instructions)) panel.Paragraph(paragraph => paragraph.Text(Instructions!));
-        }, new PanelStyle {
+        }, new PdfPanelStyle {
             BorderColor = new PdfColor(0.15, 0.15, 0.15),
             BorderWidth = 1.2,
             PaddingX = 16,

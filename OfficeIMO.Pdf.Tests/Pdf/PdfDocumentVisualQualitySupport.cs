@@ -32,7 +32,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -64,7 +64,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -100,7 +100,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -135,7 +135,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -161,7 +161,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.Column(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreatePanelSpacingProbe(PdfOptions options, PanelStyle style) {
+    private static byte[] CreatePanelSpacingProbe(PdfOptions options, PdfPanelStyle style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 0
@@ -381,7 +381,7 @@ public partial class PdfDocumentVisualQualityTests {
                 doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
                 break;
             case "panel":
-                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
                 break;
             case "horizontal-rule":
                 doc.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
@@ -402,7 +402,7 @@ public partial class PdfDocumentVisualQualityTests {
             case "row":
                 doc.Compose(document => document.Page(page => page.Content(content => content.Row(row => row
                     .Style(new PdfRowStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Column(100, column => column.Paragraph(p => p.Text("RowTopMarker"), style: paragraphStyle))))));
+                    .PercentColumn(100, column => column.Paragraph(p => p.Text("RowTopMarker"), style: paragraphStyle))))));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(blockKind), blockKind, "Unknown flow block kind.");
@@ -415,11 +415,11 @@ public partial class PdfDocumentVisualQualityTests {
         var options = CreateFlowSpacingProbeOptions();
         return PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
-                .Column(100, column => AddColumnFlowSpacingBeforeProbe(column, blockKind, spacingBefore))))))
+                .PercentColumn(100, column => AddColumnFlowSpacingBeforeProbe(column, blockKind, spacingBefore))))))
             .ToBytes();
     }
 
-    private static void AddColumnFlowSpacingBeforeProbe(PdfRowColumnCompose column, string blockKind, double spacingBefore) {
+    private static void AddColumnFlowSpacingBeforeProbe(PdfContentBuilder column, string blockKind, double spacingBefore) {
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
 
         switch (blockKind) {
@@ -430,7 +430,7 @@ public partial class PdfDocumentVisualQualityTests {
                 column.Numbered(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
                 break;
             case "panel":
-                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
                 break;
             case "horizontal-rule":
                 column.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })

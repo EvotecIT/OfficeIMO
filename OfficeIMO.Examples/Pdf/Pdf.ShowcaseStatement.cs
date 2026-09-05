@@ -34,12 +34,12 @@ namespace OfficeIMO.Examples.Pdf {
                             content.Item(item => item.Shape(CreateBrandRule(), PdfAlign.Right, spacingBefore: 6, spacingAfter: 22));
                             content.Row(row => {
                                 row.Gap(58)
-                                    .Column(50, column => {
+                                    .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
                                         column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
                                         column.Paragraph(p => p.Text("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"), style: AddressParagraph());
                                     })
-                                    .Column(50, column => {
+                                    .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("For"), style: LabelParagraph());
                                         column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
                                         column.Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
@@ -52,10 +52,10 @@ namespace OfficeIMO.Examples.Pdf {
                             content.Row(row => {
                                 row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = 2 })
                                     .Gap(22)
-                                    .Column(58, column => {
+                                    .PercentColumn(58, column => {
                                         column.PanelParagraph(
                                             p => p.Bold("Payment note: ").Text("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."),
-                                            new PanelStyle {
+                                            new PdfPanelStyle {
                                                 Background = PdfColor.FromRgb(247, 250, 252),
                                                 BorderColor = PdfColor.FromRgb(211, 219, 229),
                                                 BorderWidth = 0.6,
@@ -64,7 +64,7 @@ namespace OfficeIMO.Examples.Pdf {
                                             },
                                             defaultColor: PdfColor.FromRgb(51, 65, 85));
                                     })
-                                    .Column(42, column => {
+                                    .PercentColumn(42, column => {
                                         column.Table(CreateTotalsRows(), style: TotalsStyle());
                                     });
                             });

@@ -391,7 +391,7 @@ public class PdfEngineRoadmapFoundationTests {
     private sealed class PageAwareComponent : IPdfContextComponent {
         internal int Invocations { get; private set; }
 
-        public void Compose(PdfItemCompose content, PdfFlowContext context) {
+        public void Compose(PdfContentBuilder content, PdfFlowContext context) {
             Invocations++;
             content.Paragraph(paragraph => paragraph.Text("Context page " + context.PageNumber));
         }

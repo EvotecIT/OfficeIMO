@@ -64,7 +64,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     .Text("You can also place links ")
                     .Link("inside panels", "https://officeimo.net/", PdfColor.FromRgb(20, 90, 180))
                     .Text("."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     BorderWidth = 0.5,
@@ -110,7 +110,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Shape(CreateAccentRibbon(), spacingBefore: 12, spacingAfter: 10)
             .PanelParagraph(
                 p => p.Text("Operator note: long values should wrap cleanly, tables should stay inside the page, and reusable drawing primitives should remain available to Word, Excel, PowerPoint, and PDF exporters."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -161,13 +161,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Page(page => {
                     page.Content(content => {
                         content.Row(row => row
-                            .Column(58, column => column
+                            .PercentColumn(58, column => column
                                 .H1("Statement #4048")
                                 .Paragraph(p => p
                                     .Text("Prepared: 23/12/2025\n")
                                     .Text("Review by: 06/01/2026"),
                                     style: new PdfParagraphStyle { SpacingAfter = 2 }))
-                            .Column(42, column => column
+                            .PercentColumn(42, column => column
                                 .Image(logo, 156, 54, PdfAlign.Right, fit: OfficeImageFit.Contain)));
 
                         content.Column(column => column
@@ -176,12 +176,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                         content.Row(row => row
                             .Gap(30)
-                            .Column(47, column => column
+                            .PercentColumn(47, column => column
                                 .H3("Prepared by")
                                 .HR(1.2, PdfColor.Black, spacingBefore: 2, spacingAfter: 10)
                                 .Paragraph(p => p.Text("Syllabae Repraesentant\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"),
                                     style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = 0 }))
-                            .Column(47, column => column
+                            .PercentColumn(47, column => column
                                 .H3("Recipient")
                                 .HR(1.2, PdfColor.Black, spacingBefore: 2, spacingAfter: 10)
                                 .Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"),
@@ -194,7 +194,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                 .Table(totalsRows, PdfAlign.Right, CreateLineItemTotalsTableStyle())
                                 .PanelParagraph(
                                     p => p.Bold("Document note: ").Text("Project details, approval notes, or wrapper-provided metadata can be placed here by PSWriteOffice."),
-                                    new PanelStyle {
+                                    new PdfPanelStyle {
                                         Background = PdfColor.FromRgb(248, 250, 252),
                                         BorderColor = PdfColor.FromRgb(210, 218, 226),
                                         BorderWidth = 0.5,
@@ -398,8 +398,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         };
     }
 
-    private static PanelStyle CreateStatusPanelStyle() {
-        return new PanelStyle {
+    private static PdfPanelStyle CreateStatusPanelStyle() {
+        return new PdfPanelStyle {
             Background = PdfColor.FromRgb(230, 247, 238),
             BorderColor = PdfColor.FromRgb(42, 132, 82),
             BorderWidth = 1.2,

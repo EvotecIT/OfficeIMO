@@ -226,7 +226,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         else paragraph.Append(field);
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(
-            new PowerPointPdfSaveOptions {
+            new PowerPointToPdfOptions {
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
 

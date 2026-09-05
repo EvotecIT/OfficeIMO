@@ -75,7 +75,7 @@ public sealed class VisioPdfApiConsistencyTests {
         VisioDocument diagram = CreateDiagram();
         string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            byte[] bytes = diagram.ToPdf();
+            byte[] bytes = diagram.ToPdfBytes();
             PdfSaveResult saved = diagram.SaveAsPdf(outputPath);
             using var stream = new MemoryStream();
             PdfSaveResult streamed = await diagram.SaveAsPdfAsync(stream);
@@ -118,13 +118,14 @@ public sealed class VisioPdfApiConsistencyTests {
         MethodInfo[] methods = typeof(VisioPdfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static);
 
-        Assert.Single(methods, method => method.Name == "ToPdf");
+        Assert.Single(methods, method => method.Name == "ToPdfBytes");
+        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
         Assert.Single(methods, method => method.Name == "ToPdfDocument");
         Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult"));
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdfAsync"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync"));
     }
 
     private static VisioDocument CreateDiagram() {

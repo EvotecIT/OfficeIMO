@@ -38,17 +38,28 @@ public sealed partial class AsciiDocDocument {
     /// <summary>True when any editable block or list item has changed.</summary>
     public bool IsModified => Blocks.Any(static block => block.IsModified);
 
-    /// <summary>Parses an AsciiDoc string.</summary>
-    public static AsciiDocParseResult Parse(string source, AsciiDocParseOptions? options = null) =>
+    /// <summary>Parses an AsciiDoc string into the typed document model.</summary>
+    public static AsciiDocDocument Parse(string source, AsciiDocParseOptions? options = null) =>
+        ParseResult(source, options).Document;
+
+    /// <summary>Parses an AsciiDoc string with syntax and recovery diagnostics.</summary>
+    public static AsciiDocParseResult ParseResult(string source, AsciiDocParseOptions? options = null) =>
         AsciiDocParser.Parse(source, options);
 
     /// <summary>
     /// Loads and parses an AsciiDoc file using the runtime's UTF-8 BOM detection.
     /// Retains decoded characters and line endings, not original encoding or BOM bytes.
     /// </summary>
-    public static AsciiDocParseResult Load(string path, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
+    public static AsciiDocDocument Load(string path, AsciiDocParseOptions? options = null, Encoding? encoding = null) =>
+        LoadResult(path, options, encoding).Document;
+
+    /// <summary>
+    /// Loads an AsciiDoc file with its lossless syntax and recovery diagnostics.
+    /// Retains decoded characters and line endings, not original encoding or BOM bytes.
+    /// </summary>
+    public static AsciiDocParseResult LoadResult(string path, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        return Parse(File.ReadAllText(path, encoding ?? Utf8WithoutBom), options);
+        return ParseResult(File.ReadAllText(path, encoding ?? Utf8WithoutBom), options);
     }
 
     /// <summary>Enumerates blocks of a requested semantic type.</summary>

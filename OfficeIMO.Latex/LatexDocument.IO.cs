@@ -8,25 +8,45 @@ public sealed partial class LatexDocument {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
 
     /// <summary>Loads and parses a LaTeX document from a caller-owned stream.</summary>
-    public static LatexParseResult Load(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) {
+    public static LatexDocument Load(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) =>
+        LoadResult(stream, options, encoding).Document;
+
+    /// <summary>Loads a LaTeX document from a caller-owned stream with syntax and recovery diagnostics.</summary>
+    public static LatexParseResult LoadResult(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) {
         options ??= new LatexParseOptions();
         byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, options.MaximumInputBytes);
-        return Parse(Decode(bytes, encoding, options), options);
+        return ParseResult(Decode(bytes, encoding, options), options);
     }
 
     /// <summary>Asynchronously loads and parses a LaTeX file.</summary>
-    public static async Task<LatexParseResult> LoadAsync(
+    public static async Task<LatexDocument> LoadAsync(
+        string path,
+        LatexParseOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) =>
+        (await LoadResultAsync(path, options, encoding, cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>Asynchronously loads a LaTeX file with syntax and recovery diagnostics.</summary>
+    public static async Task<LatexParseResult> LoadResultAsync(
         string path,
         LatexParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously loads and parses a LaTeX document from a caller-owned stream.</summary>
-    public static async Task<LatexParseResult> LoadAsync(
+    public static async Task<LatexDocument> LoadAsync(
+        Stream stream,
+        LatexParseOptions? options = null,
+        Encoding? encoding = null,
+        CancellationToken cancellationToken = default) =>
+        (await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>Asynchronously loads a LaTeX stream with syntax and recovery diagnostics.</summary>
+    public static async Task<LatexParseResult> LoadResultAsync(
         Stream stream,
         LatexParseOptions? options = null,
         Encoding? encoding = null,
@@ -38,7 +58,7 @@ public sealed partial class LatexDocument {
             options.MaximumInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         string source = Decode(bytes, encoding, options);
-        return Parse(source, options, cancellationToken);
+        return ParseResult(source, options, cancellationToken);
     }
 
     private static string Decode(byte[] bytes, Encoding? requestedEncoding, LatexParseOptions options) {

@@ -67,7 +67,7 @@ public sealed partial class PdfOptions {
     private bool _hasExplicitDefaultTableStyle;
     private PdfHeadingStyles? _defaultHeadingStyles;
     private PdfListStyle? _defaultListStyle;
-    private PanelStyle? _defaultPanelStyle;
+    private PdfPanelStyle? _defaultPanelStyle;
     private PdfHorizontalRuleStyle? _defaultHorizontalRuleStyle;
     private PdfImageStyle? _defaultImageStyle;
     private PdfDrawingStyle? _defaultDrawingStyle;

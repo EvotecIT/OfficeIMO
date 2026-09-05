@@ -85,13 +85,17 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Renders the document into a PDF byte array in memory.
     /// </summary>
-    public byte[] ToBytes() {
+    public byte[] ToBytes() => ToBytes(default);
+
+    /// <summary>Renders the PDF while observing cancellation.</summary>
+    public byte[] ToBytes(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
             return _source.CopyBytes();
         }
 
-        ThrowIfTextEncodingPreflightFails();
-        return RenderBytesCore();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
+        return RenderBytesCore(cancellationToken);
     }
 
     /// <summary>Renders the document into a new writable memory stream positioned at the beginning.</summary>
@@ -100,20 +104,26 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to render the document into a PDF byte array and returns diagnostics instead of throwing.
     /// </summary>
-    public PdfBytesResult TryToBytes() {
+    public PdfBytesResult ToBytesResult() => ToBytesResult(default);
+
+    /// <summary>Renders the PDF while observing cancellation.</summary>
+    public PdfBytesResult ToBytesResult(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
-            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException, cancellationToken)) {
                 timer.Stop();
                 PdfPipelineReport failedPipeline = AppendOutputStep("ToBytes", output: null, timer.Elapsed, preflightException);
                 return PdfBytesResult.Failed(preflightException!, failedPipeline);
             }
 
-            byte[] bytes = RenderBytesCore();
+            byte[] bytes = RenderBytesCore(cancellationToken);
             timer.Stop();
             PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions);
             PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output, timer.Elapsed);
             return PdfBytesResult.Success(bytes, pipeline);
+        } catch (OperationCanceledException) {
+            throw;
         } catch (Exception ex) {
             timer.Stop();
             PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output: null, timer.Elapsed, ex);
@@ -125,10 +135,14 @@ public sealed partial class PdfDocument {
     /// Writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
     /// <param name="stream">Writable destination stream.</param>
-    public PdfSaveResult Save(Stream stream) {
+    public PdfSaveResult Save(Stream stream) => Save(stream, default);
+
+    /// <summary>Writes the PDF while observing cancellation.</summary>
+    public PdfSaveResult Save(Stream stream, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        ThrowIfTextEncodingPreflightFails();
-        (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = RenderToStreamWithEvidence(stream);
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
+        (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = RenderToStreamWithEvidence(stream, cancellationToken);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
         return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline, serialization);
@@ -137,10 +151,16 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(Stream stream) {
+    public PdfSaveResult SaveResult(Stream stream) => SaveResult(stream, default);
+
+    /// <summary>Writes the PDF while observing cancellation.</summary>
+    public PdfSaveResult SaveResult(Stream stream, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
-            return Save(stream);
+            return Save(stream, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch (Exception ex) {
             timer.Stop();
             PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
@@ -152,18 +172,22 @@ public sealed partial class PdfDocument {
     /// Saves the document to <paramref name="path"/>. Creates the directory if needed.
     /// </summary>
     /// <param name="path">Destination file path, e.g. "C:\\Docs\\Report.pdf".</param>
-    public PdfSaveResult Save(string path) {
+    public PdfSaveResult Save(string path) => Save(path, default);
+
+    /// <summary>Writes the PDF while observing cancellation.</summary>
+    public PdfSaveResult Save(string path, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
         string fullPath = ValidateOutputPath(path);
         EnsureOutputDirectory(fullPath);
 
-        ThrowIfTextEncodingPreflightFails();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
         PdfSerializationReport? serialization = null;
         OfficeFileCommit.Write(fullPath, stream => {
             using var hashingStream = new PdfPipelineHashingStream(stream);
-            (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream);
+            (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream, cancellationToken);
             output = hashingStream.Complete(pageCount);
         });
         timer.Stop();
@@ -174,12 +198,18 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to save the document to <paramref name="path"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult TrySave(string path) {
+    public PdfSaveResult SaveResult(string path) => SaveResult(path, default);
+
+    /// <summary>Writes the PDF while observing cancellation.</summary>
+    public PdfSaveResult SaveResult(string path, System.Threading.CancellationToken cancellationToken) {
         string? fullPath = null;
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             fullPath = ValidateOutputPath(path);
-            return Save(fullPath);
+            return Save(fullPath, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch (Exception ex) {
             timer.Stop();
             PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
@@ -203,7 +233,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to asynchronously write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             return await SaveAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -260,7 +290,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to asynchronously save the document to <paramref name="path"/> and returns output diagnostics instead of throwing.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         string? fullPath = null;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
@@ -284,9 +314,9 @@ public sealed partial class PdfDocument {
         return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords, cancellationToken);
     }
 
-    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) RenderToStreamCore(Stream stream) {
+    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) RenderToStreamCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
         (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) output = default;
-        OfficeStreamWriter.Write(stream, destination => output = WritePdfCore(destination));
+        OfficeStreamWriter.Write(stream, destination => output = WritePdfCore(destination, cancellationToken));
         return output;
     }
 
@@ -303,9 +333,9 @@ public sealed partial class PdfDocument {
         return output;
     }
 
-    private (long BytesWritten, PdfArtifactSnapshot Output, PdfSerializationReport Serialization) RenderToStreamWithEvidence(Stream stream) {
+    private (long BytesWritten, PdfArtifactSnapshot Output, PdfSerializationReport Serialization) RenderToStreamWithEvidence(Stream stream, System.Threading.CancellationToken cancellationToken) {
         using var hashingStream = new PdfPipelineHashingStream(stream);
-        (long bytesWritten, int? pageCount, PdfSerializationReport serialization) = RenderToStreamCore(hashingStream);
+        (long bytesWritten, int? pageCount, PdfSerializationReport serialization) = RenderToStreamCore(hashingStream, cancellationToken);
         PdfArtifactSnapshot output = hashingStream.Complete(pageCount);
         return (bytesWritten, output, serialization);
     }

@@ -103,7 +103,7 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
     public decimal Total => _lines.Sum(static line => line.Total);
 
     /// <inheritdoc />
-    public void Compose(PdfItemCompose content) {
+    public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.H1("Invoice " + InvoiceNumber)
             .Table(new[] {

@@ -9,7 +9,7 @@ internal sealed partial class PdfDocumentReader {
         ReadDocument(readOptions).JavaScripts;
 
     /// <summary>Attempts to read named document-level JavaScript actions, returning diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfJavaScript>> TryJavaScripts(PdfLoadOptions? options = null) =>
+    public PdfOperationResult<IReadOnlyList<PdfJavaScript>> JavaScriptsResult(PdfLoadOptions? options = null) =>
         _document.TryOperation("Read document JavaScript", PdfPreflightCapability.ReadLogicalObjects, () => JavaScripts(options), ResolveReadOptions(options));
 
     /// <summary>
@@ -22,7 +22,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read catalog-level actions, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> TryCatalogActions(PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> CatalogActionsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read catalog actions", PdfPreflightCapability.ReadLogicalObjects, () => CatalogActions(options), ResolveReadOptions(options));
     }
 
@@ -36,7 +36,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read catalog-level actions with a matching PDF action type, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> TryCatalogActionsByActionType(string actionType, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> CatalogActionsByActionTypeResult(string actionType, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read catalog actions", PdfPreflightCapability.ReadLogicalObjects, () => CatalogActionsByActionType(actionType, options), ResolveReadOptions(options));
     }
 
@@ -50,7 +50,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read catalog-level actions from a matching catalog source, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> TryCatalogActionsBySource(string source, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfCatalogAction>> CatalogActionsBySourceResult(string source, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read catalog actions", PdfPreflightCapability.ReadLogicalObjects, () => CatalogActionsBySource(source, options), ResolveReadOptions(options));
     }
 
@@ -64,7 +64,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-level additional actions, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageAction>> TryPageActions(PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfPageAction>> PageActionsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page actions", PdfPreflightCapability.ReadLogicalObjects, () => PageActions(options), ResolveReadOptions(options));
     }
 
@@ -78,7 +78,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-level additional actions for a one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageAction>> TryPageActions(int pageNumber, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfPageAction>> PageActionsResult(int pageNumber, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page actions", PdfPreflightCapability.ReadLogicalObjects, () => PageActions(pageNumber, options), ResolveReadOptions(options));
     }
 
@@ -92,7 +92,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-level additional actions with a matching PDF action type, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageAction>> TryPageActionsByActionType(string actionType, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfPageAction>> PageActionsByActionTypeResult(string actionType, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page actions", PdfPreflightCapability.ReadLogicalObjects, () => PageActionsByActionType(actionType, options), ResolveReadOptions(options));
     }
 
@@ -106,7 +106,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-level additional actions with a matching page /AA trigger key, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageAction>> TryPageActionsByTriggerName(string triggerName, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfPageAction>> PageActionsByTriggerNameResult(string triggerName, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page actions", PdfPreflightCapability.ReadLogicalObjects, () => PageActionsByTriggerName(triggerName, options), ResolveReadOptions(options));
     }
 
@@ -120,7 +120,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-level additional actions with a matching stable action path, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageAction>> TryPageActionsByActionPath(string actionPath, PdfLoadOptions? options = null) {
+    public PdfOperationResult<IReadOnlyList<PdfPageAction>> PageActionsByActionPathResult(string actionPath, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page actions", PdfPreflightCapability.ReadLogicalObjects, () => PageActionsByActionPath(actionPath, options), ResolveReadOptions(options));
     }
 }

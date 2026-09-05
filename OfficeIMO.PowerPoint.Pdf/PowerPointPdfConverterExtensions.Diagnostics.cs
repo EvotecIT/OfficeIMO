@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     private static void AddLayoutWarning(
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         int slideNumber,
         string code,
         string message,
@@ -26,7 +26,7 @@ public static partial class PowerPointPdfConverterExtensions {
             new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, x, y, width, height));
     }
 
-    private static void AddPowerPointListLayoutDiagnostics(PowerPointPdfSaveOptions options, int slideNumber, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
+    private static void AddPowerPointListLayoutDiagnostics(PowerPointToPdfOptions options, int slideNumber, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
             if (!HasListMarker(paragraph)) {
                 continue;
@@ -53,7 +53,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void AddPowerPointPictureAspectRatioDiagnostic(
-        PowerPointPdfSaveOptions options,
+        PowerPointToPdfOptions options,
         int slideNumber,
         byte[] imageBytes,
         PptCore.PowerPointPictureCrop crop,
@@ -81,7 +81,7 @@ public static partial class PowerPointPdfConverterExtensions {
             options,
             slideNumber,
             "picture-aspect-distortion",
-            "Rendered an uncropped PowerPoint picture with Stretch fit into a frame whose aspect ratio differs from the source image. Set PowerPointPdfSaveOptions.PictureFit to Contain or Cover to preserve aspect ratio.",
+            "Rendered an uncropped PowerPoint picture with Stretch fit into a frame whose aspect ratio differs from the source image. Set PowerPointToPdfOptions.PictureFit to Contain or Cover to preserve aspect ratio.",
             PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
             "PowerPointPicture",
             "The mapped PDF picture frame can distort the source image aspect ratio.",

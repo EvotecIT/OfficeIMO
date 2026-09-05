@@ -151,7 +151,7 @@ internal static class RtfPdfMapping {
         return border;
     }
 
-    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfPdfSaveOptions options) {
+    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
         PdfCore.PdfTableStyle style = options.PdfOptions?.DefaultTableStyle?.Clone() ?? new PdfCore.PdfTableStyle();
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;

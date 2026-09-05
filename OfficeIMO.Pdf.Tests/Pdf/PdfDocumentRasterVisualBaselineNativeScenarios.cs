@@ -95,7 +95,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.RepeatHeaderRowAtTheTopOfEachPage = true;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -201,7 +201,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 closing.SetFontSize(8);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false,
                     PageSize = new PageSize(612, 792),
                     PdfOptions = new PdfOptions { CompressContentStreams = false }
@@ -237,7 +237,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false,
                     PageSize = new PageSize(612, 360),
                     Margins = PageMargins.Uniform(36)
@@ -328,7 +328,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SetPrintArea(details, "A1:B3");
                 document.Save();
 
-                document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new ExcelToPdfOptions {
                     IncludeSheetHeadings = true,
                     HeaderRowCount = 2,
                     PageSize = new PageSize(792, 612),
@@ -392,14 +392,14 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 ```
 """, new UTF8Encoding(false));
 
-            var options = new MarkdownPdfSaveOptions {
+            var options = new MarkdownToPdfOptions {
                 DefaultImageWidth = 104,
                 DefaultImageHeight = 36,
                 ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = workDir
             };
 
-            byte[] pdf = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdf(options);
+            byte[] pdf = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfBytes(options);
             if (options.Warnings.Count != 0) {
                 throw new InvalidOperationException("Markdown raster fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
             }
@@ -412,11 +412,11 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 
     private static byte[] CreateMarkdownThemeGallery(OfficeVisualThemeKind themeKind) {
         string markdown = CreateMarkdownThemeGallerySource(themeKind);
-        var options = new MarkdownPdfSaveOptions {
+        var options = new MarkdownToPdfOptions {
             Style = MarkdownPdfStyle.Create(themeKind)
         };
 
-        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfBytes(options);
         if (options.Warnings.Count != 0) {
             throw new InvalidOperationException("Markdown theme gallery fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
         }
@@ -451,7 +451,7 @@ This page renders one first-party visual profile for headings, lists, tables, co
 > Quotes should read as supporting narrative.
 
 ```csharp
-var pdf = markdown.ToPdf();
+var pdf = markdown.ToPdfBytes();
 ```
 """.Replace("THEME_NAME", themeName);
     }

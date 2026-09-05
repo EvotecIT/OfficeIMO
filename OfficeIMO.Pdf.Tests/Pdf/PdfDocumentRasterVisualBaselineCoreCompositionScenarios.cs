@@ -48,7 +48,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                     .Bold("What this protects")
                                     .LineBreak()
                                     .Text("Page settings, composed content, explicit page breaks, header/footer tokens, and rich text inside composed items."),
-                                new PanelStyle {
+                                new PdfPanelStyle {
                                     Background = PdfColor.FromRgb(248, 250, 252),
                                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                                     PaddingX = 9,
@@ -118,25 +118,25 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                         content.Row(row => {
                             row.Gap(14)
-                                .Column(25, column => column.PanelParagraph(p => p.Bold("92%").Text("\nSLA attainment"), CreateDashboardMetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
-                                .Column(25, column => column.PanelParagraph(p => p.Bold("1.8h").Text("\nMean response"), CreateDashboardMetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
-                                .Column(25, column => column.PanelParagraph(p => p.Bold("34").Text("\nOpen actions"), CreateDashboardMetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
-                                .Column(25, column => column.PanelParagraph(p => p.Bold("0").Text("\nCritical blockers"), CreateDashboardMetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
+                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("92%").Text("\nSLA attainment"), CreateDashboardMetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
+                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("1.8h").Text("\nMean response"), CreateDashboardMetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
+                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("34").Text("\nOpen actions"), CreateDashboardMetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
+                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("0").Text("\nCritical blockers"), CreateDashboardMetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
                         });
 
                         content.Spacer(12);
                         content.Row(row => {
                             row.Gap(18)
-                                .Column(58, column => {
+                                .PercentColumn(58, column => {
                                     column.Paragraph(p => p.Bold("Delivery trend"), style: CreateDashboardSectionLabelStyle());
                                     column.Drawing(CreateDashboardTrendDrawing(), PdfAlign.Left, spacingBefore: 2, spacingAfter: 8);
                                     column.Table(CreateDashboardRiskRows(), style: CreateDashboardRiskTableStyle());
                                 })
-                                .Column(42, column => {
+                                .PercentColumn(42, column => {
                                     column.Paragraph(p => p.Bold("Narrative"), style: CreateDashboardSectionLabelStyle());
                                     column.PanelParagraph(
                                         p => p.Text("The dashboard deliberately avoids a domain-specific report object. It uses the same primitive surface that a Word, Excel, or PowerPoint exporter could target later: page setup, rows, tables, paragraphs, shapes, and themes."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             Background = PdfColor.FromRgb(248, 250, 252),
                                             BorderColor = PdfColor.FromRgb(203, 213, 225),
                                             BorderWidth = 0.7,
@@ -158,8 +158,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .ToBytes();
     }
 
-    private static PanelStyle CreateDashboardMetricPanel(PdfColor background, PdfColor border) {
-        return new PanelStyle {
+    private static PdfPanelStyle CreateDashboardMetricPanel(PdfColor background, PdfColor border) {
+        return new PdfPanelStyle {
             Background = background,
             BorderColor = border,
             BorderWidth = 0.8,
@@ -344,7 +344,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .PanelParagraph(p => p
                     .Bold("Document state").LineBreak()
                     .Text("Watermark text is a page decoration, not a body block, so paragraphs, tables, and footers keep their normal rhythm."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(203, 213, 225),
                     BorderWidth = 0.7,
@@ -399,7 +399,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .PanelParagraph(p => p
                     .Bold("Layering expectation").LineBreak()
                     .Text("The image watermark is a page decoration. Foreground text, panels, and table borders stay readable and crisp."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(203, 213, 225),
                     BorderWidth = 0.7,
@@ -452,7 +452,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .PanelParagraph(p => p
                     .Bold("Frame expectation").LineBreak()
                     .Text("The frame should visually finish the page while content keeps normal margins, table rhythm, and footer placement."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(255, 255, 255),
                     BorderColor = PdfColor.FromRgb(191, 219, 254),
                     BorderWidth = 0.7,
@@ -509,7 +509,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .PanelParagraph(p => p
                     .Bold("Layering expectation").LineBreak()
                     .Text("The background image is fitted to the page box behind content, watermarks, borders, headers, footers, and normal flow blocks."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(255, 255, 255),
                     BorderColor = PdfColor.FromRgb(203, 213, 225),
                     BorderWidth = 0.7,
@@ -565,7 +565,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .PanelParagraph(p => p
                     .Bold("Layering expectation").LineBreak()
                     .Text("Rounded bands, ellipses, gradients, opacity, borders, headers, footers, and foreground flow should stay in a stable visual stack."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(255, 255, 255),
                     BorderColor = PdfColor.FromRgb(203, 213, 225),
                     BorderWidth = 0.7,
@@ -620,7 +620,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                         });
                         content.Row(row => {
                             row.Gap(18);
-                            row.Column(50, column => column
+                            row.PercentColumn(50, column => column
                                 .H2("Status")
                                 .Paragraph(p => p
                                     .Text("The left column carries operational copy with comfortable wrapping, spacing, and no collision with the neighboring column."))
@@ -630,7 +630,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                 }, color: PdfColor.FromRgb(55, 65, 81))
                                 .PanelParagraph(
                                     p => p.Bold("Callout: ").Text("column panels can hold emphasis without leaving the row flow."),
-                                    new PanelStyle {
+                                    new PdfPanelStyle {
                                         Background = PdfColor.FromRgb(248, 250, 252),
                                         BorderColor = PdfColor.FromRgb(183, 194, 207),
                                         PaddingX = 7,
@@ -641,7 +641,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                 .Paragraph(p => p
                                     .Bold("Ready: ")
                                     .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
-                            row.Column(50, column => column
+                            row.PercentColumn(50, column => column
                                 .H2("Next")
                                 .Paragraph(p => p
                                     .Text("The right column uses the same page flow but starts after an explicit gutter, giving report layouts a professional reading rhythm."))
@@ -705,7 +705,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))
             .PanelParagraph(
                 p => p.Text("The same options should continue to render consistently after an explicit page break."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,
@@ -738,7 +738,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .H1("Style Cheatsheet", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
             .PanelParagraph(
                 p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
-                new PanelStyle {
+                new PdfPanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),
                     PaddingX = 9,

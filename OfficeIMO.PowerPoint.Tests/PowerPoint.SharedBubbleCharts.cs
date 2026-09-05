@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     OfficeChartSnapshot pdfSnapshot =
                         PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
                             nativeSnapshot, 420D, 250D,
-                            new PowerPointPdfSaveOptions());
+                            new PowerPointToPdfOptions());
                     Assert.Equal(145D, pdfSnapshot.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
                         pdfSnapshot.BubbleSizeMode);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(shared.Data.Series).ShowInLegend);
             OfficeChartSnapshot pdf =
                 PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
-                    native, 420D, 250D, new PowerPointPdfSaveOptions());
+                    native, 420D, 250D, new PowerPointToPdfOptions());
             Assert.False(Assert.Single(pdf.Data.Series).ShowInLegend);
 
             string svg = System.Text.Encoding.UTF8.GetString(

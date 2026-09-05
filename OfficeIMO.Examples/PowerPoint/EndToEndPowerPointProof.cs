@@ -138,10 +138,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .ExportImage(OfficeImageExportFormat.Svg)
                     .Save(Path.Combine(outputFolder, stem + ".svg"), OfficeImageExportFileConflictPolicy.Replace);
             }
-            var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
+            var pdfOptions = new PowerPointToPdfOptions().UseProfile(PdfExportProfile.Faithful);
             PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
             pdfResult.Save(pdfPath);
-            presentation.SaveAsPdf(handoutPath, new PowerPointPdfSaveOptions {
+            presentation.SaveAsPdf(handoutPath, new PowerPointToPdfOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true

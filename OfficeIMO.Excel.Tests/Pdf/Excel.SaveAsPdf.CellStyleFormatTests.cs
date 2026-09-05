@@ -42,7 +42,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -68,7 +68,7 @@ public partial class Excel {
         sheet.CellAt(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
         sheet.CellAt(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0
         });
@@ -91,7 +91,7 @@ public partial class Excel {
             sheet.CellAt(1, 2).SetValue("PlainCell");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -120,7 +120,7 @@ public partial class Excel {
             sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -151,7 +151,7 @@ public partial class Excel {
                 .SetFontName(unavailableFamily);
             document.Save();
 
-            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
@@ -176,7 +176,7 @@ public partial class Excel {
                 .SetFontName("Arial");
             document.Save();
 
-            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -215,7 +215,7 @@ public partial class Excel {
                     targetFamily,
                     PdfCore.PdfFontFamilySubstitutionImpact.LayoutSensitive);
 
-            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
                 PdfOptions = configured,
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
@@ -244,7 +244,7 @@ public partial class Excel {
             sheet.CellAt(1, 2).SetValue("DefaultSerif");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
@@ -288,7 +288,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -337,7 +337,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -371,7 +371,7 @@ public partial class Excel {
             sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -413,7 +413,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -458,7 +458,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -501,7 +501,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -544,7 +544,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(320, 220),
@@ -597,7 +597,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(420, 360),
@@ -637,7 +637,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(420, 220),
@@ -671,7 +671,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),

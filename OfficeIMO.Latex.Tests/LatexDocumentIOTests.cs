@@ -8,12 +8,28 @@ namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexDocumentIOTests {
     [Fact]
+    public void ParseAndLoadExposeDirectAndStructuredLifecycleResults() {
+        const string source = "\\documentclass{article}\n\\begin{document}\nBody\n\\end{document}\n";
+
+        LatexDocument direct = LatexDocument.Parse(source);
+        LatexParseResult parsed = LatexDocument.ParseResult(source);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        LatexDocument loaded = LatexDocument.Load(stream);
+
+        Assert.Equal(source, direct.ToLatex());
+        Assert.Equal(source, loaded.ToLatex());
+        Assert.IsAssignableFrom<IOfficeResult<LatexDocument>>(parsed);
+        Assert.Same(parsed.Document, parsed.Value);
+        Assert.Same(parsed.Document, parsed.RequireValue());
+    }
+
+    [Fact]
     public async Task StreamLifecycle_UsesCompleteArtifactsAndLeavesCallerStreamsOpen() {
         const string source = "\\documentclass{article}\n\\begin{document}\nBody\n\\end{document}\n";
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(source));
         input.Position = 5;
 
-        LatexParseResult loaded = await LatexDocument.LoadAsync(input);
+        LatexParseResult loaded = await LatexDocument.LoadResultAsync(input);
 
         Assert.Equal(5, input.Position);
         input.ReadByte();
@@ -30,7 +46,7 @@ public sealed class LatexDocumentIOTests {
 
     [Fact]
     public async Task AsyncLifecycle_HonorsPreCanceledTokensWithoutMutatingStreams() {
-        LatexDocument document = LatexDocument.Parse("Body\n").Document;
+        LatexDocument document = LatexDocument.ParseResult("Body\n").Document;
         using var output = new MemoryStream(new byte[] { 1, 2, 3 });
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -49,7 +65,7 @@ public sealed class LatexDocumentIOTests {
         var options = new LatexParseOptions { MaximumInputBytes = 5 };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            LatexDocument.Load(input, options));
+            LatexDocument.LoadResult(input, options));
 
         Assert.Contains("maximum size", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(4, input.Position);
@@ -61,7 +77,7 @@ public sealed class LatexDocumentIOTests {
         byte[] payload = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(source)).ToArray();
         using var input = new MemoryStream(payload);
 
-        LatexParseResult result = LatexDocument.Load(input);
+        LatexParseResult result = LatexDocument.LoadResult(input);
 
         Assert.Equal(source, result.Document.ToLatex());
     }
@@ -82,7 +98,7 @@ public sealed class LatexDocumentIOTests {
                 byte[] payload = encoding.GetPreamble().Concat(encoding.GetBytes(source)).ToArray();
                 File.WriteAllBytes(path, payload);
 
-                LatexParseResult result = LatexDocument.Load(path);
+                LatexParseResult result = LatexDocument.LoadResult(path);
 
                 Assert.Equal(source, result.Document.ToLatex());
             } finally {
@@ -97,7 +113,7 @@ public sealed class LatexDocumentIOTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() =>
-            LatexDocument.Parse("Body\n", options: null, cancellation.Token));
+            LatexDocument.ParseResult("Body\n", options: null, cancellation.Token));
     }
 
     [Fact]
@@ -108,7 +124,7 @@ public sealed class LatexDocumentIOTests {
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            LatexDocument.LoadAsync(input, cancellationToken: cancellation.Token));
+            LatexDocument.LoadResultAsync(input, cancellationToken: cancellation.Token));
 
         Assert.Equal(2, input.Position);
     }

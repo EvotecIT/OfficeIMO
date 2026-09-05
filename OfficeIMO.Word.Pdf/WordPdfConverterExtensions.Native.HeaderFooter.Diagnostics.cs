@@ -11,7 +11,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void ConfigureNativePageNumbering(PdfCore.PdfPageCompose page, WordSection section) {
+        private static void ConfigureNativePageNumbering(PdfCore.PdfPageBuilder page, WordSection section) {
             W.PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<W.PageNumberType>();
             if (pageNumberType?.Start?.Value is int start && start > 0) {
                 page.PageNumberStart(start);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, WordPdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -224,16 +224,16 @@ namespace OfficeIMO.Word.Pdf {
             });
         }
 
-        private static double GetNativeHeaderOffset(WordPdfSaveOptions? options, double headerMarginExpansion) {
+        private static double GetNativeHeaderOffset(WordToPdfOptions? options, double headerMarginExpansion) {
             double configuredOffset = options?.PdfOptions?.HeaderOffsetY ?? NativeHeaderFooterDefaultOffset;
             return configuredOffset + headerMarginExpansion;
         }
 
-        private static double GetNativeFooterOffset(WordPdfSaveOptions? options) {
+        private static double GetNativeFooterOffset(WordToPdfOptions? options) {
             return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
         }
 
-        private static void AddNativeHeaderImages(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
                     header.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
                 if (variant == W.HeaderFooterValues.First) {
                     header.FirstPageShape(shape.Shape, shape.Align);
@@ -257,7 +257,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterImages(PdfCore.PdfFooterCompose footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterImages(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
                     footer.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterShapes(PdfCore.PdfFooterCompose footer, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterShapes(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
                 if (variant == W.HeaderFooterValues.First) {
                     footer.FirstPageShape(shape.Shape, shape.Align);
@@ -281,7 +281,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeHeaderFooterDiagnostics(WordHeaderFooter? headerFooter, WordPdfSaveOptions? options, string source) {
+        private static void RecordNativeHeaderFooterDiagnostics(WordHeaderFooter? headerFooter, WordToPdfOptions? options, string source) {
             if (headerFooter == null || options == null) {
                 return;
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeHeaderFooterElementDiagnostics(WordElement element, WordPdfSaveOptions options, string source) {
+        private static void RecordNativeHeaderFooterElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {
             switch (element) {
                 case WordParagraph paragraph:
                     RecordNativeHeaderFooterParagraphDiagnostics(paragraph, options, source);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordPdfSaveOptions options, string source) {
+        private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     foreach (WordElement element in cell.Elements) {
@@ -319,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeHeaderFooterParagraphDiagnostics(WordParagraph paragraph, WordPdfSaveOptions options, string source) {
+        private static void RecordNativeHeaderFooterParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions options, string source) {
             if (paragraph.Shape != null && CreateNativeShape(paragraph.Shape) == null) {
                 AddNativeExportWarning(
                     options,
@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
             paragraph.TextBox != null &&
             string.IsNullOrWhiteSpace(GetNativeParagraphTextBoxPlainText(paragraph));
 
-        private static void RecordNativeBodyTableDiagnostics(WordTable table, WordPdfSaveOptions? options, string source) {
+        private static void RecordNativeBodyTableDiagnostics(WordTable table, WordToPdfOptions? options, string source) {
             if (options == null) {
                 return;
             }
@@ -385,7 +385,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeBodyElementDiagnostics(WordElement element, WordPdfSaveOptions options, string source) {
+        private static void RecordNativeBodyElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {
             switch (element) {
                 case WordParagraph paragraph:
                     RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: false, mapsFormFields: false, mapsPictureControls: false, mapsRepeatingSections: false);
@@ -403,7 +403,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeBodyParagraphDiagnostics(WordParagraph paragraph, WordPdfSaveOptions? options, string source, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections) {
+        private static void RecordNativeBodyParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions? options, string source, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections) {
             if (options == null) {
                 return;
             }
@@ -706,7 +706,7 @@ namespace OfficeIMO.Word.Pdf {
                 : fallbackPrefix + "." + (index + 1).ToString(CultureInfo.InvariantCulture);
         }
 
-        private static void AddNativeExportWarning(WordPdfSaveOptions options, string code, string source, string message) {
+        private static void AddNativeExportWarning(WordToPdfOptions options, string code, string source, string message) {
             var warning = new PdfExportWarning(code, source, message);
             options.Warnings.Add(warning);
             options.Report.Add(warning.ToConversionWarning());

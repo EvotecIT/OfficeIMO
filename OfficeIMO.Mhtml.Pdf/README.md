@@ -13,7 +13,7 @@ using OfficeIMO.Pdf;
 
 MhtmlDocument archive = MhtmlDocument.Load("quarterly-update.mhtml");
 PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(
-    new HtmlPdfSaveOptions());
+    new HtmlToPdfOptions());
 await result.SaveAsync("quarterly-update.pdf");
 ```
 
@@ -22,7 +22,7 @@ The result combines MIME, HTML-rendering, and PDF diagnostics. Local-file and re
 Conversion is offline by default. To allow missing archive resources, apply an explicit bounded MHTML policy to the same options before conversion. The application fetcher must return exactly one response with automatic redirects disabled so OfficeIMO can approve every redirect target before requesting it:
 
 ```csharp
-var options = new HtmlPdfSaveOptions {
+var options = new HtmlToPdfOptions {
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 };
 MhtmlRemoteResourcePolicy remote = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2);

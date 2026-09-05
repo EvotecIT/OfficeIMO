@@ -95,11 +95,11 @@ public sealed partial class HtmlRenderingTests {
             .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
         byte[] disabledPng = HtmlConversionDocument.Parse(disabledHtml)
             .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
-        var pdfOptions = new HtmlPdfSaveOptions(renderOptions) {
+        var pdfOptions = new HtmlToPdfOptions(renderOptions) {
             PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
-        byte[] enabledPdf = HtmlConversionDocument.Parse(enabledHtml).ToPdf(pdfOptions);
-        byte[] disabledPdf = HtmlConversionDocument.Parse(disabledHtml).ToPdf(pdfOptions);
+        byte[] enabledPdf = HtmlConversionDocument.Parse(enabledHtml).ToPdfBytes(pdfOptions);
+        byte[] disabledPdf = HtmlConversionDocument.Parse(disabledHtml).ToPdfBytes(pdfOptions);
         int enabledPathCommandCount = PdfCore.PdfDocument.Load(enabledPdf).Render.Drawing(1).Shapes
             .Sum(shape => shape.Shape.PathCommands.Count);
         int disabledPathCommandCount = PdfCore.PdfDocument.Load(disabledPdf).Render.Drawing(1).Shapes
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficePngReader.TryDecode(light.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? lightImage));
         Assert.True(OfficePngReader.TryDecode(dark.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
         string darkSvg = Encoding.UTF8.GetString(dark.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] darkPdf = dark.ToPdf(new HtmlPdfSaveOptions(options));
+        byte[] darkPdf = dark.ToPdfBytes(new HtmlToPdfOptions(options));
         OfficeColor[] pdfPaints = PdfCore.PdfDocument.Load(darkPdf).Render.Drawing(1).Shapes
             .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent)
             .ToArray();

@@ -12,55 +12,53 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConversionCancellationTests {
     [Fact]
-    public void OpenedPdfHtmlConversionAppliesOptionsCancellationBeforeSemanticRead() {
+    public void OpenedPdfHtmlConversionAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Cancelled HTML conversion must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfHtmlSaveOptions options = CreateCancelledHtmlOptions(cancellation.Token, glyphStage);
+        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
-        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtml(options));
+        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtml(options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
 
     [Fact]
-    public void OpenedPdfHtmlResultAppliesOptionsCancellationBeforeSemanticRead() {
+    public void OpenedPdfHtmlResultAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Cancelled HTML result must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfHtmlSaveOptions options = CreateCancelledHtmlOptions(cancellation.Token, glyphStage);
+        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
-        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtmlResult(options));
+        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtmlResult(options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
 
     [Fact]
-    public async Task OpenedPdfHtmlExportAppliesOptionsCancellationBeforeSemanticRead() {
+    public async Task OpenedPdfHtmlExportAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Cancelled HTML export must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfHtmlSaveOptions options = CreateCancelledHtmlOptions(cancellation.Token, glyphStage);
+        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            PdfDocument.Load(source).SaveAsHtmlAsync(Stream.Null, options));
+            PdfDocument.Load(source).SaveAsHtmlAsync(Stream.Null, options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
 
-    private static PdfHtmlSaveOptions CreateCancelledHtmlOptions(
-        CancellationToken cancellationToken,
+    private static PdfToHtmlOptions CreateHtmlOptions(
         IPdfGlyphDecodingStage glyphStage) => new() {
-            CancellationToken = cancellationToken,
             ReadOptions = new PdfReadOptions {
                 Profile = PdfReadProfile.Structured,
                 Pipeline = new PdfUnderstandingPipelineOptions { GlyphDecoding = glyphStage }
@@ -68,7 +66,7 @@ public sealed class PdfConversionCancellationTests {
         };
 
     [Fact]
-    public void SynchronousPdfImportsPassOptionCancellationIntoTheInitialSemanticRead() {
+    public void SynchronousPdfImportsPassMethodCancellationIntoTheInitialSemanticRead() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Cancellation must reach the semantic read"))
             .ToBytes();
@@ -76,19 +74,13 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ToWordDocumentResult(new PdfWordImportOptions {
-                CancellationToken = cancellation.Token
-            });
+            _ = PdfDocument.Load(source).ToWordDocumentResult(new PdfToWordOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ImportTablesToExcelDocumentResult(new PdfExcelTableImportOptions {
-                CancellationToken = cancellation.Token
-            });
+            _ = PdfDocument.Load(source).ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ToPowerPointPresentationResult(new PdfPowerPointImportOptions {
-                CancellationToken = cancellation.Token
-            });
+            _ = PdfDocument.Load(source).ToPowerPointPresentationResult(new PdfToPowerPointOptions(), cancellation.Token);
         });
     }
 

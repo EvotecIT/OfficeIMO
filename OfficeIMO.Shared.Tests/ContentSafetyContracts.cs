@@ -502,7 +502,7 @@ public sealed class ContentSafetyContracts {
             rtf,
             new OfficeContentCleanupSelection(new[] { prompt.Id }));
 
-        RtfDocument reopened = RtfDocument.Load(cleaned.Output).Document;
+        RtfDocument reopened = RtfDocument.LoadResult(cleaned.Output).Document;
         Assert.DoesNotContain("Ignore previous", string.Join(" ", reopened.Paragraphs.Select(item => item.ToPlainText())), StringComparison.Ordinal);
         Assert.Contains("ordinary visible value", string.Join(" ", reopened.Paragraphs.Select(item => item.ToPlainText())), StringComparison.Ordinal);
         Assert.DoesNotContain(cleaned.After.Findings, item => item.Id == prompt.Id);
@@ -516,7 +516,7 @@ public sealed class ContentSafetyContracts {
 
         OfficeContentCleanupResult cleaned = RtfDocument.RemoveSelectedContent(rtf, new OfficeContentCleanupSelection(new[] { finding.Id }));
 
-        RtfDocument reopened = RtfDocument.Load(cleaned.Output).Document;
+        RtfDocument reopened = RtfDocument.LoadResult(cleaned.Output).Document;
         Assert.Null(reopened.HtmlEncapsulation);
         Assert.Contains("ordinary visible", string.Join(" ", reopened.Paragraphs.Select(item => item.ToPlainText())), StringComparison.Ordinal);
     }
@@ -531,7 +531,7 @@ public sealed class ContentSafetyContracts {
 
         OfficeContentCleanupResult cleaned = RtfDocument.RemoveSelectedContent(bytes, new OfficeContentCleanupSelection(new[] { finding.Id }));
 
-        RtfDocument reopened = RtfDocument.Load(cleaned.Output).Document;
+        RtfDocument reopened = RtfDocument.LoadResult(cleaned.Output).Document;
         Assert.Contains("payload", string.Join(" ", reopened.Paragraphs.Select(item => item.ToPlainText())), StringComparison.Ordinal);
     }
 

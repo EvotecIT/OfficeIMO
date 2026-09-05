@@ -8,7 +8,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         private static string Normalize(string text) {
             return new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
         }

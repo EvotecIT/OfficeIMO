@@ -64,7 +64,7 @@ internal sealed partial class BrowserPdfToolService {
 
     private static PdfToolExecution Merge(PdfToolRequest request) {
         PdfDocument[] documents = request.Files.Select(static file => Open(file)).ToArray();
-        PdfMergeResult merge = PdfDocument.MergeWithReport(new PdfMergeOptions(), documents);
+        PdfMergeResult merge = PdfDocument.MergeResult(new PdfMergeOptions(), documents);
         byte[] bytes = merge.ToBytes();
         const string fileName = "officeimo-merged.pdf";
         var details = new Dictionary<string, string>(StringComparer.Ordinal) {

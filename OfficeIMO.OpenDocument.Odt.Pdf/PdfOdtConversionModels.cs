@@ -3,7 +3,7 @@ using OfficeIMO.Word.Pdf;
 namespace OfficeIMO.OpenDocument.Odt.Pdf;
 
 /// <summary>Diagnostics from the PDF-to-Word and Word-to-ODT stages.</summary>
-public sealed class PdfOdtConversionReport {
+public sealed class PdfOdtConversionReport : IOfficeConversionReport {
     internal PdfOdtConversionReport(PdfWordConversionReport pdfReport, OdfConversionReport openDocumentReport) {
         PdfReport = pdfReport ?? throw new ArgumentNullException(nameof(pdfReport));
         OpenDocumentReport = openDocumentReport ?? throw new ArgumentNullException(nameof(openDocumentReport));
@@ -24,23 +24,6 @@ public sealed class PdfOdtConversionReport {
 }
 
 /// <summary>An ODT document with diagnostics from both conversion stages.</summary>
-public sealed class PdfOdtConversionResult {
-    internal PdfOdtConversionResult(OdtDocument value, PdfOdtConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-
-    /// <summary>The reconstructed ODT document.</summary>
-    public OdtDocument Value { get; }
-    /// <summary>Diagnostics from both conversion stages.</summary>
-    public PdfOdtConversionReport Report { get; }
-    /// <summary>True when either stage reported possible loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-    /// <summary>Returns the reconstructed document.</summary>
-    public OdtDocument RequireValue() => Value;
-    /// <summary>Returns the document only when neither stage reported possible loss.</summary>
-    public OdtDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class PdfOdtConversionResult : OfficeConversionResult<OdtDocument, PdfOdtConversionReport> {
+    internal PdfOdtConversionResult(OdtDocument value, PdfOdtConversionReport report) : base(value, report) { }
 }

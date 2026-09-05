@@ -34,12 +34,13 @@ internal static partial class PdfWriter {
 
                 EnsurePage();
 
+                if (block is SemanticBlock semantic) { RenderSemanticBlock(semantic); continue; }
                 if (block is SectionBlock section) { RenderSectionBlock(section); continue; }
                 if (block is TableOfContentsBlock tableOfContents) { RenderTableOfContentsBlock(tableOfContents); continue; }
                 if (block is FlowBlock flow) { RenderFlowBlock(flow); continue; }
                 if (block is LayerBlock layer) { RenderLayerBlock(layer); continue; }
                 if (block is MultiColumnBlock columns) { RenderMultiColumnBlock(columns); continue; }
-                if (block is ContainerBlock container) { RenderContainerBlock(container); continue; }
+                if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }
                 if (block is ColumnBreakBlock) { throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block."); }
                 if (block is PageBreakBlock) { NewPage(); continue; }
                 if (block is BookmarkBlock bookmark) { AddNamedDestination(bookmark, y); continue; }
@@ -63,7 +64,7 @@ internal static partial class PdfWriter {
                 if (block is DrawingBlock drawing) { RenderDrawingFlowBlock(drawing, nextBlock, blockList, blockIndex); continue; }
                 if (block is RowBlock row) { RenderRowFlowBlock(row, nextBlock, blockList, blockIndex); continue; }
                 if (block is ImageBlock image) { RenderImageFlowBlock(image, nextBlock, blockList, blockIndex); continue; }
-                if (block is PanelParagraphBlock panel) { RenderPanelFlowBlock(panel, nextBlock, blockList, blockIndex); continue; }
+                throw new NotSupportedException("PDF flow does not support block type " + block.GetType().Name + ".");
             }
         }
 

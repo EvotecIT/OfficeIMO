@@ -172,7 +172,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Options_SnapshotDefaultPanelStyle() {
-        var style = new PanelStyle {
+        var style = new PdfPanelStyle {
             Background = PdfColor.FromRgb(240, 248, 255),
             BorderColor = PdfColor.FromRgb(20, 40, 60),
             BorderWidth = 1.2,
@@ -194,7 +194,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.Background = PdfColor.Black;
         style.KeepWithNext = false;
 
-        PanelStyle readback = options.DefaultPanelStyle!;
+        PdfPanelStyle readback = options.DefaultPanelStyle!;
         readback.PaddingX = 44;
 
         PdfOptions clone = options.Clone();
@@ -218,7 +218,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void PanelParagraph_RendersAndSnapshotsSideSpecificPanelBorders() {
         PdfColor red = PdfColor.FromRgb(255, 0, 0);
         PdfColor blue = PdfColor.FromRgb(0, 0, 255);
-        var style = new PanelStyle {
+        var style = new PdfPanelStyle {
             Background = PdfColor.FromRgb(245, 245, 245),
             TopBorder = new PdfPanelBorder {
                 Color = red,
@@ -246,7 +246,7 @@ public partial class PdfDocumentVisualQualityTests {
             Color = PdfColor.FromRgb(0, 128, 0),
             Width = 4
         };
-        PanelStyle readback = options.DefaultPanelStyle!;
+        PdfPanelStyle readback = options.DefaultPanelStyle!;
         readback.LeftBorder = new PdfPanelBorder {
             Color = PdfColor.Black,
             Width = 3
@@ -334,7 +334,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepTogether = true,
             KeepWithNext = true
         };
-        var panelStyle = new PanelStyle {
+        var panelStyle = new PdfPanelStyle {
             PaddingX = 16,
             MaxWidth = 190,
             Background = PdfColor.FromRgb(240, 248, 255),
@@ -361,7 +361,7 @@ public partial class PdfDocumentVisualQualityTests {
                 Level1 = headingStyle
             },
             ListStyle = listStyle,
-            PanelStyle = panelStyle,
+            PdfPanelStyle = panelStyle,
             HorizontalRuleStyle = horizontalRuleStyle,
             RowStyle = rowStyle
         };

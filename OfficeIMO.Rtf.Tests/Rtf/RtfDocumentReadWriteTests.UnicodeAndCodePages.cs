@@ -74,7 +74,7 @@ public partial class RtfDocumentReadWriteTests {
         byte[] source = bytes.ToArray();
 
         using var input = new MemoryStream(source);
-        RtfReadResult result = RtfDocument.Load(input);
+        RtfReadResult result = RtfDocument.LoadResult(input);
         using var output = new MemoryStream();
         result.SaveLossless(output);
 
@@ -103,7 +103,7 @@ public partial class RtfDocumentReadWriteTests {
         byte[] source = bytes.ToArray();
 
         using var input = new MemoryStream(source);
-        RtfReadResult result = RtfDocument.Load(input);
+        RtfReadResult result = RtfDocument.LoadResult(input);
         using var output = new MemoryStream();
         result.SaveLossless(output);
 

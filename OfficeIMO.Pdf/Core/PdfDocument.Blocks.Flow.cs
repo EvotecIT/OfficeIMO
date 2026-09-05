@@ -19,9 +19,9 @@ public sealed partial class PdfDocument {
     /// Higher-level composition model (page size/margins/footer + content), similar to other document DSLs.
     /// Sugar only; composes into the same PdfDocument blocks and options.
     /// </summary>
-    public PdfDocument Compose(System.Action<PdfCompose> compose) {
+    public PdfDocument Compose(System.Action<PdfDocumentBuilder> compose) {
         Guard.NotNull(compose, nameof(compose));
-        var c = new PdfCompose(this);
+        var c = new PdfDocumentBuilder(this);
         compose(c);
         return this;
     }

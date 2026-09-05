@@ -140,7 +140,7 @@ public class RtfPdfImportTests {
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
             fromFile.Save(rtfPath, encoding: Encoding.UTF8);
-            RtfDocument saved = RtfDocument.Load(rtfPath, encoding: Encoding.UTF8).Document;
+            RtfDocument saved = RtfDocument.LoadResult(rtfPath, encoding: Encoding.UTF8).Document;
             Assert.Contains(saved.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
         } finally {
             if (Directory.Exists(directory)) {
@@ -150,13 +150,13 @@ public class RtfPdfImportTests {
     }
 
     [Fact]
-    public void PdfRtfImportOptions_Clone_IsIndependent() {
-        var options = new PdfRtfImportOptions {
+    public void PdfToRtfOptions_Clone_IsIndependent() {
+        var options = new PdfToRtfOptions {
             PreservePageBreaks = false,
             IncludeMetadata = false
         };
 
-        PdfRtfImportOptions clone = options.Clone();
+        PdfToRtfOptions clone = options.Clone();
         clone.PreservePageBreaks = true;
         clone.IncludeMetadata = true;
 
@@ -176,12 +176,12 @@ public class RtfPdfImportTests {
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
 
         using var sync = new MemoryStream();
-        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions());
+        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions()).RequireSuccess().Report!;
         Assert.False(syncReport.HasLoss);
         Assert.NotEmpty(sync.ToArray());
 
         using var asyncOutput = new MemoryStream();
-        PdfRtfConversionReport asyncReport = await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions());
+        PdfRtfConversionReport asyncReport = (await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions())).RequireSuccess().Report!;
         Assert.False(asyncReport.HasLoss);
         Assert.NotEmpty(asyncOutput.ToArray());
     }
@@ -208,7 +208,7 @@ public class RtfPdfImportTests {
         Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
     }
 
-    private static PdfRtfImportOptions CreateImportOptions() => new PdfRtfImportOptions();
+    private static PdfToRtfOptions CreateImportOptions() => new PdfToRtfOptions();
 
     private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
         PdfCore.PdfDocumentReadResult.Load(pdf, CreateLayoutOptions());

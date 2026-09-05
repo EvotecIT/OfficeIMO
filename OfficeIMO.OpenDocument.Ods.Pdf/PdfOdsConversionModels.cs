@@ -3,7 +3,7 @@ using OfficeIMO.Excel.Pdf;
 namespace OfficeIMO.OpenDocument.Ods.Pdf;
 
 /// <summary>Diagnostics from the PDF-to-Excel and Excel-to-ODS stages.</summary>
-public sealed class PdfOdsConversionReport {
+public sealed class PdfOdsConversionReport : IOfficeConversionReport {
     internal PdfOdsConversionReport(PdfExcelTableImportReport pdfReport, OdfConversionReport openDocumentReport) {
         PdfReport = pdfReport ?? throw new ArgumentNullException(nameof(pdfReport));
         OpenDocumentReport = openDocumentReport ?? throw new ArgumentNullException(nameof(openDocumentReport));
@@ -27,22 +27,6 @@ public sealed class PdfOdsConversionReport {
 }
 
 /// <summary>An ODS document with diagnostics from both conversion stages.</summary>
-public sealed class PdfOdsConversionResult {
-    internal PdfOdsConversionResult(OdsDocument value, PdfOdsConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-    /// <summary>The reconstructed ODS document.</summary>
-    public OdsDocument Value { get; }
-    /// <summary>Diagnostics from both conversion stages.</summary>
-    public PdfOdsConversionReport Report { get; }
-    /// <summary>True when either stage reported possible loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-    /// <summary>Returns the reconstructed document.</summary>
-    public OdsDocument RequireValue() => Value;
-    /// <summary>Returns the document only when neither stage reported possible loss.</summary>
-    public OdsDocument RequireNoLoss() {
-        Report.RequireNoLoss();
-        return Value;
-    }
+public sealed class PdfOdsConversionResult : OfficeConversionResult<OdsDocument, PdfOdsConversionReport> {
+    internal PdfOdsConversionResult(OdsDocument value, PdfOdsConversionReport report) : base(value, report) { }
 }

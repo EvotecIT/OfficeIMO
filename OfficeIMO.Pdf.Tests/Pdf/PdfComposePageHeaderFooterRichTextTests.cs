@@ -7,7 +7,7 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
-    public partial class PdfComposePageOptionsTests {
+    public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void HeaderFooterRichText_RendersStylesAndStyledPageTokens() {
             var options = new PdfOptions {

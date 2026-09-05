@@ -64,7 +64,7 @@ internal static partial class PdfMerger {
             cancellationToken);
     }
 
-    internal static PdfMergeResult MergeWithReport(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(readOptions, nameof(readOptions));
         return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions);
@@ -79,12 +79,12 @@ internal static partial class PdfMerger {
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeWithReport(PdfMergeOptions options, params byte[][] pdfs) {
-        return MergeWithReport(options, (IEnumerable<byte[]>)pdfs);
+    public static PdfMergeResult MergeResult(PdfMergeOptions options, params byte[][] pdfs) {
+        return MergeResult(options, (IEnumerable<byte[]>)pdfs);
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeWithReport(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
         return MergeCore(pdfs, primarySourceIndex: 0, options);
     }

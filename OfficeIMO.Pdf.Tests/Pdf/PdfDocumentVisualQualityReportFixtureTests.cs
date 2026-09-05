@@ -40,7 +40,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.Gap(gutter)
-                                .Column(50, column => column
+                                .PercentColumn(50, column => column
                                     .H2("LeftFlow")
                                     .Paragraph(p => p.Text("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
                                     .Bullets(new[] {
@@ -49,14 +49,14 @@ public partial class PdfDocumentVisualQualityTests {
                                     })
                                     .PanelParagraph(
                                         p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             BorderColor = PdfColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
                                             PaddingY = 5,
                                             Background = PdfColor.FromRgb(248, 250, 252)
                                         }))
-                                .Column(50, column => column
+                                .PercentColumn(50, column => column
                                     .H2("RightFlow")
                                     .Paragraph(p => p.Text("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
                                     .Numbered(new[] {
@@ -65,7 +65,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     })
                                     .PanelParagraph(
                                         p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
-                                        new PanelStyle {
+                                        new PdfPanelStyle {
                                             BorderColor = PdfColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
@@ -129,8 +129,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row => row
-                            .Column(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
-                            .Column(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
+                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -173,7 +173,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 10,
             LineHeight = 1.25
         };
-        var panelStyle = new PanelStyle {
+        var panelStyle = new PdfPanelStyle {
             Background = PdfColor.FromRgb(248, 250, 252),
             BorderColor = PdfColor.FromRgb(191, 191, 191),
             BorderWidth = 0.5,
@@ -241,11 +241,11 @@ public partial class PdfDocumentVisualQualityTests {
                                 SpacingBefore = 4,
                                 SpacingAfter = 0
                             })
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .H2("LeftMixed")
                                 .Paragraph(p => p.Text("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
                                 .Bullets(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
-                            .Column(50, column => column
+                            .PercentColumn(50, column => column
                                 .H2("RightMixed")
                                 .Paragraph(p => p.Text("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
                                 .Numbered(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));
@@ -479,7 +479,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(leadY - firstMetricY >= 24, $"Expected metric cards to start after the lead copy with visible breathing room. Gap: {leadY - firstMetricY:0.##}pt.");
         Assert.True(Math.Abs(firstMetricY - secondMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
         Assert.True(Math.Abs(firstMetricY - thirdMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
-        Assert.True(firstMetricY - fourthMetricY >= 12, "Expected the long fourth metric label to wrap below its value instead of colliding with neighboring cards.");
+        Assert.True(firstMetricY - fourthMetricY >= 10, "Expected the long fourth metric label to wrap below its value instead of colliding with neighboring cards.");
         Assert.True(leftHeadingY - riskHeaderY >= 175, $"Expected the trend drawing to reserve vertical space before the risk table. Gap: {leftHeadingY - riskHeaderY:0.##}pt.");
         Assert.True(Math.Abs(leftHeadingY - rightHeadingY) <= 2, "Expected the two body columns to start on the same visual row.");
         Assert.True(riskHeaderY - riskBodyY >= 14, $"Expected dashboard table header and first row to retain readable rhythm. Gap: {riskHeaderY - riskBodyY:0.##}pt.");

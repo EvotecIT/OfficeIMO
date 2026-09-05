@@ -31,7 +31,7 @@ public sealed class LatexTechnicalSemanticsTests {
 
     [Fact]
     public void TechnicalDocument_BindsListsFiguresTablesCitationsReferencesAndTheorems() {
-        LatexDocument document = LatexDocument.Parse(TechnicalDocument).Document;
+        LatexDocument document = LatexDocument.ParseResult(TechnicalDocument).Document;
 
         LatexList list = Assert.Single(document.Lists);
         Assert.Equal(LatexListKind.Unordered, list.Kind);
@@ -67,7 +67,7 @@ public sealed class LatexTechnicalSemanticsTests {
 
     [Fact]
     public void TechnicalSemanticEdits_ReplaceOnlyOwnedSourceSlices() {
-        LatexDocument document = LatexDocument.Parse(TechnicalDocument).Document;
+        LatexDocument document = LatexDocument.ParseResult(TechnicalDocument).Document;
 
         document.Lists[0].Items[0].Content = "Updated first";
         document.Figures[0].Images[0].Target = "updated.pdf";
@@ -85,7 +85,7 @@ public sealed class LatexTechnicalSemanticsTests {
     [Fact]
     public void SimpleMacroDefinitions_AreClassifiedAndExpandedOnlyWhenExplicitlyEnabled() {
         var options = new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions };
-        LatexDocument document = LatexDocument.Parse(TechnicalDocument, options).Document;
+        LatexDocument document = LatexDocument.ParseResult(TechnicalDocument, options).Document;
 
         LatexMacroDefinition safe = Assert.Single(document.MacroDefinitions, definition => definition.Name == "term");
         LatexMacroDefinition unsafeDefinition = Assert.Single(document.MacroDefinitions, definition => definition.Name == "danger");
@@ -104,7 +104,7 @@ public sealed class LatexTechnicalSemanticsTests {
 
     [Fact]
     public void MacroExpansion_RemainsDisabledUnlessRequested() {
-        LatexDocument document = LatexDocument.Parse(TechnicalDocument).Document;
+        LatexDocument document = LatexDocument.ParseResult(TechnicalDocument).Document;
 
         Assert.Throws<InvalidOperationException>(() => document.ExpandSimpleMacros("\\term{Value}"));
     }
@@ -112,7 +112,7 @@ public sealed class LatexTechnicalSemanticsTests {
     [Fact]
     public void CyclicSafeMacros_AreDiagnosedAndBounded() {
         const string source = "\\newcommand{\\a}{\\b}\\newcommand{\\b}{\\a}";
-        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
+        LatexDocument document = LatexDocument.ParseResult(source, new LatexParseOptions {
             MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions
         }).Document;
 

@@ -10,7 +10,7 @@ public sealed class PdfPipelineReportTests {
             .Meta(title: "Pipeline")
             .Paragraph(paragraph => paragraph.Text("Generated artifact"));
 
-        PdfBytesResult result = document.TryToBytes();
+        PdfBytesResult result = document.ToBytesResult();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Collection(
@@ -50,7 +50,7 @@ public sealed class PdfPipelineReportTests {
     public void GeneratedEncryptedBytes_ReportReadablePageCountWithWriterCredentials() {
         PdfBytesResult result = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted pipeline evidence"))
-            .TryToBytes();
+            .ToBytesResult();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(1, result.Pipeline.Output?.PageCount);
@@ -113,7 +113,7 @@ public sealed class PdfPipelineReportTests {
 
         PdfSaveResult result = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Failure evidence"))
-            .TrySave(stream);
+            .SaveResult(stream);
 
         Assert.False(result.Succeeded);
         Assert.True(result.Pipeline.HasFailures);

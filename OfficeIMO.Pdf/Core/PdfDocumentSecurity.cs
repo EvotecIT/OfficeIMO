@@ -10,21 +10,21 @@ public sealed class PdfDocumentSecurity {
     public PdfSecurityMutationResult Encrypt(PdfStandardEncryptionOptions encryption) => _document.Encrypt(encryption);
 
     /// <summary>Attempts to encrypt an unencrypted PDF through the shared mutation planner.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryEncrypt(PdfStandardEncryptionOptions encryption) => _document.TryEncrypt(encryption);
+    public PdfOperationResult<PdfSecurityMutationResult> EncryptResult(PdfStandardEncryptionOptions encryption) => _document.EncryptResult(encryption);
 
     /// <summary>Removes Standard password security using the current owner password.</summary>
     public PdfSecurityMutationResult Decrypt(string ownerPassword) => _document.Decrypt(ownerPassword);
 
     /// <summary>Attempts to remove Standard password security using the current owner password.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryDecrypt(string ownerPassword) => _document.TryDecrypt(ownerPassword);
+    public PdfOperationResult<PdfSecurityMutationResult> DecryptResult(string ownerPassword) => _document.DecryptResult(ownerPassword);
 
     /// <summary>Replaces Standard password security using the current owner password.</summary>
     public PdfSecurityMutationResult Reencrypt(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption) =>
         _document.Reencrypt(currentOwnerPassword, newEncryption);
 
     /// <summary>Attempts to replace Standard password security using the current owner password.</summary>
-    public PdfOperationResult<PdfSecurityMutationResult> TryReencrypt(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption) =>
-        _document.TryReencrypt(currentOwnerPassword, newEncryption);
+    public PdfOperationResult<PdfSecurityMutationResult> ReencryptResult(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption) =>
+        _document.ReencryptResult(currentOwnerPassword, newEncryption);
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers.</summary>
     public PdfSignatureValidationReport ValidateSignatures(PdfLoadOptions? options = null) => _document.ValidateSignatures(options);
@@ -38,8 +38,8 @@ public sealed class PdfDocumentSecurity {
         _document.PrepareExternalSignature(options);
 
     /// <summary>Attempts to prepare an external signature through document preflight.</summary>
-    public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) =>
-        _document.TryPrepareExternalSignature(signatureOptions, options);
+    public PdfOperationResult<PdfExternalSignaturePreparation> PrepareExternalSignatureResult(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) =>
+        _document.PrepareExternalSignatureResult(signatureOptions, options);
 
     /// <summary>Completes the most recently prepared external signature with encoded CMS bytes.</summary>
     public PdfDocument CompleteExternalSignature(byte[] signatureContents) => _document.CompleteExternalSignature(signatureContents);

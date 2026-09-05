@@ -11,7 +11,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to recover cross-page paragraph continuation groups.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> TryParagraphContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> ParagraphContinuationsResult(
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) {
@@ -33,7 +33,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to recover cross-page paragraph continuation groups for selected pages.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> TryParagraphContinuations(
+    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> ParagraphContinuationsResult(
         PdfPageSelection selection,
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,

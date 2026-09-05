@@ -25,7 +25,7 @@ public sealed class WordMarkdownConversionDiagnostic {
 }
 
 /// <summary>Immutable fidelity report from one Word/Markdown conversion.</summary>
-public sealed class WordMarkdownConversionReport {
+public sealed class WordMarkdownConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report from conversion diagnostics.</summary>
     public WordMarkdownConversionReport(IEnumerable<WordMarkdownConversionDiagnostic>? diagnostics = null) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? Array.Empty<WordMarkdownConversionDiagnostic>()).ToArray());
@@ -59,35 +59,23 @@ public sealed class WordMarkdownConversionException : InvalidOperationException 
 }
 
 /// <summary>Shared value-and-report contract for Word/Markdown conversions.</summary>
-public abstract class WordMarkdownConversionResult<T> {
+public abstract class WordMarkdownConversionResult<T> : OfficeConversionResult<T, WordMarkdownConversionReport> where T : class {
     /// <summary>Creates a conversion result.</summary>
-    protected WordMarkdownConversionResult(T value, WordMarkdownConversionReport report) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-
-    /// <summary>Native target value.</summary>
-    public T Value { get; }
-
-    /// <summary>Conversion fidelity report.</summary>
-    public WordMarkdownConversionReport Report { get; }
+    protected WordMarkdownConversionResult(T value, WordMarkdownConversionReport report) : base(value, report) { }
 
     /// <summary>Whether conversion completed without a failure diagnostic.</summary>
-    public bool Succeeded => Report.Succeeded;
-
-    /// <summary>Whether conversion introduced fidelity loss.</summary>
-    public bool HasLoss => Report.HasLoss;
+    public override bool Succeeded => Report.Succeeded;
 
     /// <summary>Returns the value when conversion succeeded.</summary>
-    public T RequireValue() {
+    public override T RequireValue() {
         if (!Succeeded) throw new WordMarkdownConversionException(Report);
-        return Value;
+        return base.RequireValue();
     }
 
     /// <summary>Returns the value only when conversion was lossless.</summary>
-    public T RequireNoLoss() {
+    public override T RequireNoLoss() {
         Report.RequireNoLoss();
-        return Value;
+        return base.RequireValue();
     }
 }
 

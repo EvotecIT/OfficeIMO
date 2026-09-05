@@ -40,7 +40,7 @@ public class RtfCoreBenchmarks {
 [OperationsPerSecond]
 public class RtfAdapterBenchmarks {
     private RtfDocument _document = null!;
-    private RtfPdfSaveOptions _pdfOptions = null!;
+    private RtfToPdfOptions _pdfOptions = null!;
     private OfficeDocumentReader _reader = null!;
     private byte[] _readerInput = null!;
 
@@ -52,7 +52,7 @@ public class RtfAdapterBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _document = RtfDocument.Read(RtfBenchmarkCorpus.Get(Scale).Rtf).Document;
-        _pdfOptions = RtfBenchmarkSupport.CreatePdfSaveOptions();
+        _pdfOptions = RtfBenchmarkSupport.CreatePdfOptions();
         _reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
         _readerInput = _document.ToBytes();
     }

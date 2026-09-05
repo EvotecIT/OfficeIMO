@@ -133,7 +133,7 @@ public class PdfFlowGroupTests {
             _title = title;
         }
 
-        public void Compose(PdfItemCompose content) {
+        public void Compose(PdfContentBuilder content) {
             content.Paragraph(paragraph => paragraph.Text(_title))
                 .Paragraph(paragraph => paragraph.Text("The same engine owns component layout."));
         }

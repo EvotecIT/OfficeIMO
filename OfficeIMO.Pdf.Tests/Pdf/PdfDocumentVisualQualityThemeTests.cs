@@ -356,11 +356,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .H2("ColumnHeadingMarker", style: defaultStyle))))))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .H2("ColumnHeadingMarker", style: spacedStyle))))))
             .ToBytes();
 
@@ -418,7 +418,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_DefaultPanelStyleAppliesToFollowingPanelsAndSnapshotsInput() {
-        var style = new PanelStyle {
+        var style = new PdfPanelStyle {
             Background = PdfColor.FromRgb(240, 248, 255),
             BorderColor = PdfColor.FromRgb(20, 40, 60),
             BorderWidth = 0.8,
@@ -530,7 +530,7 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Column(100, column => column
+                            row.PercentColumn(100, column => column
                                 .HR()
                                 .Paragraph(p => p.Text("ColumnDefaultRule")))))))
             .ToBytes();

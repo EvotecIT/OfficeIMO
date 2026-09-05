@@ -36,9 +36,11 @@ internal static partial class PdfWriter {
         private bool _suppressCanvasStructureRegistration;
         private bool _suppressCanvasActualTextChildren;
         private PageStructElement? _canvasStructureParentElement;
+        private readonly System.Collections.Generic.List<FlowSemanticScope> flowSemanticScopes = new System.Collections.Generic.List<FlowSemanticScope>();
         private bool stopDocumentFlow;
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
         private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
+        private readonly System.Collections.Generic.List<ContainerRenderScope> activeContainerScopes = new System.Collections.Generic.List<ContainerRenderScope>();
         private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string), PageStructElement>();
 
         public LayoutContext(
@@ -130,8 +132,10 @@ internal static partial class PdfWriter {
         }
 
         private void NewPage() {
+            PrepareActiveContainerScopesForPageBreak();
             FlushPage(pageDirty || HasCurrentPageNonContentObjects());
             StartPage(currentOpts);
+            ResumeActiveContainerScopesOnNewPage();
         }
 
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {

@@ -26,14 +26,15 @@ public sealed class OpenDocumentPdfConversionContracts {
     public void OpenDocumentFacadesExposeTheCanonicalPdfLifecycle(Type adapterType) {
         MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
 
-        Assert.Single(methods, method => method.Name == "ToPdf");
+        Assert.Single(methods, method => method.Name == "ToPdfBytes");
+        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
         Assert.Single(methods, method => method.Name == "ToPdfDocument");
         MethodInfo resultMethod = Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
         Assert.Equal(typeof(PdfDocumentConversionResult), resultMethod.ReturnType);
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf" && method.ReturnType == typeof(PdfSaveResult)));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf" && method.ReturnType == typeof(PdfSaveResult)));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult" && method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
-        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdfAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
     }
 
     [Fact]

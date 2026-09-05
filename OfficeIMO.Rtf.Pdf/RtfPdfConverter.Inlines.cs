@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         if (RtfPdfMapping.HasPageBreakBefore(document, paragraph)) {
             pdf.PageBreak();
         }
@@ -75,7 +75,7 @@ internal static partial class RtfPdfConverter {
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
         AppendListMarker(paragraph, runs, state);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
@@ -113,7 +113,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.PdfTextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
+    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
         if (run.Hidden && !options.IncludeHiddenText) {
             AddConversionWarning(
                 options,
@@ -161,7 +161,7 @@ internal static partial class RtfPdfConverter {
             backgroundColor: background));
     }
 
-    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfPdfSaveOptions options) {
+    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfToPdfOptions options) {
         var features = new List<string>();
         if (run.Hidden && options.IncludeHiddenText) features.Add("hidden-visibility");
         if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single)

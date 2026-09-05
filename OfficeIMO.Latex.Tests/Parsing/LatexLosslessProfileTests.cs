@@ -17,7 +17,7 @@ public sealed class LatexLosslessProfileTests {
 
     [Fact]
     public void ScientificArticle_IsStructuredRecognizedAndCharacterLossless() {
-        LatexParseResult result = LatexDocument.Parse(Article);
+        LatexParseResult result = LatexDocument.ParseResult(Article);
         LatexDocument document = result.Document;
 
         Assert.True(result.IsLossless);
@@ -45,7 +45,7 @@ public sealed class LatexLosslessProfileTests {
     public void ArticleReportAndBook_ProfileShapesAreRecognized(string documentClass, string headingCommand) {
         string source = "\\documentclass{" + documentClass + "}\n\\begin{document}\n\\" + headingCommand + "{Title}\nBody.\n\\end{document}\n";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         Assert.True(document.IsRecognizedProfile);
         Assert.Equal("Title", Assert.Single(document.Headings).Title);
@@ -57,7 +57,7 @@ public sealed class LatexLosslessProfileTests {
     public void InlineDisplayAndCommandDelimitedMath_AreTypedAndPreserved() {
         const string source = "\\documentclass{article}\n\\begin{document}\n$a$ \\(b\\) $$c$$ \\[d\\]\n\\end{document}";
 
-        LatexDocument document = LatexDocument.Parse(source).Document;
+        LatexDocument document = LatexDocument.ParseResult(source).Document;
 
         Assert.Equal(new[] {
             LatexMathKind.InlineDollar,

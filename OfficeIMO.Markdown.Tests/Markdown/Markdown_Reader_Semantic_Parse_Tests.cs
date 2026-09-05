@@ -85,7 +85,7 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
 
         var document = MarkdownReader.Parse(markdown, options);
         var explicitSyntax = MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var attached = Assert.IsType<MarkdownParseResult>(document.ParseResult);
+        var attached = Assert.IsType<MarkdownParseResult>(document.AttachedParseResult);
 
         Assert.Same(attached.SyntaxTree, attached.FinalSyntaxTree);
         Assert.Equal(explicitSyntax.Document.ToMarkdown(), document.ToMarkdown());

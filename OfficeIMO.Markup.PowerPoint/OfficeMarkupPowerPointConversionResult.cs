@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 /// <summary>Immutable markup diagnostics and native PowerPoint preflight evidence.</summary>
-public sealed class OfficeMarkupPowerPointConversionReport {
+public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionReport {
     internal OfficeMarkupPowerPointConversionReport(
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
         PowerPointDeckPreflightReport preflightReport) {
@@ -34,36 +34,19 @@ public sealed class OfficeMarkupPowerPointConversionReport {
 }
 
 /// <summary>An editable PowerPoint presentation with mapping diagnostics and native preflight evidence.</summary>
-public sealed class OfficeMarkupPowerPointConversionResult {
+public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionResult<PowerPointPresentation, OfficeMarkupPowerPointConversionReport> {
     internal OfficeMarkupPowerPointConversionResult(
         PowerPointPresentation value,
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
-        PowerPointDeckPreflightReport preflightReport) {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = new OfficeMarkupPowerPointConversionReport(diagnostics, preflightReport);
-    }
-
-    /// <summary>Editable presentation. The caller owns and disposes it.</summary>
-    public PowerPointPresentation Value { get; }
-
-    /// <summary>Conversion diagnostics and preflight evidence.</summary>
-    public OfficeMarkupPowerPointConversionReport Report { get; }
+        PowerPointDeckPreflightReport preflightReport)
+        : base(value, new OfficeMarkupPowerPointConversionReport(diagnostics, preflightReport)) { }
 
     /// <summary>Whether markup conversion completed without an error diagnostic.</summary>
-    public bool Succeeded => Report.Succeeded;
+    public override bool Succeeded => Report.Succeeded;
 
-    /// <summary>Whether markup conversion reported possible content loss.</summary>
-    public bool HasLoss => Report.HasLoss;
-
-    /// <summary>Returns the presentation when markup conversion succeeded.</summary>
-    public PowerPointPresentation RequireValue() {
+    /// <summary>Returns the presentation or throws the markup-specific exception when conversion failed.</summary>
+    public override PowerPointPresentation RequireValue() {
         Report.RequireSuccess();
-        return Value;
-    }
-
-    /// <summary>Returns the presentation only when markup conversion reported no possible loss.</summary>
-    public PowerPointPresentation RequireNoLoss() {
-        Report.RequireNoLoss();
         return Value;
     }
 }

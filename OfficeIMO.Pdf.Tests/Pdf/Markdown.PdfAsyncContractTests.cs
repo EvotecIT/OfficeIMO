@@ -20,6 +20,6 @@ public sealed class MarkdownPdfAsyncContractTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.TrySaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+            document.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 }

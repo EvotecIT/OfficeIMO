@@ -79,6 +79,7 @@ These eight document workflows complement the project-level compile matrix with 
 | Google Workspace, Confluence, and other network clients | The dependency-light OfficeIMO client libraries are fully rooted in the native matrix. The optional `Google.Apis` credential adapter has a bounded native token-store test; publish and test the live authentication and HTTP provider selected by your application. |
 | OCR process and Tesseract adapters | The OfficeIMO host adapter can be native; OCR still runs in the configured external executable and must be deployed separately. |
 | Chromium browser-PDF bridge | Use managed cross-platform deployment. `OfficeIMO.Html.Pdf.Browser` delegates browser capture to HtmlTinkerX and Playwright, then opens the result through `OfficeIMO.Pdf`. |
+| OfficeIMO Studio | Use the checked-in managed Avalonia distribution profiles for Windows, Linux, and macOS. The current desktop application is not advertised as NativeAOT-compatible. |
 | WPF/WebView2 renderer | Use managed Windows deployment. The .NET SDK currently rejects trimmed WPF executables with `NETSDK1168`, so OfficeIMO does not market this package as NativeAOT-compatible. |
 
 ## Prefer typed data paths

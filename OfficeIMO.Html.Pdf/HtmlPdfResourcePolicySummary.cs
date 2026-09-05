@@ -55,7 +55,7 @@ public sealed class HtmlPdfResourcePolicySummary {
     public IReadOnlyList<string> AllowedUrlSchemes { get; private set; } = Array.Empty<string>();
 
     /// <summary>Builds a detached resource-policy summary for the supplied options.</summary>
-    public static HtmlPdfResourcePolicySummary From(HtmlPdfSaveOptions options) {
+    public static HtmlPdfResourcePolicySummary From(HtmlToPdfOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         HtmlUrlPolicy urlPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         return new HtmlPdfResourcePolicySummary {

@@ -94,17 +94,17 @@ public class PdfAllSeverityBatch21Tests {
         var typed = new Dictionary<string, PdfFormFieldValue>();
         var formOptions = new PdfFormFillerOptions();
 
-        _ = forms.TryFill(strings, formOptions);
-        _ = forms.TryFill(typed, formOptions);
-        _ = forms.TryFlatten(formOptions);
-        _ = forms.TryFillAndFlatten(strings, formOptions);
-        _ = forms.TryFillAndFlatten(typed, formOptions);
+        _ = forms.FillResult(strings, formOptions);
+        _ = forms.FillResult(typed, formOptions);
+        _ = forms.FlattenResult(formOptions);
+        _ = forms.FillAndFlattenResult(strings, formOptions);
+        _ = forms.FillAndFlattenResult(typed, formOptions);
 
-        _ = forms.TryFill(strings, null);
-        _ = forms.TryFill(typed, null);
-        _ = forms.TryFlatten(null);
-        _ = forms.TryFillAndFlatten(strings, null);
-        _ = forms.TryFillAndFlatten(typed, null);
+        _ = forms.FillResult(strings, null);
+        _ = forms.FillResult(typed, null);
+        _ = forms.FlattenResult(null);
+        _ = forms.FillAndFlattenResult(strings, null);
+        _ = forms.FillAndFlattenResult(typed, null);
     }
 
     [Fact]

@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
             .Replace("SUBTOTAL", subtotal.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
             .Replace("TAX", tax.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
             .Replace("GRAND_TOTAL", grandTotal.ToString("N2", System.Globalization.CultureInfo.InvariantCulture));
-        var options = new HtmlPdfSaveOptions {
+        var options = new HtmlToPdfOptions {
             PageSize = new OfficePageSize(5D, 4D),
             Margins = HtmlRenderMargins.All(16D),
             PdfOptions = new PdfCore.PdfOptions {

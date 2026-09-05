@@ -59,15 +59,21 @@ var document = MarkdownDoc.Create()
         ("Score", item => item.Score)));
 ```
 
-### Parse and inspect headings
+### Load or parse directly, with diagnostics when needed
 
 ```csharp
-var parsed = MarkdownReader.Parse(File.ReadAllText("README.md"));
+MarkdownDoc document = MarkdownDoc.Load("README.md");
+MarkdownParseResult parsed = MarkdownDoc.LoadResult("README.md");
 
-foreach (var heading in parsed.GetHeadingInfos()) {
+foreach (var heading in document.GetHeadingInfos()) {
     Console.WriteLine($"{heading.Level}: {heading.Text} -> {heading.Anchor}");
 }
 ```
+
+`MarkdownDoc.Parse(...)` and `Load(...)` return the native document. Use
+`ParseResult(...)` or `LoadResult(...)` when syntax-tree and transform diagnostics
+must travel with it. Async file and stream loading follows the same direct/result
+naming and accepts a final cancellation token.
 
 ### Native AST snapshot
 

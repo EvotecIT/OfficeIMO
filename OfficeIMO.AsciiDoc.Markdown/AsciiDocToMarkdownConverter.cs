@@ -261,7 +261,7 @@ internal static class AsciiDocToMarkdownConverter {
             case AsciiDocDelimitedBlockKind.Example:
             case AsciiDocDelimitedBlockKind.Sidebar:
             case AsciiDocDelimitedBlockKind.Open:
-                AsciiDocParagraph? paragraph = AsciiDocDocument.Parse(content).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
+                AsciiDocParagraph? paragraph = AsciiDocDocument.ParseResult(content).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
                 var simplified = paragraph == null
                     ? new ParagraphBlock(new InlineSequence().Text(content))
                     : new ParagraphBlock(AsciiDocInlineToMarkdownConverter.Convert(paragraph.Inlines, attributes, options, diagnostics, source));

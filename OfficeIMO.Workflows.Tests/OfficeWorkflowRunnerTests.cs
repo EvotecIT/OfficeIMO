@@ -21,12 +21,49 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
-    public void CatalogProjectsExactlyTheEightOfficePdfRoutes() {
-        Assert.Equal(8, OfficeWorkflowCatalog.Routes.Count);
+    public void CatalogProjectsAllCanonicalRoutesAndIdentifiesTheEightExecutableRoutes() {
+        Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
+        Assert.Equal(8, OfficeWorkflowCatalog.ExecutableRoutes.Count);
         Assert.Equal(
             ["docx-pdf", "html-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "xlsx-pdf"],
-            OfficeWorkflowCatalog.Routes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
+            OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
+        Assert.All(OfficeWorkflowCatalog.Routes, route => {
+            Assert.False(string.IsNullOrWhiteSpace(route.Api));
+            Assert.False(string.IsNullOrWhiteSpace(route.ResultContract));
+            Assert.False(string.IsNullOrWhiteSpace(route.SupportEvidence));
+            Assert.False(string.IsNullOrWhiteSpace(route.TextFormattingContract));
+        });
+        Assert.All(OfficeWorkflowCatalog.ExecutableRoutes, route => Assert.True(route.CanExecute));
+        Assert.Contains(OfficeWorkflowCatalog.Routes, route => !route.CanExecute);
+    }
+
+    [Fact]
+    public void FluentConversionInfersAnExecutableRouteAndBuildsAnIndependentSnapshot() {
+        OfficeWorkflowBuilder builder = OfficeWorkflow.Convert("source.docx")
+            .To("result.pdf")
+            .WithProfile(OfficeWorkflowOutputProfile.PrintReady)
+            .OnConflict(OfficeWorkflowConflictPolicy.Replace)
+            .WithId("conversion-1");
+
+        OfficeWorkflowRequest first = builder.Build();
+        builder.To("other.pdf").WithId("conversion-2");
+        OfficeWorkflowRequest second = builder.Build();
+
+        Assert.Equal("docx-pdf", first.ConversionRouteId);
+        Assert.Equal("result.pdf", first.OutputPath);
+        Assert.Equal("conversion-1", first.Id);
+        Assert.Equal(OfficeWorkflowOutputProfile.PrintReady, first.OutputProfile);
+        Assert.Equal(OfficeWorkflowConflictPolicy.Replace, first.ConflictPolicy);
+        Assert.Equal("other.pdf", second.OutputPath);
+        Assert.Equal("conversion-2", second.Id);
+    }
+
+    [Fact]
+    public void ExtensionLookupDoesNotGuessWhenTextRoutesAreAmbiguous() {
+        Assert.Null(OfficeWorkflowCatalog.Find(".txt", ".pdf", executableOnly: false));
+        Assert.Equal("html-pdf", OfficeWorkflowCatalog.Find(".html", ".pdf", executableOnly: true)?.Id);
+        Assert.Throws<NotSupportedException>(() => OfficeWorkflow.Convert("source.txt").To("result.pdf").Build());
     }
 
     [Fact]

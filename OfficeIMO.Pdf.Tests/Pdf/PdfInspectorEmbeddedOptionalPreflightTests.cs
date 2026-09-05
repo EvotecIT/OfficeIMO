@@ -350,7 +350,7 @@ public partial class PdfInspectorTests {
 
         IReadOnlyList<PdfCatalogAction> actions = document.Reader.CatalogActions();
         Assert.Equal(4, actions.Count);
-        Assert.True(document.Reader.TryCatalogActions().Succeeded);
+        Assert.True(document.Reader.CatalogActionsResult().Succeeded);
 
         PdfCatalogAction openAction = Assert.Single(document.Reader.CatalogActionsByActionType("JavaScript"));
         Assert.Equal("OpenAction", openAction.Name);
@@ -365,8 +365,8 @@ public partial class PdfInspectorTests {
         Assert.Equal(2, document.Reader.CatalogActionsBySource("OpenAction").Count);
         Assert.Equal(2, document.Reader.CatalogActionsBySource("AA").Count);
         Assert.Empty(document.Reader.CatalogActionsBySource("Names/JavaScript"));
-        Assert.True(document.Reader.TryCatalogActionsByActionType("Launch").Succeeded);
-        Assert.True(document.Reader.TryCatalogActionsBySource("AA").Succeeded);
+        Assert.True(document.Reader.CatalogActionsByActionTypeResult("Launch").Succeeded);
+        Assert.True(document.Reader.CatalogActionsBySourceResult("AA").Succeeded);
     }
 
     [Fact]
@@ -456,7 +456,7 @@ public partial class PdfInspectorTests {
 
         IReadOnlyList<PdfPageAction> actions = document.Reader.PageActions();
         Assert.Equal(2, actions.Count);
-        Assert.True(document.Reader.TryPageActions().Succeeded);
+        Assert.True(document.Reader.PageActionsResult().Succeeded);
 
         IReadOnlyList<PdfPageAction> pageActions = document.Reader.PageActions(1);
         Assert.Equal(2, pageActions.Count);
@@ -480,10 +480,10 @@ public partial class PdfInspectorTests {
         Assert.Empty(document.Reader.PageActionsByActionType("GoTo"));
         Assert.Empty(document.Reader.PageActionsByTriggerName("D"));
         Assert.Empty(document.Reader.PageActionsByActionPath("O.Next"));
-        Assert.True(document.Reader.TryPageActions(1).Succeeded);
-        Assert.True(document.Reader.TryPageActionsByActionType("Launch").Succeeded);
-        Assert.True(document.Reader.TryPageActionsByTriggerName("C").Succeeded);
-        Assert.True(document.Reader.TryPageActionsByActionPath("C").Succeeded);
+        Assert.True(document.Reader.PageActionsResult(1).Succeeded);
+        Assert.True(document.Reader.PageActionsByActionTypeResult("Launch").Succeeded);
+        Assert.True(document.Reader.PageActionsByTriggerNameResult("C").Succeeded);
+        Assert.True(document.Reader.PageActionsByActionPathResult("C").Succeeded);
     }
 
     [Fact]
