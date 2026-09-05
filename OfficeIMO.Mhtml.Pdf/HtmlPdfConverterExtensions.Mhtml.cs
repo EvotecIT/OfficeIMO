@@ -39,7 +39,7 @@ public static class MhtmlPdfConverterExtensions {
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MhtmlDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return Task.Run(() => document.ToPdfDocumentResultAsync(options, CancellationToken.None))
+        return Task.Run(() => document.ToPdfDocumentResultAsync(options, cancellationToken))
             .GetAwaiter()
             .GetResult();
     }

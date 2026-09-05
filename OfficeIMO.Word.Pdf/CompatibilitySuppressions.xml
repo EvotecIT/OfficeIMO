@@ -3,9 +3,23 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfWordImportOptions</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Word.Pdf.WordPdfSaveOptions</Target>
     <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfWordImportOptions</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -17,9 +31,23 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfWordImportOptions</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Word.Pdf.WordPdfSaveOptions</Target>
     <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfWordImportOptions</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -31,6 +59,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Word.Pdf.dll</Right>
@@ -108,6 +220,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
     <Left>lib/net472/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Word.Pdf.dll</Right>
@@ -185,6 +381,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
@@ -258,6 +538,90 @@
     <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/OfficeIMO.Word.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Word.Pdf.PdfWordImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Word.Pdf.PdfWordImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Word.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>

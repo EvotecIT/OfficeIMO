@@ -97,7 +97,7 @@ using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("statement.pdf");
-PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx");
+PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx").RequireSuccess().Report!;
 
 foreach (var table in report.Entries) {
     Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
@@ -120,7 +120,7 @@ PdfExcelTableImportReport report = pdf.SaveTablesAsExcel(
             PageSelection = PdfPageSelection.Parse("1-3")
         },
         MaxRows = 250
-    });
+    }).RequireSuccess().Report!;
 
 Console.WriteLine($"Imported {report.Entries.Count} table(s).");
 report.RequireNoLoss(); // checks table-row truncation, not unrelated page content

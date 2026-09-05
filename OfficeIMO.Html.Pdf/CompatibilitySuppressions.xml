@@ -10,7 +10,21 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.PdfHtmlSaveOptions</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Html.Pdf.HtmlPdfSaveOptions</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.PdfHtmlSaveOptions</Target>
     <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -24,12 +38,26 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.PdfHtmlSaveOptions</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Html.Pdf.HtmlPdfSaveOptions</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.PdfHtmlSaveOptions</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
@@ -136,6 +164,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
     <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
@@ -241,6 +353,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
@@ -346,6 +542,90 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
@@ -445,6 +725,90 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.From(OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtmlAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Html.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

@@ -284,7 +284,7 @@ string semantic = sourcePdf.ToHtml(semanticOptions);
 PdfToHtmlOptions reviewOptions = PdfToHtmlOptions.CreatePositionedReviewProfile(
     OfficeVisualThemeKind.Report);
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
-PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
+PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions).RequireSuccess().Report!;
 
 PdfHtmlConversionResult reviewResult = sourcePdf.Read().ToHtmlResult(reviewOptions);
 foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {

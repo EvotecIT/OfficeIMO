@@ -3,9 +3,23 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Rtf.Pdf.PdfRtfImportOptions</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions</Target>
     <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Rtf.Pdf.PdfRtfImportOptions</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -17,9 +31,23 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Rtf.Pdf.PdfRtfImportOptions</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions</Target>
     <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Rtf.Pdf.PdfRtfImportOptions</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -59,6 +87,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
@@ -74,6 +158,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -136,6 +248,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
     <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
@@ -151,6 +319,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
     <Left>lib/net472/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -213,6 +409,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
@@ -228,6 +480,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -290,6 +570,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtf(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.SaveAsRtfAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
@@ -305,6 +641,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Rtf.RtfDocument,OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Rtf.Pdf.PdfRtfImportOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Rtf.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

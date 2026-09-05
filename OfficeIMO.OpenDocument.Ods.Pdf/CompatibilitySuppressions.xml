@@ -3,6 +3,62 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdf(OfficeIMO.OpenDocument.OdsDocument,System.IO.Stream,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
@@ -25,6 +81,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdfAsync(OfficeIMO.OpenDocument.OdsDocument,System.String,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
     <Left>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net10.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -80,6 +164,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdf(OfficeIMO.OpenDocument.OdsDocument,System.IO.Stream,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)</Target>
     <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
@@ -102,6 +242,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdfAsync(OfficeIMO.OpenDocument.OdsDocument,System.String,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
     <Left>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net472/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -157,6 +325,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdf(OfficeIMO.OpenDocument.OdsDocument,System.IO.Stream,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
@@ -179,6 +403,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdfAsync(OfficeIMO.OpenDocument.OdsDocument,System.String,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
     <Left>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
@@ -234,6 +486,62 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOds(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsOdsAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdf(OfficeIMO.OpenDocument.OdsDocument,System.IO.Stream,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
@@ -256,6 +564,34 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.SaveAsPdfAsync(OfficeIMO.OpenDocument.OdsDocument,System.String,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions,OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocument(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions,OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions)</Target>
     <Left>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.OpenDocument.Ods.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

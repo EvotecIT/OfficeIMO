@@ -116,7 +116,7 @@ PdfWordConversionReport report = pdf.SaveAsWord(
             LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true },
             Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 5 }
         }
-    });
+    }).RequireSuccess().Report!;
 ```
 
 `ReadOptions` is used only when the source is an opened `PdfDocument`. When a `PdfDocumentReadResult` is already available, the adapter converts that supplied logical model directly.

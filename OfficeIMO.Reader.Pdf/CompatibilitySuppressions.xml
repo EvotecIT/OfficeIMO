@@ -57,4 +57,32 @@
     <Right>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
+    <Left>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
+    <Left>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

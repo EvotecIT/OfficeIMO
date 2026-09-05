@@ -92,8 +92,11 @@ public static partial class PowerPointPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
         PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
-        using (result.Value) result.Value.Save(presentationPath);
-        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
+        using (result.Value) {
+            cancellationToken.ThrowIfCancellationRequested();
+            result.Value.Save(presentationPath);
+        }
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(presentationPath, result.Report);
     }
 
     /// <summary>Converts an opened PDF and saves the PowerPoint presentation to a caller-owned stream.</summary>
@@ -106,7 +109,10 @@ public static partial class PowerPointPdfConverterExtensions {
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
         PdfPowerPointConversionResult result = document.ToPowerPointPresentationResult(options, cancellationToken);
-        using (result.Value) result.Value.Save(presentationStream);
+        using (result.Value) {
+            cancellationToken.ThrowIfCancellationRequested();
+            result.Value.Save(presentationStream);
+        }
         return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
     }
 
@@ -123,7 +129,7 @@ public static partial class PowerPointPdfConverterExtensions {
         effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, effectiveCancellationToken);
         using (result.Value) await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
-        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(presentationPath, result.Report);
     }
 
     /// <summary>Converts an opened PDF and asynchronously saves the PowerPoint presentation to a caller-owned stream.</summary>
@@ -157,7 +163,7 @@ public static partial class PowerPointPdfConverterExtensions {
             cancellationToken.ThrowIfCancellationRequested();
             result.Value.Save(presentationPath);
         }
-        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(presentationPath, result.Report);
     }
 
     /// <summary>Imports logical PDF tables into a PowerPoint presentation written to a caller-owned stream.</summary>
@@ -251,7 +257,7 @@ public static partial class PowerPointPdfConverterExtensions {
         using (result.Value) {
             await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
         }
-        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(null, result.Report);
+        return OfficeOutputResult<PdfPowerPointConversionReport>.FromSuccess(presentationPath, result.Report);
     }
 
     /// <summary>Asynchronously imports logical PDF tables into a PowerPoint presentation written to a caller-owned stream.</summary>

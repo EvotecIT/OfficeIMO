@@ -130,7 +130,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("handout.pdf");
-PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx");
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx").RequireSuccess().Report!;
 
 foreach (var page in report.EditablePages) {
     Console.WriteLine(
@@ -145,7 +145,7 @@ Use the explicit visual profile when a page image is the intended result. Each i
 var visual = PdfToPowerPointOptions.CreateVisualPages();
 PdfPowerPointConversionReport visualReport = pdf.SaveAsPowerPoint(
     "handout-visual.pptx",
-    visual);
+    visual).RequireSuccess().Report!;
 
 foreach (var page in visualReport.VisualPages) {
     Console.WriteLine($"PDF page {page.PageNumber}, slide {page.SlideIndex + 1}");
@@ -163,7 +163,7 @@ hybrid.MaxColumnsPerSlide = 6;
 
 PdfPowerPointConversionReport hybridReport = pdf.SaveAsPowerPoint(
     "handout-hybrid.pptx",
-    hybrid);
+    hybrid).RequireSuccess().Report!;
 
 Console.WriteLine($"Editable table segments: {hybridReport.TableEntries.Count}");
 Console.WriteLine($"Visual-only page content: {hybridReport.HasNonEditablePageContent}");
@@ -184,7 +184,7 @@ options.MergePageContinuations = true;
 
 PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint(
     "financial-statement-tables.pptx",
-    options);
+    options).RequireSuccess().Report!;
 
 foreach (var table in report.TableEntries) {
     Console.WriteLine($"Pages {string.Join(",", table.SourcePageNumbers)}, slide {table.SlideIndex + 1}");
