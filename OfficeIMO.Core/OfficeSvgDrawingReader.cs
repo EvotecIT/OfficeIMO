@@ -66,6 +66,9 @@ public static partial class OfficeSvgDrawingReader {
                 out double viewHeight,
                 out double viewportWidth,
                 out double viewportHeight)) return false;
+        // Malformed shapes remain a tolerant-import concern, but complete geometry in definitions
+        // still belongs to the document-wide hard budget even when it is not painted directly.
+        if (ExceedsValidSvgDocumentPathCommandLimit(root)) return false;
 
         try {
             ApplySvgStylesheets(root, ref unsupportedFeatureCount);
@@ -307,6 +310,41 @@ public static partial class OfficeSvgDrawingReader {
         int commandCount = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
             if (!TryAddSvgGeometryCommands(element, ref commandCount)) return true;
+        }
+        return false;
+    }
+
+    private static bool ExceedsValidSvgDocumentPathCommandLimit(XElement root) {
+        int commandCount = 0;
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            string name = element.Name.LocalName;
+            int remaining = MaximumSvgPathCommands - commandCount;
+            if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
+                bool parsed = OfficeSvgPathDataParser.TryParse(
+                    ReadRasterProjectedAttribute(element, "d"),
+                    MaximumSvgPathCommands + 1,
+                    out IReadOnlyList<OfficePathCommand> commands,
+                    out bool commandLimitExceeded);
+                if (commandLimitExceeded) return true;
+                if (!parsed) continue;
+                if (commands.Count > remaining) return true;
+                commandCount += commands.Count;
+                continue;
+            }
+
+            bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
+            if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) continue;
+            bool pointsParsed = TryParseNumberList(
+                ReadRasterProjectedAttribute(element, "points"),
+                (MaximumSvgPathCommands + 1) * 2,
+                out IReadOnlyList<double> values,
+                out bool valueLimitExceeded);
+            if (valueLimitExceeded && values.Count >= MaximumSvgPathCommands * 2) return true;
+            if (!pointsParsed) continue;
+            int elementCommands = values.Count / 2;
+            if (close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
+            if (elementCommands > remaining) return true;
+            commandCount += elementCommands;
         }
         return false;
     }

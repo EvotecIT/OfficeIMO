@@ -215,7 +215,8 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRender_VerticalMixedOrientationKeepsCjkUprightAndLatinSideways() {
-        const string html = "<div style='writing-mode:vertical-rl;inline-size:80px;block-size:30px'>縦書き Latin</div>";
+        string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Vertical Test", 0x7E26, 0x66F8, 0x304D)
+            + "</style><div style=\"font-family:'Vertical Test';writing-mode:vertical-rl;inline-size:80px;block-size:30px\">縦書き Latin</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToList();

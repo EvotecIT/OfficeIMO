@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests;
 public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRenderCapabilityGallery_BindsInputPdfPreviewsDiagnosticsAndExpectations() {
-        const string html = """
+        string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Capability Gallery Test", 0x7E26, 0x66F8, 0x304D) + "</style>" + """
             <style>
             @page { size: 5in 4in; margin: 24px; @top-center { content: "Quarterly report" } }
-            body { margin: 0; font: 11px/15px Arial; }
+            body { margin: 0; font: 11px/15px 'Capability Gallery Test'; }
             .columns { columns: 2; column-gap: 14px; column-rule: 1px solid #789; }
             table { border-collapse: collapse; width: 100%; } th,td { border: 1px solid #789; padding: 3px; }
             .vertical { writing-mode: vertical-rl; height: 72px; color: #174a7e; }

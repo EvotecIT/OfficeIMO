@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
@@ -12,6 +13,12 @@ internal static class ManagedTextShapingTestAssets {
     internal static byte[] CreateFont(params int[] scalars) {
         if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
         return CreateFontFromCmap(CreateFormat12Cmap(scalars));
+    }
+
+    internal static byte[] CreateFontWithDistinctGlyphs(params int[] scalars) {
+        if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
+        int[] ordered = new SortedSet<int>(scalars).ToArray();
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
     internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
@@ -518,6 +525,24 @@ internal static class ManagedTextShapingTestAssets {
             WriteUInt32(data, offset + 4, (uint)scalar);
             WriteUInt32(data, offset + 8, 1);
             offset += 12;
+        }
+        return data;
+    }
+
+    private static byte[] CreateDistinctFormat12Cmap(int[] orderedScalars) {
+        var data = new byte[28 + (orderedScalars.Length * 12)];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, (uint)(16 + (orderedScalars.Length * 12)));
+        WriteUInt32(data, 24, (uint)orderedScalars.Length);
+        for (int index = 0; index < orderedScalars.Length; index++) {
+            int offset = 28 + (index * 12);
+            WriteUInt32(data, offset, checked((uint)orderedScalars[index]));
+            WriteUInt32(data, offset + 4, checked((uint)orderedScalars[index]));
+            WriteUInt32(data, offset + 8, checked((uint)(index + 1)));
         }
         return data;
     }

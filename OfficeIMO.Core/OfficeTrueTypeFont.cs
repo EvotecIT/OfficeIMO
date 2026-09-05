@@ -91,7 +91,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             OfficeOpenTypeCmap.MaximumFormat12Groups);
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
-        OfficeOpenTypeMvarMetrics? mvar = reader != null
+        OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
             ? OfficeOpenTypeMvarMetrics.TryParse(reader, _variationModel)
             : null;
         _ascender = checked(ReadInt16(_data, _hhea + 4) + (mvar?.HorizontalAscenderDelta ?? 0));
