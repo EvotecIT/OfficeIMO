@@ -13,6 +13,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private CancellationTokenSource? _cancellation;
 
     public PageImageExportViewModel(
@@ -24,10 +25,12 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         Func<CancellationToken, Task<string?>> pickPdf,
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeOutputWorkflowRunner? runner,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Formats = [
             Format(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
@@ -128,6 +131,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
                 Format = SelectedFormat.Value,
                 TargetDpi = TargetDpi,
                 MaximumDimension = MaximumDimension > 0 ? MaximumDimension : null,
+                PublicationGuard = _publicationGuard,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
             }, progress, operation.Token).ConfigureAwait(true);
             Summary = result.Summary;

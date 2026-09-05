@@ -98,7 +98,9 @@ public sealed partial class MainWindow : Window {
             openDocumentInTab: openDocumentInTab,
             pickAssemblyFolder: PickAssemblyFolderAsync,
             services: _services,
-            canPublishPath: path => TabHost.CanPublishPath(path));
+            canPublishPath: path => TabHost.CanPublishPath(path),
+            publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
+                isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)));
         document.Session = _session;
         return document;
     }

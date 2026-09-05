@@ -28,6 +28,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly Func<CancellationToken, Task<string?>> _pickOutputPdf;
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
@@ -41,11 +42,13 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         Func<CancellationToken, Task<string?>> pickFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IOfficeOutputWorkflowRunner? runner,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
         Summary = T("Summary.Empty", "No assembly run yet");
@@ -151,6 +154,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             PdfAssemblyResult result = await _runner.AssemblePdfAsync(new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
                 OutputPath = OutputPath,
+                PublicationGuard = _publicationGuard,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
                 Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
             }, progress, operation.Token).ConfigureAwait(true);

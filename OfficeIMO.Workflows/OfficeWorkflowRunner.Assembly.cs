@@ -130,7 +130,8 @@ public sealed partial class OfficeWorkflowRunner {
 
             Report(progress, validated.Id, "publish", "Publishing the validated PDF", 0.93D);
             cancellationToken.ThrowIfCancellationRequested();
-            string publishedPath = Publish(stagingPath, validated.OutputPath, validated.ConflictPolicy, cancellationToken);
+            string publishedPath = await PublishAsync(stagingPath, validated.OutputPath, validated.ConflictPolicy,
+                validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
             long outputBytes = new FileInfo(publishedPath).Length;
             Report(progress, validated.Id, "complete", "Assembled PDF is ready", 1D);
@@ -223,7 +224,7 @@ public sealed partial class OfficeWorkflowRunner {
             options,
             limits,
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes));
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes), request.PublicationGuard);
     }
 
     private static IReadOnlyList<AssemblySource> ExpandAssemblySources(
@@ -823,5 +824,6 @@ public sealed partial class OfficeWorkflowRunner {
         PdfAssemblyOptions Options,
         OfficeWorkflowLimits Limits,
         PdfLoadOptions PdfLoadOptions,
-        PdfLoadOptions OutputPdfLoadOptions);
+        PdfLoadOptions OutputPdfLoadOptions,
+        IOfficeWorkflowPublicationGuard? PublicationGuard = null);
 }

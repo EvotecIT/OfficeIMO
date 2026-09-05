@@ -20,6 +20,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private CancellationTokenSource? _cancellation;
 
     public DocumentHealthViewModel(
@@ -31,10 +32,12 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         Func<CancellationToken, Task<string?>> pickPdf,
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Operations = [
             Operation(OfficeWorkflowOperation.Inspect, "Inspect", "Read structure, security, signatures, tags, active content, and repair diagnostics.", false),
@@ -418,6 +421,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             ComparisonPath = NeedsComparison ? Path.GetFullPath(ComparisonPath) : null,
             OutputPath = output,
             OutputProfile = SelectedProfile.Value,
+            PublicationGuard = _publicationGuard,
             ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
             PdfPassword = string.IsNullOrEmpty(PdfPassword) ? null : PdfPassword
         };

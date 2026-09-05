@@ -11,6 +11,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private CancellationTokenSource? _cancellation;
 
     public ConversionWorkbenchViewModel(
@@ -22,10 +23,12 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickFiles,
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _pickFiles = pickFiles;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Routes = OfficeWorkflowCatalog.Routes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
@@ -230,6 +233,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             OutputPath = outputPath,
             ConversionRouteId = job.Route.Route.Id,
             OutputProfile = SelectedProfile.Value,
+            PublicationGuard = _publicationGuard,
             ConflictPolicy = SelectedConflict.Value
         };
     }

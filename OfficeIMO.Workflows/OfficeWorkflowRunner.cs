@@ -109,7 +109,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
             cancellationToken.ThrowIfCancellationRequested();
-            string publishedPath = Publish(stagingPath, validated.OutputPath!, validated.ConflictPolicy, cancellationToken);
+            string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
+                validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
             long outputBytes = new FileInfo(publishedPath).Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -605,7 +606,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             limits,
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes));
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes), request.PublicationGuard);
     }
 
     internal static PdfLoadOptions CreatePdfLoadOptions(string? password, long maximumInputBytes) {
@@ -666,38 +667,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         FileShare.Read,
         bufferSize: 81920,
         FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-    private static string Publish(
-        string stagingPath,
-        string requestedPath,
-        OfficeWorkflowConflictPolicy policy,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (policy) {
-            case OfficeWorkflowConflictPolicy.Fail:
-                cancellationToken.ThrowIfCancellationRequested();
-                File.Move(stagingPath, requestedPath, overwrite: false);
-                return requestedPath;
-            case OfficeWorkflowConflictPolicy.Replace:
-                cancellationToken.ThrowIfCancellationRequested();
-                File.Move(stagingPath, requestedPath, overwrite: true);
-                return requestedPath;
-            case OfficeWorkflowConflictPolicy.Rename:
-                for (int suffix = 0; suffix < 10_000; suffix++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
-                    try {
-                        File.Move(stagingPath, candidate, overwrite: false);
-                        return candidate;
-                    } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
-                        // Another request owns this candidate. Try the next deterministic suffix.
-                    }
-                }
-                throw new IOException("No available numbered output path could be reserved.");
-            default:
-                throw new ArgumentOutOfRangeException(nameof(policy), policy, "Unsupported conflict policy.");
-        }
-    }
 
     private static void EnsureVerifiedHealthArtifact(OfficeWorkflowOperation operation, PdfHealthReport? report) {
         if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize &&
@@ -869,5 +838,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowLimits Limits,
         PdfLoadOptions PdfLoadOptions,
         PdfLoadOptions ComparisonPdfLoadOptions,
-        PdfLoadOptions OutputPdfLoadOptions);
+        PdfLoadOptions OutputPdfLoadOptions,
+        IOfficeWorkflowPublicationGuard? PublicationGuard = null);
 }

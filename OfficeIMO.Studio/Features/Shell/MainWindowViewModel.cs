@@ -91,7 +91,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null,
         ISearchablePdfOcrService? ocrService = null,
         StudioApplicationServices? services = null,
-        Func<string, bool>? canPublishPath = null) {
+        Func<string, bool>? canPublishPath = null,
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -115,15 +116,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
             runner: null,
-            localizer: _localizer);
+            localizer: _localizer,
+            publicationGuard: publicationGuard);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             pickAssemblyFolder ?? _pickOutputFolder,
             _pickSavePdf,
-            localizer: _localizer);
-        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer);
+            localizer: _localizer,
+            publicationGuard: publicationGuard);
+        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
+            publicationGuard: publicationGuard);
         OcrWorkbench = new SearchablePdfOcrViewModel(
             _pickPdf,
             _pickOutputFolder,

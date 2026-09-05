@@ -103,7 +103,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                     validated.OutputDirectory,
                     validated.ConflictPolicy,
                     diagnostics,
-                    cancellationToken)
+                    cancellationToken,
+                    validated.PublicationGuard)
                 .ConfigureAwait(false);
             stagingDirectory = null;
 
@@ -207,7 +208,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.MaximumPages,
             request.ConflictPolicy,
             limits,
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes));
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes), request.PublicationGuard);
     }
 
     private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount) {
@@ -251,5 +252,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         int MaximumPages,
         OfficeWorkflowConflictPolicy ConflictPolicy,
         OfficeWorkflowLimits Limits,
-        PdfLoadOptions LoadOptions);
+        PdfLoadOptions LoadOptions,
+        IOfficeWorkflowPublicationGuard? PublicationGuard = null);
 }

@@ -57,6 +57,16 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     internal bool CanPublishPath(string path) => CanDocumentOwnPath(null, path);
 
+    internal bool CanPublishDirectory(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        try {
+            return Tabs.All(tab => tab.Document.DocumentPath is not { Length: > 0 } source ||
+                !OfficePathIdentity.IsSameOrDescendant(source, path));
+        } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
+            return false;
+        }
+    }
+
     internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;
         try {

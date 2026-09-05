@@ -5,6 +5,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 ## Current workspace
 
 - Open several PDFs in document tabs and use single-page, continuous, two-page, or grid reading modes.
+- Opening a file through a symlink or hard link reuses its existing tab and pending edits. Conversion, document-health output, assembly, and page export check live tab ownership before publishing their final destination. Numbered-copy mode skips owned paths; replacement reports a failed job instead of replacing an open document.
 - Choose comfortable or compact controls in Settings. With document history enabled, Studio remembers page, zoom, reading layout, bounded pane widths, and pane choices for up to 64 documents, using path hashes in the view-preference file.
 - Press F9 for focus reading and Escape or F9 to restore document controls. At narrow widths, a document-task picker and one optional side pane leave room for the page.
 - Custom zoom stays in place through editing, undo, redo, recovery, and saving. Fit width and Fit page remain explicit choices.

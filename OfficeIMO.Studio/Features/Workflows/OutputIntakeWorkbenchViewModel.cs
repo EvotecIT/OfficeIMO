@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -26,11 +27,12 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickAssemblyFiles,
         Func<CancellationToken, Task<string?>> pickAssemblyFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         localizer ??= StudioLocalization.Current;
         PrintPreview = new PrintPreviewViewModel(pickPdf, localizer);
-        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer);
-        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer);
+        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard);
+        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard);
         PrintPreview.PropertyChanged += OnChildPropertyChanged;
         PageExport.PropertyChanged += OnChildPropertyChanged;
         Assembly.PropertyChanged += OnChildPropertyChanged;

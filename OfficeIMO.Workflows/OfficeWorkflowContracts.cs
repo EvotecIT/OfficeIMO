@@ -173,6 +173,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Conflict behavior used when publishing an artifact.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
 
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+
     /// <summary>Cross-format output intent.</summary>
     public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
 

@@ -50,6 +50,9 @@ public sealed class PdfPageImageExportRequest {
     /// <summary>How an existing output folder is handled.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
 
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+
     /// <summary>Shared input and aggregate output limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();
 }
@@ -207,6 +210,9 @@ public sealed class PdfAssemblyRequest {
 
     /// <summary>How an existing output path is handled.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Output intent used while normalizing Office inputs.</summary>
     public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
