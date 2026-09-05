@@ -117,7 +117,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 store.WriteAsync(source, fingerprint, second, 2, canceled.Token));
             Assert.Equal(first, store.ReadVerifiedSnapshot(source, fingerprint));
-            Assert.Empty(Directory.GetFiles(root, "*.tmp-*"));
+            Assert.Single(Directory.GetFiles(root));
 
             if (OperatingSystem.IsWindows()) {
                 using (var locked = new FileStream(snapshot, FileMode.Open, FileAccess.Read, FileShare.Read)) {
@@ -126,7 +126,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
                     Assert.True(error is IOException or UnauthorizedAccessException);
                 }
                 Assert.Equal(first, store.ReadVerifiedSnapshot(source, fingerprint));
-                Assert.Empty(Directory.GetFiles(root, "*.tmp-*"));
+                Assert.Single(Directory.GetFiles(root));
             }
 
             // An interrupted, unpublished staging file cannot hide the committed snapshot.

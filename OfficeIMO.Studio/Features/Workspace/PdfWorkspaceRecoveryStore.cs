@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
@@ -133,14 +134,13 @@ internal sealed class PdfWorkspaceRecoveryStore {
     }
 
     private static async Task WriteSnapshotAsync(string path, byte[] metadata, byte[] bytes, CancellationToken cancellationToken) {
-        string temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        string temporaryPath = string.Empty;
         try {
             byte[] header = new byte[20];
             SnapshotMagic.CopyTo(header);
             BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(8, 4), metadata.Length);
             BinaryPrimitives.WriteInt64LittleEndian(header.AsSpan(12, 8), bytes.LongLength);
-            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                64 * 1024, FileOptions.Asynchronous)) {
+            using (var stream = OfficeFileCommit.CreateTemporaryFile(path, FileOptions.Asynchronous, out temporaryPath, 64 * 1024)) {
                 await stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(metadata, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -148,7 +148,7 @@ internal sealed class PdfWorkspaceRecoveryStore {
                 stream.Flush(flushToDisk: true);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            File.Move(temporaryPath, path, overwrite: true);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, path);
         } finally {
             TryDelete(temporaryPath);
         }
