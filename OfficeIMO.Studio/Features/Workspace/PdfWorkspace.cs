@@ -407,7 +407,10 @@ internal sealed partial class PdfWorkspace : IDisposable {
         if (!HasRecovery || RecoveryPath is null) return;
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            byte[] recovered = await File.ReadAllBytesAsync(RecoveryPath, cancellationToken).ConfigureAwait(false);
+            byte[] recovered = await Task.Run(
+                () => _recoveryStore.ReadVerifiedSnapshot(Path, _baseFingerprint)
+                    ?? throw new InvalidDataException("The recovery snapshot is no longer valid. The open document has not been changed."),
+                cancellationToken).ConfigureAwait(false);
             (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
                 () => Analyze(recovered, _readOptions),
                 cancellationToken).ConfigureAwait(false);

@@ -5,6 +5,8 @@ using System.Text.Json;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed class PdfWorkspaceRecoveryStore {
+    internal const long MaximumSnapshotBytes = 512L * 1024 * 1024;
+    internal static readonly TimeSpan Retention = TimeSpan.FromDays(30);
     private readonly string _root;
 
     internal PdfWorkspaceRecoveryStore(string? root = null) {
@@ -21,6 +23,9 @@ internal sealed class PdfWorkspaceRecoveryStore {
         byte[] bytes,
         long revision,
         CancellationToken cancellationToken) {
+        if (bytes.LongLength > MaximumSnapshotBytes) {
+            throw new IOException("The document exceeds the 512 MiB recovery snapshot limit.");
+        }
         string canonicalPath = Canonicalize(sourcePath);
         string key = CreateKey(canonicalPath);
         Directory.CreateDirectory(_root);
@@ -58,14 +63,21 @@ internal sealed class PdfWorkspaceRecoveryStore {
         if (!File.Exists(pdfPath) || !File.Exists(metadataPath)) return null;
 
         try {
-            if (new FileInfo(metadataPath).Length > 64 * 1024) return null;
-            RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(File.ReadAllBytes(metadataPath));
+            byte[]? metadataBytes = ReadBounded(metadataPath, 64 * 1024);
+            if (metadataBytes is null) return null;
+            RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(metadataBytes);
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             if (metadata is null ||
+                metadata.SchemaVersion != 1 ||
+                metadata.UpdatedAt < now - Retention ||
+                metadata.UpdatedAt > now.AddDays(1) ||
+                metadata.Revision < 0 ||
                 !PathsEqual(canonicalPath, metadata.SourcePath) ||
                 !string.Equals(baseFingerprint, metadata.BaseFingerprint, StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
-            byte[] bytes = File.ReadAllBytes(pdfPath);
+            byte[]? bytes = ReadBounded(pdfPath, MaximumSnapshotBytes);
+            if (bytes is null) return null;
             return string.Equals(Fingerprint(bytes), metadata.RecoveryFingerprint, StringComparison.OrdinalIgnoreCase) ? bytes : null;
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             return null;
@@ -73,6 +85,16 @@ internal sealed class PdfWorkspaceRecoveryStore {
     }
 
     internal static string Fingerprint(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+
+    private static byte[]? ReadBounded(string path, long maximumBytes) {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length <= 0 || stream.Length > maximumBytes) return null;
+        var bytes = new byte[checked((int)stream.Length)];
+        stream.ReadExactly(bytes);
+        // Also reject a file that grew through an already-open writer on platforms
+        // where sharing flags cannot exclude that writer.
+        return stream.ReadByte() == -1 ? bytes : null;
+    }
 
     private static async Task WriteAtomicAsync(string path, byte[] bytes, CancellationToken cancellationToken) {
         string temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
@@ -112,5 +134,7 @@ internal sealed class PdfWorkspaceRecoveryStore {
         string BaseFingerprint,
         string RecoveryFingerprint,
         long Revision,
-        DateTimeOffset UpdatedAt);
+        DateTimeOffset UpdatedAt) {
+        public int SchemaVersion { get; init; } = 1;
+    }
 }
