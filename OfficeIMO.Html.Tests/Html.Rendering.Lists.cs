@@ -89,6 +89,29 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:linear-gradient(red,blue))"));
     }
 
+    [Theory]
+    [InlineData("inside")]
+    [InlineData("outside")]
+    public void HtmlRendering_MarkerPseudoElementPreservesMixedTextAndImages(string position) {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(5, 3));
+        string html = "<style>li::marker{content:'[' url('data:image/png;base64," + imageData + "') ']';color:#123456}</style>"
+            + "<ul style='list-style-position:" + position + "'><li id='mixed'>Mixed marker</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            Margins = HtmlRenderMargins.All(10D)
+        });
+        IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToList();
+
+        HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(5D, image.Width, 3);
+        Assert.Equal(3D, image.Height, 3);
+        Assert.Equal(new[] { "[", "]" }, visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Source == "li#mixed::marker")
+            .Select(text => text.Text)
+            .ToArray());
+    }
+
     [Fact]
     public void HtmlRendering_MarkerPseudoElementParticipatesInLayerCascade() {
         const string html = "<style>@layer base,theme;@layer base{li::marker{content:'A ';color:red}}"

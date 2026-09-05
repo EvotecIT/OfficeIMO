@@ -154,6 +154,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(annotations, annotation => Assert.True(annotation.X > rubyBase.X));
     }
 
+    [Theory]
+    [InlineData("vertical-rl", true)]
+    [InlineData("vertical-lr", false)]
+    public void HtmlRender_VerticalBlockChildrenAdvanceInTheBlockDirection(string writingMode, bool firstIsRightmost) {
+        string html = $"<div style='writing-mode:{writingMode};inline-size:80px;block-size:80px;margin:0;font-size:12px;line-height:16px'>"
+            + "<p style='margin:0'>First</p><p style='margin:0'>Second</p></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+        double firstX = Assert.Single(text, item => item.Text == "F").X;
+        double secondX = Assert.Single(text, item => item.Text == "S").X;
+        Assert.Equal(firstIsRightmost, firstX > secondX);
+    }
+
     [Fact]
     public void HtmlRender_FirstLetterAndFirstLineStyleTheRenderedFragments() {
         const string html = "<style>#lead::first-letter{font-size:30px;color:#cc0000}"
@@ -187,5 +203,25 @@ public sealed partial class HtmlRenderingTests {
             item => item.Text == "“A”");
 
         Assert.Equal(OfficeColor.Red, firstLetter.Color);
+    }
+
+    [Fact]
+    public void HtmlRender_FirstLineStopsAtAnEmergencyBreakInsideOneToken() {
+        const string html = "<style>#lead::first-line{color:#0000cc}</style>"
+            + "<p id='lead' style='width:48px;margin:0;font-size:12px;line-height:16px;overflow-wrap:anywhere'>"
+            + "Supercalifragilisticexpialidocious</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+        double firstLineY = text.Min(item => item.Y);
+
+        Assert.Contains(text, item => item.Y <= firstLineY + 0.001D
+            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC));
+        Assert.Contains(text, item => item.Y > firstLineY + 0.001D
+            && item.Color == OfficeColor.Black);
+        Assert.DoesNotContain(text, item => item.Y > firstLineY + 0.001D
+            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC));
     }
 }

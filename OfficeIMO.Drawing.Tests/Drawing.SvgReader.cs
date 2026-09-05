@@ -494,6 +494,30 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReader_ComposesMarkerPlacementWithTheOwningElementTransform() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><marker id='dot' markerUnits='userSpaceOnUse' markerWidth='1' markerHeight='1' "
+            + "viewBox='0 0 1 1' refX='0' refY='0' orient='0'><rect width='1' height='1' fill='red'/></marker></defs>"
+            + "<line x1='1' y1='2' x2='5' y2='2' transform='translate(10 3) scale(2 1)' stroke='blue' marker-end='url(#dot)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup elementGroup = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingShape line = Assert.Single(elementGroup.Drawing.Shapes);
+        OfficeDrawingEffectGroup markerLayer = Assert.Single(elementGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup marker = Assert.Single(markerLayer.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.True(line.Shape.Transform.HasValue);
+        OfficePoint endpoint = line.Shape.Points[line.Shape.Points.Count - 1];
+        OfficePoint transformedEndpoint = line.Shape.Transform.Value.TransformPoint(endpoint);
+        OfficePoint expected = new OfficePoint(line.X + transformedEndpoint.X, line.Y + transformedEndpoint.Y);
+        OfficePoint actual = marker.Transform.TransformPoint(new OfficePoint(0D, 0D));
+
+        Assert.Equal(expected.X, actual.X, 6);
+        Assert.Equal(expected.Y, actual.Y, 6);
+    }
+
+    [Fact]
     public void SvgReaderResolvesPercentageTextPositionAndHangingBaseline() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100' fill='navy'>"
             + "<text x='50%' y='25%' font-size='10' text-anchor='middle' dominant-baseline='hanging'>Label</text></svg>";

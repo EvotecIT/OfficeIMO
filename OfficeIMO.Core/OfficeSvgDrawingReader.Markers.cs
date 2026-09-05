@@ -29,7 +29,7 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing? markerLayer) {
         markerLayer = null;
         if (style.MarkerStart == null && style.MarkerMid == null && style.MarkerEnd == null) return false;
-        IReadOnlyList<SvgMarkerPlacement> placements = ResolveSvgMarkerPlacements(shape, elementTransform);
+        IReadOnlyList<SvgMarkerPlacement> placements = ResolveSvgMarkerPlacements(shape);
         if (placements.Count == 0) {
             unsupported++;
             return false;
@@ -48,7 +48,7 @@ public static partial class OfficeSvgDrawingReader {
                 _ => style.MarkerEnd
             };
             if (reference == null) continue;
-            if (!TryRenderSvgMarker(reference, placement, layer, style, paintServers, references,
+            if (!TryRenderSvgMarker(reference, placement, elementTransform, layer, style, paintServers, references,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) continue;
             rendered = true;
@@ -61,6 +61,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryRenderSvgMarker(
         string reference,
         SvgMarkerPlacement placement,
+        OfficeTransform elementTransform,
         OfficeDrawing layer,
         SvgPaintContext inheritedStyle,
         SvgPaintServerRegistry paintServers,
@@ -133,7 +134,8 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform placementTransform = viewportTransform
                 .Then(OfficeTransform.Translate(-refPoint.X, -refPoint.Y))
                 .Then(OfficeTransform.RotateDegrees(angle))
-                .Then(OfficeTransform.Translate(placement.Point.X, placement.Point.Y));
+                .Then(OfficeTransform.Translate(placement.Point.X, placement.Point.Y))
+                .Then(elementTransform);
             layer.AddEffectDrawing(scene, placementTransform);
             return true;
         } finally {
@@ -164,7 +166,7 @@ public static partial class OfficeSvgDrawingReader {
             && !double.IsInfinity(angle);
     }
 
-    private static IReadOnlyList<SvgMarkerPlacement> ResolveSvgMarkerPlacements(OfficeDrawingShape shape, OfficeTransform transform) {
+    private static IReadOnlyList<SvgMarkerPlacement> ResolveSvgMarkerPlacements(OfficeDrawingShape shape) {
         var contours = new List<OfficeFlattenedPathContour>();
         if (shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.Points.Count >= 2) {
             contours.Add(new OfficeFlattenedPathContour(shape.Shape.Points, closed: false));
@@ -178,7 +180,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (OfficeFlattenedPathContour contour in contours) {
             if (contour.Points.Count < 2) continue;
             var points = contour.Points
-                .Select(point => transform.TransformPoint(new OfficePoint(shape.X + point.X, shape.Y + point.Y)))
+                .Select(point => new OfficePoint(shape.X + point.X, shape.Y + point.Y))
                 .ToArray();
             result.Add(new SvgMarkerPlacement(points[0], ResolveSegmentAngle(points[0], points[1]), SvgMarkerPlacementKind.Start));
             if (contour.Closed) {

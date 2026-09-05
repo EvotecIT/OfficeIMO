@@ -25,6 +25,78 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, surfaceHeight - style.VerticalInsets);
     }
 
+    private static void ArrangeVerticalBlockChildren(
+        IReadOnlyList<HtmlRenderFlowBlock> children,
+        HtmlRenderBoxStyle style,
+        double contentWidth,
+        ICollection<FlowPaintLayer> paintLayers,
+        ICollection<double> breakOffsets,
+        ICollection<HtmlRenderForcedBreak> forcedBreaks,
+        ICollection<HtmlRenderLineBreakGroup> lineBreakGroups,
+        ICollection<HtmlRenderContinuationGroup> continuationGroups,
+        ICollection<HtmlRenderTrailingGroup> trailingGroups,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments,
+        ICollection<HtmlInlineBreakProgress> continuationBreakProgress,
+        out double contentHeight) {
+        bool rightToLeft = style.WritingMode == "vertical-rl" || style.WritingMode == "sideways-rl";
+        double cursor = rightToLeft ? contentWidth : 0D;
+        contentHeight = 0D;
+        string? childPageName = children.Count > 0 ? children[0].PageName : null;
+        for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+            HtmlRenderFlowBlock child = children[childIndex];
+            double advance = ResolveVerticalBlockAdvance(child, style.LineHeight);
+            double childX = rightToLeft ? cursor - advance : cursor;
+            if (rightToLeft) cursor = childX;
+            else cursor += advance;
+
+            if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
+                forcedBreaks.Add(new HtmlRenderForcedBreak(0D, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+            }
+            childPageName = child.PageName;
+            if (child.BreakBefore != HtmlPageBreakTarget.None) forcedBreaks.Add(new HtmlRenderForcedBreak(0D, child.BreakBefore));
+            foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) forcedBreaks.Add(forcedBreak);
+            if (childIndex > 0 && child.OwnerElement != null) {
+                continuationBreakProgress.Add(new HtmlInlineBreakProgress(0D, 0, child.OwnerElement));
+            }
+
+            paintLayers.Add(new FlowPaintLayer(child, childX, 0D, paintLayers.Count));
+            contentHeight = Math.Max(contentHeight, child.Height);
+            if (child.BreakAfter != HtmlPageBreakTarget.None) forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
+            foreach (double offset in child.BreakOffsets) breakOffsets.Add(offset);
+            foreach (HtmlRenderLineBreakGroup group in child.LineBreakGroups) lineBreakGroups.Add(group);
+            foreach (HtmlRenderContinuationGroup group in child.ContinuationGroups) continuationGroups.Add(group.Translate(childX, 0D));
+            foreach (HtmlRenderTrailingGroup group in child.TrailingGroups) trailingGroups.Add(group.Translate(childX, 0D));
+            foreach (HtmlCssRunningStringAssignment assignment in child.RunningStringAssignments) runningStringAssignments.Add(assignment);
+            foreach (HtmlInlineBreakProgress progress in child.InlineBreakProgress) continuationBreakProgress.Add(progress);
+        }
+        if (contentHeight > 0D) breakOffsets.Add(contentHeight);
+    }
+
+    private static double ResolveVerticalBlockAdvance(HtmlRenderFlowBlock child, double fallback) {
+        double maximum = 0D;
+        foreach (HtmlRenderVisual visual in child.Visuals) maximum = Math.Max(maximum, ResolveVerticalWritingWidth(visual));
+        return Math.Max(0.01D, maximum > 0D ? maximum : Math.Min(child.Width, Math.Max(fallback, child.Height)));
+    }
+
+    private static double ResolveVerticalWritingWidth(HtmlRenderVisual visual) {
+        double width = visual.Source?.EndsWith(":vertical-writing", StringComparison.Ordinal) == true
+            ? visual.Width
+            : 0D;
+        IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+            HtmlRenderEffectGroup effect => effect.Visuals,
+            HtmlRenderSemanticGroup semantic => semantic.Visuals,
+            HtmlRenderLayoutRegion region => region.Visuals,
+            HtmlRenderLogicalTextGroup logical => logical.Visuals,
+            HtmlRenderClipGroup clip => clip.Visuals,
+            HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+            HtmlRenderFormField field => field.Visuals,
+            _ => null
+        };
+        if (children == null) return width;
+        foreach (HtmlRenderVisual child in children) width = Math.Max(width, ResolveVerticalWritingWidth(child));
+        return width;
+    }
+
     private HtmlInlineLayout TransformSidewaysVerticalInlineLayout(
         HtmlInlineLayout inline,
         HtmlRenderBoxStyle style,

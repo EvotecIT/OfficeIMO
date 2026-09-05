@@ -86,6 +86,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderBoxStyle tokenStyle = run.IsFirstLetter ? run.Style : firstLineStyle;
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
                 double tokenWidth = MeasureInlineText(measuredToken, tokenStyle);
+                if (!hasContent
+                    && tokenWidth > width
+                    && !IsWhitespaceToken(token)
+                    && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, width, out int split)) {
+                    string prefix = token.Substring(0, split);
+                    string suffix = token.Substring(split);
+                    styledRuns.Add(run.CloneText(prefix, prefix, tokenStyle, run.IsFirstLetter));
+                    if (suffix.Length > 0) styledRuns.Add(run.CloneText(suffix, suffix, run.Style, run.IsFirstLetter));
+                    firstLine = false;
+                    hasContent = true;
+                    continue;
+                }
                 if (hasContent && lineWidth + tokenWidth > width) firstLine = false;
                 HtmlRenderBoxStyle appliedStyle = firstLine ? tokenStyle : run.Style;
                 styledRuns.Add(run.CloneText(token, token, appliedStyle, run.IsFirstLetter));
@@ -97,6 +109,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         runs.Clear();
         runs.AddRange(styledRuns);
+    }
+
+    private bool TryResolveFirstLineTokenSplit(
+        string token,
+        HtmlRenderBoxStyle layoutStyle,
+        HtmlRenderBoxStyle firstLineStyle,
+        double width,
+        out int split) {
+        split = -1;
+        HyphenationToken hyphenation = PrepareHyphenationToken(token, token, layoutStyle);
+        if (hyphenation.HasBreaks) {
+            foreach (int point in hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks).Distinct().OrderBy(point => point)) {
+                if (point <= 0 || point >= hyphenation.LogicalText.Length || point >= hyphenation.SourceBoundaries.Count) continue;
+                string candidate = hyphenation.PaintText.Substring(0, point) + layoutStyle.HyphenateCharacter;
+                if (MeasureInlineText(candidate, firstLineStyle) <= width + 0.0001D) {
+                    split = hyphenation.SourceBoundaries[point];
+                }
+            }
+            if (split > 0 && split < token.Length) return true;
+        }
+
+        IReadOnlyList<int> preferred = OfficeTextLineBreaks.GetBreakPositions(
+            token,
+            allowCjkBreaks: layoutStyle.WordBreak != "keep-all");
+        foreach (int point in preferred) {
+            if (point <= 0 || point >= token.Length) continue;
+            if (MeasureInlineText(token.Substring(0, point), firstLineStyle) <= width + 0.0001D) split = point;
+        }
+        if (split > 0) return true;
+        if (!AllowsEmergencyTokenBreak(layoutStyle)) return false;
+
+        int sourceLength = 0;
+        foreach (string element in OfficeTextElements.Enumerate(token)) {
+            int candidateLength = sourceLength + element.Length;
+            if (candidateLength >= token.Length
+                || MeasureInlineText(token.Substring(0, candidateLength), firstLineStyle) > width + 0.0001D) break;
+            sourceLength = candidateLength;
+        }
+        split = sourceLength;
+        return split > 0 && split < token.Length;
     }
 
     private static bool IsFirstLetterPunctuation(string textElement) {

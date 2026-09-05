@@ -331,17 +331,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
             ? continuationTarget
             : null;
+        bool usesVerticalBlockFormatting = usesBlockFormatting && IsVerticalWritingMode(style.WritingMode);
+        double childContainingWidth = usesVerticalBlockFormatting
+            ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
+            : contentWidth;
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
             ? BuildChildBlocks(
                 element,
-                contentWidth,
+                childContainingWidth,
                 style,
                 depth,
                 descendantContinuationTarget,
                 descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
 
-        if (children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
+        if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
             HtmlRenderFlowBlock first = children[0];
             double childMargin = first.CollapsibleMarginTop;
             style = style.Clone();
@@ -351,7 +355,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .WithCollapsibleMargins(0D, first.CollapsibleMarginBottom, first.OwnerElement!);
             if (first.OwnerElement != null) RemoveNormalFlowTopMargin(first.OwnerElement);
         }
-        if (children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
+        if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
             int lastIndex = children.Count - 1;
             HtmlRenderFlowBlock last = children[lastIndex];
             double childMargin = last.CollapsibleMarginBottom;
@@ -363,7 +367,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
 
-        if (usesBlockFormatting) {
+        if (usesVerticalBlockFormatting) {
+            ArrangeVerticalBlockChildren(
+                children,
+                style,
+                contentWidth,
+                childPaintLayers,
+                contentBreakOffsets,
+                forcedBreaks,
+                lineBreakGroups,
+                continuationGroups,
+                trailingGroups,
+                runningStringAssignments,
+                continuationBreakProgress,
+                out contentHeight);
+            AppendFlowPaintLayers(contentVisuals, childPaintLayers);
+        } else if (usesBlockFormatting) {
             string? childPageName = children.Count > 0 ? children[0].PageName : null;
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
@@ -746,6 +765,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (_generatedContent.Suppresses(element, HtmlPseudoElementKind.Marker)) return null;
 
         string? markerContent = null;
+        if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.Marker, out HtmlGeneratedContent generatedContent)
+            && generatedContent.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)
+            && TryCreateGeneratedListMarker(element, markerStyle, containingWidth, generatedContent, out HtmlRenderFlowBlock generatedMarkerBlock)) {
+            return new HtmlListMarker(string.Empty, markerStyle, style.ListStylePosition, generatedMarkerBlock);
+        }
         if (_generatedContent.TryGet(element, HtmlPseudoElementKind.Marker, out string generatedMarker)) {
             markerContent = ApplyTextTransform(generatedMarker, markerStyle);
         }
@@ -771,6 +795,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (string.IsNullOrEmpty(markerContent)) return null;
         return new HtmlListMarker(markerContent!, hasPseudoStyle ? markerStyle : style, style.ListStylePosition);
+    }
+
+    private bool TryCreateGeneratedListMarker(
+        IElement element,
+        HtmlRenderBoxStyle markerStyle,
+        double containingWidth,
+        HtmlGeneratedContent content,
+        out HtmlRenderFlowBlock marker) {
+        string source = DescribePseudoSource(element, HtmlPseudoElementKind.Marker);
+        var runs = new List<HtmlInlineRun>();
+        AddGeneratedInlineFragments(content, element, markerStyle, null, source, containingWidth, 0D, 0D, runs);
+        runs = ApplyScopedFontFallbacks(runs);
+        if (runs.Count == 0) {
+            marker = null!;
+            return false;
+        }
+
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, containingWidth * 0.5D), markerStyle, element);
+        (double left, double top, double width, double height) = ResolveSemanticBounds(
+            inline.Visuals,
+            markerStyle.LineHeight,
+            inline.Height);
+        var label = new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.ListLabel,
+            left,
+            top,
+            width,
+            height,
+            inline.Visuals,
+            0,
+            "list-marker");
+        marker = new HtmlRenderFlowBlock(
+            width,
+            Math.Max(0.01D, inline.Height),
+            new HtmlRenderVisual[] { label },
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            true,
+            source);
+        return true;
     }
 
     private bool TryCreateListImageMarker(

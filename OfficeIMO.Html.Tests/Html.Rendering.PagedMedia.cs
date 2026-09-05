@@ -1,5 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -83,6 +85,62 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("I.", marker.Text);
         Assert.Equal(8D, marker.Font.Size, 3);
         Assert.Equal(OfficeColor.FromRgb(0x00, 0x44, 0xaa), marker.Color);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_FootnoteMarkerPreservesMixedTextAndImages() {
+        const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+        string html = "<style>@page{size:240px 160px;margin:10px}body,p{margin:0;font-size:12px;line-height:16px}"
+            + ".note{float:footnote;font-size:10px;line-height:12px}"
+            + ".note::footnote-marker{content:'[' url('data:image/png;base64," + pixel + "') ']';color:#0044aa}</style>"
+            + "<p>Body<span id='mixed-note' class='note'>Mixed footnote</span>.</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages.SelectMany(page => page.Visuals).ToList();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.Single(visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(new[] { "[", "]" }, visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Source == "span#mixed-note::footnote-marker")
+            .Select(text => text.Text)
+            .ToArray());
+        Assert.Contains(visuals.OfType<HtmlRenderText>(), text => text.Text == "Mixed footnote");
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_LaysOutFootnoteBodiesAgainstThePageFootnoteArea() {
+        const string html = """
+            <style>
+              @page { size:260px 180px; margin:10px; }
+              body, p, table { margin:0; font-size:12px; line-height:16px; }
+              td { width:44px; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <table><tr><td>Call<span id="wide-note" class="note">A footnote body uses the full page footnote area.</span></td></tr></table>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        IReadOnlyList<HtmlRenderText> body = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("footnote", StringComparison.Ordinal)
+                || text.Text.Contains("full", StringComparison.Ordinal)
+                || text.Text.Contains("page", StringComparison.Ordinal)
+                || text.Text.Contains("area", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.NotEmpty(body);
+        Assert.InRange(body.Select(text => text.Y).Distinct().Count(), 1, 2);
+        Assert.All(body, text => Assert.True(text.X >= 30D));
     }
 
     [Fact]

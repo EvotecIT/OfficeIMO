@@ -21,7 +21,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             noteStyle.ClearSide = "none";
             noteStyle.UnsupportedFloat = string.Empty;
             noteStyle.UnsupportedClear = string.Empty;
-            double noteWidth = Math.Max(1D, containingWidth - FootnoteMarkerGutter);
+            double pageContentWidth = Math.Max(1D, _activePageGeometry.ContentWidth);
+            double noteWidth = Math.Max(1D, pageContentWidth - FootnoteMarkerGutter);
             HtmlRenderFlowBlock noteBlock = LayoutElementWithoutEditableRegionMarker(
                 element,
                 noteWidth,
@@ -40,13 +41,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             bool suppressMarker = markerStyle.Display == "none"
                 || _generatedContent.Suppresses(element, HtmlPseudoElementKind.FootnoteMarker);
+            HtmlRenderFlowBlock? markerBlock = null;
+            double markerGutter = suppressMarker ? 0D : FootnoteMarkerGutter;
+            if (!suppressMarker
+                && _generatedContent.TryGetContent(element, HtmlPseudoElementKind.FootnoteMarker, out HtmlGeneratedContent markerGeneratedContent)
+                && markerGeneratedContent.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)) {
+                markerBlock = LayoutFootnoteMarkerContent(
+                    element,
+                    number,
+                    markerGeneratedContent,
+                    markerStyle,
+                    pageContentWidth);
+                if (markerBlock != null) markerGutter = ResolveFootnoteMarkerGutter(markerBlock.Width, pageContentWidth);
+            }
+            noteWidth = Math.Max(1D, pageContentWidth - markerGutter);
+            if (Math.Abs(noteWidth - noteBlock.Width) > 0.0001D) {
+                noteBlock = LayoutElementWithoutEditableRegionMarker(
+                    element,
+                    noteWidth,
+                    noteStyle,
+                    parentStyle,
+                    depth + 1);
+            }
             _footnoteEntries[element] = new HtmlFootnoteEntry(
                 element,
                 number,
                 noteBlock,
+                noteWidth,
                 noteStyle,
+                parentStyle.Clone(),
+                depth,
                 markerStyle,
                 markerContent,
+                markerBlock,
+                markerGutter,
                 suppressMarker);
         }
 
@@ -120,6 +148,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static string FootnoteNoteDestination(int number) =>
         "officeimo-footnote-note-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+    private HtmlRenderFlowBlock? LayoutFootnoteMarkerContent(
+        IElement element,
+        int number,
+        HtmlGeneratedContent content,
+        HtmlRenderBoxStyle style,
+        double pageContentWidth) {
+        string source = DescribePseudoSource(element, HtmlPseudoElementKind.FootnoteMarker);
+        var runs = new List<HtmlInlineRun>();
+        AddGeneratedInlineFragments(
+            content,
+            element,
+            style,
+            "#" + FootnoteCallDestination(number),
+            source,
+            pageContentWidth,
+            0D,
+            0D,
+            runs);
+        runs = ApplyScopedFontFallbacks(runs);
+        if (runs.Count == 0) return null;
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, pageContentWidth * 0.5D), style, element);
+        (_, _, double width, double height) = ResolveSemanticBounds(inline.Visuals, style.LineHeight, inline.Height);
+        return new HtmlRenderFlowBlock(
+            width,
+            Math.Max(0.01D, height),
+            inline.Visuals,
+            HtmlPageBreakTarget.None,
+            HtmlPageBreakTarget.None,
+            true,
+            source);
+    }
+
+    private static double ResolveFootnoteMarkerGutter(double markerWidth, double pageContentWidth) =>
+        Math.Min(Math.Max(1D, pageContentWidth * 0.5D), Math.Max(FootnoteMarkerGutter, markerWidth + 2D));
+
     private HtmlFootnotePagePlan ResolveFootnotePlan(HtmlRenderDocument rendered) {
         if (_footnoteEntries.Count == 0) return HtmlFootnotePagePlan.Empty;
         var chunks = new List<HtmlFootnoteChunk>();
@@ -135,18 +198,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // a call followed by a same-page note or a deterministic next-page note.
                 pageNumber = Math.Max(pageNumber, previousPage);
             }
+            HtmlCssPageGeometry callGeometry = ResolveFootnotePageGeometry(rendered, pageNumber);
+            RelayoutFootnoteEntry(entry, Math.Max(1D, callGeometry.ContentWidth - entry.MarkerGutter));
             double offset = 0D;
             while (offset < entry.Block.Height - 0.0001D) {
-                HtmlRenderPage? renderedPage = rendered.Pages.FirstOrDefault(page => page.PageNumber == pageNumber);
-                string? pageName = renderedPage?.PageName
-                    ?? rendered.Pages
-                        .Where(page => page.PageNumber < pageNumber)
-                        .OrderByDescending(page => page.PageNumber)
-                        .Select(page => page.PageName)
-                        .FirstOrDefault();
-                HtmlCssPageGeometry geometry = renderedPage != null
-                    ? new HtmlCssPageGeometry(renderedPage.Width, renderedPage.Height, renderedPage.Margins)
-                    : _pageRules.ResolveGeometry(pageNumber, pageName, _options);
+                HtmlCssPageGeometry geometry = ResolveFootnotePageGeometry(rendered, pageNumber);
                 reservations.TryGetValue(pageNumber, out double reserved);
                 bool firstOnPage = !chunks.Any(chunk => chunk.PageNumber == pageNumber);
                 double separator = firstOnPage ? FootnoteSeparatorGap : 2D;
@@ -166,6 +222,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         return new HtmlFootnotePagePlan(chunks, reservations);
+    }
+
+    private HtmlCssPageGeometry ResolveFootnotePageGeometry(HtmlRenderDocument rendered, int pageNumber) {
+        HtmlRenderPage? renderedPage = rendered.Pages.FirstOrDefault(page => page.PageNumber == pageNumber);
+        string? pageName = renderedPage?.PageName
+            ?? rendered.Pages
+                .Where(page => page.PageNumber < pageNumber)
+                .OrderByDescending(page => page.PageNumber)
+                .Select(page => page.PageName)
+                .FirstOrDefault();
+        return renderedPage != null
+            ? new HtmlCssPageGeometry(renderedPage.Width, renderedPage.Height, renderedPage.Margins)
+            : _pageRules.ResolveGeometry(pageNumber, pageName, _options);
+    }
+
+    private void RelayoutFootnoteEntry(HtmlFootnoteEntry entry, double width) {
+        if (Math.Abs(entry.LayoutWidth - width) <= 0.0001D) return;
+        entry.Block = LayoutElementWithoutEditableRegionMarker(
+            entry.Element,
+            width,
+            entry.Style,
+            entry.ParentStyle,
+            entry.Depth + 1);
+        entry.LayoutWidth = width;
     }
 
     private static int FindFootnoteCallPage(HtmlRenderDocument rendered, HtmlFootnoteEntry entry) {
@@ -227,7 +307,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             cursorY += gap;
             string marker = entry.MarkerContent
                 + (chunk.Start > 0.0001D ? "\u00a0(cont.)" : string.Empty);
-            double markerGutter = entry.SuppressMarker ? 0D : FootnoteMarkerGutter;
+            double markerGutter = entry.MarkerGutter;
             IReadOnlyList<HtmlRenderVisual> body = SliceBlockVisuals(entry.Block, chunk.Start, chunk.End);
             var children = new List<HtmlRenderVisual>();
             if (chunk.Start <= 0.0001D) {
@@ -239,19 +319,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-destination"));
             }
             if (!entry.SuppressMarker) {
-                children.Add(new HtmlRenderText(
-                    marker,
-                    geometry.Margins.Left,
-                    cursorY,
-                    FootnoteMarkerGutter - 2D,
-                    Math.Max(0.01D, entry.MarkerStyle.LineHeight),
-                    entry.MarkerStyle.Font,
-                    entry.MarkerStyle.Color,
-                    OfficeTextAlignment.Left,
-                    entry.MarkerStyle.LineHeight,
-                    _paintOrder++,
-                    "#" + FootnoteCallDestination(entry.Number),
-                    HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker"));
+                if (entry.MarkerBlock != null) {
+                    foreach (HtmlRenderVisual visual in entry.MarkerBlock.Visuals) {
+                        children.Add(visual.Translate(geometry.Margins.Left, cursorY, _paintOrder++));
+                    }
+                    if (chunk.Start > 0.0001D) {
+                        children.Add(new HtmlRenderText(
+                            "\u00a0(cont.)",
+                            geometry.Margins.Left + entry.MarkerBlock.Width,
+                            cursorY,
+                            Math.Max(0.01D, markerGutter - entry.MarkerBlock.Width),
+                            Math.Max(0.01D, entry.MarkerStyle.LineHeight),
+                            entry.MarkerStyle.Font,
+                            entry.MarkerStyle.Color,
+                            OfficeTextAlignment.Left,
+                            entry.MarkerStyle.LineHeight,
+                            _paintOrder++,
+                            "#" + FootnoteCallDestination(entry.Number),
+                            HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker"));
+                    }
+                } else {
+                    children.Add(new HtmlRenderText(
+                        marker,
+                        geometry.Margins.Left,
+                        cursorY,
+                        Math.Max(0.01D, markerGutter - 2D),
+                        Math.Max(0.01D, entry.MarkerStyle.LineHeight),
+                        entry.MarkerStyle.Font,
+                        entry.MarkerStyle.Color,
+                        OfficeTextAlignment.Left,
+                        entry.MarkerStyle.LineHeight,
+                        _paintOrder++,
+                        "#" + FootnoteCallDestination(entry.Number),
+                        HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker"));
+                }
             }
             foreach (HtmlRenderVisual visual in body) {
                 children.Add(visual.Translate(geometry.Margins.Left + markerGutter, cursorY, _paintOrder++));
@@ -276,25 +377,40 @@ internal sealed class HtmlFootnoteEntry {
         IElement element,
         int number,
         HtmlRenderFlowBlock block,
+        double layoutWidth,
         HtmlRenderBoxStyle style,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
         HtmlRenderBoxStyle markerStyle,
         string markerContent,
+        HtmlRenderFlowBlock? markerBlock,
+        double markerGutter,
         bool suppressMarker) {
         Element = element;
         Number = number;
         Block = block;
+        LayoutWidth = layoutWidth;
         Style = style;
+        ParentStyle = parentStyle;
+        Depth = depth;
         MarkerStyle = markerStyle;
         MarkerContent = markerContent;
+        MarkerBlock = markerBlock;
+        MarkerGutter = markerGutter;
         SuppressMarker = suppressMarker;
     }
 
     internal IElement Element { get; }
     internal int Number { get; }
-    internal HtmlRenderFlowBlock Block { get; }
+    internal HtmlRenderFlowBlock Block { get; set; }
+    internal double LayoutWidth { get; set; }
     internal HtmlRenderBoxStyle Style { get; }
+    internal HtmlRenderBoxStyle ParentStyle { get; }
+    internal int Depth { get; }
     internal HtmlRenderBoxStyle MarkerStyle { get; }
     internal string MarkerContent { get; }
+    internal HtmlRenderFlowBlock? MarkerBlock { get; }
+    internal double MarkerGutter { get; }
     internal bool SuppressMarker { get; }
 }
 

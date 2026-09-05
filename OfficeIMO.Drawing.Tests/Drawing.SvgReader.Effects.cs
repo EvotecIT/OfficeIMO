@@ -224,6 +224,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_TransformsFilterVectorsWithTheFilteredElement() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-10 0 20 20'><defs>"
+            + "<filter id='moved'><feOffset dx='2' dy='1'/></filter></defs>"
+            + "<rect width='3' height='2' fill='lime' transform='rotate(90)' filter='url(#moved)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing,
+            out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup filterHost = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingEffectGroup offset = Assert.Single(filterHost.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Equal(-1D, offset.Transform.OffsetX, 6);
+        Assert.Equal(2D, offset.Transform.OffsetY, 6);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_DiagnosesFilterGraphsOutsideTheStaticPrimitiveSubset() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs>"
             + "<filter id='graph'><feGaussianBlur stdDeviation='1' result='blur'/><feBlend in='SourceGraphic' in2='blur'/></filter></defs>"

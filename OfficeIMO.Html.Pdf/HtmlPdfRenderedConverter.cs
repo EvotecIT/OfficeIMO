@@ -549,6 +549,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingX = Math.Max(0D, x);
         double drawingY = Math.Max(0D, y);
         OfficeTransform transform = OfficeTransform.Translate(Math.Min(0D, x), Math.Min(0D, y));
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
             drawingX,
@@ -556,12 +557,21 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
-            linkUri: visual.LinkUri,
-            linkContents: visual.LinkUri == null ? null : visual.Source);
+            linkUri: fragmentLink ? null : visual.LinkUri,
+            linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source);
         if (transform == OfficeTransform.Identity) {
             addDrawing(canvas);
         } else {
             canvas.Effect(transform, 1D, addDrawing);
+        }
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
         }
     }
 
@@ -667,6 +677,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     visual.SourceCrop.Bottom)
             }
             : null;
+        bool fragmentLink = IsFragmentLink(visual.LinkUri);
         canvas.ImageShared(
             imageResource,
             visual.X * PointsPerCssPixel,
@@ -674,9 +685,18 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             style,
-            linkUri: visual.LinkUri,
-            linkContents: visual.LinkUri == null ? null : visual.Source,
+            linkUri: fragmentLink ? null : visual.LinkUri,
+            linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
             alternativeText: visual.AlternativeText);
+        if (fragmentLink) {
+            canvas.LinkToNamedDestination(
+                MapNamedDestination(visual.LinkUri!.Substring(1)),
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                visual.Source);
+        }
     }
 
     private static void AddDrawing(

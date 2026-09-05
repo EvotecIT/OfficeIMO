@@ -105,7 +105,7 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (rootHasEffects) {
-                TryApplySvgFilter(rootContent, rootFilterEffect, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
+                TryApplySvgFilter(rootContent, rootFilterEffect, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
                 scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
             }
             if (visited > maximumElements) return false;
@@ -889,7 +889,7 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             }
             return;
@@ -941,7 +941,7 @@ public static partial class OfficeSvgDrawingReader {
                     ref unsupported);
             }
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             }
             return;
@@ -1036,7 +1036,7 @@ public static partial class OfficeSvgDrawingReader {
                 if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShape(shape.Shape, shape.X, shape.Y);
                 if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
-                TryApplySvgFilter(target, filterEffect, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else {
                 drawing.AddShape(shape.Shape, shape.X, shape.Y);

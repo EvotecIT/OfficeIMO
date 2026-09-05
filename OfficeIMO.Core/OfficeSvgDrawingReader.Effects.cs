@@ -200,6 +200,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryApplySvgFilter(
         OfficeDrawing source,
         SvgFilterEffect? effect,
+        OfficeTransform transform,
         int maximumElements,
         ref int visited,
         ref int unsupported,
@@ -226,7 +227,8 @@ public static partial class OfficeSvgDrawingReader {
         var filtered = new OfficeDrawing(source.Width, source.Height);
         filtered.Fonts.AddRange(source.Fonts);
         if (effect.Kind == SvgFilterEffectKind.Offset) {
-            filtered.AddEffectDrawing(source, OfficeTransform.Translate(effect.OffsetX, effect.OffsetY));
+            OfficePoint offset = TransformSvgEffectVector(transform, effect.OffsetX, effect.OffsetY);
+            filtered.AddEffectDrawing(source, OfficeTransform.Translate(offset.X, offset.Y));
         } else {
             OfficeDrawing paint = source.Clone();
             if (effect.Kind == SvgFilterEffectKind.DropShadow) paint.ApplyColorTint(effect.Color);
@@ -234,9 +236,13 @@ public static partial class OfficeSvgDrawingReader {
             blurred.Fonts.AddRange(source.Fonts);
             for (int sampleIndex = 0; sampleIndex < samples.Count; sampleIndex++) {
                 OfficePoint sample = samples[sampleIndex];
+                OfficePoint offset = TransformSvgEffectVector(
+                    transform,
+                    effect.OffsetX + sample.X,
+                    effect.OffsetY + sample.Y);
                 blurred.AddEffectDrawing(
                     paint,
-                    OfficeTransform.Translate(effect.OffsetX + sample.X, effect.OffsetY + sample.Y),
+                    OfficeTransform.Translate(offset.X, offset.Y),
                     ResolveSvgFilterSampleOpacity(effect.Opacity, samples.Count, sampleIndex));
             }
             filtered.AddEffectDrawing(blurred, OfficeTransform.Identity);
@@ -247,6 +253,11 @@ public static partial class OfficeSvgDrawingReader {
         result = filtered;
         return true;
     }
+
+    private static OfficePoint TransformSvgEffectVector(OfficeTransform transform, double x, double y) =>
+        new OfficePoint(
+            transform.M11 * x + transform.M21 * y,
+            transform.M12 * x + transform.M22 * y);
 
     private static IReadOnlyList<OfficePoint> CreateSvgFilterSamples(double blurRadius) {
         if (blurRadius <= 0.0001D) return new[] { new OfficePoint(0D, 0D) };
