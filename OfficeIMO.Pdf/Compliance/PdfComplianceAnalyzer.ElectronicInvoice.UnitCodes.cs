@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadUnitCodes(file, out PdfCiiUnitCodeEvidence? evidence, out string? unitDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadUnitCodes(file.DataSnapshot, out CiiUnitCodeEvidence? evidence, out string? unitDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-unit-code",
                     "EN 16931 XML unit code",

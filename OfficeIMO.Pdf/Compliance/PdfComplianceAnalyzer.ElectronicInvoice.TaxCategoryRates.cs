@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxCategoryRates(file, out PdfCiiTaxCategoryRateEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxCategoryRates(file.DataSnapshot, out CiiTaxCategoryRateEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-category-rate",
                     "EN 16931 XML tax category rate",

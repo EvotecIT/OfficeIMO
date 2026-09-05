@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxExemptionReasons(file, out PdfCiiTaxExemptionReasonEvidence? evidence, out string? taxDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxExemptionReasons(file.DataSnapshot, out CiiTaxExemptionReasonEvidence? evidence, out string? taxDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-exemption-reason",
                     "EN 16931 XML tax exemption reason",

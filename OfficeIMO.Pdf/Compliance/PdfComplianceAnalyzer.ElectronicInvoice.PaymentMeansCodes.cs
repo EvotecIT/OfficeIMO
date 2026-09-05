@@ -97,7 +97,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadPaymentMeansCodes(file, out PdfCiiPaymentMeansCodeEvidence? evidence, out string? paymentDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadPaymentMeansCodes(file.DataSnapshot, out CiiPaymentMeansCodeEvidence? evidence, out string? paymentDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-payment-means-code",
                     "EN 16931 XML payment means code",

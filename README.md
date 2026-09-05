@@ -232,6 +232,14 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy binary suppor
 
 _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX model and renderers are first-party, while PDF conversion reuses the shared Reader/PDF projection.
 
+#### [OfficeIMO.Invoices](OfficeIMO.Invoices/README.md)
+
+- [x] Load existing namespace-100 CII XML and inspect selected invoice header fields
+- [x] Preserve original bytes until an edit is requested; replace an existing identifier or format-102 issue date without discarding unfamiliar XML content
+- [x] Reject edits to signed XML, require unambiguous scalar fields, bound XML input size and depth, and prohibit DTDs
+
+_Dependency footprint:_ no third-party runtime packages or other OfficeIMO document owners. Full invoice authoring, tax calculation, and profile certification are outside this model's contract.
+
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
 - [x] Create PDFs with page setup, rich text, TrueType/OpenType-CFF subsetting, bounded managed Arabic plus shaping-provider positioning, multilingual font fallback, dictionary hyphenation, mixed inline visuals, typed business recipes, page-aware components, styled multipage containers, balanced block-flow columns, tables, and images
@@ -254,7 +262,7 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Core`; the VSDX mo
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ `OfficeIMO.Core` and `OfficeIMO.Invoices`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 

@@ -1395,6 +1395,12 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode, and invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
 
+For preservation-based XML header editing, load a `CiiInvoiceDocument` from
+[`OfficeIMO.Invoices`](../OfficeIMO.Invoices/README.md) and attach it with
+`UseFacturXDocument(invoice)`. This snapshots the XML through the same carrier
+groundwork. The application still owns agreement between visible invoice content
+and XML; changing the model does not edit PDF pages or related payment references.
+
 ### Page setup, watermarks, and metadata
 
 ```csharp

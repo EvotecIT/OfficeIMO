@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadTaxTotalConsistency(file, out PdfCiiTaxTotalConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadTaxTotalConsistency(file.DataSnapshot, out CiiTaxTotalConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-total-consistency",
                     "EN 16931 XML tax total consistency",

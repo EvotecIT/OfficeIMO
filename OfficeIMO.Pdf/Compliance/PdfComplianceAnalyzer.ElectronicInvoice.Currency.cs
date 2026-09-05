@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadCurrencyConsistency(file, out PdfCiiCurrencyConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadCurrencyConsistency(file.DataSnapshot, out CiiCurrencyConsistencyEvidence? evidence, out string? consistencyDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-currency-consistency",
                     "EN 16931 XML currency consistency",

@@ -22,6 +22,7 @@ try {
         'OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj',
         'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
         'OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj',
+        'OfficeIMO.Invoices/OfficeIMO.Invoices.csproj',
         'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
         'OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj'
     )

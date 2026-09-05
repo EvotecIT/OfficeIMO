@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryReadAllowanceChargeReasons(file, out PdfCiiAllowanceChargeReasonEvidence? evidence, out string? reasonDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryReadAllowanceChargeReasons(file.DataSnapshot, out CiiAllowanceChargeReasonEvidence? evidence, out string? reasonDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-allowance-charge-reason",
                     "EN 16931 XML allowance/charge reasons",

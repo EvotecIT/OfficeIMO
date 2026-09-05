@@ -68,7 +68,7 @@ internal static partial class PdfComplianceAnalyzer {
                 continue;
             }
 
-            if (!PdfCiiDocumentHeaderInspector.TryRead(file, out PdfCiiDocumentHeaderEvidence? evidence, out string? documentDiagnostic)) {
+            if (!CiiDocumentHeaderInspector.TryRead(file.DataSnapshot, out CiiDocumentHeaderEvidence? evidence, out string? documentDiagnostic)) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-document-type-code",
                     "EN 16931 XML document type code",
