@@ -8,11 +8,8 @@
   }
 
   let entries = [];
-  let indexLoadError = null;
-  let resolveIndexReady;
-  const indexReady = new Promise(function (resolve) {
-    resolveIndexReady = resolve;
-  });
+  let indexLoaded = false;
+  let webMcpResultsVisible = false;
   const webMcpSearch = window.PowerForgeWebMcpSearch || {};
   window.PowerForgeWebMcpSearch = webMcpSearch;
 
@@ -72,46 +69,18 @@
     }).join('');
   }
 
-  function awaitIndex(signal) {
-    if (!signal) {
-      return indexReady;
-    }
-    if (signal.aborted) {
-      return Promise.reject(new DOMException('The OfficeIMO search was cancelled.', 'AbortError'));
-    }
-
-    return new Promise(function (resolve, reject) {
-      function cleanup() {
-        signal.removeEventListener('abort', abort);
-      }
-      function abort() {
-        cleanup();
-        reject(new DOMException('The OfficeIMO search was cancelled.', 'AbortError'));
-      }
-      signal.addEventListener('abort', abort, { once: true });
-      indexReady.then(function () {
-        cleanup();
-        resolve();
-      });
-    });
-  }
-
-  webMcpSearch.adapter = {
-    search: async function (request) {
-      await awaitIndex(request.signal);
-      if (indexLoadError) {
-        throw indexLoadError;
-      }
-      if (typeof webMcpSearch.searchEntries !== 'function') {
-        throw new Error('The PowerForge WebMCP search runtime is unavailable.');
-      }
-
-      const result = webMcpSearch.searchEntries(entries, request.query, request.limit);
-      input.value = request.query;
-      render(result.results, request.query);
-      return result;
-    }
+  webMcpSearch.renderVisibleResults = function (response) {
+    webMcpResultsVisible = true;
+    input.value = response.query;
+    render(response.results, response.query);
   };
+
+  input.addEventListener('input', function () {
+    webMcpResultsVisible = false;
+    if (indexLoaded) {
+      runSearch();
+    }
+  });
 
   try {
     let indexPath = '/search/index.json';
@@ -129,14 +98,14 @@
     }
 
     entries = await indexResponse.json();
+    indexLoaded = true;
   } catch (error) {
-    indexLoadError = error instanceof Error ? error : new Error(String(error));
-    meta.textContent = 'Search index unavailable.';
-    results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
-    resolveIndexReady();
+    if (!webMcpResultsVisible) {
+      meta.textContent = 'Search index unavailable.';
+      results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
+    }
     return;
   }
-  resolveIndexReady();
 
   function runSearch() {
     const query = input.value.trim().toLowerCase();
@@ -166,6 +135,7 @@
     render(matches, query);
   }
 
-  input.addEventListener('input', runSearch);
-  runSearch();
+  if (!webMcpResultsVisible) {
+    runSearch();
+  }
 })();
