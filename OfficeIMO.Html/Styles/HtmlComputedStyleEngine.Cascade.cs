@@ -34,6 +34,15 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
+        if (!HtmlCssCustomPropertyResolver.ContainsVarFunction(value)
+            && (valueAlreadyValidated || IsSupportedDeclarationValue(name, value))
+            && TryExpandPhysicalBoxShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
+            foreach (KeyValuePair<string, string> longhand in boxLonghands) {
+                ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
+                    valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            }
+        }
+
         string shorthandValue = value;
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {

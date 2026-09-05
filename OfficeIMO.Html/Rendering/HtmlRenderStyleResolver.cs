@@ -774,40 +774,12 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        string margin = computed.GetValue("margin");
-        ApplyAutoMargins(computed, margin, style);
-        if (margin.Length > 0) HtmlRenderCssValues.ApplyBoxShorthand(
-            margin,
-            reference,
-            fontSize,
-            _options.DefaultFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            ref style.MarginTop,
-            ref style.MarginRight,
-            ref style.MarginBottom,
-            ref style.MarginLeft);
-        ApplyLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
-        ApplyLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
-        ApplyLength(computed.GetValue("margin-bottom"), reference, fontSize, ref style.MarginBottom);
-        ApplyLength(computed.GetValue("margin-left"), reference, fontSize, ref style.MarginLeft);
+        ApplyAutoMargins(computed, style);
+        ApplyMarginLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
+        ApplyMarginLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
+        ApplyMarginLength(computed.GetValue("margin-bottom"), reference, fontSize, ref style.MarginBottom);
+        ApplyMarginLength(computed.GetValue("margin-left"), reference, fontSize, ref style.MarginLeft);
 
-        string padding = computed.GetValue("padding");
-        if (padding.Length > 0) HtmlRenderCssValues.ApplyBoxShorthand(
-            padding,
-            reference,
-            fontSize,
-            _options.DefaultFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            ref style.PaddingTop,
-            ref style.PaddingRight,
-            ref style.PaddingBottom,
-            ref style.PaddingLeft);
         ApplyLength(computed.GetValue("padding-top"), reference, fontSize, ref style.PaddingTop);
         ApplyLength(computed.GetValue("padding-right"), reference, fontSize, ref style.PaddingRight);
         ApplyLength(computed.GetValue("padding-bottom"), reference, fontSize, ref style.PaddingBottom);
@@ -816,16 +788,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyBorderAndOutlinePaint(computed, reference, fontSize, style);
     }
 
-    private static void ApplyAutoMargins(HtmlComputedStyle computed, string shorthand, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
-        string top = values.Count > 0 ? values[0] : string.Empty;
-        string right = values.Count > 1 ? values[1] : top;
-        string bottom = values.Count > 2 ? values[2] : top;
-        string left = values.Count > 3 ? values[3] : right;
-        style.MarginTopAuto = string.Equals(top, "auto", StringComparison.OrdinalIgnoreCase);
-        style.MarginRightAuto = string.Equals(right, "auto", StringComparison.OrdinalIgnoreCase);
-        style.MarginBottomAuto = string.Equals(bottom, "auto", StringComparison.OrdinalIgnoreCase);
-        style.MarginLeftAuto = string.Equals(left, "auto", StringComparison.OrdinalIgnoreCase);
+    private static void ApplyAutoMargins(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        style.MarginTopAuto = false;
+        style.MarginRightAuto = false;
+        style.MarginBottomAuto = false;
+        style.MarginLeftAuto = false;
         OverrideAutoMargin(computed.GetValue("margin-top"), ref style.MarginTopAuto);
         OverrideAutoMargin(computed.GetValue("margin-right"), ref style.MarginRightAuto);
         OverrideAutoMargin(computed.GetValue("margin-bottom"), ref style.MarginBottomAuto);
@@ -1392,6 +1359,10 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private void ApplyLength(string value, double reference, double fontSize, ref double target) {
         if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed)) target = Math.Max(0D, parsed);
+    }
+
+    private void ApplyMarginLength(string value, double reference, double fontSize, ref double target) {
+        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed)) target = parsed;
     }
 
     private double? ReadLength(string cssValue, string? attributeValue, double reference, double fontSize) {

@@ -529,6 +529,8 @@ public static partial class HtmlComputedStyleEngine {
             ? ResolveCustomPropertyValues(raw, parentProperties)
             : raw;
 
+        ExpandResolvedPhysicalBoxShorthands(resolved, priorities, inherited, reset, specified);
+
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);

@@ -11,6 +11,13 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("margin-left:5px;margin-inline-start:20px", 20D)]
     [InlineData("margin-inline-start:20px;margin-left:5px", 5D)]
     [InlineData("margin-inline-start:20px!important;margin-left:5px", 20D)]
+    [InlineData("margin-inline-start:20px;margin:5px", 5D)]
+    [InlineData("margin:5px;margin-inline-start:20px", 20D)]
+    [InlineData("margin-left:20px;margin:5px", 5D)]
+    [InlineData("margin:5px;margin-left:20px", 20D)]
+    [InlineData("margin-inline-start:20px;margin:5px!important", 5D)]
+    [InlineData("margin:5px!important;margin-inline-start:20px", 5D)]
+    [InlineData("--gap:5px;margin-inline-start:20px;margin:var(--gap)", 5D)]
     public void HtmlRender_LogicalAndPhysicalPropertiesRespectTheFullCascade(string declarations, double expectedX) {
         string html = $"<div id='logical' style='{declarations};width:20px;height:10px;background:red'></div>";
         var options = new HtmlRenderOptions {
@@ -25,6 +32,79 @@ public sealed partial class HtmlRenderingTests {
             item => item.Source == "div#logical" && item.Shape.FillColor == OfficeColor.Red);
 
         Assert.Equal(expectedX, shape.X, 3);
+    }
+
+    [Theory]
+    [InlineData("#logical { margin:5px } .box { margin-inline-start:20px }", 5D)]
+    [InlineData("#logical { margin-inline-start:20px } .box { margin:5px }", 20D)]
+    public void HtmlRender_ShorthandProjectionPreservesSelectorSpecificity(string css, double expectedX) {
+        string html = $"<style>{css}</style><div id='logical' class='box' style='width:20px;height:10px;background:red'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#logical" && item.Shape.FillColor == OfficeColor.Red);
+
+        Assert.Equal(expectedX, shape.X, 3);
+    }
+
+    [Theory]
+    [InlineData("padding-inline-start:20px;padding:5px", 5D)]
+    [InlineData("padding:5px;padding-inline-start:20px", 20D)]
+    [InlineData("padding-left:20px;padding:5px", 5D)]
+    [InlineData("padding:5px;padding-left:20px", 20D)]
+    [InlineData("padding-inline-start:20px;padding:5px!important", 5D)]
+    public void HtmlRender_PaddingShorthandsAndLogicalLonghandsRespectTheFullCascade(string declarations, double expectedX) {
+        string html = $"<div id='parent' style='{declarations};width:60px'><div id='child' style='width:10px;height:10px;background:red'></div></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#child" && item.Shape.FillColor == OfficeColor.Red);
+
+        Assert.Equal(expectedX, shape.X, 3);
+    }
+
+    [Theory]
+    [InlineData("border-inline-start:5px solid red;border:2px solid blue", 2D, 0, 0, 255)]
+    [InlineData("border:2px solid blue;border-inline-start:5px solid red", 5D, 255, 0, 0)]
+    [InlineData("border-left-width:8px;border:2px solid blue", 2D, 0, 0, 255)]
+    [InlineData("border:2px solid blue;border-left-width:8px", 8D, 0, 0, 255)]
+    [InlineData("border-inline-start:5px solid red;border:2px solid blue!important", 2D, 0, 0, 255)]
+    public void HtmlRender_BorderShorthandsComponentsAndLogicalSidesRespectTheFullCascade(
+        string declarations,
+        double expectedWidth,
+        byte red,
+        byte green,
+        byte blue) {
+        string html = $"<div id='logical' style='{declarations};width:30px;height:20px'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        IReadOnlyList<HtmlRenderShape> strokes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(item => item.Shape.StrokeWidth > 0D)
+            .ToList();
+        HtmlRenderShape? border = strokes.FirstOrDefault(item =>
+            item.Source.EndsWith(":border-left", StringComparison.Ordinal));
+        border ??= Assert.Single(strokes);
+
+        Assert.Equal(expectedWidth, border.Shape.StrokeWidth, 3);
+        Assert.Equal(OfficeColor.FromRgb(red, green, blue), border.Shape.StrokeColor);
     }
 
     [Theory]

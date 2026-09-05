@@ -117,7 +117,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             cancellationToken.ThrowIfCancellationRequested();
             if (++operations > MaximumOperations) throw new InvalidDataException("GSUB shaping exceeded the managed operation budget.");
             if (lookupType == 1) ApplySingle(glyphs, glyphIndex, subtable);
-            else if (lookupType == 2) ApplyMultiple(glyphs, glyphIndex, subtable);
+            else if (lookupType == 2) {
+                int replacementCount = ApplyMultiple(glyphs, glyphIndex, subtable);
+                if (replacementCount > 1) glyphIndex += replacementCount - 1;
+            }
             else if (lookupType == 3) ApplyAlternate(glyphs, glyphIndex, subtable, featureValue);
             else if (lookupType == 4 && ApplyLigature(glyphs, glyphIndex, subtable)) glyphIndex--;
             else if (lookupType == 5) ApplyContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);

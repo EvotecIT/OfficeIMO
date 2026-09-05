@@ -41,11 +41,26 @@ internal static class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithMultipleSubstitution(int scalar) =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub());
 
+    internal static byte[] CreateFontWithSelfReferentialMultipleSubstitution(int scalar) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub(2, 1));
+
     internal static byte[] CreateFontWithContextualSubstitution(int firstScalar, int secondScalar) =>
         CreateFontFromCmap(
             CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
             glyphCount: 4,
             gsub: CreateContextualGsub());
+
+    internal static byte[] CreateFontWithUnsupportedNestedContextualLookupFlags(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub(nestedLookupFlags: 0x0008));
+
+    internal static byte[] CreateFontWithUnsupportedNestedReverseContextualLookup(int firstScalar, int secondScalar) =>
+        CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 4,
+            gsub: CreateContextualGsub(nestedLookupType: 8));
 
     internal static byte[] CreateColorFont(int scalar) {
         return CreateFontFromCmap(
@@ -255,7 +270,7 @@ internal static class ManagedTextShapingTestAssets {
         return table;
     }
 
-    private static byte[] CreateMultipleGsub() {
+    private static byte[] CreateMultipleGsub(ushort firstReplacement = 3, ushort secondReplacement = 4) {
         var data = new byte[60];
         WriteUInt32(data, 0, 0x00010000);
         WriteUInt16(data, 4, 10);
@@ -282,12 +297,12 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 50, 1);
         WriteUInt16(data, 52, 1);
         WriteUInt16(data, 54, 2);
-        WriteUInt16(data, 56, 3);
-        WriteUInt16(data, 58, 4);
+        WriteUInt16(data, 56, firstReplacement);
+        WriteUInt16(data, 58, secondReplacement);
         return data;
     }
 
-    private static byte[] CreateContextualGsub() {
+    private static byte[] CreateContextualGsub(ushort nestedLookupFlags = 0, ushort nestedLookupType = 1) {
         var data = new byte[88];
         WriteUInt32(data, 0, 0x00010000);
         WriteUInt16(data, 4, 10);
@@ -320,8 +335,8 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 60, 1);
         WriteUInt16(data, 62, 1);
         WriteUInt16(data, 64, 2);
-        WriteUInt16(data, 66, 1);
-        WriteUInt16(data, 68, 0);
+        WriteUInt16(data, 66, nestedLookupType);
+        WriteUInt16(data, 68, nestedLookupFlags);
         WriteUInt16(data, 70, 1);
         WriteUInt16(data, 72, 8);
         WriteUInt16(data, 74, 2);

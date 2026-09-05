@@ -259,6 +259,26 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void ManagedProvider_DoesNotReprocessGlyphsCreatedByMultipleSubstitution() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithSelfReferentialMultipleSubstitution('A');
+        var request = new OfficeTextShapingRequest(
+            "A",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en",
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("ccmp", 1) }));
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(new[] { 2, 1 }, result.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(new[] { "A", string.Empty }, result.Glyphs.Select(glyph => glyph.UnicodeText));
+    }
+
+    [Fact]
     public void ManagedProvider_AppliesContextualFormatThreeLookupRecords() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithContextualSubstitution('A', 'B');
         var request = new OfficeTextShapingRequest(
@@ -276,6 +296,38 @@ public class DrawingManagedTextShapingProviderTests {
 
         Assert.Equal(new[] { 1, 3 }, result.Glyphs.Select(glyph => glyph.GlyphId));
         Assert.Equal(new[] { "A", "B" }, result.Glyphs.Select(glyph => glyph.UnicodeText));
+    }
+
+    [Fact]
+    public void ManagedProvider_DeclinesUnsupportedFlagsOnNestedContextualLookups() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithUnsupportedNestedContextualLookupFlags('A', 'B');
+        var request = new OfficeTextShapingRequest(
+            "AB",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en",
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("calt", 1) }));
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    [Fact]
+    public void ManagedProvider_DeclinesNestedReverseContextualLookupsThatCannotRunAtOneGlyph() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithUnsupportedNestedReverseContextualLookup('A', 'B');
+        var request = new OfficeTextShapingRequest(
+            "AB",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.LeftToRight,
+            language: "en",
+            featureSettings: new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("calt", 1) }));
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
     }
 
     private static bool ContainsColor(OfficeRasterImage image, Func<OfficeColor, bool> predicate) {

@@ -12,6 +12,17 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     internal bool CanApply(OfficeTextFeatureSettings settings) {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
+        try {
+            return CanApplyCore(settings);
+        } catch (Exception exception) when (exception is InvalidDataException
+                                            || exception is OverflowException
+                                            || exception is ArgumentOutOfRangeException
+                                            || exception is IndexOutOfRangeException) {
+            return false;
+        }
+    }
+
+    private bool CanApplyCore(OfficeTextFeatureSettings settings) {
         Ensure(_featureList, 2);
         int featureCount = _reader.ReadUInt16(_featureList);
         if (featureCount > MaximumFeatureRecords) return false;
@@ -32,7 +43,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private bool CanApplyLookup(int lookupIndex, int depth) {
-        if (depth > 1) return false;
+        if (depth >= MaximumLookupRecursion) return false;
         Ensure(_lookupList, 2);
         int lookupCount = _reader.ReadUInt16(_lookupList);
         if (lookupIndex < 0 || lookupIndex >= lookupCount) return false;
@@ -56,36 +67,79 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 subtable = Relative(subtable, (int)relative, 2);
             }
             if (effectiveType < 1 || effectiveType > 8 || effectiveType == 7) return false;
+            if (depth > 0 && effectiveType == 8) return false;
             if ((effectiveType == 5 || effectiveType == 6) && _reader.ReadUInt16(subtable) != 3) return false;
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
+            if ((effectiveType == 5 || effectiveType == 6)
+                && !CanApplyContextLookupRecords(effectiveType, subtable, depth)) return false;
         }
         return true;
     }
 
-    private bool ApplyMultiple(List<GlyphToken> glyphs, int index, int subtable) {
+    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth) {
+        int records;
+        int recordCount;
+        int inputGlyphCount;
+        if (lookupType == 5) {
+            Ensure(subtable, 6);
+            int glyphCount = _reader.ReadUInt16(subtable + 2);
+            recordCount = _reader.ReadUInt16(subtable + 4);
+            if (glyphCount <= 0 || glyphCount > MaximumContextGlyphs || recordCount > MaximumContextLookupRecords) return false;
+            inputGlyphCount = glyphCount;
+            records = checked(subtable + 6 + glyphCount * 2);
+            Ensure(subtable + 6, checked(glyphCount * 2 + recordCount * 4));
+        } else {
+            Ensure(subtable, 4);
+            int cursor = subtable + 2;
+            int backtrackCount = ReadBoundedCount(cursor);
+            cursor = checked(cursor + 2 + backtrackCount * 2);
+            Ensure(cursor, 2);
+            int inputCount = ReadBoundedCount(cursor);
+            if (inputCount <= 0) return false;
+            inputGlyphCount = inputCount;
+            cursor = checked(cursor + 2 + inputCount * 2);
+            Ensure(cursor, 2);
+            int lookaheadCount = ReadBoundedCount(cursor);
+            cursor = checked(cursor + 2 + lookaheadCount * 2);
+            Ensure(cursor, 2);
+            recordCount = _reader.ReadUInt16(cursor);
+            if (recordCount > MaximumContextLookupRecords) return false;
+            records = cursor + 2;
+            Ensure(records, checked(recordCount * 4));
+        }
+
+        for (int record = 0; record < recordCount; record++) {
+            int sequenceIndex = _reader.ReadUInt16(records + record * 4);
+            int nestedLookup = _reader.ReadUInt16(records + record * 4 + 2);
+            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1)) return false;
+        }
+        return true;
+    }
+
+    private int ApplyMultiple(List<GlyphToken> glyphs, int index, int subtable) {
         Ensure(subtable, 6);
-        if (_reader.ReadUInt16(subtable) != 1) return false;
+        if (_reader.ReadUInt16(subtable) != 1) return 0;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
         int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
         int sequenceCount = _reader.ReadUInt16(subtable + 4);
-        if (sequenceCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= sequenceCount) return false;
+        if (sequenceCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= sequenceCount) return 0;
         Ensure(subtable + 6, checked(sequenceCount * 2));
         int sequence = Relative(subtable, _reader.ReadUInt16(subtable + 6 + coverageIndex * 2), 2);
         int replacementCount = _reader.ReadUInt16(sequence);
-        if (replacementCount <= 0 || replacementCount > MaximumContextGlyphs) return false;
+        if (replacementCount <= 0 || replacementCount > MaximumContextGlyphs) return 0;
         Ensure(sequence + 2, checked(replacementCount * 2));
         GlyphToken source = glyphs[index];
         var replacements = new GlyphToken[replacementCount];
         for (int replacementIndex = 0; replacementIndex < replacementCount; replacementIndex++) {
             int glyphId = _reader.ReadUInt16(sequence + 2 + replacementIndex * 2);
-            if (glyphId <= 0 || glyphId >= _reader.GlyphCount) return false;
+            if (glyphId <= 0 || glyphId >= _reader.GlyphCount) return 0;
             replacements[replacementIndex] = replacementIndex == 0
                 ? source.WithGlyph(glyphId)
                 : new GlyphToken(glyphId, string.Empty, source.TextIndex, source.Scalar, isUnicodeContinuation: true);
         }
         glyphs.RemoveAt(index);
         glyphs.InsertRange(index, replacements);
-        return true;
+        return replacementCount;
     }
 
     private void ApplyContextual(
