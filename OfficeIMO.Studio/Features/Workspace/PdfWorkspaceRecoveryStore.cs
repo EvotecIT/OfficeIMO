@@ -6,7 +6,7 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
-internal sealed class PdfWorkspaceRecoveryStore {
+internal sealed partial class PdfWorkspaceRecoveryStore {
     internal const long MaximumSnapshotBytes = 512L * 1024 * 1024;
     internal static readonly TimeSpan Retention = TimeSpan.FromDays(30);
     private const int MaximumMetadataBytes = 64 * 1024;
@@ -32,7 +32,7 @@ internal sealed class PdfWorkspaceRecoveryStore {
         }
         string canonicalPath = Canonicalize(sourcePath);
         string key = CreateKey(canonicalPath);
-        Directory.CreateDirectory(_root);
+        using FileStream lease = await AcquireExclusiveAsync(cancellationToken).ConfigureAwait(false);
         string snapshotPath = Path.Combine(_root, key + ".recovery");
         string recoveryFingerprint = Fingerprint(bytes);
 
@@ -51,6 +51,9 @@ internal sealed class PdfWorkspaceRecoveryStore {
     }
 
     internal void Delete(string sourcePath) {
+        if (!Directory.Exists(_root)) return;
+        using FileStream? lease = TryAcquireExclusive();
+        if (lease is null) return;
         string key = CreateKey(Canonicalize(sourcePath));
         TryDelete(Path.Combine(_root, key + ".recovery"));
         TryDelete(Path.Combine(_root, key + ".pdf"));

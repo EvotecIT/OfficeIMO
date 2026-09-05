@@ -2,6 +2,7 @@ using System.Globalization;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Infrastructure;
 
@@ -19,6 +20,7 @@ internal sealed class StudioApplicationServices {
         Localizer = localizer;
         Diagnostics = diagnostics;
         DocumentViews = new StudioDocumentViewStore(paths.DocumentViewsPath);
+        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot);
     }
 
     internal StudioDataPaths Paths { get; }
@@ -32,6 +34,8 @@ internal sealed class StudioApplicationServices {
     internal IStudioDiagnostics Diagnostics { get; }
 
     internal StudioDocumentViewStore DocumentViews { get; }
+
+    internal PdfWorkspaceRecoveryStore Recovery { get; }
 
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 

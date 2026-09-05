@@ -9,6 +9,7 @@ using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Infrastructure.Diagnostics;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -312,6 +313,13 @@ public sealed partial class MainWindow : Window {
 
     private async void OnOpened(object? sender, EventArgs e) {
         ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
+        try {
+            var cleanup = await _services.Recovery.CleanupExpiredAsync();
+            if (cleanup.FailedFiles > 0) _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupIncomplete");
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupFailed", error);
+        }
+        if (_windowClosed) return;
         await _session.InspectAsync();
         if (_windowClosed) return;
         if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;

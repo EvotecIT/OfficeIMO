@@ -9,6 +9,10 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
+    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+        if (!_disposed) OnPropertyChanged(nameof(HasRecovery));
+    });
+
     private readonly HashSet<int> _organizerSelection = new();
     private CancellationTokenSource? _operationCancellation;
     private bool _disposeWhenIdle;

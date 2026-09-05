@@ -71,6 +71,22 @@
             <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
             <CheckBox IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}" />
             <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryRetention}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
+                    IsVisible="{Binding !ConfirmRecoveryClear}" IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
+            <Border IsVisible="{Binding ConfirmRecoveryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
+                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Loc Settings.RecoveryClearWarning}" TextWrapping="Wrap" />
+                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}">
+                  <Button Classes="tool" Foreground="{DynamicResource StudioErrorBrush}" Content="{loc:Loc Settings.DeleteRecovery}" Command="{Binding ClearRecoveryCommand}" Margin="0,0,8,6" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelRecoveryClearCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{loc:Loc Settings.RecoveryClearing}" IsVisible="{Binding IsRecoveryBusy}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding RecoveryStatus}" IsVisible="{Binding HasRecoveryStatus}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.DiagnosticsLocation}" FontWeight="SemiBold" Margin="0,4,0,0" />
             <TextBlock Text="{Binding DiagnosticsDirectory}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>

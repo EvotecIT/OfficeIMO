@@ -5,7 +5,7 @@ using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class PdfWorkspaceRecoveryStoreTests {
+public sealed partial class PdfWorkspaceRecoveryStoreTests {
     [Theory]
     [InlineData("expired", false)]
     [InlineData("future", false)]
@@ -121,7 +121,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 store.WriteAsync(source, fingerprint, second, 2, canceled.Token));
             Assert.Equal(first, store.ReadVerifiedSnapshot(source, fingerprint));
-            Assert.Single(Directory.GetFiles(root));
+            Assert.Equal([snapshot], RecoveryDataFiles(root));
 
             if (OperatingSystem.IsWindows()) {
                 using (var locked = new FileStream(snapshot, FileMode.Open, FileAccess.Read, FileShare.Read)) {
@@ -130,7 +130,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
                     Assert.True(error is IOException or UnauthorizedAccessException);
                 }
                 Assert.Equal(first, store.ReadVerifiedSnapshot(source, fingerprint));
-                Assert.Single(Directory.GetFiles(root));
+                Assert.Equal([snapshot], RecoveryDataFiles(root));
             }
 
             // An interrupted, unpublished staging file cannot hide the committed snapshot.
@@ -179,7 +179,7 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
             Assert.Null(store.ReadVerifiedSnapshot(source, fingerprint));
             store.Delete(source);
             Assert.Null(store.Find(source, fingerprint));
-            Assert.Empty(Directory.GetFiles(root));
+            Assert.Empty(RecoveryDataFiles(root));
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -193,6 +193,9 @@ public sealed class PdfWorkspaceRecoveryStoreTests {
         stream.ReadExactly(metadata);
         return JsonNode.Parse(metadata)!.AsObject();
     }
+
+    private static string[] RecoveryDataFiles(string root) => Directory.GetFiles(root)
+        .Where(path => Path.GetFileName(path) != PdfWorkspaceRecoveryStore.LockFileName).ToArray();
 
     private static void WriteFixture(string path, JsonObject metadata, byte[] pdf, bool legacy = false) {
         byte[] json = System.Text.Encoding.UTF8.GetBytes(metadata.ToJsonString());

@@ -17,9 +17,12 @@ internal static class TestAppBuilder {
 
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder
-            .Configure(() => new App(StudioApplicationServices.Create(
-                new StudioDataPaths(Path.Combine(TestRoot, Guid.NewGuid().ToString("N"))))))
-            .UseHeadless(new AvaloniaHeadlessPlatformOptions());
+            .Configure(() => new App(CreateTestServices()))
+            .UseSkia()
+            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+
+    internal static StudioApplicationServices CreateTestServices() => StudioApplicationServices.Create(
+        new StudioDataPaths(Path.Combine(TestRoot, Guid.NewGuid().ToString("N"))));
 
     internal static HeadlessUnitTestSession StartSession() =>
         HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder), AvaloniaTestIsolationLevel.PerTest);

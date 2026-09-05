@@ -43,7 +43,8 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         _services = services;
         _pickCopy = pickCopy;
         _store = new(services.Paths.SessionPath);
-        _recovery = new(services.Paths.RecoveryRoot);
+        _recovery = services.Recovery;
+        _recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         StudioSessionSnapshot previous = services.Preferences.Current.RememberSession ? _store.Load() : new(1, DateTimeOffset.UtcNow, null, []);
         _previousActivePath = previous.ActivePath;
         foreach (var document in previous.Documents) Pending.Add(new(document));
@@ -59,6 +60,10 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
 
     public ObservableCollection<StudioSessionItem> Pending { get; } = [];
     public bool HasPending => Pending.Count > 0;
+    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Dispatcher.UIThread.Post(() => {
+        if (_disposed) return;
+        foreach (var item in Pending) item.HasRecovery = item.HasRecovery && _recovery.HasSnapshotFiles(item.SourcePath);
+    });
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _error;
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
@@ -205,6 +210,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        _recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _saveTimer.Stop();
         _host.Tabs.CollectionChanged -= OnTabsChanged;
         _host.PropertyChanged -= OnHostChanged;

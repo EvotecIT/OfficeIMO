@@ -131,7 +131,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             ocrService,
             canPublishPath ?? _canSaveAsPath,
             _localizer);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery);
+        _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
@@ -330,7 +331,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         while (true) {
             try {
                 return await PdfWorkspace.OpenAsync(path, cancellationToken,
-                    recoveryStore: new PdfWorkspaceRecoveryStore(_services.Paths.RecoveryRoot), password: password).ConfigureAwait(true);
+                    recoveryStore: _services.Recovery, password: password).ConfigureAwait(true);
             } catch (PdfPasswordRequiredException) {
                 invalidPassword = false;
             } catch (PdfInvalidPasswordException) {
@@ -444,6 +445,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (_disposed) return;
         SaveDocumentViewState();
         _disposed = true;
+        _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;

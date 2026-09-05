@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Features.Settings;
 
@@ -15,15 +16,20 @@ internal sealed record StudioDensityChoice(StudioDensityPreference Value, string
 internal sealed partial class StudioSettingsViewModel : ObservableObject, IDisposable {
     private readonly StudioPreferencesService _preferences;
     private readonly IStudioLocalizer _localizer;
+    private readonly IStudioDiagnostics _diagnostics;
+    private readonly PdfWorkspaceRecoveryStore _recovery;
     private bool _synchronizing;
 
     internal StudioSettingsViewModel(
         StudioPreferencesService preferences,
         IStudioLocalizer localizer,
-        IStudioDiagnostics diagnostics) {
+        IStudioDiagnostics diagnostics,
+        PdfWorkspaceRecoveryStore recovery) {
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
         ArgumentNullException.ThrowIfNull(diagnostics);
+        _diagnostics = diagnostics;
+        _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
 
         Cultures = StudioCultureCatalog.Available
             .Select(culture => new StudioCultureChoice(

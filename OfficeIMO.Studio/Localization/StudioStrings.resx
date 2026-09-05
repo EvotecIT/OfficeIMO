@@ -1426,4 +1426,15 @@
   </data>
   <data name="Session.Remember" xml:space="preserve"><value>Remember open documents for next time</value></data>
   <data name="Session.RememberDescription" xml:space="preserve"><value>Stores document paths and reading positions locally for restart. Turning this off clears the session list; edit recovery and recent documents are separate.</value></data>
+  <data name="Settings.RecoveryStorage" xml:space="preserve"><value>Edit recovery</value></data>
+  <data name="Settings.RecoveryRetention" xml:space="preserve"><value>Recovery files contain document content. Studio checks for old recovery data at startup: copies expire after 30 days, and abandoned temporary files become eligible for cleanup after one day.</value></data>
+  <data name="Settings.ClearRecovery" xml:space="preserve"><value>Clear stored recovery files…</value></data>
+  <data name="Settings.RecoveryClearWarning" xml:space="preserve"><value>Delete stored recovery files? Unsaved edits from previous sessions cannot be recovered afterward. Open documents and original files stay intact. New edits can create new recovery copies.</value></data>
+  <data name="Settings.DeleteRecovery" xml:space="preserve"><value>Delete recovery files</value></data>
+  <data name="Settings.CancelRecoveryClear" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Settings.RecoveryClearing" xml:space="preserve"><value>Clearing recovery files…</value></data>
+  <data name="Settings.RecoveryCleared" xml:space="preserve"><value>Recovery files removed: {0}. New edits can create new copies.</value></data>
+  <data name="Settings.RecoveryClearIncomplete" xml:space="preserve"><value>Recovery files removed: {0}. Could not remove: {1}. Close other Studio windows or check folder access, then retry.</value></data>
+  <data name="Settings.RecoveryClearFailed" xml:space="preserve"><value>Recovery files could not be cleared. Check folder access or close other Studio windows, then retry.</value></data>
+  <data name="Settings.RecoveryClearCanceled" xml:space="preserve"><value>Cleanup was canceled. Some recovery files may already have been removed.</value></data>
 </root>
