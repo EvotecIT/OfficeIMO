@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Internal;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -14,6 +15,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
+    private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
 
     public ConversionWorkbenchViewModel(
@@ -27,12 +29,14 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        StudioStorageAccess? storage = null) {
         _pickFiles = pickFiles;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
+        _storage = storage;
         _localizer = localizer ?? StudioLocalization.Current;
         Routes = OfficeWorkflowCatalog.Routes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
@@ -115,14 +119,15 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         var identities = new HashSet<string>(StringComparer.Ordinal);
         try {
             foreach (ConversionJobViewModel job in Jobs.Where(job => job.Route.Route.Id == SelectedRoute.Route.Id)) {
-                identities.Add(OfficePathIdentity.GetPathIdentityKey(job.InputPath));
+                identities.Add(InputIdentity(job.InputPath));
             }
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
             Status = _localizer.FormatOrDefault("Conversion.Add.IdentityFailed", "A queued input could not be inspected. Remove or restore it before adding files: {0}", exception.Message);
             return;
         }
         foreach (string path in paths) {
-            string extension = Path.GetExtension(path);
+            string fileName = _storage?.Describe(path).Name ?? Path.GetFileName(path);
+            string extension = Path.GetExtension(fileName);
             bool accepts = SelectedRoute.Route.SourceExtensions.Any(item =>
                 string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
             if (!accepts) {
@@ -131,8 +136,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             }
             string fullPath;
             try {
-                fullPath = Path.GetFullPath(path);
-                if (!identities.Add(OfficePathIdentity.GetPathIdentityKey(fullPath))) {
+                fullPath = OfficeStorageIdentity.Normalize(path);
+                if (!identities.Add(InputIdentity(fullPath))) {
                     skipped++;
                     continue;
                 }
@@ -144,7 +149,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 skippedForLimit++;
                 continue;
             }
-            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer);
+            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer, fileName);
             Jobs.Add(job);
             SelectedJob ??= job;
             added++;
@@ -192,6 +197,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     private async Task RunJobsAsync(ConversionJobViewModel[] candidates) {
         if (IsBusy || candidates.Length == 0) return;
+        if (string.IsNullOrWhiteSpace(OutputFolder) && candidates.Any(job => _storage?.UsesProviderPublication(job.InputPath) == true)) {
+            Status = T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents.");
+            return;
+        }
         _cancellation?.Dispose();
         var operationCancellation = new CancellationTokenSource();
         _cancellation = operationCancellation;
@@ -276,16 +285,20 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     }
 
     private OfficeWorkflowRequest CreateRequest(ConversionJobViewModel job) {
+        if (string.IsNullOrWhiteSpace(OutputFolder) && _storage?.UsesProviderPublication(job.InputPath) == true) {
+            throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents."));
+        }
         string directory = string.IsNullOrWhiteSpace(OutputFolder)
             ? Path.GetDirectoryName(job.InputPath)!
             : Path.GetFullPath(OutputFolder);
         string outputPath = Path.Combine(
             directory,
-            Path.GetFileNameWithoutExtension(job.InputPath) + NormalizeExtension(job.Route.Route.TargetExtension));
+            Path.GetFileNameWithoutExtension(job.FileName) + NormalizeExtension(job.Route.Route.TargetExtension));
         return new OfficeWorkflowRequest {
             Id = job.Id,
             Operation = OfficeWorkflowOperation.Convert,
             InputPath = job.InputPath,
+            InputStream = _storage?.CreateWorkflowInput(job.InputPath),
             OutputPath = outputPath,
             ConversionRouteId = job.Route.Route.Id,
             OutputProfile = SelectedProfile.Value,
@@ -304,6 +317,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     }
 
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
+
+    private string InputIdentity(string location) => _storage?.UsesProviderPublication(location) == true
+        ? OfficeStorageIdentity.Normalize(location) : OfficePathIdentity.GetPathIdentityKey(location);
 
     private string T(string suffix, string fallback) =>
         _localizer.GetOrDefault("Conversion." + suffix, fallback);

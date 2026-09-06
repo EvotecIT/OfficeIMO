@@ -12,6 +12,43 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class OfficeStoragePublicationTests {
     [Fact]
+    public async Task StreamSnapshotIsSeekablePrivateAndRemovedAfterUse() {
+        string path;
+        string directory;
+        byte[] bytes = new byte[] { 1, 2, 3, 4 };
+        using (var snapshot = await OfficeStreamFileSnapshot.CaptureAsync(_ => Task.FromResult<Stream>(new MemoryStream(bytes)),
+                   ".pdf", 20, null, default)) {
+            path = snapshot.FilePath;
+            directory = Path.GetDirectoryName(path)!;
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.Equal(4, snapshot.Length);
+            Assert.Equal(64, snapshot.Fingerprint.Length);
+#if NET6_0_OR_GREATER
+            if (!OperatingSystem.IsWindows()) {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(directory));
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+            }
+#endif
+            await snapshot.VerifySourceAsync(_ => Task.FromResult<Stream>(new MemoryStream(bytes)), 20, default);
+        }
+        Assert.False(File.Exists(path));
+        Assert.False(Directory.Exists(directory));
+    }
+
+    [Theory]
+    [InlineData(".pdf/../../escape")]
+    [InlineData(".pdf\\escape")]
+    [InlineData(".pdf:stream")]
+    public async Task StreamSnapshotRejectsUnsafeExtensionsBeforeOpeningSource(string extension) {
+        bool opened = false;
+        await Assert.ThrowsAsync<ArgumentException>(() => OfficeStreamFileSnapshot.CaptureAsync(_ => {
+            opened = true;
+            return Task.FromResult<Stream>(new MemoryStream());
+        }, extension, 20, null, default));
+        Assert.False(opened);
+    }
+
+    [Fact]
     public async Task SerializationLimitAppliesBeforeBufferGrowthForEveryWriteSurface() {
         using var stream = new OfficeBoundedMemoryStream(5);
         await stream.WriteAsync(new byte[] { 1, 2, 3, 4 }, 0, 4, default);

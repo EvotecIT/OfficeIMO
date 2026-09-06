@@ -161,8 +161,14 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Primary input file.</summary>
     public required string InputPath { get; set; }
 
+    /// <summary>Optional provider access for <see cref="InputPath"/>. The path remains the original location or absolute URI.</summary>
+    public OfficeWorkflowStreamInput? InputStream { get; set; }
+
     /// <summary>Comparison input used by <see cref="OfficeWorkflowOperation.Compare"/>.</summary>
     public string? ComparisonPath { get; set; }
+
+    /// <summary>Optional provider access for <see cref="ComparisonPath"/>.</summary>
+    public OfficeWorkflowStreamInput? ComparisonStream { get; set; }
 
     /// <summary>Conversion route identifier from <see cref="OfficeWorkflowCatalog"/>.</summary>
     public string? ConversionRouteId { get; set; }

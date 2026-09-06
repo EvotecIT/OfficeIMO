@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Workflows;
 using OfficeIMO.Internal;
 
@@ -12,15 +13,17 @@ public sealed partial class PdfAssemblySourceViewModel : ObservableObject {
 
     public PdfAssemblySourceViewModel(string path) : this(path, null) { }
 
-    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer) {
-        Path = System.IO.Path.GetFullPath(path);
+    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer, string? name = null) {
+        Path = OfficeStorageIdentity.Normalize(path);
+        _name = name;
         _localizer = localizer ?? StudioLocalization.Current;
     }
     public string Path { get; }
-    public string Name => Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path);
+    private readonly string? _name;
+    public string Name => _name ?? (Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path));
     public string Kind => Directory.Exists(Path)
         ? _localizer.GetOrDefault("Assembly.Source.Folder", "Folder")
-        : System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
+        : System.IO.Path.GetExtension(Name).TrimStart('.').ToUpperInvariant();
 }
 
 public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable {
@@ -31,6 +34,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
+    private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
@@ -46,13 +50,15 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        StudioStorageAccess? storage = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
+        _storage = storage;
         _localizer = localizer ?? StudioLocalization.Current;
         Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
         Summary = T("Summary.Empty", "No assembly run yet");
@@ -156,6 +162,8 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         try {
             var request = new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
+                SourceStreams = Sources.Select(source => (source.Path, Access: _storage?.CreateWorkflowInput(source.Path)))
+                    .Where(source => source.Access is not null).ToDictionary(source => source.Path, source => source.Access!, StringComparer.Ordinal),
                 OutputPath = OutputPath,
                 PublicationGuard = _publicationGuard,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
@@ -202,7 +210,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         if (IsBusy) return;
         var existing = new HashSet<string>(StringComparer.Ordinal);
         try {
-            foreach (var source in Sources) existing.Add(OfficePathIdentity.GetPathIdentityKey(source.Path));
+            foreach (var source in Sources) existing.Add(InputIdentity(source.Path));
         } catch (Exception exception) when (IsIdentityFailure(exception)) {
             Status = T("Sources.Unavailable", "An assembly source could not be inspected. Restore or remove it before adding more sources.");
             return;
@@ -210,13 +218,13 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         int skipped = 0;
         foreach (string path in paths.Where(static path => !string.IsNullOrWhiteSpace(path))) {
             try {
-                string fullPath = System.IO.Path.GetFullPath(path);
-                if (!existing.Add(OfficePathIdentity.GetPathIdentityKey(fullPath))) continue;
-                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer));
+                string fullPath = OfficeStorageIdentity.Normalize(path);
+                if (!existing.Add(InputIdentity(fullPath))) continue;
+                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer, _storage?.Describe(fullPath).Name));
             } catch (Exception exception) when (IsIdentityFailure(exception)) { skipped++; }
         }
         SelectedSource ??= Sources.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0) {
+        if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0 && _storage?.UsesProviderPublication(Sources[0].Path) != true) {
             string first = Sources[0].Path;
             string directory = Directory.Exists(first)
                 ? Directory.GetParent(first)?.FullName ?? first
@@ -229,6 +237,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
 
     private static bool IsIdentityFailure(Exception exception) =>
         exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException;
+
+    private string InputIdentity(string location) => _storage?.UsesProviderPublication(location) == true
+        ? OfficeStorageIdentity.Normalize(location) : OfficePathIdentity.GetPathIdentityKey(location);
 
     private void MoveSelected(int offset) {
         if (IsBusy || SelectedSource is null) return;

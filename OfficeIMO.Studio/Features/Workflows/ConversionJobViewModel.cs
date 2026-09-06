@@ -25,9 +25,10 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     public ConversionJobViewModel(string inputPath, ConversionRouteChoice route) : this(inputPath, route, null) { }
 
-    internal ConversionJobViewModel(string inputPath, ConversionRouteChoice route, IStudioLocalizer? localizer) {
+    internal ConversionJobViewModel(string inputPath, ConversionRouteChoice route, IStudioLocalizer? localizer, string? fileName = null) {
         Id = Guid.NewGuid().ToString("N");
         InputPath = inputPath;
+        FileName = fileName ?? Path.GetFileName(inputPath);
         Route = route;
         _localizer = localizer ?? StudioLocalization.Current;
         Status = _localizer.GetOrDefault("Conversion.Job.Queued", "Queued");
@@ -35,7 +36,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     public string Id { get; }
     public string InputPath { get; }
-    public string FileName => Path.GetFileName(InputPath);
+    public string FileName { get; }
     public ConversionRouteChoice Route { get; }
     public string RouteLabel => Route.Route.Source + " → " + Route.Route.Target;
     public string Engine => Route.Engine;

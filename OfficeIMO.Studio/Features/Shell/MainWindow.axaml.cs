@@ -94,7 +94,7 @@ public sealed partial class MainWindow : Window {
             confirmProviderWrite: ConfirmProviderWriteAsync,
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
-            pickWorkflowFiles: PickWorkflowFilesAsync,
+            pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
@@ -403,8 +403,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.Select(static file => file.Path.LocalPath).ToArray();
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<string?> PickAssemblyFolderAsync(CancellationToken cancellationToken) {

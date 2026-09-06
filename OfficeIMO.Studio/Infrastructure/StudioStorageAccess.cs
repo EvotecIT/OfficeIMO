@@ -100,6 +100,10 @@ internal sealed class StudioStorageAccess : IDisposable {
             (OperatingSystem.IsMacOS() && _references.ContainsKey(OfficeStorageIdentity.Normalize(location)));
     }
 
+    internal OfficeIMO.Workflows.OfficeWorkflowStreamInput? CreateWorkflowInput(string location) =>
+        UsesProviderPublication(location)
+            ? new(Describe(location).Name, token => OpenReadAsync(location, token)) : null;
+
     internal async Task<StudioStorageSnapshot> ReadSnapshotAsync(string location, CancellationToken token,
         long maximumBytes = MaximumDocumentBytes) {
         if (maximumBytes < 1 || maximumBytes > MaximumDocumentBytes) throw new ArgumentOutOfRangeException(nameof(maximumBytes));

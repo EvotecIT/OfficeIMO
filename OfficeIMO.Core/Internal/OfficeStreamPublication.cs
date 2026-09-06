@@ -82,6 +82,14 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
+        internal static async Task VerifyFingerprintAsync(Func<CancellationToken, Task<Stream>> openRead,
+            string expectedFingerprint, long maximumBytes, CancellationToken cancellationToken) {
+            string current = await ReadFingerprintAsync(openRead, maximumBytes, cancellationToken).ConfigureAwait(false);
+            if (!string.Equals(current, expectedFingerprint, StringComparison.OrdinalIgnoreCase)) {
+                throw new IOException("The input changed while the workflow was running. No output was published.");
+            }
+        }
+
         private static string ToHex(byte[] bytes) => BitConverter.ToString(bytes).Replace("-", string.Empty);
     }
 }

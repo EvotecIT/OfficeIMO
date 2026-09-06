@@ -29,11 +29,12 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        OfficeIMO.Studio.Infrastructure.StudioStorageAccess? storage = null) {
         localizer ??= StudioLocalization.Current;
         PrintPreview = new PrintPreviewViewModel(pickPdf, localizer);
         PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory);
-        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory);
+        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage);
         PrintPreview.PropertyChanged += OnChildPropertyChanged;
         PageExport.PropertyChanged += OnChildPropertyChanged;
         Assembly.PropertyChanged += OnChildPropertyChanged;

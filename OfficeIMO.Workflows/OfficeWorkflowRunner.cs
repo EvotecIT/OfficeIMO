@@ -38,6 +38,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? stagingPath = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedRequest? validated = prepared.Validated;
+        var inputs = new WorkflowInputSnapshots();
 
         try {
             if (prepared.ValidationException != null) throw prepared.ValidationException;
@@ -47,6 +48,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
+            validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
             if (validated.ComparisonPath is not null) {
@@ -61,6 +63,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (artifact.Bytes is null) {
+                await inputs.VerifyAsync(validated.Limits.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+                inputs.Dispose();
                 Report(progress, validated.Id, "complete", "Workflow report is ready", 1D);
                 return CreateResult(
                     validated,
@@ -108,6 +112,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
+            inputs.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
@@ -128,7 +133,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 artifact.Summary,
                 diagnostics,
                 artifact.HealthReport);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            ReportInputStagingCleanupFailure(error, diagnostics);
+            inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "Cancelled",
                 "The workflow was cancelled before publication; no staged artifact was retained.",
@@ -146,6 +153,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 "Cancelled",
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
+            ReportInputStagingCleanupFailure(ex, diagnostics);
+            inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,
@@ -167,6 +176,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 diagnostics);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);
+            inputs.Cleanup(diagnostics);
         }
     }
 
@@ -520,95 +530,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             diagnostics);
     }
 
-    private static PreparedRequest PrepareRequest(OfficeWorkflowRequest request) {
-        string id = request.Id;
-        OfficeWorkflowOperation operation = request.Operation;
-        try {
-            ValidatedRequest validated = ValidateRequest(request);
-            return new PreparedRequest(validated.Id, validated.Operation, validated, null);
-        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
-            return new PreparedRequest(id, operation, null, exception);
-        }
-    }
-
-    private static ValidatedRequest ValidateRequest(OfficeWorkflowRequest request) {
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
-        if (!Enum.IsDefined(typeof(OfficeWorkflowOperation), request.Operation)) {
-            throw new ArgumentOutOfRangeException(nameof(request), request.Operation, "Choose a supported workflow operation.");
-        }
-        if (!Enum.IsDefined(typeof(OfficeWorkflowConflictPolicy), request.ConflictPolicy)) {
-            throw new ArgumentOutOfRangeException(nameof(request), request.ConflictPolicy, "Choose a supported output conflict policy.");
-        }
-        if (!Enum.IsDefined(typeof(OfficeWorkflowOutputProfile), request.OutputProfile)) {
-            throw new ArgumentOutOfRangeException(nameof(request), request.OutputProfile, "Choose a supported workflow output profile.");
-        }
-        if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
-        string inputPath = Path.GetFullPath(request.InputPath);
-        if (!File.Exists(inputPath)) throw new FileNotFoundException("The workflow input file does not exist.", inputPath);
-        OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
-        OfficeWorkflowRoute? route = null;
-        string? comparisonPath = null;
-        string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : Path.GetFullPath(request.OutputPath);
-
-        if (request.Operation == OfficeWorkflowOperation.Convert) {
-            route = OfficeWorkflowCatalog.FindExecutable(request.ConversionRouteId)
-                ?? throw new ArgumentException("Choose a supported conversion route.", nameof(request));
-            string extension = Path.GetExtension(inputPath);
-            if (!route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase))) {
-                throw new ArgumentException($"Route '{route.Id}' does not accept '{extension}' input.", nameof(request));
-            }
-            outputPath ??= Path.ChangeExtension(inputPath, NormalizeExtension(route.TargetExtension));
-            if (!string.Equals(Path.GetExtension(outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
-                throw new ArgumentException($"Route '{route.Id}' requires a '{NormalizeExtension(route.TargetExtension)}' output.", nameof(request));
-            }
-            if ((route.Id == "html-pdf" || route.Id.StartsWith("pdf-", StringComparison.Ordinal)) &&
-                request.OutputProfile != OfficeWorkflowOutputProfile.Faithful) {
-                throw new ArgumentException(
-                    $"The {route.Id} route currently supports only the Faithful output profile.",
-                    nameof(request));
-            }
-        } else if (request.Operation == OfficeWorkflowOperation.Compare) {
-            if (string.IsNullOrWhiteSpace(request.ComparisonPath)) throw new ArgumentException("PDF comparison requires a second input path.", nameof(request));
-            comparisonPath = Path.GetFullPath(request.ComparisonPath);
-            if (!File.Exists(comparisonPath)) throw new FileNotFoundException("The comparison PDF does not exist.", comparisonPath);
-            EnsurePdfExtension(inputPath);
-            EnsurePdfExtension(comparisonPath);
-            if (outputPath is not null && !string.Equals(Path.GetExtension(outputPath), ".html", StringComparison.OrdinalIgnoreCase)) {
-                throw new ArgumentException("Comparison output must be an HTML gallery.", nameof(request));
-            }
-        } else {
-            EnsurePdfExtension(inputPath);
-            if (request.Operation == OfficeWorkflowOperation.Optimize &&
-                request.OutputProfile == OfficeWorkflowOutputProfile.TextOnly) {
-                throw new ArgumentException(
-                    "Lossless PDF optimization does not support the TextOnly output profile.",
-                    nameof(request));
-            }
-            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize) {
-                outputPath ??= Path.Combine(
-                    Path.GetDirectoryName(inputPath)!,
-                    Path.GetFileNameWithoutExtension(inputPath) + "." + request.Operation.ToString().ToLowerInvariant() + ".pdf");
-                EnsurePdfExtension(outputPath);
-            } else if (request.Operation is OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan && outputPath is not null) {
-                throw new ArgumentException("The selected report-only operation does not publish an artifact.", nameof(request));
-            }
-        }
-
-        return new ValidatedRequest(
-            request.Id,
-            request.Operation,
-            inputPath,
-            comparisonPath,
-            outputPath,
-            route,
-            request.ConflictPolicy,
-            request.OutputProfile,
-            limits,
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
-            CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes), request.PublicationGuard);
-    }
-
     internal static PdfLoadOptions CreatePdfLoadOptions(string? password, long maximumInputBytes) {
         return new PdfLoadOptions {
             Password = password,
@@ -839,5 +760,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfLoadOptions PdfLoadOptions,
         PdfLoadOptions ComparisonPdfLoadOptions,
         PdfLoadOptions OutputPdfLoadOptions,
-        IOfficeWorkflowPublicationGuard? PublicationGuard = null);
+        IOfficeWorkflowPublicationGuard? PublicationGuard = null,
+        OfficeWorkflowStreamInput? InputStream = null,
+        OfficeWorkflowStreamInput? ComparisonStream = null);
 }

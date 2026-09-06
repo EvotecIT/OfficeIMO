@@ -127,7 +127,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             runner: null,
             localizer: _localizer,
             publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs);
+            jobHistory: _services.Jobs, storage: _services.Storage);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
@@ -136,7 +136,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             _pickSavePdf,
             localizer: _localizer,
             publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs);
+            jobHistory: _services.Jobs, storage: _services.Storage);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs);
         OcrWorkbench = new SearchablePdfOcrViewModel(

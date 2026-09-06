@@ -205,6 +205,9 @@ public sealed class PdfAssemblyRequest {
     /// <summary>Ordered files, folders, or ZIP archives.</summary>
     public required IReadOnlyList<string> Sources { get; set; }
 
+    /// <summary>Optional provider streams keyed by their original entries in <see cref="Sources"/>. Local folders use filesystem access.</summary>
+    public IReadOnlyDictionary<string, OfficeWorkflowStreamInput> SourceStreams { get; set; } = new Dictionary<string, OfficeWorkflowStreamInput>();
+
     /// <summary>Requested output PDF.</summary>
     public required string OutputPath { get; set; }
 

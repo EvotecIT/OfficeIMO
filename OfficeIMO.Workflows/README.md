@@ -58,6 +58,27 @@ Every request runs with explicit input and output limits, cancellation, staged o
 
 Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
 
+## Read provider-backed inputs
+
+Set `InputStream` on an `OfficeWorkflowRequest` when a file picker or storage provider supplies stream access. Keep `InputPath` as the original location or absolute URI, and supply the display filename for format routing:
+
+```csharp
+var request = new OfficeWorkflowRequest {
+    Operation = OfficeWorkflowOperation.Convert,
+    ConversionRouteId = "docx-pdf",
+    InputPath = selectedLocation,
+    InputStream = new OfficeWorkflowStreamInput(selectedName, openSelectedReadStream),
+    OutputPath = outputPdfPath
+};
+OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: cancellationToken);
+```
+
+`openSelectedReadStream` is a `Func<CancellationToken, Task<Stream>>`. It must return a fresh readable stream with the provider's permission scope each time. The runner closes every returned stream, stages a bounded private input for the document engine, and verifies the provider's SHA-256 again after host authorization and before publication. An optional `expectedSha256` constructor argument binds execution to contents captured when the user selected the input. Revoked access, changed contents, cancellation, and exceeded limits prevent publication. This is a point-in-time content check; providers do not offer a shared filesystem lock or atomic compare-and-replace contract.
+
+Comparison accepts `ComparisonStream`. Assembly accepts `SourceStreams`, keyed by the exact original entries in `Sources`, and preserves input order and display names. Its provider staging shares the total input byte budget. A provider HTML stream can use embedded resources; selecting it alone does not grant access to neighboring images or stylesheets. A selected ZIP can carry relative resources through the existing bounded archive intake.
+
+Provider operations require an explicit filesystem output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination. Provider folder enumeration and provider output publication are separate host contracts.
+
 ## Review and apply PDF redactions
 
 Redaction uses a separate versioned plan/review/apply contract. Planning produces privacy-safe candidate identifiers and geometry. Application re-plans the exact source and recipe, requires every current candidate to be explicitly approved or rejected, applies only approved candidates, and publishes only after native and configured OCR verification succeeds.
