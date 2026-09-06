@@ -245,19 +245,6 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
-        int[] pages = GetSelectedPages();
-        if (_workspace is null || !CanExtractPages || pages.Length == 0) return;
-        PdfWorkspace workspace = _workspace;
-        long revision = workspace.Revision;
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path) || !IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
-        await RunStandaloneAsync(
-            token => workspace.ExtractAsync(pages, path, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-    }
-
-    [RelayCommand]
     private void SelectAllPages() => SetOrganizerSelection(OrganizerPages);
 
     private bool IsPageWorkflowCurrent(PdfWorkspace workspace, long revision) {

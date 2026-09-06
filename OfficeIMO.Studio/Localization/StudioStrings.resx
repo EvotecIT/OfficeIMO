@@ -1626,4 +1626,18 @@
   <data name="Organizer.ImportBeforePage" xml:space="preserve"><value>Insert before current page</value></data>
   <data name="Organizer.ImportEndHint" xml:space="preserve"><value>Use {0} to add pages at the end.</value></data>
   <data name="Organizer.ImportRangeFor" xml:space="preserve"><value>Page range for {0}</value></data>
+  <data name="Organizer.ExtractTitle" xml:space="preserve"><value>Extract PDF pages</value></data>
+  <data name="Organizer.ExtractProviderHint" xml:space="preserve"><value>Review page order before writing the selected provider file. An interrupted write may require recovery from Jobs.</value></data>
+  <data name="Organizer.ExtractLocalHint" xml:space="preserve"><value>Review page order before saving a separate PDF. An existing destination will be replaced.</value></data>
+  <data name="Organizer.ExtractRecovery" xml:space="preserve"><value>A verified recovery copy is available in Jobs. Check the destination before retrying.</value></data>
+  <data name="Organizer.ExtractRange" xml:space="preserve"><value>Pages in output order (for example, 3,1-2,3)</value></data>
+  <data name="Organizer.ExtractPageCount" xml:space="preserve"><value>Source: {0} pages · Output: {1} pages</value></data>
+  <data name="Organizer.ExtractPageLimit" xml:space="preserve"><value>An extraction cannot exceed 100,000 selected pages.</value></data>
+  <data name="Organizer.ExtractOrder" xml:space="preserve"><value>Resulting page order</value></data>
+  <data name="Organizer.ExtractOutputPage" xml:space="preserve"><value>Output page</value></data>
+  <data name="Organizer.ExtractSourcePage" xml:space="preserve"><value>Source page</value></data>
+  <data name="Organizer.ExtractReveal" xml:space="preserve"><value>Show folder</value></data>
+  <data name="Organizer.ExtractCreate" xml:space="preserve"><value>Save extracted PDF</value></data>
+  <data name="Organizer.ExtractInvalidRange" xml:space="preserve"><value>Enter page numbers or ranges from 1 to {0}, for example 3,1-2.</value></data>
+  <data name="Organizer.ExtractOpen" xml:space="preserve"><value>Open PDF</value></data>
 </root>

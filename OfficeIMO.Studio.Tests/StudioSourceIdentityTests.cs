@@ -33,10 +33,12 @@ public sealed class StudioSourceIdentityTests {
                 var result = await workspace.SplitAsync(outputFolder, 1, CancellationToken.None);
                 Assert.False(result.Succeeded);
                 Assert.Empty(result.Files);
+            } else if (operation == "extract") {
+                var result = await workspace.ExtractAsync([1], destination, CancellationToken.None);
+                Assert.False(result.Succeeded); Assert.Null(result.OutputPath);
             } else await Assert.ThrowsAsync<IOException>(async () => {
                 switch (operation) {
                     case "save-as": await workspace.SaveAsync(destination, CancellationToken.None); break;
-                    case "extract": await workspace.ExtractAsync([1], destination, CancellationToken.None); break;
                     case "protect": await workspace.SaveProtectedCopyAsync(destination, new PdfStandardEncryptionOptions("new"), "owner", CancellationToken.None); break;
                     case "decrypt": await workspace.SaveDecryptedCopyAsync(destination, "owner", CancellationToken.None); break;
                 }

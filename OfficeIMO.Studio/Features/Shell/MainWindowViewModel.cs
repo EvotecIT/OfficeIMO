@@ -108,7 +108,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<PageMovePreviewViewModel, Task<bool>>? reviewPageMove = null,
         Func<PageSplitPreviewViewModel, Task<bool>>? reviewPageSplit = null,
         Func<PageSplitPreviewViewModel, Task>? showPageSplitResult = null,
-        Func<PageImportPreviewViewModel, Task<bool>>? reviewPageImport = null) {
+        Func<PageImportPreviewViewModel, Task<bool>>? reviewPageImport = null,
+        Func<PageExtractionPreviewViewModel, Task<bool>>? reviewPageExtraction = null,
+        Func<PageExtractionPreviewViewModel, Task>? showPageExtractionResult = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -128,6 +130,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _reviewPageSplit = reviewPageSplit ?? (_ => Task.FromResult(false));
         _showPageSplitResult = showPageSplitResult ?? (_ => Task.CompletedTask);
         _reviewPageImport = reviewPageImport ?? (_ => Task.FromResult(false));
+        _reviewPageExtraction = reviewPageExtraction ?? (_ => Task.FromResult(false));
+        _showPageExtractionResult = showPageExtractionResult ?? (_ => Task.CompletedTask);
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));

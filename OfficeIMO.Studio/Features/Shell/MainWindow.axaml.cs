@@ -99,6 +99,8 @@ public sealed partial class MainWindow : Window {
             reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
             reviewPageSplit: preview => new PageSplitDialog(preview).ShowDialog<bool>(this),
             showPageSplitResult: result => new PageSplitDialog(result).ShowDialog(this),
+            reviewPageExtraction: preview => new PageExtractionDialog(preview).ShowDialog<bool>(this),
+            showPageExtractionResult: result => new PageExtractionDialog(result).ShowDialog(this),
             reviewPageImport: preview => new PageImportDialog(preview).ShowDialog<bool>(this),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
