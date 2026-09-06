@@ -1,12 +1,13 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.Workflows;
 
 /// <summary>Stores bounded, private recovery artifacts before non-atomic provider publication.</summary>
-public sealed class OfficeWorkflowOutputRecoveryStore {
+public sealed partial class OfficeWorkflowOutputRecoveryStore {
     private const string Prefix = "output-";
     private const int MaximumRecords = 100;
     private const int MaximumMetadataBytes = 65536;
@@ -89,7 +90,7 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
             string hash = Convert.ToHexString(SHA256.HashData(bytes));
             string id = Path.GetFileName(directory)[Prefix.Length..];
             var record = new Metadata(1, id, name, destination, bytes.LongLength, hash, DateTimeOffset.UtcNow);
-            byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(record);
+            byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(record, RecoveryJsonContext.Default.Metadata);
             if (metadata.Length > MaximumMetadataBytes) throw new InvalidDataException("The recovery metadata exceeds its size limit.");
             OfficeFileCommit.WriteAllBytes(path, bytes, OfficeFileCommit.UnixFileAccessPolicy.OwnerOnly);
             OfficeFileCommit.WriteAllBytes(Path.Combine(directory, "record.json"), metadata, OfficeFileCommit.UnixFileAccessPolicy.OwnerOnly);
@@ -172,7 +173,7 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
         string metadataPath = Path.Combine(directory, "record.json");
         if (!File.Exists(metadataPath)) return null;
         using FileStream input = OpenArtifact(metadataPath);
-        Metadata? record = JsonSerializer.Deserialize<Metadata>(OfficeStreamReader.ReadAllBytes(input, MaximumMetadataBytes));
+        Metadata? record = JsonSerializer.Deserialize(OfficeStreamReader.ReadAllBytes(input, MaximumMetadataBytes), RecoveryJsonContext.Default.Metadata);
         if (record is null || record.Version != 1 || record.Id != id || record.Name is null || record.Name.Length > 4096 ||
             record.Destination is null || record.Destination.Length > 4096 || record.Length < 0 || record.Length > MaximumRetainedBytes ||
             record.Sha256 is null || record.Sha256.Length != 64 || record.Sha256.Any(character => !Uri.IsHexDigit(character))) return null;
@@ -221,6 +222,9 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
     }
 
     private sealed record Metadata(int Version, string Id, string Name, string Destination, long Length, string Sha256, DateTimeOffset CreatedUtc);
+
+    [JsonSerializable(typeof(Metadata))]
+    private sealed partial class RecoveryJsonContext : JsonSerializerContext;
 
     internal sealed class RecoveryLease(OfficeWorkflowOutputRecovery recovery, FileStream lease) : IDisposable {
         internal OfficeWorkflowOutputRecovery Recovery { get; } = recovery;
