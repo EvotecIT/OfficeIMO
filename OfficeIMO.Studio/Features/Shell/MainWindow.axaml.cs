@@ -5,6 +5,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Infrastructure;
@@ -99,6 +100,8 @@ public sealed partial class MainWindow : Window {
             reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
             reviewPageSplit: preview => new PageSplitDialog(preview).ShowDialog<bool>(this),
             showPageSplitResult: result => new PageSplitDialog(result).ShowDialog(this),
+            reviewProtection: preview => new PdfProtectionDialog(preview).ShowDialog<bool>(this),
+            showProtectionResult: result => new PdfProtectionDialog(result).ShowDialog(this),
             reviewPageExtraction: preview => new PageExtractionDialog(preview).ShowDialog<bool>(this),
             showPageExtractionResult: result => new PageExtractionDialog(result).ShowDialog(this),
             reviewPageImport: preview => new PageImportDialog(preview).ShowDialog<bool>(this),

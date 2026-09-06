@@ -26,7 +26,7 @@ public sealed class StudioWorkspaceOutputOwnershipTests {
             host = new StudioDocumentTabHost(open => new MainWindowViewModel(_ => Task.FromResult<string?>(null),
                 services: services, openDocumentInTab: open, publicationGuard: guard,
                 pickSavePdf: _ => Task.FromResult<string?>(destination),
-                pickOutputFolder: _ => Task.FromResult<string?>(services.Paths.Root), reviewPageSplit: _ => Task.FromResult(true), reviewPageExtraction: _ => Task.FromResult(true)), _ => { });
+                pickOutputFolder: _ => Task.FromResult<string?>(services.Paths.Root), reviewPageSplit: _ => Task.FromResult(true), reviewPageExtraction: _ => Task.FromResult(true), reviewProtection: _ => Task.FromResult(true)), _ => { });
             using (host) {
                 await host.OpenDocumentAsync(source);
                 var producer = host.ActiveDocument;

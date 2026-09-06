@@ -36,13 +36,12 @@ public sealed class StudioSourceIdentityTests {
             } else if (operation == "extract") {
                 var result = await workspace.ExtractAsync([1], destination, CancellationToken.None);
                 Assert.False(result.Succeeded); Assert.Null(result.OutputPath);
-            } else await Assert.ThrowsAsync<IOException>(async () => {
-                switch (operation) {
-                    case "save-as": await workspace.SaveAsync(destination, CancellationToken.None); break;
-                    case "protect": await workspace.SaveProtectedCopyAsync(destination, new PdfStandardEncryptionOptions("new"), "owner", CancellationToken.None); break;
-                    case "decrypt": await workspace.SaveDecryptedCopyAsync(destination, "owner", CancellationToken.None); break;
-                }
-            });
+            } else if (operation is "protect" or "decrypt") {
+                var result = operation == "protect"
+                    ? await workspace.SaveProtectedCopyAsync(destination, new PdfStandardEncryptionOptions("new"), "owner", CancellationToken.None)
+                    : await workspace.SaveDecryptedCopyAsync(destination, "owner", CancellationToken.None);
+                Assert.False(result.Succeeded); Assert.Null(result.OutputPath);
+            } else await Assert.ThrowsAsync<IOException>(() => workspace.SaveAsync(destination, CancellationToken.None));
             Assert.Equal(2, checks);
             Assert.Equal(original, File.ReadAllBytes(source));
             Assert.Equal(operation != "decrypt", workspace.IsDirty);

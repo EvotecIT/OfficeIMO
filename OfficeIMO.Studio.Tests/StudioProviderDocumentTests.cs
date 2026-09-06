@@ -273,7 +273,9 @@ public sealed class StudioProviderDocumentTests {
         string protectedLocation = await storage.RegisterAsync(protectedCopy.Item, default);
         string extractedLocation = await storage.RegisterAsync(extractedCopy.Item, default);
         using var workspace = await PdfWorkspace.OpenAsync(location, default, new(root.Path), storage: storage);
-        await workspace.SaveProtectedCopyAsync(protectedLocation, new PdfStandardEncryptionOptions("reader-password"), null, default);
+        var protectedResult = await workspace.SaveProtectedCopyAsync(protectedLocation, new PdfStandardEncryptionOptions("reader-password"), null, default,
+            outputStream: storage.CreateWorkflowOutput(protectedLocation, new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "outputs"))));
+        Assert.True(protectedResult.Succeeded, protectedResult.Summary);
         var extracted = await workspace.ExtractAsync([2], extractedLocation, default,
             outputStream: storage.CreateWorkflowOutput(extractedLocation, new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "outputs"))));
         Assert.True(extracted.Succeeded, extracted.Summary);

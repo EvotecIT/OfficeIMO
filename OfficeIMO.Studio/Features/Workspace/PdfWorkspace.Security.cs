@@ -20,69 +20,6 @@ internal sealed partial class PdfWorkspace {
 
     internal bool CanSign => CanPlan(PdfMutationOperation.PrepareExternalSignature);
 
-    internal async Task SaveProtectedCopyAsync(
-        string destinationPath,
-        PdfStandardEncryptionOptions encryption,
-        string? currentOwnerPassword,
-        CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
-        ArgumentNullException.ThrowIfNull(encryption);
-        if (!CanChangeEncryption(currentOwnerPassword)) {
-            throw new InvalidOperationException("This document's signature, certification, usage-rights, or authorization policy prevents changing password protection.");
-        }
-        string destination = ValidateExportDestination(destinationPath);
-        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try {
-            progress?.Report(new PdfWorkspaceProgress("Applying password protection", 0.15D));
-            byte[] output = await RunCancellableCpuWorkAsync(() => {
-                PdfDocument document = LoadDocument(_bytes);
-                if (!IsEncrypted) return document.Security.Encrypt(encryption).Pdf;
-                string ownerPassword = _documentInfo.Security.HasOwnerAuthorization
-                    ? _readOptions.Password ?? string.Empty
-                    : currentOwnerPassword ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(ownerPassword)) {
-                    throw new InvalidOperationException("The current owner password is required to replace this document's protection.");
-                }
-                return document.Security.Reencrypt(ownerPassword, encryption).Pdf;
-            }, cancellationToken).ConfigureAwait(false);
-            progress?.Report(new PdfWorkspaceProgress("Writing protected copy", 0.8D));
-            await WriteOutputAsync(destination, output, cancellationToken).ConfigureAwait(false);
-            progress?.Report(new PdfWorkspaceProgress("Protected copy saved", 1D));
-        } finally {
-            _operationGate.Release();
-        }
-    }
-
-    internal async Task SaveDecryptedCopyAsync(
-        string destinationPath,
-        string? ownerPassword,
-        CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (!IsEncrypted) throw new InvalidOperationException("This PDF is not password protected.");
-        if (!CanChangeEncryption(ownerPassword)) {
-            throw new InvalidOperationException("This document's signature, certification, usage-rights, or authorization policy prevents removing password protection.");
-        }
-        string destination = ValidateExportDestination(destinationPath);
-        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try {
-            string effectiveOwnerPassword = _documentInfo.Security.HasOwnerAuthorization
-                ? _readOptions.Password ?? string.Empty
-                : ownerPassword ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(effectiveOwnerPassword)) {
-                throw new InvalidOperationException("The owner password is required to remove document protection.");
-            }
-            progress?.Report(new PdfWorkspaceProgress("Removing password protection", 0.15D));
-            byte[] output = await RunCancellableCpuWorkAsync(
-                () => LoadDocument(_bytes).Security.Decrypt(effectiveOwnerPassword).Pdf,
-                cancellationToken).ConfigureAwait(false);
-            progress?.Report(new PdfWorkspaceProgress("Writing decrypted copy", 0.8D));
-            await WriteOutputAsync(destination, output, cancellationToken).ConfigureAwait(false);
-            progress?.Report(new PdfWorkspaceProgress("Decrypted copy saved", 1D));
-        } finally {
-            _operationGate.Release();
-        }
-    }
-
     internal Task SignAsync(
         X509Certificate2 certificate,
         PdfExternalSignatureOptions options,
@@ -144,13 +81,4 @@ internal sealed partial class PdfWorkspace {
         return destination;
     }
 
-    private async Task WriteOutputAsync(string destination, byte[] bytes, CancellationToken cancellationToken) {
-        string? localPath = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination);
-        string? directory = localPath is null ? null : System.IO.Path.GetDirectoryName(localPath);
-        if (localPath is not null && (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))) {
-            throw new DirectoryNotFoundException("The output folder does not exist.");
-        }
-        await WriteWorkspaceOutputAsync(destination,
-            (stream, token) => stream.WriteAsync(bytes.AsMemory(), token).AsTask(), cancellationToken).ConfigureAwait(false);
-    }
 }

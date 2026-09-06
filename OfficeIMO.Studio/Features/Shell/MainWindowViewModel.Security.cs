@@ -129,50 +129,6 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanApplyCertificateSignature));
 
     [RelayCommand]
-    private async Task SaveProtectedCopyAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
-        if (string.IsNullOrWhiteSpace(ProtectUserPassword)) {
-            ErrorMessage = "Enter a document-open password.";
-            return;
-        }
-        if (!string.Equals(ProtectUserPassword, ProtectConfirmPassword, StringComparison.Ordinal)) {
-            ErrorMessage = "The document-open passwords do not match.";
-            return;
-        }
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        var encryption = new PdfStandardEncryptionOptions(ProtectUserPassword) {
-            OwnerPassword = string.IsNullOrWhiteSpace(ProtectOwnerPassword) ? null : ProtectOwnerPassword,
-            EncryptMetadata = ProtectEncryptMetadata,
-            AllowedPermissions = BuildProtectionPermissions()
-        };
-        bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveProtectedCopyAsync(path, encryption, CurrentOwnerPassword, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            ProtectUserPassword = string.Empty;
-            ProtectConfirmPassword = string.Empty;
-            ProtectOwnerPassword = string.Empty;
-            CurrentOwnerPassword = string.Empty;
-            OperationStatus = "Protected copy saved";
-        }
-    }
-
-    [RelayCommand]
-    private async Task SaveDecryptedCopyAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !IsDocumentEncrypted) return;
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveDecryptedCopyAsync(path, CurrentOwnerPassword, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            CurrentOwnerPassword = string.Empty;
-            OperationStatus = "Decrypted copy saved";
-        }
-    }
-
-    [RelayCommand]
     private void RefreshSigningCertificates() {
         string? selectedThumbprint = SelectedSigningCertificate?.Thumbprint;
         SigningCertificates.Clear();
