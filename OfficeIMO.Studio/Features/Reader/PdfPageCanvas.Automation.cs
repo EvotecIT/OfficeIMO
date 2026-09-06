@@ -16,7 +16,7 @@ internal sealed class PdfPageCanvasAutomationPeer : ControlAutomationPeer {
 
     protected override IReadOnlyList<AutomationPeer> GetChildrenCore() {
         PdfPageScene? scene = _owner.Scene;
-        if (scene is null) return Array.Empty<AutomationPeer>();
+        if (scene?.Interactions is null) return Array.Empty<AutomationPeer>();
         IStudioLocalizer localizer = StudioLocalization.Current;
         var children = new List<AutomationPeer>();
         string pageText = string.Concat(scene.Interactions.TextRegions.Select(static region => region.Text));

@@ -327,7 +327,7 @@ public sealed partial class MainWindowViewModel {
         }
 
         if (selection.Kind == PdfEditorSelectionKind.Annotation) {
-            PdfAnnotation? annotation = _workspace.DocumentInfo.Annotations.FirstOrDefault(candidate =>
+            PdfAnnotation? annotation = _workspace.DocumentInfo?.Annotations.FirstOrDefault(candidate =>
                 candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
             if (annotation is null) {
                 ClearObjectSelection();
@@ -560,7 +560,7 @@ public sealed partial class MainWindowViewModel {
         _formWorkspace = _workspace;
         FormFields.Clear();
         if (_workspace is not null) {
-            foreach (PdfFormField field in _workspace.DocumentInfo.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
+            foreach (PdfFormField field in (_workspace.DocumentInfo?.FormFields ?? []).Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
                 var model = new PdfFormFieldViewModel(field, _localizer);
                 var matches = previous.Where(candidate => candidate.Name == model.Name).ToArray();
                 var old = matches.Length == 1 && matches[0].Kind == model.Kind ? matches[0] : null;

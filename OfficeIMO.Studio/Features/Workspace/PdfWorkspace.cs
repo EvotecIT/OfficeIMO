@@ -27,7 +27,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
     private byte[] _bytes;
     private string _baseFingerprint;
     private string _sourceIdentityKey;
-    private PdfDocumentInfo _documentInfo;
+    private PdfDocumentViewInfo _documentInfo;
     private PdfDocumentPreflight _preflight;
     private long _historyBytes;
     private long _revision;
@@ -41,7 +41,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         byte[] bytes,
         string baseFingerprint,
         string sourceIdentityKey,
-        PdfDocumentInfo documentInfo,
+        PdfDocumentViewInfo documentInfo,
         PdfDocumentPreflight preflight,
         PdfLoadOptions readOptions,
         PdfWorkspaceRecoveryStore recoveryStore,
@@ -75,7 +75,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal long Revision => _revision;
 
-    internal PdfDocumentInfo DocumentInfo => _documentInfo;
+    internal PdfDocumentInfo? DocumentInfo => _documentInfo.LogicalContent;
+
+    internal PdfDocumentViewInfo ViewInfo => _documentInfo;
 
     internal IReadOnlyList<PdfPageInfo> Pages => _documentInfo.Pages;
 
@@ -152,7 +154,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         byte[] bytes = source.Bytes;
         string sourceIdentityKey = source.Identity;
         var readOptions = new PdfLoadOptions { Password = password };
-        (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
+        (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
             () => Analyze(bytes, readOptions),
             cancellationToken).ConfigureAwait(false);
         PdfWorkspaceRecoveryStore store = recoveryStore ?? new PdfWorkspaceRecoveryStore();
@@ -487,7 +489,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 () => _recoveryStore.ReadVerifiedSnapshot(Path, _baseFingerprint)
                     ?? throw new InvalidDataException("The recovery snapshot is no longer valid. The open document has not been changed."),
                 cancellationToken).ConfigureAwait(false);
-            (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
+            (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
                 () => Analyze(recovered, _readOptions),
                 cancellationToken).ConfigureAwait(false);
             PushHistory(_undo, new Snapshot(_bytes, _revision, _annotationIdentities));
@@ -571,7 +573,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
                     () => mutation(previousBytes),
                     cancellationToken).ConfigureAwait(false);
             progress?.Report(new PdfWorkspaceProgress("Validating changed document", 0.75D));
-            (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await RunCancellableCpuWorkAsync(
+            (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await RunCancellableCpuWorkAsync(
                 () => Analyze(candidateBytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -625,7 +627,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             if (source.Last is null) return;
 
             Snapshot restore = source.Last.Value;
-            (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
+            (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
                 () => Analyze(restore.Bytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
 
@@ -685,9 +687,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     private PdfDocument LoadDocument(byte[] bytes) => PdfDocument.Load(bytes, _readOptions);
 
-    private static (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) Analyze(byte[] bytes, PdfLoadOptions readOptions) {
+    private static (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) Analyze(byte[] bytes, PdfLoadOptions readOptions) {
         PdfDocument document = PdfDocument.Load(bytes, readOptions);
-        return (document.Inspect(), document.Preflight());
+        return (document.InspectForViewing(), document.Preflight());
     }
 
     private sealed record Snapshot(byte[] Bytes, long Revision, IReadOnlyDictionary<int, Guid> AnnotationIdentities);

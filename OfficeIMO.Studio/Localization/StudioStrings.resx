@@ -1657,7 +1657,12 @@
   <data name="Protection.ProviderHint" xml:space="preserve"><value>Save a separate copy to the selected provider file. Existing contents will be replaced. An interrupted write may require recovery from Jobs.</value></data>
   <data name="Protection.LocalHint" xml:space="preserve"><value>Save a separate PDF and leave the open document unchanged. An existing destination will be replaced.</value></data>
   <data name="Protection.SharedPassword" xml:space="preserve"><value>The document-open password also grants owner access because no different owner password was set.</value></data>
-  <data name="Protection.StudioOwnerRequired" xml:space="preserve"><value>Studio currently needs the owner password to reopen a PDF with content copying restricted.</value></data>
+  <data name="Protection.RestrictedViewing" xml:space="preserve"><value>Studio can display this copy with the document-open password. Text selection and object inspection require content-copy permission or owner access.</value></data>
+  <data name="Capability.RestrictedReaderHint" xml:space="preserve"><value>View pages, adjust zoom, and navigate the document.</value></data>
+  <data name="Capability.RestrictedReaderSearchHint" xml:space="preserve"><value>View pages, search text, and navigate the document.</value></data>
   <data name="Protection.ResultTitle" xml:space="preserve"><value>Protection result</value></data>
   <data name="Protection.VerifiedPrepared" xml:space="preserve"><value>The prepared PDF passed its checks before publication: {0} source pages, {1} prepared pages, {2:N0} bytes. This does not confirm the destination contents.</value></data>
+  <data name="Capability.RestrictedViewing" xml:space="preserve"><value>This password permits viewing, but text and content extraction are restricted. Text selection and object inspection are unavailable. Reopen with the owner password for full access.</value></data>
+  <data name="Capability.RestrictedViewingSearch" xml:space="preserve"><value>This password permits viewing and text search, but logical content extraction is restricted. Object selection and inspection are unavailable. Reopen with the owner password for full access.</value></data>
+  <data name="Capability.SearchRestricted" xml:space="preserve"><value>Text search is restricted by this document’s permissions.</value></data>
 </root>

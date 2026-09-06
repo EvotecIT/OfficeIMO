@@ -115,7 +115,7 @@ public sealed partial class MainWindowViewModel {
 
     public bool IsDocumentEncrypted => _workspace?.IsEncrypted == true;
 
-    public bool HasDocumentSignatures => _workspace?.DocumentInfo.Security.HasSignatures == true;
+    public bool HasDocumentSignatures => _workspace?.HasSignatures == true;
 
     public bool CanChangeProtection => _workspace?.CanChangeEncryption(CurrentOwnerPassword) == true;
 

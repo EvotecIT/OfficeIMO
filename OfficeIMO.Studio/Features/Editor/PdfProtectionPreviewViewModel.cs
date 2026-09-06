@@ -41,7 +41,7 @@ public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
             if (encryption.OwnerPassword is null || encryption.OwnerPassword == encryption.UserPassword)
                 details.Add(localizer.Get("Protection.SharedPassword"));
             if (!encryption.AllowedPermissions.HasFlag(PdfStandardPermissions.CopyContents))
-                details.Add(localizer.Get("Protection.StudioOwnerRequired"));
+                details.Add(localizer.Get("Protection.RestrictedViewing"));
             details.Add(localizer.Get("Protection.ReaderPermissions"));
         }
         Details = details;

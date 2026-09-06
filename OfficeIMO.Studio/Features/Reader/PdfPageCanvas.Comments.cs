@@ -19,7 +19,7 @@ public sealed partial class PdfPageCanvas {
     private Rect? CommentAnchorBounds {
         get {
             if (CommentAnchorObjectNumber is not int number) return null;
-            var region = Scene?.Interactions.Regions.FirstOrDefault(region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber == number);
+            var region = Scene?.Interactions?.Regions.FirstOrDefault(region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber == number);
             return region is null ? null : new Rect(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height);
         }
     }

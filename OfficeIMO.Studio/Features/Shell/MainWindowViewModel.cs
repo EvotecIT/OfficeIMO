@@ -232,11 +232,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
 
+    public bool CanSearchDocument => _session?.CanSearch == true;
+    public string ReaderHint => _session is { ViewInfo.CanExtractContent: false }
+        ? _localizer.Get(CanSearchDocument ? "Capability.RestrictedReaderSearchHint" : "Capability.RestrictedReaderHint")
+        : _localizer.Get("DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks");
+
     public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
 
     public string? SecurityWarning {
         get {
-            if (!IsPdfWorkspaceMode || _workspace is null || DocumentMode == StudioDocumentMode.View) return null;
+            if (!IsPdfWorkspaceMode || _workspace is null) return null;
+            if (!_workspace.ViewInfo.CanExtractContent) return _localizer.Get(CanSearchDocument ? "Capability.RestrictedViewingSearch" : "Capability.RestrictedViewing");
+            if (DocumentMode == StudioDocumentMode.View) return null;
             if (_workspace.HasSignatures) return _localizer.Get("Capability.SignedDocument");
             if (_workspace.HasEncryption) return _localizer.Get("Capability.EncryptedDocument");
             if (_workspace.HasCertifiedRestrictions) return _localizer.Get("Capability.RestrictedDocument");

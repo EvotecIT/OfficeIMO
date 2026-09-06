@@ -256,12 +256,14 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSearchDocument))]
     private async Task SearchAsync(CancellationToken cancellationToken) {
         if (_session is null || string.IsNullOrWhiteSpace(SearchQuery)) {
             SearchResults.Clear();
             return;
         }
+
+        if (!CanSearchDocument) { SearchResults.Clear(); ErrorMessage = UiText("Capability.SearchRestricted"); return; }
 
         OperationStatus = UiText("Workspace.SearchingDocument");
         bool succeeded = await RunStandaloneAsync(async token => {
@@ -414,6 +416,9 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        OnPropertyChanged(nameof(CanSearchDocument));
+        OnPropertyChanged(nameof(ReaderHint));
+        SearchCommand.NotifyCanExecuteChanged();
         NotifyCommentActions();
         OnPropertyChanged(nameof(IsDirty));
         OnPropertyChanged(nameof(CanUndo));
@@ -456,7 +461,7 @@ public sealed partial class MainWindowViewModel {
     private void RebuildBookmarks() {
         Bookmarks.Clear();
         if (_workspace is null) return;
-        foreach (PdfOutlineItem item in _workspace.DocumentInfo.Outlines) AddBookmark(item);
+        foreach (PdfOutlineItem item in (_workspace.DocumentInfo?.Outlines ?? [])) AddBookmark(item);
     }
 
     private void AddBookmark(PdfOutlineItem item) {
@@ -475,12 +480,12 @@ public sealed partial class MainWindowViewModel {
         await ActivateComparisonPageLinkAsync(target).ConfigureAwait(true);
 
     internal Task ActivatePageLinkAsync(string target) =>
-        ActivatePageLinkAsync(target, _session?.DocumentInfo.NamedDestinations ?? [], Pages, NavigateToPage);
+        ActivatePageLinkAsync(target, _session?.DocumentInfo?.NamedDestinations ?? [], Pages, NavigateToPage);
 
     internal Task ActivateComparisonPageLinkAsync(string target) =>
         ActivatePageLinkAsync(
             target,
-            _comparisonSession?.DocumentInfo.NamedDestinations ?? [],
+            _comparisonSession?.DocumentInfo?.NamedDestinations ?? [],
             ComparisonPages,
             NavigateToComparisonPage);
 

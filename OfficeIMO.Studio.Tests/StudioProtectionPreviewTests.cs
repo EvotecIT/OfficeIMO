@@ -137,7 +137,7 @@ public sealed class StudioProtectionPreviewTests {
                 reviewProtection: preview => new PdfProtectionDialog(preview) { Width = width, Height = height }.ShowDialog<bool>(owner),
                 showProtectionResult: result => new PdfProtectionDialog(result) { Width = width, Height = height }.ShowDialog(owner),
                 openDocumentInTab: (path, _) => { opened = path; return Task.CompletedTask; },
-                promptPdfPassword: (_, _, _) => Task.FromResult<string?>("owner"));
+                promptPdfPassword: (_, _, _) => Task.FromResult<string?>("reader"));
             try {
                 owner.Show(); await model.OpenDocumentAsync(source);
                 model.ProtectUserPassword = "reader"; model.ProtectConfirmPassword = "reader"; model.ProtectOwnerPassword = "owner";

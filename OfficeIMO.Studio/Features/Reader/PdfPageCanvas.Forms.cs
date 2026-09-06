@@ -17,7 +17,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     internal IReadOnlyList<Rect> FormAnchorBounds => string.IsNullOrEmpty(FormAnchorFieldName) ? [] :
-        Scene?.Interactions.Regions.Where(region => region.Kind == PdfInteractionKind.FormWidget && region.FieldName == FormAnchorFieldName)
+        Scene?.Interactions?.Regions.Where(region => region.Kind == PdfInteractionKind.FormWidget && region.FieldName == FormAnchorFieldName)
             .Select(region => new Rect(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height)).ToArray() ?? [];
 
     private void DrawFormAnchor(DrawingContext context) {

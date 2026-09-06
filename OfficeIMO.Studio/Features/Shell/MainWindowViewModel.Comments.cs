@@ -63,7 +63,7 @@ public sealed partial class MainWindowViewModel {
         }
         CommentCatalogError = null;
         try {
-            _allCommentThreads = _workspace is null ? [] : PdfAnnotationReviewCatalog.Build(_workspace.DocumentInfo.Annotations)
+            _allCommentThreads = _workspace is null ? [] : PdfAnnotationReviewCatalog.Build(_workspace.DocumentInfo?.Annotations ?? [])
                 .Threads.Where(thread => thread.Root.Annotation.Subtype is not ("Popup" or "Link" or "Widget"))
                 .Select(thread => new CommentThreadViewModel(thread,
                     thread.Root.Annotation.ObjectNumber is int number ? _workspace.GetAnnotationIdentity(number) : Guid.NewGuid(), _localizer)).ToArray();

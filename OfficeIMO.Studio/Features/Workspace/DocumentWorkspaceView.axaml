@@ -126,7 +126,7 @@
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CloseComparison}" Content="{loc:Loc DocumentWorkspace.CloseComparison}"
                   Command="{Binding CloseComparisonCommand}" IsVisible="{Binding IsComparisonOpen}" />
           <TextBlock Classes="muted" MaxWidth="320"
-                     Text="{loc:Loc DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks}"
+                     Text="{Binding ReaderHint}"
                      VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </WrapPanel>
       </Grid>
