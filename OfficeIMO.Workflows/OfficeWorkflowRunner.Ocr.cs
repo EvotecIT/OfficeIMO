@@ -36,18 +36,16 @@ public sealed partial class OfficeWorkflowRunner {
             EnsurePdfExtension(outputStream?.Name ?? output);
             if (outputStream is not null && policy != OfficeWorkflowConflictPolicy.Replace)
                 throw new ArgumentException("A provider output requires the Replace policy after direct-write confirmation.");
-            if (OfficeStorageIdentity.AreEquivalent(input, output)) throw new IOException("Choose an output different from the source PDF.");
-            IOfficeWorkflowPublicationGuard sourceGuard = new ProviderSourcePublicationGuard(request.PublicationGuard, [input]);
-            if (OfficeStorageIdentity.GetLocalPath(input) is { } localInput) {
-                string identity = OfficePathIdentity.GetPhysicalIdentityKey(localInput);
-                sourceGuard = new OcrLocalSourceGuard(sourceGuard, localInput, identity);
-                inputStream ??= new OfficeWorkflowStreamInput(Path.GetFileName(localInput), token => {
+            if (string.Equals(input, output, StringComparison.Ordinal)) throw new IOException("Choose an output different from the source PDF.");
+            if (inputStream is null) {
+                inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(input), token => {
                     token.ThrowIfCancellationRequested();
-                    if (OfficePathIdentity.GetPhysicalIdentityKey(localInput) != identity) throw new IOException("The source PDF was replaced during OCR.");
-                    return Task.FromResult<Stream>(new FileStream(localInput, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    return Task.FromResult<Stream>(new FileStream(input, FileMode.Open, FileAccess.Read, FileShare.Read,
                         81920, FileOptions.Asynchronous | FileOptions.SequentialScan));
                 });
             }
+            var sourceGuard = new OcrScopedSourcePublicationGuard(request.PublicationGuard, input, inputStream, outputStream);
+            inputStream = new OfficeWorkflowStreamInput(inputStream.Name, sourceGuard.OpenReadAsync, inputStream.ExpectedSha256);
             string snapshot = await inputs.CaptureOneAsync(input, inputStream, limits.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
             IOfficeWorkflowPublicationGuard? guard = inputs.Guard(sourceGuard, limits.MaximumInputBytes);
             var loadOptions = CreatePdfLoadOptions(password, limits.MaximumInputBytes);
@@ -100,11 +98,4 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
-    private sealed class OcrLocalSourceGuard(IOfficeWorkflowPublicationGuard host, string source, string identity) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
-            if (!await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
-            if (OfficePathIdentity.GetPhysicalIdentityKey(source) != identity) throw new IOException("The source PDF was replaced during OCR.");
-            return !File.Exists(path) || OfficePathIdentity.GetPhysicalIdentityKey(path) != identity;
-        }
-    }
 }

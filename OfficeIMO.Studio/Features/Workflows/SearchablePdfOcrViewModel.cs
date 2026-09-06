@@ -272,10 +272,13 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         try {
             string input = OfficeStorageIdentity.Normalize(InputPath.Trim());
             string output = OfficeStorageIdentity.Normalize(OutputPath.Trim());
-            if (OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(input, output)) {
+            bool providerOutput = _storage?.UsesProviderPublication(output) == true;
+            bool providerInput = _storage?.UsesProviderPublication(input) == true;
+            if (providerInput || providerOutput ? string.Equals(input, output, StringComparison.Ordinal)
+                    : OfficeStorageIdentity.AreEquivalent(input, output)) {
                 throw new InvalidOperationException(T("Error.SamePath", "Choose an OCR output PDF that is different from the source PDF."));
             }
-            if (!_canPublishPath(output)) {
+            if (!providerInput && !providerOutput && !_canPublishPath(output)) {
                 throw new InvalidOperationException(
                     T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
             }
@@ -295,7 +298,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
                 }) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input) };
-            if (_storage?.UsesProviderPublication(output) == true) {
+            if (providerOutput) {
                 if (!await _confirmProviderWrite(output).ConfigureAwait(true)) {
                     Status = T("Status.Cancelled", "OCR cancelled");
                     Summary = T("Summary.Empty", "No OCR output yet");
@@ -303,14 +306,14 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 }
                 operation.Token.ThrowIfCancellationRequested();
                 options = options with {
-                    OutputStream = _storage.CreateWorkflowOutput(output, _recoveryStore
+                    OutputStream = _storage!.CreateWorkflowOutput(output, _recoveryStore
                         ?? throw new IOException("Workflow recovery storage is unavailable.")),
                     OutputConflictPolicy = OfficeConversionFileConflictPolicy.Replace
                 };
             }
             job = _jobHistory?.Start(T("Job.Title", "Searchable PDF OCR"), input, output, operation.Cancel);
             using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
-            if (!_canPublishPath(output)) throw new InvalidOperationException(T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
+            if (!providerInput && !providerOutput && !_canPublishPath(output)) throw new InvalidOperationException(T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
             job?.Report(new OfficeIMO.Workflows.OfficeWorkflowProgress("ocr", "execute", Status, 0D));
             SearchablePdfOcrOutcome result = await _service
                 .MakeSearchableAsync(input, output, options, operation.Token)
