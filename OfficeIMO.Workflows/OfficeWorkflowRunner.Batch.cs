@@ -39,7 +39,8 @@ public sealed partial class OfficeWorkflowRunner {
             if (request.Validated is { } validated) {
                 try {
                     request = request with { Validated = validated with {
-                        PublicationGuard = new WorkflowScopedSourcePublicationGuard(validated.PublicationGuard, protectedSources, accesses, validated.OutputStream)
+                        PublicationGuard = new WorkflowScopedSourcePublicationGuard(validated.PublicationGuard, protectedSources, accesses, validated.OutputStream,
+                            allowMissingLocalSources: true)
                     } };
                 } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
                     request = request with { ValidationException = error };

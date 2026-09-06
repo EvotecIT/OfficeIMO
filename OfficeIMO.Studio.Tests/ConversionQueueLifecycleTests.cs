@@ -15,7 +15,7 @@ public sealed class ConversionQueueLifecycleTests {
         using var model = Create(() => selection, scope.Root);
         await model.AddFilesCommand.ExecuteAsync(null);
         await model.RunQueueCommand.ExecuteAsync(null);
-        Assert.Equal(ConversionJobState.Completed, model.Jobs[0].State);
+        Assert.True(model.Jobs[0].State == ConversionJobState.Completed, model.Jobs[0].Summary + " " + string.Join("; ", model.Jobs[0].Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(ConversionJobState.Failed, model.Jobs[1].State);
         byte[] original = File.ReadAllBytes(model.Jobs[0].OutputPath!);
         var firstDiagnostics = model.Jobs[0].Diagnostics;

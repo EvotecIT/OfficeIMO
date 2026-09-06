@@ -46,11 +46,11 @@ public sealed partial class OfficeWorkflowRunner {
         private readonly string[] _sources;
         private readonly WorkflowSourceAccess[] _accesses;
         private readonly WorkflowSourceAccess[] _localScopes;
-        private readonly (string Path, string Identity)[] _localSources;
+        private readonly (string Path, string? Identity)[] _localSources;
         private readonly OfficeWorkflowStreamOutput? _output;
 
         internal WorkflowScopedSourcePublicationGuard(IOfficeWorkflowPublicationGuard? host, string[] sources,
-            WorkflowSourceAccess[] accesses, OfficeWorkflowStreamOutput? output) {
+            WorkflowSourceAccess[] accesses, OfficeWorkflowStreamOutput? output, bool allowMissingLocalSources = false) {
             _host = host;
             _sources = sources;
             _accesses = accesses;
@@ -59,7 +59,13 @@ public sealed partial class OfficeWorkflowRunner {
                 .GroupBy(access => access.Location, StringComparer.Ordinal).Select(group => group.First()).ToArray();
             _localSources = sources.Where(source => !accesses.Any(access => access.Location == source))
                 .Select(OfficeStorageIdentity.GetLocalPath).OfType<string>()
-                .Select(path => (path, OfficePathIdentity.GetPhysicalIdentityKey(path))).ToArray();
+                .Select(path => (path, GetLocalIdentity(path, allowMissingLocalSources))).ToArray();
+        }
+
+        private static string? GetLocalIdentity(string path, bool allowMissing) {
+            try { return OfficePathIdentity.GetPhysicalIdentityKey(path); }
+            catch (FileNotFoundException) when (allowMissing) { return null; }
+            catch (DirectoryNotFoundException) when (allowMissing) { return null; }
         }
 
         public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
@@ -90,7 +96,7 @@ public sealed partial class OfficeWorkflowRunner {
         private bool SourcesAreSeparate(string path, bool isDirectory) {
             foreach (var access in _accesses) access.VerifyIdentity();
             foreach (var source in _localSources) {
-                if (OfficePathIdentity.GetPhysicalIdentityKey(source.Path) != source.Identity)
+                if (GetLocalIdentity(source.Path, allowMissing: source.Identity is null) != source.Identity)
                     throw new IOException("The workflow source was replaced during execution.");
             }
             if (_sources.Any(source => OfficeStorageIdentity.AreEquivalent(source, path))) return false;

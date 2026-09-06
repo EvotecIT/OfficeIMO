@@ -4,6 +4,37 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ProviderOutputPreparationTests {
     [Theory]
+    [InlineData("independent")]
+    [InlineData("selected-output")]
+    [InlineData("appeared")]
+    public async Task MissingBatchInputDoesNotBlockIndependentOutputsOrLoseSourceProtection(string mode) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-missing-batch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string first = Path.Combine(root, "first.html");
+            string missing = Path.Combine(root, "missing.pdf");
+            string destination = mode == "selected-output" ? missing : Path.Combine(root, "result.pdf");
+            File.WriteAllText(first, "<p>Independent conversion</p>");
+            var results = await new OfficeWorkflowRunner().RunBatchAsync([
+                new() { InputPath = first, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
+                    ConversionRouteId = "html-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                    PublicationGuard = new MissingSourceGuard(mode == "appeared" ? missing : null) },
+                new() { InputPath = missing, Operation = OfficeWorkflowOperation.Inspect }
+            ]);
+            Assert.Equal(mode == "independent" ? OfficeWorkflowStatus.Completed : OfficeWorkflowStatus.Failed, results[0].Status);
+            Assert.Equal(OfficeWorkflowStatus.Failed, results[1].Status);
+            Assert.Equal(mode == "independent", File.Exists(destination));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    private sealed class MissingSourceGuard(string? appearedPath) : IOfficeWorkflowPublicationGuard {
+        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+            if (appearedPath is not null) File.WriteAllText(appearedPath, "A newly appeared selected input");
+            return ValueTask.FromResult(true);
+        }
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
