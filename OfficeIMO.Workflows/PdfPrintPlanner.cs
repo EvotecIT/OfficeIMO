@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Workflows;
 
@@ -137,6 +138,14 @@ public sealed class PdfPrintPlan {
 
 /// <summary>Creates print-preview sheet geometry without depending on a platform print driver.</summary>
 public static class PdfPrintPlanner {
+    /// <summary>Plans sheets from an already opened document without reading the input location again.</summary>
+    /// <remarks>The document's authenticated permission policy governs printing. The request input path identifies
+    /// the original source and may be a provider URI; its password and permission policy do not reopen the document.</remarks>
+    public static PdfPrintPlan Create(PdfDocument document, PdfPrintPlanRequest request, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(document);
+        return CreateAsync(request, (_, _, _) => Task.FromResult(document), cancellationToken).GetAwaiter().GetResult();
+    }
+
     /// <summary>Creates a validated print-preview plan.</summary>
     public static PdfPrintPlan Create(
         PdfPrintPlanRequest request,
@@ -149,7 +158,8 @@ public static class PdfPrintPlanner {
         CancellationToken cancellationToken = default) {
         return await CreateAsync(
             request,
-            static (path, options, token) => PdfDocument.LoadAsync(path, options, token),
+            static (path, options, token) => PdfDocument.LoadAsync(OfficeStorageIdentity.GetLocalPath(path)
+                ?? throw new ArgumentException("Provider input requires an already opened document."), options, token),
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -170,7 +180,7 @@ public static class PdfPrintPlanner {
         if (!Enum.IsDefined(request.PermissionPolicy)) throw new ArgumentOutOfRangeException(nameof(request.PermissionPolicy));
 
         var validated = new ValidatedPrintPlanRequest(
-            Path.GetFullPath(request.InputPath),
+            OfficeStorageIdentity.Normalize(request.InputPath),
             request.Pages,
             request.PaperSize,
             request.Orientation,

@@ -133,12 +133,20 @@ public sealed partial class OfficeWorkflowRunner {
         public async ValueTask<bool> CanPublishAsync(string outputPath, bool isDirectory, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (sources.Any(source => OfficeStorageIdentity.AreEquivalent(source, outputPath))) return false;
+            string? outputDirectory = isDirectory ? OfficeStorageIdentity.GetLocalPath(outputPath) : null;
+            if (outputDirectory is not null && sources.Any(source => OfficeStorageIdentity.GetLocalPath(source) is { } local &&
+                    OfficePathIdentity.IsSameOrDescendant(local, outputDirectory))) return false;
             return host is null || await host.CanPublishAsync(outputPath, isDirectory, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private sealed class WorkflowInputSnapshots : IDisposable {
         private readonly List<(OfficeStreamFileSnapshot Snapshot, OfficeWorkflowStreamInput Source)> _snapshots = new();
+
+        internal async Task<ValidatedImageExportRequest> CaptureAsync(ValidatedImageExportRequest request, CancellationToken token) {
+            string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
+            return request with { InputPath = inputPath, PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes) };
+        }
 
         internal async Task<ValidatedRequest> CaptureAsync(ValidatedRequest request, CancellationToken token) {
             string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);

@@ -35,6 +35,7 @@
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PRINTSETUP}" Classes="eyebrow" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Document}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OutputWorkbench.PrintPreview.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.ChooseAPDF}" />
+            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.InputName}" Classes="muted" TextWrapping="Wrap" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" Content="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" HorizontalAlignment="Left"
                     Command="{Binding OutputWorkbench.PrintPreview.ChooseInputCommand}" />
 
@@ -137,6 +138,7 @@
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PAGEEXPORT}" Classes="eyebrow" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.SourcePDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OutputWorkbench.PageExport.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.ChooseAPDF}" />
+            <TextBlock Text="{Binding OutputWorkbench.PageExport.InputName}" Classes="muted" TextWrapping="Wrap" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" Content="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" HorizontalAlignment="Left" Command="{Binding OutputWorkbench.PageExport.ChooseInputCommand}" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.OutputFolder}" FontWeight="SemiBold" Margin="0,5,0,0" />
             <TextBox Text="{Binding OutputWorkbench.PageExport.OutputDirectory, Mode=TwoWay}" />

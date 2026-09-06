@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Drawing;
+using OfficeIMO.Internal;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
@@ -15,6 +17,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
+    private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
 
     public PageImageExportViewModel(
@@ -28,12 +31,14 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
+        _storage = storage;
         _localizer = localizer ?? StudioLocalization.Current;
         Formats = [
             Format(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
@@ -51,6 +56,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
+    [NotifyPropertyChangedFor(nameof(InputName))]
     private string _inputPath = string.Empty;
 
     [ObservableProperty]
@@ -87,16 +93,19 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private string? _publishedDirectory;
 
     public bool CanCancel => IsBusy;
+    public string InputName => string.IsNullOrWhiteSpace(InputPath) ? string.Empty
+        : _storage?.Describe(InputPath).Name ?? OfficeStorageIdentity.GetFileName(InputPath);
     public bool HasOutput => !string.IsNullOrWhiteSpace(PublishedDirectory);
     private bool CanExport => !IsBusy && !string.IsNullOrWhiteSpace(InputPath) && !string.IsNullOrWhiteSpace(OutputDirectory);
 
     internal void UseDocument(string? path) {
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (IsBusy || string.IsNullOrWhiteSpace(path)) return;
         InputPath = path;
-        if (string.IsNullOrWhiteSpace(OutputDirectory)) {
+        if (string.IsNullOrWhiteSpace(OutputDirectory) && _storage?.UsesProviderPublication(path) != true &&
+            OfficeStorageIdentity.GetLocalPath(path) is { } localPath) {
             OutputDirectory = Path.Combine(
-                Path.GetDirectoryName(path)!,
-                Path.GetFileNameWithoutExtension(path) + " pages");
+                Path.GetDirectoryName(localPath)!,
+                Path.GetFileNameWithoutExtension(localPath) + " pages");
         }
     }
 
@@ -127,6 +136,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         try {
             var request = new PdfPageImageExportRequest {
                 InputPath = InputPath,
+                InputStream = _storage?.CreateWorkflowInput(InputPath),
                 OutputDirectory = OutputDirectory,
                 Pages = string.IsNullOrWhiteSpace(Pages) ? null : Pages,
                 Format = SelectedFormat.Value,

@@ -26,6 +26,9 @@ public sealed class PdfPageImageExportRequest {
     /// <summary>Source PDF file.</summary>
     public required string InputPath { get; set; }
 
+    /// <summary>Optional provider stream access for the original input reference.</summary>
+    public OfficeWorkflowStreamInput? InputStream { get; set; }
+
     /// <summary>Requested output folder. The complete folder is staged and then published.</summary>
     public required string OutputDirectory { get; set; }
 

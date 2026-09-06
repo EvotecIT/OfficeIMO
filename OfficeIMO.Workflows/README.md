@@ -77,6 +77,8 @@ OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: 
 
 Comparison accepts `ComparisonStream`. Assembly accepts `SourceStreams`, keyed by the exact original entries in `Sources`, and preserves input order and display names. Its provider staging shares the total input byte budget. A provider HTML stream can use embedded resources; selecting it alone does not grant access to neighboring images or stylesheets. A selected ZIP can carry relative resources through the existing bounded archive intake.
 
+Page-image export accepts `PdfPageImageExportRequest.InputStream` and applies the same bounded staging and provider-content check before publishing its filesystem output folder. For print preview, use `PdfPrintPlanner.Create(document, request)` with an already opened `PdfDocument` to plan and render from the same snapshot. That overload uses the document's existing authentication and printing permissions; it does not reopen the request's input location.
+
 Provider operations require an explicit output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination. Provider folder enumeration is a separate host contract.
 
 ## Write provider-backed outputs
