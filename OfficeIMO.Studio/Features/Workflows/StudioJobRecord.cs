@@ -24,7 +24,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
     public string InputLabel => Input.Replace('\r', ' ').Replace('\n', ' ');
     public string? Destination { get; }
     public string CancelLabel { get; }
-    public DateTimeOffset Started { get; } = DateTimeOffset.Now;
+    public DateTimeOffset Started { get; internal set; } = DateTimeOffset.Now;
     public string StartedLabel => Started.ToString("g");
 
     [ObservableProperty]
@@ -41,6 +41,15 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private bool _hasOutput;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRecovery))]
+    private OfficeWorkflowOutputRecovery? _recovery;
+
+    public bool HasRecovery => Recovery is not null;
+
+    [ObservableProperty]
+    private bool _recoveryDiscardRequested;
+
     [RelayCommand(CanExecute = nameof(IsActive))]
     private void Cancel() {
         _cancel?.Invoke();
@@ -54,12 +63,15 @@ public sealed partial class StudioJobRecord : ObservableObject {
         Summary = progress.Message;
     }
 
-    internal void Complete(OfficeWorkflowStatus status, string? outputPath, string summary) {
+    internal void Complete(OfficeWorkflowStatus status, string? outputPath, string summary, OfficeWorkflowOutputRecovery? recovery = null) {
         if (!IsActive) return;
         OutputPath = outputPath;
         HasOutput = status == OfficeWorkflowStatus.Completed && !string.IsNullOrWhiteSpace(outputPath);
         Summary = summary;
-        Status = _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());
+        Recovery = recovery;
+        Status = status == OfficeWorkflowStatus.Unconfirmed
+            ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+            : _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());
         Progress = status == OfficeWorkflowStatus.Cancelled ? Progress : 1D;
         _cancel = null;
         IsActive = false;

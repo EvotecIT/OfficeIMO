@@ -103,7 +103,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         TimeSpan duration,
         string summary,
         IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
-        PdfHealthReport? healthReport = null) {
+        PdfHealthReport? healthReport = null,
+        OfficeWorkflowOutputRecovery? recovery = null) {
         RequestId = requestId;
         Operation = operation;
         Status = status;
@@ -115,6 +116,7 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         Summary = summary;
         Diagnostics = diagnostics.ToArray();
         HealthReport = healthReport;
+        Recovery = recovery;
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -127,6 +129,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
     public OfficeWorkflowFailureKind FailureKind { get; }
     /// <summary>Final published output path, including a renamed destination when applicable.</summary>
     public string? OutputPath { get; }
+    /// <summary>Gets a retained local artifact when provider publication or recovery cleanup needs attention.</summary>
+    public OfficeWorkflowOutputRecovery? Recovery { get; }
     /// <summary>Primary input size.</summary>
     public long InputBytes { get; }
     /// <summary>Published artifact size, or zero for report-only operations.</summary>

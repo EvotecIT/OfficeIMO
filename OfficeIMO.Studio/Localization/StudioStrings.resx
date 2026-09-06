@@ -82,7 +82,17 @@
     <value>Route</value>
   </data>
   <data name="Jobs.Title" xml:space="preserve"><value>Jobs</value></data>
-  <data name="Jobs.SessionNote" xml:space="preserve"><value>Recent attempts stay in memory for this session. Up to two workflows run at once.</value></data>
+  <data name="Jobs.SessionNote" xml:space="preserve"><value>Recent attempts stay in memory for this session. Recovery copies survive restart and remain until you discard them. Up to two workflows run at once.</value></data>
+  <data name="Jobs.RecoveredTitle" xml:space="preserve"><value>Workflow output recovery</value></data>
+  <data name="Jobs.RecoveredSummary" xml:space="preserve"><value>Recovered from an earlier workflow attempt.</value></data>
+  <data name="Jobs.RecoveryNote" xml:space="preserve"><value>A prepared output copy is available. Check the selected destination before writing again.</value></data>
+  <data name="Jobs.OpenRecovery" xml:space="preserve"><value>Open recovery copy</value></data>
+  <data name="Jobs.DiscardRecovery" xml:space="preserve"><value>Discard copy…</value></data>
+  <data name="Jobs.DiscardRecoveryNote" xml:space="preserve"><value>Delete this local recovery copy? This cannot be undone. The selected provider destination will remain unchanged.</value></data>
+  <data name="Jobs.ConfirmDiscardRecovery" xml:space="preserve"><value>Delete recovery copy</value></data>
+  <data name="Jobs.KeepRecovery" xml:space="preserve"><value>Keep copy</value></data>
+  <data name="Assembly.RecoveryNote" xml:space="preserve"><value>A prepared output copy is available in Jobs. Check the selected destination before running again.</value></data>
+  <data name="Dialog.ProviderWorkflowRecovery" xml:space="preserve"><value>This workflow requires a local recovery copy, even when edit recovery is off. Studio removes it after a verified save. If the save cannot be verified, the copy remains in Jobs until you discard it.</value></data>
   <data name="Jobs.ClearFinished" xml:space="preserve"><value>Clear finished</value></data>
   <data name="Jobs.Empty" xml:space="preserve"><value>Start a conversion, OCR, document-health, assembly, or page-export workflow to see its progress and result here.</value></data>
   <data name="Jobs.OpenOutput" xml:space="preserve"><value>Open output</value></data>
@@ -1483,4 +1493,6 @@
   <data name="Dialog.ProviderSaveTitle" xml:space="preserve"><value>Save through a storage provider</value></data>
   <data name="Dialog.ProviderSaveName" xml:space="preserve"><value>Save {0}?</value></data>
   <data name="Dialog.ProviderSaveDescription" xml:space="preserve"><value>This location writes directly to the destination. An interrupted write or a change made by another app during saving can leave an incomplete file. Studio will verify the saved bytes and retain your edits if verification fails. To use atomic replacement, cancel and choose a local destination with Save As.</value></data>
+  <data name="Dialog.ProviderWorkflowDescription" xml:space="preserve"><value>This location writes directly to the destination. An interrupted write or a change made by another app during saving can leave an incomplete file. Studio verifies the saved bytes. To use atomic replacement, cancel and choose a local destination.</value></data>
+  <data name="Workflow.Status.Unconfirmed" xml:space="preserve"><value>Check output</value></data>
 </root>

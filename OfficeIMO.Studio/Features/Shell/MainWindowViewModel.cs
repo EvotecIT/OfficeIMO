@@ -95,7 +95,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         StudioApplicationServices? services = null,
         Func<string, bool>? canPublishPath = null,
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        Func<string, Task<bool>>? confirmProviderWrite = null) {
+        Func<string, Task<bool>>? confirmProviderWrite = null,
+        Func<string, Task<bool>>? confirmWorkflowProviderWrite = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -114,11 +115,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
+        publicationGuard = new StudioProtectedPublicationGuard(_services.Storage, publicationGuard);
         _publicationGuard = publicationGuard;
         _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
         Jobs = new StudioJobsViewModel(_services.Jobs, (path, token) =>
-            string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
+            string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
                 ? _openDocumentInTab(path, token)
                 : _openUri(new Uri(path)));
         ConversionWorkbench = new ConversionWorkbenchViewModel(
@@ -136,7 +138,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             _pickSavePdf,
             localizer: _localizer,
             publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs, storage: _services.Storage);
+            jobHistory: _services.Jobs, storage: _services.Storage,
+            recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs);
         OcrWorkbench = new SearchablePdfOcrViewModel(
@@ -144,7 +147,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             _pickOutputFolder,
             openDocumentInTab,
             ocrService,
-            canPublishPath ?? _canSaveAsPath,
+            path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
             _localizer, jobHistory: _services.Jobs);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;

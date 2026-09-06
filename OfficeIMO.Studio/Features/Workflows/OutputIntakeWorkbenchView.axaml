@@ -223,6 +223,7 @@
             <ProgressBar Minimum="0" Maximum="1" Value="{Binding OutputWorkbench.Assembly.ProgressFraction}" />
             <TextBlock Text="{Binding OutputWorkbench.Assembly.Status}" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding OutputWorkbench.Assembly.Summary}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OutputWorkbench.Assembly.HasRecovery}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding OutputWorkbench.Assembly.PublishedPath}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
         </ScrollViewer>

@@ -35,6 +35,8 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
+    private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
+    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
@@ -51,7 +53,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
-        StudioStorageAccess? storage = null) {
+        StudioStorageAccess? storage = null,
+        OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
+        Func<string, Task<bool>>? confirmProviderWrite = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
@@ -59,6 +63,8 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
         _storage = storage;
+        _recoveryStore = recoveryStore;
+        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _localizer = localizer ?? StudioLocalization.Current;
         Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
         Summary = T("Summary.Empty", "No assembly run yet");
@@ -92,6 +98,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string? _publishedPath;
+
+    [ObservableProperty]
+    private bool _hasRecovery;
 
     public bool HasSources => Sources.Count > 0;
     public bool CanCancel => IsBusy;
@@ -154,19 +163,32 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         IsBusy = true;
         ProgressFraction = 0D;
         PublishedPath = null;
+        HasRecovery = false;
         OnPropertyChanged(nameof(HasOutput));
 
         StudioJobRecord? job = null;
         bool ownerStarted = false;
 
         try {
+            string destination = OutputPath;
+            OfficeWorkflowStreamOutput? outputStream = null;
+            if (_storage?.UsesProviderPublication(destination) == true) {
+                if (!await _confirmProviderWrite(destination).ConfigureAwait(true)) {
+                    Status = T("Status.Cancelled", "Assembly cancelled");
+                    return;
+                }
+                operation.Token.ThrowIfCancellationRequested();
+                outputStream = _storage.CreateWorkflowOutput(destination, _recoveryStore
+                    ?? throw new IOException("Workflow recovery storage is unavailable."));
+            }
             var request = new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
                 SourceStreams = Sources.Select(source => (source.Path, Access: _storage?.CreateWorkflowInput(source.Path)))
                     .Where(source => source.Access is not null).ToDictionary(source => source.Path, source => source.Access!, StringComparer.Ordinal),
-                OutputPath = OutputPath,
+                OutputPath = destination,
+                OutputStream = outputStream,
                 PublicationGuard = _publicationGuard,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
+                ConflictPolicy = outputStream is null ? OfficeWorkflowConflictPolicy.Rename : OfficeWorkflowConflictPolicy.Replace,
                 Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
             };
             job = _jobHistory?.Start(T("Job.Title", "PDF assembly"), string.Join(Environment.NewLine, request.Sources), request.OutputPath, operation.Cancel);
@@ -179,11 +201,13 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             });
             ownerStarted = true;
             PdfAssemblyResult result = await _runner.AssemblePdfAsync(request, progress, operation.Token).ConfigureAwait(true);
-            job?.Complete(result.Status, result.OutputPath, result.Summary);
+            job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
+            HasRecovery = result.Recovery is not null;
             Summary = result.Summary;
             Status = result.Status switch {
                 OfficeWorkflowStatus.Completed => T("Status.Completed", "Assembled PDF ready"),
                 OfficeWorkflowStatus.Cancelled => T("Status.Cancelled", "Assembly cancelled"),
+                OfficeWorkflowStatus.Unconfirmed => _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output"),
                 _ => _localizer.GetOrDefault("Assembly.Status.Failed", result.Summary)
             };
             PublishedPath = result.OutputPath;

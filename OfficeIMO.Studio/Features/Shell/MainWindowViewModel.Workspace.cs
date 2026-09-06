@@ -336,6 +336,11 @@ public sealed partial class MainWindowViewModel {
     private async Task<bool> RunSaveAsync(string? path, CancellationToken cancellationToken) {
         if (_workspace is null) return false;
         PdfWorkspace workspace = _workspace;
+        if (path is null && _services.Storage.IsRecoveryLocation(workspace.Path)) {
+            path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            if (!_canSaveAsPath(path)) { OperationStatus = UiText("Workspace.SaveAsAlreadyOpen"); return false; }
+        }
         if (path is null && workspace.UsesProviderPublication() && !await _confirmProviderWrite(workspace.Path)) return false;
         if (!ReferenceEquals(workspace, _workspace) || _disposed) return false;
         bool succeeded = await RunStandaloneAsync(

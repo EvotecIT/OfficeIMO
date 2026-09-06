@@ -5,12 +5,14 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Core.Internal {
     /// <summary>Creates task-owned temporary directories, with owner-only access on Unix.</summary>
     internal static class OfficeTemporaryDirectory {
-        internal static string Create(string prefix) {
+        internal static string Create(string prefix, string? parentDirectory = null) {
             if (string.IsNullOrWhiteSpace(prefix) || prefix.IndexOfAny(new[] { '/', '\\', ':' }) >= 0) {
                 throw new ArgumentException("A temporary directory prefix must be a simple name.", nameof(prefix));
             }
+            string parent = parentDirectory is null ? Path.GetTempPath() : Path.GetFullPath(parentDirectory);
+            if (parentDirectory is not null) Directory.CreateDirectory(parent);
             for (int attempt = 0; attempt < 16; attempt++) {
-                string path = Path.Combine(Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N"));
+                string path = Path.Combine(parent, prefix + Guid.NewGuid().ToString("N"));
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                     Directory.CreateDirectory(path);
                     return path;

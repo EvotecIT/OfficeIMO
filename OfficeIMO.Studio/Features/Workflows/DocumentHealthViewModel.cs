@@ -350,7 +350,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             });
             ownerStarted = true;
             OfficeWorkflowResult result = await _runner.RunAsync(request, progress, operationCancellation.Token).ConfigureAwait(true);
-            job?.Complete(result.Status, result.OutputPath, result.Summary);
+            job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
             ResultStatus = result.Status;
             Summary = result.Summary;
             OutputPath = result.OutputPath;

@@ -398,6 +398,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
     internal async Task SaveAsync(string? path, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         ThrowIfDisposed();
         string destination = string.IsNullOrWhiteSpace(path) ? Path : OfficeStorageIdentity.Normalize(path);
+        _storage.EnsureWritableLocation(destination);
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             string previousPath = Path;

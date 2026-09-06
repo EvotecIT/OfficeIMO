@@ -49,7 +49,9 @@ public enum OfficeWorkflowStatus {
     /// <summary>The request was cancelled cooperatively and no staged artifact was published.</summary>
     Cancelled,
     /// <summary>The request failed and no staged artifact was published.</summary>
-    Failed
+    Failed,
+    /// <summary>A provider write began but its final contents could not be verified. Check the destination before retrying.</summary>
+    Unconfirmed
 }
 
 /// <summary>Stable category describing why a workflow did not complete.</summary>
@@ -175,6 +177,9 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }
+
+    /// <summary>Optional verified direct-write access for the original <see cref="OutputPath"/> provider location.</summary>
+    public OfficeWorkflowStreamOutput? OutputStream { get; set; }
 
     /// <summary>Conflict behavior used when publishing an artifact.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;

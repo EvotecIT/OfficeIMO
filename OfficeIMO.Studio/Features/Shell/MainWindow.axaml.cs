@@ -92,6 +92,8 @@ public sealed partial class MainWindow : Window {
             openUri: OpenUriAsync,
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
             confirmProviderWrite: ConfirmProviderWriteAsync,
+            confirmWorkflowProviderWrite: location => new ProviderSaveDialog(_services.Storage.Describe(location).Name,
+                _services.Localizer, workflowOutput: true).ShowDialog<bool>(this),
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),

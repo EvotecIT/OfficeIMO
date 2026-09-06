@@ -11,6 +11,28 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioProviderVisualTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WorkflowSaveDisclosesRecoveryWhenEditRecoveryIsOff(bool dark) {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(() => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            var dialog = new ProviderSaveDialog("Combined quarterly report.pdf", services.Localizer, workflowOutput: true);
+            try {
+                dialog.Show();
+                dialog.UpdateLayout();
+                AssertContained(dialog);
+                Assert.True(dialog.Bounds.Height <= 620);
+                Assert.Contains(dialog.GetVisualDescendants().OfType<TextBlock>(), text => text.IsEffectivelyVisible &&
+                    text.Text == services.Localizer.Get("Dialog.ProviderWorkflowRecovery"));
+                Capture(dialog, $"provider-workflow-consent-{(dark ? "dark" : "light")}.png");
+            } finally { dialog.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
     [InlineData(960, 620, false)]
     [InlineData(1280, 820, true)]
     public async Task ProviderSaveExplainsGuaranteesAndFailedWriteRetainsVisibleEdits(int width, int height, bool dark) {

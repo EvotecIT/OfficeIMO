@@ -19,6 +19,20 @@ internal sealed class StudioStorageAccess : IDisposable {
     private readonly object _sync = new();
     private Func<IStorageProvider>? _provider;
     private bool _disposed;
+    private readonly string? _protectedRecoveryRoot;
+
+    internal StudioStorageAccess(string? protectedRecoveryRoot = null) => _protectedRecoveryRoot = protectedRecoveryRoot;
+
+    internal bool IsRecoveryLocation(string location, bool isDirectory = false) {
+        string? path = OfficeStorageIdentity.GetLocalPath(location);
+        return path is not null && _protectedRecoveryRoot is not null &&
+            (OfficePathIdentity.IsSameOrDescendant(path, _protectedRecoveryRoot) ||
+             isDirectory && OfficePathIdentity.IsSameOrDescendant(_protectedRecoveryRoot, path));
+    }
+
+    internal void EnsureWritableLocation(string location) {
+        if (IsRecoveryLocation(location)) throw new IOException("Recovery copies are protected. Use Save As to save your changes to another location.");
+    }
 
     internal void Attach(Func<IStorageProvider> provider) => _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
@@ -104,6 +118,16 @@ internal sealed class StudioStorageAccess : IDisposable {
         UsesProviderPublication(location)
             ? new(Describe(location).Name, token => OpenReadAsync(location, token)) : null;
 
+    internal OfficeIMO.Workflows.OfficeWorkflowStreamOutput? CreateWorkflowOutput(string location,
+        OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore recoveryStore) =>
+        UsesProviderPublication(location)
+            ? new(Describe(location).Name, token => OpenReadAsync(location, token), async token => {
+                IStorageFile file = await ResolveAsync(location, token).ConfigureAwait(false)
+                    ?? throw new IOException("The storage provider is unavailable. Select the destination again.");
+                token.ThrowIfCancellationRequested();
+                return await file.OpenWriteAsync().ConfigureAwait(false);
+            }, recoveryStore) : null;
+
     internal async Task<StudioStorageSnapshot> ReadSnapshotAsync(string location, CancellationToken token,
         long maximumBytes = MaximumDocumentBytes) {
         if (maximumBytes < 1 || maximumBytes > MaximumDocumentBytes) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
@@ -135,6 +159,7 @@ internal sealed class StudioStorageAccess : IDisposable {
 
     internal async Task<StudioStoragePublication> PublishAsync(string location, byte[] bytes, string? expectedFingerprint,
         Func<CancellationToken, Task> authorize, CancellationToken token) {
+        EnsureWritableLocation(location);
         string? identity = null;
         string fingerprint = await OfficeStreamPublication.WriteVerifiedAsync(async ct => {
             Stream stream = await OpenReadAsync(location, ct).ConfigureAwait(false);

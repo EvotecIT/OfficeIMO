@@ -92,6 +92,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         State = result.Status switch {
             OfficeWorkflowStatus.Completed => ConversionJobState.Completed,
             OfficeWorkflowStatus.Cancelled => ConversionJobState.Cancelled,
+            OfficeWorkflowStatus.Unconfirmed => ConversionJobState.Unconfirmed,
             _ => ConversionJobState.Failed
         };
         OutputPath = result.OutputPath;
@@ -102,6 +103,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
             OfficeWorkflowStatus.Completed when HasWarnings => T("CompletedWithWarnings", "Completed with warnings"),
             OfficeWorkflowStatus.Completed => T("Completed", "Completed"),
             OfficeWorkflowStatus.Cancelled => T("Cancelled", "Cancelled"),
+            OfficeWorkflowStatus.Unconfirmed => T("Unconfirmed", "Check output"),
             _ => T("Failed", "Failed")
         };
         OnPropertyChanged(nameof(HasWarnings));

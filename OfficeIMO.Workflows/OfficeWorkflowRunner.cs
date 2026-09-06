@@ -36,6 +36,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         long inputBytes = 0;
         string? stagingPath = null;
+        string? providerStagingDirectory = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedRequest? validated = prepared.Validated;
         var inputs = new WorkflowInputSnapshots();
@@ -87,18 +88,19 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
             cancellationToken.ThrowIfCancellationRequested();
             failureStage = WorkflowFailureStage.Output;
-            string outputDirectory = Path.GetDirectoryName(validated.OutputPath!)!;
+            string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
+                : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
             Directory.CreateDirectory(outputDirectory);
             stagingPath = Path.Combine(
                 outputDirectory,
-                "." + Path.GetFileName(validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
             await File.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "validate-output", "Reopening the staged artifact", 0.72D);
             await ValidateStagedArtifactAsync(
                 stagingPath,
-                validated.OutputPath!,
+                validated.OutputStream?.Name ?? validated.OutputPath!,
                 validated.OutputPdfLoadOptions,
                 cancellationToken).ConfigureAwait(false);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -107,13 +109,26 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stage: "validate-output",
                 details: new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["stagedBytes"] = new FileInfo(stagingPath).Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    ["format"] = Path.GetExtension(validated.OutputPath!).ToLowerInvariant()
+                    ["format"] = Path.GetExtension(validated.OutputStream?.Name ?? validated.OutputPath!).ToLowerInvariant()
                 }));
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
             inputs.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
+            if (validated.OutputStream is { } provider) {
+                ProviderPublicationOutcome outcome = await PublishProviderArtifactAsync(stagingPath, validated.OutputPath!, provider,
+                    validated.Limits.MaximumOutputBytes, validated.PublicationGuard, () => {
+                        File.Delete(stagingPath);
+                        stagingPath = null;
+                        Directory.Delete(providerStagingDirectory!, recursive: false);
+                        providerStagingDirectory = null;
+                    }, diagnostics, cancellationToken).ConfigureAwait(false);
+                return new OfficeWorkflowResult(validated.Id, validated.Operation, outcome.Status,
+                    outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? validated.OutputPath : null,
+                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery);
+            }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
@@ -176,6 +191,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 diagnostics);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);
+            if (providerStagingDirectory is not null) TryDeleteDirectory(providerStagingDirectory);
             inputs.Cleanup(diagnostics);
         }
     }
@@ -762,5 +778,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfLoadOptions OutputPdfLoadOptions,
         IOfficeWorkflowPublicationGuard? PublicationGuard = null,
         OfficeWorkflowStreamInput? InputStream = null,
-        OfficeWorkflowStreamInput? ComparisonStream = null);
+        OfficeWorkflowStreamInput? ComparisonStream = null,
+        OfficeWorkflowStreamOutput? OutputStream = null);
 }

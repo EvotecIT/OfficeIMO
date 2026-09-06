@@ -69,7 +69,7 @@ public sealed class StudioJobsVisualTests {
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 Layout(window, width, height);
                 Button open = jobsView.GetVisualDescendants().OfType<Button>()
-                    .Single(button => ReferenceEquals(button.CommandParameter, assemblyEntry));
+                    .Single(button => ReferenceEquals(button.CommandParameter, assemblyEntry) && ReferenceEquals(button.Command, jobs.OpenOutputCommand));
                 Assert.True(open.IsEffectivelyEnabled);
                 CheckBounds(window, open);
                 Capture(window, width, dark, "output-action");

@@ -10,6 +10,7 @@
         <TextBlock Classes="pageTitle" Text="{loc:Loc Jobs.Title}" />
         <TextBlock Classes="muted" Text="{Binding History.Summary}" TextWrapping="Wrap" />
         <TextBlock Classes="muted" Text="{loc:Loc Jobs.SessionNote}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding History.RecoveryError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
       </StackPanel>
       <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.ClearFinished}"
               Command="{Binding ClearFinishedCommand}" VerticalAlignment="Top" />
@@ -37,6 +38,25 @@
                 </Grid>
                 <TextBlock Text="{Binding InputLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Classes="muted" />
                 <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+                <StackPanel IsVisible="{Binding HasRecovery}" Spacing="8">
+                  <TextBlock Text="{loc:Loc Jobs.RecoveryNote}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Destination}" TextTrimming="CharacterEllipsis" />
+                  <WrapPanel>
+                    <Button Classes="tool" Content="{loc:Loc Jobs.OpenRecovery}" Margin="0,0,8,8"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.OpenRecoveryCommand}" CommandParameter="{Binding}" />
+                    <Button Classes="tool" Content="{loc:Loc Jobs.DiscardRecovery}" IsVisible="{Binding !RecoveryDiscardRequested}" Margin="0,0,0,8"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.RequestDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                  </WrapPanel>
+                  <StackPanel IsVisible="{Binding RecoveryDiscardRequested}" Spacing="8">
+                    <TextBlock Text="{loc:Loc Jobs.DiscardRecoveryNote}" TextWrapping="Wrap" />
+                    <WrapPanel>
+                      <Button Classes="tool" Content="{loc:Loc Jobs.ConfirmDiscardRecovery}" Margin="0,0,8,8"
+                              Command="{ReflectionBinding $parent[UserControl].DataContext.ConfirmDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="tool" Content="{loc:Loc Jobs.KeepRecovery}" Margin="0,0,0,8"
+                              Command="{ReflectionBinding $parent[UserControl].DataContext.CancelDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                    </WrapPanel>
+                  </StackPanel>
+                </StackPanel>
                 <TextBlock Text="{Binding OutputPath}" IsVisible="{Binding HasOutput}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                   <StackPanel Spacing="6" VerticalAlignment="Center">

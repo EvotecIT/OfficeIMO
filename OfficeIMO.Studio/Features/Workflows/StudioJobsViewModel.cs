@@ -32,11 +32,40 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         if (!CanOpen(job) || path is null) return;
         try {
             ActionError = null;
-            if (!File.Exists(path) && !Directory.Exists(path)) throw new FileNotFoundException("The output is no longer available.", path);
+            string? localPath = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path);
+            if (localPath is not null && !File.Exists(localPath) && !Directory.Exists(localPath))
+                throw new FileNotFoundException("The output is no longer available.", localPath);
             await _openOutput(path, cancellationToken).ConfigureAwait(true);
         } catch (Exception exception) {
             ActionError = exception.Message;
         }
+    }
+    [RelayCommand]
+    private async Task OpenRecoveryAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
+        if (job?.Recovery is not { } recovery || History.RecoveryStore is not { } store) return;
+        try {
+            ActionError = null;
+            await store.VerifyAsync(recovery, cancellationToken).ConfigureAwait(true);
+            await _openOutput(recovery.FilePath, cancellationToken).ConfigureAwait(true);
+        } catch (Exception exception) { ActionError = exception.Message; }
+    }
+    [RelayCommand]
+    private void RequestDiscardRecovery(StudioJobRecord? job) {
+        if (job?.HasRecovery == true) job.RecoveryDiscardRequested = true;
+    }
+    [RelayCommand]
+    private void CancelDiscardRecovery(StudioJobRecord? job) {
+        if (job is not null) job.RecoveryDiscardRequested = false;
+    }
+    [RelayCommand]
+    private void ConfirmDiscardRecovery(StudioJobRecord? job) {
+        if (job?.RecoveryDiscardRequested != true || job.Recovery is not { } recovery || History.RecoveryStore is not { } store) return;
+        try {
+            ActionError = null;
+            store.Discard(recovery);
+            job.Recovery = null;
+            job.RecoveryDiscardRequested = false;
+        } catch (Exception exception) { ActionError = exception.Message; }
     }
     [RelayCommand(CanExecute = nameof(CanClear))]
     private void ClearFinished() {

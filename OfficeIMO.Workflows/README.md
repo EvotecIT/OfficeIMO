@@ -77,7 +77,15 @@ OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: 
 
 Comparison accepts `ComparisonStream`. Assembly accepts `SourceStreams`, keyed by the exact original entries in `Sources`, and preserves input order and display names. Its provider staging shares the total input byte budget. A provider HTML stream can use embedded resources; selecting it alone does not grant access to neighboring images or stylesheets. A selected ZIP can carry relative resources through the existing bounded archive intake.
 
-Provider operations require an explicit filesystem output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination. Provider folder enumeration and provider output publication are separate host contracts.
+Provider operations require an explicit output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination. Provider folder enumeration is a separate host contract.
+
+## Write provider-backed outputs
+
+Set `OutputStream` on an `OfficeWorkflowRequest` or `PdfAssemblyRequest` to publish through a selected provider. Supply an `OfficeWorkflowStreamOutput` with the display filename, fresh read and write stream factories, and an `OfficeWorkflowOutputRecoveryStore` rooted in a private local directory. Set `OutputPath` to the original provider reference and `ConflictPolicy` to `Replace`. The host must obtain explicit consent for a direct write and for the required local recovery copy.
+
+The runner validates the complete artifact and retains a verified local copy before opening the provider write stream. It closes the write stream and reads the destination back to verify its SHA-256. A verified write returns `Completed` with the provider reference in `OutputPath`. A failure after the write starts returns `Unconfirmed`, leaves `OutputPath` unset, and exposes the retained copy through `Recovery`. Cancellation after the write starts also returns `Unconfirmed`; it does not prove that the destination is unchanged. Do not automatically retry these results.
+
+The store defaults to a 1 GiB aggregate admission limit and at most 100 records. `GetRecoveries()` restores available records after restart, `VerifyAsync()` checks a copy before use, and `Discard()` removes a copy after explicit user action. Active publications are excluded from discovery. Successful or safely rejected writes remove their copies; cleanup failures are reported and can leave a recovery record. Retained copies do not expire automatically. Keep them outside normal output locations and require Save As when opening them for editing. Provider writes cannot guarantee atomic replacement, rollback, or exclusion of concurrent writers.
 
 ## Review and apply PDF redactions
 

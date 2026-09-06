@@ -237,7 +237,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                     throw new InvalidOperationException("The workflow runner returned an unexpected job result.");
                 }
                 job.Apply(result);
-                if (history.TryGetValue(result.RequestId, out StudioJobRecord? entry)) entry.Complete(result.Status, result.OutputPath, result.Summary);
+                if (history.TryGetValue(result.RequestId, out StudioJobRecord? entry)) entry.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
             }
             foreach (ConversionJobViewModel job in candidates.Where(job => !received.Contains(job.Id))) {
                 job.EndWithoutResult(operationCancellation.IsCancellationRequested,

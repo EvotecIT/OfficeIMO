@@ -5,6 +5,7 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     private async Task VerifyOutputDestinationAsync(string destination, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        _storage.EnsureWritableLocation(destination);
         ValidateExportDestination(destination);
         if (_canPublishOutput is not null && !await _canPublishOutput(destination, cancellationToken).ConfigureAwait(false)) {
             throw new IOException("The output is already owned by an open document. Choose a different destination.");

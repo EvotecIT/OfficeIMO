@@ -32,7 +32,12 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeWorkflowRoute? route = null;
         string? comparisonPath = null;
-        string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : ValidateLocalOutput(request.OutputPath);
+        string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null
+            : request.OutputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeStorageIdentity.Normalize(request.OutputPath);
+        string? outputName = request.OutputStream?.Name ?? outputPath;
+        if (request.OutputStream is not null && (outputPath is null || request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace)) {
+            throw new ArgumentException("A provider output requires an explicit destination and the Replace policy after direct-write confirmation.", nameof(request));
+        }
 
         if (request.InputStream is not null && outputPath is null &&
             request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare)) {
@@ -50,7 +55,7 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException($"Route '{route.Id}' does not accept '{extension}' input.", nameof(request));
             }
             outputPath ??= Path.ChangeExtension(inputPath, NormalizeExtension(route.TargetExtension));
-            if (!string.Equals(Path.GetExtension(outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
+            if (!string.Equals(Path.GetExtension(outputName ?? outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException($"Route '{route.Id}' requires a '{NormalizeExtension(route.TargetExtension)}' output.", nameof(request));
             }
             if ((route.Id == "html-pdf" || route.Id.StartsWith("pdf-", StringComparison.Ordinal)) &&
@@ -64,7 +69,7 @@ public sealed partial class OfficeWorkflowRunner {
             comparisonPath = ValidateInputLocation(request.ComparisonPath, request.ComparisonStream);
             EnsurePdfExtension(inputName);
             EnsurePdfExtension(request.ComparisonStream?.Name ?? comparisonPath);
-            if (outputPath is not null && !string.Equals(Path.GetExtension(outputPath), ".html", StringComparison.OrdinalIgnoreCase)) {
+            if (outputPath is not null && !string.Equals(Path.GetExtension(outputName ?? outputPath), ".html", StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException("Comparison output must be an HTML gallery.", nameof(request));
             }
         } else {
@@ -79,7 +84,7 @@ public sealed partial class OfficeWorkflowRunner {
                 outputPath ??= Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
                     Path.GetFileNameWithoutExtension(inputPath) + "." + request.Operation.ToString().ToLowerInvariant() + ".pdf");
-                EnsurePdfExtension(outputPath);
+                EnsurePdfExtension(outputName ?? outputPath);
             } else if (request.Operation is OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan && outputPath is not null) {
                 throw new ArgumentException("The selected report-only operation does not publish an artifact.", nameof(request));
             }
@@ -98,10 +103,10 @@ public sealed partial class OfficeWorkflowRunner {
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
-            request.InputStream is null && request.ComparisonStream is null ? request.PublicationGuard
+            request.InputStream is null && request.ComparisonStream is null && request.OutputStream is null ? request.PublicationGuard
                 : new ProviderSourcePublicationGuard(request.PublicationGuard,
                     new[] { inputPath, comparisonPath }.OfType<string>().ToArray()),
-            request.InputStream, request.ComparisonStream);
+            request.InputStream, request.ComparisonStream, request.OutputStream);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

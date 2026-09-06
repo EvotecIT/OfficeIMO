@@ -211,6 +211,9 @@ public sealed class PdfAssemblyRequest {
     /// <summary>Requested output PDF.</summary>
     public required string OutputPath { get; set; }
 
+    /// <summary>Optional verified direct-write access for the selected PDF provider destination.</summary>
+    public OfficeWorkflowStreamOutput? OutputStream { get; set; }
+
     /// <summary>How an existing output path is handled.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
 
@@ -243,7 +246,8 @@ public sealed class PdfAssemblyResult {
         long outputBytes,
         TimeSpan duration,
         string summary,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
+        OfficeWorkflowOutputRecovery? recovery = null) {
         RequestId = requestId;
         Status = status;
         FailureKind = failureKind;
@@ -255,6 +259,7 @@ public sealed class PdfAssemblyResult {
         Duration = duration;
         Summary = summary;
         Diagnostics = diagnostics.ToArray();
+        Recovery = recovery;
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -265,6 +270,8 @@ public sealed class PdfAssemblyResult {
     public OfficeWorkflowFailureKind FailureKind { get; }
     /// <summary>Published PDF path.</summary>
     public string? OutputPath { get; }
+    /// <summary>Gets a retained local artifact when provider publication or recovery cleanup needs attention.</summary>
+    public OfficeWorkflowOutputRecovery? Recovery { get; }
     /// <summary>Normalized source count.</summary>
     public int SourceCount { get; }
     /// <summary>Output page count.</summary>
