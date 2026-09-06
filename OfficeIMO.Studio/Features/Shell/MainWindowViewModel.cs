@@ -141,7 +141,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             jobHistory: _services.Jobs, storage: _services.Storage,
             recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
-            publicationGuard: publicationGuard, jobHistory: _services.Jobs);
+            publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage);
         OcrWorkbench = new SearchablePdfOcrViewModel(
             _pickPdf,
             _pickOutputFolder,

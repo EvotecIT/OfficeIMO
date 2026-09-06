@@ -6,10 +6,85 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioProviderWorkflowTests {
+    [Theory]
+    [InlineData(960, 620, false)]
+    [InlineData(1280, 820, true)]
+    public async Task HealthInspectsProviderWithoutOutputAndRequiresFolderForOptimization(int width, int height, bool dark) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            byte[] original = StudioProviderDocumentTests.CreatePdf(2);
+            var provider = new TestStorageFile("content://documents/health", original, "Provider document selected for inspection and compression.pdf");
+            string location = await services.Storage.RegisterAsync(provider.Item, default);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(location), services: services);
+            var health = model.DocumentHealth;
+            await health.ChooseInputCommand.ExecuteAsync(null);
+            Assert.Equal(provider.Name, health.InputFileName);
+            Assert.Equal("Storage provider", health.InputDirectory);
+            Assert.True(health.CanRun);
+            await health.RunCommand.ExecuteAsync(null);
+            Assert.Equal(OfficeWorkflowStatus.Completed, health.ResultStatus);
+            Assert.True(health.HasHealthReport);
+            Assert.False(health.HasOutput);
+            health.PrepareWorkflow(OfficeWorkflowOperation.Optimize);
+            health.ContinueCommand.Execute(null);
+            Assert.True(health.IsOptionsStep);
+            Assert.False(health.CanContinue);
+            Assert.False(health.CanRun);
+            var window = new Window { Width = width, Height = height, Content = new DocumentHealthView { DataContext = model } };
+            try {
+                window.Show();
+                Capture(window, $"provider-health-{width}-{(dark ? "dark" : "light")}-choose-output.png");
+                health.OutputFolder = services.Paths.Root;
+                Assert.True(health.CanContinue);
+                Assert.True(health.CanRun);
+                health.ContinueCommand.Execute(null);
+                await health.RunCommand.ExecuteAsync(null);
+                Assert.Equal(OfficeWorkflowStatus.Completed, health.ResultStatus);
+                Assert.Equal(2, PdfDocument.Load(health.OutputPath!).Inspect().PageCount);
+                Assert.Equal(provider.Name.Replace(".pdf", ".optimized.pdf"), Path.GetFileName(health.OutputPath));
+                Assert.Equal(original, provider.Bytes);
+                Assert.Equal(0, provider.Writes);
+                Assert.Equal(provider.Reads, provider.ClosedReads);
+                Capture(window, $"provider-health-{width}-{(dark ? "dark" : "light")}-completed.png");
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HealthComparisonUsesBothProviderStreamsAndHonorsRevokedAccess(bool denied) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            var first = new TestStorageFile("content://documents/first", StudioProviderDocumentTests.CreatePdf(), "First.pdf");
+            var second = new TestStorageFile("content://documents/second", StudioProviderDocumentTests.CreatePdf(2), "Second.pdf") { DenyRead = denied };
+            var locations = await services.Storage.RegisterManyAsync([first.Item, second.Item], default);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var health = model.DocumentHealth;
+            health.InputPath = locations[0];
+            health.ComparisonPath = locations[1];
+            health.OutputFolder = services.Paths.Root;
+            health.PrepareWorkflow(OfficeWorkflowOperation.Compare);
+            await health.RunCommand.ExecuteAsync(null);
+            Assert.Equal(denied ? OfficeWorkflowStatus.Failed : OfficeWorkflowStatus.Completed, health.ResultStatus);
+            Assert.Equal(!denied, health.HasOutput);
+            if (!denied) Assert.True(File.Exists(health.OutputPath));
+            Assert.Equal(0, first.Writes + second.Writes);
+            Assert.Equal(first.Reads, first.ClosedReads);
+            Assert.Equal(denied ? 0 : second.Reads, second.ClosedReads);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(960, 620, false)]
     [InlineData(1280, 820, true)]

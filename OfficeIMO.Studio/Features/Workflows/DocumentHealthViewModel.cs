@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Internal;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
@@ -22,6 +24,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
+    private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
 
     public DocumentHealthViewModel(
@@ -35,12 +38,14 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
+        _storage = storage;
         _localizer = localizer ?? StudioLocalization.Current;
         Operations = [
             Operation(OfficeWorkflowOperation.Inspect, "Inspect", "Read structure, security, signatures, tags, active content, and repair diagnostics.", false),
@@ -135,7 +140,10 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
 
     public bool NeedsComparison => SelectedOperation.Value == OfficeWorkflowOperation.Compare;
     public bool ShowsOptimizationProfile => SelectedOperation.Value == OfficeWorkflowOperation.Optimize;
-    public bool CanRun => !IsBusy && !string.IsNullOrWhiteSpace(InputPath) && (!NeedsComparison || !string.IsNullOrWhiteSpace(ComparisonPath));
+    public bool CanRun => !IsBusy && HasOutputDestination && !string.IsNullOrWhiteSpace(InputPath) && (!NeedsComparison || !string.IsNullOrWhiteSpace(ComparisonPath));
+    private bool HasOutputDestination => !SelectedOperation.ProducesArtifact || !InputRequiresOutputFolder || !string.IsNullOrWhiteSpace(OutputFolder);
+    private bool InputRequiresOutputFolder => !string.IsNullOrWhiteSpace(InputPath) &&
+        (_storage?.UsesProviderPublication(InputPath) ?? OfficeStorageIdentity.GetLocalPath(InputPath) is null);
     public bool CanCancel => IsBusy;
     public bool HasOutput => !string.IsNullOrWhiteSpace(OutputPath);
     public bool IsResultSuccessful => ResultStatus == OfficeWorkflowStatus.Completed;
@@ -154,9 +162,12 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     public bool CanGoBack => !IsBusy && CurrentStep is GuidedWorkflowStep.Options or GuidedWorkflowStep.Review;
     public bool CanContinue => !IsBusy && (IsFilesStep
         ? !string.IsNullOrWhiteSpace(InputPath) && (!NeedsComparison || !string.IsNullOrWhiteSpace(ComparisonPath))
-        : IsOptionsStep);
-    public string InputFileName => string.IsNullOrWhiteSpace(InputPath) ? T("Input.None", "No PDF selected") : Path.GetFileName(InputPath);
-    public string InputDirectory => string.IsNullOrWhiteSpace(InputPath) ? T("Input.Choose", "Choose the source document") : Path.GetDirectoryName(InputPath) ?? string.Empty;
+        : IsOptionsStep && HasOutputDestination);
+    public string InputFileName => string.IsNullOrWhiteSpace(InputPath) ? T("Input.None", "No PDF selected")
+        : _storage?.Describe(InputPath).Name ?? OfficeStorageIdentity.GetFileName(InputPath);
+    public string InputDirectory => string.IsNullOrWhiteSpace(InputPath) ? T("Input.Choose", "Choose the source document")
+        : OfficeStorageIdentity.GetLocalPath(InputPath) is { } local ? Path.GetDirectoryName(local) ?? string.Empty
+        : T("Input.Provider", "Storage provider");
     public string WorkbenchTitle => SelectedOperation.Value switch {
         OfficeWorkflowOperation.Inspect => T("Title.Inspect", "Inspect PDF"),
         OfficeWorkflowOperation.Compare => T("Title.Compare", "Compare PDFs"),
@@ -235,16 +246,9 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     public string OutputPreviewPath {
         get {
             if (string.IsNullOrWhiteSpace(InputPath)) return T("Output.ChooseInput", "Choose a PDF to calculate the output path.");
-            string input = Path.GetFullPath(InputPath);
-            string directory = string.IsNullOrWhiteSpace(OutputFolder) ? Path.GetDirectoryName(input)! : Path.GetFullPath(OutputFolder);
-            string stem = Path.Combine(directory, Path.GetFileNameWithoutExtension(input));
-            return SelectedOperation.Value switch {
-                OfficeWorkflowOperation.Compare => stem + ".comparison.html",
-                OfficeWorkflowOperation.Optimize => stem + ".optimized.pdf",
-                OfficeWorkflowOperation.Repair => stem + ".repaired.pdf",
-                OfficeWorkflowOperation.Sanitize => stem + ".sanitized.pdf",
-                _ => T("Output.NoArtifact", "No new PDF is written; results remain in the operation report.")
-            };
+            if (!HasOutputDestination) return T("Output.ProviderFolderRequired", "Choose an output folder before processing provider documents.");
+            try { return GetOutputDestination() ?? T("Output.NoArtifact", "No new PDF is written; results remain in the operation report."); }
+            catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException) { return exception.Message; }
         }
     }
 
@@ -281,7 +285,14 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         ContinueCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnOutputFolderChanged(string value) => OnPropertyChanged(nameof(OutputPreviewPath));
+    partial void OnOutputFolderChanged(string value) {
+        OnPropertyChanged(nameof(OutputPreviewPath));
+        OnPropertyChanged(nameof(CanRun));
+        OnPropertyChanged(nameof(CanContinue));
+        RunCommand.NotifyCanExecuteChanged();
+        ContinueCommand.NotifyCanExecuteChanged();
+        NotifyStepCommands();
+    }
 
     partial void OnComparisonPathChanged(string value) {
         OnPropertyChanged(nameof(CanRun));
@@ -426,24 +437,34 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     }
 
     private OfficeWorkflowRequest CreateRequest() {
-        string input = Path.GetFullPath(InputPath);
-        string directory = string.IsNullOrWhiteSpace(OutputFolder) ? Path.GetDirectoryName(input)! : Path.GetFullPath(OutputFolder);
-        string? output = SelectedOperation.Value switch {
-            OfficeWorkflowOperation.Compare => Path.Combine(directory, Path.GetFileNameWithoutExtension(input) + ".comparison.html"),
-            OfficeWorkflowOperation.Optimize => Path.Combine(directory, Path.GetFileNameWithoutExtension(input) + ".optimized.pdf"),
-            OfficeWorkflowOperation.Repair => Path.Combine(directory, Path.GetFileNameWithoutExtension(input) + ".repaired.pdf"),
-            OfficeWorkflowOperation.Sanitize => Path.Combine(directory, Path.GetFileNameWithoutExtension(input) + ".sanitized.pdf"),
-            _ => null
-        };
+        string input = OfficeStorageIdentity.Normalize(InputPath);
         return new OfficeWorkflowRequest {
             Operation = SelectedOperation.Value,
             InputPath = input,
-            ComparisonPath = NeedsComparison ? Path.GetFullPath(ComparisonPath) : null,
-            OutputPath = output,
+            InputStream = _storage?.CreateWorkflowInput(input),
+            ComparisonPath = NeedsComparison ? OfficeStorageIdentity.Normalize(ComparisonPath) : null,
+            ComparisonStream = NeedsComparison ? _storage?.CreateWorkflowInput(ComparisonPath) : null,
+            OutputPath = GetOutputDestination(),
             OutputProfile = SelectedProfile.Value,
             PublicationGuard = _publicationGuard,
             ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
             PdfPassword = string.IsNullOrEmpty(PdfPassword) ? null : PdfPassword
+        };
+    }
+
+    private string? GetOutputDestination() {
+        if (!SelectedOperation.ProducesArtifact) return null;
+        if (!HasOutputDestination) throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before processing provider documents."));
+        string directory = string.IsNullOrWhiteSpace(OutputFolder)
+            ? Path.GetDirectoryName(OfficeStorageIdentity.GetLocalPath(InputPath)!)!
+            : OfficeStorageIdentity.GetLocalPath(OutputFolder) ?? throw new ArgumentException("Choose a filesystem output folder.");
+        string stem = Path.Combine(directory, Path.GetFileNameWithoutExtension(InputFileName));
+        return SelectedOperation.Value switch {
+            OfficeWorkflowOperation.Compare => stem + ".comparison.html",
+            OfficeWorkflowOperation.Optimize => stem + ".optimized.pdf",
+            OfficeWorkflowOperation.Repair => stem + ".repaired.pdf",
+            OfficeWorkflowOperation.Sanitize => stem + ".sanitized.pdf",
+            _ => null
         };
     }
 
