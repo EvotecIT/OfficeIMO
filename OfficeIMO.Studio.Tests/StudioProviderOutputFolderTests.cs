@@ -29,11 +29,14 @@ public sealed class StudioProviderOutputFolderTests {
                 recoveries.Add(Assert.IsType<OfficeIMO.Workflows.OfficeWorkflowOutputRecovery>(result.Recovery));
             }
             var job = services.Jobs.Start("Page image export", source, "content://folder/selected", () => { });
-            job.CompleteBatch(OfficeIMO.Workflows.OfficeWorkflowStatus.Unconfirmed, null, "Two recovery copies are available.", recoveries, false);
+
             using var jobs = new StudioJobsViewModel(services.Jobs, (_, _) => Task.CompletedTask);
             var window = new Window { Width = 960, Height = 620, Content = new StudioJobsView { DataContext = jobs } };
             try {
                 window.Show(); window.UpdateLayout();
+                job.CompleteBatch(OfficeIMO.Workflows.OfficeWorkflowStatus.Unconfirmed, null, "Two recovery copies are available.", recoveries, false);
+                window.UpdateLayout();
+                Assert.Same(recoveries[0], job.Recovery);
                 Assert.True(job.HasMultipleRecoveries);
                 Capture(window, "provider-folder-multiple-recoveries.png");
                 jobs.RequestDiscardRecoveryCommand.Execute(job);
