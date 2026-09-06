@@ -31,7 +31,8 @@ public sealed partial class PdfCiiInvoiceDocument {
     /// <summary>Writes the stored XML bytes at the current position and leaves the caller's stream open.</summary>
     public void Save(Stream stream) {
         Guard.NotNull(stream, nameof(stream));
-        stream.Write(_bytes, 0, _bytes.Length);
+        byte[] snapshot = ToBytes();
+        stream.Write(snapshot, 0, snapshot.Length);
     }
 
     /// <summary>Saves the stored XML bytes to a file, replacing any existing contents.</summary>

@@ -42,6 +42,19 @@ public class PdfCiiInvoiceDocumentTests {
     }
 
     [Fact]
+    public void SavingToACallerStreamCannotExposeTheDocumentBuffer() {
+        byte[] bytes = Encoding.UTF8.GetBytes(Invoice("INV-1"));
+        var invoice = PdfCiiInvoiceDocument.Load(bytes);
+        using var stream = new MutatingInvoiceStream();
+        invoice.Save(stream);
+        Assert.Equal(bytes, invoice.ToBytes());
+        stream.Captured![1] ^= 1;
+        Assert.Equal(bytes, invoice.ToBytes());
+        Assert.Equal("INV-1", invoice.DocumentId);
+        Assert.Equal(bytes, new PdfOptions().UseFacturXDocument(invoice).EmbeddedFiles.Single().Data);
+    }
+
+    [Fact]
     public void NonSeekableInputIsBoundedWithoutReadingPastTheLimit() {
         using var valid = new NonSeekableInvoiceStream(Encoding.UTF8.GetBytes(Invoice("INV-1")));
         Assert.Equal("INV-1", PdfCiiInvoiceDocument.Load(valid).DocumentId);
@@ -176,6 +189,15 @@ public class PdfCiiInvoiceDocumentTests {
             int read = base.Read(buffer, offset, count);
             BytesRead += read;
             return read;
+        }
+    }
+
+    private sealed class MutatingInvoiceStream : MemoryStream {
+        internal byte[]? Captured { get; private set; }
+        public override void Write(byte[] buffer, int offset, int count) {
+            Captured = buffer;
+            buffer[offset] ^= 1;
+            base.Write(buffer, offset, count);
         }
     }
 
