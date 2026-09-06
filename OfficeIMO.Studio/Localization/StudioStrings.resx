@@ -1587,4 +1587,20 @@
   <data name="Forms.PreviewNewField" xml:space="preserve"><value>Preview new field</value></data>
   <data name="Forms.PlacementPreviewHint" xml:space="preserve"><value>Preview of the proposed placement. Choose Apply placement to keep it.</value></data>
   <data name="Forms.CreationPreviewHint" xml:space="preserve"><value>Preview of the proposed field. Choose Create field to add it.</value></data>
+  <data name="Organizer.MovePages" xml:space="preserve"><value>Move pages</value></data>
+  <data name="Organizer.MoveHint" xml:space="preserve"><value>Move the selected source pages together in their original order:</value></data>
+  <data name="Organizer.BeforePage" xml:space="preserve"><value>Before source page</value></data>
+  <data name="Organizer.EndHint" xml:space="preserve"><value>Use {0} to move to the end. Source page numbers refer to the current document.</value></data>
+  <data name="Organizer.ResultOrder" xml:space="preserve"><value>Resulting page order</value></data>
+  <data name="Organizer.OutputPage" xml:space="preserve"><value>Page {0} ← source page {1}</value></data>
+  <data name="Organizer.Moved" xml:space="preserve"><value>Moved</value></data>
+  <data name="Organizer.UnchangedOrder" xml:space="preserve"><value>The pages are already in this order.</value></data>
+  <data name="Organizer.ApplyMove" xml:space="preserve"><value>Apply move</value></data>
+  <data name="Organizer.StalePreview" xml:space="preserve"><value>The document changed while the page order was being reviewed. Preview the move again.</value></data>
+  <data name="Organizer.RangeHint" xml:space="preserve"><value>1-3, 5, 8-10</value></data>
+  <data name="Organizer.PageRange" xml:space="preserve"><value>Page ranges to select</value></data>
+  <data name="Organizer.SelectRange" xml:space="preserve"><value>Select</value></data>
+  <data name="Organizer.MoveTo" xml:space="preserve"><value>Move to…</value></data>
+  <data name="Organizer.SelectRanges" xml:space="preserve"><value>Select page ranges</value></data>
+  <data name="Organizer.WholePageRequired" xml:space="preserve"><value>Enter a whole page number within the document, or the page count plus one for the end.</value></data>
 </root>

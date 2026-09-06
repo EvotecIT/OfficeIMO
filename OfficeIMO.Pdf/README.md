@@ -785,6 +785,16 @@ PdfDocument.Load("packet.pdf")
     .Save("packet-clean.pdf");
 ```
 
+Use `PdfPageReorderPlan.Move(pageCount, insertBeforePageNumber, selectedPages)` to
+preview a move without rewriting the document. `SourcePageNumbers` gives the full
+proposed order, `GetOutputPageNumber(sourcePageNumber)` locates a page after the
+move, and `HasChanges` identifies a no-op. `Shift(pageCount, towardStart, selectedPages)`
+moves each selected run one position. Apply the proposed order with
+`document.Pages.Reorder(plan.SourcePageNumbers.ToArray())`; the document's normal
+mutation policy still applies. Plans describe page positions, so regenerate them
+when the source document changes. `PdfPageSelection.Parse("2-4,7").Resolve(pageCount)`
+resolves ranges with bounds checking and preserves caller order and repeated pages.
+
 Encrypted merge inputs keep independent authentication settings. Owner
 authorization is honored automatically. A user password follows the PDF
 permission bits unless the caller explicitly opts into ignoring those

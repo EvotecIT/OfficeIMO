@@ -38,6 +38,12 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);
         Add("Edit", "Edit PDF content", "Select supported existing text and images to edit.", "Edit", document.ShowEditModeCommand, () => Allowed(document.CanEditPageContent), true, workspace: true);
         Add("Pages", "Organize pages", "Rotate, crop, duplicate, reorder, import, extract, and split pages.", "Organize", document.ShowPagesModeCommand, Loaded, true, workspace: true);
+        Add("MovePages", "Move selected pages", "Preview moving selected pages before another page or to the end.", "Organize", document.MoveSelectedToCommand,
+            () => Allowed(document.CanMutateSelection));
+        Add("MovePagesUp", "Move selected pages up", "Move selected runs one position toward the beginning.", "Organize", document.MoveSelectedUpCommand,
+            () => Allowed(document.CanMutateSelection), shortcut: "Alt+↑ (page list)");
+        Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
+            () => Allowed(document.CanMutateSelection), shortcut: "Alt+↓ (page list)");
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
         Add("Protect", "Protect and sign", "Inspect protection, sign, or protect a document copy.", "Security", document.ShowProtectModeCommand, Loaded, true, workspace: true);
         Add("Redact", "Redact content", "Mark content for reviewed permanent removal.", "Security", document.BeginRedactionCommand, () => Allowed(document.CanRedact), true, workspace: true);

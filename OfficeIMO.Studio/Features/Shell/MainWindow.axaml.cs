@@ -67,7 +67,7 @@ public sealed partial class MainWindow : Window {
                 eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
                 eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
         };
-        OrganizerList.KeyDown += OnOrganizerKeyDown;
+        OrganizerList.AddHandler(KeyDownEvent, OnOrganizerKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         OrganizerList.AddHandler(PointerPressedEvent, OnOrganizerPointerPressed, handledEventsToo: true);
         OrganizerList.AddHandler(PointerMovedEvent, OnOrganizerPointerMoved, handledEventsToo: true);
         OrganizerList.AddHandler(PointerReleasedEvent, OnOrganizerPointerReleased, handledEventsToo: true);
@@ -96,6 +96,7 @@ public sealed partial class MainWindow : Window {
                 _services.Localizer, workflowOutput: true, folderOutput: _services.Storage.IsFolder(location)).ShowDialog<bool>(this),
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
+            reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
@@ -554,7 +555,15 @@ public sealed partial class MainWindow : Window {
 
     private void OnOrganizerPointerReleased(object? sender, PointerReleasedEventArgs e) => ClearOrganizerDrag();
 
-    private void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
+    private async void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
+        if (ViewModel.IsPagesDocumentMode && e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Up or Key.Down) {
+            e.Handled = true;
+            if (!ViewModel.CanMutateSelection) return;
+            await (e.Key == Key.Up ? ViewModel.MoveSelectedUpCommand : ViewModel.MoveSelectedDownCommand).ExecuteAsync(null);
+            if (ViewModel.OrganizerPages.FirstOrDefault(page => page.IsSelected) is { } selected) OrganizerList.ScrollIntoView(selected);
+            OrganizerList.Focus();
+            return;
+        }
         if (e.Key is not (Key.Enter or Key.Space)) return;
         PdfOrganizerPageViewModel? page = FindOrganizerPage(e.Source)
             ?? OrganizerList.SelectedItem as PdfOrganizerPageViewModel;

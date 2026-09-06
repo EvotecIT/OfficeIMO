@@ -116,17 +116,10 @@ public sealed partial class MainWindowViewModel {
             ? GetSelectedPages()
             : [draggedPageNumber];
         if (moved.Contains(targetPageNumber)) return;
-        var remaining = Enumerable.Range(1, _workspace.Pages.Count)
-            .Where(page => !moved.Contains(page))
-            .ToList();
-        int targetIndex = remaining.IndexOf(targetPageNumber);
-        if (targetIndex < 0) targetIndex = remaining.Count;
-        remaining.InsertRange(targetIndex, moved);
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(remaining, moved);
-        await RunMutationAsync(
-            token => _workspace.ReorderAsync(remaining, token, CreateProgress()),
-            CancellationToken.None,
-            selectionAfter).ConfigureAwait(true);
+        if (draggedPageNumber < 1 || draggedPageNumber > _workspace.Pages.Count ||
+            targetPageNumber < 1 || targetPageNumber > _workspace.Pages.Count) return;
+        var plan = PdfPageReorderPlan.Move(_workspace.Pages.Count, targetPageNumber, moved);
+        await ApplyPageReorderAsync(plan, moved, CancellationToken.None).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -217,18 +210,16 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task MoveSelectedUpAsync(CancellationToken cancellationToken) {
-        int[] order = BuildMovedOrder(moveUp: true);
-        if (_workspace is null || order.Length == 0) return;
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
+        if (_workspace is null || !CanMutateSelection) return;
+        int[] selected = GetSelectedPages();
+        await ApplyPageReorderAsync(PdfPageReorderPlan.Shift(_workspace.Pages.Count, true, selected), selected, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task MoveSelectedDownAsync(CancellationToken cancellationToken) {
-        int[] order = BuildMovedOrder(moveUp: false);
-        if (_workspace is null || order.Length == 0) return;
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
+        if (_workspace is null || !CanMutateSelection) return;
+        int[] selected = GetSelectedPages();
+        await ApplyPageReorderAsync(PdfPageReorderPlan.Shift(_workspace.Pages.Count, false, selected), selected, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -436,34 +427,6 @@ public sealed partial class MainWindowViewModel {
     }
 
     private int[] GetSelectedPages() => _organizerSelection.OrderBy(static page => page).ToArray();
-
-    private int[] BuildMovedOrder(bool moveUp) {
-        if (_workspace is null || _organizerSelection.Count == 0) return Array.Empty<int>();
-        int[] order = Enumerable.Range(1, _workspace.Pages.Count).ToArray();
-        if (moveUp) {
-            for (int index = 1; index < order.Length; index++) {
-                if (_organizerSelection.Contains(order[index]) && !_organizerSelection.Contains(order[index - 1])) {
-                    (order[index - 1], order[index]) = (order[index], order[index - 1]);
-                }
-            }
-        } else {
-            for (int index = order.Length - 2; index >= 0; index--) {
-                if (_organizerSelection.Contains(order[index]) && !_organizerSelection.Contains(order[index + 1])) {
-                    (order[index], order[index + 1]) = (order[index + 1], order[index]);
-                }
-            }
-        }
-        return order;
-    }
-
-    private static int[] MapSelectedPagesToReorderedPositions(IReadOnlyList<int> order, IReadOnlyCollection<int> selectedPages) {
-        var selected = new HashSet<int>(selectedPages);
-        return order
-            .Select((originalPageNumber, index) => new { originalPageNumber, position = index + 1 })
-            .Where(item => selected.Contains(item.originalPageNumber))
-            .Select(static item => item.position)
-            .ToArray();
-    }
 
     private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;

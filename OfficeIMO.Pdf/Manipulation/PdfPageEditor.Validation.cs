@@ -56,12 +56,6 @@ internal static partial class PdfPageEditor {
         return distinct.ToArray();
     }
 
-    private static void ValidateMoveInsertBeforePageNumber(int insertBeforePageNumber, int pageCount) {
-        if (insertBeforePageNumber < 1 || insertBeforePageNumber > pageCount + 1) {
-            throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the document page range 1-" + (pageCount + 1).ToString(CultureInfo.InvariantCulture) + ".");
-        }
-    }
-
     private static int[] BuildInclusivePageRange(int firstPage, int lastPage, string lastPageParamName) {
         if (firstPage > lastPage) {
             throw new ArgumentOutOfRangeException(lastPageParamName, "Last page must be greater than or equal to first page.");

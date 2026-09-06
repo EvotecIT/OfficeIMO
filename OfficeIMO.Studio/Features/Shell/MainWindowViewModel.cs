@@ -104,7 +104,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
         Func<string, Task<bool>>? confirmProviderWrite = null,
         Func<string, Task<bool>>? confirmWorkflowProviderWrite = null,
-        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickOcrFiles = null) {
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickOcrFiles = null,
+        Func<PageMovePreviewViewModel, Task<bool>>? reviewPageMove = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -120,6 +121,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
+        _reviewPageMove = reviewPageMove ?? (_ => Task.FromResult(false));
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
@@ -572,6 +574,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _renderCoordinator = renderCoordinator;
 
         if (isDocumentTransition) {
+            OrganizerPageRange = string.Empty;
+            IsOrganizerRangeExpanded = false;
+            OrganizerRangeError = null;
             CloseComparisonSession(restoreLayout: true);
             ResetDocumentSecurityState();
             SearchQuery = string.Empty;

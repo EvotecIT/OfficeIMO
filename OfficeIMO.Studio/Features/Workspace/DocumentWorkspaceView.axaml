@@ -85,6 +85,13 @@
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.BlankPage}" Content="{loc:Loc DocumentWorkspace.BlankPage}" Command="{Binding InsertBlankCommand}" IsEnabled="{Binding CanMutatePages}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Extract}" Content="{loc:Loc DocumentWorkspace.Extract}" Command="{Binding ExtractSelectedCommand}" IsEnabled="{Binding CanExtractSelection}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Split}" Content="{loc:Loc DocumentWorkspace.Split}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Up}" Content="{loc:Loc DocumentWorkspace.Up}" Command="{Binding MoveSelectedUpCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Down}" Content="{loc:Loc DocumentWorkspace.Down}" Command="{Binding MoveSelectedDownCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" Content="{loc:Loc Organizer.MoveTo}" Command="{Binding MoveSelectedToCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateLeft}" Content="{loc:Loc DocumentWorkspace.RotateLeft}" Command="{Binding RotateLeftCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateRight}" Content="{loc:Loc DocumentWorkspace.RotateRight}" Command="{Binding RotateRightCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Duplicate}" Content="{loc:Loc DocumentWorkspace.Duplicate}" Command="{Binding DuplicateSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Delete}" Content="{loc:Loc DocumentWorkspace.Delete}" Command="{Binding DeleteSelectedCommand}" IsEnabled="{Binding CanDeleteSelection}" />
         </WrapPanel>
 
         <WrapPanel IsVisible="{Binding IsFormsDocumentMode}" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" Margin="10,7">
@@ -157,19 +164,22 @@
             <TabItem Header="{loc:Loc DocumentWorkspace.Pages}">
               <Grid RowDefinitions="Auto,*">
                 <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Margin="8,6" Spacing="5">
-                  <TextBlock Text="{Binding OrganizerSelectionLabel}" FontWeight="SemiBold" />
-                  <WrapPanel>
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SelectAll}" Content="{loc:Loc DocumentWorkspace.SelectAll}" Command="{Binding SelectAllPagesCommand}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Clear}" Content="{loc:Loc DocumentWorkspace.Clear}" Command="{Binding ClearPageSelectionCommand}" IsEnabled="{Binding HasOrganizerSelection}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Up}" Content="{loc:Loc DocumentWorkspace.Up}" Command="{Binding MoveSelectedUpCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Down}" Content="{loc:Loc DocumentWorkspace.Down}" Command="{Binding MoveSelectedDownCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                  </WrapPanel>
-                  <WrapPanel>
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateLeft}" Content="{loc:Loc DocumentWorkspace.RotateLeft}" Command="{Binding RotateLeftCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateRight}" Content="{loc:Loc DocumentWorkspace.RotateRight}" Command="{Binding RotateRightCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Duplicate}" Content="{loc:Loc DocumentWorkspace.Duplicate}" Command="{Binding DuplicateSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Delete}" Content="{loc:Loc DocumentWorkspace.Delete}" Command="{Binding DeleteSelectedCommand}" IsEnabled="{Binding CanDeleteSelection}" />
-                  </WrapPanel>
+                  <Expander Header="{Binding OrganizerSelectionLabel}" AutomationProperties.Name="{loc:Loc Organizer.SelectRanges}"
+                            IsExpanded="{Binding IsOrganizerRangeExpanded}" HorizontalAlignment="Stretch">
+                    <StackPanel Spacing="5">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Text="{Binding OrganizerPageRange}" PlaceholderText="{loc:Loc Organizer.RangeHint}" MaxLength="4096"
+                                 AutomationProperties.Name="{loc:Loc Organizer.PageRange}" />
+                        <Button Grid.Column="1" Content="{loc:Loc Organizer.SelectRange}" Command="{Binding SelectPageRangeCommand}" Margin="4,0,0,0" />
+                      </Grid>
+                      <TextBlock Text="{Binding OrganizerRangeError}" TextWrapping="Wrap" MaxHeight="48" />
+                      <WrapPanel>
+                        <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.SelectAll}" Command="{Binding SelectAllPagesCommand}" />
+                        <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.Clear}" Command="{Binding ClearPageSelectionCommand}" IsEnabled="{Binding HasOrganizerSelection}" />
+                      </WrapPanel>
+                    </StackPanel>
+                  </Expander>
+
                 </StackPanel>
                 <ListBox Grid.Row="1" x:Name="OrganizerList" DragDrop.AllowDrop="True"
                          ItemsSource="{Binding OrganizerPages}" SelectionMode="Multiple,Toggle"
