@@ -17,7 +17,9 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a verified normalized artifact from explicitly recovered PDF defects.</summary>
     Repair,
     /// <summary>Remove forbidden active content and embedded payloads from a PDF.</summary>
-    Sanitize
+    Sanitize,
+    /// <summary>Extract an ordered selection of PDF pages into a separate PDF.</summary>
+    ExtractPages
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -165,6 +167,9 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Optional provider access for <see cref="InputPath"/>. The path remains the original location or absolute URI.</summary>
     public OfficeWorkflowStreamInput? InputStream { get; set; }
+
+    /// <summary>Ordered one-based pages for ExtractPages, including intentional repeats. Limited to 100,000 entries.</summary>
+    public int[]? PageNumbers { get; set; }
 
     /// <summary>Comparison input used by <see cref="OfficeWorkflowOperation.Compare"/>.</summary>
     public string? ComparisonPath { get; set; }

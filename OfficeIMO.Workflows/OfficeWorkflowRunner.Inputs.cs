@@ -80,7 +80,7 @@ public sealed partial class OfficeWorkflowRunner {
                     "Lossless PDF optimization does not support the TextOnly output profile.",
                     nameof(request));
             }
-            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize) {
+            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ExtractPages) {
                 outputPath ??= Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
                     Path.GetFileNameWithoutExtension(inputPath) + "." + request.Operation.ToString().ToLowerInvariant() + ".pdf");
@@ -88,6 +88,26 @@ public sealed partial class OfficeWorkflowRunner {
             } else if (request.Operation is OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan && outputPath is not null) {
                 throw new ArgumentException("The selected report-only operation does not publish an artifact.", nameof(request));
             }
+        }
+
+        if (request.PageNumbers is { Length: > 100000 })
+            throw new ArgumentException("Page extraction is limited to 100,000 selected pages.", nameof(request));
+        int[]? pages = request.PageNumbers?.ToArray();
+        if (request.Operation == OfficeWorkflowOperation.ExtractPages) {
+            if (pages is not { Length: > 0 and <= 100000 } || pages.Any(page => page <= 0))
+                throw new ArgumentException("Extraction requires 1 to 100,000 positive one-based page numbers.", nameof(request));
+            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+                throw new ArgumentException("Page extraction supports only the Faithful output profile.", nameof(request));
+        } else if (pages is not null) {
+            throw new ArgumentException("Page numbers are valid only for page extraction.", nameof(request));
+        }
+
+        OfficeWorkflowStreamInput? inputStream = request.InputStream;
+        if (request.Operation == OfficeWorkflowOperation.ExtractPages && inputStream is null) {
+            inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
+                token.ThrowIfCancellationRequested();
+                return Task.FromResult<Stream>(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read));
+            });
         }
 
         return new ValidatedRequest(
@@ -104,7 +124,7 @@ public sealed partial class OfficeWorkflowRunner {
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
             request.PublicationGuard,
-            request.InputStream, request.ComparisonStream, request.OutputStream);
+            inputStream, request.ComparisonStream, request.OutputStream, pages);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

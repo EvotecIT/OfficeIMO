@@ -202,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return request.Operation switch {
+            OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
             OfficeWorkflowOperation.Convert => Convert(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.Inspect => Inspect(request, cancellationToken),
             OfficeWorkflowOperation.Compare => Compare(request, cancellationToken),
@@ -690,6 +691,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
+        OfficeWorkflowOperation.ExtractPages => "Extracting the selected PDF pages",
         OfficeWorkflowOperation.Convert => "Converting with the first-party OfficeIMO format owner",
         OfficeWorkflowOperation.Inspect => "Inspecting PDF structure and capabilities",
         OfficeWorkflowOperation.Compare => "Comparing PDF structure and managed render output",
@@ -738,5 +740,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IOfficeWorkflowPublicationGuard? PublicationGuard = null,
         OfficeWorkflowStreamInput? InputStream = null,
         OfficeWorkflowStreamInput? ComparisonStream = null,
-        OfficeWorkflowStreamOutput? OutputStream = null);
+        OfficeWorkflowStreamOutput? OutputStream = null,
+        int[]? PageNumbers = null);
 }

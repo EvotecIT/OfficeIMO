@@ -63,8 +63,13 @@ public sealed partial class OfficeWorkflowRunner {
                 Report(progress, id, "split", $"Preparing part {index + 1} of {count}", 0.1 + 0.65 * index / count);
                 cancellationToken.ThrowIfCancellationRequested();
                 // Keep the PDF engine's split policy while retaining only one part at a time.
-                PdfDocument part = document.Pages.Split(new[] { PdfPageRange.From(first, first + expected - 1) })[0];
-                await part.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+                long remainingOutputBytes = limits.MaximumOutputBytes - totalBytes;
+                if (remainingOutputBytes <= 0) throw new InvalidOperationException("The split outputs exceed the aggregate output byte limit.");
+                PdfDocument part = document.Pages.Split(PdfPageRange.From(first, first + expected - 1), remainingOutputBytes);
+                await using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                await using (var bounded = new OfficeWorkflowBoundedWriteStream(file, remainingOutputBytes, leaveOpen: true)) {
+                    await part.SaveAsync(bounded, cancellationToken).ConfigureAwait(false);
+                }
                 long size = new FileInfo(path).Length;
                 totalBytes = checked(totalBytes + size);
                 if (totalBytes > limits.MaximumOutputBytes) throw new InvalidOperationException("The split outputs exceed the aggregate output byte limit.");

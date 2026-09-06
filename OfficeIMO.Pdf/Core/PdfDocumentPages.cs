@@ -17,6 +17,11 @@ public sealed partial class PdfDocumentPages {
         return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, _document.ReadOptions, pageNumbers));
     }
 
+    /// <summary>Extracts pages with a byte budget enforced during the first canonical serialization.</summary>
+    internal PdfDocument Extract(int[] pageNumbers, long maximumOutputBytes) {
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes));
+    }
+
     /// <summary>
     /// Creates a new PDF containing one inclusive one-based page range.
     /// </summary>
@@ -155,6 +160,13 @@ public sealed partial class PdfDocumentPages {
             PdfPageExtractor.SplitPageRanges(input, ranges, options),
             ranges.Select(static range => range.PageCount).ToArray(),
             options);
+    }
+
+    /// <summary>Creates one split part within the remaining output budget, retaining split preservation semantics.</summary>
+    internal PdfDocument Split(PdfPageRange pageRange, long maximumOutputBytes) {
+        byte[] input = _document.GetBytesForOperation();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions, maximumOutputBytes);
+        return AdoptSplitOutputs(input, new[] { output }, new[] { pageRange.PageCount }, _document.ReadOptions)[0];
     }
 
     private PdfDocument[] AdoptSplitOutputs(

@@ -30,6 +30,11 @@ public static class OfficeWorkflow {
     public static OfficeWorkflowBuilder Sanitize(string inputPath) =>
         Create(OfficeWorkflowOperation.Sanitize, inputPath);
 
+    /// <summary>Creates a PDF extraction workflow preserving the supplied page order and repeats.</summary>
+    public static OfficeWorkflowBuilder ExtractPages(string inputPath, params int[] pageNumbers) =>
+        new(new OfficeWorkflowRequest { Operation = OfficeWorkflowOperation.ExtractPages,
+            InputPath = inputPath, PageNumbers = pageNumbers?.ToArray() ?? throw new ArgumentNullException(nameof(pageNumbers)) });
+
     /// <summary>Runs an explicitly constructed request through the default local runner.</summary>
     public static Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
@@ -137,6 +142,7 @@ public sealed class OfficeWorkflowBuilder {
         return new OfficeWorkflowRequest {
             Id = _request.Id,
             Operation = _request.Operation,
+            PageNumbers = _request.PageNumbers?.ToArray(),
             InputPath = _request.InputPath,
             ComparisonPath = _request.ComparisonPath,
             ConversionRouteId = routeId,
