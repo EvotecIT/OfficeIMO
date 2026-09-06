@@ -23,6 +23,7 @@
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SOURCE}" Classes="eyebrow" />
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.ScannedPDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OcrWorkbench.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.ChooseAPDF}" />
+            <TextBlock Text="{Binding OcrWorkbench.InputName}" TextWrapping="Wrap" Classes="muted" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ChoosePDF}" Content="{loc:Loc SearchablePdfOcr.ChoosePDF}" HorizontalAlignment="Left"
                     Command="{Binding OcrWorkbench.ChooseInputCommand}" />
 
@@ -45,9 +46,13 @@
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OUTPUT}" Classes="eyebrow" Margin="0,8,0,0" />
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchablePDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OcrWorkbench.OutputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.ScanSearchablePdf}" />
+            <TextBlock Text="{Binding OcrWorkbench.OutputName}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" Content="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" HorizontalAlignment="Left"
+                    Command="{Binding OcrWorkbench.ChooseOutputCommand}" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" HorizontalAlignment="Left"
                     Command="{Binding OcrWorkbench.ChooseOutputFolderCommand}" />
             <CheckBox
+                      IsVisible="{Binding !OcrWorkbench.IsProviderOutput}"
                       IsChecked="{Binding OcrWorkbench.ReplaceExistingOutput, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}" TextWrapping="Wrap" /></CheckBox>
             <Button Classes="primary" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}" Content="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}"
                     Command="{Binding OcrWorkbench.RunCommand}" Margin="0,7,0,0" />
@@ -117,6 +122,7 @@
               <TextBlock Text="{Binding OcrWorkbench.Summary}" Classes="muted" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.ErrorMessage}" IsVisible="{Binding OcrWorkbench.HasError}"
                          Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OcrWorkbench.HasRecovery}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.PublishedPath}" IsVisible="{Binding OcrWorkbench.HasOutput}"
                          FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>

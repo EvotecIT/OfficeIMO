@@ -63,11 +63,90 @@ public sealed class StudioOcrPublicationTests {
         }, CancellationToken.None);
     }
 
+    [Theory]
+    [InlineData(960, 620, false)]
+    [InlineData(1280, 820, true)]
+    public async Task ProviderOcrRequiresConsentAndRetainsAnInterruptedOutput(int width, int height, bool dark) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            var input = new TestStorageFile("content://documents/ocr-source", sourceBytes, "Selected scanned document.pdf");
+            var output = new TestStorageFile("content://documents/ocr-output", sourceBytes, "Selected searchable document.pdf");
+            string source = await services.Storage.RegisterAsync(input.Item, default);
+            string destination = await services.Storage.RegisterAsync(output.Item, default);
+            bool consent = false;
+            bool revoke = false;
+            int recognized = 0;
+            var engine = new DelegateOcrEngine("fixture", (_, _) => {
+                recognized++;
+                if (revoke) input.DenyRead = true;
+                return Task.FromResult(new OcrResult { Provider = "fixture", Spans = [new OcrTextSpan {
+                    Text = "Recognized", Level = OcrTextSpanLevel.Word, Confidence = 1,
+                    CoordinateUnit = OcrCoordinateUnit.Points,
+                    Region = new OcrRegion { X = 20, Y = 30, Width = 80, Height = 12 }
+                }] });
+            });
+            using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(source),
+                pickSavePdf: _ => Task.FromResult<string?>(destination), services: services,
+                ocrService: new EngineService(engine), confirmWorkflowProviderWrite: _ => Task.FromResult(consent));
+            var model = shell.OcrWorkbench;
+            var window = new Window { Width = width, Height = height, Content = new SearchablePdfOcrView { DataContext = shell } };
+            try {
+                window.Show();
+                model.UseDocument(Path.Combine(services.Paths.Root, "Previous local input.pdf"));
+                Assert.NotEmpty(model.OutputPath);
+                await model.ChooseInputCommand.ExecuteAsync(null);
+                Assert.Equal(input.Name, model.InputName);
+                Assert.Empty(model.OutputPath);
+                Assert.False(model.RunCommand.CanExecute(null));
+                await model.ChooseOutputCommand.ExecuteAsync(null);
+                Assert.Equal(output.Name, model.OutputName);
+                await model.RunCommand.ExecuteAsync(null);
+                Assert.Equal(0, recognized);
+                Assert.Equal(0, output.Writes);
+                Assert.False(model.HasOutput);
+                consent = true;
+                await model.RunCommand.ExecuteAsync(null);
+                Assert.True(model.HasOutput, model.ErrorMessage);
+                Assert.Equal(destination, model.PublishedPath);
+                Assert.Equal("Recognized", PdfReadDocument.Open(output.Bytes).Pages.Single().ExtractText().Trim());
+                Assert.Equal(0, input.Writes);
+                Assert.Equal(input.Reads, input.ClosedReads);
+                Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-completed.png");
+                byte[] saved = output.Bytes.ToArray();
+                revoke = true;
+                await model.RunCommand.ExecuteAsync(null);
+                Assert.False(model.HasOutput);
+                Assert.Equal(saved, output.Bytes);
+                Assert.Equal(1, output.Writes);
+                Assert.Equal("Failed", services.Jobs.Entries[0].Status);
+                input.DenyRead = false;
+                revoke = false;
+                output.FailWrite = true;
+                await model.RunCommand.ExecuteAsync(null);
+                Assert.False(model.HasOutput);
+                Assert.True(model.HasRecovery);
+                Assert.Equal("Check output", services.Jobs.Entries[0].Status);
+                Assert.NotNull(services.Jobs.Entries[0].Recovery);
+                var retained = Assert.Single(services.WorkflowRecovery.GetRecoveries());
+                await services.WorkflowRecovery.VerifyAsync(retained);
+                Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(retained.FilePath)).Pages.Single().ExtractText().Trim());
+                Assert.Equal(2, output.Writes);
+                Assert.Equal(sourceBytes, input.Bytes);
+                Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-recovery.png");
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     private sealed class EngineService(IOcrEngine engine) : ISearchablePdfOcrService {
         public async Task<SearchablePdfOcrOutcome> MakeSearchableAsync(string inputPath, string outputPath,
             SearchablePdfOcrOptions options, CancellationToken cancellationToken) {
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
                 InputPath = inputPath, OutputPath = outputPath, Ocr = options.Pdf,
+                InputStream = options.InputStream, OutputStream = options.OutputStream,
                 PublicationGuard = options.PublicationGuard,
                 ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                     ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
@@ -81,7 +160,7 @@ public sealed class StudioOcrPublicationTests {
         window.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
         window.UpdateLayout();
         Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), text =>
-            text.Text is "Searchable PDF created" or "OCR could not finish");
+            text.Text is "Searchable PDF created" or "OCR could not finish" or "Check output");
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");

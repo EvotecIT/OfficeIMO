@@ -184,24 +184,28 @@ public sealed class WorkflowViewModelTests {
 
     [Fact]
     public async Task ConversionWorkbenchRunsMatchingFilesAndSurfacesReopenEvidence() {
-        using var scope = new TestDirectory();
-        string input = Path.Combine(scope.Path, "source.html");
-        await File.WriteAllTextAsync(input, "<!doctype html><html><body><h1>Studio conversion</h1></body></html>");
-        using var viewModel = new ConversionWorkbenchViewModel(
-            _ => Task.FromResult<IReadOnlyList<string>>([input]),
-            _ => Task.FromResult<string?>(scope.Path));
-        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "html-pdf");
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            using var scope = new TestDirectory();
+            string input = Path.Combine(scope.Path, "source.html");
+            await File.WriteAllTextAsync(input, "<!doctype html><html><body><h1>Studio conversion</h1></body></html>");
+            using var viewModel = new ConversionWorkbenchViewModel(
+                _ => Task.FromResult<IReadOnlyList<string>>([input]),
+                _ => Task.FromResult<string?>(scope.Path));
+            viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "html-pdf");
 
-        await viewModel.AddFilesCommand.ExecuteAsync(null);
-        await viewModel.ChooseOutputFolderCommand.ExecuteAsync(null);
-        await viewModel.RunQueueCommand.ExecuteAsync(null);
+            await viewModel.AddFilesCommand.ExecuteAsync(null);
+            await viewModel.ChooseOutputFolderCommand.ExecuteAsync(null);
+            await viewModel.RunQueueCommand.ExecuteAsync(null);
 
-        ConversionJobViewModel job = Assert.Single(viewModel.Jobs);
-        Assert.Equal("Completed", job.Status);
-        Assert.NotNull(job.OutputPath);
-        Assert.True(File.Exists(job.OutputPath));
-        Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
-        Assert.Contains("1 completed", viewModel.Status, StringComparison.OrdinalIgnoreCase);
+            ConversionJobViewModel job = Assert.Single(viewModel.Jobs);
+            Assert.Equal("Completed", job.Status);
+            Assert.NotNull(job.OutputPath);
+            Assert.True(File.Exists(job.OutputPath));
+            Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains("1 completed", viewModel.Status, StringComparison.OrdinalIgnoreCase);
+            return true;
+        }, CancellationToken.None);
     }
 
     [Fact]

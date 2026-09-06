@@ -148,7 +148,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             openDocumentInTab,
             ocrService,
             path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
-            _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard);
+            _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
+            pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
