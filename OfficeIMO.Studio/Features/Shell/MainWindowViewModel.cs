@@ -112,7 +112,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<PageExtractionPreviewViewModel, Task<bool>>? reviewPageExtraction = null,
         Func<PageExtractionPreviewViewModel, Task>? showPageExtractionResult = null,
         Func<PdfProtectionPreviewViewModel, Task<bool>>? reviewProtection = null,
-        Func<PdfProtectionPreviewViewModel, Task>? showProtectionResult = null) {
+        Func<PdfProtectionPreviewViewModel, Task>? showProtectionResult = null,
+        Func<PdfSigningPreviewViewModel, Task<bool>>? reviewSigning = null,
+        Func<PdfSigningPreviewViewModel, Task>? showSigningResult = null,
+        Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -134,6 +137,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _reviewPageImport = reviewPageImport ?? (_ => Task.FromResult(false));
         _reviewProtection = reviewProtection ?? (_ => Task.FromResult(false));
         _showProtectionResult = showProtectionResult ?? (_ => Task.CompletedTask);
+        _reviewSigning = reviewSigning ?? (_ => Task.FromResult(false));
+        _showSigningResult = showSigningResult ?? (_ => Task.CompletedTask);
+        _loadSigningCertificate = loadSigningCertificate ?? LoadSigningCertificate;
         _reviewPageExtraction = reviewPageExtraction ?? (_ => Task.FromResult(false));
         _showPageExtractionResult = showPageExtractionResult ?? (_ => Task.CompletedTask);
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));

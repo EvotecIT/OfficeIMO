@@ -619,7 +619,7 @@
     <value>Signature field</value>
   </data>
   <data name="DocumentWorkspace.SignDocument" xml:space="preserve">
-    <value>Sign document</value>
+    <value>Review signed copy</value>
   </data>
   <data name="DocumentWorkspace.Split" xml:space="preserve">
     <value>Split</value>
@@ -1665,4 +1665,31 @@
   <data name="Capability.RestrictedViewing" xml:space="preserve"><value>This password permits viewing, but text and content extraction are restricted. Text selection and object inspection are unavailable. Reopen with the owner password for full access.</value></data>
   <data name="Capability.RestrictedViewingSearch" xml:space="preserve"><value>This password permits viewing and text search, but logical content extraction is restricted. Object selection and inspection are unavailable. Reopen with the owner password for full access.</value></data>
   <data name="Capability.SearchRestricted" xml:space="preserve"><value>Text search is restricted by this document’s permissions.</value></data>
+  <data name="Signing.Title" xml:space="preserve"><value>Review signed copy</value></data>
+  <data name="Signing.ResultTitle" xml:space="preserve"><value>Signing result</value></data>
+  <data name="Signing.Create" xml:space="preserve"><value>Sign and save copy</value></data>
+  <data name="Signing.Certificate" xml:space="preserve"><value>Certificate: {0}</value></data>
+  <data name="Signing.Thumbprint" xml:space="preserve"><value>Thumbprint: {0}</value></data>
+  <data name="Signing.Issuer" xml:space="preserve"><value>Issuer: {0}</value></data>
+  <data name="Signing.Expires" xml:space="preserve"><value>Expires: {0}</value></data>
+  <data name="Signing.Field" xml:space="preserve"><value>Signature field: {0}</value></data>
+  <data name="Signing.Reason" xml:space="preserve"><value>Reason: {0}</value></data>
+  <data name="Signing.Location" xml:space="preserve"><value>Location: {0}</value></data>
+  <data name="Signing.VisibleHint" xml:space="preserve"><value>The preview shows the signature appearance. No certificate signature has been created yet.</value></data>
+  <data name="Signing.InvisibleHint" xml:space="preserve"><value>The certificate signature will have no visible page appearance.</value></data>
+  <data name="Signing.TrustPolicy" xml:space="preserve"><value>The copy must pass signature-math and document-digest checks before publication. Certificate-chain, revocation, and timestamp evidence are reported separately; a visible signature does not establish trust.</value></data>
+  <data name="Signing.PreviewImage" xml:space="preserve"><value>Signature appearance preview</value></data>
+  <data name="Signing.PublishedEvidence" xml:space="preserve"><value>Evidence for the published signed copy:</value></data>
+  <data name="Signing.PreparedEvidence" xml:space="preserve"><value>Evidence for the prepared signed copy; destination contents are unconfirmed:</value></data>
+  <data name="Signing.Math" xml:space="preserve"><value>Signature math and document digest: {0}</value></data>
+  <data name="Signing.Chain" xml:space="preserve"><value>Certificate chain: {0}</value></data>
+  <data name="Signing.Revocation" xml:space="preserve"><value>Revocation: {0}</value></data>
+  <data name="Signing.Timestamp" xml:space="preserve"><value>Timestamp: {0}</value></data>
+  <data name="Signing.Verified" xml:space="preserve"><value>verified</value></data>
+  <data name="Signing.Unverified" xml:space="preserve"><value>not verified</value></data>
+  <data name="Signing.Checked" xml:space="preserve"><value>checked; inspect detailed findings</value></data>
+  <data name="Signing.NotChecked" xml:space="preserve"><value>not checked</value></data>
+  <data name="Signing.Unavailable" xml:space="preserve"><value>The document's security policy does not permit signing. Existing signatures and other unsupported security states require a supported source document.</value></data>
+  <data name="Signing.CertificateChanged" xml:space="preserve"><value>The reviewed signing certificate is unavailable, expired, or does not have its private key. Select a certificate and review the copy again.</value></data>
+  <data name="Workspace.CopyHasFormDrafts" xml:space="preserve"><value>Apply or discard pending form edits in Forms before reviewing a copy. Retained or conflicting drafts must also be resolved so the copy contains the values you intend.</value></data>
 </root>

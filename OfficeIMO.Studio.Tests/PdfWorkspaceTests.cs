@@ -277,17 +277,23 @@ public sealed partial class PdfWorkspaceTests {
             Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
 
             using X509Certificate2 certificate = CreateSigningCertificate();
-            await workspace.SignAsync(certificate, new PdfExternalSignatureOptions {
+            using var signer = new PdfCmsExternalSigner(OfficeIMO.Security.OfficeSecurityProvider.Default, certificate);
+            var verifier = new PdfCmsSignatureCryptographyProvider(OfficeIMO.Security.OfficeSecurityProvider.Default);
+            byte[] edited = workspace.CopyBytes();
+            string signedPath = Path.Combine(root, "signed.pdf");
+            var signed = await workspace.SaveSignedCopyAsync(signedPath, signer, new PdfExternalSignatureOptions {
                 FieldName = "Approval",
                 Name = "Studio test signer",
                 Reason = "Verified workflow"
-            }, CancellationToken.None);
-            PdfSignatureValidationReport report = await workspace.ValidateSignaturesAsync(CancellationToken.None);
+            }, verifier, CancellationToken.None);
+            Assert.True(signed.Succeeded, signed.Summary);
+            PdfSignatureValidationReport report = PdfDocument.Load(signedPath).Security.ValidateSignatures(verifier);
             Assert.Single(report.Signatures);
             Assert.True(report.IsStructurallyValid);
             Assert.True(report.MathematicalSignaturesVerified);
             Assert.True(report.DigestVerified);
-            Assert.Equal(PdfWorkspaceOperationKind.Signature, workspace.Journal[^1].Kind);
+            Assert.Equal(edited, workspace.CopyBytes());
+            Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
         } finally {
             Directory.Delete(root, recursive: true);
         }

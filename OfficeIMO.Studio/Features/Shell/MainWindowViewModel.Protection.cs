@@ -39,17 +39,18 @@ public sealed partial class MainWindowViewModel {
             ErrorMessage = UiText("Capability.ProtectionUnavailable"); return;
         }
         long revision = workspace.Revision;
+        if (!IsReviewedCopyCurrent(workspace, revision)) return;
         _reviewingProtection = true;
         try {
             string? destination = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-            if (string.IsNullOrWhiteSpace(destination) || !IsPageWorkflowCurrent(workspace, revision)) return;
+            if (string.IsNullOrWhiteSpace(destination) || !IsReviewedCopyCurrent(workspace, revision)) return;
             bool provider = _services.Storage.UsesProviderPublication(destination);
             var preview = new PdfProtectionPreviewViewModel(workspace.Pages.Count, destination, provider, encryption, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None),
                 path => _openUri(new Uri(Path.GetDirectoryName(path)!)));
-            if (!await _reviewProtection(preview).ConfigureAwait(true) || !IsPageWorkflowCurrent(workspace, revision)) return;
+            if (!await _reviewProtection(preview).ConfigureAwait(true) || !IsReviewedCopyCurrent(workspace, revision)) return;
             if (provider && !await _confirmProviderWrite(destination).ConfigureAwait(true)) return;
-            if (!IsPageWorkflowCurrent(workspace, revision)) return;
+            if (!IsReviewedCopyCurrent(workspace, revision)) return;
             OfficeWorkflowResult? result = null;
             await RunStandaloneAsync(async token => {
                 StudioJobRecord? job = null;
@@ -62,8 +63,8 @@ public sealed partial class MainWindowViewModel {
                         OperationStatus = update.Stage; OperationProgressFraction = update.Fraction;
                         job.Report(new OfficeWorkflowProgress("protection", "protection", update.Stage, update.Fraction));
                     });
-                    if (!IsPageWorkflowCurrent(workspace, revision))
-                        throw new InvalidOperationException(UiText("Organizer.StalePreview"));
+                    if (!IsReviewedCopyCurrent(workspace, revision))
+                        throw new InvalidOperationException(ErrorMessage ?? UiText("Organizer.StalePreview"));
                     result = encryption is null
                         ? await workspace.SaveDecryptedCopyAsync(destination, currentOwnerPassword, token, progress, output, _publicationGuard).ConfigureAwait(true)
                         : await workspace.SaveProtectedCopyAsync(destination, encryption, currentOwnerPassword, token, progress, output, _publicationGuard).ConfigureAwait(true);

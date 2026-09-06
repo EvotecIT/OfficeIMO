@@ -160,31 +160,6 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task ApplyCertificateSignatureAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || SelectedSigningCertificate is null) return;
-        using X509Certificate2 certificate = LoadSigningCertificate(SelectedSigningCertificate.Thumbprint);
-        string signerName = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
-        var options = new PdfExternalSignatureOptions {
-            FieldName = SignatureFieldName,
-            Name = string.IsNullOrWhiteSpace(signerName) ? null : signerName,
-            Reason = string.IsNullOrWhiteSpace(SignatureReason) ? null : SignatureReason.Trim(),
-            Location = string.IsNullOrWhiteSpace(SignatureLocation) ? null : SignatureLocation.Trim(),
-            VisibleAppearance = SignatureIsVisible ? new PdfVisibleSignatureAppearanceOptions {
-                PageNumber = SignaturePageNumber,
-                X = SignatureX,
-                Y = SignatureY,
-                Width = SignatureWidth,
-                Height = SignatureHeight,
-                Text = string.IsNullOrWhiteSpace(signerName) ? "Digitally signed" : "Digitally signed by " + signerName
-            } : null
-        };
-        bool succeeded = await RunMutationAsync(
-            token => _workspace.SignAsync(certificate, options, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) await ValidateSignaturesAsync(cancellationToken).ConfigureAwait(true);
-    }
-
-    [RelayCommand]
     private async Task ValidateSignaturesAsync(CancellationToken cancellationToken) {
         if (_workspace is null) return;
         PdfSignatureValidationReport? report = null;

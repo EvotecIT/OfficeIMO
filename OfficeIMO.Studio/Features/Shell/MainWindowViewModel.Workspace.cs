@@ -253,6 +253,13 @@ public sealed partial class MainWindowViewModel {
         return false;
     }
 
+    private bool IsReviewedCopyCurrent(PdfWorkspace workspace, long revision) {
+        if (!IsPageWorkflowCurrent(workspace, revision)) return false;
+        if (!HasFormDrafts) return true;
+        ErrorMessage = UiText("Workspace.CopyHasFormDrafts");
+        return false;
+    }
+
     [RelayCommand]
     private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
 

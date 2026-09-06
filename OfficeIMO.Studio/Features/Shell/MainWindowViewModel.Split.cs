@@ -17,20 +17,21 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null || !CanExtractPages || IsWorkspaceBusy || _reviewingPageSplit) return;
         var workspace = _workspace;
         long revision = workspace.Revision;
+        if (!IsReviewedCopyCurrent(workspace, revision)) return;
         int pagesPerPart = SplitPagesPerDocument;
         _reviewingPageSplit = true;
         try {
             string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
-            if (string.IsNullOrWhiteSpace(folder) || !IsPageWorkflowCurrent(workspace, revision)) return;
+            if (string.IsNullOrWhiteSpace(folder) || !IsReviewedCopyCurrent(workspace, revision)) return;
             bool provider = _services.Storage.UsesProviderPublication(folder);
             string destination = provider ? folder : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder)
                 ?? throw new IOException("Choose an accessible output folder."), "Split PDFs");
             var preview = new PageSplitPreviewViewModel(workspace.Pages.Count, pagesPerPart, destination, provider, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None));
             if (!await _reviewPageSplit(preview).ConfigureAwait(true) || !preview.CanApply) return;
-            if (!IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
+            if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             if (provider && !await _confirmProviderWrite(destination).ConfigureAwait(true)) return;
-            if (!IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
+            if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             int selectedPartSize = preview.PartSize;
             SplitPagesPerDocument = selectedPartSize;
             PdfSplitWorkflowResult? result = null;
@@ -42,6 +43,7 @@ public sealed partial class MainWindowViewModel {
                     directory = provider ? _services.Storage.CreateDirectoryOutput(destination, _services.WorkflowRecovery) : null;
                     job = _services.Jobs.Start(UiText("Organizer.SplitTitle"), workspace.Path, destination, CancelCurrentOperation);
                     using IDisposable execution = await _services.Jobs.EnterAsync(token).ConfigureAwait(true);
+                    if (!IsReviewedCopyCurrent(workspace, revision)) throw new InvalidOperationException(ErrorMessage);
                     var progress = new Progress<Features.Workspace.PdfWorkspaceProgress>(update => {
                         if (!job.IsActive) return;
                         OperationStatus = update.Stage; OperationProgressFraction = update.Fraction;

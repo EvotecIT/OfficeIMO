@@ -1,4 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 
@@ -19,31 +18,6 @@ internal sealed partial class PdfWorkspace {
     }
 
     internal bool CanSign => CanPlan(PdfMutationOperation.PrepareExternalSignature);
-
-    internal Task SignAsync(
-        X509Certificate2 certificate,
-        PdfExternalSignatureOptions options,
-        CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
-        ArgumentNullException.ThrowIfNull(certificate);
-        ArgumentNullException.ThrowIfNull(options);
-        if (!CanSign) throw new InvalidOperationException("This document cannot accept another signature under its current security policy.");
-        options.CancellationToken = cancellationToken;
-        return MutateBytesAsync(
-            PdfWorkspaceOperationKind.Signature,
-            "Applied certificate signature " + options.FieldName,
-            options.VisibleAppearance is null ? Array.Empty<int>() : new[] { options.VisibleAppearance.PageNumber },
-            bytes => {
-                using var signer = new PdfCmsExternalSigner(
-                    OfficeSecurityProvider.Default,
-                    certificate,
-                    string.IsNullOrWhiteSpace(options.Name) ? null : options.Name);
-                return LoadDocument(bytes).Security.SignExternal(signer, options).Pdf;
-            },
-            cancellationToken,
-            progress,
-            detachCpuWorkOnCancellation: false);
-    }
 
     internal Task<PdfSignatureValidationReport> ValidateSignaturesAsync(CancellationToken cancellationToken) {
         ThrowIfDisposed();
