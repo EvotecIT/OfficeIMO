@@ -48,6 +48,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     static PdfPageCanvas() {
         AffectsRender<PdfPageCanvas>(
             SceneProperty,
+            SearchHighlightsProperty,
+            ActiveSearchHighlightProperty,
             FallbackImageProperty,
             EditorToolProperty,
             SelectedObjectProperty,
@@ -122,6 +124,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             _renderer.Render(context, scene.Drawing);
         }
 
+        DrawSearchHighlights(context);
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
@@ -142,6 +145,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
+        if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
         if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
         if (change.Property == EditorToolProperty) {

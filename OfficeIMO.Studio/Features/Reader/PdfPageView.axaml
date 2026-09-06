@@ -17,6 +17,8 @@
                               AutomationProperties.Name="{Binding PageLabel}"
                               AutomationProperties.HelpText="{loc:Loc PdfPage.KeyboardHelp}"
                               Scene="{Binding Scene}"
+                              SearchHighlights="{Binding SearchHighlights}"
+                              ActiveSearchHighlight="{Binding ActiveSearchHighlight}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"

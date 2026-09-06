@@ -28,6 +28,9 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                     AnalyzeRasterFallback(shape.Shape, reasons);
                     break;
                 case OfficeDrawingText text:
+                    if (text.HasFrameTransform) {
+                        reasons.Add("Avalonia vector fallback: transformed text requires the OfficeIMO raster renderer for glyph positioning.");
+                    }
                     if (text.StackedText || text.ShrinkToFit || text.TextAdvanceWidth.HasValue ||
                         text.HasPadding || text.HasParagraphIndent ||
                         text.UnderlineStyle != OfficeTextDecorationStyle.None ||

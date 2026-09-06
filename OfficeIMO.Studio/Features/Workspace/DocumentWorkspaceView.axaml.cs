@@ -120,8 +120,29 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         SetPanes(true, _compactLayout == true ? false : InspectorPane.IsVisible);
         SavePaneVisibility();
         NavigationTabs.SelectedIndex = 2;
-        SearchBox.Focus();
-        SearchBox.SelectAll();
+        var document = _document;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+            if (!ReferenceEquals(document, _document) || NavigationTabs.SelectedIndex != 2 || !IsEffectivelyVisible) return;
+            SearchBox.Focus();
+            SearchBox.SelectAll();
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    private async void OnSearchKeyDown(object? sender, KeyEventArgs e) {
+        if (_document is null) return;
+        if (e.Key == Key.Escape) {
+            _document.ClearSearchCommand.Execute(null);
+            (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
+            e.Handled = true;
+        } else if (e.Key == Key.Enter) {
+            e.Handled = true;
+            if (_document.HasSearchResults) {
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) _document.PreviousSearchResultCommand.Execute(null);
+                else _document.NextSearchResultCommand.Execute(null);
+            } else if (_document.SearchCommand.CanExecute(null)) {
+                await _document.SearchCommand.ExecuteAsync(null);
+            }
+        }
     }
 
     private void OnGridPagePointerPressed(object? sender, PointerPressedEventArgs e) {

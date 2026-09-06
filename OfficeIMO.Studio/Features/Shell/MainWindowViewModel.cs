@@ -597,6 +597,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         _workspace = workspace;
         _session = session;
+        ClearSearchResults();
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
 
@@ -607,8 +608,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             CloseComparisonSession(restoreLayout: true);
             ResetDocumentSecurityState();
             SearchQuery = string.Empty;
-            SearchResults.Clear();
-            SelectedSearchResult = null;
             SelectedBookmark = null;
             OperationStatus = null;
             OperationProgressFraction = 0D;

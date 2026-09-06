@@ -37,12 +37,6 @@ public sealed partial class MainWindowViewModel {
     private double _operationProgressFraction;
 
     [ObservableProperty]
-    private string _searchQuery = string.Empty;
-
-    [ObservableProperty]
-    private PdfSearchHit? _selectedSearchResult;
-
-    [ObservableProperty]
     private PdfBookmarkViewModel? _selectedBookmark;
 
     [ObservableProperty]
@@ -50,8 +44,6 @@ public sealed partial class MainWindowViewModel {
 
     [ObservableProperty]
     private int _splitPagesPerDocument = 1;
-
-    public ObservableCollection<PdfSearchHit> SearchResults { get; } = new();
 
     public ObservableCollection<PdfBookmarkViewModel> Bookmarks { get; } = new();
 
@@ -68,10 +60,6 @@ public sealed partial class MainWindowViewModel {
     public string OrganizerSelectionLabel => _organizerSelection.Count == 0
         ? UiText("Workspace.SelectPages")
         : UiFormat("Workspace.SelectedPageCount", _organizerSelection.Count, OrganizerPages.Count);
-
-    partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
-        if (value is not null) NavigateToPage(value.PageNumber);
-    }
 
     partial void OnSelectedBookmarkChanged(PdfBookmarkViewModel? value) {
         if (value?.PageNumber is int pageNumber) NavigateToPage(pageNumber);
@@ -262,35 +250,6 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
-
-    [RelayCommand(CanExecute = nameof(CanSearchDocument))]
-    private async Task SearchAsync(CancellationToken cancellationToken) {
-        if (_session is null || string.IsNullOrWhiteSpace(SearchQuery)) {
-            SearchResults.Clear();
-            return;
-        }
-
-        if (!CanSearchDocument) { SearchResults.Clear(); ErrorMessage = UiText("Capability.SearchRestricted"); return; }
-
-        OperationStatus = UiText("Workspace.SearchingDocument");
-        bool succeeded = await RunStandaloneAsync(async token => {
-            CancellationTokenSource? attempt = _operationCancellation;
-            var progress = new Progress<double>(fraction => {
-                if (IsWorkspaceBusy && ReferenceEquals(attempt, _operationCancellation)) OperationProgressFraction = Math.Clamp(fraction, 0D, 1D);
-            });
-            IReadOnlyList<PdfSearchHit> results = await _session
-                .SearchAsync(SearchQuery, token, progress)
-                .ConfigureAwait(true);
-            SearchResults.Clear();
-            foreach (PdfSearchHit result in results) SearchResults.Add(result.WithLocalizer(_localizer));
-            OperationProgressFraction = 1D;
-        }, cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            OperationStatus = SearchResults.Count == 0
-                ? UiText("Workspace.NoMatches")
-                : UiFormat("Workspace.MatchingPages", SearchResults.Count);
-        }
-    }
 
     [RelayCommand]
     private void CancelOperation() => CancelCurrentOperation();

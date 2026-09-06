@@ -13,7 +13,7 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioRestrictedViewingTests {
     [Fact]
-    public async Task AccessibilitySearchGroupsMultipleMatchesPerPageAndHonorsCancellation() {
+    public async Task AccessibilitySearchRetainsMultipleMatchesPerPageAndHonorsCancellation() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -27,7 +27,7 @@ public sealed class StudioRestrictedViewingTests {
             using var workspace = await PdfWorkspace.OpenAsync(source, default, services.Recovery, "reader");
             var reader = PdfDocumentSession.FromWorkspace(workspace);
             var hits = await reader.SearchAsync("needle", default);
-            Assert.Equal(Enumerable.Range(1, 60), hits.Select(hit => hit.PageNumber));
+            Assert.Equal(Enumerable.Range(1, 60).SelectMany(page => new[] { page, page }), hits.Select(hit => hit.PageNumber));
             Assert.Empty(await reader.SearchAsync("missing", default));
             using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.SearchAsync("needle", cancelled.Token));
@@ -92,6 +92,20 @@ public sealed class StudioRestrictedViewingTests {
                 window.UpdateLayout(); await Task.Delay(80); window.UpdateLayout();
                 Assert.False(string.IsNullOrWhiteSpace(model.SecurityWarning));
                 Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), text => text.IsEffectivelyVisible && text.Text == model.SecurityWarning);
+                window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!.FocusSearch();
+                model.SearchQuery = "Visible";
+                if (model.CanSearchDocument) {
+                    await model.SearchCommand.ExecuteAsync(null);
+                    Assert.Single(model.SearchResults);
+                    Assert.Single(model.Pages[0].SearchHighlights);
+                    Assert.NotNull(model.Pages[0].ActiveSearchHighlight);
+                    model.Pages[0].AttachToViewport(); await model.Pages[0].EnsureRenderedAsync();
+                    Assert.NotNull(model.Pages[0].Scene); Assert.Null(model.Pages[0].Scene!.Interactions);
+                } else {
+                    Assert.Empty(model.SearchResults);
+                    Assert.Equal(services.Localizer.Get("Capability.SearchRestricted"), model.SearchPosition);
+                }
+                window.UpdateLayout(); await Task.Delay(80); window.UpdateLayout();
                 string? root = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_RESTRICTED_CAPTURE_DIR");
                 if (!string.IsNullOrEmpty(root)) {
                     Directory.CreateDirectory(root); using var frame = window.CaptureRenderedFrame(); Assert.NotNull(frame);

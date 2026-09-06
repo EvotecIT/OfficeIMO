@@ -9,21 +9,18 @@ namespace OfficeIMO.Studio.Features.Reader;
 /// </summary>
 internal sealed class PdfDocumentSession {
     private readonly PdfDocument _document;
-    private readonly PdfDocumentReadResult? _semanticDocument;
 
     private PdfDocumentSession(
         string path,
         string fileName,
         long fileSize,
         PdfDocument document,
-        PdfDocumentViewInfo viewInfo,
-        PdfDocumentReadResult? semanticDocument) {
+        PdfDocumentViewInfo viewInfo) {
         Path = path;
         FileName = fileName;
         FileSize = fileSize;
         _document = document;
         ViewInfo = viewInfo;
-        _semanticDocument = semanticDocument;
     }
 
     internal string Path { get; }
@@ -51,38 +48,25 @@ internal sealed class PdfDocumentSession {
             var matches = new List<PdfSearchHit>();
             int pageCount = Pages.Count;
             cancellationToken.ThrowIfCancellationRequested();
-            // The canonical text search authenticates and parses once for the entire snapshot.
-            // It permits accessibility extraction without exposing a logical document or interaction map.
-            var restrictedMatches = _semanticDocument is null
-                ? _document.Text.Find(needle, new PdfTextSearchOptions { IncludeTextRenderingMode3 = true })
-                    .GroupBy(static match => match.PageNumber)
-                    .ToDictionary(static group => group.Key, static group => group.First())
-                : null;
+            var pageMatches = _document.Text.Find(needle, new PdfTextSearchOptions { IncludeTextRenderingMode3 = true })
+                .GroupBy(static match => match.PageNumber)
+                .ToDictionary(static group => group.Key, static group => group.ToArray());
             cancellationToken.ThrowIfCancellationRequested();
             for (int index = 0; index < pageCount; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (_semanticDocument is null) {
-                    if (restrictedMatches!.TryGetValue(index + 1, out var restrictedMatch))
-                        matches.Add(new PdfSearchHit(index + 1, restrictedMatch.Text));
-                    progress?.Report((index + 1D) / pageCount);
-                    continue;
-                }
-                PdfLogicalPage? page = _semanticDocument.Pages.FirstOrDefault(
-                    candidate => candidate.PageNumber == index + 1);
-                cancellationToken.ThrowIfCancellationRequested();
-                string text = page is null
-                    ? string.Empty
-                    : string.Join(Environment.NewLine, page.TextBlocks.Select(static block => block.Text));
-                int match = text.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
-                if (match >= 0) {
-                    int start = Math.Max(0, match - 32);
-                    int length = Math.Min(text.Length - start, needle.Length + 64);
-                    string snippet = string.Join(" ", text.Substring(start, length)
-                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-                    matches.Add(new PdfSearchHit(index + 1, snippet));
+                if (pageMatches.TryGetValue(index + 1, out var occurrences)) {
+                    foreach (var occurrence in occurrences) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var bounds = occurrence.VisualBounds;
+                        matches.Add(new PdfSearchHit(index + 1, occurrence.Text) {
+                            Bounds = new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                            OccurrenceNumber = matches.Count + 1
+                        });
+                    }
                 }
                 progress?.Report((index + 1D) / pageCount);
             }
+            cancellationToken.ThrowIfCancellationRequested();
             return matches.AsReadOnly();
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -95,8 +79,7 @@ internal sealed class PdfDocumentSession {
             workspace.FileName,
             workspace.FileSize,
             document,
-            workspace.ViewInfo,
-            workspace.ViewInfo.CanExtractContent ? document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }) : null);
+            workspace.ViewInfo);
     }
 
     internal async Task<PdfPageScene> LoadPageSceneAsync(
@@ -155,16 +138,8 @@ internal sealed class PdfDocumentSession {
         PdfDocumentViewInfo documentInfo = await Task
             .Run(() => document.InspectForViewing(cancellationToken: cancellationToken), cancellationToken)
             .ConfigureAwait(false);
-        PdfDocumentReadResult? semanticDocument = documentInfo.CanExtractContent ? await Task
-            .Run(
-                () => document.Read(
-                    new PdfReadOptions { Profile = PdfReadProfile.Fast },
-                    cancellationToken),
-                cancellationToken)
-            .ConfigureAwait(false) : null;
-
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfDocumentSession(fullPath, file.Name, file.Length, document, documentInfo, semanticDocument);
+        return new PdfDocumentSession(fullPath, file.Name, file.Length, document, documentInfo);
     }
 
     internal async Task<PdfRenderedPage> RenderPageAsync(

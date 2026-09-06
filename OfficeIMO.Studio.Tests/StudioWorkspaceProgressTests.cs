@@ -21,7 +21,7 @@ public sealed class StudioWorkspaceProgressTests {
             await model.SearchCommand.ExecuteAsync(null);
             await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
             Assert.Equal(count, model.SearchResults.Count);
-            Assert.Equal(count == 0 ? services.Localizer.Get("Workspace.NoMatches") : services.Localizer.Format("Workspace.MatchingPages", count), model.OperationStatus);
+            Assert.Equal(count == 0 ? services.Localizer.Get("Workspace.NoMatches") : services.Localizer.Format("Search.MatchCount", count), model.OperationStatus);
             Assert.Equal(1D, model.OperationProgressFraction);
             return true;
         }, CancellationToken.None);

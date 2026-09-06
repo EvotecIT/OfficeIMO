@@ -198,9 +198,17 @@
               </ListBox>
             </TabItem>
             <TabItem Header="{loc:Loc DocumentWorkspace.Search}">
-              <Grid RowDefinitions="Auto,*" Margin="8">
-                <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="SearchBox" Text="{Binding SearchQuery}" PlaceholderText="{loc:Loc DocumentWorkspace.FindInPDF}" /><Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Find}" Content="{loc:Loc DocumentWorkspace.Find}" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
-                <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}" BorderThickness="0" Background="Transparent">
+              <Grid RowDefinitions="Auto,Auto,*" Margin="8">
+                <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="SearchBox" KeyDown="OnSearchKeyDown" Text="{Binding SearchQuery}" PlaceholderText="{loc:Loc DocumentWorkspace.FindInPDF}" /><Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Find}" Content="{loc:Loc DocumentWorkspace.Find}" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
+                <StackPanel Grid.Row="1" Spacing="6" Margin="0,8,0,0">
+                  <TextBlock Text="{Binding SearchPosition}" TextWrapping="Wrap" FontSize="12" />
+                  <WrapPanel>
+                    <Button Classes="tool" Content="{loc:Loc Search.Previous}" Command="{Binding PreviousSearchResultCommand}" />
+                    <Button Classes="tool" Content="{loc:Loc Search.Next}" Command="{Binding NextSearchResultCommand}" />
+                    <Button Classes="tool" Content="{loc:Loc Search.Clear}" Command="{Binding ClearSearchCommand}" />
+                  </WrapPanel>
+                </StackPanel>
+                <ListBox Grid.Row="2" Margin="0,8,0,0" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}" BorderThickness="0" Background="Transparent">
                   <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfSearchHit"><TextBlock Text="{Binding Label}" Margin="6" TextWrapping="Wrap" FontSize="12" /></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
               </Grid>
@@ -210,7 +218,7 @@
       </Grid>
 
       <Grid Grid.Column="1" IsVisible="{Binding HasDocument}" ColumnDefinitions="*,6,*">
-        <ListBox x:Name="PagesList" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+        <ListBox x:Name="PagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
                  IsVisible="{Binding !IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}"
                  Classes.readerSingle="{Binding IsSinglePageReaderLayout}"
@@ -235,7 +243,7 @@
           <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Left" /></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
 
-        <ListBox x:Name="GridPagesList" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+        <ListBox x:Name="GridPagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
                  IsVisible="{Binding IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderGridRows}"
                  SelectedItem="{Binding SelectedReaderGridRow, Mode=OneWay}"

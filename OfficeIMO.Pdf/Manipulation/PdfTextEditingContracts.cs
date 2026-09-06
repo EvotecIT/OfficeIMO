@@ -189,9 +189,10 @@ public sealed class PdfTextSearchOptions {
 
 /// <summary>One located text occurrence in PDF user space.</summary>
 public sealed class PdfTextMatch {
-    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, bool usesTextRenderingMode3 = false) {
+    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;
         IsTextRenderingMode3 = usesTextRenderingMode3;
+        VisualBounds = visualBounds;
     }
 
     /// <summary>One-based page number.</summary>
@@ -218,6 +219,9 @@ public sealed class PdfTextMatch {
     public double RotationDegrees { get; }
     /// <summary>True when the occurrence includes OCR-style text painted with rendering mode 3.</summary>
     public bool IsTextRenderingMode3 { get; }
+
+    /// <summary>Axis-aligned occurrence bounds in rendered top-left page coordinates, including the effective page box, page rotation, and user-unit scale.</summary>
+    public PdfSelectionQuad VisualBounds { get; }
 }
 
 /// <summary>Result of an existing-page text edit.</summary>

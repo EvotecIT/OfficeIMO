@@ -1269,7 +1269,6 @@
   <data name="Workspace.CreatedSplitPdfs" xml:space="preserve"><value>Created {0} split PDFs</value></data>
   <data name="Workspace.SearchingDocument" xml:space="preserve"><value>Searching document</value></data>
   <data name="Workspace.NoMatches" xml:space="preserve"><value>No matches</value></data>
-  <data name="Workspace.MatchingPages" xml:space="preserve"><value>{0} matching page(s)</value></data>
   <data name="Workspace.OperationCancelled" xml:space="preserve"><value>Operation cancelled</value></data>
   <data name="Workspace.OperationFailed" xml:space="preserve"><value>Operation failed</value></data>
   <data name="Workspace.CancellingOperation" xml:space="preserve"><value>Cancelling operation</value></data>
@@ -1288,7 +1287,7 @@
   <data name="Editor.RedactionReviewStale" xml:space="preserve"><value>The document changed after this redaction was reviewed. Draw and review the area again.</value></data>
   <data name="Editor.RedactionVerified" xml:space="preserve"><value>Verified removal of {0} reviewed PDF content item(s) across {1} page(s).</value></data>
   <data name="Editor.RedactionIncomplete" xml:space="preserve"><value>PDF redaction evidence is not complete: {0} residual and {1} inconclusive reviewed item(s).</value></data>
-  <data name="Search.ResultLabel" xml:space="preserve"><value>Page {0}: {1}</value></data>
+  <data name="Search.ResultLabel" xml:space="preserve"><value>{2}. Page {0}: {1}</value></data>
   <data name="FormField.Label" xml:space="preserve"><value>{0} · {1}</value></data>
   <data name="FormField.ReadOnlyLabel" xml:space="preserve"><value>{0} · {1} · read only</value></data>
   <data name="FormField.NoPageLocation" xml:space="preserve"><value>No page location</value></data>
@@ -1692,4 +1691,11 @@
   <data name="Signing.Unavailable" xml:space="preserve"><value>The document's security policy does not permit signing. Existing signatures and other unsupported security states require a supported source document.</value></data>
   <data name="Signing.CertificateChanged" xml:space="preserve"><value>The reviewed signing certificate is unavailable, expired, or does not have its private key. Select a certificate and review the copy again.</value></data>
   <data name="Workspace.CopyHasFormDrafts" xml:space="preserve"><value>Apply or discard pending form edits in Forms before reviewing a copy. Retained or conflicting drafts must also be resolved so the copy contains the values you intend.</value></data>
+  <data name="Search.Position" xml:space="preserve"><value>Match {0} of {1}</value></data>
+  <data name="Search.NoResults" xml:space="preserve"><value>No matches. Enter text and choose Find. Scanned pages need an OCR text layer to be searchable.</value></data>
+  <data name="Search.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Search.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
+  <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
 </root>
