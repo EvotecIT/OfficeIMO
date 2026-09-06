@@ -67,6 +67,70 @@ public sealed class OfficeWorkflowStreamOutputTests {
         }
     }
 
+    [Fact]
+    public async Task FolderAssemblyCanPublishToAProvider() {
+        using var root = new Scope();
+        string sources = Path.Combine(root.Path, "sources");
+        Directory.CreateDirectory(sources);
+        File.WriteAllBytes(Path.Combine(sources, "source.pdf"), PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes());
+        byte[] outputBytes = [];
+        var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "recovery"));
+        var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
+            Sources = [sources], OutputPath = "content://provider/selected", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            OutputStream = new("selected.pdf", _ => Task.FromResult<Stream>(new MemoryStream(outputBytes)),
+                _ => Task.FromResult<Stream>(new DestinationStream(bytes => outputBytes = bytes)), store)
+        });
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        Assert.Equal(1, PdfDocument.Load(outputBytes).Inspect().PageCount);
+    }
+
+    [Fact]
+    public async Task InterruptedPrePublicationArtifactDoesNotPermanentlyConsumeCapacity() {
+        using var root = new Scope();
+        string directory = Path.Combine(root.Path, "recovery");
+        string abandoned = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(abandoned);
+        File.WriteAllBytes(Path.Combine(abandoned, "output.pdf"), new byte[8000]);
+        File.WriteAllBytes(Path.Combine(abandoned, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp"), new byte[1000]);
+        File.WriteAllBytes(Path.Combine(abandoned, ".lease"), []);
+        var store = new OfficeWorkflowOutputRecoveryStore(directory, 12000);
+        Assert.Empty(store.GetRecoveries());
+        using var lease = await store.CreateAsync(new byte[8000], "content://provider/selected", "selected.pdf", default);
+        Assert.False(Directory.Exists(abandoned));
+        Assert.True(File.Exists(lease.Recovery.FilePath));
+    }
+
+    [Theory]
+    [InlineData("record.json")]
+    [InlineData("unknown.bin")]
+    [InlineData(".officeimo-not-a-guid.tmp")]
+    public async Task AdmissionPreservesUnrecognizedAndFutureRecords(string filename) {
+        using var root = new Scope();
+        string directory = Path.Combine(root.Path, "recovery");
+        string preserved = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(preserved);
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes("{\"Version\":2}");
+        string path = Path.Combine(preserved, filename);
+        File.WriteAllBytes(path, bytes);
+        var store = new OfficeWorkflowOutputRecoveryStore(directory);
+        using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
+        Assert.Equal(bytes, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public async Task AdmissionPreservesAnIncompleteRecordWithAnActiveLease() {
+        using var root = new Scope();
+        string directory = Path.Combine(root.Path, "recovery");
+        string active = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(active);
+        string artifact = Path.Combine(active, "output.pdf");
+        File.WriteAllBytes(artifact, [1, 2, 3]);
+        using var activeLease = new FileStream(Path.Combine(active, ".lease"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+        var store = new OfficeWorkflowOutputRecoveryStore(directory);
+        using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

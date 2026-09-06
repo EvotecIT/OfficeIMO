@@ -69,6 +69,7 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
         token.ThrowIfCancellationRequested();
         Directory.CreateDirectory(DirectoryPath);
         using FileStream admission = await AcquireAdmissionAsync(token).ConfigureAwait(false);
+        RemoveIncompleteRecords(token);
         string[] directories = Directory.EnumerateDirectories(DirectoryPath, Prefix + "*", SearchOption.TopDirectoryOnly).Where(IsRecordDirectory).Take(MaximumRecords + 1).ToArray();
         if (directories.Length >= MaximumRecords) throw new IOException("The workflow recovery store is full. Recover or discard existing copies before publishing more outputs.");
         long retained = 0;
@@ -118,6 +119,42 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
             try { return OpenLease(Path.Combine(DirectoryPath, ".admission.lock")); }
             catch (IOException) when (DateTime.UtcNow < deadline) { await Task.Delay(25, token).ConfigureAwait(false); }
         }
+    }
+
+    // Admission is held while reclaiming records that never reached metadata publication.
+    // A provider write cannot begin before metadata exists. Keep any unfamiliar contents
+    // and every published record, including records from a newer version of the store.
+    private void RemoveIncompleteRecords(CancellationToken token) {
+        foreach (string directory in Directory.EnumerateDirectories(DirectoryPath, Prefix + "*", SearchOption.TopDirectoryOnly)
+                     .Where(IsRecordDirectory).Take(MaximumRecords + 1)) {
+            token.ThrowIfCancellationRequested();
+            EnsureRegularDirectory(directory);
+            string[] entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
+            if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
+            FileStream lease;
+            try { lease = OpenLease(Path.Combine(directory, ".lease")); }
+            catch (IOException) { continue; }
+            using (lease) {
+                // Recheck under the lease before deleting anything, including an empty directory.
+                entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
+                if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
+                foreach (string path in entries) {
+                    if (Path.GetFileName(path) != ".lease") File.Delete(path);
+                }
+            }
+            File.Delete(Path.Combine(directory, ".lease"));
+            Directory.Delete(directory, recursive: false);
+        }
+    }
+
+    private static bool IsIncompleteFile(string path) {
+        if ((File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0) return false;
+        string name = Path.GetFileName(path);
+        if (name == ".lease" || Extensions.Any(extension => name == "output" + extension)) return true;
+        const string temporaryPrefix = ".officeimo-";
+        const string temporarySuffix = ".tmp";
+        return name.StartsWith(temporaryPrefix, StringComparison.Ordinal) && name.EndsWith(temporarySuffix, StringComparison.Ordinal) &&
+            Guid.TryParseExact(name[temporaryPrefix.Length..^temporarySuffix.Length], "N", out _);
     }
 
     private OfficeWorkflowOutputRecovery? ReadRecord(string directory) {

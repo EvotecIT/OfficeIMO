@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
+using OfficeIMO.Internal;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -682,6 +683,9 @@ public sealed partial class OfficeWorkflowRunner {
         string path,
         string requestedOutputPath,
         OfficeWorkflowConflictPolicy conflictPolicy) {
+        string? localOutputPath = OfficeStorageIdentity.GetLocalPath(requestedOutputPath);
+        if (localOutputPath is null) return false;
+        requestedOutputPath = localOutputPath;
         if (OfficeWorkflowPathIdentity.AreEquivalent(path, requestedOutputPath)) return true;
         if (conflictPolicy != OfficeWorkflowConflictPolicy.Rename) return false;
 
