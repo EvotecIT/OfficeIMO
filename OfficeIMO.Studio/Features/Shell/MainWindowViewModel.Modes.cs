@@ -59,6 +59,7 @@ public sealed partial class MainWindowViewModel {
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
     public SearchablePdfOcrViewModel OcrWorkbench { get; private set; } = null!;
+    public OcrSessionViewModel OcrSession { get; private set; } = null!;
 
     public StudioJobsViewModel Jobs { get; private set; } = null!;
 

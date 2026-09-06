@@ -343,6 +343,23 @@
           "OfficeIMO.PowerPoint": "[3.3.0, )"
         }
       },
+      "officeimo.reader.core": {
+        "type": "Project"
+      },
+      "officeimo.reader.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.reader.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
+        }
+      },
       "officeimo.security": {
         "type": "Project",
         "dependencies": {
@@ -390,6 +407,8 @@
           "OfficeIMO.Pdf.Ocr": "[3.3.0, )",
           "OfficeIMO.PowerPoint": "[3.3.0, )",
           "OfficeIMO.PowerPoint.Pdf": "[3.3.0, )",
+          "OfficeIMO.Reader.Image": "[3.3.0, )",
+          "OfficeIMO.Reader.Ocr": "[3.3.0, )",
           "OfficeIMO.Visio": "[3.3.0, )",
           "OfficeIMO.Word": "[3.3.0, )",
           "OfficeIMO.Word.Pdf": "[3.3.0, )"

@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.ImageOcrReviewView" x:DataType="workflow:ImageOcrReviewViewModel">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding SourceName}" Classes="sectionTitle" TextWrapping="Wrap" />
+        <TextBlock Text="{loc:Loc ImageOcr.ReviewHint}" TextWrapping="Wrap" />
+      </StackPanel>
+      <ComboBox Grid.Column="1" ItemsSource="{Binding Frames}" SelectedItem="{Binding SelectedFrame}" Width="140"
+                AutomationProperties.Name="{loc:Loc ImageOcr.FrameChoice}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:OcrReviewPageChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+    <TextBlock Grid.Row="1" Text="{Binding Details}" Classes="muted" TextWrapping="Wrap" />
+    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+      <Grid RowDefinitions="Auto,*" RowSpacing="8">
+        <TextBlock Text="{loc:Loc ImageOcr.ReviewText}" FontWeight="SemiBold" />
+        <TextBox Grid.Row="1" Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" MaxLength="1000000"
+                 VerticalContentAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="{loc:Loc ImageOcr.ReviewText}" />
+      </Grid>
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="8">
+        <CheckBox Content="{loc:Loc ImageOcr.ActualPixels}" IsChecked="{Binding IsZoomed}" />
+      <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Background="White">
+        <Grid><Image Source="{Binding Preview}" Stretch="Uniform" IsVisible="{Binding !IsZoomed}" />
+          <ScrollViewer IsVisible="{Binding IsZoomed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image Source="{Binding Preview}" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top" />
+          </ScrollViewer>
+          <TextBlock Text="{Binding PreviewError}" TextWrapping="Wrap" Margin="12" Foreground="{DynamicResource StudioErrorBrush}" />
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" VerticalAlignment="Bottom" />
+        </Grid>
+      </Border>
+      </Grid>
+    </Grid>
+    <StackPanel Grid.Row="3" Spacing="8">
+      <TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" MaxHeight="60" />
+      <WrapPanel>
+        <Button Classes="primary" Content="{loc:Loc ImageOcr.SaveText}" Command="{Binding CommitCommand}" Margin="0,0,10,0" />
+        <Button Classes="tool" Content="{loc:Loc SearchablePdfOcr.Cancel}" Command="{Binding CancelCommand}" />
+      </WrapPanel>
+    </StackPanel>
+  </Grid>
+</UserControl>

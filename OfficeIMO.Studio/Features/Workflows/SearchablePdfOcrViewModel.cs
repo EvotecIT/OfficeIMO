@@ -78,6 +78,21 @@ public sealed partial class OcrLanguageChoice : ObservableObject {
 
     [ObservableProperty]
     private bool _isSelected;
+
+    internal static IReadOnlyList<OcrLanguageChoice> CreateChoices(IStudioLocalizer localizer) =>
+        TesseractOcrLanguages.Supported.Select(language => new OcrLanguageChoice(language,
+            localizer.GetOrDefault($"Ocr.Language.{language}", FormatLanguage(language)), language == TesseractOcrLanguage.English)).ToArray();
+
+    private static string FormatLanguage(TesseractOcrLanguage language) {
+        string name = language.ToString();
+        var label = new System.Text.StringBuilder(name.Length + 4);
+        for (int index = 0; index < name.Length; index++) {
+            char current = name[index];
+            if (index > 0 && char.IsUpper(current) && char.IsLower(name[index - 1])) label.Append(' ');
+            label.Append(current);
+        }
+        return label.ToString();
+    }
 }
 
 public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDisposable {
@@ -121,12 +136,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         _pickOutputPdf = pickOutputPdf ?? (_ => Task.FromResult<string?>(null));
         _recoveryStore = recoveryStore;
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
-        Languages = new ObservableCollection<OcrLanguageChoice>(TesseractOcrLanguages.Supported.Select(language => {
-            string fallback = FormatLanguage(language);
-            var choice = new OcrLanguageChoice(language, _localizer.GetOrDefault($"Ocr.Language.{language}", fallback), language == TesseractOcrLanguage.English);
-            choice.PropertyChanged += OnLanguagePropertyChanged;
-            return choice;
-        }));
+        Languages = new ObservableCollection<OcrLanguageChoice>(OcrLanguageChoice.CreateChoices(_localizer));
+        foreach (var choice in Languages) choice.PropertyChanged += OnLanguagePropertyChanged;
         Status = T("Status.Ready", "Choose a scanned PDF to make its text searchable.");
         Summary = T("Summary.Empty", "No OCR output yet");
     }
@@ -399,17 +410,6 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         if (string.IsNullOrWhiteSpace(location)) return string.Empty;
         try { return _storage?.Describe(location).Name ?? OfficeStorageIdentity.GetFileName(location); }
         catch (Exception error) when (error is ArgumentException or NotSupportedException or IOException) { return location; }
-    }
-
-    private static string FormatLanguage(TesseractOcrLanguage language) {
-        string name = language.ToString();
-        var label = new System.Text.StringBuilder(name.Length + 4);
-        for (int index = 0; index < name.Length; index++) {
-            char current = name[index];
-            if (index > 0 && char.IsUpper(current) && char.IsLower(name[index - 1])) label.Append(' ');
-            label.Append(current);
-        }
-        return label.ToString();
     }
 
     public void Dispose() {

@@ -116,6 +116,21 @@ The runner captures a bounded input snapshot, adds searchable text through `Offi
 
 Set `ReviewAsync` to pause before creating the text layer. The callback receives a `PdfSearchableOcrReview` and returns eligible word instances selected from that review. The shared PDF owner rejects foreign, duplicate, and policy-rejected selections. The destination remains untouched while review is pending, cancellation prevents publication, and source identity is checked again after the decision. Without a callback, the runner uses all eligible words.
 
+Use `RecognizeImageAsync` for standalone images. It reads the image through `OfficeIMO.Reader.Image`, executes the selected engine through `OfficeIMO.Reader.Ocr`, and saves UTF-8 text. Its optional review callback receives the original image, recognition evidence, and recognized text, and returns the text to save:
+
+```csharp
+var result = await runner.RecognizeImageAsync(new ImageOcrWorkflowRequest {
+    InputPath = "invoice.png",
+    OutputPath = "invoice.txt",
+    Ocr = new OfficeIMO.Reader.OfficeDocumentOcrExecutionOptions { Language = "eng" },
+    ReviewAsync = (review, token) => Task.FromResult(review.Text)
+}, engine, cancellationToken);
+```
+
+The callback can present a preview and accept corrections. Until it returns, the destination is untouched. Empty recognition remains visible in diagnostics; failed or skipped recognition does not publish a partial text file. Corrected text is bounded by `Limits.MaximumOutputBytes`, reopened before publication, and protected by the same source identity, conflict, provider consent, and recovery contracts as PDF output.
+
+`RunOcrSessionAsync` accepts an ordered collection of `OfficeOcrSessionRequest` items containing either request type. It snapshots request settings, uses one caller-owned engine sequentially, and protects every selected source from every output. Each item has a unique caller id and a distinct output destination. Progress and terminal result callbacks let a host show completed outputs while later items await review. Cancellation retains completed outputs and returns cancelled outcomes for unstarted items. A retry should contain only the explicitly selected failed or cancelled items; an `Unconfirmed` result stops the remaining items and requires checking the destination and recovery copy first. Pass previously completed output locations through `protectedOutputPaths` when retrying a subset, including when a provider resolves a different destination during publication. Also pass every retained session source as an `OfficeWorkflowProtectedSource` through `protectedInputs`, including its provider stream access. This preserves original inputs of completed items while retrying or adding work.
+
 Redaction uses a separate versioned plan/review/apply contract. Planning produces privacy-safe candidate identifiers and geometry. Application re-plans the exact source and recipe, requires every current candidate to be explicitly approved or rejected, applies only approved candidates, and publishes only after native and configured OCR verification succeeds.
 
 ```csharp

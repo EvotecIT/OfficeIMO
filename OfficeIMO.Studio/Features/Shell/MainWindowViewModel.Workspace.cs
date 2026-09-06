@@ -417,6 +417,7 @@ public sealed partial class MainWindowViewModel {
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (OcrWorkbench.CanCancel) OcrWorkbench.CancelCommand.Execute(null);
+        if (OcrSession.IsBusy) OcrSession.CancelCommand.Execute(null);
         if (CanCancelOperation) OperationStatus = UiText("Workspace.CancellingOperation");
     }
 

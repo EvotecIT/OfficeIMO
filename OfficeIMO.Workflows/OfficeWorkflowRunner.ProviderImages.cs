@@ -34,7 +34,7 @@ public sealed partial class OfficeWorkflowRunner {
                 var destination = destinations[index];
                 // Keep a local destination's provider scope active while the captured source and host guards run.
                 var guard = new WorkflowScopedSourcePublicationGuard(
-                    new DistinctImagePublicationGuard(request.PublicationGuard, files), [], [], destination.Output);
+                    new DistinctWorkflowOutputPublicationGuard(request.PublicationGuard, () => files.Select(file => file.Path)), [], [], destination.Output);
                 var outcome = await PublishProviderArtifactAsync(file.Path, destination.Location, destination.Output,
                     request.Limits.MaximumOutputBytes, guard, () => File.Delete(file.Path), diagnostics, token).ConfigureAwait(false);
                 if (outcome.Recovery is not null) recoveries.Add(outcome.Recovery);
@@ -61,13 +61,4 @@ public sealed partial class OfficeWorkflowRunner {
             files.Count > 0 ? request.OutputDirectory : null, inputBytes, outputBytes, stopwatch.Elapsed, summary, files, diagnostics, recoveries);
     }
 
-    private sealed class DistinctImagePublicationGuard(IOfficeWorkflowPublicationGuard? host,
-        IReadOnlyList<PdfPageImageFile> published) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
-            if (published.Any(file => OfficeStorageIdentity.AreEquivalent(file.Path, path))) return false;
-            if (host is not null && !await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
-            token.ThrowIfCancellationRequested();
-            return !published.Any(file => OfficeStorageIdentity.AreEquivalent(file.Path, path));
-        }
-    }
 }

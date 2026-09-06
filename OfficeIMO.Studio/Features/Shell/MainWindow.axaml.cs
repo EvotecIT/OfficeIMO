@@ -97,6 +97,7 @@ public sealed partial class MainWindow : Window {
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
+            pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
@@ -404,6 +405,18 @@ public sealed partial class MainWindow : Window {
                     ]
                 }
             ]
+        });
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
+    }
+
+    private async Task<IReadOnlyList<string>> PickOcrFilesAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanOpen) return [];
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+            Title = _services.Localizer.Get("OcrSession.Add"), AllowMultiple = true,
+            FileTypeFilter = [new FilePickerFileType(_services.Localizer.Get("OcrSession.Files")) {
+                Patterns = ["*.pdf", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tif", "*.tiff", "*.gif", "*.webp"]
+            }]
         });
         return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
     }

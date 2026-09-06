@@ -1534,4 +1534,20 @@
   <data name="Ocr.Review.Recognize" xml:space="preserve"><value>Recognize and review</value></data>
   <data name="Ocr.Review.Advanced" xml:space="preserve"><value>Advanced recognition settings</value></data>
   <data name="Ocr.Review.Enlarge" xml:space="preserve"><value>Enlarge selected word</value></data>
+  <data name="ImageOcr.ReviewHint" xml:space="preserve"><value>Compare the recognized text with the image and correct it before saving.</value></data>
+  <data name="ImageOcr.FrameChoice" xml:space="preserve"><value>Source image or page</value></data>
+  <data name="ImageOcr.ReviewText" xml:space="preserve"><value>Recognized text</value></data>
+  <data name="ImageOcr.SaveText" xml:space="preserve"><value>Save reviewed text</value></data>
+  <data name="ImageOcr.ActualPixels" xml:space="preserve"><value>Show actual pixels</value></data>
+  <data name="OcrSession.Title" xml:space="preserve"><value>OCR session</value></data>
+  <data name="OcrSession.Hint" xml:space="preserve"><value>PDFs produce searchable copies. Images produce editable text files. Review each result before saving; finished outputs appear in Jobs.</value></data>
+  <data name="OcrSession.Add" xml:space="preserve"><value>Add PDFs or images</value></data>
+  <data name="OcrSession.Remove" xml:space="preserve"><value>Remove selected</value></data>
+  <data name="OcrSession.OutputFolder" xml:space="preserve"><value>Output folder</value></data>
+  <data name="OcrSession.DownloadLanguages" xml:space="preserve"><value>Download missing verified language data</value></data>
+  <data name="OcrSession.Files" xml:space="preserve"><value>OCR session files</value></data>
+  <data name="OcrSession.Run" xml:space="preserve"><value>Recognize and review</value></data>
+  <data name="OcrSession.Retry" xml:space="preserve"><value>Retry failed or cancelled</value></data>
+  <data name="OcrSession.SinglePdf" xml:space="preserve"><value>Searchable PDF</value></data>
+  <data name="OcrSession.FilesTab" xml:space="preserve"><value>Images and multiple files</value></data>
 </root>

@@ -158,11 +158,13 @@ public sealed class StudioOcrPublicationTests {
     private static async Task RunThroughReviewAsync(SearchablePdfOcrViewModel model) {
         var running = model.RunCommand.ExecuteAsync(null);
         var deadline = DateTime.UtcNow.AddSeconds(30);
+        OcrReviewViewModel? committedReview = null;
         while (!running.IsCompleted && DateTime.UtcNow < deadline) {
-            if (model.Review is { } review) {
+            if (model.Review is { } review && !ReferenceEquals(review, committedReview)) {
                 await review.PreviewTask;
                 Assert.True(review.CommitCommand.CanExecute(null), review.PreviewError);
                 review.CommitCommand.Execute(null);
+                committedReview = review;
             }
             await Task.WhenAny(running, Task.Delay(10));
         }

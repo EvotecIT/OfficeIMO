@@ -8,6 +8,7 @@ public sealed partial class OfficeWorkflowRunner {
         internal string Location { get; } = location;
         internal string? LocalPath { get; } = OfficeStorageIdentity.GetLocalPath(location);
         private string? _identity;
+        internal bool HasCapturedIdentity => _identity is not null;
 
         internal OfficeWorkflowStreamInput CreateInput() => new(source.Name, OpenReadAsync, source.ExpectedSha256);
 
@@ -34,9 +35,13 @@ public sealed partial class OfficeWorkflowRunner {
             _identity ??= identity;
         }
 
-        internal void VerifyIdentity() {
-            if (LocalPath is not null && OfficePathIdentity.GetPhysicalIdentityKey(LocalPath) != _identity)
-                throw new IOException("The workflow source was replaced during execution.");
+        internal void VerifyIdentity(bool allowMissing = false) {
+            if (LocalPath is null) return;
+            try {
+                if (OfficePathIdentity.GetPhysicalIdentityKey(LocalPath) != _identity)
+                    throw new IOException("The workflow source was replaced during execution.");
+            } catch (FileNotFoundException) when (allowMissing && _identity is null) { }
+            catch (DirectoryNotFoundException) when (allowMissing && _identity is null) { }
         }
     }
 
@@ -48,6 +53,7 @@ public sealed partial class OfficeWorkflowRunner {
         private readonly WorkflowSourceAccess[] _localScopes;
         private readonly (string Path, string? Identity)[] _localSources;
         private readonly OfficeWorkflowStreamOutput? _output;
+        private readonly bool _allowMissingLocalSources;
 
         internal WorkflowScopedSourcePublicationGuard(IOfficeWorkflowPublicationGuard? host, string[] sources,
             WorkflowSourceAccess[] accesses, OfficeWorkflowStreamOutput? output, bool allowMissingLocalSources = false) {
@@ -55,6 +61,7 @@ public sealed partial class OfficeWorkflowRunner {
             _sources = sources;
             _accesses = accesses;
             _output = output;
+            _allowMissingLocalSources = allowMissingLocalSources;
             _localScopes = accesses.Where(access => access.LocalPath is not null)
                 .GroupBy(access => access.Location, StringComparer.Ordinal).Select(group => group.First()).ToArray();
             _localSources = sources.Where(source => !accesses.Any(access => access.Location == source))
@@ -71,7 +78,11 @@ public sealed partial class OfficeWorkflowRunner {
         public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             var scopes = new List<Stream>(_localScopes.Length + 1);
             try {
-                foreach (var access in _localScopes) scopes.Add(await access.OpenReadAsync(token).ConfigureAwait(false));
+                foreach (var access in _localScopes) {
+                    try { scopes.Add(await access.OpenReadAsync(token).ConfigureAwait(false)); }
+                    catch (FileNotFoundException) when (_allowMissingLocalSources && !access.HasCapturedIdentity) { }
+                    catch (DirectoryNotFoundException) when (_allowMissingLocalSources && !access.HasCapturedIdentity) { }
+                }
                 if (_output is not null && OfficeStorageIdentity.GetLocalPath(path) is not null) {
                     try { scopes.Add(await _output.OpenRead(token).ConfigureAwait(false)); }
                     catch (FileNotFoundException) { } // A selected new output has no existing file identity.
@@ -94,7 +105,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         private bool SourcesAreSeparate(string path, bool isDirectory) {
-            foreach (var access in _accesses) access.VerifyIdentity();
+            foreach (var access in _accesses) access.VerifyIdentity(_allowMissingLocalSources);
             foreach (var source in _localSources) {
                 if (GetLocalIdentity(source.Path, allowMissing: source.Identity is null) != source.Identity)
                     throw new IOException("The workflow source was replaced during execution.");

@@ -157,7 +157,10 @@
 
       <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
       <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
-      <workflow:SearchablePdfOcrView Grid.Row="1" IsVisible="{Binding IsOcrMode}" />
+      <TabControl Grid.Row="1" IsVisible="{Binding IsOcrMode}">
+        <TabItem Header="{loc:Loc OcrSession.SinglePdf}"><workflow:SearchablePdfOcrView /></TabItem>
+        <TabItem Header="{loc:Loc OcrSession.FilesTab}"><workflow:OcrSessionView DataContext="{Binding OcrSession}" /></TabItem>
+      </TabControl>
       <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
       <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
         <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>

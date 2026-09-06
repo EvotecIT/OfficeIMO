@@ -103,7 +103,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<string, bool>? canPublishPath = null,
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
         Func<string, Task<bool>>? confirmProviderWrite = null,
-        Func<string, Task<bool>>? confirmWorkflowProviderWrite = null) {
+        Func<string, Task<bool>>? confirmWorkflowProviderWrite = null,
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickOcrFiles = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -126,10 +127,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _publicationGuard = publicationGuard;
         _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
-        Jobs = new StudioJobsViewModel(_services.Jobs, (path, token) =>
+        Func<string, CancellationToken, Task> openWorkflowOutput = (path, token) =>
             string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
                 ? _openDocumentInTab(path, token)
-                : _openUri(new Uri(path)), _services.Storage.UsesProviderPublication);
+                : _openUri(new Uri(path));
+        Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication);
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
@@ -159,12 +161,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
             confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
+        OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
+            _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
+            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
 
@@ -232,7 +238,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || OcrWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -495,11 +501,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
         Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
         OcrWorkbench.Dispose();
+        OcrSession.Dispose();
         Settings.Dispose();
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {

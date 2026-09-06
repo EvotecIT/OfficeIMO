@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.OcrSessionView" x:DataType="workflow:OcrSessionViewModel">
+  <Grid Background="{DynamicResource StudioWindowBrush}">
+    <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !HasReview}">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Loc OcrSession.Title}" Classes="pageTitle" />
+        <TextBlock Text="{loc:Loc OcrSession.Hint}" TextWrapping="Wrap" Classes="muted" />
+      </StackPanel>
+      <ScrollViewer Grid.Row="1" MaxHeight="230" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="8" Margin="0,0,16,0" IsEnabled="{Binding !IsBusy}">
+        <WrapPanel>
+          <Button Classes="tool" Content="{loc:Loc OcrSession.Add}" Command="{Binding AddFilesCommand}" Margin="0,0,8,0" />
+          <Button Classes="tool" Content="{loc:Loc OcrSession.Remove}" Command="{Binding RemoveSelectedCommand}" />
+        </WrapPanel>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc OcrSession.OutputFolder}" AutomationProperties.Name="{loc:Loc OcrSession.OutputFolder}" />
+          <Button Grid.Column="1" Classes="tool" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Command="{Binding ChooseOutputFolderCommand}" />
+        </Grid>
+        <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">
+          <ScrollViewer MaxHeight="140"><ItemsControl ItemsSource="{Binding Languages}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="workflow:OcrLanguageChoice">
+              <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" Width="180" />
+            </DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl></ScrollViewer>
+        </Expander>
+        <WrapPanel>
+          <CheckBox IsChecked="{Binding ProvisionMissingLanguageData}" Margin="0,0,16,0"><TextBlock Text="{loc:Loc OcrSession.DownloadLanguages}" TextWrapping="Wrap" /></CheckBox>
+          <CheckBox IsVisible="{Binding CanChooseConflictPolicy}" IsChecked="{Binding ReplaceExisting}"><TextBlock Text="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}" TextWrapping="Wrap" /></CheckBox>
+        </WrapPanel>
+      </StackPanel>
+      </ScrollViewer>
+      <Grid Grid.Row="2" RowDefinitions="*,Auto" RowSpacing="8">
+        <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" AutomationProperties.Name="{loc:Loc OcrSession.Files}">
+          <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="workflow:OcrSessionItem">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="4,6">
+              <StackPanel Spacing="3"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding OutputName}" Classes="muted" TextWrapping="Wrap" />
+              </StackPanel>
+              <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Text="{Binding SelectedItem.Summary}" TextWrapping="Wrap" MaxHeight="55" />
+          <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.OpenOutput}" IsVisible="{Binding HasSelectedOutput}" Command="{Binding OpenOutputCommand}" />
+        </Grid>
+      </Grid>
+      <StackPanel Grid.Row="3" Spacing="8">
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+        <WrapPanel>
+          <Button Classes="primary" Content="{loc:Loc OcrSession.Run}" Command="{Binding RunCommand}" Margin="0,0,8,0" />
+          <Button Classes="tool" Content="{loc:Loc OcrSession.Retry}" Command="{Binding RetryCommand}" Margin="0,0,8,0" />
+          <Button Classes="tool" Content="{loc:Loc SearchablePdfOcr.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" />
+        </WrapPanel>
+      </StackPanel>
+    </Grid>
+    <Grid IsVisible="{Binding HasPdfReview}"><workflow:OcrReviewView DataContext="{Binding PdfReview}" /></Grid>
+    <Grid IsVisible="{Binding HasImageReview}"><workflow:ImageOcrReviewView DataContext="{Binding ImageReview}" /></Grid>
+  </Grid>
+</UserControl>

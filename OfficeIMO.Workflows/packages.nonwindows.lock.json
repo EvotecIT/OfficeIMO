@@ -2,12 +2,6 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
-      "Microsoft.NET.ILLink.Tasks": {
-        "type": "Direct",
-        "requested": "[10.0.11, )",
-        "resolved": "10.0.11",
-        "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
-      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.7.1",
@@ -125,6 +119,23 @@
           "OfficeIMO.PowerPoint": "[3.3.0, )"
         }
       },
+      "officeimo.reader.core": {
+        "type": "Project"
+      },
+      "officeimo.reader.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.reader.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
+        }
+      },
       "officeimo.visio": {
         "type": "Project",
         "dependencies": {
@@ -155,12 +166,6 @@
     "net10.0/win-arm64": {},
     "net10.0/win-x64": {},
     "net8.0": {
-      "Microsoft.NET.ILLink.Tasks": {
-        "type": "Direct",
-        "requested": "[8.0.30, )",
-        "resolved": "8.0.30",
-        "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
-      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.7.1",
@@ -282,6 +287,23 @@
           "OfficeIMO.Core": "[3.3.0, )",
           "OfficeIMO.Pdf": "[3.3.0, )",
           "OfficeIMO.PowerPoint": "[3.3.0, )"
+        }
+      },
+      "officeimo.reader.core": {
+        "type": "Project"
+      },
+      "officeimo.reader.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.reader.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.3.0, )",
+          "OfficeIMO.Reader.Core": "[3.3.0, )"
         }
       },
       "officeimo.visio": {
