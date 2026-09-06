@@ -29,8 +29,11 @@ public sealed class PdfPageImageExportRequest {
     /// <summary>Optional provider stream access for the original input reference.</summary>
     public OfficeWorkflowStreamInput? InputStream { get; set; }
 
-    /// <summary>Requested output folder. The complete folder is staged and then published.</summary>
+    /// <summary>Requested output folder. Local folders publish as a unit; provider folders publish verified files individually.</summary>
     public required string OutputDirectory { get; set; }
+
+    /// <summary>Optional provider folder access. Requires Replace; verified files survive a later failure.</summary>
+    public OfficeWorkflowDirectoryOutput? DirectoryOutput { get; set; }
 
     /// <summary>Document-relative selection such as <c>1-3,last</c>; all pages when omitted.</summary>
     public string? Pages { get; set; }
@@ -103,7 +106,8 @@ public sealed class PdfPageImageExportResult {
         TimeSpan duration,
         string summary,
         IReadOnlyList<PdfPageImageFile> files,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
+        IReadOnlyList<OfficeWorkflowOutputRecovery>? outputRecoveries = null) {
         RequestId = requestId;
         Status = status;
         FailureKind = failureKind;
@@ -114,6 +118,7 @@ public sealed class PdfPageImageExportResult {
         Summary = summary;
         Files = files.ToArray();
         Diagnostics = diagnostics.ToArray();
+        OutputRecoveries = outputRecoveries?.ToArray() ?? Array.Empty<OfficeWorkflowOutputRecovery>();
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -132,8 +137,10 @@ public sealed class PdfPageImageExportResult {
     public TimeSpan Duration { get; }
     /// <summary>User-facing outcome.</summary>
     public string Summary { get; }
-    /// <summary>Published page images.</summary>
+    /// <summary>Verified published page images, including completed files when a provider batch stops early.</summary>
     public IReadOnlyList<PdfPageImageFile> Files { get; }
+    /// <summary>Local copies retained after unconfirmed provider writes or recovery cleanup failures.</summary>
+    public IReadOnlyList<OfficeWorkflowOutputRecovery> OutputRecoveries { get; }
     /// <summary>Structured diagnostics.</summary>
     public IReadOnlyList<OfficeWorkflowDiagnostic> Diagnostics { get; }
     /// <summary>Whether export completed successfully.</summary>
@@ -265,6 +272,7 @@ public sealed class PdfAssemblyResult {
         Duration = duration;
         Summary = summary;
         Diagnostics = diagnostics.ToArray();
+
         Recovery = recovery;
     }
 
