@@ -100,6 +100,19 @@ public sealed class StudioOcrReviewTests {
                 model.ReplaceExistingOutput = true;
                 running = model.RunCommand.ExecuteAsync(null);
                 review = await WaitForReview(model, running);
+                foreach (var page in review.Pages) {
+                    review.SelectedPage = page;
+                    await review.PreviewTask;
+                    review.ExcludePageCommand.Execute(null);
+                }
+                review.CommitCommand.Execute(null);
+                await running;
+                Assert.True(model.HasOutput, model.ErrorMessage);
+                Assert.Equal("PDF created; no searchable words were added", model.Status);
+                Assert.Equal(original, File.ReadAllBytes(output));
+                published = File.ReadAllBytes(output);
+                running = model.RunCommand.ExecuteAsync(null);
+                review = await WaitForReview(model, running);
                 review.CancelCommand.Execute(null);
                 await running;
                 Assert.False(model.HasOutput);

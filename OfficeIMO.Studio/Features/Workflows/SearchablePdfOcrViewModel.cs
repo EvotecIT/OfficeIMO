@@ -336,7 +336,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                 : _localizer.FormatOrDefault("Ocr.Result.Pages", "{0:N0} pages", result.ModifiedPages.Count);
             Status = result.AddedWordCount > 0
                 ? T("Status.Completed", "Searchable PDF created")
-                : T("Status.NoWords", "PDF created; no new OCR words passed the selected confidence threshold");
+                : T("Status.NoWords", "PDF created; no searchable words were added");
             Summary = string.IsNullOrWhiteSpace(result.Provider)
                 ? _localizer.FormatOrDefault("Ocr.Result.Summary", "Added {0:N0} searchable words across {1}.", result.AddedWordCount, pageLabel)
                 : _localizer.FormatOrDefault("Ocr.Result.SummaryWithProvider", "Added {0:N0} searchable words across {1} with {2}.", result.AddedWordCount, pageLabel, result.Provider);

@@ -8,6 +8,26 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfSearchableOcrReviewTests {
+    [Theory]
+    [InlineData("Searchable", 10)]
+    [InlineData("Zażółć", 6)]
+    [InlineData("Text\U0001F680", 5)]
+    public async Task SearchableLayerPreservesUnicodeAndCharacterScale(string text, int characters) {
+        var engine = new DelegateOcrEngine("spacing-fixture", (_, _) => Task.FromResult(new OcrResult {
+            Provider = "fixture", Language = "eng", Spans = new[] { Word(text, 20, 0.95) }
+        }));
+        var result = await PdfDocument.Load(Source()).MakeSearchableAsync(engine);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(result.Document.ToBytes());
+        var page = independent.GetPage(1);
+        Assert.Equal(text, Assert.Single(ActualText(page.GetMarkedContents())));
+        // An external reader must see character-sized advances inside the word bounds.
+        // A single word-wide space prevents it from recognizing ordinary inter-word gaps.
+        Assert.Equal(characters, page.Letters.Count);
+        Assert.All(page.Letters, letter => Assert.InRange(letter.Width, 80D / characters - 0.02, 80D / characters + 0.02));
+        Assert.InRange(page.Letters[0].StartBaseLine.X, 19.99, 20.01);
+        Assert.InRange(page.Letters[characters - 1].EndBaseLine.X, 99.98, 100.02);
+    }
+
     [Fact]
     public async Task ReviewWritesOnlySelectedWordsAndReportsTheActualLayer() {
         byte[] bytes = Source();

@@ -207,7 +207,14 @@ internal static partial class PdfWriter {
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
             string fontResource = GetFontResourceName(font, null, font);
             double baselineY = currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D);
-            double horizontalScaling = item.Width / (SpaceWidthEmFor(font) * item.Height) * 100D;
+            // One anchor per Unicode scalar keeps reader spacing heuristics proportional
+            // to characters instead of presenting the entire word as one stretched space.
+            int anchorCount = 0;
+            for (int index = 0; index < item.Text.Length; index++, anchorCount++) {
+                if (char.IsHighSurrogate(item.Text[index]) && index + 1 < item.Text.Length &&
+                    char.IsLowSurrogate(item.Text[index + 1])) index++;
+            }
+            double horizontalScaling = item.Width / (SpaceWidthEmFor(font) * item.Height * anchorCount) * 100D;
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
 
             var content = new ContentStreamBuilder(sb)
@@ -224,7 +231,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeActualTextAnchor(font, currentOpts), item.Height);
+            content.ShowText(EncodeActualTextAnchor(font, currentOpts, anchorCount), item.Height);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 
