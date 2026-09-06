@@ -19,7 +19,11 @@ public enum OfficeWorkflowOperation {
     /// <summary>Remove forbidden active content and embedded payloads from a PDF.</summary>
     Sanitize,
     /// <summary>Extract an ordered selection of PDF pages into a separate PDF.</summary>
-    ExtractPages
+    ExtractPages,
+    /// <summary>Create a separate PDF with new or replacement password protection.</summary>
+    ProtectPdf,
+    /// <summary>Create a separate unencrypted PDF after owner authorization.</summary>
+    RemovePdfProtection
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -203,6 +207,12 @@ public sealed class OfficeWorkflowRequest {
     /// It is used only while executing and is never copied to results or reports.
     /// </summary>
     public string? ComparisonPdfPassword { get; set; }
+
+    /// <summary>New password protection for ProtectPdf. Cloned before execution; credentials remain request-only.</summary>
+    public OfficeIMO.Pdf.PdfStandardEncryptionOptions? OutputEncryption { get; set; }
+
+    /// <summary>Current owner password for replacing or removing protection. Falls back to PdfPassword when omitted.</summary>
+    public string? PdfOwnerPassword { get; set; }
 
     /// <summary>Shared request resource limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();

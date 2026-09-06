@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -77,9 +79,10 @@ internal static partial class PdfSyntax {
     private static void DecryptObjects(
         Dictionary<int, PdfIndirectObject> map,
         PdfStandardSecurityHandler decryptor,
-        int encryptObjectNumber) {
+        int encryptObjectNumber, CancellationToken cancellationToken) {
         var replacements = new List<PdfIndirectObject>();
         foreach (PdfIndirectObject indirect in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indirect.ObjectNumber == encryptObjectNumber) {
                 continue;
             }
@@ -89,11 +92,12 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            PdfObject decrypted = decryptor.DecryptObject(indirect.ObjectNumber, indirect.Generation, indirect.Value);
+            PdfObject decrypted = decryptor.DecryptObject(indirect.ObjectNumber, indirect.Generation, indirect.Value, cancellationToken);
             replacements.Add(new PdfIndirectObject(indirect.ObjectNumber, indirect.Generation, decrypted));
         }
 
         for (int i = 0; i < replacements.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             map[replacements[i].ObjectNumber] = replacements[i];
         }
     }

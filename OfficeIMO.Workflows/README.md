@@ -58,6 +58,29 @@ Every request runs with explicit input and output limits, cancellation, staged o
 
 Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
 
+## Save protected or unencrypted PDF copies
+
+```csharp
+OfficeWorkflowResult protectedCopy = await OfficeWorkflow.ProtectPdf("report.pdf",
+    new OfficeIMO.Pdf.PdfStandardEncryptionOptions(documentPassword) {
+        OwnerPassword = ownerPassword,
+        AllowedPermissions = OfficeIMO.Pdf.PdfStandardPermissions.Print
+    })
+    .To("protected.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+
+OfficeWorkflowResult unencryptedCopy = await OfficeWorkflow
+    .RemovePdfProtection("protected.pdf", ownerPassword)
+    .To("unencrypted.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Typed requests use `ProtectPdf` with `OutputEncryption`, or `RemovePdfProtection`, and `PdfOwnerPassword` for existing protection. The owner password takes precedence over `PdfPassword` for these operations. To replace existing protection, use `ProtectPdf(...).WithPdfOwnerPassword(currentOwnerPassword)`. Settings are copied before execution; passwords are not included in results or reports.
+
+These operations create separate copies, preserve their sources, and use the PDF engine's authorization and rewrite-preservation policy. Existing signatures or other protected document structures may prevent a rewrite. AES-256 is the default; AES-128 and explicitly selected legacy RC4 follow the canonical encryption options. Output verification checks the document-open password, page count, encryption state, permissions, metadata protection, and preservation report before publication. A null PDF metadata-encryption flag means the standard default of encrypted metadata.
+
+Only the `Faithful` profile applies. Input snapshots, byte limits during generation, output conflicts, provider confirmation contracts, recovery, and final publication guards follow the same runner behavior as other single-output operations. Cancellation is forwarded through security preflight, graph rewriting, preservation inspection, and publication.
+
 ## Extract selected PDF pages
 
 ```csharp

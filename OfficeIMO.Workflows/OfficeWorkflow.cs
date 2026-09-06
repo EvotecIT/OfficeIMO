@@ -35,6 +35,15 @@ public static class OfficeWorkflow {
         new(new OfficeWorkflowRequest { Operation = OfficeWorkflowOperation.ExtractPages,
             InputPath = inputPath, PageNumbers = pageNumbers?.ToArray() ?? throw new ArgumentNullException(nameof(pageNumbers)) });
 
+    /// <summary>Creates a password-protected PDF copy using captured output settings.</summary>
+    public static OfficeWorkflowBuilder ProtectPdf(string inputPath, OfficeIMO.Pdf.PdfStandardEncryptionOptions encryption) =>
+        new(new OfficeWorkflowRequest { Operation = OfficeWorkflowOperation.ProtectPdf, InputPath = inputPath,
+            OutputEncryption = encryption?.Clone() ?? throw new ArgumentNullException(nameof(encryption)) });
+
+    /// <summary>Creates an unencrypted PDF copy with the current owner password.</summary>
+    public static OfficeWorkflowBuilder RemovePdfProtection(string inputPath, string ownerPassword) =>
+        Create(OfficeWorkflowOperation.RemovePdfProtection, inputPath).WithPdfPassword(ownerPassword).WithPdfOwnerPassword(ownerPassword);
+
     /// <summary>Runs an explicitly constructed request through the default local runner.</summary>
     public static Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
@@ -98,6 +107,12 @@ public sealed class OfficeWorkflowBuilder {
         return this;
     }
 
+    /// <summary>Sets current owner authorization for replacing or removing PDF protection.</summary>
+    public OfficeWorkflowBuilder WithPdfOwnerPassword(string? password) {
+        _request.PdfOwnerPassword = password;
+        return this;
+    }
+
     /// <summary>Sets the PDF password used for the comparison input.</summary>
     public OfficeWorkflowBuilder WithComparisonPdfPassword(string? password) {
         _request.ComparisonPdfPassword = password;
@@ -143,6 +158,8 @@ public sealed class OfficeWorkflowBuilder {
             Id = _request.Id,
             Operation = _request.Operation,
             PageNumbers = _request.PageNumbers?.ToArray(),
+            OutputEncryption = _request.OutputEncryption?.Clone(),
+            PdfOwnerPassword = _request.PdfOwnerPassword,
             InputPath = _request.InputPath,
             ComparisonPath = _request.ComparisonPath,
             ConversionRouteId = routeId,

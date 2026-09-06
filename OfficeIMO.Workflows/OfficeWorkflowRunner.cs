@@ -202,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return request.Operation switch {
+            OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
             OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
             OfficeWorkflowOperation.Convert => Convert(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.Inspect => Inspect(request, cancellationToken),
@@ -566,7 +567,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     private static void EnsureVerifiedHealthArtifact(OfficeWorkflowOperation operation, PdfHealthReport? report) {
-        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize &&
+        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection &&
             report is not { Verified: true }) {
             throw new InvalidOperationException($"{operation} did not produce verified preservation evidence; no artifact will be published.");
         }
@@ -691,6 +692,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
+        OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
+        OfficeWorkflowOperation.RemovePdfProtection => "Creating and verifying an unencrypted PDF copy",
         OfficeWorkflowOperation.ExtractPages => "Extracting the selected PDF pages",
         OfficeWorkflowOperation.Convert => "Converting with the first-party OfficeIMO format owner",
         OfficeWorkflowOperation.Inspect => "Inspecting PDF structure and capabilities",
@@ -741,5 +744,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowStreamInput? InputStream = null,
         OfficeWorkflowStreamInput? ComparisonStream = null,
         OfficeWorkflowStreamOutput? OutputStream = null,
-        int[]? PageNumbers = null);
+        int[]? PageNumbers = null,
+        PdfStandardEncryptionOptions? OutputEncryption = null,
+        string? PdfOwnerPassword = null);
 }
