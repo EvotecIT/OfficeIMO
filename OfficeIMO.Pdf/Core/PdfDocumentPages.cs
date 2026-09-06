@@ -94,9 +94,11 @@ public sealed partial class PdfDocumentPages {
         }
 
         var ranges = new List<PdfPageRange>();
-        for (int firstPage = 1; firstPage <= pageCount; firstPage += pagesPerDocument) {
-            int lastPage = Math.Min(firstPage + pagesPerDocument - 1, pageCount);
+        for (int firstPage = 1; firstPage <= pageCount;) {
+            int lastPage = firstPage + Math.Min(pagesPerDocument - 1, pageCount - firstPage);
             ranges.Add(PdfPageRange.From(firstPage, lastPage));
+            if (lastPage == pageCount) break;
+            firstPage = lastPage + 1;
         }
 
         return Split(ranges, options);

@@ -58,6 +58,25 @@ Every request runs with explicit input and output limits, cancellation, staged o
 
 Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
 
+## Split a PDF into consecutive parts
+
+```csharp
+PdfSplitWorkflowResult result = await runner.SplitPdfAsync(new PdfSplitWorkflowRequest {
+    InputPath = "report.pdf",
+    OutputDirectory = "report-parts",
+    PagesPerDocument = 10,
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+}, cancellationToken: cancellationToken);
+
+foreach (PdfSplitFile file in result.Files) {
+    Console.WriteLine($"{file.Path}: {file.PageCount} pages starting at source page {file.FirstSourcePage}");
+}
+```
+
+The runner produces `part-001.pdf`, `part-002.pdf`, and subsequent parts in source order. It generates and reopens one part at a time, checks the aggregate output budget before continuing, and publishes a local folder as a unit. `MaximumParts` limits the output count. Cancellation is checked between parts and during file operations; the PDF engine's synchronous generation of one part must finish before cancellation can stop it.
+
+For provider folders, supply `DirectoryOutput` and explicitly choose `Replace`. Each part is written and verified individually. Inspect `Status`, `Files`, and `OutputRecoveries`: verified parts remain available if a later write fails. Local directory recovery locations appear in diagnostic details when an interrupted replacement needs attention. `InputStream` and `PublicationGuard` use the same source verification and live ownership contracts as other workflows.
+
 ## Read provider-backed inputs
 
 Set `InputStream` on an `OfficeWorkflowRequest` when a file picker or storage provider supplies stream access. Keep `InputPath` as the original location or absolute URI, and supply the display filename for format routing:
