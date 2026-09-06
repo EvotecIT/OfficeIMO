@@ -13,9 +13,11 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ### Rendering loss and gallery evidence
 
-Use `PdfConversionWarning.LossKind` to determine fidelity impact. Informational
-diagnostics can describe an approximation, omission, or failure, and those now
-participate in `HasLoss`, `RequireNoLoss()`, and PDF-to-image acceptance policies.
+PDF warnings now retain the existing `OfficeConversionLossKind` classification
+used by upstream converters. Read `PdfConversionWarning.LossKind` for fidelity
+impact and `Severity` for diagnostic severity. The existing `HasLoss`,
+`RequireNoLoss()`, and PDF-to-image acceptance policies now use that classification,
+so an informational diagnostic describing an omission still counts as loss.
 The existing warning constructor keeps its severity-based defaults; the overload
 with `lossKind` preserves an upstream renderer's explicit classification.
 
