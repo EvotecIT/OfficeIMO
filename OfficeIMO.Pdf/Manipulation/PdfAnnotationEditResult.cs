@@ -11,13 +11,15 @@ public sealed class PdfAnnotationEditResult {
         PdfMutationPlan mutationPlan,
         PdfSignatureMutationReport? signatureMutationReport = null,
         PdfRewritePreservationReport? rewritePreservationReport = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null,
+        IReadOnlyDictionary<int, int>? annotationObjectNumberMap = null) {
         _bytes = (byte[])bytes.Clone();
         _readOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
         AffectedAnnotationCount = affectedAnnotationCount;
         MutationPlan = mutationPlan;
         SignatureMutationReport = signatureMutationReport;
         RewritePreservationReport = rewritePreservationReport;
+        AnnotationObjectNumberMap = annotationObjectNumberMap is null ? null : new System.Collections.ObjectModel.ReadOnlyDictionary<int, int>(annotationObjectNumberMap.ToDictionary(pair => pair.Key, pair => pair.Value));
     }
 
     /// <summary>Rewritten PDF bytes.</summary>
@@ -34,6 +36,10 @@ public sealed class PdfAnnotationEditResult {
 
     /// <summary>Full-rewrite preservation proof, when full rewrite mode was selected.</summary>
     public PdfRewritePreservationReport? RewritePreservationReport { get; }
+
+    /// <summary>Original-to-output annotation object numbers reported by the full rewrite, or null when no map is available.</summary>
+    /// <remarks>Removed annotations are absent. Append-only mutations preserve existing object numbers.</remarks>
+    public IReadOnlyDictionary<int, int>? AnnotationObjectNumberMap { get; }
 
     /// <summary>True when the operation changed at least one annotation.</summary>
     public bool Applied => AffectedAnnotationCount > 0;

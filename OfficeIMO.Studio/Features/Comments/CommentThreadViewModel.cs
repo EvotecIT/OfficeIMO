@@ -5,7 +5,8 @@ namespace OfficeIMO.Studio.Features.Comments;
 
 /// <summary>Presentation of a thread from the PDF engine's bounded review catalog.</summary>
 public sealed class CommentThreadViewModel {
-    internal CommentThreadViewModel(PdfAnnotationReviewThread thread, IStudioLocalizer localizer) {
+    internal CommentThreadViewModel(PdfAnnotationReviewThread thread, Guid identity, IStudioLocalizer localizer) {
+        Identity = identity;
         Annotation = thread.Root.Annotation;
         IsResolved = Annotation.Review?.StandardState == PdfAnnotationReviewState.Completed;
         State = localizer.Get("Comments.State." + (Annotation.Review?.StandardState?.ToString() ?? "None"));
@@ -22,6 +23,7 @@ public sealed class CommentThreadViewModel {
     }
 
     internal PdfAnnotation Annotation { get; }
+    internal Guid Identity { get; }
     public string Contents => Annotation.Contents ?? string.Empty;
     public string Label { get; }
     public string State { get; }
@@ -29,13 +31,7 @@ public sealed class CommentThreadViewModel {
     public bool IsOrphaned { get; }
     public IReadOnlyList<CommentEntryViewModel> Entries { get; }
 
-    internal bool Matches(CommentThreadViewModel other) {
-        var a = Annotation;
-        var b = other.Annotation;
-        if (!string.IsNullOrEmpty(a.Name) && !string.IsNullOrEmpty(b.Name)) return a.Name == b.Name;
-        return a.PageNumber == b.PageNumber && a.Subtype == b.Subtype && a.Title == b.Title && a.Contents == b.Contents
-            && a.X1 == b.X1 && a.Y1 == b.Y1 && a.X2 == b.X2 && a.Y2 == b.Y2;
-    }
+    internal bool Matches(CommentThreadViewModel other) => Identity == other.Identity;
 }
 
 /// <summary>A comment or nested reply displayed with its author and depth.</summary>
@@ -45,3 +41,6 @@ public sealed record CommentEntryViewModel(string Author, string Contents, strin
 
 /// <summary>A localized comment filter choice.</summary>
 public sealed record CommentStatusChoice(string Id, string Label);
+
+/// <summary>A retained draft whose original annotation could not be carried into the current revision.</summary>
+public sealed record CommentDraftViewModel(Guid Identity, string Label, string Text);

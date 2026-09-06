@@ -14,13 +14,14 @@ internal static partial class PdfAnnotationEditor {
             pdf,
             options,
             readOptions,
-            out PdfGeneratedOutputGrowth generatedGrowth);
+            out PdfGeneratedOutputGrowth generatedGrowth,
+            out IReadOnlyDictionary<int, int> objectNumberMap);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
         int after = CountSelectedAnnotations(
             ReadAnnotationMetadata(output, outputReadOptions),
             options);
         int affected = Math.Max(0, before - after);
-        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions);
+        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions, objectNumberMap: objectNumberMap);
     }
 
     private static int CountSelectedAnnotations(PdfDocumentInfo info, PdfAnnotationFlattenOptions? options) {

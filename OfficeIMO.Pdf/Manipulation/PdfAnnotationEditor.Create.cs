@@ -64,7 +64,7 @@ internal static partial class PdfAnnotationEditor {
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap);
         int? rewrittenParent = options.InReplyToObjectNumber.HasValue ? numberMap[options.InReplyToObjectNumber.Value] : null;
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
-        ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, rewrittenReadOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
+        ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, rewrittenReadOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap);
     }
 
     private static void ValidateCreateOptions(PdfAnnotationCreateOptions options) {

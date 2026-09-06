@@ -117,11 +117,11 @@ internal sealed partial class PdfWorkspace {
         double deltaY,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateBytesAsync(
+        MutateAnnotationBytesAsync(
             PdfWorkspaceOperationKind.Annotation,
             "Moved annotation on page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { pageNumber },
-            bytes => LoadDocument(bytes).Annotations.Move(objectNumber, deltaX, deltaY).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Move(objectNumber, deltaX, deltaY),
             cancellationToken,
             progress);
 
@@ -131,11 +131,11 @@ internal sealed partial class PdfWorkspace {
         PdfPageRectangle rectangle,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateBytesAsync(
+        MutateAnnotationBytesAsync(
             PdfWorkspaceOperationKind.Annotation,
             "Resized annotation on page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { pageNumber },
-            bytes => LoadDocument(bytes).Annotations.Resize(objectNumber, rectangle).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Resize(objectNumber, rectangle),
             cancellationToken,
             progress);
 

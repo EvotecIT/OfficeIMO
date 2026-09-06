@@ -16,13 +16,17 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private CommentStatusChoice? _selectedCommentStatus;
     [ObservableProperty] private string _commentReplyText = string.Empty;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasCommentCatalogError))] private string? _commentCatalogError;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasUnassignedCommentDrafts))] private IReadOnlyList<CommentDraftViewModel> _unassignedCommentDrafts = [];
+    [ObservableProperty] private CommentDraftViewModel? _selectedUnassignedCommentDraft;
 
     public IReadOnlyList<CommentStatusChoice> CommentStatuses => [
         new("all", UiText("Comments.All")), new("open", UiText("Comments.Unresolved")), new("resolved", UiText("Comments.Resolved"))];
     public bool HasCommentThread => SelectedCommentThread is not null;
+    public bool HasUnassignedCommentDrafts => UnassignedCommentDrafts.Count > 0;
+    public bool CanRestoreCommentDraft => HasCommentThread && SelectedUnassignedCommentDraft is not null && string.IsNullOrEmpty(CommentReplyText);
     public bool HasCommentCatalogError => !string.IsNullOrEmpty(CommentCatalogError);
     public bool HasNoCommentThreads => CommentThreads.Count == 0;
-    public bool CanReviewComment => !IsOpening && !IsWorkspaceBusy && CanEditAnnotations && SelectedCommentThread?.Annotation.ObjectNumber is not null;
+    public bool CanReviewComment => !IsOpening && !IsWorkspaceBusy && SelectedCommentThread?.Annotation.ObjectNumber is not null && CanEditAnnotations;
     public bool CanReplyToComment => CanReviewComment && !string.IsNullOrWhiteSpace(CommentReplyText);
     public bool CanResolveComment => CanReviewComment && SelectedCommentThread?.IsResolved == false;
     public bool CanReopenComment => CanReviewComment && SelectedCommentThread?.IsResolved == true;
@@ -41,11 +45,13 @@ public sealed partial class MainWindowViewModel {
         }
         NotifyCommentActions();
         UpdateCommentAnchor();
+        RefreshUnassignedCommentDrafts();
     }
 
     partial void OnCommentReplyTextChanged(string value) => NotifyCommentActions();
     partial void OnCommentAuthorFilterChanged(string value) => FilterCommentThreads();
     partial void OnSelectedCommentStatusChanged(CommentStatusChoice? value) => FilterCommentThreads();
+    partial void OnSelectedUnassignedCommentDraftChanged(CommentDraftViewModel? value) => NotifyCommentActions();
 
     private void RefreshCommentThreads(bool documentTransition) {
         if (documentTransition) {
@@ -59,7 +65,8 @@ public sealed partial class MainWindowViewModel {
         try {
             _allCommentThreads = _workspace is null ? [] : PdfAnnotationReviewCatalog.Build(_workspace.DocumentInfo.Annotations)
                 .Threads.Where(thread => thread.Root.Annotation.Subtype is not ("Popup" or "Link" or "Widget"))
-                .Select(thread => new CommentThreadViewModel(thread, _localizer)).ToArray();
+                .Select(thread => new CommentThreadViewModel(thread,
+                    thread.Root.Annotation.ObjectNumber is int number ? _workspace.GetAnnotationIdentity(number) : Guid.NewGuid(), _localizer)).ToArray();
         } catch (InvalidOperationException ex) {
             _allCommentThreads = [];
             CommentCatalogError = ex.Message;
@@ -86,6 +93,23 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasNoCommentThreads));
         NotifyCommentActions();
         UpdateCommentAnchor();
+        RefreshUnassignedCommentDrafts();
+    }
+
+    private void RefreshUnassignedCommentDrafts() {
+        var identities = _allCommentThreads.Select(thread => thread.Identity).ToHashSet();
+        var selected = SelectedUnassignedCommentDraft;
+        UnassignedCommentDrafts = _commentDrafts.Where(draft => !identities.Contains(draft.Thread.Identity))
+            .Select(draft => new CommentDraftViewModel(draft.Thread.Identity, draft.Thread.Label, draft.Text)).ToArray();
+        SelectedUnassignedCommentDraft = UnassignedCommentDrafts.FirstOrDefault(draft => draft.Identity == selected?.Identity) ?? UnassignedCommentDrafts.FirstOrDefault();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRestoreCommentDraft))]
+    private void RestoreCommentDraft() {
+        if (!CanRestoreCommentDraft || SelectedUnassignedCommentDraft is not { } draft) return;
+        CommentReplyText = draft.Text;
+        _commentDrafts.RemoveAll(item => item.Thread.Identity == draft.Identity);
+        RefreshUnassignedCommentDrafts();
     }
 
     private void UpdateCommentAnchor() {
@@ -99,9 +123,11 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanReplyToComment));
         OnPropertyChanged(nameof(CanResolveComment));
         OnPropertyChanged(nameof(CanReopenComment));
+        OnPropertyChanged(nameof(CanRestoreCommentDraft));
         ReplyToCommentCommand.NotifyCanExecuteChanged();
         ResolveCommentCommand.NotifyCanExecuteChanged();
         ReopenCommentCommand.NotifyCanExecuteChanged();
+        RestoreCommentDraftCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
@@ -110,7 +136,16 @@ public sealed partial class MainWindowViewModel {
         int start = SelectedCommentThread is null ? -1 : CommentThreads.ToList().IndexOf(SelectedCommentThread);
         for (int offset = 1; offset <= CommentThreads.Count; offset++) {
             var thread = CommentThreads[(start + offset) % CommentThreads.Count];
-            if (!thread.IsResolved) { SelectedCommentThread = thread; return; }
+            if (!thread.IsResolved) {
+                SelectedCommentThread = thread;
+                // Commands must navigate even when the selector already holds this instance.
+                if (thread.Annotation.PageNumber is int page) {
+                    NavigateToPage(page);
+                    if (SelectedPage is not null) SelectedPage.CommentAnchorObjectNumber = null;
+                    UpdateCommentAnchor();
+                }
+                return;
+            }
         }
     }
 
@@ -123,6 +158,7 @@ public sealed partial class MainWindowViewModel {
             ParseColor(EditorColorHex), token, CreateProgress()), cancellationToken).ConfigureAwait(true)) {
             _commentDrafts.RemoveAll(draft => draft.Thread.Matches(thread) && draft.Text == reply);
             if (SelectedCommentThread?.Matches(thread) == true && CommentReplyText == reply) CommentReplyText = string.Empty;
+            RefreshUnassignedCommentDrafts();
         }
     }
 

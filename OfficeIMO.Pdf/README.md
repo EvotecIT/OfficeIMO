@@ -931,6 +931,14 @@ append-only revision only when the signature permission model allows the
 annotation change. Thread construction has explicit relationship and nesting
 limits so hostile reply chains fail closed.
 
+Full annotation rewrites expose `PdfAnnotationEditResult.AnnotationObjectNumberMap` when
+the writer can report original-to-output object numbers. Use that map to retain
+an annotation selection after changing its text or geometry; `/NM` names are
+optional and are not guaranteed to be unique. A null map means no mapping was
+reported. Append-only edits retain existing object numbers. For page reordering,
+`document.Pages.ReorderWithMapping(2, 1)` returns a `PdfPageRewriteResult` with the
+same mapping contract and a `ToDocument()` method for the rewritten PDF.
+
 ### Password protection on browser or restricted hosts
 
 Desktop and server applications use platform AES automatically. A host without synchronous platform AES can pass the

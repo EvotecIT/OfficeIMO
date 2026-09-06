@@ -33,7 +33,7 @@
         </ItemsControl>
       </ScrollViewer>
       <TextBox Text="{Binding EditorAuthor}" PlaceholderText="{loc:Loc DocumentWorkspace.Author}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Author}" />
-      <TextBox x:Name="ReplyEditor" Text="{Binding CommentReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="55" MaxHeight="120" TextWrapping="Wrap" />
+      <TextBox x:Name="ReplyEditor" Text="{Binding CommentReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="55" MaxHeight="120" TextWrapping="Wrap" />
       <WrapPanel ItemSpacing="5" LineSpacing="5">
         <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.AddReply}" Command="{Binding ReplyToCommentCommand}" />
         <Button Classes="tool" Content="{loc:Loc Comments.Resolve}" Command="{Binding ResolveCommentCommand}" />
@@ -41,5 +41,14 @@
       </WrapPanel>
     </StackPanel>
     <Separator />
+    <StackPanel IsVisible="{Binding HasUnassignedCommentDrafts}" Spacing="6">
+      <TextBlock Text="{loc:Loc Comments.UnassignedDrafts}" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Comments.UnassignedExplanation}" TextWrapping="Wrap" Classes="muted" />
+      <ComboBox ItemsSource="{Binding UnassignedCommentDrafts}" SelectedItem="{Binding SelectedUnassignedCommentDraft, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Comments.UnassignedDrafts}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="comments:CommentDraftViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" MaxWidth="230" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBox Text="{Binding SelectedUnassignedCommentDraft.Text, Mode=OneWay}" AutomationProperties.Name="{loc:Loc Comments.UnassignedDrafts}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="100" />
+      <Button Classes="tool" Content="{loc:Loc Comments.RestoreDraft}" Command="{Binding RestoreCommentDraftCommand}" />
+    </StackPanel>
   </StackPanel>
 </UserControl>

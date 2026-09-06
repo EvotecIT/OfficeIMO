@@ -1521,4 +1521,7 @@
   <data name="Comments.State.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="Comments.State.Marked" xml:space="preserve"><value>Marked</value></data>
   <data name="Comments.State.Unmarked" xml:space="preserve"><value>Unmarked</value></data>
+  <data name="Comments.UnassignedDrafts" xml:space="preserve"><value>Retained reply drafts</value></data>
+  <data name="Comments.UnassignedExplanation" xml:space="preserve"><value>The original comment was removed or its identity could not be verified after an edit. Select a thread with an empty reply to restore this draft, or copy the text.</value></data>
+  <data name="Comments.RestoreDraft" xml:space="preserve"><value>Restore to selected thread</value></data>
 </root>
