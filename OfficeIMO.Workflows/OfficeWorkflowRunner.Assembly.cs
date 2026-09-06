@@ -148,7 +148,7 @@ public sealed partial class OfficeWorkflowRunner {
                     }, diagnostics, cancellationToken).ConfigureAwait(false);
                 return new PdfAssemblyResult(validated.Id, outcome.Status,
                     outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
-                    outcome.Status == OfficeWorkflowStatus.Completed ? validated.OutputPath : null,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
                     sourceCount, pageCount, inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, outcome.Recovery);
             }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath, validated.ConflictPolicy,

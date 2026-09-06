@@ -46,6 +46,26 @@ public sealed partial class StudioJobRecord : ObservableObject {
     private OfficeWorkflowOutputRecovery? _recovery;
 
     public bool HasRecovery => Recovery is not null;
+    public System.Collections.ObjectModel.ObservableCollection<OfficeWorkflowOutputRecovery> Recoveries { get; } = new();
+    public bool HasMultipleRecoveries => Recoveries.Count > 1;
+    partial void OnRecoveryChanged(OfficeWorkflowOutputRecovery? value) => RecoveryDiscardRequested = false;
+
+    internal void RemoveRecovery(OfficeWorkflowOutputRecovery recovery) {
+        Recoveries.Remove(recovery);
+        Recovery = Recoveries.FirstOrDefault();
+        RecoveryDiscardRequested = false;
+        OnPropertyChanged(nameof(HasMultipleRecoveries));
+    }
+
+    internal void CompleteBatch(OfficeWorkflowStatus status, string? outputPath, string summary,
+        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput) {
+        if (!IsActive) return;
+        Complete(status, outputPath, summary, recoveries.FirstOrDefault());
+        Recoveries.Clear();
+        foreach (var recovery in recoveries) Recoveries.Add(recovery);
+        HasOutput = hasVerifiedOutput && !string.IsNullOrWhiteSpace(outputPath);
+        OnPropertyChanged(nameof(HasMultipleRecoveries));
+    }
 
     [ObservableProperty]
     private bool _recoveryDiscardRequested;
@@ -69,6 +89,9 @@ public sealed partial class StudioJobRecord : ObservableObject {
         HasOutput = status == OfficeWorkflowStatus.Completed && !string.IsNullOrWhiteSpace(outputPath);
         Summary = summary;
         Recovery = recovery;
+        Recoveries.Clear();
+        if (recovery is not null) Recoveries.Add(recovery);
+        OnPropertyChanged(nameof(HasMultipleRecoveries));
         Status = status == OfficeWorkflowStatus.Unconfirmed
             ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
             : _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());

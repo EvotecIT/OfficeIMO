@@ -93,7 +93,7 @@ public sealed partial class MainWindow : Window {
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
             confirmProviderWrite: ConfirmProviderWriteAsync,
             confirmWorkflowProviderWrite: location => new ProviderSaveDialog(_services.Storage.Describe(location).Name,
-                _services.Localizer, workflowOutput: true).ShowDialog<bool>(this),
+                _services.Localizer, workflowOutput: true, folderOutput: _services.Storage.IsFolder(location)).ShowDialog<bool>(this),
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
@@ -483,13 +483,12 @@ public sealed partial class MainWindow : Window {
             : new ProviderSaveDialog(_services.Storage.Describe(location).Name, _services.Localizer).ShowDialog<bool>(this);
     private async Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return null;
+        if (!StorageProvider.CanPickFolder) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
             Title = _services.Localizer.Get("Picker.ChooseOutputFolder"),
             AllowMultiple = false
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return folders.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<byte[]?> PickImageAsync(CancellationToken cancellationToken) {

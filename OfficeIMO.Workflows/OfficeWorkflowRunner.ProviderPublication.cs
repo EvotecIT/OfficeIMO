@@ -10,6 +10,8 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowOutputRecovery? recovery = null;
         OfficeWorkflowStatus status = OfficeWorkflowStatus.Failed;
         long outputBytes = 0;
+        bool preparationStarted = false;
+        string publishedLocation = destination;
         string summary;
         try {
             byte[] bytes;
@@ -19,6 +21,14 @@ public sealed partial class OfficeWorkflowRunner {
             lease = await provider.RecoveryStore.CreateAsync(bytes, destination, provider.Name, token).ConfigureAwait(false);
             cleanupStaging();
             await EnsurePublicationAllowedAsync(guard, destination, false, token).ConfigureAwait(false);
+            if (provider.PrepareDestination is not null) {
+                token.ThrowIfCancellationRequested();
+                preparationStarted = true;
+                publishedLocation = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(
+                    await provider.PrepareDestination(token).ConfigureAwait(false));
+                var preparedGuard = new WorkflowScopedSourcePublicationGuard(guard, [], [], provider);
+                await EnsurePublicationAllowedAsync(preparedGuard, publishedLocation, false, token).ConfigureAwait(false);
+            }
             await OfficeStreamPublication.WriteVerifiedAsync(provider.OpenRead, provider.OpenWrite, bytes,
                 expectedFingerprint: null, maximumBytes, token).ConfigureAwait(false);
             status = OfficeWorkflowStatus.Completed;
@@ -32,7 +42,7 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics.Add(new OfficeWorkflowDiagnostic("OutputRecoveryCleanupFailed", "Output recovery staging could not be removed: " + directory,
                     OfficeWorkflowDiagnosticSeverity.Warning, "cleanup"));
             }
-            bool uncertain = OfficeStreamPublication.MayHaveChangedDestination(error);
+            bool uncertain = preparationStarted || OfficeStreamPublication.MayHaveChangedDestination(error);
             status = uncertain ? OfficeWorkflowStatus.Unconfirmed
                 : error is OperationCanceledException && token.IsCancellationRequested ? OfficeWorkflowStatus.Cancelled : OfficeWorkflowStatus.Failed;
             if (uncertain) recovery = lease?.Recovery;
@@ -54,9 +64,9 @@ public sealed partial class OfficeWorkflowRunner {
                     OfficeWorkflowDiagnosticSeverity.Warning, "cleanup"));
             }
         }
-        return new(status, outputBytes, summary, recovery);
+        return new(status, outputBytes, summary, recovery, publishedLocation);
     }
 
     private sealed record ProviderPublicationOutcome(OfficeWorkflowStatus Status, long OutputBytes,
-        string Summary, OfficeWorkflowOutputRecovery? Recovery);
+        string Summary, OfficeWorkflowOutputRecovery? Recovery, string PublishedLocation);
 }

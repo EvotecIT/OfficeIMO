@@ -184,17 +184,20 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         string key = OfficeStorageIdentity.Normalize(location);
         IStorageFile? existing;
         StudioStorageReference? reference;
+        (IStorageFolder Folder, string Name) folderOutput;
         lock (_sync) {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_files.TryGetValue(key, out existing)) return existing;
             _references.TryGetValue(key, out reference);
+            _outputFolderReferences.TryGetValue(key, out folderOutput);
         }
-        if (reference?.Bookmark is null && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
-        IStorageProvider provider = _provider?.Invoke()
+        if (folderOutput.Folder is null && reference?.Bookmark is null && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
+        IStorageProvider? provider = folderOutput.Folder is not null ? null : _provider?.Invoke()
             ?? throw new IOException("This document needs its storage provider. Select it again to grant access.");
-        IStorageFile? file = reference?.Bookmark is { } bookmark
-            ? await provider.OpenFileBookmarkAsync(bookmark).ConfigureAwait(false)
-            : await provider.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false);
+        IStorageFile? file = folderOutput.Folder is not null ? await folderOutput.Folder.GetFileAsync(folderOutput.Name).ConfigureAwait(false)
+            : reference?.Bookmark is { } bookmark
+            ? await provider!.OpenFileBookmarkAsync(bookmark).ConfigureAwait(false)
+            : await provider!.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false);
         if (file is null) throw new IOException("Access to this document is unavailable. Select it again to grant access.");
         bool retained = false;
         try {
@@ -231,6 +234,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
             _retiredFiles.Clear();
             _references.Clear();
             _folders.Clear();
+            _outputFolderReferences.Clear();
             _retiredFolders.Clear();
         }
         List<Exception>? errors = null;

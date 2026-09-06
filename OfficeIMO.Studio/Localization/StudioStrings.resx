@@ -1497,4 +1497,6 @@
   <data name="Workflow.Status.Unconfirmed" xml:space="preserve"><value>Check output</value></data>
   <data name="Health.Input.Provider" xml:space="preserve"><value>Storage provider</value></data>
   <data name="Health.Output.ProviderFolderRequired" xml:space="preserve"><value>Choose an output folder before processing provider documents.</value></data>
+  <data name="Dialog.ProviderFolderDescription" xml:space="preserve"><value>Studio will write files directly into this folder and replace files with matching names. Each file is verified after saving. If a later file fails or you cancel, files already saved remain in the folder. An interrupted write can leave an incomplete file; the folder cannot be rolled back.</value></data>
+  <data name="Jobs.RecoveryCopies" xml:space="preserve"><value>Recovery copies</value></data>
 </root>

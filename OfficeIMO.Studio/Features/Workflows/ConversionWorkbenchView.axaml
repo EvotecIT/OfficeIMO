@@ -36,7 +36,7 @@
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.IfAFileExists}" FontWeight="SemiBold" Margin="0,7,0,0" />
           <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}"
-                    SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}">
+                    SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}" IsEnabled="{Binding ConversionWorkbench.CanChooseConflictPolicy}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:WorkflowConflictChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
             </ComboBox.ItemTemplate>

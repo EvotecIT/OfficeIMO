@@ -126,7 +126,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     }, diagnostics, cancellationToken).ConfigureAwait(false);
                 return new OfficeWorkflowResult(validated.Id, validated.Operation, outcome.Status,
                     outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
-                    outcome.Status == OfficeWorkflowStatus.Completed ? validated.OutputPath : null,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
                     inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery);
             }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
@@ -194,47 +194,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             if (providerStagingDirectory is not null) TryDeleteDirectory(providerStagingDirectory);
             inputs.Cleanup(diagnostics);
         }
-    }
-
-    /// <summary>Runs a batch sequentially so every request shares one predictable local resource budget.</summary>
-    public async Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(
-        IEnumerable<OfficeWorkflowRequest> requests,
-        IProgress<OfficeWorkflowProgress>? progress = null,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
-        if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
-        var batch = new List<PreparedRequest>();
-        using (IEnumerator<OfficeWorkflowRequest> enumerator = requests.GetEnumerator()) {
-            while (true) {
-                if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
-                if (!enumerator.MoveNext()) break;
-                if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
-                if (batch.Count >= MaximumBatchRequestCount) {
-                    throw new InvalidOperationException(
-                        $"A workflow batch cannot contain more than {MaximumBatchRequestCount:N0} requests.");
-                }
-                OfficeWorkflowRequest request = enumerator.Current
-                    ?? throw new ArgumentException("Batch requests cannot contain null entries.", nameof(requests));
-                batch.Add(PrepareRequest(request));
-            }
-        }
-
-        var results = new List<OfficeWorkflowResult>(batch.Count);
-        for (int i = 0; i < batch.Count; i++) {
-            if (cancellationToken.IsCancellationRequested) break;
-            PreparedRequest request = batch[i];
-            int batchIndex = i;
-            var batchProgress = progress is null
-                ? null
-                : new InlineProgress<OfficeWorkflowProgress>(item => progress.Report(new OfficeWorkflowProgress(
-                    item.RequestId,
-                    item.Stage,
-                    $"{batchIndex + 1} of {batch.Count} · {item.Message}",
-                    item.Fraction,
-                    (batchIndex + item.Fraction) / Math.Max(1, batch.Count))));
-            results.Add(await RunPreparedAsync(request, batchProgress, cancellationToken).ConfigureAwait(false));
-        }
-        return results;
     }
 
     private static OperationArtifact Execute(

@@ -74,7 +74,7 @@ public sealed partial class OfficeWorkflowRunner {
                     Directory.Delete(providerDirectory!, recursive: false);
                     providerDirectory = null;
                 }, diagnostics, cancellationToken).ConfigureAwait(false);
-                return new PdfSearchableWorkflowResult(outcome.Status, outcome.Status == OfficeWorkflowStatus.Completed ? output : null,
+                return new PdfSearchableWorkflowResult(outcome.Status, outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
                     outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery);
             }
             string published = await PublishAsync(stagingPath, output, policy, guard, cancellationToken).ConfigureAwait(false);

@@ -8,7 +8,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 
 /// <summary>Explains the write guarantees of a stream-only destination before the user publishes edits.</summary>
 internal sealed class ProviderSaveDialog : Window {
-    internal ProviderSaveDialog(string name, IStudioLocalizer localizer, bool workflowOutput = false) {
+    internal ProviderSaveDialog(string name, IStudioLocalizer localizer, bool workflowOutput = false, bool folderOutput = false) {
         Title = localizer.Get("Dialog.ProviderSaveTitle");
         Width = 520;
         SizeToContent = SizeToContent.Height;
@@ -24,7 +24,7 @@ internal sealed class ProviderSaveDialog : Window {
                 new TextBlock { Text = localizer.Format("Dialog.ProviderSaveName", name), FontSize = 18,
                     FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap,
                     MaxLines = 3, TextTrimming = TextTrimming.CharacterEllipsis },
-                new TextBlock { Text = localizer.Get(workflowOutput ? "Dialog.ProviderWorkflowDescription" : "Dialog.ProviderSaveDescription"), TextWrapping = TextWrapping.Wrap },
+                new TextBlock { Text = localizer.Get(folderOutput ? "Dialog.ProviderFolderDescription" : workflowOutput ? "Dialog.ProviderWorkflowDescription" : "Dialog.ProviderSaveDescription"), TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = localizer.Get("Dialog.ProviderWorkflowRecovery"), TextWrapping = TextWrapping.Wrap,
                     IsVisible = workflowOutput },
                 new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,

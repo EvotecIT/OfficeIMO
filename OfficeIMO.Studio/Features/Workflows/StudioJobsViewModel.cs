@@ -7,9 +7,11 @@ namespace OfficeIMO.Studio.Features.Workflows;
 /// <summary>Navigation and non-destructive history actions for the shared Jobs surface.</summary>
 public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable {
     private readonly Func<string, CancellationToken, Task> _openOutput;
-    internal StudioJobsViewModel(StudioJobHistory history, Func<string, CancellationToken, Task> openOutput) {
+    private readonly Func<string, bool> _usesProvider;
+    internal StudioJobsViewModel(StudioJobHistory history, Func<string, CancellationToken, Task> openOutput, Func<string, bool>? usesProvider = null) {
         History = history;
         _openOutput = openOutput;
+        _usesProvider = usesProvider ?? (_ => false);
         History.PropertyChanged += OnHistoryChanged;
     }
     public StudioJobHistory History { get; }
@@ -33,7 +35,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         try {
             ActionError = null;
             string? localPath = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path);
-            if (localPath is not null && !File.Exists(localPath) && !Directory.Exists(localPath))
+            if (localPath is not null && !_usesProvider(path) && !File.Exists(localPath) && !Directory.Exists(localPath))
                 throw new FileNotFoundException("The output is no longer available.", localPath);
             await _openOutput(path, cancellationToken).ConfigureAwait(true);
         } catch (Exception exception) {
@@ -63,7 +65,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         try {
             ActionError = null;
             store.Discard(recovery);
-            job.Recovery = null;
+            job.RemoveRecovery(recovery);
             job.RecoveryDiscardRequested = false;
         } catch (Exception exception) { ActionError = exception.Message; }
     }

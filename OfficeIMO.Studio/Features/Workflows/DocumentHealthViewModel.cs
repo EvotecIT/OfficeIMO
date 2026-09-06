@@ -25,6 +25,8 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
+    private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
+    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
 
     public DocumentHealthViewModel(
@@ -39,13 +41,16 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         IStudioLocalizer? localizer = null,
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
-        StudioStorageAccess? storage = null) {
+        StudioStorageAccess? storage = null,
+        OfficeWorkflowOutputRecoveryStore? recoveryStore = null, Func<string, Task<bool>>? confirmProviderWrite = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
         _storage = storage;
+        _recoveryStore = recoveryStore;
+        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _localizer = localizer ?? StudioLocalization.Current;
         Operations = [
             Operation(OfficeWorkflowOperation.Inspect, "Inspect", "Read structure, security, signatures, tags, active content, and repair diagnostics.", false),
@@ -348,9 +353,26 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         Metrics.Clear();
         StudioJobRecord? job = null;
         bool ownerStarted = false;
+        StudioStorageAccess.DirectoryOutputSession? directoryOutput = null;
 
         try {
-            OfficeWorkflowRequest request = CreateRequest();
+            string folder = OutputFolder;
+            if (SelectedOperation.ProducesArtifact && !string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(folder) == true) {
+                if (!await _confirmProviderWrite(folder).ConfigureAwait(true)) {
+                    Status = T("Status.Cancelled", "Operation cancelled before publishing.");
+                    return;
+                }
+                operationCancellation.Token.ThrowIfCancellationRequested();
+                directoryOutput = _storage.CreateDirectoryOutput(folder, _recoveryStore
+                    ?? throw new IOException("Workflow recovery storage is unavailable."));
+            }
+            OfficeWorkflowRequest request = CreateRequest(directoryOutput is not null);
+            if (directoryOutput is not null) {
+                var destination = await directoryOutput.ResolveAsync(GetOutputName(), operationCancellation.Token).ConfigureAwait(true);
+                request.OutputPath = destination.Location;
+                request.OutputStream = destination.Output;
+                request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+            }
             job = _jobHistory?.Start(SelectedOperation.Label, request.InputPath, request.OutputPath, operationCancellation.Cancel);
             using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operationCancellation.Token).ConfigureAwait(true);
             var progress = new Progress<OfficeWorkflowProgress>(update => {
@@ -388,6 +410,8 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             Status = exception.Message;
             job?.Unconfirmed(exception.Message);
         } finally {
+            try { directoryOutput?.Dispose(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             IsBusy = false;
             CurrentStep = GuidedWorkflowStep.Result;
             if (ReferenceEquals(_cancellation, operationCancellation)) _cancellation = null;
@@ -436,7 +460,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         _cancellation?.Cancel();
     }
 
-    private OfficeWorkflowRequest CreateRequest() {
+    private OfficeWorkflowRequest CreateRequest(bool providerOutput = false) {
         string input = OfficeStorageIdentity.Normalize(InputPath);
         return new OfficeWorkflowRequest {
             Operation = SelectedOperation.Value,
@@ -444,7 +468,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             InputStream = _storage?.CreateWorkflowInput(input),
             ComparisonPath = NeedsComparison ? OfficeStorageIdentity.Normalize(ComparisonPath) : null,
             ComparisonStream = NeedsComparison ? _storage?.CreateWorkflowInput(ComparisonPath) : null,
-            OutputPath = GetOutputDestination(),
+            OutputPath = providerOutput ? null : GetOutputDestination(),
             OutputProfile = SelectedProfile.Value,
             PublicationGuard = _publicationGuard,
             ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
@@ -455,16 +479,22 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private string? GetOutputDestination() {
         if (!SelectedOperation.ProducesArtifact) return null;
         if (!HasOutputDestination) throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before processing provider documents."));
+        if (!string.IsNullOrWhiteSpace(OutputFolder) && _storage?.UsesProviderPublication(OutputFolder) == true)
+            return _storage.Describe(OutputFolder).Name + " / " + GetOutputName();
         string directory = string.IsNullOrWhiteSpace(OutputFolder)
             ? Path.GetDirectoryName(OfficeStorageIdentity.GetLocalPath(InputPath)!)!
             : OfficeStorageIdentity.GetLocalPath(OutputFolder) ?? throw new ArgumentException("Choose a filesystem output folder.");
-        string stem = Path.Combine(directory, Path.GetFileNameWithoutExtension(InputFileName));
+        return Path.Combine(directory, GetOutputName());
+    }
+
+    private string GetOutputName() {
+        string stem = Path.GetFileNameWithoutExtension(InputFileName);
         return SelectedOperation.Value switch {
             OfficeWorkflowOperation.Compare => stem + ".comparison.html",
             OfficeWorkflowOperation.Optimize => stem + ".optimized.pdf",
             OfficeWorkflowOperation.Repair => stem + ".repaired.pdf",
             OfficeWorkflowOperation.Sanitize => stem + ".sanitized.pdf",
-            _ => null
+            _ => throw new InvalidOperationException("This operation does not produce an artifact.")
         };
     }
 

@@ -88,6 +88,12 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         Summary = message;
     }
 
+    internal void FailBeforeExecution(string message) {
+        State = ConversionJobState.Failed;
+        Status = T("Failed", "Failed");
+        Summary = message;
+    }
+
     internal void Apply(OfficeWorkflowResult result) {
         State = result.Status switch {
             OfficeWorkflowStatus.Completed => ConversionJobState.Completed,

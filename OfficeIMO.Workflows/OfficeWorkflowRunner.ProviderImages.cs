@@ -23,7 +23,8 @@ public sealed partial class OfficeWorkflowRunner {
                     ?? throw new IOException("The provider could not resolve an output file.");
                 if (!string.Equals(destination.Output.Name, name, StringComparison.Ordinal))
                     throw new IOException("The provider changed the requested output filename.");
-                if (destinations.Any(previous => OfficeStorageIdentity.AreEquivalent(previous.Location, destination.Location)))
+                if (destination.Output.PrepareDestination is null && destinations.Any(previous =>
+                    previous.Output.PrepareDestination is null && OfficeStorageIdentity.AreEquivalent(previous.Location, destination.Location)))
                     throw new IOException("The provider mapped multiple output files to the same destination.");
                 destinations.Add(destination);
             }
@@ -32,7 +33,8 @@ public sealed partial class OfficeWorkflowRunner {
                 var file = saved.Files[index];
                 var destination = destinations[index];
                 // Keep a local destination's provider scope active while the captured source and host guards run.
-                var guard = new WorkflowScopedSourcePublicationGuard(request.PublicationGuard, [], [], destination.Output);
+                var guard = new WorkflowScopedSourcePublicationGuard(
+                    new DistinctImagePublicationGuard(request.PublicationGuard, files), [], [], destination.Output);
                 var outcome = await PublishProviderArtifactAsync(file.Path, destination.Location, destination.Output,
                     request.Limits.MaximumOutputBytes, guard, () => File.Delete(file.Path), diagnostics, token).ConfigureAwait(false);
                 if (outcome.Recovery is not null) recoveries.Add(outcome.Recovery);
@@ -42,7 +44,7 @@ public sealed partial class OfficeWorkflowRunner {
                     break;
                 }
                 outputBytes = checked(outputBytes + outcome.OutputBytes);
-                files.Add(new(pageNumbers[index], destination.Location, file.Format, file.Width, file.Height, outcome.OutputBytes));
+                files.Add(new(pageNumbers[index], outcome.PublishedLocation, file.Format, file.Width, file.Height, outcome.OutputBytes));
             }
         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
             status = error is OperationCanceledException && token.IsCancellationRequested
@@ -57,5 +59,15 @@ public sealed partial class OfficeWorkflowRunner {
         return new(request.Id, status,
             status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
             files.Count > 0 ? request.OutputDirectory : null, inputBytes, outputBytes, stopwatch.Elapsed, summary, files, diagnostics, recoveries);
+    }
+
+    private sealed class DistinctImagePublicationGuard(IOfficeWorkflowPublicationGuard? host,
+        IReadOnlyList<PdfPageImageFile> published) : IOfficeWorkflowPublicationGuard {
+        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+            if (published.Any(file => OfficeStorageIdentity.AreEquivalent(file.Path, path))) return false;
+            if (host is not null && !await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
+            token.ThrowIfCancellationRequested();
+            return !published.Any(file => OfficeStorageIdentity.AreEquivalent(file.Path, path));
+        }
     }
 }

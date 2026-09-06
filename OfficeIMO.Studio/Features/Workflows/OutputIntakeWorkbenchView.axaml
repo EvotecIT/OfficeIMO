@@ -162,7 +162,7 @@
       <Grid Grid.Column="1" Margin="26" RowDefinitions="Auto,Auto,*" MaxWidth="760" HorizontalAlignment="Stretch">
         <StackPanel Spacing="4"><TextBlock Text="{loc:Loc OutputIntakeWorkbench.ValidatedPageImages}" Classes="pageTitle" /><TextBlock Text="{loc:Loc OutputIntakeWorkbench.EveryPageIsDecodedAndCheckedBeforeItsOutputFolder}" Classes="muted" /></StackPanel>
         <Border Grid.Row="1" Classes="panel" Margin="0,22,0,0" Padding="18">
-          <StackPanel Spacing="8"><TextBlock Text="{Binding OutputWorkbench.PageExport.Status}" FontWeight="SemiBold" TextWrapping="Wrap" /><ProgressBar Minimum="0" Maximum="1" Value="{Binding OutputWorkbench.PageExport.ProgressFraction}" /><TextBlock Text="{Binding OutputWorkbench.PageExport.Summary}" Classes="muted" TextWrapping="Wrap" /><TextBlock Text="{Binding OutputWorkbench.PageExport.PublishedDirectory}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+          <StackPanel Spacing="8"><TextBlock Text="{Binding OutputWorkbench.PageExport.Status}" FontWeight="SemiBold" TextWrapping="Wrap" /><ProgressBar Minimum="0" Maximum="1" Value="{Binding OutputWorkbench.PageExport.ProgressFraction}" /><TextBlock Text="{Binding OutputWorkbench.PageExport.Summary}" Classes="muted" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OutputWorkbench.PageExport.HasRecovery}" TextWrapping="Wrap" /><TextBlock Text="{Binding OutputWorkbench.PageExport.PublishedDirectory}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" /></StackPanel>
         </Border>
       </Grid>
     </Grid>
