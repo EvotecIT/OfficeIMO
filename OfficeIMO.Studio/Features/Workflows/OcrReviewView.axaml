@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.OcrReviewView"
+             x:DataType="workflow:OcrReviewViewModel">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Loc Ocr.Review.Title}" Classes="sectionTitle" />
+        <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+      </StackPanel>
+      <ComboBox Grid.Column="1" Width="160" ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
+                AutomationProperties.Name="{loc:Loc Ocr.Review.PageChoice}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:OcrReviewPageChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+    <TextBlock Grid.Row="1" Text="{Binding PageDetails}" TextWrapping="Wrap" Classes="muted" />
+    <Grid Grid.Row="2" ColumnDefinitions="340,*" ColumnSpacing="16">
+      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+        <WrapPanel>
+          <Button Classes="tool" Content="{loc:Loc Ocr.Review.IncludePage}" Command="{Binding IncludeEligiblePageCommand}" Margin="0,0,8,0" />
+          <Button Classes="tool" Content="{loc:Loc Ocr.Review.ExcludePage}" Command="{Binding ExcludePageCommand}" />
+        </WrapPanel>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Words}" SelectedItem="{Binding SelectedWord}"
+                 AutomationProperties.Name="{loc:Loc Ocr.Review.Words}">
+          <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="workflow:OcrReviewWord">
+              <StackPanel Spacing="3">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding IsEligible}" AutomationProperties.Name="{Binding Text}">
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Grid.Column="1" Text="{Binding Confidence}" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Classes="muted" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Grid.Row="2" Text="{Binding SelectedWord.Geometry}" TextWrapping="Wrap" Classes="muted" />
+      </Grid>
+      <Border Grid.Column="1" Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Padding="8">
+        <Grid RowDefinitions="Auto,*">
+          <CheckBox Content="{loc:Loc Ocr.Review.Enlarge}" IsChecked="{Binding IsZoomed}" />
+          <Viewbox Grid.Row="1" Stretch="Uniform" IsVisible="{Binding !IsZoomed}">
+            <Canvas Width="{Binding PageWidth}" Height="{Binding PageHeight}" Background="White">
+              <Image Source="{Binding Preview}" Width="{Binding PageWidth}" Height="{Binding PageHeight}" Stretch="Fill" />
+              <Rectangle IsVisible="{Binding HasSelectedWord}" Canvas.Left="{Binding SelectedWord.Left}" Canvas.Top="{Binding SelectedWord.Top}"
+                         Width="{Binding SelectedWord.Width}" Height="{Binding SelectedWord.Height}"
+                         Stroke="{DynamicResource StudioAccentBrush}" Fill="Transparent" StrokeThickness="2" />
+            </Canvas>
+          </Viewbox>
+          <ScrollViewer Grid.Row="1" IsVisible="{Binding IsZoomed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Canvas Width="{Binding PageWidth}" Height="{Binding PageHeight}" Background="White">
+              <Image Source="{Binding Preview}" Width="{Binding PageWidth}" Height="{Binding PageHeight}" Stretch="Fill" />
+              <Rectangle x:Name="ZoomSelection" IsVisible="{Binding HasSelectedWord}"
+                         Canvas.Left="{Binding SelectedWord.Left}" Canvas.Top="{Binding SelectedWord.Top}"
+                         Width="{Binding SelectedWord.Width}" Height="{Binding SelectedWord.Height}"
+                         Stroke="{DynamicResource StudioAccentBrush}" Fill="Transparent" StrokeThickness="2" />
+            </Canvas>
+          </ScrollViewer>
+          <ProgressBar Grid.Row="1" IsVisible="{Binding IsLoadingPreview}" IsIndeterminate="True" VerticalAlignment="Center" />
+          <TextBlock Grid.Row="1" Text="{Binding PreviewError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+    </Grid>
+    <StackPanel Grid.Row="3" Spacing="8">
+      <Expander Header="{loc:Loc Ocr.Review.Diagnostics}">
+        <ScrollViewer MaxHeight="120"><TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" /></ScrollViewer>
+      </Expander>
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <TextBlock Text="{loc:Loc Ocr.Review.CommitNote}" TextWrapping="Wrap" Classes="muted" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="tool" Content="{loc:Loc SearchablePdfOcr.Cancel}" Command="{Binding CancelCommand}" />
+        <Button Grid.Column="2" Classes="primary" Content="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}" Command="{Binding CommitCommand}" />
+      </Grid>
+    </StackPanel>
+  </Grid>
+</UserControl>

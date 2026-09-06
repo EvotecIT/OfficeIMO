@@ -24,6 +24,11 @@ public sealed class PdfSearchableWorkflowRequest {
     public string? PdfPassword { get; set; }
     /// <summary>Recognition, page selection, rendering, and confidence options captured before asynchronous work.</summary>
     public PdfOcrMergeOptions Ocr { get; set; } = new();
+    /// <summary>Optional review before mutation. Return eligible word instances from the supplied review.
+    /// The runner validates the selection and rechecks source identity before publication.</summary>
+    /// <remarks>The callback must honor cancellation. It does not grant permission to publish or bypass
+    /// the output conflict policy or publication guard. Without a callback, all eligible words are used.</remarks>
+    public Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyList<PdfRecognizedWord>>>? ReviewAsync { get; set; }
 }
 
 /// <summary>Searchable-PDF outcome; recognition metadata describes the generated artifact.</summary>

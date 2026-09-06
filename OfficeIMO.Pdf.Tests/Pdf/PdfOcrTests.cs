@@ -38,6 +38,22 @@ public class PdfOcrTests {
         Assert.InRange(word.Confidence, 0.94, 0.96);
         Assert.Equal(1, page.RejectedLowConfidenceCount);
         Assert.Equal(1, page.RejectedNativeOverlapCount);
+        Assert.Collection(page.WordEvidence,
+            item => {
+                Assert.Equal("Native", item.Word.Text);
+                Assert.Equal(PdfOcrWordDisposition.NativeTextOverlap, item.Disposition);
+                Assert.True(item.Word.Width > 0 && item.Word.Height > 0);
+            },
+            item => {
+                Assert.Same(word, item.Word);
+                Assert.Equal(PdfOcrWordDisposition.Accepted, item.Disposition);
+            },
+            item => {
+                Assert.Equal("Weak", item.Word.Text);
+                Assert.Equal(0.2, item.Word.Confidence);
+                Assert.Equal(PdfOcrWordDisposition.LowConfidence, item.Disposition);
+                Assert.True(item.Word.X > word.X);
+            });
         Assert.Contains("provider-proof", page.Diagnostics);
         Assert.Equal("fixture", page.Provider);
         Assert.Equal("fixture-v1", page.Model);

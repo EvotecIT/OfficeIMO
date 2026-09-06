@@ -1524,4 +1524,14 @@
   <data name="Comments.UnassignedDrafts" xml:space="preserve"><value>Retained reply drafts</value></data>
   <data name="Comments.UnassignedExplanation" xml:space="preserve"><value>The original comment was removed or its identity could not be verified after an edit. Select a thread with an empty reply to restore this draft, or copy the text.</value></data>
   <data name="Comments.RestoreDraft" xml:space="preserve"><value>Restore to selected thread</value></data>
+  <data name="Ocr.Review.Title" xml:space="preserve"><value>Review recognized text</value></data>
+  <data name="Ocr.Review.PageChoice" xml:space="preserve"><value>OCR review page</value></data>
+  <data name="Ocr.Review.IncludePage" xml:space="preserve"><value>Include eligible</value></data>
+  <data name="Ocr.Review.ExcludePage" xml:space="preserve"><value>Exclude page</value></data>
+  <data name="Ocr.Review.Words" xml:space="preserve"><value>Recognized words and confidence</value></data>
+  <data name="Ocr.Review.Diagnostics" xml:space="preserve"><value>Recognition and rendering diagnostics</value></data>
+  <data name="Ocr.Review.CommitNote" xml:space="preserve"><value>Only selected eligible words will enter the searchable layer. The source PDF stays unchanged.</value></data>
+  <data name="Ocr.Review.Recognize" xml:space="preserve"><value>Recognize and review</value></data>
+  <data name="Ocr.Review.Advanced" xml:space="preserve"><value>Advanced recognition settings</value></data>
+  <data name="Ocr.Review.Enlarge" xml:space="preserve"><value>Enlarge selected word</value></data>
 </root>

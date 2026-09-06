@@ -14,7 +14,7 @@
       </StackPanel>
     </Border>
 
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer Grid.Row="1" IsVisible="{Binding !OcrWorkbench.HasReview}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid x:Name="OcrColumns" ColumnDefinitions="400,*" RowDefinitions="Auto,Auto">
       <Border x:Name="SourcePanel" Grid.Column="0" VerticalAlignment="Top" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
@@ -30,6 +30,30 @@
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
             <TextBox Text="{Binding OcrWorkbench.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.AllPagesOr135}" />
 
+          <StackPanel Spacing="9" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
+              <TextBlock TextWrapping="Wrap" Text="{Binding OcrWorkbench.LanguageSummary}" Classes="muted" VerticalAlignment="Center" />
+            <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">
+            <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
+            <Border Classes="card" Padding="15">
+              <ItemsControl ItemsSource="{Binding OcrWorkbench.Languages}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="workflow:OcrLanguageChoice">
+                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                              Width="170" Margin="3,4" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+            </ScrollViewer>
+            </Expander>
+            <CheckBox
+                      IsChecked="{Binding OcrWorkbench.ProvisionMissingLanguageData, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.DownloadChecksumVerifiedLanguageDataWhenTheInstalledRuntimeIs}" TextWrapping="Wrap" /></CheckBox>
+          </StackPanel>
+
+            <Expander Header="{loc:Loc Ocr.Review.Advanced}" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,5,0,0">
               <StackPanel Spacing="5">
                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RenderDPI}" FontWeight="SemiBold" />
@@ -42,6 +66,7 @@
                                Value="{Binding OcrWorkbench.MinimumConfidencePercent, Mode=TwoWay}" />
               </StackPanel>
             </Grid>
+            </Expander>
 
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OUTPUT}" Classes="eyebrow" Margin="0,8,0,0" />
             <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchablePDF}" FontWeight="SemiBold" />
@@ -54,7 +79,7 @@
             <CheckBox
                       IsVisible="{Binding !OcrWorkbench.IsProviderOutput}"
                       IsChecked="{Binding OcrWorkbench.ReplaceExistingOutput, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}" TextWrapping="Wrap" /></CheckBox>
-            <Button Classes="primary" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}" Content="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}"
+            <Button Classes="primary" AutomationProperties.Name="{loc:Loc Ocr.Review.Recognize}" Content="{loc:Loc Ocr.Review.Recognize}"
                     Command="{Binding OcrWorkbench.RunCommand}" Margin="0,7,0,0" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}" HorizontalAlignment="Left"
                     IsVisible="{Binding OcrWorkbench.CanCancel}" Command="{Binding OcrWorkbench.CancelCommand}" />
@@ -77,28 +102,6 @@
               </StackPanel>
             </Grid>
           </Border>
-
-          <StackPanel Spacing="9">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognitionLanguages}" Classes="sectionTitle" />
-              <TextBlock TextWrapping="Wrap" Grid.Column="1" Text="{Binding OcrWorkbench.LanguageSummary}" Classes="muted" VerticalAlignment="Center" />
-            </Grid>
-            <Border Classes="card" Padding="15">
-              <ItemsControl ItemsSource="{Binding OcrWorkbench.Languages}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="workflow:OcrLanguageChoice">
-                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                              Width="170" Margin="3,4" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </Border>
-            <CheckBox
-                      IsChecked="{Binding OcrWorkbench.ProvisionMissingLanguageData, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.DownloadChecksumVerifiedLanguageDataWhenTheInstalledRuntimeIs}" TextWrapping="Wrap" /></CheckBox>
-          </StackPanel>
 
           <Border Background="{DynamicResource StudioPanelMutedBrush}"
                   BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
@@ -131,5 +134,8 @@
       </ScrollViewer>
     </Grid>
     </ScrollViewer>
+    <Border Grid.Row="1" IsVisible="{Binding OcrWorkbench.HasReview}">
+      <workflow:OcrReviewView DataContext="{Binding OcrWorkbench.Review}" />
+    </Border>
   </Grid>
 </UserControl>

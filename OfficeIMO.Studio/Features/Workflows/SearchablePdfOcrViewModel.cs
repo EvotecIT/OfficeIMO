@@ -26,6 +26,7 @@ internal sealed record SearchablePdfOcrOptions(
     internal IOfficeWorkflowPublicationGuard? PublicationGuard { get; init; }
     internal OfficeWorkflowStreamInput? InputStream { get; init; }
     internal OfficeWorkflowStreamOutput? OutputStream { get; init; }
+    internal Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyList<PdfRecognizedWord>>>? ReviewAsync { get; init; }
 }
 
 internal interface ISearchablePdfOcrService {
@@ -50,7 +51,7 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
             InputStream = options.InputStream, OutputStream = options.OutputStream,
             ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                 ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
-            PublicationGuard = options.PublicationGuard
+            PublicationGuard = options.PublicationGuard, ReviewAsync = options.ReviewAsync
         };
         TesseractOcrSession session = await TesseractOcr
             .CreateSessionAsync(new TesseractOcrSessionOptions {
@@ -258,6 +259,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     [RelayCommand(CanExecute = nameof(CanRun))]
     private async Task RunAsync() {
+        if (!CanRun) return;
         _cancellation?.Dispose();
         using var operation = new CancellationTokenSource();
         _cancellation = operation;
@@ -297,7 +299,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
-                }) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input) };
+                }) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input), ReviewAsync = ReviewWordsAsync };
             if (providerOutput) {
                 if (!await _confirmProviderWrite(output).ConfigureAwait(true)) {
                     Status = T("Status.Cancelled", "OCR cancelled");
@@ -349,6 +351,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
             ErrorMessage = ex.Message;
             job?.Unconfirmed(ex.Message);
         } finally {
+            Review?.Dispose();
+            Review = null;
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
         }
@@ -410,6 +414,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     public void Dispose() {
         _cancellation?.Cancel();
+        Review?.Dispose();
         foreach (OcrLanguageChoice language in Languages) language.PropertyChanged -= OnLanguagePropertyChanged;
     }
 

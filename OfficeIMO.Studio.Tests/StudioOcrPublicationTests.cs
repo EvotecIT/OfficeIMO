@@ -43,7 +43,7 @@ public sealed class StudioOcrPublicationTests {
                 window.Show();
                 model.InputPath = source;
                 model.OutputPath = output;
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
                 Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
                 Assert.True(services.Jobs.Entries[0].HasOutput);
@@ -51,7 +51,7 @@ public sealed class StudioOcrPublicationTests {
                 byte[] saved = File.ReadAllBytes(output);
                 model.ReplaceExistingOutput = true;
                 denyAfterRecognition = true;
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.False(model.HasOutput);
                 Assert.True(model.HasError);
                 Assert.Equal("Failed", services.Jobs.Entries[0].Status);
@@ -103,12 +103,12 @@ public sealed class StudioOcrPublicationTests {
                 Assert.False(model.RunCommand.CanExecute(null));
                 await model.ChooseOutputCommand.ExecuteAsync(null);
                 Assert.Equal(output.Name, model.OutputName);
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.Equal(0, recognized);
                 Assert.Equal(0, output.Writes);
                 Assert.False(model.HasOutput);
                 consent = true;
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
                 Assert.Equal(destination, model.PublishedPath);
                 Assert.Equal("Recognized", PdfReadDocument.Open(output.Bytes).Pages.Single().ExtractText().Trim());
@@ -117,7 +117,7 @@ public sealed class StudioOcrPublicationTests {
                 Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-completed.png");
                 byte[] saved = output.Bytes.ToArray();
                 revoke = true;
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.False(model.HasOutput);
                 Assert.Equal(saved, output.Bytes);
                 Assert.Equal(1, output.Writes);
@@ -125,7 +125,7 @@ public sealed class StudioOcrPublicationTests {
                 input.DenyRead = false;
                 revoke = false;
                 output.FailWrite = true;
-                await model.RunCommand.ExecuteAsync(null);
+                await RunThroughReviewAsync(model);
                 Assert.False(model.HasOutput);
                 Assert.True(model.HasRecovery);
                 Assert.Equal("Check output", services.Jobs.Entries[0].Status);
@@ -141,18 +141,32 @@ public sealed class StudioOcrPublicationTests {
         }, CancellationToken.None);
     }
 
-    private sealed class EngineService(IOcrEngine engine) : ISearchablePdfOcrService {
+    internal sealed class EngineService(IOcrEngine engine) : ISearchablePdfOcrService {
         public async Task<SearchablePdfOcrOutcome> MakeSearchableAsync(string inputPath, string outputPath,
             SearchablePdfOcrOptions options, CancellationToken cancellationToken) {
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
                 InputPath = inputPath, OutputPath = outputPath, Ocr = options.Pdf,
                 InputStream = options.InputStream, OutputStream = options.OutputStream,
-                PublicationGuard = options.PublicationGuard,
+                PublicationGuard = options.PublicationGuard, ReviewAsync = options.ReviewAsync,
                 ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                     ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
             }, engine, cancellationToken);
             return new(result.AddedWordCount, result.ModifiedPages, result.Provider, result);
         }
+    }
+
+    private static async Task RunThroughReviewAsync(SearchablePdfOcrViewModel model) {
+        var running = model.RunCommand.ExecuteAsync(null);
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (!running.IsCompleted && DateTime.UtcNow < deadline) {
+            if (model.Review is { } review) {
+                await review.PreviewTask;
+                Assert.True(review.CommitCommand.CanExecute(null), review.PreviewError);
+                review.CommitCommand.Execute(null);
+            }
+            await Task.WhenAny(running, Task.Delay(10));
+        }
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     private static void Capture(Window window, string name) {

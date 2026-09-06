@@ -27,6 +27,7 @@ public sealed partial class OfficeWorkflowRunner {
             var policy = request.ConflictPolicy;
             var limits = request.Limits.CloneAndValidate();
             var options = request.Ocr.Clone();
+            var reviewCallback = request.ReviewAsync;
             var password = request.PdfPassword;
             var inputStream = request.InputStream;
             var outputStream = request.OutputStream;
@@ -49,7 +50,13 @@ public sealed partial class OfficeWorkflowRunner {
             var loadOptions = CreatePdfLoadOptions(password, limits.MaximumInputBytes);
             PdfDocument source = await PdfDocument.LoadAsync(snapshot, loadOptions, cancellationToken).ConfigureAwait(false);
             options.SourceName ??= inputStream!.Name;
-            PdfSearchableOcrResult recognized = await source.MakeSearchableAsync(engine, options, cancellationToken).ConfigureAwait(false);
+            PdfSearchableOcrReview review = await source.PrepareSearchableOcrAsync(engine, options, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<PdfRecognizedWord>? selected = reviewCallback is null ? null
+                : await reviewCallback(review, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException("OCR review did not return a word selection.");
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfSearchableOcrResult recognized = reviewCallback is null ? review.ApplyAll(cancellationToken)
+                : review.Apply(selected!, cancellationToken);
             words = recognized.AddedWordCount;
             pages = recognized.ModifiedPages;
             providerName = recognized.Ocr.Pages.Select(page => page.Provider).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
