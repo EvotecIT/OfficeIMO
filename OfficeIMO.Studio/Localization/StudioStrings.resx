@@ -1614,4 +1614,16 @@
   <data name="Organizer.SplitOutputs" xml:space="preserve"><value>Verified PDF outputs</value></data>
   <data name="Organizer.SplitOpen" xml:space="preserve"><value>Open selected PDF</value></data>
   <data name="Organizer.SplitCreate" xml:space="preserve"><value>Create parts</value></data>
+  <data name="Organizer.ImportTitle" xml:space="preserve"><value>Import PDF pages</value></data>
+  <data name="Organizer.ImportHint" xml:space="preserve"><value>Choose page ranges and source order. The reviewed copies will be imported as one undoable change.</value></data>
+  <data name="Organizer.ImportSources" xml:space="preserve"><value>PDF sources in import order</value></data>
+  <data name="Organizer.ImportFixRanges" xml:space="preserve"><value>Correct the selected source page ranges.</value></data>
+  <data name="Organizer.ImportPageLimit" xml:space="preserve"><value>Select between 1 and 100,000 pages to import.</value></data>
+  <data name="Organizer.ImportEarlier" xml:space="preserve"><value>Move source earlier</value></data>
+  <data name="Organizer.ImportLater" xml:space="preserve"><value>Move source later</value></data>
+  <data name="Organizer.ImportSelectedCount" xml:space="preserve"><value>Pages to import:</value></data>
+  <data name="Organizer.ImportApply" xml:space="preserve"><value>Import pages</value></data>
+  <data name="Organizer.ImportBeforePage" xml:space="preserve"><value>Insert before current page</value></data>
+  <data name="Organizer.ImportEndHint" xml:space="preserve"><value>Use {0} to add pages at the end.</value></data>
+  <data name="Organizer.ImportRangeFor" xml:space="preserve"><value>Page range for {0}</value></data>
 </root>

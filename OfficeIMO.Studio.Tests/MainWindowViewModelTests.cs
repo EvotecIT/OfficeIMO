@@ -454,7 +454,7 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(
                 _ => Task.FromResult<string?>(null),
-                pickImportPdfs: _ => Task.FromResult<IReadOnlyList<string>>([first, second]));
+                pickImportPdfs: _ => Task.FromResult<IReadOnlyList<string>>([first, second]), reviewPageImport: _ => Task.FromResult(true));
             await viewModel.OpenDocumentAsync(target);
 
             await viewModel.ImportPagesCommand.ExecuteAsync(null);

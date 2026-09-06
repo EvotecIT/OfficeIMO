@@ -245,30 +245,6 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task ImportPagesAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !CanImportPages) return;
-        PdfWorkspace workspace = _workspace;
-        long revision = workspace.Revision;
-        int insertBefore = _organizerSelection.Count == 0
-            ? workspace.Pages.Count + 1
-            : _organizerSelection.Min();
-        IReadOnlyList<string> paths = await _pickImportPdfs(cancellationToken).ConfigureAwait(true);
-        if (paths.Count == 0 || !IsPageWorkflowCurrent(workspace, revision) || !CanImportPages) return;
-        int importedPageCount = 0;
-        bool succeeded = await RunStandaloneAsync(
-            async token => importedPageCount = await workspace
-                .ImportAsync(paths, insertBefore, token, CreateProgress())
-                .ConfigureAwait(true),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            RefreshWorkspacePresentation(Enumerable.Range(insertBefore, importedPageCount).ToArray());
-            OperationStatus = importedPageCount == 1
-                ? UiText("Workspace.ImportedOnePage")
-                : UiFormat("Workspace.ImportedPages", importedPageCount, paths.Count);
-        }
-    }
-
-    [RelayCommand]
     private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || !CanExtractPages || pages.Length == 0) return;

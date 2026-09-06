@@ -15,49 +15,12 @@ internal sealed partial class PdfWorkspace {
         int insertBeforePageNumber,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        ThrowIfDisposed();
-        if (!CanImportPages) throw new InvalidOperationException("This document cannot safely import pages.");
-        if (sourcePaths is null || sourcePaths.Count == 0) {
-            throw new ArgumentException("Choose at least one PDF to import.", nameof(sourcePaths));
-        }
-
-        string[] sources = sourcePaths.Select(ValidateSourcePdfPath).ToArray();
-        var snapshots = new List<byte[]>(sources.Length);
-        long remainingBytes = OfficeIMO.Studio.Infrastructure.StudioStorageAccess.MaximumDocumentBytes;
-        foreach (string source in sources) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (remainingBytes == 0) throw new IOException("The selected PDFs exceed the 512 MiB import limit. Import fewer documents at a time.");
-            var snapshot = await _storage.ReadSnapshotAsync(source, cancellationToken, remainingBytes).ConfigureAwait(false);
-            snapshots.Add(snapshot.Bytes);
-            remainingBytes -= snapshot.Bytes.LongLength;
-        }
-        int importedPageCount = 0;
-        string description = sources.Length == 1
-            ? $"Imported pages from {_storage.Describe(sources[0]).Name}"
-            : $"Imported pages from {sources.Length} PDF documents";
-
-        await MutateAsync(
-            PdfWorkspaceOperationKind.Import,
-            description,
-            Array.Empty<int>(),
-            document => {
-                int insertionPage = insertBeforePageNumber;
-                foreach (byte[] sourceBytes in snapshots) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    PdfDocument source = PdfDocument.Load(sourceBytes);
-                    int sourcePageCount = source.Inspect().PageCount;
-                    document = document.Pages.Insert(insertionPage, source);
-                    insertionPage += sourcePageCount;
-                    importedPageCount += sourcePageCount;
-                }
-                return document;
-            },
-            cancellationToken,
-            progress).ConfigureAwait(false);
-
-        return importedPageCount;
+        var preparation = await PrepareImportAsync(sourcePaths, cancellationToken).ConfigureAwait(false)
+            ?? throw new OperationCanceledException(cancellationToken);
+        var selections = preparation.Sources.Select((source, index) =>
+            new PdfImportSelection(index, Enumerable.Range(1, source.PageCount).ToArray())).ToArray();
+        return await ApplyImportAsync(preparation, selections, insertBeforePageNumber, cancellationToken, progress).ConfigureAwait(false);
     }
-
     internal async Task ExtractAsync(
         IReadOnlyList<int> pageNumbers,
         string outputPath,

@@ -28,7 +28,7 @@ public sealed class StudioPageWorkflowIntakeTests {
                 pickOutputFolder: _ => {
                     model!.SplitPagesPerDocument = 1;
                     return Task.FromResult<string?>(folder);
-                }, reviewPageSplit: _ => Task.FromResult(true))) {
+                }, reviewPageSplit: _ => Task.FromResult(true), reviewPageImport: _ => Task.FromResult(true))) {
                 await model.OpenDocumentAsync(source);
                 model.SelectAllPagesCommand.Execute(null);
                 model.SplitPagesPerDocument = 2;
