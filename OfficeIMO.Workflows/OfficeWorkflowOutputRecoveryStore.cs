@@ -138,8 +138,10 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
                 // Recheck under the lease before deleting anything, including an empty directory.
                 entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
                 if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
+                string[] claims = entries.Where(IsCommitClaim).ToArray();
+                if (claims.Any(path => !OfficeFileCommit.TryDeleteAbandonedClaim(path))) continue;
                 foreach (string path in entries) {
-                    if (Path.GetFileName(path) != ".lease") File.Delete(path);
+                    if (Path.GetFileName(path) != ".lease" && !claims.Contains(path, StringComparer.Ordinal)) File.Delete(path);
                 }
             }
             File.Delete(Path.Combine(directory, ".lease"));
@@ -151,10 +153,17 @@ public sealed class OfficeWorkflowOutputRecoveryStore {
         if ((File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0) return false;
         string name = Path.GetFileName(path);
         if (name == ".lease" || Extensions.Any(extension => name == "output" + extension)) return true;
+        if (IsCommitClaim(path)) return true;
         const string temporaryPrefix = ".officeimo-";
         const string temporarySuffix = ".tmp";
         return name.StartsWith(temporaryPrefix, StringComparison.Ordinal) && name.EndsWith(temporarySuffix, StringComparison.Ordinal) &&
             Guid.TryParseExact(name[temporaryPrefix.Length..^temporarySuffix.Length], "N", out _);
+    }
+
+    private static bool IsCommitClaim(string path) {
+        string directory = Path.GetDirectoryName(path)!;
+        return Extensions.Select(extension => "output" + extension).Append("record.json")
+            .Any(name => string.Equals(path, OfficeFileCommit.CreateClaimPath(Path.Combine(directory, name)), StringComparison.Ordinal));
     }
 
     private OfficeWorkflowOutputRecovery? ReadRecord(string directory) {

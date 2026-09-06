@@ -665,7 +665,8 @@ namespace OfficeIMO.Core.Internal {
             (exception is IOException || exception is UnauthorizedAccessException) &&
             File.Exists(claimPath);
 
-        private static bool TryDeleteAbandonedClaim(string claimPath) {
+        /// <summary>Removes an abandoned commit claim only when no live committer holds it.</summary>
+        internal static bool TryDeleteAbandonedClaim(string claimPath) {
             try {
                 // A live committer holds the claim with FileShare.None, so this open
                 // succeeds only after that owner exits or crashes.
@@ -688,7 +689,8 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
-        private static string CreateClaimPath(string targetPath) {
+        /// <summary>Gets the exact coordination-file path used when committing a destination.</summary>
+        internal static string CreateClaimPath(string targetPath) {
             string? directory = Path.GetDirectoryName(targetPath);
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
             string legacyClaimName = "." + Path.GetFileName(targetPath) + ".officeimo-commit";

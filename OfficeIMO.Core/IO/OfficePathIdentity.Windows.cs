@@ -7,7 +7,7 @@ using System.Text;
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
         private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize) {
-            SafeFileHandle handle = CreateFile(path, GenericRead, FileShare.Read,
+            SafeFileHandle handle = CreateFile(WindowsApiPath(path), GenericRead, FileShare.Read,
                 IntPtr.Zero, OpenExisting, FileFlagOpenReparsePoint | FileFlagSequentialScan, IntPtr.Zero);
             if (handle.IsInvalid) {
                 handle.Dispose();
@@ -30,7 +30,7 @@ namespace OfficeIMO.Internal {
         }
 
         private static SafeFileHandle OpenWindowsDirectoryForIdentity(string path) {
-            SafeFileHandle handle = CreateFile(path, 0,
+            SafeFileHandle handle = CreateFile(WindowsApiPath(path), 0,
                 FileShare.Read | FileShare.Write | FileShare.Delete,
                 IntPtr.Zero, OpenExisting,
                 FileFlagBackupSemantics | FileFlagOpenReparsePoint, IntPtr.Zero);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Internal {
         }
 
         private static bool HasWindowsReparsePoint(string path) {
-            uint attributes = GetFileAttributes(path);
+            uint attributes = GetFileAttributes(WindowsApiPath(path));
             if (attributes != InvalidFileAttributes) return (attributes & FileAttributeReparsePoint) != 0;
             int error = Marshal.GetLastWin32Error();
             if (error == ErrorFileNotFound || error == ErrorPathNotFound) return false;
@@ -174,8 +174,18 @@ namespace OfficeIMO.Internal {
         }
 
         private static SafeFileHandle OpenWindowsPathHandle(string path) => CreateFile(
-            path, 0, FileShare.Read | FileShare.Write | FileShare.Delete,
+            WindowsApiPath(path), 0, FileShare.Read | FileShare.Write | FileShare.Delete,
             IntPtr.Zero, OpenExisting, FileFlagBackupSemantics, IntPtr.Zero);
+
+        // Native calls need an extended path independently of the host executable's manifest.
+        // Preserve ordinary short-path behavior and already qualified device paths.
+        private static string WindowsApiPath(string path) {
+            string fullPath = Path.GetFullPath(path);
+            if (fullPath.Length < 248 || fullPath.StartsWith(@"\\?\", StringComparison.Ordinal) ||
+                fullPath.StartsWith(@"\\.\", StringComparison.Ordinal)) return fullPath;
+            return fullPath.StartsWith(@"\\", StringComparison.Ordinal)
+                ? @"\\?\UNC\" + fullPath.Substring(2) : @"\\?\" + fullPath;
+        }
 
         private static string GetWindowsFinalPath(SafeFileHandle handle) {
             var buffer = new StringBuilder(1024);

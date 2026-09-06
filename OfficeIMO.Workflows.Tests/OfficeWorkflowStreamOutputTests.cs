@@ -84,15 +84,25 @@ public sealed class OfficeWorkflowStreamOutputTests {
         Assert.Equal(1, PdfDocument.Load(outputBytes).Inspect().PageCount);
     }
 
-    [Fact]
-    public async Task InterruptedPrePublicationArtifactDoesNotPermanentlyConsumeCapacity() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InterruptedPrePublicationArtifactDoesNotPermanentlyConsumeCapacity(bool longPath) {
         using var root = new Scope();
-        string directory = Path.Combine(root.Path, "recovery");
+        string directory = Path.Combine(root.Path, longPath ? new string('a', 160) : "recovery");
         string abandoned = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(abandoned);
         File.WriteAllBytes(Path.Combine(abandoned, "output.pdf"), new byte[8000]);
         File.WriteAllBytes(Path.Combine(abandoned, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp"), new byte[1000]);
         File.WriteAllBytes(Path.Combine(abandoned, ".lease"), []);
+        foreach (string target in new[] { "output.pdf", "record.json" }) {
+            // Use the actual writer's claim path, including its long-path fallback.
+            string claim = (string)System.Reflection.Assembly.Load("OfficeIMO.Core")
+                .GetType("OfficeIMO.Core.Internal.OfficeFileCommit")!
+                .GetMethod("CreateClaimPath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, [Path.Combine(abandoned, target)])!;
+            File.WriteAllBytes(claim, []);
+        }
         var store = new OfficeWorkflowOutputRecoveryStore(directory, 12000);
         Assert.Empty(store.GetRecoveries());
         using var lease = await store.CreateAsync(new byte[8000], "content://provider/selected", "selected.pdf", default);
@@ -104,6 +114,8 @@ public sealed class OfficeWorkflowStreamOutputTests {
     [InlineData("record.json")]
     [InlineData("unknown.bin")]
     [InlineData(".officeimo-not-a-guid.tmp")]
+    [InlineData(".unrelated.pdf.officeimo-commit")]
+    [InlineData(".officeimo-0123456789abcdef01234567.commit")]
     public async Task AdmissionPreservesUnrecognizedAndFutureRecords(string filename) {
         using var root = new Scope();
         string directory = Path.Combine(root.Path, "recovery");
@@ -129,6 +141,22 @@ public sealed class OfficeWorkflowStreamOutputTests {
         var store = new OfficeWorkflowOutputRecoveryStore(directory);
         using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
+    }
+
+    [Fact]
+    public async Task AdmissionPreservesAnIncompleteRecordWithAnActiveCommitClaim() {
+        using var root = new Scope();
+        string directory = Path.Combine(root.Path, "recovery");
+        string active = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(active);
+        string artifact = Path.Combine(active, "output.pdf");
+        File.WriteAllBytes(artifact, [1, 2, 3]);
+        string claim = Path.Combine(active, ".output.pdf.officeimo-commit");
+        using var activeClaim = new FileStream(claim, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+        var store = new OfficeWorkflowOutputRecoveryStore(directory);
+        using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
+        Assert.True(File.Exists(claim));
     }
 
     [Theory]
