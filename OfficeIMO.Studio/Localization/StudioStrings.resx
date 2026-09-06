@@ -1499,4 +1499,26 @@
   <data name="Health.Output.ProviderFolderRequired" xml:space="preserve"><value>Choose an output folder before processing provider documents.</value></data>
   <data name="Dialog.ProviderFolderDescription" xml:space="preserve"><value>Studio will write files directly into this folder and replace files with matching names. Each file is verified after saving. If a later file fails or you cancel, files already saved remain in the folder. An interrupted write can leave an incomplete file; the folder cannot be rolled back.</value></data>
   <data name="Jobs.RecoveryCopies" xml:space="preserve"><value>Recovery copies</value></data>
+  <data name="Comments.Title" xml:space="preserve"><value>Comment threads</value></data>
+  <data name="Comments.All" xml:space="preserve"><value>All states</value></data>
+  <data name="Comments.Unresolved" xml:space="preserve"><value>Unresolved</value></data>
+  <data name="Comments.Resolved" xml:space="preserve"><value>Resolved</value></data>
+  <data name="Comments.AuthorFilter" xml:space="preserve"><value>Filter by author</value></data>
+  <data name="Comments.StatusFilter" xml:space="preserve"><value>Filter by review state</value></data>
+  <data name="Comments.NextUnresolved" xml:space="preserve"><value>Next unresolved</value></data>
+  <data name="Comments.Empty" xml:space="preserve"><value>No comment threads match these filters.</value></data>
+  <data name="Comments.Choose" xml:space="preserve"><value>Choose a comment</value></data>
+  <data name="Comments.Orphan" xml:space="preserve"><value>The original parent of this reply is unavailable.</value></data>
+  <data name="Comments.Resolve" xml:space="preserve"><value>Resolve</value></data>
+  <data name="Comments.Reopen" xml:space="preserve"><value>Reopen</value></data>
+  <data name="Comments.UnknownAuthor" xml:space="preserve"><value>Unknown author</value></data>
+  <data name="Comments.ThreadLabel" xml:space="preserve"><value>Page {0} · {1}: {2}</value></data>
+  <data name="Comments.ReplyDepth" xml:space="preserve"><value>Reply level {0}</value></data>
+  <data name="Comments.State.None" xml:space="preserve"><value>Unresolved</value></data>
+  <data name="Comments.State.Completed" xml:space="preserve"><value>Resolved</value></data>
+  <data name="Comments.State.Accepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="Comments.State.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Comments.State.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Comments.State.Marked" xml:space="preserve"><value>Marked</value></data>
+  <data name="Comments.State.Unmarked" xml:space="preserve"><value>Unmarked</value></data>
 </root>

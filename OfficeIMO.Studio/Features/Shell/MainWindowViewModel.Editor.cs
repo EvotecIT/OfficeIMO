@@ -513,10 +513,10 @@ public sealed partial class MainWindowViewModel {
         string reply = AnnotationReplyText;
         PdfColor color = ParseColor(EditorColorHex);
         ClearObjectSelection();
-        await RunMutationAsync(
+        bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
-        AnnotationReplyText = string.Empty;
+        if (succeeded && AnnotationReplyText == reply) AnnotationReplyText = string.Empty;
     }
 
     [RelayCommand]

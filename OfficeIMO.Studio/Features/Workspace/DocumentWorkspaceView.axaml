@@ -5,6 +5,7 @@
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             xmlns:comments="using:OfficeIMO.Studio.Features.Comments"
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Background="{DynamicResource StudioCanvasBrush}">
@@ -298,6 +299,7 @@
               </StackPanel>
 
               <StackPanel IsVisible="{Binding IsAnnotateDocumentMode}" Spacing="8">
+                <comments:CommentsView />
                 <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="8">
                   <TextBlock Text="{Binding SelectedEditorToolChoice.Label}" FontSize="15" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding EditorInstruction}" Classes="muted" TextWrapping="Wrap" FontSize="12" />

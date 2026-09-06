@@ -51,6 +51,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             FallbackImageProperty,
             EditorToolProperty,
             SelectedObjectProperty,
+            CommentAnchorObjectNumberProperty,
             SelectionModeProperty,
             PendingRedactionAreaProperty);
     }
@@ -123,6 +124,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
+        DrawCommentAnchor(context);
         DrawPendingRedaction(context);
         DrawEditorPreview(context);
     }
@@ -138,6 +140,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
+        if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
         if (change.Property == EditorToolProperty) {
             Cursor = EditorTool == PdfEditorTool.Select ? _textCursor : _crossCursor;
             ResetPointerState();

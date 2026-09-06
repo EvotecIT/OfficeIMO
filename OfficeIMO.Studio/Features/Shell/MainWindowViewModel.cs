@@ -54,6 +54,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(CanReviewComment))]
+    [NotifyPropertyChangedFor(nameof(CanReplyToComment))]
+    [NotifyPropertyChangedFor(nameof(CanResolveComment))]
+    [NotifyPropertyChangedFor(nameof(CanReopenComment))]
+    [NotifyCanExecuteChangedFor(nameof(ReplyToCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResolveCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ReopenCommentCommand))]
     private bool _isOpening;
 
     [ObservableProperty]
@@ -593,6 +600,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 _localizer.Get(session.Pages.Count == 1 ? "Document.Page" : "Document.Pages"),
                 FormatByteSize(session.FileSize));
         SelectedPage = Pages.FirstOrDefault();
+        RefreshCommentThreads(isDocumentTransition);
         OnPropertyChanged(nameof(SelectedPagePosition));
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));

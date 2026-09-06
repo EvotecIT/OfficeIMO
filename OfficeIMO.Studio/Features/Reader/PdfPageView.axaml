@@ -19,6 +19,7 @@
                               Scene="{Binding Scene}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
+                              CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
                               SelectionMode="{Binding SelectionMode}"
                               PendingRedactionArea="{Binding PendingRedactionArea}"
                               FallbackImage="{Binding PageImage}"

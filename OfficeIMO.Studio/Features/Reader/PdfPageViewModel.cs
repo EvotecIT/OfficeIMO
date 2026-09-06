@@ -59,6 +59,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorSelection? _selectedObject;
 
     [ObservableProperty]
+    private int? _commentAnchorObjectNumber;
+
+    [ObservableProperty]
     private PdfEditorSelectionMode _selectionMode;
 
     [ObservableProperty]

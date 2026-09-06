@@ -20,6 +20,13 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartDocumentTransition))]
     [NotifyPropertyChangedFor(nameof(CanCancelOperation))]
+    [NotifyPropertyChangedFor(nameof(CanReviewComment))]
+    [NotifyPropertyChangedFor(nameof(CanReplyToComment))]
+    [NotifyPropertyChangedFor(nameof(CanResolveComment))]
+    [NotifyPropertyChangedFor(nameof(CanReopenComment))]
+    [NotifyCanExecuteChangedFor(nameof(ReplyToCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResolveCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ReopenCommentCommand))]
     private bool _isWorkspaceBusy;
 
     [ObservableProperty]
@@ -474,6 +481,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        NotifyCommentActions();
         OnPropertyChanged(nameof(IsDirty));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
