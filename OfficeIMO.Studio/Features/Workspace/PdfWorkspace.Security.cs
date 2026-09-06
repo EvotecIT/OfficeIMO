@@ -137,16 +137,17 @@ internal sealed partial class PdfWorkspace {
 
     private string ValidateExportDestination(string destinationPath) {
         if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Choose an output PDF.", nameof(destinationPath));
-        string destination = System.IO.Path.GetFullPath(destinationPath);
-        if (OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(destination, Path)) {
+        string destination = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(destinationPath);
+        if (OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(destination, Path)) {
             throw new InvalidOperationException("Choose a different output path so the open document remains unchanged.");
         }
         return destination;
     }
 
     private async Task WriteOutputAsync(string destination, byte[] bytes, CancellationToken cancellationToken) {
-        string? directory = System.IO.Path.GetDirectoryName(destination);
-        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) {
+        string? localPath = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination);
+        string? directory = localPath is null ? null : System.IO.Path.GetDirectoryName(localPath);
+        if (localPath is not null && (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))) {
             throw new DirectoryNotFoundException("The output folder does not exist.");
         }
         await WriteWorkspaceOutputAsync(destination,

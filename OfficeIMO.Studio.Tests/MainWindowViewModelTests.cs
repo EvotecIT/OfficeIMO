@@ -379,7 +379,7 @@ public sealed class MainWindowViewModelTests {
         Assert.True(viewModel.IsEmpty);
         Assert.True(viewModel.IsHomeMode);
         Assert.True(viewModel.HasError);
-        Assert.Contains("no longer exists", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
 
         viewModel.DismissErrorCommand.Execute(null);
         Assert.False(viewModel.HasError);

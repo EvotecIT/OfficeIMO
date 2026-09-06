@@ -56,7 +56,7 @@ internal sealed partial class PdfWorkspace {
         IProgress<PdfWorkspaceProgress>? progress = null) {
         ThrowIfDisposed();
         if (!CanExtractPages) throw new InvalidOperationException("This document cannot safely extract pages.");
-        string destination = System.IO.Path.GetFullPath(outputPath);
+        string destination = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(outputPath);
         if (PathsEqual(destination, Path)) {
             throw new InvalidOperationException("Extracted pages must be saved to a different file than the open document.");
         }
@@ -199,5 +199,5 @@ internal sealed partial class PdfWorkspace {
         }
     }
 
-    private static bool PathsEqual(string left, string right) => OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(left, right);
+    private static bool PathsEqual(string left, string right) => OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(left, right);
 }

@@ -133,7 +133,7 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null) return;
         string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
-        string fullPath = Path.GetFullPath(path);
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         if (!_canSaveAsPath(fullPath)) {
             OperationStatus = UiText("Workspace.SaveAsAlreadyOpen");
             return;
@@ -335,8 +335,11 @@ public sealed partial class MainWindowViewModel {
 
     private async Task<bool> RunSaveAsync(string? path, CancellationToken cancellationToken) {
         if (_workspace is null) return false;
+        PdfWorkspace workspace = _workspace;
+        if (path is null && workspace.UsesProviderPublication() && !await _confirmProviderWrite(workspace.Path)) return false;
+        if (!ReferenceEquals(workspace, _workspace) || _disposed) return false;
         bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveAsync(path, token, CreateProgress()),
+            token => workspace.SaveAsync(path, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
         if (succeeded) NotifyWorkspaceStateChanged();
         return succeeded;

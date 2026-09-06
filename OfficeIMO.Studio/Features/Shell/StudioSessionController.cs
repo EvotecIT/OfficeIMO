@@ -6,6 +6,8 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Pdf;
+using OfficeIMO.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
@@ -15,7 +17,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 
 internal sealed partial class StudioSessionItem(StudioSessionDocument document) : ObservableObject {
     internal StudioSessionDocument Document { get; } = document;
-    public string Name => Path.GetFileName(Document.Path);
+    public string Name => Document.Storage?.Name ?? OfficeStorageIdentity.GetFileName(Document.Path);
     public string SourcePath => Document.Path;
     [ObservableProperty] private string _status = string.Empty;
     [ObservableProperty] private bool _sourceUnchanged;
@@ -51,7 +53,10 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         _recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         StudioSessionSnapshot previous = services.Preferences.Current.RememberSession ? _store.Load() : new(1, DateTimeOffset.UtcNow, null, []);
         _previousActivePath = previous.ActivePath;
-        foreach (var document in previous.Documents) Pending.Add(new(document));
+        foreach (var document in previous.Documents) {
+            if (document.Storage is { } reference) services.Storage.Remember(reference);
+            Pending.Add(new(document));
+        }
         _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); Flush(); };
         _host.Tabs.CollectionChanged += OnTabsChanged;
@@ -93,13 +98,15 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
             item.HasRecovery = _recovery.Find(item.SourcePath, item.Document.Fingerprint) is not null;
             try {
                 item.SourceUnchanged = false;
-                item.SourceExists = File.Exists(item.SourcePath);
-                if (item.SourceExists) {
-                    await using var stream = File.OpenRead(item.SourcePath);
-                    string fingerprint = Convert.ToHexString(await SHA256.HashDataAsync(stream, token));
-                    item.SourceUnchanged = string.Equals(fingerprint, item.Document.Fingerprint, StringComparison.OrdinalIgnoreCase);
-                }
+                item.SourceExists = false;
+                string fingerprint = await _services.Storage.FingerprintAsync(item.SourcePath, token);
+                item.SourceExists = true;
+                item.SourceUnchanged = string.Equals(fingerprint, item.Document.Fingerprint, StringComparison.OrdinalIgnoreCase);
                 item.Status = Text(item.SourceUnchanged ? "Ready" : item.SourceExists ? "Changed" : "Missing");
+            } catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) {
+                item.SourceUnchanged = false;
+                item.SourceExists = false;
+                item.Status = Text("Missing");
             } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                 item.SourceUnchanged = false;
                 item.Status = Text("Unavailable");
@@ -165,16 +172,28 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
             string? selected = await _pickCopy(cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
             if (_disposed || string.IsNullOrWhiteSpace(selected)) return;
-            string destination = Path.GetFullPath(selected);
+            string destination = OfficeStorageIdentity.Normalize(selected);
             if (File.Exists(destination) || PathsEqual(destination, item.SourcePath) || !_host.CanPublishPath(destination)) {
                 Error = Text("NewCopyRequired");
                 return;
             }
-            staging = Path.Combine(Path.GetDirectoryName(destination)!, ".recovered-" + Guid.NewGuid().ToString("N") + ".pdf");
             byte[] recovered = _recovery.ReadVerifiedSnapshot(item.SourcePath, item.Document.Fingerprint) ?? throw new IOException();
-            PdfDocument.Load(recovered).Save(staging);
-            cancellation.Token.ThrowIfCancellationRequested();
-            File.Move(staging, destination, overwrite: false);
+            if (_services.Storage.UsesProviderPublication(destination)) {
+                using var serialized = new OfficeBoundedMemoryStream(StudioStorageAccess.MaximumDocumentBytes);
+                await PdfDocument.Load(recovered).SaveAsync(serialized, cancellation.Token);
+                await _services.Storage.PublishAsync(destination, serialized.ToArray(), null, token => {
+                    token.ThrowIfCancellationRequested();
+                    if (_disposed || !_host.CanPublishPath(destination) || PathsEqual(destination, item.SourcePath)) {
+                        throw new IOException("Choose a different recovery destination.");
+                    }
+                    return Task.CompletedTask;
+                }, cancellation.Token);
+            } else {
+                staging = Path.Combine(Path.GetDirectoryName(destination)!, ".recovered-" + Guid.NewGuid().ToString("N") + ".pdf");
+                PdfDocument.Load(recovered).Save(staging);
+                cancellation.Token.ThrowIfCancellationRequested();
+                File.Move(staging, destination, overwrite: false);
+            }
             await _host.OpenDocumentAsync(destination, cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
             var opened = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, destination));
@@ -248,7 +267,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     }
     private string Text(string key) => _services.Localizer.Get("Session." + key);
     private static bool PathsEqual(string? first, string? second) => first is not null && second is not null &&
-        string.Equals(first, second, MainWindowViewModel.RecentDocumentPathComparison);
+        OfficeStorageIdentity.GetPersistenceKey(first) == OfficeStorageIdentity.GetPersistenceKey(second);
 
     public void Dispose() {
         if (_disposed) return;

@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
@@ -192,18 +193,18 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         }
     }
 
-    private static string Canonicalize(string sourcePath) => Path.GetFullPath(sourcePath);
+    private static string Canonicalize(string sourcePath) => OfficeStorageIdentity.Normalize(sourcePath);
 
     private static string CreateKey(string canonicalPath) {
-        string identity = OperatingSystem.IsWindows() ? canonicalPath.ToUpperInvariant() : canonicalPath;
+        string identity = OfficeStorageIdentity.GetPersistenceKey(canonicalPath);
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(identity));
         return Convert.ToHexString(hash.AsSpan(0, 16)).ToLowerInvariant();
     }
 
     private static bool PathsEqual(string left, string right) => string.Equals(
-        Canonicalize(left),
-        Canonicalize(right),
-        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+        OfficeStorageIdentity.GetPersistenceKey(left),
+        OfficeStorageIdentity.GetPersistenceKey(right),
+        StringComparison.Ordinal);
 
     private static void TryDelete(string path) {
         try {

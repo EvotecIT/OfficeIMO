@@ -43,6 +43,8 @@ internal sealed class StudioApplicationServices {
 
     internal StudioJobHistory Jobs { get; }
 
+    internal StudioStorageAccess Storage { get; } = new();
+
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 
     internal static StudioApplicationServices Create(StudioDataPaths paths) {

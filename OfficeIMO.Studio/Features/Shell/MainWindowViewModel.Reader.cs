@@ -121,9 +121,9 @@ public sealed partial class MainWindowViewModel {
         if (!HasDocument || IsWorkspaceBusy || IsOpening) return;
         string? path = await _pickPdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
-        string fullPath = Path.GetFullPath(path);
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         try {
-            if (DocumentPath is not null && OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(fullPath, DocumentPath)) {
+            if (DocumentPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(fullPath, DocumentPath)) {
                 OperationStatus = UiText("Reader.ComparisonSameDocument");
                 return;
             }

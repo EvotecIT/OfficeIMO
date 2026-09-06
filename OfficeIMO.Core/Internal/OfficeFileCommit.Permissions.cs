@@ -2,6 +2,17 @@ using System;
 
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeFileCommit {
+        /// <summary>Writes complete bytes with an explicit destination permission policy.</summary>
+        public static void WriteAllBytes(string targetPath, byte[] bytes, UnixFileAccessPolicy accessPolicy,
+            ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+            string temporary = StageAllBytes(targetPath, bytes);
+            try {
+                CommitTemporaryFileAtomically(temporary, targetPath, conflictPolicy, accessPolicy);
+            } finally {
+                DeleteIfExists(temporary);
+            }
+        }
+
         /// <summary>Controls Unix access permissions on an atomically published file.</summary>
         public enum UnixFileAccessPolicy {
             /// <summary>Preserves an existing destination's mode, or uses normal creation permissions.</summary>

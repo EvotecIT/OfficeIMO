@@ -20,6 +20,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
+    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
@@ -93,7 +94,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ISearchablePdfOcrService? ocrService = null,
         StudioApplicationServices? services = null,
         Func<string, bool>? canPublishPath = null,
-        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        Func<string, Task<bool>>? confirmProviderWrite = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -111,6 +113,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
+        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _publicationGuard = publicationGuard;
         _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
@@ -346,7 +349,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         while (true) {
             try {
                 return await PdfWorkspace.OpenAsync(path, cancellationToken,
-                    recoveryStore: _services.Recovery, password: password,
+                    recoveryStore: _services.Recovery, password: password, storage: _services.Storage,
                     canPublishOutput: _publicationGuard is null ? null : (destination, token) => _publicationGuard.CanPublishAsync(destination, false, token)).ConfigureAwait(true);
             } catch (PdfPasswordRequiredException) {
                 invalidPassword = false;
@@ -355,7 +358,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             }
 
             password = await _promptPdfPassword(
-                System.IO.Path.GetFileName(path),
+                _services.Storage.Describe(path).Name,
                 invalidPassword,
                 cancellationToken).ConfigureAwait(true);
             if (password is null) return null;
@@ -394,7 +397,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     [RelayCommand]
     private async Task OpenRecentAsync(RecentDocumentViewModel? document, CancellationToken cancellationToken) {
         if (document is null) return;
-        if (!File.Exists(document.Path)) {
+        if (document.StorageReference is { } reference) _services.Storage.Remember(reference);
+        if (document.StorageReference?.Bookmark is null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(document.Path) is not null && !File.Exists(document.Path)) {
             RecentDocuments.Remove(document);
             _recentDocumentStore?.Save(RecentDocuments);
             OnPropertyChanged(nameof(HasRecentDocuments));
@@ -649,11 +653,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     private void RecordRecentDocument(string path) {
         if (!_services.DocumentHistory.RememberHistory) return;
-        string fullPath = Path.GetFullPath(path);
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
-            string.Equals(document.Path, fullPath, RecentDocumentPathComparison));
+            OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
         if (existing is not null) RecentDocuments.Remove(existing);
-        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow));
+        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) { StorageReference = _services.Storage.Describe(fullPath) });
         while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
         _recentDocumentStore?.Save(RecentDocuments);
         OnPropertyChanged(nameof(HasRecentDocuments));

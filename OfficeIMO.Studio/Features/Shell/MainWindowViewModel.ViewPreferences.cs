@@ -23,7 +23,7 @@ public sealed partial class MainWindowViewModel {
     internal StudioSessionDocument? CaptureSessionDocument() {
         if (_workspace is null) return null;
         CaptureDocumentViewState();
-        return new(_workspace.Path, _workspace.BaseFingerprint, _documentViewState);
+        return new(_workspace.Path, _workspace.BaseFingerprint, _documentViewState) { Storage = _services.Storage.Describe(_workspace.Path) };
     }
 
     public IReadOnlyList<StudioCommandItem> DocumentModeCommands =>

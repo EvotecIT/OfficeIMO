@@ -66,7 +66,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         if (string.IsNullOrWhiteSpace(path)) return false;
         try {
             return Tabs.All(tab => tab.Document.DocumentPath is not { Length: > 0 } source ||
-                !OfficePathIdentity.IsSameOrDescendant(source, path));
+                (OfficeStorageIdentity.GetLocalPath(source) is null || !OfficePathIdentity.IsSameOrDescendant(source, path)));
         } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
             return false;
         }
@@ -75,7 +75,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;
         try {
-            string fullPath = Path.GetFullPath(path);
+            string fullPath = OfficeStorageIdentity.Normalize(path);
             return Tabs.All(tab => ReferenceEquals(tab.Document, document) ||
                 !DocumentOwnsPath(tab.Document, fullPath));
         } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
@@ -91,7 +91,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         string fullPath;
         StudioDocumentTabViewModel? existing;
         try {
-            fullPath = Path.GetFullPath(path);
+            fullPath = OfficeStorageIdentity.Normalize(path);
             existing = Tabs.FirstOrDefault(tab =>
                 DocumentOwnsPath(tab.Document, fullPath));
         } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
@@ -144,7 +144,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException;
 
     private static bool DocumentOwnsPath(MainWindowViewModel document, string path) =>
-        document.DocumentPath is { Length: > 0 } source && OfficePathIdentity.AreEquivalent(source, path);
+        document.DocumentPath is { Length: > 0 } source && OfficeStorageIdentity.AreEquivalent(source, path);
 
     internal async Task CloseTabAsync(StudioDocumentTabViewModel tab) {
         if (_disposed || !Tabs.Contains(tab)) return;

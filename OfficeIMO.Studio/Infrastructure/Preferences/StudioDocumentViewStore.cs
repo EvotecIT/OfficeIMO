@@ -57,8 +57,7 @@ internal sealed class StudioDocumentViewStore {
     }
 
     private static string Key(string path) {
-        string normalized = Path.GetFullPath(path);
-        if (OperatingSystem.IsWindows()) normalized = normalized.ToUpperInvariant();
+        string normalized = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(path);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
     }
 

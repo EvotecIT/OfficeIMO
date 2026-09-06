@@ -13,11 +13,13 @@ internal sealed class PdfDocumentSession {
 
     private PdfDocumentSession(
         string path,
+        string fileName,
         long fileSize,
         PdfDocument document,
         PdfDocumentInfo documentInfo,
         PdfDocumentReadResult semanticDocument) {
         Path = path;
+        FileName = fileName;
         FileSize = fileSize;
         _document = document;
         DocumentInfo = documentInfo;
@@ -26,7 +28,7 @@ internal sealed class PdfDocumentSession {
 
     internal string Path { get; }
 
-    internal string FileName => System.IO.Path.GetFileName(Path);
+    internal string FileName { get; }
 
     internal long FileSize { get; }
 
@@ -70,6 +72,7 @@ internal sealed class PdfDocumentSession {
         PdfDocument document = workspace.CreateDocumentSnapshot();
         return new PdfDocumentSession(
             workspace.Path,
+            workspace.FileName,
             workspace.FileSize,
             document,
             workspace.DocumentInfo,
@@ -135,7 +138,7 @@ internal sealed class PdfDocumentSession {
             .ConfigureAwait(false);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfDocumentSession(fullPath, file.Length, document, documentInfo, semanticDocument);
+        return new PdfDocumentSession(fullPath, file.Name, file.Length, document, documentInfo, semanticDocument);
     }
 
     internal async Task<PdfRenderedPage> RenderPageAsync(

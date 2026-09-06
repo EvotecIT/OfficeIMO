@@ -34,10 +34,11 @@ public sealed partial class MainWindow : Window {
 
     internal MainWindow(StudioApplicationServices services) {
         _services = services ?? throw new ArgumentNullException(nameof(services));
+        _services.Storage.Attach(() => StorageProvider);
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
             document => ConfirmActiveCloseAsync([document]));
         ViewModel = TabHost.ActiveDocument;
-        _session = new StudioSessionController(TabHost, _services, PickSavePdfAsync);
+        _session = new StudioSessionController(TabHost, _services, token => PickFileSafelyAsync(PickSavePdfAsync, token));
         ViewModel.Session = _session;
         InitializeComponent();
         DocumentTabs.DataContext = TabHost;
@@ -74,7 +75,7 @@ public sealed partial class MainWindow : Window {
         OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => { _windowClosed = true; _session.Dispose(); TabHost.Dispose(); };
+        Closed += (_, _) => { _windowClosed = true; _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
     }
 
     public StudioDocumentTabHost TabHost { get; }
@@ -84,12 +85,13 @@ public sealed partial class MainWindow : Window {
     private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) {
         MainWindowViewModel? document = null;
         document = new(
-            pickPdf: PickPdfAsync,
-            pickSavePdf: PickSavePdfAsync,
+            pickPdf: token => PickFileSafelyAsync(PickPdfAsync, token),
+            pickSavePdf: token => PickFileSafelyAsync(PickSavePdfAsync, token),
             pickImportPdfs: PickPdfsAsync,
             pickOutputFolder: PickOutputFolderAsync,
             openUri: OpenUriAsync,
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
+            confirmProviderWrite: ConfirmProviderWriteAsync,
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: PickWorkflowFilesAsync,
@@ -330,6 +332,14 @@ public sealed partial class MainWindow : Window {
         await TabHost.OpenDocumentAsync(_initialDocumentPath);
     }
 
+    private async Task<string?> PickFileSafelyAsync(Func<CancellationToken, Task<string?>> picker, CancellationToken token) {
+        try { return await picker(token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return null; }
+        catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            return null;
+        }
+    }
     private async Task<string?> PickPdfAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
@@ -345,8 +355,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterSingleAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<IReadOnlyList<string>> PickPdfsAsync(CancellationToken cancellationToken) {
@@ -456,10 +465,13 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return file?.Path.LocalPath;
+        string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
+        return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
     }
 
+    private Task<bool> ConfirmProviderWriteAsync(string location) =>
+        !_services.Storage.UsesProviderPublication(location) ? Task.FromResult(true)
+            : new ProviderSaveDialog(_services.Storage.Describe(location).Name, _services.Localizer).ShowDialog<bool>(this);
     private async Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
@@ -571,7 +583,7 @@ public sealed partial class MainWindow : Window {
     }
 
     private void OnDragOver(object? sender, DragEventArgs e) {
-        e.DragEffects = ViewModel.CanStartDocumentTransition && TryGetPdfPath(e, out _)
+        e.DragEffects = ViewModel.CanStartDocumentTransition && GetDroppedPdf(e) is not null
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -579,17 +591,17 @@ public sealed partial class MainWindow : Window {
 
     private async void OnDrop(object? sender, DragEventArgs e) {
         e.Handled = true;
-        if (TryGetPdfPath(e, out string? path) && path is not null) {
-            await TabHost.OpenDocumentAsync(path);
+        if (GetDroppedPdf(e) is not { } file) return;
+        try {
+            string location = await _services.Storage.RegisterAsync(file, CancellationToken.None);
+            if (!_windowClosed) await TabHost.OpenDocumentAsync(location);
+        } catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
         }
     }
 
-    private static bool TryGetPdfPath(DragEventArgs e, out string? path) {
-        IEnumerable<string?>? candidates = e.DataTransfer
-            .TryGetFiles()?
-            .Select(static item => item.Path.LocalPath);
-        return TryGetPdfPath(candidates, out path);
-    }
+    private static IStorageFile? GetDroppedPdf(DragEventArgs e) => e.DataTransfer.TryGetFiles()?
+        .OfType<IStorageFile>().FirstOrDefault(file => string.Equals(System.IO.Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase));
 
     internal static bool TryGetPdfPath(IEnumerable<string?>? candidates, out string? path) {
         path = candidates?.FirstOrDefault(static candidate =>
