@@ -13,15 +13,17 @@ public sealed partial class PdfAssemblySourceViewModel : ObservableObject {
 
     public PdfAssemblySourceViewModel(string path) : this(path, null) { }
 
-    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer, string? name = null) {
+    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer, string? name = null, bool isFolder = false) {
         Path = OfficeStorageIdentity.Normalize(path);
         _name = name;
+        _isFolder = isFolder;
         _localizer = localizer ?? StudioLocalization.Current;
     }
     public string Path { get; }
     private readonly string? _name;
+    private readonly bool _isFolder;
     public string Name => _name ?? (Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path));
-    public string Kind => Directory.Exists(Path)
+    public string Kind => _isFolder || Directory.Exists(Path)
         ? _localizer.GetOrDefault("Assembly.Source.Folder", "Folder")
         : System.IO.Path.GetExtension(Name).TrimStart('.').ToUpperInvariant();
 }
@@ -122,8 +124,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private async Task AddFolderAsync(CancellationToken cancellationToken) {
-        string? path = await _pickFolder(cancellationToken).ConfigureAwait(true);
-        if (!string.IsNullOrWhiteSpace(path)) AddSources([path]);
+        try {
+            string? path = await _pickFolder(cancellationToken).ConfigureAwait(true);
+            if (!string.IsNullOrWhiteSpace(path)) AddSources([path]);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception error) when (IsIdentityFailure(error)) { Status = error.Message; }
     }
 
     [RelayCommand]
@@ -168,8 +173,10 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
 
         StudioJobRecord? job = null;
         bool ownerStarted = false;
+        StudioStorageAccess.DirectoryInputSession? directoryInputs = null;
 
         try {
+            directoryInputs = _storage?.CreateDirectoryInputs(Sources.Select(source => source.Path));
             string destination = OutputPath;
             OfficeWorkflowStreamOutput? outputStream = null;
             if (_storage?.UsesProviderPublication(destination) == true) {
@@ -183,7 +190,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             }
             var request = new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
-                SourceStreams = Sources.Select(source => (source.Path, Access: _storage?.CreateWorkflowInput(source.Path)))
+                SourceDirectories = directoryInputs?.Inputs ?? new Dictionary<string, OfficeWorkflowDirectoryInput>(),
+                SourceStreams = Sources.Where(source => _storage?.IsFolder(source.Path) != true)
+                    .Select(source => (source.Path, Access: _storage?.CreateWorkflowInput(source.Path)))
                     .Where(source => source.Access is not null).ToDictionary(source => source.Path, source => source.Access!, StringComparer.Ordinal),
                 OutputPath = destination,
                 OutputStream = outputStream,
@@ -222,6 +231,8 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             Status = exception.Message;
             job?.Unconfirmed(exception.Message);
         } finally {
+            try { directoryInputs?.Dispose(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
         }
@@ -244,7 +255,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             try {
                 string fullPath = OfficeStorageIdentity.Normalize(path);
                 if (!existing.Add(InputIdentity(fullPath))) continue;
-                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer, _storage?.Describe(fullPath).Name));
+                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer, _storage?.Describe(fullPath).Name, _storage?.IsFolder(fullPath) == true));
             } catch (Exception exception) when (IsIdentityFailure(exception)) { skipped++; }
         }
         SelectedSource ??= Sources.FirstOrDefault();

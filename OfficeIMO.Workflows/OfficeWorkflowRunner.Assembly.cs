@@ -256,13 +256,20 @@ public sealed partial class OfficeWorkflowRunner {
             sourceStreams.Add(OfficeIMO.Internal.OfficeStorageIdentity.Normalize(item.Key), item.Value);
         }
         string[] sources = request.Sources.Select(OfficeIMO.Internal.OfficeStorageIdentity.Normalize).ToArray();
-        if (sources.Any(path => sourceStreams.ContainsKey(path) || request.OutputStream is not null
+        var sourceDirectories = new Dictionary<string, OfficeWorkflowDirectoryInput>(StringComparer.Ordinal);
+        foreach (var item in request.SourceDirectories ?? throw new ArgumentException("Source directories cannot be null.", nameof(request))) {
+            string location = OfficeStorageIdentity.Normalize(item.Key);
+            if (!request.Sources.Contains(item.Key, StringComparer.Ordinal) || item.Value is null || sourceStreams.ContainsKey(location))
+                throw new ArgumentException("Each provider folder must identify a selected source without a file stream.", nameof(request));
+            sourceDirectories.Add(location, item.Value);
+        }
+        if (sources.Any(path => sourceStreams.ContainsKey(path) || sourceDirectories.ContainsKey(path) || request.OutputStream is not null
                 ? string.Equals(path, outputPath, StringComparison.Ordinal)
                 : OfficeStorageIdentity.AreEquivalent(path, outputPath))) {
             throw new ArgumentException("The output PDF cannot also be an explicit input.", nameof(request));
         }
         foreach (string path in sources) {
-            if (!sourceStreams.ContainsKey(path) && !File.Exists(path) && !Directory.Exists(path)) {
+            if (!sourceStreams.ContainsKey(path) && !sourceDirectories.ContainsKey(path) && !File.Exists(path) && !Directory.Exists(path)) {
                 throw new FileNotFoundException("An assembly source does not exist.", path);
             }
         }
@@ -280,7 +287,7 @@ public sealed partial class OfficeWorkflowRunner {
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
             request.PublicationGuard,
-            sourceStreams, OutputStream: request.OutputStream);
+            sourceStreams, OutputStream: request.OutputStream, SourceDirectories: sourceDirectories);
     }
 
     private static IReadOnlyList<AssemblySource> ExpandAssemblySources(
@@ -889,5 +896,6 @@ public sealed partial class OfficeWorkflowRunner {
         IOfficeWorkflowPublicationGuard? PublicationGuard,
         IReadOnlyDictionary<string, OfficeWorkflowStreamInput> SourceStreams,
         IReadOnlyDictionary<string, string>? SourceLocations = null,
-        OfficeWorkflowStreamOutput? OutputStream = null);
+        OfficeWorkflowStreamOutput? OutputStream = null,
+        IReadOnlyDictionary<string, OfficeWorkflowDirectoryInput>? SourceDirectories = null);
 }

@@ -79,9 +79,11 @@ For provider selections with a local path, the runner captures file identity whi
 
 Comparison accepts `ComparisonStream`. Assembly accepts `SourceStreams`, keyed by the exact original entries in `Sources`, and preserves input order and display names. Its provider staging shares the total input byte budget. A provider HTML stream can use embedded resources; selecting it alone does not grant access to neighboring images or stylesheets. A selected ZIP can carry relative resources through the existing bounded archive intake.
 
+For a selected provider folder, set `PdfAssemblyRequest.SourceDirectories` with an `OfficeWorkflowDirectoryInput` keyed by its original `Sources` entry. Its enumeration factory returns `OfficeWorkflowDirectoryEntry` values with a relative path, original location, and reopenable file input; a null input denotes a directory. Enumerate parents before children, obey the supplied recursion and traversal limits, and never follow links. Keep item references available until the runner returns. The runner preserves the relative tree for HTML resources, enforces aggregate entry and byte limits, rejects unsafe or colliding portable names, and rechecks both membership and file contents before publication. Each re-enumeration must reflect current provider state, including newly returned file objects at an existing location.
+
 Page-image export accepts `PdfPageImageExportRequest.InputStream` and applies the same bounded staging and provider-content check before publishing its filesystem output folder. For print preview, use `PdfPrintPlanner.Create(document, request)` with an already opened `PdfDocument` to plan and render from the same snapshot. That overload uses the document's existing authentication and printing permissions; it does not reopen the request's input location.
 
-Provider operations require an explicit output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination. Provider folder enumeration is a separate host contract.
+Provider operations require an explicit output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination.
 
 ## Write provider-backed outputs
 

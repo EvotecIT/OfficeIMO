@@ -11,7 +11,7 @@ internal sealed record StudioStorageSnapshot(byte[] Bytes, string Identity);
 internal sealed record StudioStoragePublication(string Fingerprint, string Identity);
 
 /// <summary>Owns desktop provider items for the window lifetime and opens permission-scoped streams per operation.</summary>
-internal sealed class StudioStorageAccess : IDisposable {
+internal sealed partial class StudioStorageAccess : IDisposable {
     internal const long MaximumDocumentBytes = 512L * 1024 * 1024;
     private readonly Dictionary<string, IStorageFile> _files = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StudioStorageReference> _references = new(StringComparer.Ordinal);
@@ -214,22 +214,30 @@ internal sealed class StudioStorageAccess : IDisposable {
         }
     }
 
-    private static string Location(IStorageFile file) {
+    private static string Location(IStorageItem file) {
         if (file.TryGetLocalPath() is { } path) return OfficeStorageIdentity.Normalize(path);
         if (!file.Path.IsAbsoluteUri) throw new IOException("The provider did not supply a stable document location.");
         return OfficeStorageIdentity.Normalize(file.Path.AbsoluteUri);
     }
 
     public void Dispose() {
-        IStorageFile[] files;
+        IStorageItem[] files;
         lock (_sync) {
             if (_disposed) return;
             _disposed = true;
-            files = _files.Values.Concat(_retiredFiles).Distinct<IStorageFile>(ReferenceEqualityComparer.Instance).ToArray();
+            files = _files.Values.Concat(_retiredFiles).Cast<IStorageItem>()
+                .Concat(_folders.Values).Concat(_retiredFolders).Distinct<IStorageItem>(ReferenceEqualityComparer.Instance).ToArray();
             _files.Clear();
             _retiredFiles.Clear();
             _references.Clear();
+            _folders.Clear();
+            _retiredFolders.Clear();
         }
-        foreach (IStorageFile file in files) file.Dispose();
+        List<Exception>? errors = null;
+        foreach (IStorageItem file in files) {
+            try { file.Dispose(); }
+            catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { (errors ??= []).Add(error); }
+        }
+        if (errors is not null) throw new IOException("Provider references could not be released.", new AggregateException(errors));
     }
 }

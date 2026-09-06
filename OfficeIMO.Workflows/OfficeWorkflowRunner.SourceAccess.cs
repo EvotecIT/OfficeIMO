@@ -15,20 +15,23 @@ public sealed partial class OfficeWorkflowRunner {
             Stream stream = await source.OpenRead(token).ConfigureAwait(false);
             try {
                 token.ThrowIfCancellationRequested();
-                if (LocalPath is not null) {
-                    string identity = stream is FileStream file
-                        ? OfficePathIdentity.GetPhysicalIdentityKey(LocalPath, file.SafeFileHandle)
-                        : OfficePathIdentity.GetPhysicalIdentityKey(LocalPath);
-                    if (_identity is not null && identity != _identity) throw new IOException("The workflow source was replaced during execution.");
-                    if (OfficePathIdentity.GetPhysicalIdentityKey(LocalPath) != identity)
-                        throw new IOException("The workflow source changed while opening provider access.");
-                    _identity ??= identity;
-                }
+                VerifyOpenedStream(stream);
                 return stream;
             } catch {
                 await stream.DisposeAsync().ConfigureAwait(false);
                 throw;
             }
+        }
+
+        internal void VerifyOpenedStream(Stream stream) {
+            if (LocalPath is null) return;
+            string identity = stream is FileStream file
+                ? OfficePathIdentity.GetPhysicalIdentityKey(LocalPath, file.SafeFileHandle)
+                : OfficePathIdentity.GetPhysicalIdentityKey(LocalPath);
+            if (_identity is not null && identity != _identity) throw new IOException("The workflow source was replaced during execution.");
+            if (OfficePathIdentity.GetPhysicalIdentityKey(LocalPath) != identity)
+                throw new IOException("The workflow source changed while opening provider access.");
+            _identity ??= identity;
         }
 
         internal void VerifyIdentity() {

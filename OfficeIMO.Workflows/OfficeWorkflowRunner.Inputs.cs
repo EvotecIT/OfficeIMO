@@ -126,7 +126,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
-    private sealed class WorkflowInputSnapshots : IDisposable {
+    private sealed partial class WorkflowInputSnapshots : IDisposable {
         private readonly List<(OfficeStreamFileSnapshot Snapshot, OfficeWorkflowStreamInput Source, WorkflowSourceAccess Access)> _snapshots = new();
 
         internal async Task<ValidatedImageExportRequest> CaptureAsync(ValidatedImageExportRequest request, CancellationToken token) {
@@ -149,7 +149,17 @@ public sealed partial class OfficeWorkflowRunner {
             var stagedStreams = new Dictionary<string, OfficeWorkflowStreamInput>(StringComparer.Ordinal);
             var sourceLocations = new Dictionary<string, string>(StringComparer.Ordinal);
             long remainingBytes = request.Limits.MaximumInputBytes;
+            int remainingEntries = request.Options.MaximumDiscoveredEntries;
             foreach (string location in request.Sources) {
+                if (request.SourceDirectories?.TryGetValue(location, out OfficeWorkflowDirectoryInput? directory) == true) {
+                    var captured = await CaptureDirectoryAsync(directory, request.Options.IncludeSubdirectories,
+                        remainingEntries, remainingBytes, token).ConfigureAwait(false);
+                    remainingBytes -= captured.Bytes;
+                    remainingEntries -= captured.Entries;
+                    sources.Add(captured.Path);
+                    sourceLocations[captured.Path] = location;
+                    continue;
+                }
                 request.SourceStreams.TryGetValue(location, out OfficeWorkflowStreamInput? source);
                 if (source is not null && remainingBytes <= 0) throw new InvalidDataException("The provider inputs exceed the workflow input limit.");
                 string path = await CaptureOneAsync(location, source, remainingBytes, token).ConfigureAwait(false);
@@ -161,15 +171,19 @@ public sealed partial class OfficeWorkflowRunner {
                 sources.Add(path);
             }
             return request with { Sources = sources, SourceStreams = stagedStreams, SourceLocations = sourceLocations,
-                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes, request.Sources.ToArray(), request.OutputStream) };
+                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes,
+                    request.Sources.Where(source => request.SourceDirectories?.ContainsKey(source) != true)
+                        .Concat(_directoryFiles.Select(item => item.Access.Location)).ToArray(), request.OutputStream) };
         }
 
         internal IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes,
             string[]? protectedSources = null, OfficeWorkflowStreamOutput? output = null) {
+            if (_directoryManifests.Count > 0) host = new DirectoryMembershipPublicationGuard(host, _directoryManifests.ToArray());
             if (protectedSources is not null) host = new WorkflowScopedSourcePublicationGuard(host, protectedSources,
-                _snapshots.Select(item => item.Access).ToArray(), output);
-            return _snapshots.Count == 0 ? host : new VerifiedProviderPublicationGuard(host,
-                _snapshots.Select(item => (item.Source, item.Snapshot.Fingerprint)).ToArray(), maximumBytes);
+                _snapshots.Select(item => item.Access).Concat(_directoryFiles.Select(item => item.Access)).ToArray(), output);
+            var fingerprints = _snapshots.Select(item => (item.Source, item.Snapshot.Fingerprint))
+                .Concat(_directoryFiles.Select(item => (item.Source, item.Fingerprint))).ToArray();
+            return fingerprints.Length == 0 ? host : new VerifiedProviderPublicationGuard(host, fingerprints, maximumBytes);
         }
 
         internal async Task<string> CaptureOneAsync(string location, OfficeWorkflowStreamInput? source, long maximumBytes, CancellationToken token) {
@@ -196,6 +210,7 @@ public sealed partial class OfficeWorkflowRunner {
 
         public void Dispose() {
             List<Exception>? failures = null;
+            CleanupDirectories(ref failures);
             foreach (var item in _snapshots) {
                 try { item.Snapshot.Dispose(); }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) {

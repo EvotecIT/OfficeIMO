@@ -416,7 +416,7 @@ public sealed partial class MainWindow : Window {
             AllowMultiple = false
         });
         cancellationToken.ThrowIfCancellationRequested();
-        return folders.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {

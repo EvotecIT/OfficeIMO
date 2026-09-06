@@ -12,17 +12,25 @@ internal sealed class ScopedWorkflowFile {
     internal int Opens { get; private set; }
     internal int Closes { get; private set; }
     internal int Writes { get; private set; }
+    private int _activeScopes;
     internal Task<Stream> OpenRead(CancellationToken token) => Open(false, token);
     internal Task<Stream> OpenWrite(CancellationToken token) => Open(true, token);
     private Task<Stream> Open(bool write, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        File.Move(BackingPath, Path);
-        Opens++;
-        if (write) Writes++;
-        return Task.FromResult<Stream>(new ScopedStream(Path, write, () => {
-            File.Move(Path, BackingPath);
-            Closes++;
-        }));
+        if (_activeScopes == 0) File.Move(BackingPath, Path);
+        try {
+            var stream = new ScopedStream(Path, write, () => {
+                if (--_activeScopes == 0) File.Move(Path, BackingPath);
+                Closes++;
+            });
+            _activeScopes++;
+            Opens++;
+            if (write) Writes++;
+            return Task.FromResult<Stream>(stream);
+        } catch {
+            if (_activeScopes == 0) File.Move(Path, BackingPath);
+            throw;
+        }
     }
 
     private sealed class ScopedStream(string path, bool write, Action close)
