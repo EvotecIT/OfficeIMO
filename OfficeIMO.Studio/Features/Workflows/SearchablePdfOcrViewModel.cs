@@ -78,6 +78,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly ISearchablePdfOcrService _service;
     private readonly Func<string, bool> _canPublishPath;
     private readonly IStudioLocalizer _localizer;
+    private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
     private string? _automaticOutputPath;
 
@@ -87,13 +88,15 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         Func<string, CancellationToken, Task>? openDocument = null,
         ISearchablePdfOcrService? service = null,
         Func<string, bool>? canPublishPath = null,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        StudioJobHistory? jobHistory = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
         _canPublishPath = canPublishPath ?? (_ => true);
         _localizer = localizer ?? StudioLocalization.Current;
+        _jobHistory = jobHistory;
         Languages = new ObservableCollection<OcrLanguageChoice>(TesseractOcrLanguages.Supported.Select(language => {
             string fallback = FormatLanguage(language);
             var choice = new OcrLanguageChoice(language, _localizer.GetOrDefault($"Ocr.Language.{language}", fallback), language == TesseractOcrLanguage.English);
@@ -212,6 +215,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         ErrorMessage = null;
         Status = T("Status.Preparing", "Preparing the OCR engine and page renderings…");
         Summary = T("Summary.Running", "OCR is running");
+        StudioJobRecord? job = null;
 
         try {
             string input = Path.GetFullPath(InputPath.Trim());
@@ -239,6 +243,10 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
                 });
+            job = _jobHistory?.Start(T("Job.Title", "Searchable PDF OCR"), input, output, operation.Cancel);
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
+            if (!_canPublishPath(output)) throw new InvalidOperationException(T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
+            job?.Report(new OfficeIMO.Workflows.OfficeWorkflowProgress("ocr", "execute", Status, 0D));
             SearchablePdfOcrOutcome result = await _service
                 .MakeSearchableAsync(input, output, options, operation.Token)
                 .ConfigureAwait(true);
@@ -252,13 +260,16 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
             Summary = string.IsNullOrWhiteSpace(result.Provider)
                 ? _localizer.FormatOrDefault("Ocr.Result.Summary", "Added {0:N0} searchable words across {1}.", result.AddedWordCount, pageLabel)
                 : _localizer.FormatOrDefault("Ocr.Result.SummaryWithProvider", "Added {0:N0} searchable words across {1} with {2}.", result.AddedWordCount, pageLabel, result.Provider);
+            job?.Complete(OfficeIMO.Workflows.OfficeWorkflowStatus.Completed, PublishedPath, Summary);
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             Status = T("Status.Cancelled", "OCR cancelled");
             Summary = T("Summary.SourceUnchanged", "The source PDF was not changed.");
+            job?.Complete(OfficeIMO.Workflows.OfficeWorkflowStatus.Cancelled, null, Summary);
         } catch (Exception ex) {
             Status = T("Status.Failed", "OCR could not finish");
             Summary = T("Summary.SourceUnchanged", "The source PDF was not changed.");
             ErrorMessage = ex.Message;
+            job?.Unconfirmed(ex.Message);
         } finally {
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;

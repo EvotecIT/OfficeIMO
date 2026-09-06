@@ -14,6 +14,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
 
     public PageImageExportViewModel(
@@ -26,11 +27,13 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
+        _jobHistory = jobHistory;
         _localizer = localizer ?? StudioLocalization.Current;
         Formats = [
             Format(OfficeImageExportFormat.Png, "PNG", "Lossless raster pages with transparency support."),
@@ -118,13 +121,11 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         ProgressFraction = 0D;
         PublishedDirectory = null;
         OnPropertyChanged(nameof(HasOutput));
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
 
         try {
-            var progress = new Progress<OfficeWorkflowProgress>(update => {
-                ProgressFraction = update.Fraction;
-                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
-            });
-            PdfPageImageExportResult result = await _runner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
+            var request = new PdfPageImageExportRequest {
                 InputPath = InputPath,
                 OutputDirectory = OutputDirectory,
                 Pages = string.IsNullOrWhiteSpace(Pages) ? null : Pages,
@@ -133,7 +134,18 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
                 MaximumDimension = MaximumDimension > 0 ? MaximumDimension : null,
                 PublicationGuard = _publicationGuard,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
-            }, progress, operation.Token).ConfigureAwait(true);
+            };
+            job = _jobHistory?.Start(T("Job.Title", "Page image export"), request.InputPath, request.OutputDirectory, operation.Cancel);
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
+            var progress = new Progress<OfficeWorkflowProgress>(update => {
+                if (!IsBusy || !ReferenceEquals(_cancellation, operation)) return;
+                ProgressFraction = update.Fraction;
+                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
+                job?.Report(update);
+            });
+            ownerStarted = true;
+            PdfPageImageExportResult result = await _runner.ExportPdfPagesAsync(request, progress, operation.Token).ConfigureAwait(true);
+            job?.Complete(result.Status, result.OutputDirectory, result.Summary);
             Summary = result.Summary;
             Status = result.Status switch {
                 OfficeWorkflowStatus.Completed => T("Status.Completed", "Page images ready"),
@@ -143,6 +155,14 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
             PublishedDirectory = result.OutputDirectory;
             ProgressFraction = result.Status == OfficeWorkflowStatus.Completed ? 1D : ProgressFraction;
             OnPropertyChanged(nameof(HasOutput));
+        } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
+            Status = ownerStarted ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+                : _localizer.GetOrDefault("Workflow.Status.Cancelled", "Cancelled");
+            if (ownerStarted) job?.Unconfirmed(Status);
+            else job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
+        } catch (Exception exception) {
+            Status = exception.Message;
+            job?.Unconfirmed(exception.Message);
         } finally {
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;

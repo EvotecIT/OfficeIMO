@@ -29,6 +29,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
@@ -43,12 +44,14 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
+        _jobHistory = jobHistory;
         _localizer = localizer ?? StudioLocalization.Current;
         Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
         Summary = T("Summary.Empty", "No assembly run yet");
@@ -146,18 +149,28 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         PublishedPath = null;
         OnPropertyChanged(nameof(HasOutput));
 
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
+
         try {
-            var progress = new Progress<OfficeWorkflowProgress>(update => {
-                ProgressFraction = update.Fraction;
-                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
-            });
-            PdfAssemblyResult result = await _runner.AssemblePdfAsync(new PdfAssemblyRequest {
+            var request = new PdfAssemblyRequest {
                 Sources = Sources.Select(static source => source.Path).ToArray(),
                 OutputPath = OutputPath,
                 PublicationGuard = _publicationGuard,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
                 Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
-            }, progress, operation.Token).ConfigureAwait(true);
+            };
+            job = _jobHistory?.Start(T("Job.Title", "PDF assembly"), string.Join(Environment.NewLine, request.Sources), request.OutputPath, operation.Cancel);
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
+            var progress = new Progress<OfficeWorkflowProgress>(update => {
+                if (!IsBusy || !ReferenceEquals(_cancellation, operation)) return;
+                ProgressFraction = update.Fraction;
+                Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
+                job?.Report(update);
+            });
+            ownerStarted = true;
+            PdfAssemblyResult result = await _runner.AssemblePdfAsync(request, progress, operation.Token).ConfigureAwait(true);
+            job?.Complete(result.Status, result.OutputPath, result.Summary);
             Summary = result.Summary;
             Status = result.Status switch {
                 OfficeWorkflowStatus.Completed => T("Status.Completed", "Assembled PDF ready"),
@@ -167,6 +180,14 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             PublishedPath = result.OutputPath;
             ProgressFraction = result.Status == OfficeWorkflowStatus.Completed ? 1D : ProgressFraction;
             OnPropertyChanged(nameof(HasOutput));
+        } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
+            Status = ownerStarted ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+                : _localizer.GetOrDefault("Workflow.Status.Cancelled", "Cancelled");
+            if (ownerStarted) job?.Unconfirmed(Status);
+            else job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
+        } catch (Exception exception) {
+            Status = exception.Message;
+            job?.Unconfirmed(exception.Message);
         } finally {
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;

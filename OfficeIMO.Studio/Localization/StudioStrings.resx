@@ -81,6 +81,11 @@
   <data name="ConversionWorkbench.Route" xml:space="preserve">
     <value>Route</value>
   </data>
+  <data name="Jobs.Title" xml:space="preserve"><value>Jobs</value></data>
+  <data name="Jobs.SessionNote" xml:space="preserve"><value>Recent attempts stay in memory for this session. Up to two workflows run at once.</value></data>
+  <data name="Jobs.ClearFinished" xml:space="preserve"><value>Clear finished</value></data>
+  <data name="Jobs.Empty" xml:space="preserve"><value>Start a conversion, OCR, document-health, assembly, or page-export workflow to see its progress and result here.</value></data>
+  <data name="Jobs.OpenOutput" xml:space="preserve"><value>Open output</value></data>
   <data name="ConversionWorkbench.RunPending" xml:space="preserve">
     <value>Run pending</value>
   </data>

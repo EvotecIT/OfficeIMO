@@ -112,12 +112,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
         _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
+        Jobs = new StudioJobsViewModel(_services.Jobs, (path, token) =>
+            string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
+                ? _openDocumentInTab(path, token)
+                : _openUri(new Uri(path)));
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
             runner: null,
             localizer: _localizer,
-            publicationGuard: publicationGuard);
+            publicationGuard: publicationGuard,
+            jobHistory: _services.Jobs);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
@@ -125,16 +130,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             pickAssemblyFolder ?? _pickOutputFolder,
             _pickSavePdf,
             localizer: _localizer,
-            publicationGuard: publicationGuard);
+            publicationGuard: publicationGuard,
+            jobHistory: _services.Jobs);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
-            publicationGuard: publicationGuard);
+            publicationGuard: publicationGuard, jobHistory: _services.Jobs);
         OcrWorkbench = new SearchablePdfOcrViewModel(
             _pickPdf,
             _pickOutputFolder,
             openDocumentInTab,
             ocrService,
             canPublishPath ?? _canSaveAsPath,
-            _localizer);
+            _localizer, jobHistory: _services.Jobs);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
@@ -471,6 +477,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
+        Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
         OcrWorkbench.Dispose();

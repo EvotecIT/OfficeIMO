@@ -88,7 +88,7 @@
 
     <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource StudioNavBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0" Padding="6,10">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
         <ToggleButton Grid.Row="0" Classes="nav"
                      IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Home}">
@@ -110,11 +110,15 @@
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Row="4" Classes="nav"
-                     IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding ShowJobsCommand}"
+                     IsChecked="{Binding IsConversionMode, Mode=OneWay}" Command="{Binding Commands[Convert]}"
                      AutomationProperties.Name="{loc:Loc MainWindow.Convert}">
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
         </ToggleButton>
-        <ToggleButton Grid.Row="6" Classes="nav"
+        <ToggleButton Grid.Row="5" Classes="nav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}"
+                      AutomationProperties.Name="{loc:Loc Jobs.Title}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Jobs.Title}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
+        </ToggleButton>
+        <ToggleButton Grid.Row="7" Classes="nav"
                       IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Command="{Binding Commands[Settings]}"
                       AutomationProperties.Name="{loc:Loc Settings.Settings}" ToolTip.Tip="{loc:Loc Settings.Settings}">
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
@@ -160,6 +164,7 @@
         <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
       </Grid>
       <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
+      <Grid Grid.Row="1" IsVisible="{Binding IsJobsMode}"><workflow:StudioJobsView DataContext="{Binding Jobs}" /></Grid>
       <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
       <Grid Grid.Row="1" IsVisible="{Binding IsSettingsMode}">
         <settings:SettingsView DataContext="{Binding Settings}" />

@@ -13,6 +13,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
 
     public ConversionWorkbenchViewModel(
@@ -25,11 +26,13 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null) {
         _pickFiles = pickFiles;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
+        _jobHistory = jobHistory;
         _localizer = localizer ?? StudioLocalization.Current;
         Routes = OfficeWorkflowCatalog.Routes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
@@ -195,15 +198,26 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IsBusy = true;
         ProgressFraction = 0D;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
+        var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
+        bool ownerStarted = false;
 
         try {
             OfficeWorkflowRequest[] requests = candidates.Select(CreateRequest).ToArray();
+            if (_jobHistory is not null) {
+                foreach (OfficeWorkflowRequest request in requests) {
+                    history.Add(request.Id, _jobHistory.Start(T("Job.Title", "Conversion"), request.InputPath,
+                        request.OutputPath, operationCancellation.Cancel, batch: candidates.Length > 1));
+                }
+            }
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operationCancellation.Token).ConfigureAwait(true);
             var progress = new Progress<OfficeWorkflowProgress>(update => {
                 if (!ReferenceEquals(_cancellation, operationCancellation) || !IsBusy) return;
                 ProgressFraction = update.OverallFraction;
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
                 candidates.FirstOrDefault(item => item.Id == update.RequestId)?.ReportProgress(update);
+                if (history.TryGetValue(update.RequestId, out StudioJobRecord? entry)) entry.Report(update);
             });
+            ownerStarted = true;
             IReadOnlyList<OfficeWorkflowResult> results = await _runner
                 .RunBatchAsync(requests, progress, operationCancellation.Token)
                 .ConfigureAwait(true);
@@ -214,12 +228,17 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                     throw new InvalidOperationException("The workflow runner returned an unexpected job result.");
                 }
                 job.Apply(result);
+                if (history.TryGetValue(result.RequestId, out StudioJobRecord? entry)) entry.Complete(result.Status, result.OutputPath, result.Summary);
             }
             foreach (ConversionJobViewModel job in candidates.Where(job => !received.Contains(job.Id))) {
                 job.EndWithoutResult(operationCancellation.IsCancellationRequested,
                     operationCancellation.IsCancellationRequested
                         ? T("Job.NotStarted", "Cancelled before this job started; completed outputs were retained.")
                         : T("Job.NoResult", "No result was returned. Check the output folder before starting another attempt."));
+                if (history.TryGetValue(job.Id, out StudioJobRecord? entry)) {
+                    if (operationCancellation.IsCancellationRequested) entry.Complete(OfficeWorkflowStatus.Cancelled, null, job.Summary!);
+                    else entry.Unconfirmed(job.Summary!);
+                }
             }
             Status = _localizer.FormatOrDefault(
                 "Conversion.Queue.Outcomes",
@@ -231,8 +250,14 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             ProgressFraction = 1D;
         } catch (Exception exception) {
             string message = T("Job.UnconfirmedOutput", "The runner stopped without a result. Check the output folder before starting another attempt.");
+            bool cancelledBeforeStart = !ownerStarted && exception is OperationCanceledException && operationCancellation.IsCancellationRequested;
+            if (cancelledBeforeStart) message = T("Job.NotStarted", "Cancelled before this job started; completed outputs were retained.");
             foreach (ConversionJobViewModel job in candidates.Where(job => job.State is ConversionJobState.Queued or ConversionJobState.Running)) {
-                job.EndWithoutResult(cancelled: false, message);
+                job.EndWithoutResult(cancelledBeforeStart, message);
+            }
+            foreach (StudioJobRecord entry in history.Values.Where(entry => entry.IsActive)) {
+                if (cancelledBeforeStart) entry.Complete(OfficeWorkflowStatus.Cancelled, null, message);
+                else entry.Unconfirmed(message);
             }
             Status = _localizer.FormatOrDefault("Conversion.Queue.Failed", "The conversion queue could not finish: {0}", exception.Message);
         } finally {

@@ -42,6 +42,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Protect", "Protect and sign", "Inspect protection, sign, or protect a document copy.", "Security", document.ShowProtectModeCommand, Loaded, true, workspace: true);
         Add("Redact", "Redact content", "Mark content for reviewed permanent removal.", "Security", document.BeginRedactionCommand, () => Allowed(document.CanRedact), true, workspace: true);
         Add("Convert", "Convert files", "Convert supported Office, web, markup, PDF, and image files.", "Convert", document.ShowConversionWorkbenchCommand, tool: true);
+        Add("Jobs", "Jobs", "Review active work and outputs from this session.", "Navigate", document.ShowJobsCommand);
         Add("Ocr", "Make PDF searchable", "Recognize scanned pages and add a searchable text layer.", "Convert", document.ShowOcrCommand, tool: true);
         Add("Assemble", "Assemble PDF", "Combine PDFs, images, Office files, folders, and ZIP archives.", "Organize", document.ShowAssemblyCommand, tool: true);
         Add("Export", "Export page images", "Export selected PDF pages to image files.", "Output", document.ShowPageExportCommand, tool: true);

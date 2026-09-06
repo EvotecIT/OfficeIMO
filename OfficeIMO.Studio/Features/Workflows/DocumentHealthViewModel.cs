@@ -21,6 +21,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
 
     public DocumentHealthViewModel(
@@ -33,11 +34,13 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null) {
         _pickPdf = pickPdf;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
+        _jobHistory = jobHistory;
         _localizer = localizer ?? StudioLocalization.Current;
         Operations = [
             Operation(OfficeWorkflowOperation.Inspect, "Inspect", "Read structure, security, signatures, tags, active content, and repair diagnostics.", false),
@@ -332,13 +335,22 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         AfterSummary = "—";
         Diagnostics.Clear();
         Metrics.Clear();
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
 
         try {
+            OfficeWorkflowRequest request = CreateRequest();
+            job = _jobHistory?.Start(SelectedOperation.Label, request.InputPath, request.OutputPath, operationCancellation.Cancel);
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operationCancellation.Token).ConfigureAwait(true);
             var progress = new Progress<OfficeWorkflowProgress>(update => {
+                if (!IsBusy || !ReferenceEquals(_cancellation, operationCancellation)) return;
                 ProgressFraction = update.Fraction;
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
+                job?.Report(update);
             });
-            OfficeWorkflowResult result = await _runner.RunAsync(CreateRequest(), progress, operationCancellation.Token).ConfigureAwait(true);
+            ownerStarted = true;
+            OfficeWorkflowResult result = await _runner.RunAsync(request, progress, operationCancellation.Token).ConfigureAwait(true);
+            job?.Complete(result.Status, result.OutputPath, result.Summary);
             ResultStatus = result.Status;
             Summary = result.Summary;
             OutputPath = result.OutputPath;
@@ -356,6 +368,14 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
                 AfterSummary = result.HealthReport.After is null ? T("Output.NotWritten", "No artifact was written.") : FormatSnapshot(result.HealthReport.After);
                 foreach ((string key, string value) in result.HealthReport.Metrics) Metrics.Add($"{FormatKey(key)}: {value}");
             }
+        } catch (OperationCanceledException) when (operationCancellation.IsCancellationRequested) {
+            Status = ownerStarted ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+                : _localizer.GetOrDefault("Workflow.Status.Cancelled", "Cancelled");
+            if (ownerStarted) job?.Unconfirmed(Status);
+            else job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
+        } catch (Exception exception) {
+            Status = exception.Message;
+            job?.Unconfirmed(exception.Message);
         } finally {
             IsBusy = false;
             CurrentStep = GuidedWorkflowStep.Result;
