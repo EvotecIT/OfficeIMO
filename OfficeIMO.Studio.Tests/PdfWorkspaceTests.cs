@@ -543,9 +543,11 @@ public sealed partial class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            IReadOnlyList<string> outputs = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            var result = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            Assert.True(result.Succeeded, result.Summary);
+            string[] outputs = result.Files.Select(file => file.Path).ToArray();
 
-            Assert.Equal(2, outputs.Count);
+            Assert.Equal(2, outputs.Length);
             Assert.Equal(2, PdfDocument.Load(outputs[0]).Inspect().PageCount);
             Assert.Single(PdfDocument.Load(outputs[1]).Inspect().Pages);
             Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
@@ -569,10 +571,10 @@ public sealed partial class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            IOException exception = await Assert.ThrowsAsync<IOException>(
-                () => workspace.SplitAsync(output, 2, CancellationToken.None));
-
-            Assert.Contains("already", exception.Message, StringComparison.OrdinalIgnoreCase);
+            var result = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            Assert.True(result.Succeeded, result.Summary);
+            Assert.Equal(2, result.Files.Count);
+            Assert.All(result.Files, file => Assert.NotEqual(output, Path.GetDirectoryName(file.Path)));
             Assert.Equal(existing, await File.ReadAllBytesAsync(collision));
             Assert.False(File.Exists(Path.Combine(output, "source-part-002.pdf")));
             Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
@@ -596,8 +598,8 @@ public sealed partial class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                () => workspace.SplitAsync(output, 1, cancellation.Token, progress));
+            var result = await workspace.SplitAsync(output, 1, cancellation.Token, progress);
+            Assert.Equal(OfficeIMO.Workflows.OfficeWorkflowStatus.Cancelled, result.Status);
 
             Assert.False(Directory.Exists(output));
         } finally {

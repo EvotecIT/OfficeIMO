@@ -15,7 +15,9 @@ public sealed class StudioWorkspaceOutputOwnershipTests {
             var services = TestAppBuilder.CreateTestServices();
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "source.pdf");
-            string destination = Path.Combine(services.Paths.Root, operation == "split" ? "source-part-001.pdf" : "owned.pdf");
+            string destination = operation == "split" ? Path.Combine(services.Paths.Root, "Split PDFs", "part-001.pdf")
+                : Path.Combine(services.Paths.Root, "owned.pdf");
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
             File.Copy(source, destination);
             byte[] original = File.ReadAllBytes(destination);
@@ -24,7 +26,7 @@ public sealed class StudioWorkspaceOutputOwnershipTests {
             host = new StudioDocumentTabHost(open => new MainWindowViewModel(_ => Task.FromResult<string?>(null),
                 services: services, openDocumentInTab: open, publicationGuard: guard,
                 pickSavePdf: _ => Task.FromResult<string?>(destination),
-                pickOutputFolder: _ => Task.FromResult<string?>(services.Paths.Root)), _ => { });
+                pickOutputFolder: _ => Task.FromResult<string?>(services.Paths.Root), reviewPageSplit: _ => Task.FromResult(true)), _ => { });
             using (host) {
                 await host.OpenDocumentAsync(source);
                 var producer = host.ActiveDocument;
@@ -42,7 +44,11 @@ public sealed class StudioWorkspaceOutputOwnershipTests {
                         await producer.SaveProtectedCopyCommand.ExecuteAsync(null); break;
                     case "split": await producer.SplitCommand.ExecuteAsync(null); break;
                 }
-                Assert.Contains("open document", producer.ErrorMessage);
+                if (operation == "split") {
+                    Assert.Null(producer.ErrorMessage);
+                    Assert.True(Assert.Single(services.Jobs.Entries).HasOutput);
+                    Assert.NotEqual(Path.GetDirectoryName(destination), Assert.Single(services.Jobs.Entries).OutputPath);
+                } else Assert.Contains("open document", producer.ErrorMessage);
                 Assert.True(other.IsDirty);
                 Assert.Equal(2, other.Pages.Count);
                 Assert.Equal(2, host.Tabs.Count);

@@ -29,13 +29,16 @@ public sealed class StudioSourceIdentityTests {
                 new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")), "owner",
                 (_, _) => ValueTask.FromResult(++checks == 1));
             if (operation != "decrypt") await workspace.DuplicateAsync([1], CancellationToken.None);
-            await Assert.ThrowsAsync<IOException>(async () => {
+            if (operation == "split") {
+                var result = await workspace.SplitAsync(outputFolder, 1, CancellationToken.None);
+                Assert.False(result.Succeeded);
+                Assert.Empty(result.Files);
+            } else await Assert.ThrowsAsync<IOException>(async () => {
                 switch (operation) {
                     case "save-as": await workspace.SaveAsync(destination, CancellationToken.None); break;
                     case "extract": await workspace.ExtractAsync([1], destination, CancellationToken.None); break;
                     case "protect": await workspace.SaveProtectedCopyAsync(destination, new PdfStandardEncryptionOptions("new"), "owner", CancellationToken.None); break;
                     case "decrypt": await workspace.SaveDecryptedCopyAsync(destination, "owner", CancellationToken.None); break;
-                    case "split": await workspace.SplitAsync(outputFolder, 1, CancellationToken.None); break;
                 }
             });
             Assert.Equal(2, checks);

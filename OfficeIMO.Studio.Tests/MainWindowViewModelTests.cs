@@ -594,14 +594,14 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(
                 _ => Task.FromResult<string?>(null),
-                pickOutputFolder: _ => Task.FromResult<string?>(output));
+                pickOutputFolder: _ => Task.FromResult<string?>(output), reviewPageSplit: _ => Task.FromResult(true));
             await viewModel.OpenDocumentAsync(path);
             viewModel.SplitPagesPerDocument = 2;
 
             await viewModel.SplitCommand.ExecuteAsync(null);
 
-            Assert.Equal(2, Directory.GetFiles(output, "*.pdf").Length);
-            Assert.Equal("Created 2 split PDFs", viewModel.OperationStatus);
+            Assert.Equal(2, Directory.GetFiles(Path.Combine(output, "Split PDFs"), "*.pdf").Length);
+            Assert.Equal("Created 2 PDF parts.", viewModel.OperationStatus);
             Assert.False(viewModel.IsDirty);
         } finally {
             Directory.Delete(root, recursive: true);

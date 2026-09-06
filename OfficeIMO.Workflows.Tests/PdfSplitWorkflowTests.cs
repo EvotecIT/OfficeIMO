@@ -4,6 +4,15 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PdfSplitWorkflowTests {
     [Fact]
+    public void PreviewPlanningHandlesLargePageNumbersWithoutOverflowAndRejectsExcessParts() {
+        var plan = PdfSplitPlan.Create(int.MaxValue, int.MaxValue - 1);
+        Assert.Equal(2, plan.Parts.Count);
+        Assert.Equal(new PdfSplitPart("part-001.pdf", 1, int.MaxValue - 1), plan.Parts[0]);
+        Assert.Equal(new PdfSplitPart("part-002.pdf", int.MaxValue, 1), plan.Parts[1]);
+        Assert.Throws<InvalidOperationException>(() => PdfSplitPlan.Create(int.MaxValue, 1));
+    }
+
+    [Fact]
     public async Task InterruptedLocalReplacementReportsBothPreservedLocations() {
         string root = NewRoot();
         try {

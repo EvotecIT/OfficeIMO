@@ -1603,4 +1603,15 @@
   <data name="Organizer.MoveTo" xml:space="preserve"><value>Move to…</value></data>
   <data name="Organizer.SelectRanges" xml:space="preserve"><value>Select page ranges</value></data>
   <data name="Organizer.WholePageRequired" xml:space="preserve"><value>Enter a whole page number within the document, or the page count plus one for the end.</value></data>
+  <data name="Organizer.SplitTitle" xml:space="preserve"><value>Split PDF</value></data>
+  <data name="Organizer.SplitProviderHint" xml:space="preserve"><value>Parts will be saved in this folder. Existing files with matching names require replacement consent. Verified files remain saved if a later part fails.</value></data>
+  <data name="Organizer.SplitLocalHint" xml:space="preserve"><value>Parts will be saved together in a new folder. If this name is already used, a numbered folder will be created.</value></data>
+  <data name="Organizer.SplitWholeCount" xml:space="preserve"><value>Enter a positive whole number of pages per part.</value></data>
+  <data name="Organizer.SplitPartSize" xml:space="preserve"><value>Pages per part</value></data>
+  <data name="Organizer.SplitParts" xml:space="preserve"><value>Planned PDF parts</value></data>
+  <data name="Organizer.SplitStartsAt" xml:space="preserve"><value>Starting page:</value></data>
+  <data name="Organizer.SplitCount" xml:space="preserve"><value>Pages:</value></data>
+  <data name="Organizer.SplitOutputs" xml:space="preserve"><value>Verified PDF outputs</value></data>
+  <data name="Organizer.SplitOpen" xml:space="preserve"><value>Open selected PDF</value></data>
+  <data name="Organizer.SplitCreate" xml:space="preserve"><value>Create parts</value></data>
 </root>

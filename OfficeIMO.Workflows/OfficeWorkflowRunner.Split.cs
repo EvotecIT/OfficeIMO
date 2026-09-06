@@ -42,8 +42,8 @@ public sealed partial class OfficeWorkflowRunner {
             PdfDocument document = await PdfDocument.LoadAsync(captured, loadOptions, cancellationToken).ConfigureAwait(false);
             int pageCount = document.Inspect(loadOptions, cancellationToken).PageCount;
             if (pageCount < 1) throw new InvalidDataException("The source PDF has no pages.");
-            int count = 1 + (pageCount - 1) / pagesPerPart;
-            if (count > maximumParts) throw new InvalidOperationException($"The split would create {count} parts, above the configured {maximumParts}-part limit.");
+            PdfSplitPlan plan = PdfSplitPlan.Create(pageCount, pagesPerPart, maximumParts);
+            int count = plan.Parts.Count;
             cancellationToken.ThrowIfCancellationRequested();
             if (directory is null) {
                 string parent = Path.GetDirectoryName(output)!;
@@ -56,9 +56,10 @@ public sealed partial class OfficeWorkflowRunner {
             // Use a stable portable name; provider display names are not filesystem-safe on every host.
             for (int index = 0; index < count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int first = index * pagesPerPart + 1;
-                int expected = Math.Min(pagesPerPart, pageCount - first + 1);
-                string path = Path.Combine(staging, $"part-{index + 1:D3}.pdf");
+                PdfSplitPart planned = plan.Parts[index];
+                int first = planned.FirstSourcePage;
+                int expected = planned.PageCount;
+                string path = Path.Combine(staging, planned.Name);
                 Report(progress, id, "split", $"Preparing part {index + 1} of {count}", 0.1 + 0.65 * index / count);
                 cancellationToken.ThrowIfCancellationRequested();
                 // Keep the PDF engine's split policy while retaining only one part at a time.

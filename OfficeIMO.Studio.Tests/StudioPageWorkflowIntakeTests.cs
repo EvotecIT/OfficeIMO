@@ -28,7 +28,7 @@ public sealed class StudioPageWorkflowIntakeTests {
                 pickOutputFolder: _ => {
                     model!.SplitPagesPerDocument = 1;
                     return Task.FromResult<string?>(folder);
-                })) {
+                }, reviewPageSplit: _ => Task.FromResult(true))) {
                 await model.OpenDocumentAsync(source);
                 model.SelectAllPagesCommand.Execute(null);
                 model.SplitPagesPerDocument = 2;
@@ -39,7 +39,7 @@ public sealed class StudioPageWorkflowIntakeTests {
                     Assert.Equal(3, model.Pages.Count);
                 } else {
                     await model.SplitCommand.ExecuteAsync(null);
-                    string output = Assert.Single(Directory.GetFiles(folder, "*.pdf"));
+                    string output = Assert.Single(Directory.GetFiles(Path.Combine(folder, "Split PDFs"), "*.pdf"));
                     Assert.Equal(2, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().PageCount);
                 }
                 Assert.Null(model.ErrorMessage);

@@ -73,7 +73,7 @@ foreach (PdfSplitFile file in result.Files) {
 }
 ```
 
-The runner produces `part-001.pdf`, `part-002.pdf`, and subsequent parts in source order. It generates and reopens one part at a time, checks the aggregate output budget before continuing, and publishes a local folder as a unit. `MaximumParts` limits the output count. Cancellation is checked between parts and during file operations; the PDF engine's synchronous generation of one part must finish before cancellation can stop it.
+The runner produces `part-001.pdf`, `part-002.pdf`, and subsequent parts in source order. Hosts can call `PdfSplitPlan.Create(pageCount, pagesPerDocument)` to preview the same filenames and ranges that execution uses. The runner generates and reopens one part at a time, checks the aggregate output budget before continuing, and publishes a local folder as a unit. `MaximumParts` limits the output count. Cancellation is checked between parts and during file operations; the PDF engine's synchronous generation of one part must finish before cancellation can stop it.
 
 For provider folders, supply `DirectoryOutput` and explicitly choose `Replace`. Each part is written and verified individually. Inspect `Status`, `Files`, and `OutputRecoveries`: verified parts remain available if a later write fails. Local directory recovery locations appear in diagnostic details when an interrupted replacement needs attention. `InputStream` and `PublicationGuard` use the same source verification and live ownership contracts as other workflows.
 

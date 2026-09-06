@@ -282,27 +282,6 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task SplitAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !CanExtractPages) return;
-        PdfWorkspace workspace = _workspace;
-        long revision = workspace.Revision;
-        int pagesPerDocument = SplitPagesPerDocument;
-        string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(folder) || !IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
-        IReadOnlyList<string> outputs = Array.Empty<string>();
-        bool succeeded = await RunStandaloneAsync(
-            async token => outputs = await workspace
-                .SplitAsync(folder, pagesPerDocument, token, CreateProgress())
-                .ConfigureAwait(true),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            OperationStatus = outputs.Count == 1
-                ? UiText("Workspace.CreatedOneSplitPdf")
-                : UiFormat("Workspace.CreatedSplitPdfs", outputs.Count);
-        }
-    }
-
-    [RelayCommand]
     private void SelectAllPages() => SetOrganizerSelection(OrganizerPages);
 
     private bool IsPageWorkflowCurrent(PdfWorkspace workspace, long revision) {

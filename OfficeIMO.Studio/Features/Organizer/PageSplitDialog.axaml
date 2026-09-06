@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:OfficeIMO.Studio.Features.Organizer"
+        xmlns:workflow="clr-namespace:OfficeIMO.Workflows;assembly=OfficeIMO.Workflows"
+        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Organizer.PageSplitDialog"
+        x:DataType="local:PageSplitPreviewViewModel"
+        Title="{loc:Loc Organizer.SplitTitle}" Width="580" Height="540" MinWidth="380" MinHeight="400"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.SplitTitle}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Destination}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" />
+      <TextBlock Text="{Binding DestinationHint}" TextWrapping="Wrap" IsVisible="{Binding IsPreview}" />
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />
+    </StackPanel>
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsPreview}" Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.SplitPartSize}" />
+      <TextBox x:Name="PartSizeInput" Text="{Binding PagesPerPart, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
+               AutomationProperties.Name="{loc:Loc Organizer.SplitPartSize}" />
+    </StackPanel>
+    <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" TextWrapping="Wrap" MaxHeight="70" />
+    <ListBox Grid.Row="3" ItemsSource="{Binding Parts}" IsVisible="{Binding IsPreview}" AutomationProperties.Name="{loc:Loc Organizer.SplitParts}">
+      <ListBox.ItemTemplate><DataTemplate x:DataType="workflow:PdfSplitPart">
+        <StackPanel Spacing="3">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <TextBlock Text="{loc:Loc Organizer.SplitStartsAt}" /><TextBlock Text="{Binding FirstSourcePage}" />
+            <TextBlock Text="{loc:Loc Organizer.SplitCount}" /><TextBlock Text="{Binding PageCount}" />
+          </StackPanel>
+        </StackPanel>
+      </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <ListBox x:Name="ResultFiles" Grid.Row="3" ItemsSource="{Binding OutputRows}" SelectedItem="{Binding SelectedOutput}" IsVisible="{Binding HasResult}"
+             AutomationProperties.Name="{loc:Loc Organizer.SplitOutputs}">
+      <ListBox.ItemTemplate><DataTemplate x:DataType="local:PageSplitOutputRow">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+        </StackPanel>
+      </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
+      <Button Content="{loc:Loc Organizer.SplitOpen}" IsVisible="{Binding HasResult}" Margin="4"
+              Command="{Binding OpenFileCommand}" CommandParameter="{Binding SelectedOutput.Path}" />
+      <Button Content="{loc:Loc Common.Cancel}" IsVisible="{Binding IsPreview}" IsCancel="True" Click="OnCancel" Margin="4" />
+      <Button Content="{loc:Loc Organizer.SplitCreate}" IsVisible="{Binding IsPreview}" IsEnabled="{Binding CanApply}" Click="OnApply" Margin="4" />
+      <Button Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
+    </WrapPanel>
+  </Grid>
+</Window>

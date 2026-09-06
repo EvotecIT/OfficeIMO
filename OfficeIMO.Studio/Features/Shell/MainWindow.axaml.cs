@@ -97,6 +97,8 @@ public sealed partial class MainWindow : Window {
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
+            reviewPageSplit: preview => new PageSplitDialog(preview).ShowDialog<bool>(this),
+            showPageSplitResult: result => new PageSplitDialog(result).ShowDialog(this),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
