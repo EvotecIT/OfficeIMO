@@ -36,6 +36,9 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     private string? _previousActivePath;
     private bool _frozen;
     private bool _disposed;
+    private CancellationTokenSource? _operationCancellation;
+
+    internal void CancelActiveOperation() => _operationCancellation?.Cancel();
 
     internal StudioSessionController(StudioDocumentTabHost host, StudioApplicationServices services,
         Func<CancellationToken, Task<string?>> pickCopy) {
@@ -84,6 +87,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
 
     internal async Task InspectAsync(CancellationToken token = default) {
         foreach (var item in Pending.ToArray()) {
+            token.ThrowIfCancellationRequested();
             if (_disposed) return;
             // A local edit snapshot remains usable when the original cannot be opened.
             item.HasRecovery = _recovery.Find(item.SourcePath, item.Document.Fingerprint) is not null;
@@ -106,32 +110,41 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     [RelayCommand]
     private async Task RestoreAsync() {
         if (IsBusy) return;
+        using var cancellation = new CancellationTokenSource();
+        _operationCancellation = cancellation;
         IsBusy = true;
         Error = null;
         try {
-            await InspectAsync();
+            await InspectAsync(cancellation.Token);
             if (_disposed) return;
-            foreach (var item in Pending.Where(item => item.SourceUnchanged).ToArray()) await OpenItemAsync(item);
+            foreach (var item in Pending.Where(item => item.SourceUnchanged).ToArray()) await OpenItemAsync(item, cancellation.Token);
             var active = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, _previousActivePath));
             if (active is not null) _host.SelectedTab = active;
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            Error = null;
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             Error = Text("RestoreFailed");
-        } finally { IsBusy = false; Flush(); }
+        } finally { _operationCancellation = null; IsBusy = false; Flush(); }
     }
 
     [RelayCommand]
     private async Task OpenCurrentAsync(StudioSessionItem? item) {
         if (item is null || IsBusy) return;
+        using var cancellation = new CancellationTokenSource();
+        _operationCancellation = cancellation;
         IsBusy = true;
         Error = null;
-        try { await OpenItemAsync(item); }
+        try { await OpenItemAsync(item, cancellation.Token); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { Error = null; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Error = Text("RestoreFailed"); }
-        finally { IsBusy = false; Flush(); }
+        finally { _operationCancellation = null; IsBusy = false; Flush(); }
     }
 
-    private async Task OpenItemAsync(StudioSessionItem item) {
+    private async Task OpenItemAsync(StudioSessionItem item, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_disposed) return;
-        await _host.OpenDocumentAsync(item.SourcePath);
+        await _host.OpenDocumentAsync(item.SourcePath, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var opened = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, item.SourcePath));
         if (opened is not null) {
             opened.Document.RestoreSessionViewState(item.Document.View);
@@ -143,11 +156,14 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     [RelayCommand]
     private async Task RecoverCopyAsync(StudioSessionItem? item) {
         if (item is null || IsBusy) return;
+        using var cancellation = new CancellationTokenSource();
+        _operationCancellation = cancellation;
         IsBusy = true;
         Error = null;
         string? staging = null;
         try {
-            string? selected = await _pickCopy(CancellationToken.None);
+            string? selected = await _pickCopy(cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
             if (_disposed || string.IsNullOrWhiteSpace(selected)) return;
             string destination = Path.GetFullPath(selected);
             if (File.Exists(destination) || PathsEqual(destination, item.SourcePath) || !_host.CanPublishPath(destination)) {
@@ -157,13 +173,17 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
             staging = Path.Combine(Path.GetDirectoryName(destination)!, ".recovered-" + Guid.NewGuid().ToString("N") + ".pdf");
             byte[] recovered = _recovery.ReadVerifiedSnapshot(item.SourcePath, item.Document.Fingerprint) ?? throw new IOException();
             PdfDocument.Load(recovered).Save(staging);
+            cancellation.Token.ThrowIfCancellationRequested();
             File.Move(staging, destination, overwrite: false);
-            await _host.OpenDocumentAsync(destination);
+            await _host.OpenDocumentAsync(destination, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
             var opened = _host.Tabs.FirstOrDefault(tab => PathsEqual(tab.Document.DocumentPath, destination));
             if (opened is not null) {
                 opened.Document.RestoreSessionViewState(item.Document.View);
                 RemovePending(item);
             }
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            Error = null;
         } catch (Exception error) when (error is not OutOfMemoryException) {
             Error = Text("RecoverFailed");
         } finally {
@@ -171,6 +191,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                 _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Session", "RecoveryStagingCleanupFailed", error);
             }
+            _operationCancellation = null;
             IsBusy = false;
             Flush();
         }
@@ -232,6 +253,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        CancelActiveOperation();
         _recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _saveTimer.Stop();

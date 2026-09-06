@@ -1471,4 +1471,12 @@
   <data name="Settings.RecoveryClearIncomplete" xml:space="preserve"><value>Recovery files removed: {0}. Could not remove: {1}. Close other Studio windows or check folder access, then retry.</value></data>
   <data name="Settings.RecoveryClearFailed" xml:space="preserve"><value>Recovery files could not be cleared. Check folder access or close other Studio windows, then retry.</value></data>
   <data name="Settings.RecoveryClearCanceled" xml:space="preserve"><value>Cleanup was canceled. Some recovery files may already have been removed.</value></data>
+  <data name="Dialog.ActiveOperations.Title" xml:space="preserve"><value>Work is still running</value></data>
+  <data name="Dialog.ActiveOperations.Description" xml:space="preserve"><value>Choose whether to wait for the work to finish or request cancellation before closing.</value></data>
+  <data name="Dialog.ActiveOperations.Wait" xml:space="preserve"><value>Wait and close</value></data>
+  <data name="Dialog.ActiveOperations.Cancel" xml:space="preserve"><value>Cancel work and close</value></data>
+  <data name="Dialog.ActiveOperations.Keep" xml:space="preserve"><value>Keep open</value></data>
+  <data name="Dialog.ActiveOperations.Outputs" xml:space="preserve"><value>Outputs already saved are kept. Cancellation does not undo them. Job history lasts only for this session and work will not resume after restarting.</value></data>
+  <data name="Dialog.ActiveOperations.Cancelling" xml:space="preserve"><value>Cancellation requested. Waiting for operations to stop and finish output cleanup…</value></data>
+  <data name="Dialog.ActiveOperations.Waiting" xml:space="preserve"><value>Waiting for operations to finish. You can still request cancellation or keep this window open.</value></data>
 </root>

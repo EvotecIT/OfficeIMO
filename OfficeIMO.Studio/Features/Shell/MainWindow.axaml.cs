@@ -34,7 +34,8 @@ public sealed partial class MainWindow : Window {
 
     internal MainWindow(StudioApplicationServices services) {
         _services = services ?? throw new ArgumentNullException(nameof(services));
-        TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument);
+        TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
+            document => ConfirmActiveCloseAsync([document]));
         ViewModel = TabHost.ActiveDocument;
         _session = new StudioSessionController(TabHost, _services, PickSavePdfAsync);
         ViewModel.Session = _session;
@@ -401,16 +402,13 @@ public sealed partial class MainWindow : Window {
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {
         if (_allowClose) return;
-        if (TabHost.HasBusyDocuments) {
-            e.Cancel = true;
-            TabHost.CancelAllOperations();
-            return;
-        }
-        if (!TabHost.HasDirtyDocuments) { _session.CaptureForShutdown(); return; }
+        if (!TabHost.HasBusyDocuments && !_session.IsBusy && !TabHost.HasDirtyDocuments && !_closePromptOpen) { _session.CaptureForShutdown(); return; }
         e.Cancel = true;
         if (_closePromptOpen) return;
         _closePromptOpen = true;
         try {
+            if ((TabHost.HasBusyDocuments || _session.IsBusy) && !await ConfirmActiveCloseAsync(TabHost.OperationDocuments, wholeWindow: true)) return;
+            if (TabHost.HasBusyDocuments || _session.IsBusy) return;
             if (!await TabHost.RequestCloseAllAsync()) return;
             _allowClose = true;
             Close();
@@ -418,6 +416,9 @@ public sealed partial class MainWindow : Window {
             _closePromptOpen = false;
         }
     }
+
+    private Task<bool> ConfirmActiveCloseAsync(IEnumerable<MainWindowViewModel> documents, bool wholeWindow = false) =>
+        new ActiveOperationsDialog(documents, _services.Localizer, wholeWindow ? TabHost : null, wholeWindow ? _session : null).ShowDialog<bool>(this);
 
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
         var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'), _services.Localizer);

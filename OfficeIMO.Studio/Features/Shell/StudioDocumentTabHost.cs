@@ -9,15 +9,18 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposable {
     private readonly Func<Func<string, CancellationToken, Task>, MainWindowViewModel> _createDocument;
     private readonly Action<MainWindowViewModel> _activateDocument;
+    private readonly Func<MainWindowViewModel, Task<bool>>? _prepareActiveClose;
     private MainWindowViewModel _emptyDocument;
     private bool _openingDocument;
     private bool _disposed;
 
     internal StudioDocumentTabHost(
         Func<Func<string, CancellationToken, Task>, MainWindowViewModel> createDocument,
-        Action<MainWindowViewModel> activateDocument) {
+        Action<MainWindowViewModel> activateDocument,
+        Func<MainWindowViewModel, Task<bool>>? prepareActiveClose = null) {
         _createDocument = createDocument ?? throw new ArgumentNullException(nameof(createDocument));
         _activateDocument = activateDocument ?? throw new ArgumentNullException(nameof(activateDocument));
+        _prepareActiveClose = prepareActiveClose;
         _emptyDocument = _createDocument(OpenDocumentAsync);
     }
 
@@ -32,6 +35,8 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     public bool HasTabs => Tabs.Count > 0;
 
     internal MainWindowViewModel ActiveDocument => SelectedTab?.Document ?? _emptyDocument;
+
+    internal IEnumerable<MainWindowViewModel> OperationDocuments => Tabs.Select(tab => tab.Document).Append(_emptyDocument).Distinct();
 
     internal bool HasBusyDocuments => Tabs.Any(tab => tab.Document.CanCancelOperation) ||
                                       _emptyDocument.CanCancelOperation;
@@ -144,6 +149,9 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal async Task CloseTabAsync(StudioDocumentTabViewModel tab) {
         if (_disposed || !Tabs.Contains(tab)) return;
         SelectedTab = tab;
+        if (tab.Document.CanCancelOperation && _prepareActiveClose is not null &&
+            !await _prepareActiveClose(tab.Document).ConfigureAwait(true)) return;
+        if (_disposed || !Tabs.Contains(tab)) return;
         if (!await tab.Document.RequestCloseDocumentAsync().ConfigureAwait(true)) return;
 
         int index = Tabs.IndexOf(tab);
