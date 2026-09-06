@@ -824,6 +824,33 @@ recovery. The document must still decrypt with the supplied password; an
 unknown or incorrect password remains an error. Full rewrites of signed PDFs
 remain blocked because they would invalidate existing signatures.
 
+### Viewing protected PDFs
+
+A user password can allow viewing while restricting extraction. Use the viewing
+contract to obtain page geometry and render a page for display:
+
+```csharp
+PdfDocument protectedDocument = PdfDocument.Load("protected.pdf", new PdfLoadOptions {
+    Password = "document-open-password"
+});
+PdfDocumentViewInfo view = protectedDocument.InspectForViewing();
+PdfPageRenderResult page = protectedDocument.Render.DisplayPage(1, new PdfPageDisplayOptions {
+    Scale = 1.5,
+    MaximumPixels = 4_000_000,
+    MaximumOutputBytes = 16 * 1024 * 1024
+});
+// Pass page.Bytes (PNG) to the host's image control.
+```
+
+`LogicalContent` is null when content extraction is restricted. The display path
+returns flattened pixels and rendering diagnostics without exposing editable
+drawing objects, source images, fonts, or a logical text model. It still requires
+a valid password and observes parsing, pixel, output-size, timeout, and
+cancellation limits. `Inspect`, `Read`, drawing/image export, page extraction,
+printing, and mutation retain their respective permission checks. Display pixels
+are not a DRM boundary: hosts must keep their copy, export, and print actions tied
+to the authenticated permissions.
+
 ### Production document workflows
 
 Apply one continuous Bates sequence across a batch. Each output includes its

@@ -114,6 +114,12 @@ public sealed partial class PdfReadPage {
     internal OfficeDrawing ToDrawing(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
+        return ToDisplayDrawing(cancellationToken);
+    }
+
+    // Used only by the raster display path; never return this drawing through a public viewing API.
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
