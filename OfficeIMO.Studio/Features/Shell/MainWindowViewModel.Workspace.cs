@@ -311,19 +311,23 @@ public sealed partial class MainWindowViewModel {
         }
 
         OperationStatus = UiText("Workspace.SearchingDocument");
-        await RunStandaloneAsync(async token => {
-            var progress = new Progress<double>(fraction =>
-                OperationProgressFraction = Math.Clamp(fraction, 0D, 1D));
+        bool succeeded = await RunStandaloneAsync(async token => {
+            CancellationTokenSource? attempt = _operationCancellation;
+            var progress = new Progress<double>(fraction => {
+                if (IsWorkspaceBusy && ReferenceEquals(attempt, _operationCancellation)) OperationProgressFraction = Math.Clamp(fraction, 0D, 1D);
+            });
             IReadOnlyList<PdfSearchHit> results = await _session
                 .SearchAsync(SearchQuery, token, progress)
                 .ConfigureAwait(true);
             SearchResults.Clear();
             foreach (PdfSearchHit result in results) SearchResults.Add(result.WithLocalizer(_localizer));
             OperationProgressFraction = 1D;
-            OperationStatus = results.Count == 0
-                ? UiText("Workspace.NoMatches")
-                : UiFormat("Workspace.MatchingPages", results.Count);
         }, cancellationToken).ConfigureAwait(true);
+        if (succeeded) {
+            OperationStatus = SearchResults.Count == 0
+                ? UiText("Workspace.NoMatches")
+                : UiFormat("Workspace.MatchingPages", SearchResults.Count);
+        }
     }
 
     [RelayCommand]
@@ -360,6 +364,7 @@ public sealed partial class MainWindowViewModel {
         try {
             await operation(currentCancellation.Token).ConfigureAwait(true);
             OperationProgressFraction = 1D;
+            OperationStatus = UiText("Workspace.OperationCompleted");
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
@@ -380,11 +385,14 @@ public sealed partial class MainWindowViewModel {
         }
     }
 
-    private IProgress<PdfWorkspaceProgress> CreateProgress() =>
-        new Progress<PdfWorkspaceProgress>(progress => {
+    private IProgress<PdfWorkspaceProgress> CreateProgress() {
+        CancellationTokenSource? attempt = _operationCancellation;
+        return new Progress<PdfWorkspaceProgress>(progress => {
+            if (!IsWorkspaceBusy || !ReferenceEquals(attempt, _operationCancellation)) return;
             OperationStatus = progress.Stage;
             OperationProgressFraction = Math.Clamp(progress.Fraction, 0D, 1D);
         });
+    }
 
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();

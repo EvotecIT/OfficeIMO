@@ -1479,4 +1479,5 @@
   <data name="Dialog.ActiveOperations.Outputs" xml:space="preserve"><value>Outputs already saved are kept. Cancellation does not undo them. Job history lasts only for this session and work will not resume after restarting.</value></data>
   <data name="Dialog.ActiveOperations.Cancelling" xml:space="preserve"><value>Cancellation requested. Waiting for operations to stop and finish output cleanup…</value></data>
   <data name="Dialog.ActiveOperations.Waiting" xml:space="preserve"><value>Waiting for operations to finish. You can still request cancellation or keep this window open.</value></data>
+  <data name="Workspace.OperationCompleted" xml:space="preserve"><value>Operation completed</value></data>
 </root>

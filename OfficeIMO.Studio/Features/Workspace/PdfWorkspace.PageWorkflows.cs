@@ -66,7 +66,8 @@ internal sealed partial class PdfWorkspace {
             () => CreateDocumentSnapshot().Pages.Extract(pageNumbers.ToArray()),
             cancellationToken).ConfigureAwait(false);
         progress?.Report(new PdfWorkspaceProgress("Saving extracted PDF", 0.7D));
-        await extracted.SaveAsync(destination, cancellationToken).ConfigureAwait(false);
+        await WriteWorkspaceOutputAsync(destination,
+            (stream, token) => extracted.SaveAsync(stream, token), cancellationToken).ConfigureAwait(false);
         progress?.Report(new PdfWorkspaceProgress("Extract complete", 1D));
     }
 
@@ -115,6 +116,7 @@ internal sealed partial class PdfWorkspace {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            foreach (string destination in destinations) await VerifyOutputDestinationAsync(destination, cancellationToken).ConfigureAwait(false);
             progress?.Report(new PdfWorkspaceProgress("Publishing split files", 0.9D));
             for (int index = 0; index < destinations.Length; index++) {
                 string stagedPath = System.IO.Path.Combine(stagingRoot, System.IO.Path.GetFileName(destinations[index]));
@@ -197,8 +199,5 @@ internal sealed partial class PdfWorkspace {
         }
     }
 
-    private static bool PathsEqual(string left, string right) => string.Equals(
-        System.IO.Path.GetFullPath(left),
-        System.IO.Path.GetFullPath(right),
-        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    private static bool PathsEqual(string left, string right) => OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(left, right);
 }

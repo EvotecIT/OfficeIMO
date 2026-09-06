@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -198,12 +199,21 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private void Cancel() => _cancellation?.Cancel();
 
     private void AddSources(IEnumerable<string> paths) {
-        var existing = Sources.Select(static source => source.Path).ToList();
+        if (IsBusy) return;
+        var existing = new HashSet<string>(StringComparer.Ordinal);
+        try {
+            foreach (var source in Sources) existing.Add(OfficePathIdentity.GetPathIdentityKey(source.Path));
+        } catch (Exception exception) when (IsIdentityFailure(exception)) {
+            Status = T("Sources.Unavailable", "An assembly source could not be inspected. Restore or remove it before adding more sources.");
+            return;
+        }
+        int skipped = 0;
         foreach (string path in paths.Where(static path => !string.IsNullOrWhiteSpace(path))) {
-            string fullPath = System.IO.Path.GetFullPath(path);
-            if (existing.Any(candidate => AreEquivalentPaths(candidate, fullPath))) continue;
-            existing.Add(fullPath);
-            Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer));
+            try {
+                string fullPath = System.IO.Path.GetFullPath(path);
+                if (!existing.Add(OfficePathIdentity.GetPathIdentityKey(fullPath))) continue;
+                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer));
+            } catch (Exception exception) when (IsIdentityFailure(exception)) { skipped++; }
         }
         SelectedSource ??= Sources.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0) {
@@ -214,16 +224,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             OutputPath = System.IO.Path.Combine(directory, "assembled.pdf");
         }
         NotifySourcesChanged();
+        if (skipped > 0) Status = _localizer.FormatOrDefault("Assembly.Sources.Skipped", "Skipped {0:N0} source(s) that could not be inspected.", skipped);
     }
 
-    private static bool AreEquivalentPaths(string left, string right) {
-        string normalizedLeft = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(left));
-        string normalizedRight = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(right));
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        return string.Equals(normalizedLeft, normalizedRight, comparison);
-    }
+    private static bool IsIdentityFailure(Exception exception) =>
+        exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException;
 
     private void MoveSelected(int offset) {
         if (IsBusy || SelectedSource is null) return;

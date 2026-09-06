@@ -1,4 +1,7 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Core.Internal;
+using OfficeIMO.Internal;
+using System.Security.Cryptography;
 using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Workspace;
@@ -18,8 +21,10 @@ internal sealed partial class PdfWorkspace : IDisposable {
     private readonly List<PdfWorkspaceOperation> _journal = new();
     private readonly PdfWorkspaceRecoveryStore _recoveryStore;
     private readonly PdfLoadOptions _readOptions;
+    private readonly Func<string, CancellationToken, ValueTask<bool>>? _canPublishOutput;
     private byte[] _bytes;
     private string _baseFingerprint;
+    private string _sourceIdentityKey;
     private PdfDocumentInfo _documentInfo;
     private PdfDocumentPreflight _preflight;
     private long _historyBytes;
@@ -33,19 +38,23 @@ internal sealed partial class PdfWorkspace : IDisposable {
         string path,
         byte[] bytes,
         string baseFingerprint,
+        string sourceIdentityKey,
         PdfDocumentInfo documentInfo,
         PdfDocumentPreflight preflight,
         PdfLoadOptions readOptions,
         PdfWorkspaceRecoveryStore recoveryStore,
-        string? recoveryPath) {
+        string? recoveryPath,
+        Func<string, CancellationToken, ValueTask<bool>>? canPublishOutput) {
         Path = path;
         _bytes = bytes;
         _baseFingerprint = baseFingerprint;
+        _sourceIdentityKey = sourceIdentityKey;
         _documentInfo = documentInfo;
         _preflight = preflight;
         _readOptions = readOptions;
         _recoveryStore = recoveryStore;
         RecoveryPath = recoveryPath;
+        _canPublishOutput = canPublishOutput;
     }
 
     internal event EventHandler? Changed;
@@ -125,14 +134,26 @@ internal sealed partial class PdfWorkspace : IDisposable {
         string path,
         CancellationToken cancellationToken,
         PdfWorkspaceRecoveryStore? recoveryStore = null,
-        string? password = null) {
+        string? password = null,
+        Func<string, CancellationToken, ValueTask<bool>>? canPublishOutput = null) {
         string fullPath = System.IO.Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The selected PDF no longer exists.", fullPath);
         if (!string.Equals(System.IO.Path.GetExtension(fullPath), ".pdf", StringComparison.OrdinalIgnoreCase)) {
             throw new NotSupportedException("OfficeIMO Studio currently opens PDF documents.");
         }
 
-        byte[] bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        string sourceIdentityKey;
+        byte[] bytes;
+        await using (var input = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            sourceIdentityKey = OfficePathIdentity.GetPhysicalIdentityKey(fullPath, input.SafeFileHandle);
+            if (input.Length > Array.MaxLength) throw new IOException("The selected PDF is too large to open in memory.");
+            bytes = new byte[(int)input.Length];
+            await input.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
+        }
+        if (OfficePathIdentity.GetPhysicalIdentityKey(fullPath) != sourceIdentityKey) {
+            throw new IOException("The selected PDF changed while it was being opened. Open it again to read the current file.");
+        }
         var readOptions = new PdfLoadOptions { Password = password };
         (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
             () => Analyze(bytes, readOptions),
@@ -143,11 +164,12 @@ internal sealed partial class PdfWorkspace : IDisposable {
             fullPath,
             bytes,
             baseFingerprint,
+            sourceIdentityKey,
             analysis.Info,
             analysis.Preflight,
             readOptions,
             store,
-            store.Find(fullPath, baseFingerprint));
+            store.Find(fullPath, baseFingerprint), canPublishOutput);
     }
 
     internal PdfDocument CreateDocumentSnapshot() {
@@ -384,9 +406,28 @@ internal sealed partial class PdfWorkspace : IDisposable {
         try {
             string previousPath = Path;
             progress?.Report(new PdfWorkspaceProgress("Saving PDF", 0.2D));
-            await LoadDocument(_bytes).SaveAsync(destination, cancellationToken).ConfigureAwait(false);
+            PdfSaveResult? saved = null;
+            if (OfficePathIdentity.AreEquivalent(destination, Path)) {
+                if (OfficePathIdentity.GetPhysicalIdentityKey(Path) != _sourceIdentityKey) {
+                    throw new IOException("The source PDF was replaced or moved after it was opened. Use Save As to preserve your edits in a different file.");
+                }
+                // Publish to the resolved file while preserving the user's symlink itself.
+                destination = OfficePathIdentity.ResolvePhysicalPath(destination);
+                await OfficeFileCommit.WriteIfUnchangedAsync(destination,
+                    async (stream, token) => saved = await LoadDocument(_bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                    candidate => {
+                        using var stream = new FileStream(candidate, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                        if (OfficePathIdentity.GetPhysicalIdentityKey(candidate, stream.SafeFileHandle) != _sourceIdentityKey) return false;
+                        return string.Equals(_baseFingerprint, Convert.ToHexString(SHA256.HashData(stream)), StringComparison.OrdinalIgnoreCase);
+                    }, cancellationToken).ConfigureAwait(false);
+            } else {
+                await WriteWorkspaceOutputAsync(destination,
+                    async (stream, token) => saved = await LoadDocument(_bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                    cancellationToken).ConfigureAwait(false);
+            }
             Path = destination;
-            _baseFingerprint = PdfWorkspaceRecoveryStore.Fingerprint(_bytes);
+            _sourceIdentityKey = OfficePathIdentity.GetPhysicalIdentityKey(destination);
+            _baseFingerprint = saved!.Pipeline.Output!.Sha256.ToUpperInvariant();
             _savedRevision = _revision;
             // Publication has completed; cleanup must not be interrupted by late cancellation.
             try {

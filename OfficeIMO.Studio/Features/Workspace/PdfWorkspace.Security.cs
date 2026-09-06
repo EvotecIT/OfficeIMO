@@ -138,26 +138,18 @@ internal sealed partial class PdfWorkspace {
     private string ValidateExportDestination(string destinationPath) {
         if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Choose an output PDF.", nameof(destinationPath));
         string destination = System.IO.Path.GetFullPath(destinationPath);
-        StringComparison comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        if (string.Equals(destination, Path, comparison)) {
+        if (OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(destination, Path)) {
             throw new InvalidOperationException("Choose a different output path so the open document remains unchanged.");
         }
         return destination;
     }
 
-    private static async Task WriteOutputAsync(string destination, byte[] bytes, CancellationToken cancellationToken) {
+    private async Task WriteOutputAsync(string destination, byte[] bytes, CancellationToken cancellationToken) {
         string? directory = System.IO.Path.GetDirectoryName(destination);
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) {
             throw new DirectoryNotFoundException("The output folder does not exist.");
         }
-        string temporaryPath = System.IO.Path.Combine(
-            directory,
-            "." + System.IO.Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-        try {
-            await File.WriteAllBytesAsync(temporaryPath, bytes, cancellationToken).ConfigureAwait(false);
-            File.Move(temporaryPath, destination, overwrite: true);
-        } finally {
-            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
-        }
+        await WriteWorkspaceOutputAsync(destination,
+            (stream, token) => stream.WriteAsync(bytes.AsMemory(), token).AsTask(), cancellationToken).ConfigureAwait(false);
     }
 }
