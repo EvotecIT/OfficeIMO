@@ -247,14 +247,16 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task ImportPagesAsync(CancellationToken cancellationToken) {
         if (_workspace is null || !CanImportPages) return;
-        IReadOnlyList<string> paths = await _pickImportPdfs(cancellationToken).ConfigureAwait(true);
-        if (paths.Count == 0) return;
+        PdfWorkspace workspace = _workspace;
+        long revision = workspace.Revision;
         int insertBefore = _organizerSelection.Count == 0
-            ? _workspace.Pages.Count + 1
+            ? workspace.Pages.Count + 1
             : _organizerSelection.Min();
+        IReadOnlyList<string> paths = await _pickImportPdfs(cancellationToken).ConfigureAwait(true);
+        if (paths.Count == 0 || !IsPageWorkflowCurrent(workspace, revision) || !CanImportPages) return;
         int importedPageCount = 0;
         bool succeeded = await RunStandaloneAsync(
-            async token => importedPageCount = await _workspace
+            async token => importedPageCount = await workspace
                 .ImportAsync(paths, insertBefore, token, CreateProgress())
                 .ConfigureAwait(true),
             cancellationToken).ConfigureAwait(true);
@@ -270,22 +272,27 @@ public sealed partial class MainWindowViewModel {
     private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || !CanExtractPages || pages.Length == 0) return;
+        PdfWorkspace workspace = _workspace;
+        long revision = workspace.Revision;
         string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (string.IsNullOrWhiteSpace(path) || !IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
         await RunStandaloneAsync(
-            token => _workspace.ExtractAsync(pages, path, token, CreateProgress()),
+            token => workspace.ExtractAsync(pages, path, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task SplitAsync(CancellationToken cancellationToken) {
         if (_workspace is null || !CanExtractPages) return;
+        PdfWorkspace workspace = _workspace;
+        long revision = workspace.Revision;
+        int pagesPerDocument = SplitPagesPerDocument;
         string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(folder)) return;
+        if (string.IsNullOrWhiteSpace(folder) || !IsPageWorkflowCurrent(workspace, revision) || !CanExtractPages) return;
         IReadOnlyList<string> outputs = Array.Empty<string>();
         bool succeeded = await RunStandaloneAsync(
-            async token => outputs = await _workspace
-                .SplitAsync(folder, SplitPagesPerDocument, token, CreateProgress())
+            async token => outputs = await workspace
+                .SplitAsync(folder, pagesPerDocument, token, CreateProgress())
                 .ConfigureAwait(true),
             cancellationToken).ConfigureAwait(true);
         if (succeeded) {
@@ -297,6 +304,12 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void SelectAllPages() => SetOrganizerSelection(OrganizerPages);
+
+    private bool IsPageWorkflowCurrent(PdfWorkspace workspace, long revision) {
+        if (!_disposed && ReferenceEquals(workspace, _workspace) && workspace.Revision == revision) return true;
+        if (!_disposed) ErrorMessage = UiText("Organizer.StalePreview");
+        return false;
+    }
 
     [RelayCommand]
     private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
