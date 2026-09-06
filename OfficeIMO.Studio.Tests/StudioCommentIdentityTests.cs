@@ -12,6 +12,28 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioCommentIdentityTests {
     [Fact]
+    public async Task FlattenedSparseCommentKeepsItsDraftSeparateFromRenumberedSurvivor() {
+        await WithDocument(async model => {
+            model.SelectedCommentThread = model.CommentThreads.Single(thread => thread.Contents == "Removed comment");
+            model.CommentReplyText = "Draft for the removed comment";
+            var original = model.SelectedCommentThread.Annotation;
+            model.Pages[0].SelectObject(new(PdfEditorSelectionKind.Annotation, 1, new(36, 346, 54, 364), ObjectNumber: original.ObjectNumber, Subtype: "Text"));
+            await model.FlattenSelectedAnnotationCommand.ExecuteAsync(null);
+            Assert.Null(model.ErrorMessage);
+            var remaining = Assert.Single(model.CommentThreads);
+            Assert.Equal("Retained comment", remaining.Contents);
+            Assert.Equal(4, remaining.Annotation.ObjectNumber);
+            model.SelectedCommentThread = remaining;
+            Assert.Empty(model.CommentReplyText);
+            Assert.Single(model.UnassignedCommentDrafts);
+            await model.UndoCommand.ExecuteAsync(null);
+            model.SelectedCommentThread = model.CommentThreads.Single(thread => thread.Contents == "Removed comment");
+            Assert.Equal("Draft for the removed comment", model.CommentReplyText);
+            Assert.Empty(model.UnassignedCommentDrafts);
+        }, sourceBytes: OfficeIMO.TestAssets.SparseAnnotationTestSource.Create());
+    }
+
+    [Fact]
     public async Task RestrictedDocumentAllowsReviewingThreadsButRejectsCommentMutations() {
         await WithDocument(async model => {
             Assert.True(model.HasDocument, model.ErrorMessage);
@@ -155,13 +177,13 @@ public sealed class StudioCommentIdentityTests {
         });
     }
 
-    private static async Task WithDocument(Func<MainWindowViewModel, Task> action, bool duplicateNames = false, bool restricted = false) {
+    private static async Task WithDocument(Func<MainWindowViewModel, Task> action, bool duplicateNames = false, bool restricted = false, byte[]? sourceBytes = null) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "identity.pdf");
-            byte[] bytes = StudioCommentReviewTests.CreateSource();
+            byte[] bytes = sourceBytes ?? StudioCommentReviewTests.CreateSource();
             if (restricted) bytes = PdfDocument.Load(bytes).Security.Encrypt(new("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Print | PdfStandardPermissions.CopyContents | PdfStandardPermissions.Accessibility
             }).Pdf;

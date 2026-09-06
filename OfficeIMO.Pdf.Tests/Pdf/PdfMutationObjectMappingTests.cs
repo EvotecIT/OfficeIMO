@@ -4,6 +4,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfMutationObjectMappingTests {
+    [Fact]
+    public void FlattenCountsRemovedAnnotationWhenRetainedObjectReusesItsNumber() {
+        var document = PdfDocument.Load(OfficeIMO.TestAssets.SparseAnnotationTestSource.Create());
+        var result = document.Annotations.Flatten(new() { ObjectNumber = 4 });
+        var remaining = Assert.Single(result.ToDocument().Inspect().Annotations);
+        Assert.Equal("Retained comment", remaining.Contents);
+        Assert.Equal(4, remaining.ObjectNumber);
+        Assert.Equal(4, result.AnnotationObjectNumberMap![20]);
+        Assert.False(result.AnnotationObjectNumberMap.ContainsKey(4));
+        Assert.Equal(1, result.AffectedAnnotationCount);
+        Assert.True(result.Applied);
+    }
+
     [Theory]
     [InlineData("update")]
     [InlineData("reply")]

@@ -26,7 +26,8 @@ internal sealed partial class PdfWorkspace {
         AnnotationMapping? mapping = null;
         return MutateBytesAsync(kind, description, pages, bytes => {
             var result = mutation(bytes);
-            mapping = new(result.AnnotationObjectNumberMap, !result.Applied || result.MutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly);
+            mapping = new(result.AnnotationObjectNumberMap, result.AnnotationObjectNumberMap is null &&
+                (!result.Applied || result.MutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly));
             return result.Bytes;
         }, token, progress, getAnnotationMapping: () => mapping);
     }
