@@ -176,11 +176,11 @@ public sealed partial class OfficeWorkflowRunner {
                 PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes) };
         }
 
-        private IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes) =>
+        internal IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes) =>
             _snapshots.Count == 0 ? host : new VerifiedProviderPublicationGuard(host,
                 _snapshots.Select(item => (item.Source, item.Snapshot.Fingerprint)).ToArray(), maximumBytes);
 
-        private async Task<string> CaptureOneAsync(string location, OfficeWorkflowStreamInput? source, long maximumBytes, CancellationToken token) {
+        internal async Task<string> CaptureOneAsync(string location, OfficeWorkflowStreamInput? source, long maximumBytes, CancellationToken token) {
             if (source is null) return location;
             var snapshot = await OfficeStreamFileSnapshot.CaptureAsync(source.OpenRead, Path.GetExtension(source.Name),
                 maximumBytes, source.ExpectedSha256, token).ConfigureAwait(false);

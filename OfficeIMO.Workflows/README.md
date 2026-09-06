@@ -91,6 +91,19 @@ The store defaults to a 1 GiB aggregate admission limit and at most 100 records.
 
 ## Review and apply PDF redactions
 
+Searchable PDF generation uses `OfficeWorkflowRunner.MakePdfSearchableAsync` with a `PdfSearchableWorkflowRequest` and a caller-owned `IOcrEngine`:
+
+```csharp
+var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
+    InputPath = "scan.pdf",
+    OutputPath = "searchable.pdf",
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    Ocr = new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "en", Dpi = 150 }
+}, engine, cancellationToken);
+```
+
+The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. The engine remains owned by the caller.
+
 Redaction uses a separate versioned plan/review/apply contract. Planning produces privacy-safe candidate identifiers and geometry. Application re-plans the exact source and recipe, requires every current candidate to be explicitly approved or rejected, applies only approved candidates, and publishes only after native and configured OCR verification succeeds.
 
 ```csharp

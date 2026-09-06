@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Workflows;
 using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -12,13 +13,16 @@ namespace OfficeIMO.Studio.Features.Workflows;
 internal sealed record SearchablePdfOcrOutcome(
     int AddedWordCount,
     IReadOnlyList<int> ModifiedPages,
-    string? Provider);
+    string? Provider,
+    PdfSearchableWorkflowResult? Workflow = null);
 
 internal sealed record SearchablePdfOcrOptions(
     TesseractOcrLanguage Languages,
     bool ProvisionMissingLanguageData,
     OfficeConversionFileConflictPolicy OutputConflictPolicy,
-    PdfOcrMergeOptions Pdf);
+    PdfOcrMergeOptions Pdf) {
+    internal IOfficeWorkflowPublicationGuard? PublicationGuard { get; init; }
+}
 
 internal interface ISearchablePdfOcrService {
     Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
@@ -34,25 +38,24 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
         string outputPath,
         SearchablePdfOcrOptions options,
         CancellationToken cancellationToken) {
+        var pdfOptions = options.Pdf.Clone();
+        pdfOptions.Language = options.Languages.ToTesseractExpression();
+        pdfOptions.SourceName = Path.GetFileName(inputPath);
+        var request = new PdfSearchableWorkflowRequest {
+            InputPath = inputPath, OutputPath = outputPath, Ocr = pdfOptions,
+            ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
+                ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
+            PublicationGuard = options.PublicationGuard
+        };
         TesseractOcrSession session = await TesseractOcr
             .CreateSessionAsync(new TesseractOcrSessionOptions {
                 Languages = options.Languages,
                 ProvisionMissingLanguageData = options.ProvisionMissingLanguageData
             }, cancellationToken)
             .ConfigureAwait(false);
-        options.Pdf.Language = options.Languages.ToTesseractExpression();
-        options.Pdf.SourceName = inputPath;
-        PdfDocument source = PdfDocument.Load(inputPath);
-        PdfSearchableOcrResult result = await source
-            .MakeSearchableAsync(session.Engine, options.Pdf, cancellationToken)
-            .ConfigureAwait(false);
-        await result.Document
-            .SaveAsync(outputPath, options.OutputConflictPolicy, cancellationToken)
-            .ConfigureAwait(false);
-        string? provider = result.Ocr.Pages
-            .Select(static page => page.Provider)
-            .FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value));
-        return new SearchablePdfOcrOutcome(result.AddedWordCount, result.ModifiedPages, provider);
+        PdfSearchableWorkflowResult result = await new OfficeWorkflowRunner()
+            .MakePdfSearchableAsync(request, session.Engine, cancellationToken).ConfigureAwait(false);
+        return new SearchablePdfOcrOutcome(result.AddedWordCount, result.ModifiedPages, result.Provider, result);
     }
 }
 
@@ -77,6 +80,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, CancellationToken, Task>? _openDocument;
     private readonly ISearchablePdfOcrService _service;
     private readonly Func<string, bool> _canPublishPath;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly IStudioLocalizer _localizer;
     private readonly StudioJobHistory? _jobHistory;
     private CancellationTokenSource? _cancellation;
@@ -89,12 +93,14 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         ISearchablePdfOcrService? service = null,
         Func<string, bool>? canPublishPath = null,
         IStudioLocalizer? localizer = null,
-        StudioJobHistory? jobHistory = null) {
+        StudioJobHistory? jobHistory = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
         _canPublishPath = canPublishPath ?? (_ => true);
+        _publicationGuard = publicationGuard ?? new OfficeIMO.Studio.Features.Shell.StudioWorkflowPublicationGuard((path, _) => _canPublishPath(path));
         _localizer = localizer ?? StudioLocalization.Current;
         _jobHistory = jobHistory;
         Languages = new ObservableCollection<OcrLanguageChoice>(TesseractOcrLanguages.Supported.Select(language => {
@@ -242,7 +248,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
-                });
+                }) { PublicationGuard = _publicationGuard };
             job = _jobHistory?.Start(T("Job.Title", "Searchable PDF OCR"), input, output, operation.Cancel);
             using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
             if (!_canPublishPath(output)) throw new InvalidOperationException(T("Error.OutputOpen", "That PDF is already open in another tab. Close it or choose a different output file name."));
@@ -250,7 +256,15 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
             SearchablePdfOcrOutcome result = await _service
                 .MakeSearchableAsync(input, output, options, operation.Token)
                 .ConfigureAwait(true);
-            PublishedPath = output;
+            if (result.Workflow is { Status: not OfficeWorkflowStatus.Completed } workflow) {
+                Status = workflow.Status == OfficeWorkflowStatus.Cancelled
+                    ? T("Status.Cancelled", "OCR cancelled") : T("Status.Failed", "OCR could not finish");
+                Summary = workflow.Summary;
+                if (workflow.Status != OfficeWorkflowStatus.Cancelled) ErrorMessage = workflow.Summary;
+                job?.Complete(workflow.Status, null, workflow.Summary, workflow.Recovery);
+                return;
+            }
+            PublishedPath = result.Workflow?.OutputPath ?? output;
             string pageLabel = result.ModifiedPages.Count == 1
                 ? T("Result.OnePage", "1 page")
                 : _localizer.FormatOrDefault("Ocr.Result.Pages", "{0:N0} pages", result.ModifiedPages.Count);
