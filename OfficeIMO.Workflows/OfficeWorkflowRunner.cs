@@ -76,7 +76,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stopwatch.Elapsed,
                     artifact.Summary,
                     diagnostics,
-                    artifact.HealthReport);
+                    artifact.HealthReport, artifact.SignatureReport);
             }
 
             if (artifact.Bytes.LongLength > validated.Limits.MaximumOutputBytes) {
@@ -127,7 +127,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 return new OfficeWorkflowResult(validated.Id, validated.Operation, outcome.Status,
                     outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
                     outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery);
+                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery, artifact.SignatureReport);
             }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
@@ -147,7 +147,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 artifact.Summary,
                 diagnostics,
-                artifact.HealthReport);
+                artifact.HealthReport, artifact.SignatureReport);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
@@ -202,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return request.Operation switch {
+            OfficeWorkflowOperation.SignPdf => SignPdf(request, cancellationToken),
             OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
             OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
             OfficeWorkflowOperation.Convert => Convert(request, diagnostics, cancellationToken),
@@ -567,7 +568,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     private static void EnsureVerifiedHealthArtifact(OfficeWorkflowOperation operation, PdfHealthReport? report) {
-        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection &&
+        if (operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf &&
             report is not { Verified: true }) {
             throw new InvalidOperationException($"{operation} did not produce verified preservation evidence; no artifact will be published.");
         }
@@ -646,7 +647,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         TimeSpan duration,
         string summary,
         IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
-        PdfHealthReport? report) => new(
+        PdfHealthReport? report,
+        PdfSignatureValidationReport? signatureReport = null) => new(
             request.Id,
             request.Operation,
             status,
@@ -657,7 +659,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             duration,
             summary,
             diagnostics,
-            report);
+            report, signatureReport: signatureReport);
 
     private static void Report(IProgress<OfficeWorkflowProgress>? progress, string id, string stage, string message, double fraction) {
         try {
@@ -692,6 +694,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
+        OfficeWorkflowOperation.SignPdf => "Signing and verifying a separate PDF copy",
         OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
         OfficeWorkflowOperation.RemovePdfProtection => "Creating and verifying an unencrypted PDF copy",
         OfficeWorkflowOperation.ExtractPages => "Extracting the selected PDF pages",
@@ -715,7 +718,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private sealed record OperationArtifact(byte[]? Bytes, string Summary, PdfHealthReport? HealthReport);
+    private sealed record OperationArtifact(byte[]? Bytes, string Summary, PdfHealthReport? HealthReport, PdfSignatureValidationReport? SignatureReport = null);
 
     private sealed record PreparedRequest(
         string Id,
@@ -746,5 +749,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowStreamOutput? OutputStream = null,
         int[]? PageNumbers = null,
         PdfStandardEncryptionOptions? OutputEncryption = null,
-        string? PdfOwnerPassword = null);
+        string? PdfOwnerPassword = null,
+        IPdfExternalSigner? OutputSigner = null,
+        PdfExternalSignatureOptions? OutputSignatureOptions = null,
+        IPdfSignatureCryptographyProvider? OutputSignatureValidator = null);
 }

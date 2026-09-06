@@ -44,6 +44,14 @@ public static class OfficeWorkflow {
     public static OfficeWorkflowBuilder RemovePdfProtection(string inputPath, string ownerPassword) =>
         Create(OfficeWorkflowOperation.RemovePdfProtection, inputPath).WithPdfPassword(ownerPassword).WithPdfOwnerPassword(ownerPassword);
 
+    /// <summary>Creates a signed PDF copy with captured appearance settings and a caller-owned signer and verifier.</summary>
+    public static OfficeWorkflowBuilder SignPdf(string inputPath, OfficeIMO.Pdf.IPdfExternalSigner signer,
+        OfficeIMO.Pdf.PdfExternalSignatureOptions options, OfficeIMO.Pdf.IPdfSignatureCryptographyProvider verifier) =>
+        new(new OfficeWorkflowRequest { Operation = OfficeWorkflowOperation.SignPdf, InputPath = inputPath,
+            OutputSigner = signer ?? throw new ArgumentNullException(nameof(signer)),
+            OutputSignatureOptions = OfficeWorkflowRunner.SnapshotSignatureOptions(options) ?? throw new ArgumentNullException(nameof(options)),
+            OutputSignatureValidator = verifier ?? throw new ArgumentNullException(nameof(verifier)) });
+
     /// <summary>Runs an explicitly constructed request through the default local runner.</summary>
     public static Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
@@ -160,6 +168,9 @@ public sealed class OfficeWorkflowBuilder {
             PageNumbers = _request.PageNumbers?.ToArray(),
             OutputEncryption = _request.OutputEncryption?.Clone(),
             PdfOwnerPassword = _request.PdfOwnerPassword,
+            OutputSigner = _request.OutputSigner,
+            OutputSignatureOptions = OfficeWorkflowRunner.SnapshotSignatureOptions(_request.OutputSignatureOptions),
+            OutputSignatureValidator = _request.OutputSignatureValidator,
             InputPath = _request.InputPath,
             ComparisonPath = _request.ComparisonPath,
             ConversionRouteId = routeId,

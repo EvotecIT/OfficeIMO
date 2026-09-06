@@ -94,6 +94,25 @@ The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPa
 
 The runner snapshots local and provider inputs, checks for source changes before publication, bounds output serialization, and reopens the generated PDF before publishing. `InputStream`, `OutputStream`, `PublicationGuard`, and the result's publication and recovery states follow the same contracts as other single-output workflows. Cancellation is observed before and after synchronous page extraction and during serialization; it cannot interrupt the PDF engine while that synchronous step is running.
 
+## Save a certificate-signed PDF copy
+
+Supply a caller-owned `IPdfExternalSigner` and `IPdfSignatureCryptographyProvider`. The PDF engine owns signature creation and inspection; the workflow captures the settings and publishes a separate output only after checking page count, signature structure, signature math, and document digests.
+
+```csharp
+OfficeWorkflowResult signedCopy = await OfficeWorkflow.SignPdf("report.pdf", signer,
+    new OfficeIMO.Pdf.PdfExternalSignatureOptions {
+        FieldName = "Approval",
+        Reason = "Reviewed",
+        VisibleAppearance = new() { PageNumber = 1, X = 36, Y = 36, Width = 180, Height = 48 }
+    }, verifier)
+    .To("signed-report.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Keep the signer and verifier alive until the task completes. A host using `OfficeIMO.Security` can provide `PdfCmsExternalSigner` and `PdfCmsSignatureCryptographyProvider` adapters. The engine enforces the source document's permissions and certification policy; its current signing plan rejects documents that already contain a signature. Rejected requests leave the source and existing output unchanged.
+
+`SignatureReport` reports certificate-chain, revocation, and timestamp evidence separately. Successful publication does not by itself establish certificate trust. A visible appearance identifies the signature on the page; it is not a substitute for cryptographic verification. On unconfirmed provider publication, the report describes the retained prepared artifact, not the destination's contents. Signing callbacks and cryptographic validation may be synchronous; cancellation is observed around those calls and prevents later publication.
+
 ## Split a PDF into consecutive parts
 
 ```csharp

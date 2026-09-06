@@ -80,7 +80,7 @@ public sealed partial class OfficeWorkflowRunner {
                     "Lossless PDF optimization does not support the TextOnly output profile.",
                     nameof(request));
             }
-            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection) {
+            if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize or OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection or OfficeWorkflowOperation.SignPdf) {
                 outputPath ??= Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
                     Path.GetFileNameWithoutExtension(inputPath) + "." + request.Operation.ToString().ToLowerInvariant() + ".pdf");
@@ -103,6 +103,15 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         var encryption = request.OutputEncryption?.Clone();
+        bool signing = request.Operation == OfficeWorkflowOperation.SignPdf;
+        var signatureOptions = SnapshotSignatureOptions(request.OutputSignatureOptions);
+        if (signing) {
+            if (request.OutputSigner is null || request.OutputSignatureValidator is null || signatureOptions is null)
+                throw new ArgumentException("Signing requires a signer, signature settings, and a cryptographic verifier.", nameof(request));
+            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+                throw new ArgumentException("Signing supports only the Faithful output profile.", nameof(request));
+        } else if (request.OutputSigner is not null || signatureOptions is not null || request.OutputSignatureValidator is not null)
+            throw new ArgumentException("Signature settings are valid only for SignPdf.", nameof(request));
         bool securityOutput = request.Operation is OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection;
         if (request.Operation == OfficeWorkflowOperation.ProtectPdf) {
             if (encryption is null || !Enum.IsDefined(encryption.Algorithm))
@@ -116,7 +125,7 @@ public sealed partial class OfficeWorkflowRunner {
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
         if (encryption?.AesCryptographyProvider is not null) outputOptions = OfficeIMO.Pdf.PdfLoadOptions.WithAesCryptographyProvider(outputOptions, encryption.AesCryptographyProvider);
         OfficeWorkflowStreamInput? inputStream = request.InputStream;
-        if ((request.Operation == OfficeWorkflowOperation.ExtractPages || securityOutput) && inputStream is null) {
+        if ((request.Operation == OfficeWorkflowOperation.ExtractPages || securityOutput || signing) && inputStream is null) {
             inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
                 token.ThrowIfCancellationRequested();
                 return Task.FromResult<Stream>(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read));
@@ -137,7 +146,8 @@ public sealed partial class OfficeWorkflowRunner {
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
             outputOptions,
             request.PublicationGuard,
-            inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword);
+            inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

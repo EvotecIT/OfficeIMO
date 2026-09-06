@@ -23,7 +23,9 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a separate PDF with new or replacement password protection.</summary>
     ProtectPdf,
     /// <summary>Create a separate unencrypted PDF after owner authorization.</summary>
-    RemovePdfProtection
+    RemovePdfProtection,
+    /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
+    SignPdf
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -213,6 +215,15 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Current owner password for replacing or removing protection. Falls back to PdfPassword when omitted.</summary>
     public string? PdfOwnerPassword { get; set; }
+
+    /// <summary>Runtime signer for SignPdf. The caller retains ownership and must keep it alive until execution completes.</summary>
+    public OfficeIMO.Pdf.IPdfExternalSigner? OutputSigner { get; set; }
+
+    /// <summary>Signature and appearance settings for SignPdf, copied before asynchronous execution.</summary>
+    public OfficeIMO.Pdf.PdfExternalSignatureOptions? OutputSignatureOptions { get; set; }
+
+    /// <summary>Required runtime cryptographic verifier for SignPdf. Chain trust is reported independently from signature math.</summary>
+    public OfficeIMO.Pdf.IPdfSignatureCryptographyProvider? OutputSignatureValidator { get; set; }
 
     /// <summary>Shared request resource limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();
