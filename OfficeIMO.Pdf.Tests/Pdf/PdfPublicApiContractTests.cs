@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
-using OfficeIMO.Invoices;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
@@ -420,9 +419,7 @@ public sealed class PdfPublicApiContractTests {
             .Cast<string>()
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
-        Assert.Equal(new[] { "OfficeIMO.Core", "OfficeIMO.Invoices" }, officeReferences);
-        Assert.DoesNotContain(typeof(CiiInvoiceDocument).Assembly.GetReferencedAssemblies(),
-            reference => reference.Name?.StartsWith("OfficeIMO.", StringComparison.Ordinal) == true);
+        Assert.Equal(new[] { "OfficeIMO.Core" }, officeReferences);
     }
 
 }

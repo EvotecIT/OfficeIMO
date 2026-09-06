@@ -82,9 +82,6 @@
           "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
-      "officeimo.invoices": {
-        "type": "Project"
-      },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
@@ -103,8 +100,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )",
-          "OfficeIMO.Invoices": "[3.3.0, )"
+          "OfficeIMO.Core": "[3.3.0, )"
         }
       },
       "officeimo.pdf.ocr": {
@@ -245,9 +241,6 @@
           "OfficeIMO.Pdf": "[3.3.0, )"
         }
       },
-      "officeimo.invoices": {
-        "type": "Project"
-      },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
@@ -266,8 +259,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )",
-          "OfficeIMO.Invoices": "[3.3.0, )"
+          "OfficeIMO.Core": "[3.3.0, )"
         }
       },
       "officeimo.pdf.ocr": {

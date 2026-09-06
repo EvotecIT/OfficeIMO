@@ -4,9 +4,6 @@
     ".NETFramework,Version=v4.7.2": {
       "officeimo.core": {
         "type": "Project"
-      },
-      "officeimo.invoices": {
-        "type": "Project"
       }
     },
     ".NETFramework,Version=v4.7.2/linux-arm64": {},
@@ -32,9 +29,6 @@
       },
       "officeimo.core": {
         "type": "Project"
-      },
-      "officeimo.invoices": {
-        "type": "Project"
       }
     },
     ".NETStandard,Version=v2.0/linux-arm64": {},
@@ -46,9 +40,6 @@
     "net10.0": {
       "officeimo.core": {
         "type": "Project"
-      },
-      "officeimo.invoices": {
-        "type": "Project"
       }
     },
     "net10.0/linux-arm64": {},
@@ -59,9 +50,6 @@
     "net10.0/win-x64": {},
     "net8.0": {
       "officeimo.core": {
-        "type": "Project"
-      },
-      "officeimo.invoices": {
         "type": "Project"
       }
     },

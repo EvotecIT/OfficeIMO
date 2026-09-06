@@ -5,8 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'OfficeIMO.Invoices/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/CiiInvoiceDocumentTests.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
@@ -32,8 +31,7 @@ on:
     branches:
       - master
     paths:
-      - 'OfficeIMO.Invoices/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/CiiInvoiceDocumentTests.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
