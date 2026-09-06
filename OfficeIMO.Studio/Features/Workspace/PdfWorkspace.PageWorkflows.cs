@@ -22,9 +22,18 @@ internal sealed partial class PdfWorkspace {
         }
 
         string[] sources = sourcePaths.Select(ValidateSourcePdfPath).ToArray();
+        var snapshots = new List<byte[]>(sources.Length);
+        long remainingBytes = OfficeIMO.Studio.Infrastructure.StudioStorageAccess.MaximumDocumentBytes;
+        foreach (string source in sources) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (remainingBytes == 0) throw new IOException("The selected PDFs exceed the 512 MiB import limit. Import fewer documents at a time.");
+            var snapshot = await _storage.ReadSnapshotAsync(source, cancellationToken, remainingBytes).ConfigureAwait(false);
+            snapshots.Add(snapshot.Bytes);
+            remainingBytes -= snapshot.Bytes.LongLength;
+        }
         int importedPageCount = 0;
         string description = sources.Length == 1
-            ? $"Imported pages from {System.IO.Path.GetFileName(sources[0])}"
+            ? $"Imported pages from {_storage.Describe(sources[0]).Name}"
             : $"Imported pages from {sources.Length} PDF documents";
 
         await MutateAsync(
@@ -33,9 +42,9 @@ internal sealed partial class PdfWorkspace {
             Array.Empty<int>(),
             document => {
                 int insertionPage = insertBeforePageNumber;
-                foreach (string sourcePath in sources) {
+                foreach (byte[] sourceBytes in snapshots) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    PdfDocument source = PdfDocument.Load(sourcePath);
+                    PdfDocument source = PdfDocument.Load(sourceBytes);
                     int sourcePageCount = source.Inspect().PageCount;
                     document = document.Pages.Insert(insertionPage, source);
                     insertionPage += sourcePageCount;
@@ -139,12 +148,12 @@ internal sealed partial class PdfWorkspace {
         }
     }
 
-    private static string ValidateSourcePdfPath(string path) {
+    private string ValidateSourcePdfPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PDF source paths cannot be empty.", nameof(path));
-        string fullPath = System.IO.Path.GetFullPath(path);
-        if (!File.Exists(fullPath)) throw new FileNotFoundException("An imported PDF no longer exists.", fullPath);
-        if (!string.Equals(System.IO.Path.GetExtension(fullPath), ".pdf", StringComparison.OrdinalIgnoreCase)) {
-            throw new NotSupportedException($"Only PDF documents can be imported: {System.IO.Path.GetFileName(fullPath)}");
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
+        string name = _storage.Describe(fullPath).Name;
+        if (!string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase)) {
+            throw new NotSupportedException($"Only PDF documents can be imported: {name}");
         }
         return fullPath;
     }

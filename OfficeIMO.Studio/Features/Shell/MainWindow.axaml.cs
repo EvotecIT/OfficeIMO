@@ -87,7 +87,7 @@ public sealed partial class MainWindow : Window {
         document = new(
             pickPdf: token => PickFileSafelyAsync(PickPdfAsync, token),
             pickSavePdf: token => PickFileSafelyAsync(PickSavePdfAsync, token),
-            pickImportPdfs: PickPdfsAsync,
+            pickImportPdfs: token => PickFilesSafelyAsync(PickPdfsAsync, token),
             pickOutputFolder: PickOutputFolderAsync,
             openUri: OpenUriAsync,
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
@@ -340,6 +340,16 @@ public sealed partial class MainWindow : Window {
             return null;
         }
     }
+    private async Task<IReadOnlyList<string>> PickFilesSafelyAsync(
+        Func<CancellationToken, Task<IReadOnlyList<string>>> picker, CancellationToken token) {
+        try { return await picker(token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return Array.Empty<string>(); }
+        catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            return Array.Empty<string>();
+        }
+    }
+
     private async Task<string?> PickPdfAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
@@ -373,8 +383,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.Select(static file => file.Path.LocalPath).ToArray();
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<IReadOnlyList<string>> PickWorkflowFilesAsync(CancellationToken cancellationToken) {

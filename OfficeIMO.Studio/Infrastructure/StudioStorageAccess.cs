@@ -29,6 +29,22 @@ internal sealed class StudioStorageAccess : IDisposable {
         return await RegisterAsync(files[0], token).ConfigureAwait(true);
     }
 
+    internal async Task<IReadOnlyList<string>> RegisterManyAsync(IReadOnlyList<IStorageFile> files, CancellationToken token) {
+        IStorageFile[] distinct = files.Distinct<IStorageFile>(ReferenceEqualityComparer.Instance).ToArray();
+        var locations = new List<string>(distinct.Length);
+        int index = 0;
+        try {
+            for (; index < distinct.Length; index++) {
+                locations.Add(await RegisterAsync(distinct[index], token).ConfigureAwait(true));
+            }
+            token.ThrowIfCancellationRequested();
+            return locations;
+        } finally {
+            // RegisterAsync owns the current item even on failure; release items it never reached.
+            for (int remaining = index + 1; remaining < distinct.Length; remaining++) distinct[remaining].Dispose();
+        }
+    }
+
     internal async Task<string> ReadIdentityAsync(string location, CancellationToken token) {
         await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
@@ -84,14 +100,16 @@ internal sealed class StudioStorageAccess : IDisposable {
             (OperatingSystem.IsMacOS() && _references.ContainsKey(OfficeStorageIdentity.Normalize(location)));
     }
 
-    internal async Task<StudioStorageSnapshot> ReadSnapshotAsync(string location, CancellationToken token) {
+    internal async Task<StudioStorageSnapshot> ReadSnapshotAsync(string location, CancellationToken token,
+        long maximumBytes = MaximumDocumentBytes) {
+        if (maximumBytes < 1 || maximumBytes > MaximumDocumentBytes) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         string? localPath = OfficeStorageIdentity.GetLocalPath(location);
         string identity = localPath is null ? OfficeStorageIdentity.Normalize(location)
             : stream is FileStream file ? OfficePathIdentity.GetPhysicalIdentityKey(localPath, file.SafeFileHandle)
             : OfficePathIdentity.GetPhysicalIdentityKey(localPath);
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, token, MaximumDocumentBytes).ConfigureAwait(false);
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, token, maximumBytes).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         if (localPath is not null && OfficePathIdentity.GetPhysicalIdentityKey(localPath) != identity) {
             throw new IOException("The document changed while it was being opened. Select it again to read the current file.");

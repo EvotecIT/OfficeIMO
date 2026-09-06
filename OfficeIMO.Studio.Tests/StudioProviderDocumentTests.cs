@@ -7,6 +7,72 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioProviderDocumentTests {
     [Fact]
+    public async Task ImportProviderBatchIncludesAllPagesAndHasOneUndoStep() {
+        using var storage = new StudioStorageAccess();
+        var source = new TestStorageFile("content://documents/source", CreatePdf());
+        var first = new TestStorageFile("content://documents/import-one", CreatePdf(2));
+        var second = new TestStorageFile("content://documents/import-two", CreatePdf(3));
+        string location = await storage.RegisterAsync(source.Item, default);
+        var imports = await storage.RegisterManyAsync([first.Item, second.Item], default);
+        using var root = new TestDirectory();
+        using var workspace = await PdfWorkspace.OpenAsync(location, default, new(root.Path), storage: storage);
+        Assert.Equal(5, await workspace.ImportAsync(imports, 1, default));
+        Assert.Equal(6, workspace.Pages.Count);
+        Assert.True(workspace.IsDirty);
+        await workspace.UndoAsync(default);
+        Assert.Single(workspace.Pages);
+        await workspace.RedoAsync(default);
+        await workspace.SaveAsync(null, default);
+        Assert.Equal(6, PdfDocument.Load(source.Bytes).Inspect().PageCount);
+        Assert.Equal(first.Reads, first.ClosedReads);
+        Assert.Equal(second.Reads, second.ClosedReads);
+        Assert.Equal(0, first.Writes + second.Writes);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedImportBatchPreservesWorkspaceAndClosesProviderStreams(bool denyRead) {
+        using var storage = new StudioStorageAccess();
+        var source = new TestStorageFile("content://documents/source", CreatePdf());
+        var first = new TestStorageFile("content://documents/import-one", CreatePdf(2));
+        var second = new TestStorageFile("content://documents/import-two", [1, 2, 3]) { DenyRead = denyRead };
+        string location = await storage.RegisterAsync(source.Item, default);
+        var imports = await storage.RegisterManyAsync([first.Item, second.Item], default);
+        using var root = new TestDirectory();
+        using var workspace = await PdfWorkspace.OpenAsync(location, default, new(root.Path), storage: storage);
+        byte[] original = workspace.CreateDocumentSnapshot().ToBytes();
+        await Assert.ThrowsAnyAsync<Exception>(() => workspace.ImportAsync(imports, 1, default));
+        Assert.Equal(original, workspace.CreateDocumentSnapshot().ToBytes());
+        Assert.False(workspace.IsDirty);
+        Assert.Equal(first.Reads, first.ClosedReads);
+        Assert.Equal(denyRead ? 0 : second.Reads, second.ClosedReads);
+        Assert.Equal(0, source.Writes + first.Writes + second.Writes);
+    }
+
+    [Fact]
+    public async Task CancelledBatchRegistrationReleasesEveryUnretainedPickerItem() {
+        using var storage = new StudioStorageAccess();
+        var first = new TestStorageFile("content://documents/first", CreatePdf());
+        var second = new TestStorageFile("content://documents/second", CreatePdf());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            storage.RegisterManyAsync([first.Item, second.Item, second.Item], cancellation.Token));
+        Assert.Equal(1, first.Disposals);
+        Assert.Equal(1, second.Disposals);
+    }
+
+    [Fact]
+    public async Task BoundedProviderReadClosesStreamWhenBatchAllowanceIsExceeded() {
+        using var storage = new StudioStorageAccess();
+        var file = new TestStorageFile("content://documents/large", new byte[100]);
+        string location = await storage.RegisterAsync(file.Item, default);
+        await Assert.ThrowsAsync<InvalidDataException>(() => storage.ReadSnapshotAsync(location, default, 20));
+        Assert.Equal(file.Reads, file.ClosedReads);
+    }
+
+    [Fact]
     public async Task FailedSaveOfUneditedSourceStillRequiresPreservingItsOriginalBytes() {
         using var storage = new StudioStorageAccess();
         var source = new TestStorageFile("content://documents/source", CreatePdf()) { FailWrite = true };
