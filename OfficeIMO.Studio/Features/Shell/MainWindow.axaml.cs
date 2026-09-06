@@ -415,7 +415,6 @@ public sealed partial class MainWindow : Window {
             Title = _services.Localizer.Get("Picker.AddSourceFolder"),
             AllowMultiple = false
         });
-        cancellationToken.ThrowIfCancellationRequested();
         return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
     }
 
