@@ -9,6 +9,7 @@ public sealed class PdfSearchableWorkflowTests {
     [InlineData("success")]
     [InlineData("source-changed")]
     [InlineData("source-replaced")]
+    [InlineData("stream-source-replaced")]
     [InlineData("host-denied")]
     [InlineData("cancelled")]
     public async Task PublicationChecksTheSourceAndHostAfterRecognition(string mode) {
@@ -26,6 +27,7 @@ public sealed class PdfSearchableWorkflowTests {
             bool guardCalled = false;
             var request = new PdfSearchableWorkflowRequest {
                 InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputStream = mode == "stream-source-replaced" ? new("source.pdf", _ => Task.FromResult<Stream>(File.OpenRead(source))) : null,
                 PublicationGuard = new Guard(() => {
                     Assert.True(recognized);
                     guardCalled = true;
@@ -35,7 +37,7 @@ public sealed class PdfSearchableWorkflowTests {
             var engine = new DelegateOcrEngine("fixture", (_, _) => {
                 recognized = true;
                 if (mode == "source-changed") File.WriteAllBytes(source, [9, 8, 7]);
-                if (mode == "source-replaced") {
+                if (mode is "source-replaced" or "stream-source-replaced") {
                     File.Move(source, Path.Combine(root, "old.pdf"));
                     File.WriteAllBytes(source, original);
                 }

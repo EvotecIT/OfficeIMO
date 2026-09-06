@@ -38,13 +38,13 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException("A provider output requires the Replace policy after direct-write confirmation.");
             if (OfficeStorageIdentity.AreEquivalent(input, output)) throw new IOException("Choose an output different from the source PDF.");
             IOfficeWorkflowPublicationGuard sourceGuard = new ProviderSourcePublicationGuard(request.PublicationGuard, [input]);
-            if (inputStream is null) {
-                string identity = OfficePathIdentity.GetPhysicalIdentityKey(input);
-                sourceGuard = new OcrLocalSourceGuard(sourceGuard, input, identity);
-                inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(input), token => {
+            if (OfficeStorageIdentity.GetLocalPath(input) is { } localInput) {
+                string identity = OfficePathIdentity.GetPhysicalIdentityKey(localInput);
+                sourceGuard = new OcrLocalSourceGuard(sourceGuard, localInput, identity);
+                inputStream ??= new OfficeWorkflowStreamInput(Path.GetFileName(localInput), token => {
                     token.ThrowIfCancellationRequested();
-                    if (OfficePathIdentity.GetPhysicalIdentityKey(input) != identity) throw new IOException("The source PDF was replaced during OCR.");
-                    return Task.FromResult<Stream>(new FileStream(input, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    if (OfficePathIdentity.GetPhysicalIdentityKey(localInput) != identity) throw new IOException("The source PDF was replaced during OCR.");
+                    return Task.FromResult<Stream>(new FileStream(localInput, FileMode.Open, FileAccess.Read, FileShare.Read,
                         81920, FileOptions.Asynchronous | FileOptions.SequentialScan));
                 });
             }
@@ -52,7 +52,7 @@ public sealed partial class OfficeWorkflowRunner {
             IOfficeWorkflowPublicationGuard? guard = inputs.Guard(sourceGuard, limits.MaximumInputBytes);
             var loadOptions = CreatePdfLoadOptions(password, limits.MaximumInputBytes);
             PdfDocument source = await PdfDocument.LoadAsync(snapshot, loadOptions, cancellationToken).ConfigureAwait(false);
-            options.SourceName ??= inputStream.Name;
+            options.SourceName ??= inputStream!.Name;
             PdfSearchableOcrResult recognized = await source.MakeSearchableAsync(engine, options, cancellationToken).ConfigureAwait(false);
             words = recognized.AddedWordCount;
             pages = recognized.ModifiedPages;
