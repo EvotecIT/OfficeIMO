@@ -220,7 +220,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         try {
             string input = Path.GetFullPath(InputPath.Trim());
             string output = Path.GetFullPath(OutputPath.Trim());
-            if (PathsEqual(input, output)) {
+            if (OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(input, output)) {
                 throw new InvalidOperationException(T("Error.SamePath", "Choose an OCR output PDF that is different from the source PDF."));
             }
             if (!_canPublishPath(output)) {
