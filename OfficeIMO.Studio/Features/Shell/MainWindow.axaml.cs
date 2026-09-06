@@ -471,7 +471,7 @@ public sealed partial class MainWindow : Window {
         return folders.FirstOrDefault()?.Path.LocalPath;
     }
 
-    private async Task<string?> PickImageAsync(CancellationToken cancellationToken) {
+    private async Task<byte[]?> PickImageAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
@@ -485,8 +485,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.FirstOrDefault()?.Path.LocalPath;
+        return await StudioStorageInput.ReadImageAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task OpenUriAsync(Uri uri) {

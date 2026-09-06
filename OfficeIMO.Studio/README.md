@@ -21,6 +21,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - Search, follow bookmarks and links, navigate by keyboard, use page night mode, and compare two PDFs in synchronized panes.
 - Select existing text, images, and annotations with visible bounds and handles. Replace, move, resize, recolor, flatten, or remove supported objects through the canonical PDF editors.
 - Add text, images, links, notes, markup, shapes, ink, stamps, signature appearances, watermarks, and page numbers.
+- Insert or replace PNG and JPEG images through the file picker's stream access, including sources without a local path. Each selected image is limited to 64 MiB; access is released after reading, and failed reads preserve the current document.
 - Organize pages by drag and drop; rotate, crop, duplicate, reorder, import, extract, split, and insert blank pages with undo, redo, save, and recovery support.
 - Fill, flatten, and author supported AcroForm controls.
 - Inspect protection and signatures; protect or decrypt a copy; apply certificate signatures, validate signatures, add Bates numbering, sanitize, repair, optimize, and perform verified redaction.

@@ -7,6 +7,30 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class MainWindowViewModelTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReplacementImageReadFailureKeepsDocumentAndSelection(bool cancelled) {
+        using var viewModel = new MainWindowViewModel(
+            _ => Task.FromResult<string?>(null),
+            pickImage: _ => cancelled
+                ? Task.FromCanceled<byte[]?>(new CancellationToken(true))
+                : Task.FromException<byte[]?>(new InvalidDataException("Image exceeds the size limit.")));
+        await viewModel.OpenDocumentAsync(GetFixturePath());
+        var selection = new PdfEditorSelection(PdfEditorSelectionKind.Image, 1,
+            new PdfEditorVisualBounds(10D, 10D, 20D, 20D));
+        viewModel.Pages[0].SelectObject(selection);
+        PdfPageViewModel originalPage = viewModel.Pages[0];
+
+        await viewModel.ReplaceSelectedImageCommand.ExecuteAsync(null);
+
+        Assert.Same(originalPage, viewModel.Pages[0]);
+        Assert.Same(selection, viewModel.SelectedObject);
+        Assert.False(viewModel.IsWorkspaceBusy);
+        Assert.Equal(!cancelled, viewModel.HasError);
+        Assert.Equal(cancelled ? "Operation cancelled" : "Operation failed", viewModel.OperationStatus);
+    }
+
     [Fact]
     public void ReadOnlyDocumentModesClearPreviouslySelectedMutationTool() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
@@ -154,9 +178,7 @@ public sealed class MainWindowViewModelTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-picker-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        string imagePath = Path.Combine(root, "pixel.png");
         PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(path);
-        await File.WriteAllBytesAsync(imagePath, TinyPng);
         int picks = 0;
 
         try {
@@ -164,7 +186,8 @@ public sealed class MainWindowViewModelTests {
                 _ => Task.FromResult<string?>(null),
                 pickImage: _ => {
                     picks++;
-                    return Task.FromResult<string?>(imagePath);
+                    return OfficeIMO.Studio.Infrastructure.StudioStorageInput.ReadImageAsync(
+                        [StudioStorageInputTests.CreateImageFile(TinyPng)], default);
                 });
             await viewModel.OpenDocumentAsync(path);
             viewModel.ShowEditModeCommand.Execute(null);

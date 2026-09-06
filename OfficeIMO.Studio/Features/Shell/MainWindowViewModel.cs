@@ -19,7 +19,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
-    private readonly Func<CancellationToken, Task<string?>> _pickImage;
+    private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
@@ -82,7 +82,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickOutputFolder = null,
         Func<Uri, Task>? openUri = null,
         Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
-        Func<CancellationToken, Task<string?>>? pickImage = null,
+        Func<CancellationToken, Task<byte[]?>>? pickImage = null,
         Func<int, Task<bool>>? confirmPageDeletion = null,
         Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null,
         IRecentDocumentStore? recentDocumentStore = null,
@@ -105,7 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
-        _pickImage = pickImage ?? (_ => Task.FromResult<string?>(null));
+        _pickImage = pickImage ?? (_ => Task.FromResult<byte[]?>(null));
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));

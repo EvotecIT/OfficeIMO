@@ -287,9 +287,8 @@ public sealed partial class MainWindowViewModel {
         try {
             byte[]? imageBytes = null;
             if (tool == PdfEditorTool.AddImage) {
-                string? path = await _pickImage(CancellationToken.None).ConfigureAwait(true);
-                if (string.IsNullOrWhiteSpace(path)) return;
-                imageBytes = await File.ReadAllBytesAsync(path).ConfigureAwait(true);
+                imageBytes = await _pickImage(CancellationToken.None).ConfigureAwait(true);
+                if (imageBytes is null) return;
                 if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
                     OperationStatus = UiText("Editor.ImageSelectionStale");
                     return;
