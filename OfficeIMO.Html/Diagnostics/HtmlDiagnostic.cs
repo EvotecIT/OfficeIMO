@@ -103,6 +103,20 @@ public sealed class HtmlDiagnostic {
     public HtmlDiagnostic WithProvenance(HtmlSemanticSourceLocation? sourceLocation, string targetAddress) =>
         new HtmlDiagnostic(Component, Code, Message, Severity, Source, Detail, LossKind, sourceLocation, targetAddress);
 
+    internal HtmlDiagnostic WithLossKind(OfficeConversionLossKind lossKind) =>
+        lossKind == LossKind ? this : new HtmlDiagnostic(this, lossKind);
+
+    private HtmlDiagnostic(HtmlDiagnostic source, OfficeConversionLossKind lossKind) {
+        Component = source.Component;
+        Code = source.Code;
+        Message = source.Message;
+        Severity = source.Severity;
+        Source = source.Source;
+        Detail = source.Detail;
+        LossKind = lossKind;
+        Provenance = source.Provenance;
+    }
+
     /// <inheritdoc />
     public override string ToString() {
         string source = string.IsNullOrWhiteSpace(Source) ? string.Empty : $" [{Source}]";

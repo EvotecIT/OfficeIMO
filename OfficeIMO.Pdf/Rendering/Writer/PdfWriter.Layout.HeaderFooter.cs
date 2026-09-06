@@ -559,23 +559,6 @@ internal static partial class PdfWriter {
         return EnsureHeaderFooterGraphicsState(page, fillOpacity, strokeOpacity);
     }
 
-    private static string? EnsureHeaderFooterFillGradient(LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
-        if (shape.Kind == OfficeShapeKind.Line) return null;
-        if (shape.FillRadialGradient != null) return EnsureRadialShading(page.Shadings, shape.FillRadialGradient);
-        var gradient = shape.FillGradient;
-        if (gradient == null) {
-            return null;
-        }
-
-        double originX = localCoordinates ? 0D : xShape;
-        double originY = localCoordinates ? 0D : bottomY;
-        double x0 = originX + gradient.StartX * shape.Width;
-        double y0 = originY + shape.Height - gradient.StartY * shape.Height;
-        double x1 = originX + gradient.EndX * shape.Width;
-        double y1 = originY + shape.Height - gradient.EndY * shape.Height;
-        return EnsureAxialShading(page.Shadings, gradient, x0, y0, x1, y1);
-    }
-
     private static void DrawHeaderFooterShapeShadowAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {
         var shadow = shape.Shadow;
         if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) return;
@@ -646,7 +629,7 @@ internal static partial class PdfWriter {
                 renderShape = shape.Clone();
                 renderShape.Transform = OfficeTransform.Identity;
             }
-            string? shadingName = EnsureHeaderFooterFillGradient(page, renderShape, xShape, bottomY, localCoordinates: true);
+            string? shadingName = EnsureShapeFillGradient(page.Shadings, renderShape, xShape, bottomY, localCoordinates: true);
             DrawTransformedShape(sb, renderShape, shadingName == null ? ToHeaderFooterPdfColor(renderShape.FillColor) : null, ToHeaderFooterPdfColor(renderShape.StrokeColor), shadingName, xShape, bottomY);
         } else {
             if (shape.ClipPath != null) {
@@ -655,7 +638,7 @@ internal static partial class PdfWriter {
                 AppendClipPath(sb, shape.ClipPath, xShape, bottomY, shape.Height);
             }
 
-            string? shadingName = EnsureHeaderFooterFillGradient(page, shape, xShape, bottomY, localCoordinates: false);
+            string? shadingName = EnsureShapeFillGradient(page.Shadings, shape, xShape, bottomY, localCoordinates: false);
             if (shadingName != null) {
                 DrawGradientShape(sb, shape, shadingName, xShape, bottomY);
             }

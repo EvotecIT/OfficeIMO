@@ -19,7 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "A CSS opacity value used the opaque fallback.",
                 HtmlDiagnosticSeverity.Warning,
                 source,
-                "opacity=" + style.UnsupportedOpacity);
+                "opacity=" + style.UnsupportedOpacity,
+                OfficeConversionLossKind.Omission);
         }
 
         bool hasTransform = style.Transform != "none";
@@ -74,7 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     "A CSS transform or transform-origin value used the identity fallback.",
                     HtmlDiagnosticSeverity.Warning,
                     source,
-                    detail);
+                    detail,
+                    OfficeConversionLossKind.Omission);
                 hasTransform = false;
                 transform = OfficeTransform.Identity;
             }

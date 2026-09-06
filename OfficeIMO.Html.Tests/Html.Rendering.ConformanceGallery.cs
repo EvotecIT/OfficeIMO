@@ -8,6 +8,91 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("count")]
+    [InlineData("pixels")]
+    [InlineData("bytes")]
+    public void HtmlRenderCapabilityGallery_EnforcesAggregatePreviewBudgets(string budget) {
+        const string html = "<style>@page { size: 80px 60px; margin: 0; } body { margin: 0; }" +
+            "div { width: 80px; height: 50px; background: red; } .next { break-before: page; }</style>" +
+            "<div></div><div class='next'></div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario("budget", "Budget", "Rendering", "Preview limits")) {
+            PreviewAllPages = true
+        };
+        options.PreviewFormats.Clear();
+        options.PreviewFormats.Add(OfficeImageExportFormat.Png);
+        IReadOnlyList<OfficeImageExportResult> baseline = document.ExportImages(OfficeImageExportFormat.Png, options.RenderOptions);
+        Assert.Equal(2, baseline.Count);
+        if (budget == "count") options.RenderOptions.MaximumOutputCount = 1;
+        else if (budget == "pixels") options.RenderOptions.MaximumTotalRasterPixels = 80 * 60;
+        else options.RenderOptions.MaximumTotalEncodedBytes = baseline.Max(image => image.Bytes.Length) + 1;
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.GalleryBudget." + Guid.NewGuid().ToString("N"));
+        try {
+            Assert.Throws<OfficeImageExportBatchLimitException>(() => document.SaveRenderCapabilityGallery(directory, options));
+            Assert.False(File.Exists(Path.Combine(directory, "budget.page-0002.png")));
+            Assert.False(File.Exists(Path.Combine(directory, "budget.manifest.json")));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void HtmlRenderCapabilityGallery_PreCanceledOperationDoesNotCreateArtifacts() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.GalleryCancel." + Guid.NewGuid().ToString("N"));
+        var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario("cancel", "Cancel", "Rendering", "Cancellation"));
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => HtmlConversionDocument.Parse("<p>Content</p>")
+            .SaveRenderCapabilityGallery(directory, options, cancellation.Token));
+        Assert.False(Directory.Exists(directory));
+    }
+
+    [Fact]
+    public void HtmlRenderCapabilityGallery_RecordsAllPagesFormatsAndFailedExecutedProof() {
+        const string html = "<style>@page { size: 200px 150px; margin: 10px; } body { margin: 0; }</style>" +
+            "<p>First page</p><p style='break-before:page;transform:rotateX(30deg)'>Second page</p>";
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.AllPageGallery." + Guid.NewGuid().ToString("N"));
+        try {
+            var options = new HtmlRenderCapabilityGalleryOptions(new HtmlCapabilityGalleryScenario(
+                "all-pages", "All pages", "Rendering", "Executed artifact checks")) {
+                PreviewAllPages = true
+            };
+            options.PreviewFormats.Clear();
+            foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Jpeg,
+                OfficeImageExportFormat.Tiff, OfficeImageExportFormat.Webp, OfficeImageExportFormat.Svg }) options.PreviewFormats.Add(format);
+            options.PdfProofOptions.RequiredPageCount = 2;
+            options.PdfProofOptions.RequiredTextMarkers.Add("Deliberately absent marker");
+            options.Expectations.Add(new HtmlCapabilityGalleryExpectation("unverified-visual", HtmlCapabilityGalleryExpectationOutcome.VisualProof, "Manual review required"));
+
+            HtmlCapabilityGalleryManifest manifest = HtmlConversionDocument.Parse(html).SaveRenderCapabilityGallery(directory, options);
+            Assert.Equal(12, manifest.Result.Artifacts.Count);
+            HtmlCapabilityGalleryArtifact pdf = Assert.Single(manifest.Result.Artifacts, artifact => artifact.Id == "pdf");
+            Assert.Equal(2, pdf.Evidence!.PageCount);
+            Assert.False(Assert.Single(pdf.Evidence.Checks).Passed);
+            Assert.Contains("Deliberately absent marker", Assert.Single(pdf.Evidence.Checks).Detail, StringComparison.Ordinal);
+            HtmlCapabilityGalleryArtifact[] images = manifest.Result.Artifacts.Where(artifact => artifact.Evidence?.PageNumber != null).ToArray();
+            Assert.Equal(10, images.Length);
+            Assert.All(images, artifact => {
+                OfficeImageInfo identified = OfficeImageReader.Identify(File.ReadAllBytes(artifact.Path));
+                Assert.Equal(identified.Width, artifact.Evidence!.Width);
+                Assert.Equal(identified.Height, artifact.Evidence.Height);
+                Assert.Equal(2, artifact.Evidence.PageCount);
+                Assert.True(Assert.Single(artifact.Evidence.Checks).Passed);
+                Assert.True(artifact.Evidence.HasLoss);
+                Assert.Contains(artifact.Evidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            });
+            Assert.Equal(5, images.Count(artifact => artifact.Evidence!.PageNumber == 1));
+            Assert.Equal(5, images.Count(artifact => artifact.Evidence!.PageNumber == 2));
+            using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "all-pages.manifest.json")));
+            Assert.Equal("1.1", json.RootElement.GetProperty("schemaVersion").GetString());
+            Assert.Equal("declared-not-executed", json.RootElement.GetProperty("expectationStatus").GetString());
+            Assert.False(json.RootElement.GetProperty("artifacts")[1].GetProperty("evidence").GetProperty("checks")[0].GetProperty("passed").GetBoolean());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public void HtmlRenderCapabilityGallery_BindsInputPdfPreviewsDiagnosticsAndExpectations() {
         string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Capability Gallery Test", 0x7E26, 0x66F8, 0x304D) + "</style>" + """

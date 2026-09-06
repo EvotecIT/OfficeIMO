@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal static class PdfPageContentVisualParser {
+internal static partial class PdfPageContentVisualParser {
     private const double HairlineStrokeWidth = double.PositiveInfinity;
     private const double RenderedHairlineStrokeWidth = 0.25D;
 
@@ -218,7 +218,7 @@ internal static class PdfPageContentVisualParser {
         return value == 0D ? HairlineStrokeWidth : value;
     }
 
-    private sealed class Parser {
+    private sealed partial class Parser {
         private readonly string _content;
         private readonly double _pageWidth;
         private readonly double _pageHeight;
@@ -1267,6 +1267,7 @@ internal static class PdfPageContentVisualParser {
                 _pageHeight,
                 out linearGradient,
                 out radialGradient);
+            if (linearGradient == null && radialGradient == null) _unsupportedShadingTransformVisitor?.Invoke();
         }
 
         private void CreateShadingGradients(PdfPageShadingPatternResource pattern, Matrix2D paintTransform, double x, double y, double width, double height, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient) {
@@ -1292,203 +1293,7 @@ internal static class PdfPageContentVisualParser {
                 return;
             }
             CreateShadingGradients(pattern.Shading, x, y, width, height, combined, _pageHeight, out linearGradient, out radialGradient);
-        }
-
-    internal static void CreateShadingGradients(
-            PdfPageShadingResource shading,
-            double x,
-            double y,
-            double width,
-            double height,
-            Matrix2D transform,
-            double pageHeight,
-            out OfficeLinearGradient? linearGradient,
-            out OfficeRadialGradient? radialGradient) {
-            linearGradient = null;
-            radialGradient = null;
-            (double X, double Y) start = transform.Transform(shading.X0, shading.Y0);
-            (double X, double Y) end = transform.Transform(shading.X1, shading.Y1);
-            double paintWidth = Math.Max(width, 0.0001D);
-            double paintHeight = Math.Max(height, 0.0001D);
-            double rawStartX = (start.X - x) / paintWidth;
-            double rawStartY = ((pageHeight - start.Y) - y) / paintHeight;
-            double rawEndX = (end.X - x) / paintWidth;
-            double rawEndY = ((pageHeight - end.Y) - y) / paintHeight;
-            double startX = Clamp01(rawStartX);
-            double startY = Clamp01(rawStartY);
-            double endX = Clamp01(rawEndX);
-            double endY = Clamp01(rawEndY);
-            if (shading.IsRadial) {
-                double startRadiusX = TransformRadiusX(transform, shading.R0) / paintWidth;
-                double startRadiusY = TransformRadiusY(transform, shading.R0) / paintHeight;
-                double endRadiusX = TransformRadiusX(transform, shading.R1) / paintWidth;
-                double endRadiusY = TransformRadiusY(transform, shading.R1) / paintHeight;
-                if (NearlyEqual(rawStartX, rawEndX)
-                    && NearlyEqual(rawStartY, rawEndY)
-                    && NearlyEqual(startRadiusX, endRadiusX)
-                    && NearlyEqual(startRadiusY, endRadiusY)) {
-                    endRadiusX = startRadiusX + 0.5D;
-                    endRadiusY = startRadiusY + 0.5D;
-                }
-
-                IReadOnlyList<OfficeGradientStop> stops = shading.Stops;
-                radialGradient = endRadiusX > 0D && endRadiusY > 0D
-                    ? new OfficeRadialGradient(rawStartX, rawStartY, startRadiusX, startRadiusY, rawEndX, rawEndY, endRadiusX, endRadiusY, stops)
-                    : new OfficeRadialGradient(
-                        rawStartX,
-                        rawStartY,
-                        Math.Max(startRadiusX, startRadiusY),
-                        rawEndX,
-                        rawEndY,
-                        Math.Max(endRadiusX, endRadiusY),
-                        stops);
-                return;
-            }
-
-            if (!TryClipLinearGradientToUnitBounds(rawStartX, rawStartY, rawEndX, rawEndY, shading.Stops, out OfficeLinearGradient? clippedLinearGradient)) {
-                clippedLinearGradient = null;
-            }
-
-            if (clippedLinearGradient != null) {
-                linearGradient = clippedLinearGradient;
-                return;
-            }
-
-            if (NearlyEqual(startX, endX) && NearlyEqual(startY, endY)) {
-                linearGradient = new OfficeLinearGradient(0D, 0.5D, 1D, 0.5D, shading.Stops);
-                return;
-            }
-
-            linearGradient = new OfficeLinearGradient(
-                startX,
-                startY,
-                endX,
-                endY,
-                shading.Stops);
-        }
-
-        private static bool TryClipLinearGradientToUnitBounds(
-            double x0,
-            double y0,
-            double x1,
-            double y1,
-            IReadOnlyList<OfficeGradientStop> stops,
-            out OfficeLinearGradient? gradient) {
-            gradient = null;
-            double dx = x1 - x0;
-            double dy = y1 - y0;
-            double t0 = 0D;
-            double t1 = 1D;
-            if (!ClipLineParameter(-dx, x0, ref t0, ref t1) ||
-                !ClipLineParameter(dx, 1D - x0, ref t0, ref t1) ||
-                !ClipLineParameter(-dy, y0, ref t0, ref t1) ||
-                !ClipLineParameter(dy, 1D - y0, ref t0, ref t1) ||
-                t1 <= t0) {
-                return false;
-            }
-
-            double clippedStartX = Clamp01(x0 + (dx * t0));
-            double clippedStartY = Clamp01(y0 + (dy * t0));
-            double clippedEndX = Clamp01(x0 + (dx * t1));
-            double clippedEndY = Clamp01(y0 + (dy * t1));
-            if (NearlyEqual(clippedStartX, clippedEndX) && NearlyEqual(clippedStartY, clippedEndY)) {
-                return false;
-            }
-
-            gradient = new OfficeLinearGradient(
-                clippedStartX,
-                clippedStartY,
-                clippedEndX,
-                clippedEndY,
-                ClipGradientStops(stops, t0, t1));
-            return true;
-        }
-
-        private static List<OfficeGradientStop> ClipGradientStops(IReadOnlyList<OfficeGradientStop> stops, double start, double end) {
-            var result = new List<OfficeGradientStop>(stops.Count + 2);
-            bool retainedStart = false;
-            double span = end - start;
-            for (int i = 0; i < stops.Count; i++) {
-                double offset = stops[i].Offset;
-                if (offset == start) {
-                    result.Add(new OfficeGradientStop(0D, stops[i].Color));
-                    retainedStart = true;
-                } else if (offset > start && offset < end) {
-                    result.Add(new OfficeGradientStop((offset - start) / span, stops[i].Color));
-                }
-            }
-            if (!retainedStart) result.Insert(0, new OfficeGradientStop(0D, EvaluateGradientColor(stops, start)));
-            bool retainedEnd = false;
-            for (int i = 0; i < stops.Count; i++) {
-                if (stops[i].Offset != end) continue;
-                result.Add(new OfficeGradientStop(1D, stops[i].Color));
-                retainedEnd = true;
-            }
-            if (!retainedEnd) result.Add(new OfficeGradientStop(1D, EvaluateGradientColor(stops, end)));
-            return result;
-        }
-
-        private static OfficeColor EvaluateGradientColor(IReadOnlyList<OfficeGradientStop> stops, double offset) {
-            double value = Clamp01(offset);
-            for (int i = 1; i < stops.Count; i++) {
-                OfficeGradientStop right = stops[i];
-                if (value > right.Offset) continue;
-                OfficeGradientStop left = stops[i - 1];
-                double span = right.Offset - left.Offset;
-                if (span <= 0D) return right.Color;
-                return InterpolateColor(left.Color, right.Color, (value - left.Offset) / span);
-            }
-            return stops[stops.Count - 1].Color;
-        }
-
-        private static bool ClipLineParameter(double p, double q, ref double t0, ref double t1) {
-            if (NearlyEqual(p, 0D)) {
-                return q >= 0D;
-            }
-
-            double r = q / p;
-            if (p < 0D) {
-                if (r > t1) {
-                    return false;
-                }
-
-                if (r > t0) {
-                    t0 = r;
-                }
-            } else {
-                if (r < t0) {
-                    return false;
-                }
-
-                if (r < t1) {
-                    t1 = r;
-                }
-            }
-
-            return true;
-        }
-
-        private static OfficeColor InterpolateColor(OfficeColor start, OfficeColor end, double ratio) {
-            double clamped = Clamp01(ratio);
-            return OfficeColor.FromRgba(
-                InterpolateByte(start.R, end.R, clamped),
-                InterpolateByte(start.G, end.G, clamped),
-                InterpolateByte(start.B, end.B, clamped),
-                InterpolateByte(start.A, end.A, clamped));
-        }
-
-        private static byte InterpolateByte(byte start, byte end, double ratio) =>
-            (byte)Math.Round(start + ((end - start) * ratio));
-
-        private static double TransformRadiusX(Matrix2D transform, double radius) =>
-            TransformRadius(radius, Math.Sqrt((transform.A * transform.A) + (transform.B * transform.B)));
-
-        private static double TransformRadiusY(Matrix2D transform, double radius) =>
-            TransformRadius(radius, Math.Sqrt((transform.C * transform.C) + (transform.D * transform.D)));
-
-        private static double TransformRadius(double radius, double scale) {
-            if (radius <= 0D) return 0D;
-            return !double.IsNaN(scale) && !double.IsInfinity(scale) && scale > 0D ? radius * scale : radius;
+            if (linearGradient == null && radialGradient == null) _unsupportedShadingTransformVisitor?.Invoke();
         }
 
         private bool TryGetPathBounds(out double x, out double y, out double width, out double height) {

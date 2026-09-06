@@ -95,6 +95,13 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
 
+The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
+including nested scripts. Logical replacement text owns its painted content once, so independent
+PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image
+exports retain the same scene geometry and page count; font rasterization can differ between viewers.
+Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
+PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
+
 The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
 
 For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:
@@ -182,6 +189,18 @@ The untrusted profile is the default. It rejects local-file navigation, does not
 `HtmlConversionLimits` is the common source for parser and CSS complexity decisions. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
 
 ## Shared Diagnostics And Gallery Contracts
+
+Renderer diagnostics carry `OfficeConversionLossKind` independently of severity.
+Unsupported transforms and failed image resources remain loss-bearing even when
+reported at informational severity. Both `FidelityPolicy.RequireNoLoss` and image
+export `Policy.RequireNoLoss` reject these cases. Harmless informational diagnostics
+remain accepted.
+
+Gallery JSON uses schema version `1.1`. Artifact `evidence` records observed page
+geometry, loss diagnostics, and executed checks when the producer supplies them;
+it is `null` for descriptors without those observations. The `expectations` array
+contains caller declarations, marked `declared-not-executed`, and is separate from
+the artifact checks.
 
 ```csharp
 var report = new HtmlDiagnosticReport();

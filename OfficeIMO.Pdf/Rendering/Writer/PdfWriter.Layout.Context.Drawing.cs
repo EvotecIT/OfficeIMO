@@ -49,19 +49,7 @@ internal static partial class PdfWriter {
         private string? EnsureFillGradient(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
             if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) return null;
             EnsurePage();
-            if (shape.FillRadialGradient != null) return EnsureRadialShading(currentPage!.Shadings, shape.FillRadialGradient);
-            var gradient = shape.FillGradient;
-            if (gradient == null) {
-                return null;
-            }
-
-            double originX = localCoordinates ? 0D : xShape;
-            double originY = localCoordinates ? 0D : bottomY;
-            double x0 = originX + gradient.StartX * shape.Width;
-            double y0 = originY + shape.Height - gradient.StartY * shape.Height;
-            double x1 = originX + gradient.EndX * shape.Width;
-            double y1 = originY + shape.Height - gradient.EndY * shape.Height;
-            return EnsureAxialShading(currentPage!.Shadings, gradient, x0, y0, x1, y1);
+            return EnsureShapeFillGradient(currentPage!.Shadings, shape, xShape, bottomY, localCoordinates);
         }
 
         private void DrawShapeShadowAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {
@@ -269,52 +257,12 @@ internal static partial class PdfWriter {
             if (group.ActualText == null || _suppressCanvasActualTextChildren || _suppressCanvasAccessibilityWrappers) {
                 DrawGroupPaint();
             } else {
-                DrawDrawingActualText(
+                RenderLogicalText(
                     group.ActualText,
                     originX + group.ActualTextAnchorX,
                     originTopY - group.ActualTextAnchorY,
                     DrawGroupPaint);
             }
-        }
-
-        private void DrawDrawingActualText(string actualText, double anchorX, double anchorY, Action drawPaint) {
-            sb.Append("/Artifact BMC\n");
-            bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
-            bool previousStructure = _suppressCanvasStructureRegistration;
-            bool previousActualTextChildren = _suppressCanvasActualTextChildren;
-            _suppressCanvasAccessibilityWrappers = true;
-            _suppressCanvasStructureRegistration = true;
-            _suppressCanvasActualTextChildren = true;
-            try {
-                drawPaint();
-            } finally {
-                _suppressCanvasAccessibilityWrappers = previousAccessibility;
-                _suppressCanvasStructureRegistration = previousStructure;
-                _suppressCanvasActualTextChildren = previousActualTextChildren;
-            }
-            sb.Append("EMC\n");
-
-            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
-            string fontResource = GetFontResourceName(font, null, font);
-            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
-            var content = new ContentStreamBuilder(sb)
-                .SaveState()
-                .BeginText()
-                .Font(fontResource, 1D)
-                .TextRenderingMode(3)
-                .TextMatrix(anchorX, anchorY);
-            sb.Append("/Span << /ActualText ")
-                .Append(PdfSyntaxEscaper.TextString(actualText));
-            if (markedContentId.HasValue) {
-                sb.Append(" /MCID ")
-                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
-            }
-            sb.Append(" >> BDC\n");
-            content.ShowText(EncodeActualTextAnchor(font, currentOpts), 1D);
-            sb.Append("EMC\n");
-            content.EndText().RestoreState();
-            MarkSimpleFont(font);
-            pageDirty = true;
         }
 
         private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {

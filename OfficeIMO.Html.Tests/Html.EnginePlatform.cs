@@ -239,7 +239,7 @@ public partial class Html {
         Assert.Contains("Profile Contract", manifestMarkdown);
         Assert.Contains("Supported HTML: semantic sections", manifestMarkdown);
         Assert.Contains("Diagnostic guarantees: diagnostic catalog lookup", manifestMarkdown);
-        Assert.Contains("Roundtrip Expectations", manifestMarkdown);
+        Assert.Contains("Declared Expectations", manifestMarkdown);
         Assert.Contains("Preserved: headings => roundtrip HTML contains h1", manifestMarkdown);
         Assert.Contains("Blocked: blocked resources => resource manifest reports rejected data URI image", manifestMarkdown);
         Assert.Contains("Round Trip Score", manifestMarkdown);
@@ -248,7 +248,7 @@ public partial class Html {
         Assert.Contains("ImageResourceRejectedByPolicy", manifestMarkdown);
         Assert.Contains("[ContentSimplification]", manifestMarkdown);
         Assert.Equal("officeimo.html.capability-gallery", manifestJsonRoot.GetProperty("schemaId").GetString());
-        Assert.Equal("1.0", manifestJsonRoot.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1", manifestJsonRoot.GetProperty("schemaVersion").GetString());
         Assert.Equal("market-report", manifestJsonRoot.GetProperty("scenario").GetProperty("id").GetString());
         Assert.Equal("Document", manifestJsonRoot.GetProperty("profile").GetProperty("id").GetString());
         Assert.Equal(3, manifestJsonRoot.GetProperty("expectations").GetArrayLength());

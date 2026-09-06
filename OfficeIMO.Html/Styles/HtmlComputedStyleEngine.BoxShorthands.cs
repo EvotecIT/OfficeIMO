@@ -3,48 +3,46 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
+    private static readonly string[] PhysicalBoxShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
+    private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
+    private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
+    private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
+    private static readonly string[] BorderStyleLonghands = { "border-top-style", "border-right-style", "border-bottom-style", "border-left-style" };
+    private static readonly string[] BorderColorLonghands = { "border-top-color", "border-right-color", "border-bottom-color", "border-left-color" };
+
     private static bool TryExpandPhysicalBoxShorthand(
         string propertyName,
         string value,
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
         if (normalizedName == "border") {
+            string width, style, color;
             if (IsCssWideKeyword(value.Trim())) {
-                longhands = PhysicalBoxSides
-                    .SelectMany(side => new[] {
-                        new KeyValuePair<string, string>("border-" + side + "-width", value),
-                        new KeyValuePair<string, string>("border-" + side + "-style", value),
-                        new KeyValuePair<string, string>("border-" + side + "-color", value)
-                    })
-                    .ToArray();
-                return true;
-            }
-            if (!TryExpandBorderComponents(value, out string width, out string style, out string color)) {
+                width = style = color = value;
+            } else if (!TryExpandBorderComponents(value, out width, out style, out color)) {
                 longhands = Array.Empty<KeyValuePair<string, string>>();
                 return false;
             }
-            longhands = PhysicalBoxSides
-                .SelectMany(side => new[] {
-                    new KeyValuePair<string, string>("border-" + side + "-width", width),
-                    new KeyValuePair<string, string>("border-" + side + "-style", style),
-                    new KeyValuePair<string, string>("border-" + side + "-color", color)
-                })
-                .ToArray();
+            var border = new KeyValuePair<string, string>[12];
+            for (int index = 0; index < 4; index++) {
+                border[index * 3] = new KeyValuePair<string, string>(BorderWidthLonghands[index], width);
+                border[index * 3 + 1] = new KeyValuePair<string, string>(BorderStyleLonghands[index], style);
+                border[index * 3 + 2] = new KeyValuePair<string, string>(BorderColorLonghands[index], color);
+            }
+            longhands = border;
             return true;
         }
 
-        string prefix;
-        if (normalizedName == "margin" || normalizedName == "padding") {
-            prefix = normalizedName + "-";
-        } else if (normalizedName == "border-width") {
-            prefix = "border-";
-        } else if (normalizedName == "border-style") {
-            prefix = "border-";
-        } else if (normalizedName == "border-color") {
-            prefix = "border-";
-        } else {
-            longhands = Array.Empty<KeyValuePair<string, string>>();
-            return false;
+        string[] names;
+        switch (normalizedName) {
+            case "margin": names = MarginLonghands; break;
+            case "padding": names = PaddingLonghands; break;
+            case "border-width": names = BorderWidthLonghands; break;
+            case "border-style": names = BorderStyleLonghands; break;
+            case "border-color": names = BorderColorLonghands; break;
+            default:
+                longhands = Array.Empty<KeyValuePair<string, string>>();
+                return false;
         }
 
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
@@ -52,23 +50,14 @@ public static partial class HtmlComputedStyleEngine {
             longhands = Array.Empty<KeyValuePair<string, string>>();
             return false;
         }
-
-        string[] expanded = {
-            tokens[0],
-            tokens.Count > 1 ? tokens[1] : tokens[0],
-            tokens.Count > 2 ? tokens[2] : tokens[0],
-            tokens.Count > 3 ? tokens[3] : tokens.Count > 1 ? tokens[1] : tokens[0]
+        longhands = new[] {
+            new KeyValuePair<string, string>(names[0], tokens[0]),
+            new KeyValuePair<string, string>(names[1], tokens.Count > 1 ? tokens[1] : tokens[0]),
+            new KeyValuePair<string, string>(names[2], tokens.Count > 2 ? tokens[2] : tokens[0]),
+            new KeyValuePair<string, string>(names[3], tokens.Count > 3 ? tokens[3] : tokens.Count > 1 ? tokens[1] : tokens[0])
         };
-        string suffix = normalizedName == "border-width" ? "-width"
-            : normalizedName == "border-style" ? "-style"
-            : normalizedName == "border-color" ? "-color"
-            : string.Empty;
-        longhands = PhysicalBoxSides
-            .Select((side, index) => new KeyValuePair<string, string>(prefix + side + suffix, expanded[index]))
-            .ToArray();
         return true;
     }
-
     private static bool TryExpandBorderComponents(string value, out string width, out string style, out string color) {
         width = "medium";
         style = "none";
@@ -101,8 +90,8 @@ public static partial class HtmlComputedStyleEngine {
         ISet<string> inherited,
         ISet<string> reset,
         ISet<string> specified) {
-        string[] shorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
-        foreach (string shorthand in shorthands) {
+
+        foreach (string shorthand in PhysicalBoxShorthands) {
             if (!properties.TryGetValue(shorthand, out string? value)
                 || !TryExpandPhysicalBoxShorthand(shorthand, value, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
                 continue;

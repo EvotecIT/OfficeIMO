@@ -214,7 +214,9 @@ internal static class HtmlLayoutEvidenceRunner {
     }
 
     private static ProcessStartInfo GitInfo(params string[] arguments) {
-        var info = new ProcessStartInfo("git") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
+        // Git may emit enough line-ending warnings to fill a redirected error pipe.
+        // Leave stderr inherited because these metadata probes do not consume it.
+        var info = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
         foreach (string argument in arguments) info.ArgumentList.Add(argument);
         return info;
     }

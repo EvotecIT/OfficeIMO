@@ -1448,6 +1448,38 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode, and invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
 
+#### Load and edit existing invoice XML
+
+`PdfCiiInvoiceDocument` is part of `OfficeIMO.Pdf`. It reads existing namespace-100
+CII invoice XML and lets you replace an existing identifier or format-102 issue
+date while retaining unfamiliar XML content.
+
+```csharp
+using OfficeIMO.Pdf;
+
+var invoice = PdfCiiInvoiceDocument.Load("invoice.xml")
+    .WithDocumentId("INV-2026-0042")
+    .WithIssueDate(new DateTime(2026, 9, 6));
+
+invoice.Save("updated-invoice.xml");
+var options = new PdfOptions().UseFacturXDocument(invoice);
+```
+
+`Load` also accepts a byte array or readable stream. `Save` accepts a path or
+stream; caller-owned streams remain open. `ToBytes()` returns a defensive copy.
+An unedited document keeps its original bytes. Edits return a new document with
+UTF-8 XML, preserving XML content but not its original lexical formatting.
+
+The model exposes `DocumentId`, `IssueDate`, `TypeCode`, `GuidelineId`, and
+`CurrencyCode`. It rejects DTDs, excessive input size or depth, and edits to
+signed, missing, ambiguous, or structured fields. Loading is not schema or
+business-rule validation. This API does not create complete invoices, calculate
+tax, edit PDF pages, or update payment references.
+
+`UseFacturXDocument` snapshots the XML through the existing `UseFacturX(byte[])`
+carrier configuration. The application must keep visible invoice content and
+XML consistent and validate the resulting invoice/PDF pair for its declared profile.
+
 ### Page setup, watermarks, and metadata
 
 ```csharp

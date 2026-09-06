@@ -595,15 +595,21 @@ namespace OfficeIMO.Tests {
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
-        [Fact]
-        public void PowerPointSlide_PreservesSlideFixedGradientAngleOnRotatedNonSquareShape() {
+        [Theory]
+        [InlineData(31D, false, false)]
+        [InlineData(31D, true, false)]
+        [InlineData(-23D, false, true)]
+        public void PowerPointSlide_PreservesSlideFixedGradientAngleOnRotatedNonSquareShape(
+            double rotation, bool horizontalFlip, bool verticalFlip) {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle,
                 30, 25, 100, 40);
-            source.Rotation = 31D;
+            source.Rotation = rotation;
+            source.HorizontalFlip = horizontalFlip;
+            source.VerticalFlip = verticalFlip;
             AddShapeLinearGradient(Assert.IsType<Shape>(source.Element),
                 rotateWithShape: false, angleDegrees: 37D);
 
@@ -611,20 +617,29 @@ namespace OfficeIMO.Tests {
                 new PowerPointImageExportOptions { IncludeSlideBackground = false });
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
-            OfficeLinearGradient gradient = rendered.Shape.FillGradient!;
-            OfficeTransform transform = rendered.Shape.Transform!.Value;
-            OfficePoint start = transform.TransformPoint(new OfficePoint(
-                gradient.StartX * rendered.Shape.Width,
-                gradient.StartY * rendered.Shape.Height));
-            OfficePoint end = transform.TransformPoint(new OfficePoint(
-                gradient.EndX * rendered.Shape.Width,
-                gradient.EndY * rendered.Shape.Height));
-            double actual = Math.Atan2(end.Y - start.Y, end.X - start.X)
-                * 180D / Math.PI;
-            if (actual < 0D) actual += 360D;
-
-            Assert.InRange(actual, 36.999D, 37.001D);
+            Assert.NotNull(rendered.Shape.Transform);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png,
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            // These interior pixel centers lie almost perpendicular to 37 degrees:
+            // their (12,-16) displacement must preserve color on the slide even
+            // when the non-square shape rotates or flips. Endpoint direction alone
+            // does not describe a gradient color field after non-uniform scaling.
+            OfficeColor first = image!.GetPixel(74, 53);
+            OfficeColor second = image.GetPixel(86, 37);
+            Assert.Equal(255, first.A);
+            Assert.Equal(255, second.A);
+            Assert.InRange(Math.Abs(first.R - second.R), 0, 1);
+            Assert.InRange(Math.Abs(first.B - second.B), 0, 1);
+            // Along the requested direction the field must still change, ruling
+            // out a flat fill that would also satisfy the equal-color assertion.
+            OfficeColor before = image.GetPixel(72, 39);
+            OfficeColor after = image.GetPixel(88, 51);
+            Assert.True(before.R > after.R + 10);
+            Assert.True(after.B > before.B + 10);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
         [Fact]

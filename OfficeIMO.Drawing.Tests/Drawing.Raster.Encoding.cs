@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class DrawingRasterEncodingTests {
+public sealed partial class DrawingRasterEncodingTests {
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]

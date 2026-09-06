@@ -20,6 +20,20 @@ public sealed class HtmlRenderDocument {
         }
 
         _diagnosticReport = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
+        // Renderer warnings have always been loss-bearing under RequireNoLoss.
+        // Materialize that contract in the shared report before image/PDF adapters
+        // consume it, rather than letting each adapter reinterpret severity.
+        for (int index = 0; index < _diagnosticReport.Count; index++) {
+            HtmlDiagnostic diagnostic = _diagnosticReport[index];
+            if (diagnostic.LossKind != OfficeConversionLossKind.None) continue;
+            OfficeConversionLossKind lossKind = diagnostic.Severity == HtmlDiagnosticSeverity.Error
+                ? OfficeConversionLossKind.Failure
+                : diagnostic.Severity == HtmlDiagnosticSeverity.Warning
+                    ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;
+            if (lossKind != OfficeConversionLossKind.None) {
+                _diagnosticReport.Replace(index, diagnostic.WithLossKind(lossKind));
+            }
+        }
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
         _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
@@ -38,10 +52,7 @@ public sealed class HtmlRenderDocument {
     /// Whether rendering reported an approximation, omission, or failure. Renderer warnings are
     /// deliberately treated as loss unless they are informational diagnostics.
     /// </summary>
-    public bool HasLoss => _diagnosticReport.Any(static diagnostic =>
-        diagnostic.LossKind != OfficeConversionLossKind.None
-        || diagnostic.Severity == HtmlDiagnosticSeverity.Warning
-        || diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+    public bool HasLoss => _diagnosticReport.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws with the complete structured report when the render was not lossless.</summary>
     public HtmlRenderDocument RequireNoLoss() {

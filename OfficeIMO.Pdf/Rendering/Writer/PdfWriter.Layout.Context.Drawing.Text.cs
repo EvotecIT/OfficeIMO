@@ -107,7 +107,8 @@ internal static partial class PdfWriter {
                 markedContentId: null,
                 structurePage: null,
                 lineXOffsets: layout.LineOffsets,
-                lineWidths: layout.LineWidths);
+                lineWidths: layout.LineWidths,
+                suppressActualText: _suppressCanvasActualTextChildren);
             MarkRichFonts(layout.Runs);
             pageDirty = true;
         }

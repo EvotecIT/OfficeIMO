@@ -11,6 +11,27 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Rendering loss and gallery evidence
+
+PDF warnings now retain the existing `OfficeConversionLossKind` classification
+used by upstream converters. Read `PdfConversionWarning.LossKind` for fidelity
+impact and `Severity` for diagnostic severity. The existing `HasLoss`,
+`RequireNoLoss()`, and PDF-to-image acceptance policies now use that classification,
+so an informational diagnostic describing an omission still counts as loss.
+The existing warning constructor keeps its severity-based defaults; the overload
+with `lossKind` preserves an upstream renderer's explicit classification.
+
+PDF-to-image exports from `PdfDocumentConversionResult` refresh diagnostics after
+serialization and retain loss reported by earlier source-conversion stages. Strict
+exports may therefore reject input that previously passed after dropping a warning.
+
+HTML gallery manifests use schema `1.1` with optional artifact `evidence` and an
+explicit `expectationStatus`. Update readers that reject unknown schema versions.
+The Markdown section previously labelled `Roundtrip Expectations` is now
+`Declared Expectations`; executed checks are attached to the artifact they inspect.
+
+### Document and conversion entry points
+
 OfficeIMO 3.4 deliberately breaks inconsistent convenience and diagnostic names so native documents, conversion adapters, and PDF operations follow the same rules:
 
 - `Parse(...)` and `Load(...)` return the native document model.

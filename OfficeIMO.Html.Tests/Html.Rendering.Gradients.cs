@@ -386,8 +386,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeLinearGradient gradient = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
-        double physicalX = (gradient.EndX - gradient.StartX) * 200D;
-        double physicalY = (gradient.EndY - gradient.StartY) * 100D;
+        OfficeLinearGradient physical = gradient.TransformCoordinates(OfficeTransform.Scale(200D, 100D));
+        double physicalX = physical.EndX - physical.StartX;
+        double physicalY = physical.EndY - physical.StartY;
         Assert.Equal(physicalX, physicalY, 6);
         Assert.True(physicalX > 0D);
     }

@@ -392,11 +392,6 @@ public static partial class OfficeSvgDrawingReader {
             transform.TransformPoint(new OfficePoint(regionX + regionWidth, regionY + regionHeight)),
             transform.TransformPoint(new OfficePoint(regionX, regionY + regionHeight))
         };
-        region = ClipPolygon(region, MaskClipBoundary.Left, 0D);
-        region = ClipPolygon(region, MaskClipBoundary.Top, 0D);
-        region = ClipPolygon(region, MaskClipBoundary.Right, content.Width);
-        region = ClipPolygon(region, MaskClipBoundary.Bottom, content.Height);
-        if (region.Count < 3) return new OfficeDrawing(content.Width, content.Height);
 
         double left = double.MaxValue;
         double top = double.MaxValue;
@@ -419,7 +414,7 @@ public static partial class OfficeSvgDrawingReader {
         commands.Add(OfficePathCommand.Close());
 
         var clipped = new OfficeDrawing(content.Width, content.Height);
-        clipped.AddClippedDrawing(
+        clipped.AddClippedDrawingForRendering(
             content,
             left,
             top,
@@ -427,56 +422,6 @@ public static partial class OfficeSvgDrawingReader {
             -left,
             -top);
         return clipped;
-    }
-
-    private static List<OfficePoint> ClipPolygon(
-        IReadOnlyList<OfficePoint> source,
-        MaskClipBoundary boundary,
-        double boundaryValue) {
-        var result = new List<OfficePoint>(source.Count + 2);
-        if (source.Count == 0) return result;
-        OfficePoint previous = source[source.Count - 1];
-        bool previousInside = IsInsideMaskBoundary(previous, boundary, boundaryValue);
-        for (int index = 0; index < source.Count; index++) {
-            OfficePoint current = source[index];
-            bool currentInside = IsInsideMaskBoundary(current, boundary, boundaryValue);
-            if (currentInside != previousInside) {
-                result.Add(IntersectMaskBoundary(previous, current, boundary, boundaryValue));
-            }
-            if (currentInside) result.Add(current);
-            previous = current;
-            previousInside = currentInside;
-        }
-        return result;
-    }
-
-    private static bool IsInsideMaskBoundary(OfficePoint point, MaskClipBoundary boundary, double value) {
-        switch (boundary) {
-            case MaskClipBoundary.Left: return point.X >= value;
-            case MaskClipBoundary.Top: return point.Y >= value;
-            case MaskClipBoundary.Right: return point.X <= value;
-            default: return point.Y <= value;
-        }
-    }
-
-    private static OfficePoint IntersectMaskBoundary(
-        OfficePoint start,
-        OfficePoint end,
-        MaskClipBoundary boundary,
-        double value) {
-        if (boundary is MaskClipBoundary.Left or MaskClipBoundary.Right) {
-            double ratio = (value - start.X) / (end.X - start.X);
-            return new OfficePoint(value, start.Y + ratio * (end.Y - start.Y));
-        }
-        double verticalRatio = (value - start.Y) / (end.Y - start.Y);
-        return new OfficePoint(start.X + verticalRatio * (end.X - start.X), value);
-    }
-
-    private enum MaskClipBoundary {
-        Left,
-        Top,
-        Right,
-        Bottom
     }
 
     private static string? ReadPresentationProperty(XElement element, string propertyName) {

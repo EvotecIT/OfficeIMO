@@ -48,6 +48,16 @@ input bytes, page count, and rendered text characters. The checked-in
 for all six workloads. Elapsed and absolute process-peak limits are deliberately
 looser gross-regression guards; they are not portable throughput claims.
 
+Capture every page's output fingerprint separately from timing when changing layout allocation:
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Html.Benchmarks -- --layout-fingerprint Purchase2500 > layout-fingerprint.json
+```
+
+The report records page dimensions and SVG hashes, the complete text hash, and diagnostics.
+Compare it with the same workload on the previous revision so lower allocation cannot hide a
+missing page or changed content. Fingerprint collection is outside the timed measurement.
+
 ## Review budgets
 
 Use these allocation ceilings as regression-review budgets for the deterministic corpus. They deliberately leave headroom above the July 2026 net8 reference run; timing should be compared against the same machine's previous healthy commit and reviewed when a lane exceeds 2x its baseline mean.

@@ -537,9 +537,13 @@ public static partial class HtmlComputedStyleEngine {
         resetProperties = reset;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;
-        priorities = priorities
-            .Where(pair => resolved.ContainsKey(pair.Key))
-            .ToDictionary(pair => pair.Key, pair => pair.Value, HtmlCssPropertyNameComparer.Instance);
+        List<string>? removedPriorityNames = null;
+        foreach (string name in priorities.Keys) {
+            if (!resolved.ContainsKey(name)) (removedPriorityNames ??= new List<string>()).Add(name);
+        }
+        if (removedPriorityNames != null) {
+            foreach (string name in removedPriorityNames) priorities.Remove(name);
+        }
         cascadePriorities = priorities;
         return resolved;
     }

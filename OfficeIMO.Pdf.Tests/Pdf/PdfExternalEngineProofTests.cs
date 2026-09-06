@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfExternalEngineProofTests {
+public partial class PdfExternalEngineProofTests {
     [Fact]
     public void GenerateSyntaxRenderingAndSignatureProofFixtures() {
         byte[] source = PdfDocument.Create()

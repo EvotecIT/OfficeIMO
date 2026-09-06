@@ -1717,7 +1717,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         var underlines = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
@@ -1906,18 +1906,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts), runFontSize, textRise);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts), runFontSize, textRise);
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts), runFontSize, textRise);
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                     }
                 }
@@ -1979,7 +1979,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise)
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -1993,7 +1993,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise);
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
                 }
 
                 double baselineY = lineY + textRise;
@@ -2032,7 +2032,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts), separatorFontSize, separatorTextRise);
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts), separatorFontSize, separatorTextRise, suppressActualText);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {
@@ -2201,7 +2201,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null) {
+    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false) {
         // Prevent link coalescing from extending a newly clipped annotation into a prior text frame.
         annots.Add(new LinkAnnotation());
         int annotationStart = annots.Count;
@@ -2211,7 +2211,7 @@ internal static partial class PdfWriter {
             .ClipPath()
             .EndPath();
 
-        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths);
+        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths, suppressActualText);
         ClipLinkAnnotations(annots, annotationStart, clipX, clipY, clipWidth, clipHeight);
         annots.RemoveAt(annotationStart - 1);
 

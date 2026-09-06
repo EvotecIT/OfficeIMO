@@ -62,7 +62,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
 
     /// <summary>True when conversion reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Warnings.Any(static warning => warning.Severity != PdfConversionWarningSeverity.Information);
+    public bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>
     /// High-level fidelity outcome derived from the structured warnings. Declared font-family and
@@ -71,12 +71,13 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     public PdfConversionFidelityStatus FidelityStatus {
         get {
             PdfConversionWarning[] lossWarnings = Warnings
-                .Where(static warning => warning.Severity != PdfConversionWarningSeverity.Information)
+                .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
                 .ToArray();
             if (lossWarnings.Length == 0) {
                 return PdfConversionFidelityStatus.Faithful;
             }
-            if (lossWarnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error)) {
+            if (lossWarnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error ||
+                warning.LossKind == OfficeConversionLossKind.Omission || warning.LossKind == OfficeConversionLossKind.Failure)) {
                 return PdfConversionFidelityStatus.Degraded;
             }
 
@@ -109,7 +110,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     /// </summary>
     public PdfConversionReport RequireNoLoss() {
         PdfConversionWarning[] lossWarnings = Warnings
-            .Where(static warning => warning.Severity != PdfConversionWarningSeverity.Information)
+            .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
             .ToArray();
         if (lossWarnings.Length > 0) {
             throw new InvalidOperationException(CreateFailureMessage("PDF conversion reported possible content loss.", lossWarnings));

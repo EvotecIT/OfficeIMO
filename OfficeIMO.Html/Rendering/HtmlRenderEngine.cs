@@ -340,7 +340,8 @@ public static class HtmlRenderEngine {
                 "An external stylesheet was not loaded; use the asynchronous renderer with a resource resolver.",
                 HtmlDiagnosticSeverity.Warning,
                 reference.Source,
-                reference.ResolvedSource);
+                reference.ResolvedSource,
+                OfficeConversionLossKind.Omission);
         }
     }
 }

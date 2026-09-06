@@ -12,7 +12,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        IElement source) {
+        IElement source,
+        bool paintBorders = true) {
         if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
@@ -20,7 +21,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
         AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
 
-        AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
+            AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        }
     }
 
     private void AddBoxOutlinePaint(

@@ -25,7 +25,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
@@ -45,7 +45,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
@@ -65,7 +65,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.3.0, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
