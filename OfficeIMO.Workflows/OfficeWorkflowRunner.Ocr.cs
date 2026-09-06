@@ -44,10 +44,8 @@ public sealed partial class OfficeWorkflowRunner {
                         81920, FileOptions.Asynchronous | FileOptions.SequentialScan));
                 });
             }
-            var sourceGuard = new OcrScopedSourcePublicationGuard(request.PublicationGuard, input, inputStream, outputStream);
-            inputStream = new OfficeWorkflowStreamInput(inputStream.Name, sourceGuard.OpenReadAsync, inputStream.ExpectedSha256);
             string snapshot = await inputs.CaptureOneAsync(input, inputStream, limits.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
-            IOfficeWorkflowPublicationGuard? guard = inputs.Guard(sourceGuard, limits.MaximumInputBytes);
+            IOfficeWorkflowPublicationGuard? guard = inputs.Guard(request.PublicationGuard, limits.MaximumInputBytes, [input], outputStream);
             var loadOptions = CreatePdfLoadOptions(password, limits.MaximumInputBytes);
             PdfDocument source = await PdfDocument.LoadAsync(snapshot, loadOptions, cancellationToken).ConfigureAwait(false);
             options.SourceName ??= inputStream!.Name;

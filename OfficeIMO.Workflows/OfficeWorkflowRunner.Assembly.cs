@@ -256,7 +256,9 @@ public sealed partial class OfficeWorkflowRunner {
             sourceStreams.Add(OfficeIMO.Internal.OfficeStorageIdentity.Normalize(item.Key), item.Value);
         }
         string[] sources = request.Sources.Select(OfficeIMO.Internal.OfficeStorageIdentity.Normalize).ToArray();
-        if (sources.Any(path => OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(path, outputPath))) {
+        if (sources.Any(path => sourceStreams.ContainsKey(path) || request.OutputStream is not null
+                ? string.Equals(path, outputPath, StringComparison.Ordinal)
+                : OfficeStorageIdentity.AreEquivalent(path, outputPath))) {
             throw new ArgumentException("The output PDF cannot also be an explicit input.", nameof(request));
         }
         foreach (string path in sources) {
@@ -277,7 +279,7 @@ public sealed partial class OfficeWorkflowRunner {
             limits,
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
-            sourceStreams.Count == 0 && request.OutputStream is null ? request.PublicationGuard : new ProviderSourcePublicationGuard(request.PublicationGuard, sources),
+            request.PublicationGuard,
             sourceStreams, OutputStream: request.OutputStream);
     }
 

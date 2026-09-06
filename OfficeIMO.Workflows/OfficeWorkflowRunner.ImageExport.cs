@@ -188,7 +188,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (string.IsNullOrEmpty(Path.GetDirectoryName(outputDirectory))) {
             throw new ArgumentException("Output directory cannot be a filesystem root.", nameof(request));
         }
-        if (OfficeStorageIdentity.GetLocalPath(inputPath) is { } localInput && OfficeWorkflowPathIdentity.IsSameOrDescendant(localInput, outputDirectory)) {
+        if (request.InputStream is null && OfficeStorageIdentity.GetLocalPath(inputPath) is { } localInput && OfficeWorkflowPathIdentity.IsSameOrDescendant(localInput, outputDirectory)) {
             throw new ArgumentException("Output directory cannot be the source PDF path or one of its physical ancestors.", nameof(request));
         }
         if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
@@ -214,7 +214,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.ConflictPolicy,
             limits,
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
-            new ProviderSourcePublicationGuard(request.PublicationGuard, [inputPath]), request.InputStream);
+            request.PublicationGuard, request.InputStream);
     }
 
     private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount) {

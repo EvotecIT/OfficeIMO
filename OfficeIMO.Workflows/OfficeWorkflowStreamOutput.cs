@@ -15,7 +15,9 @@ public sealed class OfficeWorkflowStreamOutput {
     }
     /// <summary>Gets the selected filename, including its output format extension.</summary>
     public string Name { get; }
-    /// <summary>Gets the factory used to verify committed contents after closing the write stream.</summary>
+    /// <summary>Gets the factory used to establish local provider access and verify committed contents after closing the write stream.</summary>
+    /// <remarks>For a local provider path, this may be called before writing so the host can inspect the destination while access is active.
+    /// Throw <see cref="FileNotFoundException"/> when the selected new file does not exist yet. Other access failures prevent publication.</remarks>
     public Func<CancellationToken, Task<Stream>> OpenRead { get; }
     /// <summary>Gets the factory that opens a destructive write stream. The runner closes every returned stream.</summary>
     public Func<CancellationToken, Task<Stream>> OpenWrite { get; }

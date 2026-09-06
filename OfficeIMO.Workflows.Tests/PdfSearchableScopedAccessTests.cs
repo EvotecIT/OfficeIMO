@@ -13,8 +13,8 @@ public sealed class PdfSearchableScopedAccessTests {
         Directory.CreateDirectory(root);
         try {
             byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
-            var input = new ScopedFile(root, "source.pdf", pdf);
-            var output = new ScopedFile(root, "output.pdf", pdf);
+            var input = new ScopedWorkflowFile(root, "source.pdf", pdf);
+            var output = new ScopedWorkflowFile(root, "output.pdf", pdf);
             var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             int hostCalls = 0;
             var request = new PdfSearchableWorkflowRequest {
@@ -49,40 +49,6 @@ public sealed class PdfSearchableScopedAccessTests {
             else Assert.Equal(1, PdfDocument.Load(output.BackingPath).Inspect().PageCount);
             Assert.Empty(store.GetRecoveries());
         } finally { Directory.Delete(root, recursive: true); }
-    }
-
-    // Models a provider whose filesystem name is accessible only during the returned stream's lifetime.
-    private sealed class ScopedFile {
-        internal ScopedFile(string root, string name, byte[] bytes) {
-            Path = System.IO.Path.Combine(root, name);
-            BackingPath = Path + ".outside-scope";
-            File.WriteAllBytes(BackingPath, bytes);
-        }
-        internal string Path { get; }
-        internal string BackingPath { get; }
-        internal int Opens { get; private set; }
-        internal int Closes { get; private set; }
-        internal int Writes { get; private set; }
-        internal Task<Stream> OpenRead(CancellationToken token) => Open(false, token);
-        internal Task<Stream> OpenWrite(CancellationToken token) => Open(true, token);
-        private Task<Stream> Open(bool write, CancellationToken token) {
-            token.ThrowIfCancellationRequested();
-            File.Move(BackingPath, Path);
-            Opens++;
-            if (write) Writes++;
-            return Task.FromResult<Stream>(new ScopedStream(Path, write, () => {
-                File.Move(Path, BackingPath);
-                Closes++;
-            }));
-        }
-    }
-
-    private sealed class ScopedStream(string path, bool write, Action close)
-        : FileStream(path, write ? FileMode.Create : FileMode.Open, write ? FileAccess.Write : FileAccess.Read, FileShare.Read) {
-        private bool _closed;
-        private void CloseScope() { if (!_closed) { _closed = true; close(); } }
-        protected override void Dispose(bool disposing) { base.Dispose(disposing); if (disposing) CloseScope(); }
-        public override async ValueTask DisposeAsync() { await base.DisposeAsync(); CloseScope(); }
     }
 
     private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {

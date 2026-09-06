@@ -103,9 +103,7 @@ public sealed partial class OfficeWorkflowRunner {
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
-            request.InputStream is null && request.ComparisonStream is null && request.OutputStream is null ? request.PublicationGuard
-                : new ProviderSourcePublicationGuard(request.PublicationGuard,
-                    new[] { inputPath, comparisonPath }.OfType<string>().ToArray()),
+            request.PublicationGuard,
             request.InputStream, request.ComparisonStream, request.OutputStream);
     }
 
@@ -128,32 +126,22 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
-    private sealed class ProviderSourcePublicationGuard(IOfficeWorkflowPublicationGuard? host, string[] sources)
-        : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string outputPath, bool isDirectory, CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (sources.Any(source => OfficeStorageIdentity.AreEquivalent(source, outputPath))) return false;
-            string? outputDirectory = isDirectory ? OfficeStorageIdentity.GetLocalPath(outputPath) : null;
-            if (outputDirectory is not null && sources.Any(source => OfficeStorageIdentity.GetLocalPath(source) is { } local &&
-                    OfficePathIdentity.IsSameOrDescendant(local, outputDirectory))) return false;
-            return host is null || await host.CanPublishAsync(outputPath, isDirectory, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
     private sealed class WorkflowInputSnapshots : IDisposable {
-        private readonly List<(OfficeStreamFileSnapshot Snapshot, OfficeWorkflowStreamInput Source)> _snapshots = new();
+        private readonly List<(OfficeStreamFileSnapshot Snapshot, OfficeWorkflowStreamInput Source, WorkflowSourceAccess Access)> _snapshots = new();
 
         internal async Task<ValidatedImageExportRequest> CaptureAsync(ValidatedImageExportRequest request, CancellationToken token) {
             string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
-            return request with { InputPath = inputPath, PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes) };
+            return request with { InputPath = inputPath, PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes, [request.InputPath]) };
         }
 
         internal async Task<ValidatedRequest> CaptureAsync(ValidatedRequest request, CancellationToken token) {
             string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
             string? comparisonPath = request.ComparisonPath is null ? null
                 : await CaptureOneAsync(request.ComparisonPath, request.ComparisonStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
+            string[]? protectedSources = request.InputStream is null && request.ComparisonStream is null && request.OutputStream is null
+                ? null : new[] { request.InputPath, request.ComparisonPath }.OfType<string>().ToArray();
             return request with { InputPath = inputPath, ComparisonPath = comparisonPath,
-                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes) };
+                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes, protectedSources, request.OutputStream) };
         }
 
         internal async Task<ValidatedAssemblyRequest> CaptureAsync(ValidatedAssemblyRequest request, CancellationToken token) {
@@ -173,18 +161,24 @@ public sealed partial class OfficeWorkflowRunner {
                 sources.Add(path);
             }
             return request with { Sources = sources, SourceStreams = stagedStreams, SourceLocations = sourceLocations,
-                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes) };
+                PublicationGuard = Guard(request.PublicationGuard, request.Limits.MaximumInputBytes, request.Sources.ToArray(), request.OutputStream) };
         }
 
-        internal IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes) =>
-            _snapshots.Count == 0 ? host : new VerifiedProviderPublicationGuard(host,
+        internal IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes,
+            string[]? protectedSources = null, OfficeWorkflowStreamOutput? output = null) {
+            if (protectedSources is not null) host = new WorkflowScopedSourcePublicationGuard(host, protectedSources,
+                _snapshots.Select(item => item.Access).ToArray(), output);
+            return _snapshots.Count == 0 ? host : new VerifiedProviderPublicationGuard(host,
                 _snapshots.Select(item => (item.Source, item.Snapshot.Fingerprint)).ToArray(), maximumBytes);
+        }
 
         internal async Task<string> CaptureOneAsync(string location, OfficeWorkflowStreamInput? source, long maximumBytes, CancellationToken token) {
             if (source is null) return location;
+            var access = new WorkflowSourceAccess(location, source);
+            source = access.CreateInput();
             var snapshot = await OfficeStreamFileSnapshot.CaptureAsync(source.OpenRead, Path.GetExtension(source.Name),
                 maximumBytes, source.ExpectedSha256, token).ConfigureAwait(false);
-            _snapshots.Add((snapshot, source));
+            _snapshots.Add((snapshot, source, access));
             return snapshot.FilePath;
         }
 
