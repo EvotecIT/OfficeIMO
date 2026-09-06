@@ -1250,6 +1250,14 @@ PdfDocument.Load("application-form.pdf")
     .Save("application-form-filled.pdf");
 ```
 
+For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
+the proposed value against declared field metadata before applying it. It reports
+read-only fields, scalar/multiple-value conflicts, text length, radio clearing,
+and non-editable choices. Empty required fields produce warnings so an unfinished
+form can still be saved. Text limits count Unicode scalar values. Assessment does
+not run JavaScript or replace document permissions, appearance generation, or
+validation of the saved result; Unicode appearances still need suitable fonts.
+
 To make both readable form fields and supported visual annotations static in one
 artifact, use the combined operation and retain its separate affected counts:
 

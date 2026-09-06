@@ -202,7 +202,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanGoNext => SelectedPage is not null && SelectedPage.PageNumber < Pages.Count;
 
-    public bool IsDirty => _workspace?.IsDirty == true;
+    public bool IsDirty => _workspace?.IsDirty == true || HasFormDrafts;
 
     public bool CanUndo => _workspace?.CanUndo == true;
 
@@ -248,6 +248,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
+        UpdateFormAnchor();
         RefreshReaderPages();
         OnPropertyChanged(nameof(SelectedReaderGridRow));
         SynchronizeComparisonToPrimary(value);
@@ -491,6 +492,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        ClearFormPreview();
         _commands?.Dispose();
         if (_disposed) return;
         SaveDocumentViewState();
@@ -548,6 +550,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
         IReadOnlyCollection<int>? organizerSelection = null) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();
         ClearObjectSelection();

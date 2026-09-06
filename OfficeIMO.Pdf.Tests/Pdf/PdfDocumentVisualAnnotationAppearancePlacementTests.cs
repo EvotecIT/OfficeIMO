@@ -7,6 +7,14 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
+    public void ExistingVisualAnnotations_FlattenRetainsSmallPlacementScale() {
+        byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildAppearancePlacementAnnotationPdf())
+            .Replace("/Matrix [140 0 0 40 0 0]", "/Matrix [1400000 0 0 400000 0 0]"));
+        string flattened = Encoding.ASCII.GetString(PdfAnnotationFlattener.FlattenVisualAnnotations(source));
+        Assert.Contains("0.0001 0 0 0.0001 20 140 cm", flattened, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExistingVisualAnnotations_FlattenPlacesAppearanceStreamsUsingBBoxAndPreservesMatrixResources() {
         byte[] annotated = BuildAppearancePlacementAnnotationPdf();
         string beforePdf = Encoding.ASCII.GetString(annotated);
@@ -23,7 +31,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 10 60 cm", pdf, StringComparison.Ordinal);
-        Assert.Contains("1 0 0 1 0.143 3.5 cm", pdf, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 20 140 cm", pdf, StringComparison.Ordinal);
         Assert.Contains("/Matrix [ 140 0 0 40 0 0 ]", pdf, StringComparison.Ordinal);
         Assert.Contains("/Resources << /Font << /F1 ", pdf, StringComparison.Ordinal);
         Assert.Contains("(BBox AP) Tj", pdf, StringComparison.Ordinal);

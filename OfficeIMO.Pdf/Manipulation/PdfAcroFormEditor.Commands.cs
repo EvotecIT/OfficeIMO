@@ -399,7 +399,7 @@ internal static partial class PdfAcroFormEditor {
         if (value is not null &&
             string.Equals(field.FieldType, "Tx", StringComparison.Ordinal) &&
             TryReadInheritedPositiveInteger(objects, field.Dictionary, "MaxLen", out int maximumLength) &&
-            value.Length > maximumLength) {
+            PdfUnicodeScalarAnalysis.CountScalars(value) > maximumLength) {
             throw new ArgumentException("PDF text field default values cannot exceed the inherited MaxLen.", nameof(value));
         }
         if (value is null) {

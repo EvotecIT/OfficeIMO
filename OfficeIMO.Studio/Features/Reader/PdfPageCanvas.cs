@@ -52,6 +52,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             EditorToolProperty,
             SelectedObjectProperty,
             CommentAnchorObjectNumberProperty,
+            FormAnchorFieldNameProperty,
             SelectionModeProperty,
             PendingRedactionAreaProperty);
     }
@@ -125,6 +126,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
         DrawCommentAnchor(context);
+        DrawFormAnchor(context);
         DrawPendingRedaction(context);
         DrawEditorPreview(context);
     }
@@ -141,6 +143,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
+        if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
         if (change.Property == EditorToolProperty) {
             Cursor = EditorTool == PdfEditorTool.Select ? _textCursor : _crossCursor;
             ResetPointerState();
@@ -291,7 +294,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         _automationPeer ??= new PdfPageCanvasAutomationPeer(this);
 
     private IReadOnlyList<PdfPageInteractionRegion> GetKeyboardInteractions() =>
-        Scene?.Interactions.Regions.Where(static region => region.Kind != PdfInteractionKind.Text).ToArray()
+        Scene?.Interactions.Regions.Where(region => SelectionMode == PdfEditorSelectionMode.Forms
+            ? region.Kind == PdfInteractionKind.FormWidget : region.Kind != PdfInteractionKind.Text).ToArray()
         ?? Array.Empty<PdfPageInteractionRegion>();
 
     private void MoveKeyboardInteraction(int offset) {
@@ -371,6 +375,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         Point point = ToPagePoint(controlPoint);
         IReadOnlyList<PdfPageInteractionRegion> matches = scene.Interactions.HitTest(point.X, point.Y, tolerance: 2D);
         PdfPageInteractionRegion? selected = SelectionMode switch {
+            PdfEditorSelectionMode.Forms => matches.FirstOrDefault(static region => region.Kind == PdfInteractionKind.FormWidget),
             PdfEditorSelectionMode.Annotations => matches.FirstOrDefault(static region =>
                 region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue),
             PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region =>
@@ -414,6 +419,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         region.Kind switch {
             PdfInteractionKind.Image => PdfEditorSelectionKind.Image,
             PdfInteractionKind.Annotation => PdfEditorSelectionKind.Annotation,
+            PdfInteractionKind.FormWidget => PdfEditorSelectionKind.FormField,
             _ => PdfEditorSelectionKind.Text
         },
         pageNumber,
@@ -421,7 +427,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         Text: region.Text,
         ObjectNumber: region.ObjectNumber,
         Subtype: region.Subtype,
-        ImagePlacement: region.ImagePlacement);
+        ImagePlacement: region.ImagePlacement,
+        FieldName: region.FieldName);
 
     private async Task CopySelectionAsync() {
         IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;

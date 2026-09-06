@@ -350,9 +350,23 @@ public sealed partial class MainWindowViewModel {
         }
         if (path is null && workspace.UsesProviderPublication() && !await _confirmProviderWrite(workspace.Path)) return false;
         if (!ReferenceEquals(workspace, _workspace) || _disposed) return false;
+        var formValues = CaptureFormDrafts();
+        if (formValues is null) return false;
+        bool formValuesApplied = false;
         bool succeeded = await RunStandaloneAsync(
-            token => workspace.SaveAsync(path, token, CreateProgress()),
+            async token => {
+                if (formValues.Count > 0) {
+                    await ApplyCapturedFormValuesAsync(formValues,
+                        () => workspace.FillFormFieldsAsync(formValues, token, CreateProgress())).ConfigureAwait(true);
+                    formValuesApplied = true;
+                }
+                await workspace.SaveAsync(path, token, CreateProgress()).ConfigureAwait(true);
+            },
             cancellationToken).ConfigureAwait(true);
+        if (formValuesApplied && ReferenceEquals(workspace, _workspace) && !_disposed) {
+            ClearSignatureValidation();
+            RefreshWorkspacePresentation();
+        }
         if (succeeded) NotifyWorkspaceStateChanged();
         return succeeded;
     }

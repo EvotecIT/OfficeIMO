@@ -1,0 +1,176 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             x:Class="OfficeIMO.Studio.Features.Editor.FormsInspectorView"
+             x:DataType="shell:MainWindowViewModel">
+  <StackPanel Spacing="8">
+    <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="{loc:Loc DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet}" TextWrapping="Wrap" />
+    <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldViewModel"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <StackPanel IsVisible="{Binding HasFormFields}" Spacing="8">
+      <TextBlock Text="{Binding SelectedFormField.PageLabel}" Classes="muted" FontSize="12" />
+      <Button Classes="tool" Content="{loc:Loc Forms.ShowField}" Command="{Binding ShowSelectedFormFieldCommand}" />
+      <TextBlock Text="{Binding SelectedFormField.FieldState}" Classes="muted" TextWrapping="Wrap" />
+      <StackPanel Spacing="8" IsEnabled="{Binding SelectedFormField.CanFill}">
+      <TextBox IsVisible="{Binding SelectedFormField.IsPlainTextEditor}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+               AcceptsReturn="{Binding SelectedFormField.IsMultiline}" MinHeight="34" TextWrapping="Wrap" />
+      <TextBox IsVisible="{Binding SelectedFormField.IsPassword}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+               PasswordChar="●" />
+      <CheckBox IsVisible="{Binding SelectedFormField.IsCheckBoxEditor}" IsChecked="{Binding SelectedFormField.IsChecked, Mode=TwoWay}"
+                Content="{loc:Loc DocumentWorkspace.Checked}" />
+      <ComboBox IsVisible="{Binding SelectedFormField.IsSingleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}"
+                SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=TwoWay}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBox IsVisible="{Binding SelectedFormField.IsEditableChoice}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+               PlaceholderText="{loc:Loc DocumentWorkspace.CustomValue}" />
+      <ItemsControl IsVisible="{Binding SelectedFormField.IsMultipleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="editor:PdfFormChoiceViewModel">
+            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Content="{Binding DisplayText}" Margin="0,2" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      </StackPanel>
+      <Button Classes="tool" Content="{loc:Loc Forms.PreviewAppearance}" Command="{Binding PreviewFormAppearanceCommand}" IsEnabled="{Binding CanPreviewFormAppearance}" />
+      <TextBlock Text="{Binding SelectedFormField.ValidationSummary}" IsVisible="{Binding SelectedFormField.HasValidationMessage}" TextWrapping="Wrap" />
+      <StackPanel Spacing="6" IsVisible="{Binding SelectedFormField.HasDraftConflict}">
+        <TextBlock Text="{loc:Loc Forms.DraftConflict}" TextWrapping="Wrap" />
+        <Button Content="{loc:Loc Forms.KeepDraft}" Command="{Binding SelectedFormField.KeepDraftCommand}" />
+      </StackPanel>
+      <Button Content="{loc:Loc Forms.ResetDraft}" Command="{Binding SelectedFormField.ResetDraftCommand}" IsVisible="{Binding SelectedFormField.HasDraft}" />
+      <TextBlock IsVisible="{Binding SelectedFormField.IsSignature}" Classes="muted"
+                 Text="{loc:Loc DocumentWorkspace.ThisIsASignatureFieldUseTheSigningSectionIn}" TextWrapping="Wrap" />
+      <TextBlock IsVisible="{Binding SelectedFormField.IsUnsupported}" Classes="muted"
+                 Text="{loc:Loc DocumentWorkspace.ThisFieldIsNotDirectlyFillableFromThisInspector}" TextWrapping="Wrap" />
+      <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillField}" Content="{loc:Loc DocumentWorkspace.FillField}" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
+      <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillAndFlatten}" Content="{loc:Loc DocumentWorkspace.FillAndFlatten}" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
+      <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Content="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+    </StackPanel>
+      <StackPanel Spacing="6" IsVisible="{Binding IsFormPreviewBusy}">
+        <ProgressBar IsIndeterminate="True" />
+        <Button Content="{loc:Loc Forms.CancelPreview}" Command="{Binding ClearFormPreviewCommand}" />
+      </StackPanel>
+      <TextBlock Text="{Binding FormPreviewError}" TextWrapping="Wrap" />
+      <StackPanel Spacing="6" IsVisible="{Binding HasFormPreview}">
+        <TextBlock Text="{Binding FormPreviewDescription}" TextWrapping="Wrap" Classes="muted" />
+        <Image x:Name="FormAppearancePreview" Source="{Binding FormPreviewImage}" Stretch="Uniform" MaxHeight="360" />
+        <Button Content="{loc:Loc Forms.ClosePreview}" Command="{Binding ClearFormPreviewCommand}" />
+      </StackPanel>
+    <Expander x:Name="DefinitionEditor" Header="{loc:Loc Forms.EditDefinition}" IsVisible="{Binding HasFormFields}" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{loc:Loc Forms.DefinitionHint}" TextWrapping="Wrap" Classes="muted" />
+        <TextBlock Text="{loc:Loc DocumentWorkspace.Name}" />
+        <TextBox x:Name="DefinitionName" Text="{Binding FormDefinitionName}" IsEnabled="{Binding CanEditFormDefinition}" />
+        <CheckBox x:Name="DefinitionRequired" Content="{loc:Loc Forms.Required}" IsChecked="{Binding FormDefinitionRequired}" IsEnabled="{Binding CanEditFormDefinition}" />
+        <CheckBox Content="{loc:Loc Forms.ReadOnly}" IsChecked="{Binding FormDefinitionReadOnly}" IsEnabled="{Binding CanEditFormDefinition}" />
+        <Button Classes="primary" Content="{loc:Loc Forms.ApplyDefinition}" Command="{Binding ApplyFormDefinitionCommand}" IsEnabled="{Binding CanEditFormDefinition}" />
+        <Button Classes="tool" Content="{loc:Loc Forms.ResetDefinition}" Command="{Binding ResetFormDefinitionCommand}" />
+        <Expander x:Name="DefaultValueEditor" Header="{loc:Loc Forms.DefaultValue}" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="6" IsEnabled="{Binding CanSetFormDefault}">
+            <TextBlock Text="{loc:Loc Forms.DefaultValueHint}" TextWrapping="Wrap" Classes="muted" />
+            <CheckBox x:Name="HasFieldDefault" Content="{loc:Loc Forms.UseDefault}" IsChecked="{Binding FormHasDefaultValue}" />
+            <TextBox x:Name="FieldDefaultValue" Text="{Binding FormDefaultValue}" IsEnabled="{Binding FormHasDefaultValue}" PasswordChar="{Binding SelectedFormField.DraftPasswordChar}" />
+            <Button Classes="primary" Content="{loc:Loc Forms.ApplyDefault}" Command="{Binding SetFormDefaultCommand}" />
+          </StackPanel>
+        </Expander>
+        <Expander x:Name="MoveFieldEditor" Header="{loc:Loc Forms.MoveField}" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{loc:Loc Forms.MoveFieldHint}" TextWrapping="Wrap" Classes="muted" />
+            <StackPanel Spacing="6" IsEnabled="{Binding CanMoveFormWidget}">
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Page}" />
+              <NumericUpDown x:Name="MoveFieldPage" Value="{Binding FormWidgetPage}" Minimum="1" Maximum="{Binding Pages.Count}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Left}" />
+              <NumericUpDown x:Name="MoveFieldX" Value="{Binding FormWidgetX}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Bottom}" />
+              <NumericUpDown x:Name="MoveFieldY" Value="{Binding FormWidgetY}" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Width}" />
+              <NumericUpDown Value="{Binding FormWidgetWidth}" Minimum="1" />
+              <TextBlock Text="{loc:Loc DocumentWorkspace.Height}" />
+              <NumericUpDown Value="{Binding FormWidgetHeight}" Minimum="1" />
+              <Button Classes="tool" Content="{loc:Loc Forms.PreviewPlacement}" Command="{Binding PreviewFormPlacementCommand}" IsEnabled="{Binding CanPreviewFormPlacement}" />
+              <Button Classes="primary" Content="{loc:Loc Forms.ApplyPlacement}" Command="{Binding MoveFormWidgetCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Expander>
+        <TextBlock Text="{loc:Loc Forms.RemoveFieldHint}" TextWrapping="Wrap" Classes="muted" />
+        <Button Classes="tool" Content="{loc:Loc Forms.RemoveField}" Command="{Binding RemoveFormDefinitionCommand}" IsEnabled="{Binding CanEditFormDefinition}" />
+      </StackPanel>
+    </Expander>
+    <Expander x:Name="TabOrderEditor" Header="{loc:Loc Forms.TabOrder}" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="6" IsEnabled="{Binding CanSetFormTabOrder}">
+        <TextBlock Text="{loc:Loc Forms.TabOrderHint}" TextWrapping="Wrap" Classes="muted" />
+        <TextBlock Text="{loc:Loc DocumentWorkspace.Page}" />
+        <NumericUpDown Value="{Binding FormTabOrderPage}" Minimum="1" Maximum="{Binding Pages.Count}" />
+        <ComboBox x:Name="TabOrderChoice" ItemsSource="{Binding FormTabOrders}" SelectedItem="{Binding FormTabOrder}" />
+        <Button Classes="primary" Content="{loc:Loc Forms.ApplyTabOrder}" Command="{Binding ApplyFormTabOrderCommand}" />
+      </StackPanel>
+    </Expander>
+    <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.FlatteningIsExplicitAndMakesSupportedWidgetsPermanentPageContent}" TextWrapping="Wrap" />
+    <TextBlock Text="{loc:Loc Forms.Unapplied}" IsVisible="{Binding HasFormDrafts}" TextWrapping="Wrap" />
+    <Button Content="{loc:Loc Forms.ApplyAll}" Command="{Binding ApplyFormDraftsCommand}" IsEnabled="{Binding CanApplyFormDrafts}" IsVisible="{Binding HasFormDrafts}" />
+    <ItemsControl ItemsSource="{Binding UnassignedFormDrafts}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="editor:PdfFormFieldViewModel">
+          <StackPanel Spacing="6" Margin="0,6">
+            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+            <TextBlock Text="{loc:Loc Forms.UnassignedDraft}" TextWrapping="Wrap" />
+            <TextBox Text="{Binding DraftText}" IsReadOnly="True" PasswordChar="{Binding DraftPasswordChar}" TextWrapping="Wrap" />
+            <Button Content="{loc:Loc Forms.DiscardDraft}" Command="{Binding $parent[UserControl].((shell:MainWindowViewModel)DataContext).DiscardUnassignedFormDraftCommand}" CommandParameter="{Binding}" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Separator Margin="0,5" />
+    <TextBlock Text="{loc:Loc DocumentWorkspace.CreateField}" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="{loc:Loc DocumentWorkspace.FieldAuthoringIsUnavailableUnderThisDocumentSCurrentSecurity}" TextWrapping="Wrap" />
+    <ComboBox ItemsSource="{Binding FormFieldCreationChoices}" SelectedItem="{Binding SelectedFormFieldCreationChoice, Mode=TwoWay}" IsEnabled="{Binding CanAuthorForms}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldCreationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <TextBlock Text="{loc:Loc DocumentWorkspace.Name}" FontSize="12" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
+    <TextBlock Text="{loc:Loc Forms.DisplayName}" FontSize="12" />
+    <TextBox x:Name="NewFieldLabel" AutomationProperties.Name="{loc:Loc Forms.DisplayName}" Text="{Binding NewFormFieldDisplayName}" IsEnabled="{Binding CanAuthorForms}" />
+    <CheckBox x:Name="NewFieldRequired" IsChecked="{Binding NewFormFieldIsRequired}" Content="{loc:Loc Forms.Required}" IsEnabled="{Binding CanAuthorForms}" />
+    <CheckBox x:Name="NewFieldReadOnly" IsChecked="{Binding NewFormFieldIsReadOnly}" Content="{loc:Loc Forms.ReadOnly}" IsEnabled="{Binding CanAuthorForms}" />
+    <Expander Header="{loc:Loc Forms.AdvancedGeometry}" HorizontalAlignment="Stretch">
+    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Page}" FontSize="12" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Left}" FontSize="12" />
+      <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding NewFormFieldPageNumber}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+      <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding NewFormFieldX}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Bottom}" FontSize="12" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="12" />
+      <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding NewFormFieldY}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
+      <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding NewFormFieldWidth}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+      <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="12" />
+      <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding NewFormFieldHeight}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+    </Grid>
+    </Expander>
+    <StackPanel IsVisible="{Binding IsCreatingTextField}" Spacing="5">
+      <TextBlock Text="{loc:Loc Forms.MaximumLength}" FontSize="12" TextWrapping="Wrap" />
+      <NumericUpDown x:Name="NewFieldMaximumLength" AutomationProperties.Name="{loc:Loc Forms.MaximumLength}" Value="{Binding NewFormFieldMaxLength}" Minimum="0" Maximum="2147483647" IsEnabled="{Binding CanAuthorForms}" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="12" /><TextBox Text="{Binding NewFormFieldValue}" />
+      <CheckBox IsChecked="{Binding NewFormFieldIsMultiline}" Content="{loc:Loc DocumentWorkspace.Multiline}" />
+      <CheckBox IsChecked="{Binding NewFormFieldIsPassword}" Content="{loc:Loc DocumentWorkspace.PasswordField}" />
+    </StackPanel>
+    <CheckBox IsVisible="{Binding IsCreatingCheckBox}" IsChecked="{Binding NewFormFieldIsChecked}" Content="{loc:Loc DocumentWorkspace.InitiallyChecked}" />
+    <StackPanel IsVisible="{Binding IsCreatingChoiceField}" Spacing="5">
+      <TextBlock Text="{loc:Loc DocumentWorkspace.OptionsOnePerLine}" FontSize="12" />
+      <TextBox Text="{Binding NewFormFieldOptions}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="12" /><TextBox Text="{Binding NewFormFieldValue}" />
+      <StackPanel IsVisible="{Binding IsCreatingChoiceList}" Spacing="5">
+        <CheckBox IsChecked="{Binding NewFormFieldIsComboBox}" Content="{loc:Loc DocumentWorkspace.DropDown}" />
+        <CheckBox IsChecked="{Binding NewFormFieldAllowsCustomValue}" Content="{loc:Loc DocumentWorkspace.AllowACustomValue}" />
+        <CheckBox IsChecked="{Binding NewFormFieldAllowsMultipleSelection}" Content="{loc:Loc DocumentWorkspace.AllowMultipleSelections}" />
+      </StackPanel>
+    </StackPanel>
+    <StackPanel IsVisible="{Binding IsCreatingButton}" Spacing="5">
+      <TextBlock Text="{loc:Loc DocumentWorkspace.Caption}" FontSize="12" /><TextBox Text="{Binding NewFormFieldCaption}" />
+    </StackPanel>
+    <Button Classes="tool" Content="{loc:Loc Forms.PreviewNewField}" Command="{Binding PreviewNewFormFieldCommand}" IsEnabled="{Binding CanPreviewNewFormField}" />
+    <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CreateField}" Content="{loc:Loc DocumentWorkspace.CreateField}" Command="{Binding CreateFormFieldCommand}" IsEnabled="{Binding CanAuthorForms}" />
+  </StackPanel>
+</UserControl>

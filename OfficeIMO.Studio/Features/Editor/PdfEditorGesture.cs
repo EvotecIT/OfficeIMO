@@ -21,7 +21,10 @@ public enum PdfEditorSelectionKind {
     Image,
 
     /// <summary>One indirect annotation object.</summary>
-    Annotation
+    Annotation,
+
+    /// <summary>A named AcroForm widget.</summary>
+    FormField
 }
 
 /// <summary>Object-selection policy projected by the active document mode.</summary>
@@ -33,7 +36,10 @@ public enum PdfEditorSelectionMode {
     Annotations,
 
     /// <summary>Select existing text, images, and annotations.</summary>
-    PageContent
+    PageContent,
+
+    /// <summary>Select form widgets for the form inspector.</summary>
+    Forms
 }
 
 /// <summary>Visual top-left bounds for one editor selection.</summary>
@@ -53,4 +59,5 @@ public sealed record PdfEditorSelection(
     string? Text = null,
     int? ObjectNumber = null,
     string? Subtype = null,
-    PdfImagePlacement? ImagePlacement = null);
+    PdfImagePlacement? ImagePlacement = null,
+    string? FieldName = null);

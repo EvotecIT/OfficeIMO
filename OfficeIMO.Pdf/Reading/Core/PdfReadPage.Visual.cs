@@ -2448,43 +2448,9 @@ public sealed partial class PdfReadPage {
     }
 
     private Matrix2D CreateAnnotationAppearanceTransform((double X1, double Y1, double X2, double Y2) rectangle, PdfDictionary appearanceDictionary) {
-        double bboxX1 = 0D;
-        double bboxY1 = 0D;
-        double bboxWidth = rectangle.X2 - rectangle.X1;
-        double bboxHeight = rectangle.Y2 - rectangle.Y1;
-        if (TryReadBox(appearanceDictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox)) {
-            bboxX1 = bbox.X1;
-            bboxY1 = bbox.Y1;
-            bboxWidth = bbox.X2 - bbox.X1;
-            bboxHeight = bbox.Y2 - bbox.Y1;
-        }
-
-        double scaleX = bboxWidth > 0D ? (rectangle.X2 - rectangle.X1) / bboxWidth : 1D;
-        double scaleY = bboxHeight > 0D ? (rectangle.Y2 - rectangle.Y1) / bboxHeight : 1D;
-        var rectangleTransform = new Matrix2D(
-            scaleX,
-            0D,
-            0D,
-            scaleY,
-            rectangle.X1 - (bboxX1 * scaleX),
-            rectangle.Y1 - (bboxY1 * scaleY));
-        return Matrix2D.Multiply(rectangleTransform, ReadAppearanceMatrix(appearanceDictionary));
-    }
-
-    private Matrix2D ReadAppearanceMatrix(PdfDictionary appearanceDictionary) {
-        if (!appearanceDictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject) ||
-            ResolveObject(matrixObject) is not PdfArray matrix ||
-            matrix.Items.Count < 6) {
-            return Matrix2D.Identity;
-        }
-
-        return new Matrix2D(
-            ReadMatrixNumber(matrix, 0, 1D),
-            ReadMatrixNumber(matrix, 1, 0D),
-            ReadMatrixNumber(matrix, 2, 0D),
-            ReadMatrixNumber(matrix, 3, 1D),
-            ReadMatrixNumber(matrix, 4, 0D),
-            ReadMatrixNumber(matrix, 5, 0D));
+        Matrix2D placement = PdfAppearancePlacement.Read(appearanceDictionary, value => ResolveObject(value),
+            rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out Matrix2D matrix);
+        return Matrix2D.Multiply(placement, matrix);
     }
 
     private double ReadMatrixNumber(PdfArray matrix, int index, double fallback) =>

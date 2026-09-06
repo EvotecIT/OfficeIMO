@@ -87,6 +87,7 @@ public sealed partial class MainWindowViewModel {
             SelectedEditorToolChoice = EditorTools[0];
         }
         foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
+        UpdateFormAnchor();
         if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||
             value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit) {
             ClearObjectSelection();
@@ -103,6 +104,7 @@ public sealed partial class MainWindowViewModel {
     private PdfEditorSelectionMode GetEditorSelectionMode() => DocumentMode switch {
         StudioDocumentMode.Annotate => PdfEditorSelectionMode.Annotations,
         StudioDocumentMode.Edit => PdfEditorSelectionMode.PageContent,
+        StudioDocumentMode.Forms => PdfEditorSelectionMode.Forms,
         _ => PdfEditorSelectionMode.None
     };
 

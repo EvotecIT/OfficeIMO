@@ -1550,4 +1550,41 @@
   <data name="OcrSession.Retry" xml:space="preserve"><value>Retry failed or cancelled</value></data>
   <data name="OcrSession.SinglePdf" xml:space="preserve"><value>Searchable PDF</value></data>
   <data name="OcrSession.FilesTab" xml:space="preserve"><value>Images and multiple files</value></data>
+  <data name="Forms.DraftConflict" xml:space="preserve"><value>The saved field changed. Keep your draft against the current field, or reset it to the saved value.</value></data>
+  <data name="Forms.KeepDraft" xml:space="preserve"><value>Keep my draft</value></data>
+  <data name="Forms.ResetDraft" xml:space="preserve"><value>Reset to saved value</value></data>
+  <data name="Forms.Unapplied" xml:space="preserve"><value>You have unapplied form edits. Save includes valid edits; resolve any conflicts first.</value></data>
+  <data name="Forms.ApplyAll" xml:space="preserve"><value>Apply all form edits</value></data>
+  <data name="Forms.UnassignedDraft" xml:space="preserve"><value>This field was removed or changed. Its draft is retained. Use Undo to restore the field, or discard the draft.</value></data>
+  <data name="Forms.DiscardDraft" xml:space="preserve"><value>Discard this draft</value></data>
+  <data name="Forms.DisplayName" xml:space="preserve"><value>Field label (optional)</value></data>
+  <data name="Forms.Required" xml:space="preserve"><value>Required</value></data>
+  <data name="Forms.ReadOnly" xml:space="preserve"><value>Read only</value></data>
+  <data name="Forms.MaximumLength" xml:space="preserve"><value>Maximum characters (0 means unlimited)</value></data>
+  <data name="Forms.EditDefinition" xml:space="preserve"><value>Edit field definition</value></data>
+  <data name="Forms.DefinitionHint" xml:space="preserve"><value>Apply or reset any value edits before changing a field definition. Changes apply only when you choose Apply definition. A name with dots must keep the same parent path.</value></data>
+  <data name="Forms.ApplyDefinition" xml:space="preserve"><value>Apply definition</value></data>
+  <data name="Forms.ResetDefinition" xml:space="preserve"><value>Reset definition controls</value></data>
+  <data name="Forms.TabOrder" xml:space="preserve"><value>Page tab order</value></data>
+  <data name="Forms.TabOrderHint" xml:space="preserve"><value>Choose the order PDF viewers should use when moving between fields on this page. Viewer support varies.</value></data>
+  <data name="Forms.ApplyTabOrder" xml:space="preserve"><value>Apply tab order</value></data>
+  <data name="Forms.AdvancedGeometry" xml:space="preserve"><value>Advanced placement</value></data>
+  <data name="Forms.ShowField" xml:space="preserve"><value>Show field on page</value></data>
+  <data name="Forms.PreviewAppearance" xml:space="preserve"><value>Preview field appearance</value></data>
+  <data name="Forms.CancelPreview" xml:space="preserve"><value>Cancel preview</value></data>
+  <data name="Forms.PreviewHint" xml:space="preserve"><value>Preview of this field on its first page. Other fields show their saved values. Apply or save to keep this edit.</value></data>
+  <data name="Forms.ClosePreview" xml:space="preserve"><value>Close preview</value></data>
+  <data name="Forms.DefaultValue" xml:space="preserve"><value>Default value</value></data>
+  <data name="Forms.DefaultValueHint" xml:space="preserve"><value>Sets the value used when a PDF viewer resets the form. This does not change the current value. For choices and buttons, use an export value.</value></data>
+  <data name="Forms.UseDefault" xml:space="preserve"><value>Use a default value</value></data>
+  <data name="Forms.ApplyDefault" xml:space="preserve"><value>Apply default value</value></data>
+  <data name="Forms.MoveField" xml:space="preserve"><value>Move or resize field</value></data>
+  <data name="Forms.MoveFieldHint" xml:space="preserve"><value>For fields with one widget. Coordinates are PDF points from the page’s bottom-left corner. Changes apply only when you choose Apply placement.</value></data>
+  <data name="Forms.ApplyPlacement" xml:space="preserve"><value>Apply placement</value></data>
+  <data name="Forms.RemoveField" xml:space="preserve"><value>Remove selected field</value></data>
+  <data name="Forms.RemoveFieldHint" xml:space="preserve"><value>Removes this field and its widgets, including its value. Undo restores them.</value></data>
+  <data name="Forms.PreviewPlacement" xml:space="preserve"><value>Preview placement</value></data>
+  <data name="Forms.PreviewNewField" xml:space="preserve"><value>Preview new field</value></data>
+  <data name="Forms.PlacementPreviewHint" xml:space="preserve"><value>Preview of the proposed placement. Choose Apply placement to keep it.</value></data>
+  <data name="Forms.CreationPreviewHint" xml:space="preserve"><value>Preview of the proposed field. Choose Create field to add it.</value></data>
 </root>
