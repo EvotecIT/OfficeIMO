@@ -6,6 +6,12 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free decoder for raster image bytes that can be painted by <see cref="OfficeRasterCanvas"/>.
 /// </summary>
+/// <remarks>
+/// Decoding produces channel values, not a color-managed sRGB conversion. Embedded ICC profiles
+/// and PNG gamma/chromaticity metadata are validated as container metadata but are not applied
+/// to pixels. Normalize color-managed source images before decoding when matching a managed
+/// display or print pipeline is required.
+/// </remarks>
 public static class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.

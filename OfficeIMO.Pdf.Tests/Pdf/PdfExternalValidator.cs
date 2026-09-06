@@ -46,6 +46,12 @@ internal sealed class PdfExternalValidator {
         return new PdfExternalValidator("veraPDF", path, args, explicitPath == null && path != null, flavor);
     }
 
+    internal static PdfExternalValidator PopplerText() {
+        string? explicitPath = Environment.GetEnvironmentVariable("OFFICEIMO_PDFTOTEXT");
+        string? path = FirstNonEmpty(explicitPath) ?? FindOnPath("pdftotext", "pdftotext.exe");
+        return new PdfExternalValidator("Poppler text", path, new[] { "-raw", "-enc", "UTF-8", "{pdf}", "-" }, explicitPath == null && path != null);
+    }
+
     internal static PdfExternalValidator PdfUa() {
         string? explicitPath = FirstNonEmpty(
             Environment.GetEnvironmentVariable("OFFICEIMO_PDFUA_VALIDATOR"),

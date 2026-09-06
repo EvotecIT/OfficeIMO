@@ -95,6 +95,13 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
 
+The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
+including nested scripts. Logical replacement text owns its painted content once, so independent
+PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image
+exports retain the same scene geometry and page count; font rasterization can differ between viewers.
+Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
+PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
+
 The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
 
 For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:

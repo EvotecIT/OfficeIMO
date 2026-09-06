@@ -180,11 +180,23 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Resolved cumulative CSS baseline displacement in layout units; negative values raise text.</summary>
     public double BaselineOffset { get; }
 
+    internal HtmlRenderText ResolveBaselineForPainting() =>
+        Baseline == OfficeTextBaseline.Normal && BaselineScale == 1D && BaselineOffset == 0D
+            ? this
+            : new HtmlRenderText(Text, X, Y + BaselineOffset, Width, Height,
+                Font.WithSize(Font.Size * BaselineScale), Color, Alignment, LineHeight, PaintOrder,
+                LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth,
+                BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
+                UnderlineStyle, StrikethroughStyle, OfficeTextBaseline.Normal, 0, 1D, 0D,
+                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+
     internal bool BidiVisualOrderResolved { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+        offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
         new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
         new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
 }

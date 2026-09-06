@@ -6,6 +6,10 @@ namespace OfficeIMO.Drawing.Tests;
 public sealed class DrawingCssColorTests {
     [Theory]
     [InlineData("rgb(255, 0, 128)", 255, 0, 128, 255)]
+    [InlineData("rgba(119, 119, 136, 1)", 119, 119, 136, 255)]
+    [InlineData("RGBA(000, 0255, 128, 0)", 0, 255, 128, 0)]
+    [InlineData("rgba(255, 0, 128, 2)", 255, 0, 128, 255)]
+    [InlineData("rgba(255, 0, 128, 0.5)", 255, 0, 128, 128)]
     [InlineData("rgb(100% 0% 50% / 25%)", 255, 0, 128, 64)]
     [InlineData("rgba(300, -20, 127.5, .5)", 255, 0, 128, 128)]
     [InlineData("hsl(120 100% 25%)", 0, 128, 0, 255)]

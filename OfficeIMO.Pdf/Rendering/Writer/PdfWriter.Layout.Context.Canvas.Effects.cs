@@ -5,6 +5,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private OfficeTransform _canvasEffectToPage = OfficeTransform.Identity;
+
         private void RenderCanvasEffect(PdfCanvasEffectItem item) {
             if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal) {
                 OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
@@ -37,11 +39,14 @@ internal static partial class PdfWriter {
             int formFieldStart = currentPage.FormFields.Count;
             string? opacityState = EnsureGraphicsState(opacity, opacity, blendMode);
             int contentStart = sb.Length;
+            OfficeTransform previousEffectToPage = _canvasEffectToPage;
+            _canvasEffectToPage = transform.Then(previousEffectToPage);
             _canvasClipDepth++;
             try {
                 renderContent();
             } finally {
                 _canvasClipDepth--;
+                _canvasEffectToPage = previousEffectToPage;
             }
 
             string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
@@ -84,11 +89,14 @@ internal static partial class PdfWriter {
             if (!transform.Equals(OfficeTransform.Identity)) {
                 content.TransformMatrix(transform);
             }
+            OfficeTransform previousEffectToPage = _canvasEffectToPage;
+            _canvasEffectToPage = transform.Then(previousEffectToPage);
             _canvasClipDepth++;
             try {
                 renderContent();
             } finally {
                 _canvasClipDepth--;
+                _canvasEffectToPage = previousEffectToPage;
                 new ContentStreamBuilder(sb).RestoreState();
                 if (artifactContent) {
                     sb.Append("EMC\n");
@@ -114,7 +122,9 @@ internal static partial class PdfWriter {
             bottom = 0D;
             right = currentOpts.PageWidth;
             top = currentOpts.PageHeight;
-            if (!transform.TryInvert(out OfficeTransform inverse)) return;
+            // A nested Form is clipped before its own and its ancestors' matrices are applied.
+            // Its local bounds must retain everything that the complete transform can expose.
+            if (!transform.Then(_canvasEffectToPage).TryInvert(out OfficeTransform inverse)) return;
 
             (left, bottom, right, top) = inverse.TransformRectangleBounds(
                 0D,

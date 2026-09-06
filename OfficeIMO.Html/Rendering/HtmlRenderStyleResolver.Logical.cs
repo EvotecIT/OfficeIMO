@@ -21,6 +21,22 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlComputedStyle computed,
         string writingMode,
         string direction) {
+        // Most elements only have physical properties. Preserve their computed
+        // style without copying dictionaries or constructing mapping names.
+        bool hasLogicalProperty = false;
+        foreach (string name in computed.Properties.Keys) {
+            if (name.IndexOf("-inline", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.IndexOf("-block", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.StartsWith("inline-", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("block-", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("border-start-", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("border-end-", StringComparison.OrdinalIgnoreCase)) {
+                hasLogicalProperty = true;
+                break;
+            }
+        }
+        if (!hasLogicalProperty) return computed;
+
         var properties = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> property in computed.Properties) properties[property.Key] = property.Value;
         Dictionary<string, HtmlCssCascadePriority> priorities = computed.CopyCascadePriorities();

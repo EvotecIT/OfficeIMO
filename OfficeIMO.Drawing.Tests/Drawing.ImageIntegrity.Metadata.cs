@@ -9,6 +9,22 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void PngDecodePreservesEncodedChannelsWithoutClaimingGammaConversion() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(40, 30, OfficeColor.FromRgb(128, 128, 128)));
+        byte[] gamma = new byte[4];
+        WriteBigEndianInt32(gamma, 0, 100000);
+        byte[] linear = InsertPngChunkBefore(png, "IDAT", "gAMA", gamma);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(linear, out OfficeRasterImage? decoded));
+        Assert.Equal(OfficeColor.FromRgb(128, 128, 128), decoded!.GetPixel(20, 15));
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_RASTER_CONFORMANCE_ARTIFACTS");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            System.IO.Directory.CreateDirectory(output);
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, "linear-gamma-source.png"), linear);
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, "linear-gamma-decoded.png"), OfficePngWriter.Encode(decoded));
+        }
+    }
+
+    [Fact]
     public void PngMetadataInspectorMatchesOnlyTheExactInternationalTextXmpKeyword() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] ordinaryInternationalText = Encoding.ASCII.GetBytes("Comment")

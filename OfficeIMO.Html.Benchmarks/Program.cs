@@ -1,6 +1,11 @@
 using BenchmarkDotNet.Running;
 using OfficeIMO.Html.Benchmarks;
 
+if (args.Length > 0 && string.Equals(args[0], "--layout-fingerprint", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlLayoutFingerprintRunner.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--layout-evidence-probe", StringComparison.OrdinalIgnoreCase)) {
     Environment.ExitCode = HtmlLayoutEvidenceRunner.RunProbe(args.Skip(1).ToArray());
     return;

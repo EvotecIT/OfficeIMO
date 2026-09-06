@@ -593,6 +593,13 @@ internal static partial class HtmlPdfRenderedConverter {
         bool logicalTextOwned,
         CancellationToken cancellationToken) {
         if (visual.Text.Length == 0) return;
+        visual = visual.ResolveBaselineForPainting();
+        if (visual.Y < 0D) {
+            HtmlRenderText shifted = (HtmlRenderText)visual.TranslatePaint(0D, -visual.Y, visual.PaintOrder);
+            canvas.Effect(OfficeTransform.Translate(0D, visual.Y * PointsPerCssPixel), 1D,
+                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken));
+            return;
+        }
         string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
         string? linkDestination = IsFragmentLink(visual.LinkUri)
             ? MapNamedDestination(visual.LinkUri!.Substring(1))

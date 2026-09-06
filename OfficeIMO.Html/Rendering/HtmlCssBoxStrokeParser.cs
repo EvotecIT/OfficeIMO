@@ -46,12 +46,7 @@ internal static class HtmlCssBoxStrokeParser {
         string widthValue = computed.GetValue("border-width").Trim();
         string styleValue = computed.GetValue("border-style").Trim();
         string colorValue = computed.GetValue("border-color").Trim();
-        var sides = Enumerable.Range(0, 4)
-            .Select(_ => new HtmlRenderBorderSide(3D, "none", currentColor))
-            .ToArray();
-        var widthSources = new string[4];
-        var styleSources = new string[4];
-        var colorSources = new string[4];
+
         borders = HtmlRenderBorderEdges.Uniform(0D, "none", currentColor);
         detail = string.Empty;
         bool declared = shorthand.Length > 0 || widthValue.Length > 0 || styleValue.Length > 0 || colorValue.Length > 0
@@ -59,6 +54,11 @@ internal static class HtmlCssBoxStrokeParser {
         if (!declared) {
             return true;
         }
+        var sides = new HtmlRenderBorderSide[4];
+        for (int index = 0; index < sides.Length; index++) sides[index] = new HtmlRenderBorderSide(3D, "none", currentColor);
+        var widthSources = new string[4];
+        var styleSources = new string[4];
+        var colorSources = new string[4];
         if (shorthand.Length > 0) {
             double width = 3D;
             string style = "none";
@@ -109,7 +109,7 @@ internal static class HtmlCssBoxStrokeParser {
         }
 
         for (int index = 0; index < SideNames.Length; index++) {
-            string prefix = "border-" + SideNames[index];
+            string prefix = SideProperties[index * 4];
             string sideShorthand = computed.GetValue(prefix).Trim();
             if (sideShorthand.Length > 0) {
                 double width = 3D;
@@ -133,39 +133,39 @@ internal static class HtmlCssBoxStrokeParser {
                 }
             }
 
-            string sideWidth = computed.GetValue(prefix + "-width").Trim();
+            string sideWidth = computed.GetValue(SideProperties[index * 4 + 1]).Trim();
             if (sideWidth.Length > 0) {
                 if (!TryStrokeWidth(sideWidth, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double width)) {
                     detail = prefix + "-width=" + sideWidth;
                     return false;
                 }
-                string property = prefix + "-width";
+                string property = SideProperties[index * 4 + 1];
                 if (CanOverride(computed, property, widthSources[index])) {
                     sides[index] = sides[index].WithWidth(width);
                     widthSources[index] = property;
                 }
             }
 
-            string sideStyle = computed.GetValue(prefix + "-style").Trim();
+            string sideStyle = computed.GetValue(SideProperties[index * 4 + 2]).Trim();
             if (sideStyle.Length > 0) {
                 if (!TryStrokeStyle(sideStyle, out string parsedStyle)) {
                     detail = prefix + "-style=" + sideStyle;
                     return false;
                 }
-                string property = prefix + "-style";
+                string property = SideProperties[index * 4 + 2];
                 if (CanOverride(computed, property, styleSources[index])) {
                     sides[index] = sides[index].WithStyle(parsedStyle);
                     styleSources[index] = property;
                 }
             }
 
-            string sideColor = computed.GetValue(prefix + "-color").Trim();
+            string sideColor = computed.GetValue(SideProperties[index * 4 + 3]).Trim();
             if (sideColor.Length > 0) {
                 if (!TryStrokeColor(sideColor, currentColor, out OfficeColor parsedColor)) {
                     detail = prefix + "-color=" + sideColor;
                     return false;
                 }
-                string property = prefix + "-color";
+                string property = SideProperties[index * 4 + 3];
                 if (CanOverride(computed, property, colorSources[index])) {
                     sides[index] = sides[index].WithColor(parsedColor);
                     colorSources[index] = property;

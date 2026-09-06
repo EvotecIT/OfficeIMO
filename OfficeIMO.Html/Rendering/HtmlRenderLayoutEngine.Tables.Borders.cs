@@ -4,12 +4,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static HtmlRenderBoxStyle CreateCollapsedCellPaintStyle(HtmlRenderBoxStyle source) {
-        HtmlRenderBoxStyle result = source.Clone();
-        result.Borders = result.Borders.WithUniformColor(OfficeColor.Transparent);
-        return result;
-    }
-
     private void AddCollapsedTableBorders(
         ICollection<HtmlRenderVisual> visuals,
         IElement table,

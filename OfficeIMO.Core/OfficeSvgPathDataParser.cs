@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeSvgPathDataParser {
     internal static bool TryParse(string? data, int maximumCommands,
         out IReadOnlyList<OfficePathCommand> commands,
-        out bool commandLimitExceeded) {
+        out bool commandLimitExceeded, bool allowEmptyGeometry = false) {
         var result = new List<OfficePathCommand>();
         commands = result;
         commandLimitExceeded = false;
@@ -154,7 +154,7 @@ internal static class OfficeSvgPathDataParser {
             if (groups == 0) return false;
         }
 
-        return hasCurrent && hasDraw && result.Count >= 2;
+        return hasCurrent && (allowEmptyGeometry || hasDraw && result.Count >= 2);
     }
 
     private static OfficePoint Resolve(OfficePoint point, OfficePoint current, bool relative) =>

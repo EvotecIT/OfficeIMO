@@ -161,7 +161,7 @@ public static partial class OfficeSvgDrawingReader {
         var paint = new OfficeDrawing(drawing.Width, drawing.Height);
         paint.Fonts.AddRange(drawing.Fonts);
         if (hasPattern && patternLayer != null) paint.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
-        paint.AddShape(positioned.Shape, positioned.X, positioned.Y);
+        paint.AddShapeForClippedRendering(positioned.Shape, positioned.X, positioned.Y);
         if (hasStrokePattern && strokePatternLayer != null) paint.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
         OfficePoint anchor = textTransform.TransformPoint(new OfficePoint(run.X, run.Baseline));
         drawing.AddActualTextDrawing(run.Text, paint, anchor.X, anchor.Y);

@@ -5,6 +5,63 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
+    private static OfficeDrawing FitSvgViewport(OfficeDrawing scene, double width, double height,
+        OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported) {
+        if (HasOverflowingLocalShapes(scene) && transform.TryInvert(out OfficeTransform inverse)) {
+            var visible = inverse.TransformRectangleBounds(0D, 0D, width, height);
+            if (scene.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
+                    maximumDimension, maximumPixels, out OfficeDrawing expanded, out double left, out double top)) {
+                scene = expanded;
+                transform = OfficeTransform.Translate(left, top).Then(transform);
+            } else {
+                unsupported++;
+            }
+        }
+        return new OfficeDrawing(width, height).AddEffectDrawing(scene, transform);
+    }
+
+    // Only newly retained, out-of-canvas geometry needs an additional root wrapper. Keep the
+    // existing flat scene contract for ordinary primitives, including their stroke metadata.
+    private static bool HasNewlyRetainedSvgGeometry(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingShape shape &&
+                (shape.X < 0D || shape.Y < 0D || shape.X + shape.Shape.Width > drawing.Width ||
+                 shape.Y + shape.Shape.Height > drawing.Height)) return true;
+            if (element is OfficeDrawingEffectGroup effect && HasNewlyRetainedSvgGeometry(effect.InnerDrawing)) return true;
+            if (element is OfficeDrawingGroup group && HasNewlyRetainedSvgGeometry(group.InnerDrawing)) return true;
+        }
+        return false;
+    }
+
+    // Viewport fitting must also account for transformed paint and stroke extent.
+    private static bool HasOverflowingLocalShapes(OfficeDrawing drawing) {
+        return HasOverflowingLocalShapes(drawing, OfficeTransform.Identity, drawing.Width, drawing.Height);
+    }
+
+    private static bool HasOverflowingLocalShapes(OfficeDrawing drawing, OfficeTransform parent, double width, double height) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingShape shape) {
+                double stroke = shape.Shape.StrokeColor.HasValue || shape.Shape.StrokeGradient != null || shape.Shape.StrokeRadialGradient != null
+                    ? shape.Shape.StrokeWidth / 2D : 0D;
+                if (shape.Shape.StrokeLineJoin == null || shape.Shape.StrokeLineJoin == OfficeStrokeLineJoin.Miter)
+                    stroke *= Math.Max(1D, shape.Shape.StrokeMiterLimit);
+                OfficeTransform transform = (shape.Shape.Transform ?? OfficeTransform.Identity)
+                    .Then(OfficeTransform.Translate(shape.X, shape.Y)).Then(parent);
+                var bounds = transform.TransformRectangleBounds(-stroke, -stroke,
+                    shape.Shape.Width + stroke * 2D, shape.Shape.Height + stroke * 2D);
+                if (bounds.Left < 0D || bounds.Top < 0D || bounds.Right > width || bounds.Bottom > height) return true;
+            }
+            if (element is OfficeDrawingEffectGroup effect && HasOverflowingLocalShapes(effect.InnerDrawing,
+                    effect.Transform.Then(parent), width, height)) return true;
+            if (element is OfficeDrawingGroup group) {
+                OfficeTransform transform = OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY);
+                if (group.FrameTransform.HasValue) transform = transform.Then(group.FrameTransform.Value.CreateDestinationTransform());
+                if (HasOverflowingLocalShapes(group.InnerDrawing, transform.Then(parent), width, height)) return true;
+            }
+        }
+        return false;
+    }
+
     private static bool TryAddNestedSvgViewport(
         XElement element,
         OfficeDrawing drawing,
@@ -92,11 +149,19 @@ public static partial class OfficeSvgDrawingReader {
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
             ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
 
+        string? clipValue = ReadPresentationProperty(element, "clip-path");
+        if (!string.IsNullOrWhiteSpace(clipValue) && !clipValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
+            if (TryApplySvgClip(scene, clipValue!, references, paintServers, childTransform, childViewX, childViewY,
+                    maximumElements, ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported,
+                    out OfficeDrawing? clippedScene)) scene = clippedScene!;
+            else unsupported++;
+        }
+
         OfficeTransform viewportTransform = ResolveViewportTransform(
             childViewWidth, childViewHeight, width, height, alignment, slice);
-        var viewport = new OfficeDrawing(width, height);
+        OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
+            maximumViewportDimension, maximumViewportPixels, ref unsupported);
         viewport.Fonts.AddRange(drawing.Fonts);
-        viewport.AddEffectDrawing(scene, viewportTransform);
         var clipped = new OfficeDrawing(width, height);
         clipped.Fonts.AddRange(drawing.Fonts);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));

@@ -18,7 +18,7 @@ on:
       - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests*.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
@@ -43,7 +43,7 @@ on:
       - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests*.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
@@ -259,6 +259,8 @@ jobs:
 
       - name: Generate PDF engine proof fixtures
         shell: bash
+        env:
+          OFFICEIMO_REQUIRE_PDF_TEXT_VALIDATOR: '1'
         run: |
           set -euo pipefail
           mkdir -p "${PROOF_PATH}/engine"

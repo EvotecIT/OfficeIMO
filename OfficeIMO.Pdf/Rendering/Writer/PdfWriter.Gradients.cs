@@ -4,6 +4,22 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static string? EnsureShapeFillGradient(
+        System.Collections.Generic.IList<PageShading> shadings,
+        OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
+        if (shape.Kind == OfficeShapeKind.Line) return null;
+        if (shape.FillRadialGradient != null) return EnsureRadialShading(shadings, shape.FillRadialGradient);
+        OfficeLinearGradient? gradient = shape.FillGradient;
+        if (gradient == null) return null;
+
+        double originX = localCoordinates ? 0D : xShape;
+        double originY = localCoordinates ? 0D : bottomY;
+        OfficeLinearGradient projected = gradient.TransformCoordinates(
+            new OfficeTransform(shape.Width, 0D, 0D, -shape.Height, originX, originY + shape.Height));
+        return EnsureAxialShading(shadings, gradient,
+            projected.StartX, projected.StartY, projected.EndX, projected.EndY);
+    }
+
     private static string EnsureAxialShading(
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeLinearGradient gradient,

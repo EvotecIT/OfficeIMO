@@ -54,8 +54,8 @@ public static partial class OfficeSvgDrawingReader {
 
         OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice);
 
-        var viewport = new OfficeDrawing(width, height);
-        viewport.AddEffectDrawing(scene, viewportTransform);
+        OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
+            maximumViewportDimension, maximumViewportPixels, ref unsupported);
         var clipped = new OfficeDrawing(width, height);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
         drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x, y).Then(inheritedTransform));

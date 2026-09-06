@@ -996,7 +996,7 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>
     public OfficeDrawing Clone() {
-        var clone = new OfficeDrawing(Width, Height);
+        var clone = new OfficeDrawing(Width, Height) { Fonts = Fonts.Clone() };
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
             clone._elements.Add(element);

@@ -29,6 +29,7 @@ public readonly partial struct OfficeColor {
         string normalized = value.Trim();
         if (normalized[0] == '#') return TryParseHex(normalized, out color);
         if (NamedColors.TryGetValue(normalized, out color)) return true;
+        if (TryParseIntegerRgb(normalized, out color)) return true;
         if (!TryReadFunction(normalized, out string name, out string arguments)) return false;
 
         if (name == "rgb" || name == "rgba") {

@@ -115,6 +115,17 @@ fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 
+`OfficeRasterImageDecoder` preserves encoded color channels and applies supported image orientation.
+It does not automatically normalize embedded ICC profiles, PNG gamma, or chromaticities. Applications
+that require color-managed pixels must perform that conversion explicitly before using the decoded
+image. The profile APIs above provide bounded color conversion; metadata validation alone does not
+mean a raster image has been converted to sRGB.
+
+The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
+path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
+unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
+Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
+
 ```csharp
 using OfficeIMO.Drawing;
 
