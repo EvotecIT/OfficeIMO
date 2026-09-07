@@ -14,7 +14,7 @@
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Dataplat.Dbatools.Csv" Version="1.1.15" />
       <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
-      <PackageReference Include="ExcelReader.NET" Version="2.3.0" ExcludeAssets="analyzers" />
+      <PackageReference Include="ExcelReader.NET" Version="3.0.1" ExcludeAssets="analyzers" />
     <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
     <PackageReference Include="Sep" Version="0.17.0" />
     <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
@@ -31,7 +31,7 @@
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\2.3.0\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\3.0.1\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
     </ItemGroup>
   </Target>
 

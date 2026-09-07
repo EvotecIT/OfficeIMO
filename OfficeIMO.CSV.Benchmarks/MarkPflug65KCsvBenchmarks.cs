@@ -29,6 +29,8 @@ public class MarkPflug65KCsvBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.CsvFileName);
         _expected = new CsvReadObservation(
             MarkPflug65KFixture.ExpectedRows,
