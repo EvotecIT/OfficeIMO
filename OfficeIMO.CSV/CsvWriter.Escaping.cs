@@ -109,18 +109,35 @@ internal static partial class CsvWriter
             {
                 // Repeated tiny searches cost more than character writes when
                 // quotes cluster, as they do in JSON stored inside a CSV field.
-                for (int index = start; index < text.Length; index++)
-                {
-                    if (text[index] == '"') buffer.Append("\"\"");
-                    else buffer.Append(text[index]);
-                }
-
-                buffer.Append('"');
+                AppendDenseQuotedText(buffer, text, start);
                 return;
             }
         } while (quote >= 0);
 
         buffer.Append(text, start, text.Length - start);
+        buffer.Append('"');
+    }
+
+    // Keep the dense loop separate from the bulk-copy path so its per-character
+    // StringBuilder appends can be optimized without that path's larger body.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void AppendDenseQuotedText(StringBuilder buffer, string text, int start)
+    {
+#if NET6_0_OR_GREATER
+        foreach (char character in text.AsSpan(start))
+        {
+            if (character == '"') buffer.Append("\"\"");
+            else buffer.Append(character);
+        }
+#else
+        for (int index = start; index < text.Length; index++)
+        {
+            char character = text[index];
+            if (character == '"') buffer.Append("\"\"");
+            else buffer.Append(character);
+        }
+#endif
+
         buffer.Append('"');
     }
 
@@ -143,11 +160,20 @@ internal static partial class CsvWriter
             quote = text.IndexOf('"', start);
             if (quote >= 0 && quote - start < 16)
             {
+#if NET6_0_OR_GREATER
+                foreach (char character in text.AsSpan(start))
+                {
+                    if (character == '"') writer.Write("\"\"");
+                    else writer.Write(character);
+                }
+#else
                 for (int index = start; index < text.Length; index++)
                 {
-                    if (text[index] == '"') writer.Write("\"\"");
-                    else writer.Write(text[index]);
+                    char character = text[index];
+                    if (character == '"') writer.Write("\"\"");
+                    else writer.Write(character);
                 }
+#endif
 
                 writer.Write('"');
                 return;
