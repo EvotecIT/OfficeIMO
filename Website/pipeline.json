@@ -644,30 +644,6 @@
       "workingDirectory": "."
     },
     {
-      "task": "exec",
-      "id": "verify-website-presentation",
-      "dependsOn": ["deploy-theme-css"],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./scripts/Test-WebsitePresentation.ps1",
-        "-SiteRoot",
-        "./_site",
-        "-SourceRoot",
-        "."
-      ],
-      "workingDirectory": "."
-    },
-    {
-      "task": "verify",
-      "id": "verify-site",
-      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page", "verify-website-presentation"],
-      "skipModes": ["ci"],
-      "config": "./site.json"
-    },
-    {
       "task": "apidocs",
       "id": "build-apidocs-word",
       "dependsOn": ["build-word", "build-site"],
@@ -1379,9 +1355,33 @@
       "clean": false
     },
     {
+      "task": "exec",
+      "id": "verify-website-presentation",
+      "dependsOn": ["build-site-xref-refresh"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-WebsitePresentation.ps1",
+        "-SiteRoot",
+        "./_site",
+        "-SourceRoot",
+        "."
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "verify",
+      "id": "verify-site",
+      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page", "verify-website-presentation"],
+      "skipModes": ["ci"],
+      "config": "./site.json"
+    },
+    {
       "task": "verify",
       "id": "verify-ci",
-      "dependsOn": "build-site-xref-refresh",
+      "dependsOn": "verify-website-presentation",
       "modes": ["ci"],
       "config": "./site.json",
       "baseline": "./.powerforge/verify-baseline.json",
