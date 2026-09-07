@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}{{ end }}</title>
   {{ description_meta_html }}{{ canonical_html }}
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
   <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
@@ -25,6 +25,7 @@
     <section class="imo-blog-archive" aria-labelledby="all-stories"><div class="imo-blog-archive__heading"><div><p>Latest writing</p><h2 id="all-stories">Guides and engineering notes</h2></div><a href="/docs/">Prefer reference docs? <span aria-hidden="true">→</span></a></div>
       {{ if items && items.size > 0 }}{{ pf.editorial_cards 0 180 true true true false "16/9" "" "featured" "imo-editorial-list imo-editorial-list-blog" "imo-editorial-card imo-editorial-card-blog" }}{{ pf.editorial_pager "Newer posts" "Older posts" "imo-editorial-pager" }}{{ end }}
     </section>
+    <p><a href="/tags/">Browse all topics</a> · <a href="/categories/">Browse article categories</a></p>
     <details class="imo-blog-about"><summary>What the journal covers</summary><div class="imo-prose">{{ content }}</div></details>
   </div></main>
   {{ include "footer" }}{{ assets.js_html }}{{ extra_scripts_html }}

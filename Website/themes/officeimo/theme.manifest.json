@@ -8,7 +8,13 @@
   "partialsPath": "partials",
   "scriptsPath": "scripts",
   "defaultLayout": "home",
-  "features": ["docs", "apiDocs", "blog", "search", "notFound"],
+  "features": [
+    "docs",
+    "apiDocs",
+    "blog",
+    "search",
+    "notFound"
+  ],
   "slots": {
     "header": "header",
     "footer": "footer",
@@ -21,14 +27,23 @@
   },
   "featureContracts": {
     "apiDocs": {
-      "requiredPartials": ["api-header", "api-footer", "theme-tokens"],
-      "cssHrefs": ["/themes/officeimo/assets/app.css", "/themes/officeimo/assets/api.css", "/themes/officeimo/assets/visual-system.css"],
+      "requiredPartials": [
+        "header",
+        "documentation-toolbar",
+        "documentation-sidebar",
+        "api-footer",
+        "theme-tokens"
+      ],
+      "cssHrefs": [
+        "/themes/officeimo/assets/app.css",
+        "/themes/officeimo/assets/api.css",
+        "/themes/officeimo/assets/visual-system.css",
+        "/themes/officeimo/assets/site-shell.css"
+      ],
       "requiredCssSelectors": [
         ".api-layout",
         ".api-sidebar",
         ".api-content",
-        ".imo-header--api",
-        ".api-nav",
         ".imo-nav__item",
         ".imo-nav__link",
         ".imo-dropdown",
@@ -36,7 +51,6 @@
         ".imo-dropdown__title",
         ".imo-dropdown__link",
         ".imo-chevron",
-        ".api-header__actions",
         ".imo-footer--api",
         ".imo-footer__grid",
         ".imo-footer__grid--api",
@@ -44,9 +58,6 @@
         ".imo-footer__heading",
         ".imo-footer__links",
         ".imo-footer__bottom",
-        ".sidebar-toggle",
-        ".nav-icon",
-        ".nav-cta",
         ".type-item",
         ".type-chip",
         ".filter-button",
@@ -55,17 +66,40 @@
         ".overview-group-toggle",
         ".chevron",
         ".member-card",
-        ".member-signature"
+        ".member-signature",
+        ".imo-documentation-toolbar",
+        ".imo-reference-browser"
+      ],
+      "requiredLayouts": [
+        "api-reference",
+        "documentation-shell"
       ]
     },
     "docs": {
-      "requiredLayouts": ["docs"],
-      "requiredPartials": ["header", "footer", "sidebar", "toc", "theme-tokens"]
+      "requiredLayouts": [
+        "docs"
+      ],
+      "requiredPartials": [
+        "header",
+        "footer",
+        "documentation-toolbar",
+        "documentation-sidebar",
+        "docs-navigation",
+        "toc",
+        "theme-tokens"
+      ]
     },
     "blog": {
-      "requiredLayouts": ["blog-home", "blog-post"],
-      "requiredSurfaces": ["blog"],
-      "cssHrefs": ["/themes/officeimo/assets/app.css"],
+      "requiredLayouts": [
+        "blog-home",
+        "blog-post"
+      ],
+      "requiredSurfaces": [
+        "blog"
+      ],
+      "cssHrefs": [
+        "/themes/officeimo/assets/app.css"
+      ],
       "requiredCssSelectors": [
         ".imo-editorial-list",
         ".imo-editorial-list-blog",
@@ -76,7 +110,9 @@
       ]
     },
     "notFound": {
-      "requiredSurfaces": ["notFound"]
+      "requiredSurfaces": [
+        "notFound"
+      ]
     }
   },
   "tokens": {

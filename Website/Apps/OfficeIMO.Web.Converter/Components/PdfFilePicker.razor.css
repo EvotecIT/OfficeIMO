@@ -22,8 +22,9 @@
 
 .pdf-file-list li {
     align-items: center;
-    background: #f8fafc;
-    border: 1px solid #e4e9f1;
+    background: var(--ocx-bg-alt);
+    border: 1px solid var(--ocx-border);
+    color: var(--ocx-text);
     border-radius: .65rem;
     display: grid;
     gap: .65rem;
@@ -56,7 +57,7 @@
 }
 
 .pdf-file-list small {
-    color: #667085;
+    color: var(--ocx-muted);
 }
 
 .pdf-file-list li > div {
@@ -65,10 +66,10 @@
 }
 
 .pdf-file-list button {
-    background: #fff;
-    border: 1px solid #d8dee8;
+    background: var(--ocx-panel);
+    border: 1px solid var(--ocx-border-strong);
     border-radius: .35rem;
-    color: #475467;
+    color: var(--ocx-text);
     cursor: pointer;
     height: 1.8rem;
     width: 1.8rem;
@@ -77,15 +78,4 @@
 .pdf-file-list button:disabled {
     cursor: default;
     opacity: .35;
-}
-
-:global([data-theme="dark"]) .pdf-file-list li {
-    background: #172231;
-    border-color: #344256;
-}
-
-:global([data-theme="dark"]) .pdf-file-list button {
-    background: #101926;
-    border-color: #435166;
-    color: #d8e2ef;
 }

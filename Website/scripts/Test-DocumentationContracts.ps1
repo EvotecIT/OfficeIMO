@@ -125,12 +125,13 @@ if (@($showcase.cards).Count -lt 11) {
     Add-Failure 'The showcase must retain at least eleven evidence-backed workflows.'
 }
 foreach ($requiredFormat in 'Word', 'RTF', 'Markdown', 'OpenDocument') {
-    if (@($showcase.cards | Where-Object format -eq $requiredFormat).Count -ne 1) {
-        Add-Failure "The showcase must expose one evidence-backed $requiredFormat workflow."
+    if (@($showcase.cards | Where-Object format -eq $requiredFormat).Count -lt 1) {
+        Add-Failure "The showcase must expose at least one evidence-backed $requiredFormat workflow."
     }
 }
 $duplicateEvidenceLabels = @(
     $showcase.cards |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string] $_.evidence_label) } |
         Group-Object { ([string] $_.evidence_label).Trim().ToUpperInvariant() } |
         Where-Object Count -gt 1
 )
@@ -140,7 +141,7 @@ foreach ($duplicateLabel in $duplicateEvidenceLabels) {
 foreach ($card in @($showcase.cards)) {
     foreach ($requiredProperty in @(
         'format', 'title', 'description', 'preview_kind', 'proof', 'limit',
-        'artifact_url', 'artifact_label', 'evidence_url', 'evidence_label',
+        'artifact_url', 'artifact_label',
         'source_url', 'guide_url', 'api_url'
     )) {
         if ([string]::IsNullOrWhiteSpace([string] $card.$requiredProperty)) {
@@ -148,10 +149,19 @@ foreach ($card in @($showcase.cards)) {
         }
     }
 
-    foreach ($localUrlProperty in 'artifact_url', 'evidence_url') {
-        $localUrl = [string] $card.$localUrlProperty
+    if (@($card.downloads).Count -eq 0) {
+        Add-Failure "Showcase card '$($card.title)' has no downloads."
+    }
+    foreach ($download in @($card.downloads)) {
+        if ([string]::IsNullOrWhiteSpace([string] $download.label)) {
+            Add-Failure "Showcase card '$($card.title)' has an unlabeled download."
+        }
+    }
+    $localUrls = @($card.downloads.url) + @($card.artifact_url, $card.source_url)
+    if ($card.evidence_url) { $localUrls += $card.evidence_url }
+    foreach ($localUrl in $localUrls) {
         if (-not $localUrl.StartsWith('/downloads/showcase/', [StringComparison]::Ordinal)) {
-            Add-Failure "Showcase card '$($card.title)' uses a non-evidence '$localUrlProperty' URL: $localUrl"
+            Add-Failure "Showcase card '$($card.title)' uses a non-evidence URL: $localUrl"
             continue
         }
 
@@ -215,7 +225,8 @@ foreach ($artifact in @($showcaseManifest.artifacts)) {
     }
 }
 foreach ($card in @($showcase.cards)) {
-    $cardEvidence = @([string] $card.artifact_url, [string] $card.evidence_url)
+    $cardEvidence = @($card.downloads.url) + @([string] $card.artifact_url, [string] $card.source_url)
+    if ($card.evidence_url) { $cardEvidence += [string] $card.evidence_url }
     if ($card.preview_kind -eq 'image') {
         $cardEvidence += [string] $card.image
     }
@@ -247,10 +258,10 @@ $readerEvidencePath = Join-Path (Join-Path $SiteRoot 'static') ([string] $reader
 $readerEvidenceRaw = Get-Content -LiteralPath $readerEvidencePath -Raw
 $readerEvidence = $readerEvidenceRaw | ConvertFrom-Json
 if ($readerEvidence.schemaId -ne 'officeimo.document.read-result' -or
-    $readerEvidence.schemaVersion -ne 6 -or
+    $readerEvidence.schemaVersion -ne 7 -or
     $readerEvidence.kind -ne 'PowerPoint' -or
     @($readerEvidence.chunks).Count -ne 4) {
-    Add-Failure 'The bundled Reader proof is not the expected four-slide schema-v6 PowerPoint result.'
+    Add-Failure 'The bundled Reader proof is not the expected four-slide schema-v7 PowerPoint result.'
 }
 if ($readerEvidenceRaw -match '"path"\s*:\s*"[A-Za-z]:\\\\') {
     Add-Failure 'The bundled Reader proof leaks a machine-local repository path.'

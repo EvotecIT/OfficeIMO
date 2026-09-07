@@ -5,11 +5,15 @@
   "BaseUrl": "https://officeimo.com",
   "DefaultTheme": "officeimo",
   "Features": ["docs", "apiDocs", "blog", "search", "notFound"],
+  "Search": { "ApiRoots": ["api"] },
   "TrailingSlash": "always",
   "ContentRoot": "content",
   "ProjectsRoot": "projects",
   "ThemesRoot": "themes",
   "DataRoot": "data",
+  "TemplateExports": [
+    { "Name": "documentation-shell", "SourceRoute": "/docs/", "Layout": "documentation-shell" }
+  ],
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
@@ -297,7 +301,7 @@
       {
         "Name": "search_site",
         "Route": "/search/",
-        "Description": "Search OfficeIMO documentation, API references, articles, and examples.",
+        "Description": "Search OfficeIMO guides, API types, PowerShell commands, products, browser workflows, examples, and articles.",
         "Kind": "site-search",
         "ReadOnly": true
       },
@@ -328,43 +332,232 @@
     "Bundles": [
       {
         "Name": "global",
-        "Css": ["/css/app.css", "/css/prism-theme.css"],
+        "Css": [
+          "/css/app.css",
+          "/css/prism-theme.css",
+          "/css/source-viewer.css"
+        ],
         "Js": [
           "/js/site.js",
           "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js"
+          "/assets/prism/prism-autoloader.min.js",
+          "/js/source-viewer.js"
         ]
       },
-      { "Name": "home", "Css": ["/css/home.css"] },
-      { "Name": "product", "Css": ["/css/product.css"] },
-      { "Name": "docs", "Css": ["/css/docs.css"] },
-      { "Name": "api", "Css": ["/css/api.css"] },
-      { "Name": "experience", "Css": ["/css/visual-system.css"] },
+      {
+        "Name": "home",
+        "Css": [
+          "/css/home.css"
+        ]
+      },
+      {
+        "Name": "product",
+        "Css": [
+          "/css/product.css"
+        ]
+      },
+      {
+        "Name": "docs",
+        "Css": [
+          "/css/docs.css"
+        ]
+      },
+      {
+        "Name": "api",
+        "Css": [
+          "/css/api.css"
+        ]
+      },
+      {
+        "Name": "experience",
+        "Css": [
+          "/css/visual-system.css",
+          "/css/site-shell.css"
+        ]
+      },
+      {
+        "Name": "applications",
+        "Css": [
+          "/css/applications.css"
+        ]
+      },
+      {
+        "Name": "showcase",
+        "Css": ["/css/showcase.css"],
+        "Js": ["/js/showcase.js"]
+      },
       {
         "Name": "comparison-detail",
-        "Css": ["/css/comparison-detail.css"],
-        "Js": ["/js/comparison-detail.js"]
+        "Css": [
+          "/css/comparison-detail.css"
+        ],
+        "Js": [
+          "/js/comparison-detail.js"
+        ]
       },
-      { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
+      {
+        "Name": "benchmarks",
+        "Js": [
+          "/js/benchmarks.js"
+        ]
+      }
     ],
     "RouteBundles": [
-      { "Match": "/", "Bundles": ["global", "home", "experience"] },
-      { "Match": "/products/**", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/compatibility/", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/pdf/**", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/comparison/", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/comparisons/**", "Bundles": ["global", "product", "comparison-detail", "experience"] },
-      { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
-      { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
-      { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
-      { "Match": "/docs/**", "Bundles": ["global", "docs", "experience"] },
-      { "Match": "/api/**", "Bundles": ["global", "api", "experience"] },
-      { "Match": "/**", "Bundles": ["global", "experience"] }
+      {
+        "Match": "/",
+        "Bundles": [
+          "global",
+          "home",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/studio/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/tool/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/libraries/",
+        "Bundles": [
+          "global",
+          "home",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/downloads/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/products/**",
+        "Bundles": [
+          "global",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/compatibility/",
+        "Bundles": [
+          "global",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/pdf/**",
+        "Bundles": [
+          "global",
+          "product",
+          "docs",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/convert/**",
+        "Bundles": [
+          "global",
+          "product",
+          "docs",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/solutions/**",
+        "Bundles": [
+          "global",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/comparison/",
+        "Bundles": [
+          "global",
+          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/comparisons/**",
+        "Bundles": [
+          "global",
+          "product",
+          "comparison-detail",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/benchmarks/",
+        "Bundles": [
+          "global",
+          "benchmarks",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/showcase/**",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience",
+          "showcase"
+        ]
+      },
+      {
+        "Match": "/faq/",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/docs/**",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/api/**",
+        "Bundles": [
+          "global",
+          "api",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/**",
+        "Bundles": [
+          "global",
+          "experience"
+        ]
+      }
     ],
     "CriticalCss": [
-      { "Name": "officeimo", "Path": "themes/officeimo/critical.css" }
+      {
+        "Name": "officeimo",
+        "Path": "themes/officeimo/critical.css"
+      }
     ]
   },
   "AssetPolicy": {
@@ -415,299 +608,272 @@
     "MaxWarnings": 25
   },
   "Navigation": {
-    "Surfaces": [
-      { "Name": "main", "Path": "/", "PrimaryMenu": "main" },
-      { "Name": "products", "Path": "/products/", "PrimaryMenu": "main" },
-      { "Name": "showcase", "Path": "/showcase/", "PrimaryMenu": "main" },
-      {
-        "Name": "blog",
-        "Path": "/blog/",
-        "Collection": "blog",
-        "Layout": "page",
-        "PrimaryMenu": "main"
-      },
-      {
-        "Name": "docs",
-        "Path": "/docs/",
-        "Collection": "docs",
-        "Layout": "docs",
-        "PrimaryMenu": "main",
-        "SidebarMenu": "docs"
-      },
-      {
-        "Name": "apidocs",
-        "Path": "/api/",
-        "Layout": "apiDocs",
-        "PrimaryMenu": "main",
-        "SidebarMenu": "docs"
-      },
-      { "Name": "notFound", "Path": "/404.html", "PrimaryMenu": "main" }
-    ],
-    "Auto": [{ "Collection": "docs", "Menu": "docs", "Sort": "order,title" }],
-    "Menus": [
-      {
-        "Name": "main",
-        "Items": [
-          { "Title": "Home", "Url": "/" },
-          {
-            "Title": "Products",
-            "Url": "/products/word/",
-            "Sections": [
-              {
-                "Title": "Create and edit",
-                "Items": [
-                  { "Title": "Word", "Url": "/products/word/", "Description": "DOCX plus supported DOC, templates, and review" },
-                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLSX plus supported XLS/XLSB, formulas, and charts" },
-                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPTX plus supported PPT/PPS/POT and data-driven decks" },
-                  { "Title": "PDF", "Url": "/products/pdf/", "Description": "Author, inspect, transform, and sign PDF" },
-                  { "Title": "OneNote", "Url": "/products/onenote/", "Description": "Native offline OneNote files and notebooks" }
-                ]
-              },
-              {
-                "Title": "Formats and conversion",
-                "Items": [
-                  { "Title": "Email", "Url": "/products/email/", "Description": "EML, MSG, stores, calendars, and contacts" },
-                  { "Title": "OpenDocument", "Url": "/products/open-document/", "Description": "ODT, ODS, ODP, and Office adapters" },
-                  { "Title": "HTML", "Url": "/products/html/", "Description": "HTML, MHTML, resource policy, and rendering" },
-                  { "Title": "RTF", "Url": "/products/rtf/", "Description": "Rich Text Format editing, preservation, and conversion" },
-                  { "Title": "EPUB", "Url": "/products/epub/", "Description": "EPUB metadata, chapters, resources, and extraction" },
-                  { "Title": "Markdown", "Url": "/products/markdown/", "Description": "Typed AST, transforms, and rendering" },
-                  { "Title": "Visio", "Url": "/products/visio/", "Description": "VSDX pages, shapes, and connectors" }
-                ]
-              },
-              {
-                "Title": "Workflows",
-                "Items": [
-                  { "Title": "Reader", "Url": "/products/reader/", "Description": "Extract and normalize content across formats" },
-                  { "Title": "Google Workspace", "Url": "/products/google-workspace/", "Description": "Docs, Sheets, Slides, Drive, and sync" },
-                  { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/", "Description": "Document automation from PowerShell" },
-                  { "Title": "All packages", "Url": "/downloads/", "Description": "Find every library and focused adapter" }
-                ]
-              }
-            ]
-          },
-          {
-            "Title": "Solutions",
-            "Url": "/solutions/",
-            "Sections": [
-              {
-                "Title": "By task",
-                "Items": [
-                  { "Title": "Check format support", "Url": "/compatibility/", "Description": "See DOC, XLS, PPT, modern formats, fidelity, and limits" },
-                  { "Title": "Modernize legacy Office files", "Url": "/solutions/legacy-office-modernization/", "Description": "Move DOC, XLS, and PPT archives into governed modern workflows" },
-                  { "Title": "Publish documents", "Url": "/solutions/document-publishing/", "Description": "Create Office, PDF, HTML, Markdown, and open-format output" },
-                  { "Title": "Extract content", "Url": "/solutions/document-ingestion/", "Description": "Normalize documents for search, review, and AI workflows" },
-                  { "Title": "Migrate Outlook data", "Url": "/solutions/outlook-mailbox-migration/", "Description": "Read PST, OST, OLM, mbox, Maildir, and export verified PST files" },
-                  { "Title": "Work with OneNote offline", "Url": "/solutions/offline-onenote-automation/", "Description": "Read native OneNote files and export pages without Graph" },
-                  { "Title": "Automate with PowerShell", "Url": "/solutions/powershell-document-automation/", "Description": "Build repeatable document jobs from scripts and pipelines" },
-                  { "Title": "Migrate Google Workspace", "Url": "/solutions/google-workspace-migration/", "Description": "Translate Docs, Sheets, Slides, Drive, and Office content" }
-                ]
-              },
-              {
-                "Title": "By deployment",
-                "Items": [
-                  { "Title": "Cross-platform .NET", "Url": "/docs/getting-started/platform-support/", "Description": "Choose packages for services, apps, and AOT" },
-                  { "Title": "Browser conversion", "Url": "/convert/", "Description": "Run supported routes locally with WebAssembly" },
-                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" },
-                  { "Title": "Compare libraries", "Url": "/comparisons/", "Description": "Choose OfficeIMO, Open XML SDK, ClosedXML, EPPlus, QuestPDF, or a commercial suite" }
-                ]
-              }
-            ]
-          },
-          { "Title": "Convert", "Url": "/convert/" },
-          { "Title": "Docs", "Url": "/docs/" },
-          {
-            "Title": "API",
-            "Url": "/api/",
-            "Sections": [
-              {
-                "Title": "Document APIs",
-                "Items": [
-                  { "Title": "All API references", "Url": "/api/" },
-                  { "Title": "OfficeIMO.Word API", "Url": "/api/word/" },
-                  { "Title": "OfficeIMO.Excel API", "Url": "/api/excel/" },
-                  {
-                    "Title": "OfficeIMO.PowerPoint API",
-                    "Url": "/api/powerpoint/"
-                  },
-                  { "Title": "OfficeIMO.Pdf API", "Url": "/api/pdf/" },
-                  { "Title": "OfficeIMO.OneNote API", "Url": "/api/onenote/" }
-                ]
-              },
-              {
-                "Title": "Formats and content",
-                "Items": [
-                  {
-                    "Title": "OfficeIMO.Markdown API",
-                    "Url": "/api/markdown/"
-                  },
-                  { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
-                  { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
-                  { "Title": "OfficeIMO.Html API", "Url": "/api/html/" },
-                  { "Title": "HTML/RTF API", "Url": "/api/html-rtf/" },
-                  { "Title": "MHTML API", "Url": "/api/mhtml/" },
-                  { "Title": "MHTML/PDF API", "Url": "/api/mhtml-pdf/" },
-                  { "Title": "OfficeIMO.Email API", "Url": "/api/email/" },
-                  { "Title": "Email image API", "Url": "/api/email-image/" },
-                  { "Title": "OpenDocument API", "Url": "/api/open-document/" }
-                ]
-              },
-              {
-                "Title": "Workflows and cloud",
-                "Items": [
-                  { "Title": "OfficeIMO.Reader API", "Url": "/api/reader/" },
-                  { "Title": "Google Workspace API", "Url": "/api/google-workspace/" },
-                  { "Title": "Google Drive API", "Url": "/api/google-workspace-drive/" },
-                  { "Title": "Google Auth API", "Url": "/api/google-workspace-auth/" },
-                  { "Title": "Google Sync API", "Url": "/api/google-workspace-sync/" },
-                  {
-                    "Title": "PSWriteOffice Cmdlets",
-                    "Url": "/api/powershell/"
-                  }
-                ]
-              }
-            ]
-          },
-          { "Title": "Downloads", "Url": "/downloads/" },
-          {
-            "Title": "Resources",
-            "Url": "/blog/",
-            "Sections": [
-              {
-                "Title": "Learn and evaluate",
-                "Items": [
-                  { "Title": "Blog", "Url": "/blog/", "Description": "Patterns, releases, and practical walkthroughs" },
-                  { "Title": "Showcase", "Url": "/showcase/", "Description": "See generated document workflows" },
-                  { "Title": "Benchmarks", "Url": "/benchmarks/", "Description": "Measured package and performance evidence" },
-                  { "Title": "Support", "Url": "/pricing/", "Description": "Open-source help and commercial support" }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "Name": "footer-products",
-        "Items": [
-          { "Title": "OfficeIMO.Word", "Url": "/products/word/" },
-          { "Title": "OfficeIMO.Excel", "Url": "/products/excel/" },
-          { "Title": "OfficeIMO.PowerPoint", "Url": "/products/powerpoint/" },
-          { "Title": "OfficeIMO.Pdf", "Url": "/products/pdf/" },
-          { "Title": "OfficeIMO.Email", "Url": "/products/email/" },
-          { "Title": "OfficeIMO.OneNote", "Url": "/products/onenote/" },
-          { "Title": "OfficeIMO.OpenDocument", "Url": "/products/open-document/" },
-          { "Title": "OfficeIMO.Rtf", "Url": "/products/rtf/" },
-          { "Title": "OfficeIMO.Epub", "Url": "/products/epub/" },
-          { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/" },
-          { "Title": "OfficeIMO.CSV", "Url": "/products/csv/" },
-          { "Title": "OfficeIMO.Visio", "Url": "/products/visio/" },
-          { "Title": "OfficeIMO.Reader", "Url": "/products/reader/" },
-          { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/" }
-        ]
-      },
-      {
-        "Name": "footer-docs",
-        "Items": [
-          { "Title": "Getting Started", "Url": "/docs/getting-started/" },
-          { "Title": "Workflow Finder", "Url": "/docs/workflows/" },
-          { "Title": "Database Reporting", "Url": "/docs/workflows/database-reporting/" },
-          { "Title": "Word Docs", "Url": "/docs/word/" },
-          { "Title": "Excel Docs", "Url": "/docs/excel/" },
-          { "Title": "PowerPoint Docs", "Url": "/docs/powerpoint/" },
-          { "Title": "PDF Docs", "Url": "/docs/pdf/" },
-          { "Title": "Email Docs", "Url": "/docs/email/" },
-          { "Title": "OneNote Docs", "Url": "/docs/onenote/" },
-          { "Title": "RTF Docs", "Url": "/docs/rtf/" },
-          { "Title": "EPUB Docs", "Url": "/docs/epub/" },
-          { "Title": "Markdown Docs", "Url": "/docs/markdown/" },
-          { "Title": "CSV Docs", "Url": "/docs/csv/" },
-          { "Title": "Visio Docs", "Url": "/docs/visio/" },
-          { "Title": "Reader Docs", "Url": "/docs/reader/" },
-          { "Title": "PSWriteOffice Docs", "Url": "/docs/pswriteoffice/" }
-        ]
-      },
-      {
-        "Name": "footer-resources",
-        "Items": [
-          { "Title": "FAQ", "Url": "/faq/" },
-          { "Title": "License and AI use", "Url": "/licensing/" },
-          { "Title": "Third-Party Dependencies", "Url": "/third-party/" },
-          { "Title": "Downloads", "Url": "/downloads/" },
-          { "Title": "Releases", "Url": "/releases/" },
-          { "Title": "Benchmarks", "Url": "/benchmarks/" },
-          { "Title": "Compatibility", "Url": "/compatibility/" },
-          { "Title": "Conversion guides", "Url": "/convert/guides/" },
-          { "Title": "Comparison", "Url": "/comparison/" },
-          { "Title": "Browser converter", "Url": "/convert/" },
-          { "Title": "Support", "Url": "/pricing/" },
-          { "Title": "Showcase", "Url": "/showcase/" },
-          { "Title": "Blog", "Url": "/blog/" }
-        ]
-      },
-      {
-        "Name": "footer-community",
-        "Items": [
-          {
-            "Title": "GitHub (OfficeIMO)",
-            "Url": "https://github.com/EvotecIT/OfficeIMO",
-            "External": true
-          },
-          {
-            "Title": "GitHub (PSWriteOffice)",
-            "Url": "https://github.com/EvotecIT/PSWriteOffice",
-            "External": true
-          },
-          {
-            "Title": "NuGet",
-            "Url": "https://www.nuget.org/packages?q=OfficeIMO",
-            "External": true
-          },
-          {
-            "Title": "PowerShell Gallery",
-            "Url": "https://www.powershellgallery.com/packages/PSWriteOffice",
-            "External": true
-          },
-          {
-            "Title": "Discord",
-            "Url": "https://evo.yt/discord",
-            "External": true
-          },
-          {
-            "Title": "Report Issue",
-            "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
-            "External": true
-          }
-        ]
-      }
-    ],
-    "Actions": [
-      {
-        "Title": "GitHub",
-        "AriaLabel": "GitHub",
-        "Url": "https://github.com/EvotecIT/OfficeIMO",
-        "External": true,
-        "CssClass": "nav-icon",
-        "IconHtml": "<svg viewBox='0 0 24 24' fill='currentColor' aria-hidden='true' focusable='false'><path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/></svg>"
-      },
-      {
-        "Title": "Discord",
-        "AriaLabel": "Discord",
-        "Url": "https://evo.yt/discord",
-        "External": true,
-        "CssClass": "nav-icon",
-        "IconHtml": "<svg viewBox='0 0 24 24' fill='currentColor' aria-hidden='true' focusable='false'><path d='M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z'/></svg>"
-      },
-      {
-        "Title": "Get Started",
-        "AriaLabel": "Get Started",
-        "Url": "/docs/getting-started/",
-        "CssClass": "nav-cta",
-        "Text": "Get Started"
-      }
-    ]
-  },
+  "Surfaces": [
+    {
+      "Name": "main",
+      "Path": "/",
+      "PrimaryMenu": "main"
+    },
+    {
+      "Name": "products",
+      "Path": "/products/",
+      "PrimaryMenu": "main"
+    },
+    {
+      "Name": "showcase",
+      "Path": "/showcase/",
+      "PrimaryMenu": "main"
+    },
+    {
+      "Name": "blog",
+      "Path": "/blog/",
+      "Collection": "blog",
+      "Layout": "page",
+      "PrimaryMenu": "main"
+    },
+    {
+      "Name": "docs",
+      "Path": "/docs/",
+      "Collection": "docs",
+      "Layout": "docs",
+      "PrimaryMenu": "main",
+      "SidebarMenu": "docs"
+    },
+    {
+      "Name": "apidocs",
+      "Path": "/api/",
+      "Layout": "apiDocs",
+      "PrimaryMenu": "main",
+      "SidebarMenu": "docs"
+    },
+    {
+      "Name": "notFound",
+      "Path": "/404.html",
+      "PrimaryMenu": "main"
+    }
+  ],
+  "Auto": [
+    {
+      "Collection": "docs",
+      "Menu": "docs",
+      "Sort": "order,title"
+    }
+  ],
+  "Menus": [
+    {
+      "Name": "main",
+      "Items": [
+        {
+          "Title": "Studio",
+          "Url": "/studio/"
+        },
+        {
+          "Title": "Browser tools",
+          "Url": "/convert/"
+        },
+        {
+          "Title": "CLI",
+          "Url": "/tool/"
+        },
+        {
+          "Title": "Libraries",
+          "Url": "/libraries/"
+        },
+        {
+          "Title": "Documentation",
+          "Url": "/docs/"
+        },
+        {
+          "Title": "Resources",
+          "Url": "/showcase/",
+          "Sections": [
+            {
+              "Title": "Explore",
+              "Items": [
+                {
+                  "Title": "Document showcase",
+                  "Url": "/showcase/"
+                },
+                {
+                  "Title": "Code examples",
+                  "Url": "/libraries/#code-examples"
+                },
+                {
+                  "Title": "Blog",
+                  "Url": "/blog/"
+                },
+                {
+                  "Title": "Solutions",
+                  "Url": "/solutions/"
+                }
+              ]
+            },
+            {
+              "Title": "Evaluate",
+              "Items": [
+                {
+                  "Title": "Format support",
+                  "Url": "/compatibility/"
+                },
+                {
+                  "Title": "Benchmarks",
+                  "Url": "/benchmarks/"
+                },
+                {
+                  "Title": "Comparisons",
+                  "Url": "/comparisons/"
+                },
+                {
+                  "Title": "Support and services",
+                  "Url": "/pricing/"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Title": "Download",
+          "Url": "/downloads/"
+        }
+      ]
+    },
+    {
+      "Name": "footer-products",
+      "Items": [
+        {
+          "Title": "Studio",
+          "Url": "/studio/"
+        },
+        {
+          "Title": "CLI",
+          "Url": "/tool/"
+        },
+        {
+          "Title": ".NET libraries",
+          "Url": "/libraries/"
+        },
+        {
+          "Title": "PowerShell",
+          "Url": "/products/pswriteoffice/"
+        },
+        {
+          "Title": "Downloads",
+          "Url": "/downloads/"
+        }
+      ]
+    },
+    {
+      "Name": "footer-docs",
+      "Items": [
+        {
+          "Title": "Getting started",
+          "Url": "/docs/getting-started/"
+        },
+        {
+          "Title": "Document guides",
+          "Url": "/docs/"
+        },
+        {
+          "Title": "API reference",
+          "Url": "/api/"
+        },
+        {
+          "Title": "Code examples",
+          "Url": "/libraries/#code-examples"
+        },
+        {
+          "Title": "Format support",
+          "Url": "/compatibility/"
+        }
+      ]
+    },
+    {
+      "Name": "footer-resources",
+      "Items": [
+        {
+          "Title": "Browser converter",
+          "Url": "/convert/"
+        },
+        {
+          "Title": "Showcase",
+          "Url": "/showcase/"
+        },
+        {
+          "Title": "Blog",
+          "Url": "/blog/"
+        },
+        {
+          "Title": "Support and services",
+          "Url": "/pricing/"
+        },
+        {
+          "Title": "License and AI use",
+          "Url": "/licensing/"
+        },
+        {
+          "Title": "FAQ",
+          "Url": "/faq/"
+        }
+      ]
+    },
+    {
+      "Name": "footer-community",
+      "Items": [
+        {
+          "Title": "GitHub (OfficeIMO)",
+          "Url": "https://github.com/EvotecIT/OfficeIMO",
+          "External": true
+        },
+        {
+          "Title": "GitHub (PSWriteOffice)",
+          "Url": "https://github.com/EvotecIT/PSWriteOffice",
+          "External": true
+        },
+        {
+          "Title": "NuGet",
+          "Url": "https://www.nuget.org/packages?q=OfficeIMO",
+          "External": true
+        },
+        {
+          "Title": "PowerShell Gallery",
+          "Url": "https://www.powershellgallery.com/packages/PSWriteOffice",
+          "External": true
+        },
+        {
+          "Title": "Discord",
+          "Url": "https://evo.yt/discord",
+          "External": true
+        },
+        {
+          "Title": "Report Issue",
+          "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
+          "External": true
+        }
+      ]
+    }
+  ],
+  "Actions": [
+    {
+      "Title": "GitHub",
+      "AriaLabel": "GitHub",
+      "Url": "https://github.com/EvotecIT/OfficeIMO",
+      "External": true,
+      "CssClass": "nav-icon",
+      "IconHtml": "<svg viewBox='0 0 24 24' fill='currentColor' aria-hidden='true' focusable='false'><path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/></svg>"
+    }
+  ]
+},
   "LinkCheck": {
     "Enabled": true,
     "IncludeExternal": false
-  }
+  },
+  "Redirects": [
+    { "From": "/showcase/html-rendering/", "To": "/showcase/?format=html", "Status": 301 },
+    {
+      "From": "/playground/",
+      "To": "/convert/",
+      "Status": 301,
+      "PreserveQuery": true
+    }
+  ]
 }

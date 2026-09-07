@@ -1,0 +1,224 @@
+/* Shared geometry for discovery pages, documentation, and browser tools. */
+:root {
+  --imo-header-height: 64px;
+  --imo-toolbar-height: 56px;
+  --imo-navigation-width: 260px;
+  --imo-reference-width: 248px;
+  --imo-content-gutter: 40px;
+  --imo-shell-top: calc(var(--imo-header-height) + var(--imo-toolbar-height));
+}
+html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--imo-shell-top) + 24px); }
+body.imo-body { overflow-x: clip; }
+/* Shared content rhythm and controls across the catalog surfaces. */
+.imo-body .imo-btn { min-height: 42px; padding: 10px 16px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 650; gap: 8px; }
+.imo-main--downloads > .imo-container { max-width: 1240px; }
+.imo-main--downloads .imo-downloads { gap: 0; }
+.imo-downloads .imo-platform-hero { padding: 48px 0; }
+.imo-downloads .imo-download-choice { padding: 32px 0; gap: 32px; grid-template-columns: minmax(200px, .8fr) minmax(0, 1.6fr); }
+.imo-download-choice .imo-application-terminal { display: flex; align-items: center; gap: 16px; border-radius: 8px; }
+.imo-download-choice .imo-application-terminal pre { flex: 1; min-width: 0; padding: 0; }
+.imo-download-choice .imo-application-terminal button { flex: 0 0 auto; font: inherit; font-size: 13px; min-height: 38px; }
+.imo-downloads__section { margin-top: 24px; }
+.imo-downloads .imo-package-disclosure { display: block; border-top: 1px solid var(--imo-border); }
+.imo-package-disclosure > summary { display: flex; align-items: center; gap: 12px; padding: 20px 0; list-style: none; }
+.imo-package-disclosure > summary::-webkit-details-marker { display: none; }
+.imo-package-disclosure > summary::before { content: '+'; font-size: 20px; color: var(--imo-text-muted); }
+.imo-package-disclosure[open] > summary::before { content: '−'; }
+.imo-package-disclosure > summary h2 { margin: 0; font-size: 20px; line-height: 1.3; letter-spacing: -.02em; }
+.imo-package-disclosure > summary > span { margin-left: auto; white-space: nowrap; font-size: 12px; font-weight: 500; color: var(--imo-text-muted); }
+.imo-downloads__group-description { margin: 0 0 20px; color: var(--imo-text-secondary); font-size: 14px; line-height: 1.6; }
+.imo-downloads__grid { row-gap: 16px; }
+.imo-downloads .imo-download-card { grid-row: span 6; grid-template-rows: subgrid; gap: 16px; padding: 24px; border-radius: 12px; box-shadow: none; background: var(--imo-bg); }
+.imo-downloads .imo-download-card:hover { transform: none; box-shadow: none; }
+.imo-download-card__desc { font-size: 14px; line-height: 1.65; }
+.imo-download-card__best { font-size: 13px; }
+.imo-download-card__install { min-width: 0; border-radius: 7px; }
+.imo-download-card__install code { font-size: 12px; background: transparent; margin: 0; border: 0; border-radius: 0; }
+.imo-download-card__actions { align-items: start; gap: 8px; }
+.imo-download-card__links { display: flex; align-items: center; gap: 16px; padding-top: 12px; border-top: 1px solid var(--imo-border); }
+.imo-download-card__links .imo-action-link { min-height: 28px; padding: 0; margin: 0; font-size: 13px; gap: 5px; }
+.imo-download-card__links svg { width: 14px; height: 14px; }
+.imo-showcase-grid { gap: 20px; align-items: start; }
+.imo-workflow-card__body { padding: 20px; }
+.imo-workflow-card__body h2 { font-size: 20px; line-height: 1.3; }
+.imo-workflow-card__body > p { font-size: 14px; }
+.imo-workflow-card__io { display: grid; gap: 6px; margin-top: 16px; }
+.imo-workflow-card__io div { display: grid; grid-template-columns: 48px minmax(0, 1fr); padding: 0; border: 0; border-radius: 0; font-size: 12px; align-items: baseline; }
+.imo-workflow-card__io dd { font-weight: 600; }
+.imo-workflow-card__actions { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--imo-border); }
+.imo-workflow-card__actions nav { gap: 8px 16px; padding-top: 6px; }
+.imo-workflow-card__actions nav a { font-size: 12px; font-weight: 600; }
+.imo-workflow-card__actions .imo-btn { padding: 8px 10px; font-size: 13px; }
+.imo-capability-card { padding: 24px; border-radius: 12px; box-shadow: none; }
+.imo-capability-format-groups > div { padding: 16px; border-radius: 8px; }
+.imo-capability-contract { padding: 20px; border-radius: 8px; }
+.imo-capability-operations { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.imo-capability-operation { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: baseline; gap: 16px; padding: 10px 0; border-radius: 0; background: transparent; border-top: 1px solid var(--imo-border); }
+.imo-capability-operation > strong { margin: 0; font-size: 13px; }
+.imo-capability-card__actions { gap: 12px 24px; }
+.imo-capability-card__actions a { font-size: 13px; }
+[data-theme="dark"] .imo-capability-card__actions a,
+[data-theme="dark"] .imo-capability-card__package { color: color-mix(in srgb, var(--capability-color) 50%, #fff); }
+@media (max-width: 700px) {
+  .imo-downloads .imo-download-choice { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px 0; }
+  .imo-download-choice .imo-application-terminal { flex-direction: column; align-items: stretch; }
+  .imo-package-disclosure > summary h2 { font-size: 17px; }
+  .imo-downloads .imo-download-card { padding: 20px; }
+  .imo-capability-card, .imo-capability-contract { padding: 16px; }
+  .imo-capability-operation { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+.imo-header, .pf-api-docs .imo-header { height: var(--imo-header-height); background: var(--imo-bg); z-index: 1000; }
+.imo-header__inner { width: 100%; max-width: none; height: 63px; padding-inline: 24px; gap: 24px; }
+.imo-header__logo { flex: 0 0 176px; font-size: 18px; }
+.imo-header .imo-nav { flex: 1 1 auto; justify-content: center; gap: 2px; }
+.imo-header .imo-nav__item { margin: 0; padding: 0; }
+.imo-header .imo-nav__link { min-height: 40px; padding: 0 12px; font-size: 14px; line-height: 20px; font-weight: 650; }
+.imo-header .imo-header__actions { flex: 0 0 88px; justify-content: flex-end; }
+.imo-header .imo-dropdown { top: calc(100% + 10px); transition: opacity var(--imo-duration), transform var(--imo-duration); }
+@media (min-width: 1024px) {
+  .imo-header .imo-dropdown::before { content: ""; position: absolute; inset: -12px 0 auto; height: 12px; }
+}
+.imo-header .imo-dropdown--mega { width: min(580px, calc(100vw - 48px)); }
+.imo-documentation-toolbar {
+  position: sticky; top: var(--imo-header-height); z-index: 100;
+  display: grid; grid-template-columns: var(--imo-navigation-width) minmax(0, 1fr) auto;
+  align-items: center; height: var(--imo-toolbar-height); padding-right: 24px;
+  border-bottom: 1px solid var(--imo-border); background: var(--imo-bg);
+}
+.imo-documentation-toolbar__title { padding-left: 24px; color: var(--imo-text); font-size: 14px; font-weight: 700; }
+.imo-documentation-toolbar__search {
+  display: flex; align-items: center; gap: 10px; width: min(100%, 560px);
+  height: 36px; padding: 0 12px; margin-left: var(--imo-content-gutter);
+  border: 1px solid var(--imo-border); border-radius: 6px; background: var(--imo-bg-alt);
+  color: var(--imo-text-muted); font-size: 13px;
+}
+.imo-documentation-toolbar__search span { flex: 1; }
+.imo-documentation-toolbar__search kbd { font: inherit; color: var(--imo-text-muted); }
+.imo-body--docs { background: var(--imo-bg); }
+.imo-body--docs .imo-docs__sidebar {
+  position: fixed; left: 0; top: var(--imo-shell-top); bottom: 0;
+  width: var(--imo-navigation-width); height: auto; padding: 20px 14px;
+  border-right: 1px solid var(--imo-border); background: var(--imo-bg-alt);
+  overflow-y: auto; overscroll-behavior: contain; box-shadow: none; z-index: 90;
+}
+.imo-body--docs .imo-docs, .pf-api-docs .api-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) var(--imo-reference-width);
+  gap: 0; width: auto; max-width: none; min-height: calc(100vh - var(--imo-shell-top));
+  margin: 0 0 0 var(--imo-navigation-width); padding: 0; border: 0; background: var(--imo-bg);
+}
+.imo-body--docs-home .imo-docs { grid-template-columns: minmax(0, 1fr); }
+.imo-body--docs .imo-docs__main, .pf-api-docs .api-content {
+  width: 100%; max-width: none; min-width: 0; justify-self: stretch;
+  margin: 0; padding: 40px var(--imo-content-gutter) 72px; border: 0; border-radius: 0;
+  background: var(--imo-bg); box-shadow: none;
+}
+.imo-body--docs .imo-docs__article, .imo-docs__main--home .imo-docs__article { max-width: 1100px; margin: 0; padding: 0; }
+.imo-body--api-home .imo-docs__main { margin-left: var(--imo-navigation-width); width: calc(100% - var(--imo-navigation-width)); }
+.imo-body--api-home .imo-docs__main > .imo-container { padding: 0; }
+.imo-body--docs .imo-docs__toc, .imo-reference-browser {
+  position: sticky; top: var(--imo-shell-top); align-self: start;
+  max-height: calc(100vh - var(--imo-shell-top)); overflow: auto;
+  padding: 40px 18px 24px; border-left: 1px solid var(--imo-border);
+  background: var(--imo-bg); min-width: 0;
+}
+.imo-body--docs .imo-footer { margin-left: var(--imo-navigation-width); }
+.imo-docs__nav-intro { gap: 2px; margin-bottom: 16px; padding-bottom: 16px; }
+.imo-docs__nav-intro a { min-height: 36px; align-items: center; padding: 6px 10px; border: 0; border-radius: 5px; }
+.imo-docs__nav-intro strong { font-size: 13px; font-weight: 650; }
+.imo-docs__nav-intro a[aria-current] { background: var(--imo-primary-light); color: var(--imo-primary); }
+.imo-docs__group summary { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+.imo-docs__group summary small { border: 0; background: none; font-size: 11px; }
+.imo-docs__link { padding: 7px 10px; font-size: 13px; }
+.imo-body--docs .imo-docs__link { color: var(--imo-text-secondary); }
+.imo-body--docs .imo-docs__link[aria-current] { color: var(--imo-primary); background: var(--imo-primary-light); }
+.imo-body--docs .imo-documentation-toolbar__title { color: var(--imo-text); }
+.imo-body--docs .imo-documentation-toolbar__search { color: var(--imo-text-muted); }
+.imo-docs__header h1, .imo-body--docs .api-content h1 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 0 0 16px; }
+.imo-conversion-summary h2 { font-size: 14px; letter-spacing: 0; margin: 0 0 20px; }
+.imo-conversion-summary dl { display: grid; gap: 16px; margin: 0 0 20px; font-size: 13px; }
+.imo-conversion-summary dt { color: var(--imo-text-muted); font-size: 12px; margin-bottom: 4px; }
+.imo-conversion-summary dd { margin: 0; overflow-wrap: anywhere; }
+.imo-conversion-summary > p, .imo-conversion-summary > a { font-size: 13px; line-height: 1.6; }
+.imo-body--conversion .imo-intent-hero__lead { font-size: 17px; line-height: 1.65; }
+.imo-docs-home-hero { display: block; padding: 0 0 32px; margin: 0; background: none; }
+.imo-docs-home-hero h1 { max-width: 780px; font-size: clamp(32px, 3.2vw, 44px); line-height: 1.1; margin: 0 0 20px; }
+.imo-docs-home-hero > p:not(.imo-docs-home-hero__eyebrow) { max-width: 720px; margin: 0; font-size: 17px; line-height: 1.65; }
+.imo-docs-home-hero__eyebrow { display: none; }
+.imo-docs-home-hero__actions { margin-top: 24px; display: flex; gap: 12px; }
+.imo-api-landing__hero { padding: 0 0 32px; background: none; }
+.imo-api-landing__hero h1 { font-size: 38px; }
+.imo-reference-browser > details > summary { margin-bottom: 18px; color: var(--imo-text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.pf-api-docs .imo-reference-browser .api-sidebar {
+  display: block; position: static; width: 100%; height: auto; max-height: none;
+  padding: 0; margin: 0; border: 0; background: transparent; overflow: visible;
+  transform: none; box-shadow: none;
+}
+.imo-reference-browser .sidebar-project-indicator, .imo-reference-browser .sidebar-header { display: none; }
+.imo-reference-browser .sidebar-search { padding: 0; margin: 0 0 14px; }
+.imo-reference-browser .sidebar-search input { width: 100%; min-width: 0; height: 38px; padding: 8px; font-size: 13px; }
+.imo-reference-browser .sidebar-search svg { display: none; }
+.imo-reference-browser .sidebar-filters { padding: 0; margin-bottom: 12px; }
+.imo-reference-browser .filter-button { font-size: 11px; padding: 5px 8px; }
+.imo-reference-browser .sidebar-count { font-size: 10px; padding: 10px 0; }
+.imo-reference-browser .sidebar-tools { padding: 0 0 12px; }
+.imo-reference-browser .sidebar-tools button { font-size: 11px; padding: 5px; }
+.imo-reference-browser .type-item { font-size: 12px; }
+.imo-reference-browser .api-sidebar-shell { overflow: visible; }
+.imo-body--reference .type-detail-shell { display: block; }
+.imo-body--reference .api-overview, .imo-body--reference .type-detail { padding: 0; margin: 0; }
+.imo-body--reference .type-toc { display: none; }
+.imo-body--reference .api-content .api-overview-header { margin: 0 0 24px; }
+.imo-body--reference .api-overview-header > .ev-eyebrow { display: none; }
+.imo-body--reference .api-content h2 { font-size: 24px; line-height: 1.2; margin-top: 28px; }
+.imo-body--reference .type-chip { font-size: 12px; }
+.imo-body--reference .quick-card { padding: 16px; }
+.imo-application-hero, .imo-platform-hero--libraries { padding-top: 64px; }
+.imo-product-hero { padding-top: 64px; }
+.imo-body--playground .imo-main--playground { margin: 0; }
+.imo-body--playground .imo-converter-launch { padding: 0; }
+.imo-converter-launch__intro, .imo-converter-launch__details { display: none; }
+.imo-converter-launch__frame-shell { width: 100%; max-width: none; padding: 0; }
+.imo-converter-launch__frame { display: block; width: 100%; height: calc(100dvh - var(--imo-header-height)); min-height: 0; border: 0; border-radius: 0; }
+
+@media (max-width: 1199px) {
+  .imo-header .imo-nav__link { padding-inline: 8px; font-size: 13px; }
+  .imo-header__inner { gap: 12px; }
+  .imo-header__logo { flex-basis: 150px; }
+  :root { --imo-content-gutter: 28px; --imo-reference-width: 220px; --imo-navigation-width: 240px; }
+}
+@media (max-width: 1023px) {
+  .imo-header__inner { justify-content: flex-start; padding-inline: 16px; }
+  .imo-header__logo { flex: 1; }
+  .imo-header .imo-hamburger { display: block; order: 3; }
+  .imo-header .imo-nav { display: none; }
+  .imo-header .imo-nav.is-open { display: flex; position: fixed; top: var(--imo-header-height); left: 0; right: 0; flex-direction: column; align-items: stretch; padding: 16px; max-height: calc(100dvh - var(--imo-header-height)); overflow-y: auto; background: var(--imo-bg); border-bottom: 1px solid var(--imo-border); box-shadow: 0 12px 24px #0002; }
+  .imo-header .imo-nav__link { min-height: 44px; font-size: 15px; }
+  .imo-header .imo-dropdown { position: static; width: 100%; max-height: none; transform: none; }
+  .imo-documentation-toolbar { grid-template-columns: 1fr auto; padding: 0 16px; gap: 12px; }
+  .imo-documentation-toolbar__title { display: none; }
+  .imo-documentation-toolbar__search { margin: 0; width: 100%; }
+  .imo-documentation-toolbar .imo-docs__sidebar-toggle { display: block; position: static; width: auto; height: 36px; padding: 0 12px; border: 1px solid var(--imo-border); background: var(--imo-bg); border-radius: 6px; color: var(--imo-text); font-size: 13px; }
+  .imo-body--docs .imo-docs__sidebar { width: 280px; max-width: 85vw; transform: translateX(-100%); transition: transform .15s ease; z-index: 300; }
+  .imo-body--docs .imo-docs__sidebar { visibility: hidden; }
+  .imo-body--docs .imo-docs__sidebar.is-open { transform: translateX(0); visibility: visible; }
+  .imo-body--docs .imo-docs__sidebar-overlay:not([hidden]) { display: block; position: fixed; inset: var(--imo-shell-top) 0 0; background: #0005; z-index: 290; }
+  .imo-body--docs .imo-docs, .pf-api-docs .api-layout { margin-left: 0; grid-template-columns: minmax(0, 1fr); }
+  .imo-body--api-home .imo-docs__main { margin-left: 0; width: 100%; }
+  .imo-body--docs .imo-footer { margin-left: 0; }
+  .imo-body--docs .imo-docs__toc { display: none; }
+  .imo-body--reference .api-content { grid-row: 2; }
+  .imo-reference-browser { position: static; max-height: none; padding: 16px var(--imo-content-gutter) 0; border: 0; }
+  .imo-reference-browser > details:not([open]) > summary { margin-bottom: 0; }
+  .imo-reference-browser .api-sidebar { max-height: 50vh !important; overflow-y: auto !important; }
+}
+@media (max-width: 600px) {
+  :root { --imo-content-gutter: 20px; }
+  .imo-body--docs .imo-docs__main, .pf-api-docs .api-content { padding-top: 28px; }
+  .imo-documentation-toolbar__search { font-size: 12px; }
+  .imo-documentation-toolbar__search kbd { display: none; }
+  .imo-docs-home-hero__actions { flex-wrap: wrap; }
+  .imo-docs-home-hero h1 { font-size: 32px; }
+  .imo-application-hero, .imo-platform-hero--libraries, .imo-product-hero { padding-top: 40px; }
+}
+@media (prefers-reduced-motion: reduce) { .imo-body--docs .imo-docs__sidebar { transition: none; } }
+.imo-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

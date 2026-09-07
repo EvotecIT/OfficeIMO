@@ -6,6 +6,8 @@
   <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
   <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
@@ -20,7 +22,7 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
 
   {{ include "header" }}
-  {{ include "product-subnav" }}
+  {{ browser_workflow = data.browser_workflows[page.title] }}
 
   <main id="content" class="imo-main imo-main--product">
     {{ include "sections/product-hero" }}
@@ -34,8 +36,8 @@
 
     <section class="imo-product-next">
       <div class="imo-container imo-product-next__inner">
-        <div><p class="imo-product-next__eyebrow">Next step</p><h2>Turn the package into a working document.</h2><p>Follow a focused guide, inspect the generated API reference, or try a browser-safe conversion.</p></div>
-        <div class="imo-product-next__actions"><a class="imo-btn imo-btn-primary" href="{{ page.docs_url ?? page.meta.docs_url ?? "/docs/" }}">Open the guide</a><a class="imo-btn imo-btn-ghost" href="/convert/">Open converter</a></div>
+        <div><p class="imo-product-next__eyebrow">Next step</p><h2>Turn the package into a working document.</h2><p>Follow a focused guide and inspect the API reference for this package.</p></div>
+        <div class="imo-product-next__actions"><a class="imo-btn imo-btn-primary" href="{{ page.docs_url ?? page.meta.docs_url ?? "/docs/" }}">Open the guide</a>{{ if browser_workflow }}<a class="imo-btn imo-btn-ghost" href="{{ browser_workflow.url }}">{{ browser_workflow.label }}</a>{{ else }}<a class="imo-btn imo-btn-ghost" href="/libraries/">Explore libraries</a>{{ end }}</div>
       </div>
     </section>
   </main>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Color and gradients</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.5 Arial,sans-serif; color:#172033; background:#f3f6fb; }
+main { padding:28px; }
+.eyebrow { color:#2563eb; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0; font-size:38px; line-height:1.1; }
+.intro { margin:0 0 26px; color:#526179; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+article { padding:14px; background:white; border:1px solid #dbe3ee; border-radius:16px; }
+.paint { height:230px; border-radius:12px; }
+.linear { background:linear-gradient(125deg,#1e3a8a,#2563eb 45%,#22d3ee); }
+.radial { background:radial-gradient(circle at 35% 30%,#fef3c7,#fb923c 40%,#9f1239); }
+.bands { background:linear-gradient(135deg,#2563eb 0%,#2563eb 35%,#14b8a6 35%,#14b8a6 65%,#f59e0b 65%,#f59e0b 85%,#8b5cf6 85%,#8b5cf6 100%); }
+h2 { margin:14px 0 4px; font-size:20px; }
+article p { margin:0; font-size:13px; color:#526179; }
+.footer { margin-top:24px; padding-top:14px; border-top:1px solid #dbe3ee; color:#64748b; font-size:11px; }
+</style></head><body><main>
+<div class="eyebrow">OFFICEIMO / HTML RENDERING</div>
+<h1>Color with direction.</h1>
+<p class="intro">Three CSS gradient styles, rendered into a document without a browser process.</p>
+<section class="grid">
+<article><div class="paint linear"></div><h2>Linear</h2><p>Angled color stops create a blue-to-cyan cover treatment.</p></article>
+<article><div class="paint radial"></div><h2>Radial</h2><p>An off-center light source gives a warm background depth.</p></article>
+<article><div class="paint bands"></div><h2>Hard stops</h2><p>Repeated stop positions create four sharply defined color bands.</p></article>
+</section>
+<p class="footer">One authored HTML source. PDF for delivery, PNG for previews, SVG for vector output.</p>
+</main></body></html>

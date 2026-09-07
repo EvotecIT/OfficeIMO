@@ -22,23 +22,9 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
 
   {{ include "header" }}
-  <div class="imo-docs-toolbar">
-    <div class="imo-container imo-docs-toolbar__inner">
-      <span class="imo-docs-toolbar__brand">OfficeIMO Docs</span>
-      <a class="imo-docs-toolbar__search" href="/search/"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search documentation</span><kbd>/</kbd></a>
-      <div class="imo-docs-toolbar__links"><a href="/api/">API Reference</a><a href="/downloads/">Packages</a><a href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></div>
-    </div>
-  </div>
+  {{ include "documentation-toolbar" }}
+  {{ include "documentation-sidebar" }}
   <div class="imo-docs">
-    <button class="imo-docs__sidebar-toggle" type="button" aria-label="Toggle documentation menu" aria-expanded="false">
-      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Menu
-    </button>
-    <aside class="imo-docs__sidebar">
-      {{ include "docs-navigation" }}
-    </aside>
-    <div class="imo-docs__sidebar-overlay" hidden></div>
-
     <main id="content" class="imo-docs__main">
       <article class="imo-docs__article">
         <header class="imo-docs__header">

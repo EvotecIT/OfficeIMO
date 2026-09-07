@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--home">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--home">
+    <section class="imo-platform-hero imo-platform-hero--libraries imo-container"><p class="imo-application-eyebrow">Libraries for .NET and PowerShell</p><h1>Your application.<br /><span>Working with documents.</span></h1><p>Create reports, edit office files, convert formats, or extract content.<br />Choose a library below to see what it supports and how to use it.</p></section>
+    
+    {{ include "sections/library-catalog" }}
+    {{ include "sections/code-examples" }}
+    
+    
+    
+    {{ include "sections/cta" }}
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

@@ -27,16 +27,11 @@
 }
 
 .pdf-result-panel__summary {
-    background: #f5faff;
+    background: var(--ocx-bg-alt);
     border-left: 3px solid #2f8cc8;
-    color: #344054;
+    color: var(--ocx-text);
     font-size: .85rem;
     line-height: 1.5;
     margin-top: .7rem;
     padding: .65rem .8rem;
-}
-
-:global([data-theme="dark"]) .pdf-result-panel__summary {
-    background: #142b3d;
-    color: #d8e2ef;
 }

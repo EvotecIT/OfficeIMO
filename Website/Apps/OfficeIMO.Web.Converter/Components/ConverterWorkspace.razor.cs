@@ -28,14 +28,13 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private const string DefaultHtml = """
 <article>
   <h1>OfficeIMO HTML sample</h1>
-  <p>This HTML becomes <strong>portable Markdown</strong>.</p>
+  <p>A short report with <strong>headings and a list</strong>.</p>
   <ul><li>Headings</li><li>Lists</li><li>Links</li></ul>
 </article>
 """;
 
     [Inject] private HttpClient Http { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
-    [Inject] private NavigationManager Navigation { get; set; } = null!;
     [Inject] private BrowserConversionService ConversionService { get; set; } = null!;
 
     private ConverterInterop? _interop;
@@ -90,9 +89,13 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     protected override void OnInitialized() {
         _interop = new ConverterInterop(JS);
-        ActiveRoute = ConversionRouteCatalog.Find(GetQueryValue("route"));
+        ActiveRoute = ConversionRouteCatalog.Find(RouteId);
         TextInput = IsHtmlInputRoute(ActiveRoute) ? DefaultHtml : DefaultMarkdown;
     }
+
+    [Parameter] public string? RouteId { get; set; }
+
+    protected override Task OnParametersSetAsync() => SelectRouteAsync(ConversionRouteCatalog.Find(RouteId));
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender || _interop is null) {
@@ -114,12 +117,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         GenerateDebugOverlay = false;
         IncludeDocumentContentInSupportBundle = false;
         Diagnostics.Clear();
-        var values = new Dictionary<string, object?> {
-            ["workspace"] = null,
-            ["tool"] = null,
-            ["route"] = route.Id
-        };
-        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(values), replace: true);
     }
 
     private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args) {
@@ -350,19 +347,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         ElapsedMilliseconds = 0;
     }
 
-    private string GetQueryValue(string name) {
-        string query = new Uri(Navigation.Uri).Query;
-        if (query.Length <= 1) {
-            return string.Empty;
-        }
-        foreach (string pair in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
-            string[] parts = pair.Split('=', 2);
-            if (string.Equals(Uri.UnescapeDataString(parts[0]), name, StringComparison.OrdinalIgnoreCase)) {
-                return parts.Length == 2 ? Uri.UnescapeDataString(parts[1].Replace("+", " ")) : string.Empty;
-            }
-        }
-        return string.Empty;
-    }
 
     internal static string FormatBytes(long bytes) {
         string[] units = ["B", "KB", "MB", "GB"];

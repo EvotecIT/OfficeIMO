@@ -1,0 +1,63 @@
+using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Pdf;
+
+namespace OfficeIMO.Examples.Showcase;
+
+/// <summary>Runs the focused document examples consumed by the website's shared showcase catalog.</summary>
+internal static partial class DocumentFeatureShowcase {
+    internal static void Example(string folderPath, string? group = null) {
+        string output = Path.Combine(folderPath, "DocumentFeatures");
+        Directory.CreateDirectory(output);
+        var groups = new Dictionary<string, Action<string>>(StringComparer.OrdinalIgnoreCase) {
+            ["word"] = CreateWordExamples,
+            ["excel"] = CreateExcelExamples,
+            ["powerpoint"] = CreatePowerPointExamples,
+            ["pdf"] = CreatePdfExamples,
+            ["markdown"] = CreateMarkdownExamples
+        };
+        if (group is not null && !groups.ContainsKey(group)) {
+            throw new ArgumentException("Unknown showcase group: " + group, nameof(group));
+        }
+        foreach (var entry in groups) {
+            if (group is null || entry.Key.Equals(group, StringComparison.OrdinalIgnoreCase)) {
+                entry.Value(output);
+                Console.WriteLine("Showcase group complete: " + entry.Key);
+            }
+        }
+    }
+
+    private static string CreateExampleFolder(string output, string id) {
+        string folder = Path.Combine(output, id);
+        Directory.CreateDirectory(folder);
+        return folder;
+    }
+
+    private static void SaveMarkdownPreview(string markdownPath, string pdfPath) {
+        var document = MarkdownDoc.Load(markdownPath);
+        document.SaveAsPdf(pdfPath, new MarkdownToPdfOptions {
+            Theme = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue)
+        });
+    }
+
+    private static void CreateMarkdownExamples(string output) {
+        string folder = CreateExampleFolder(output, "markdown-technical-guide");
+        MarkdownDoc document = MarkdownDoc.Create()
+            .H1("A repeatable document workflow")
+            .P("A compact technical guide authored with the Markdown builder.")
+            .H2("1. Describe the document")
+            .P("Keep data, document construction, and delivery as separate steps.")
+            .Code("csharp", "var report = MarkdownDoc.Create()\n    .H1(\"Weekly delivery\")\n    .P(\"Generated from application data.\");")
+            .H2("2. Check the output")
+            .Table(table => table.Headers("Check", "Purpose")
+                .Row("Source text", "Keep an editable, portable input")
+                .Row("PDF preview", "Inspect page flow and typography")
+                .Row("Output hash", "Identify the generated artifact"))
+            .Callout("tip", "Start small", "Build a representative document before adding a batch pipeline.")
+            .H2("3. Share the result")
+            .Ul(list => list.Item("Keep the original Markdown alongside the PDF.")
+                .Item("Use the same guide in repository documentation and a report bundle."));
+        string source = Path.Combine(folder, "technical-guide.md");
+        File.WriteAllText(source, document.ToMarkdown());
+        SaveMarkdownPreview(source, Path.Combine(folder, "technical-guide.pdf"));
+    }
+}

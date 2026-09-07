@@ -58,7 +58,10 @@
       }
     }
 
-    var current = normalizePath(window.location.pathname);
+    var actualCurrent = normalizePath(window.location.pathname);
+    var current = actualCurrent;
+    if (current.indexOf('/products/') === 0) current = '/libraries';
+    if (document.body.classList.contains('imo-body--docs')) current = '/docs';
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".imo-header .imo-nav a[href]"));
     var matchingLinks = [];
 
@@ -77,7 +80,7 @@
       }
 
       link.addEventListener("click", function (event) {
-        var samePath = path === current;
+        var samePath = path === actualCurrent;
         var sameSearch = target.search === window.location.search;
         var noHash = !target.hash;
         if (samePath && sameSearch && noHash) {
@@ -129,14 +132,13 @@
       hamburger.classList.remove("is-active");
       hamburger.setAttribute("aria-expanded", "false");
       nav.classList.remove("is-open");
-      document.body.style.overflow = "";
+      nav.dispatchEvent(new Event("navigationclose"));
     }
 
     function openNav() {
       hamburger.classList.add("is-active");
       hamburger.setAttribute("aria-expanded", "true");
       nav.classList.add("is-open");
-      document.body.style.overflow = "hidden";
     }
 
     hamburger.setAttribute("aria-expanded", "false");
@@ -157,8 +159,21 @@
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && nav.classList.contains("is-open")) {
+        if (nav.querySelector(".imo-nav__item.is-open")) return;
         closeNav();
+        hamburger.focus();
+        e.preventDefault();
       }
+    });
+
+    document.addEventListener("click", function (e) {
+      if (nav.classList.contains("is-open") && !e.target.closest(".imo-header")) closeNav();
+    });
+
+    nav.addEventListener("focusout", function () {
+      window.requestAnimationFrame(function () {
+        if (nav.classList.contains("is-open") && !document.activeElement.closest(".imo-header")) closeNav();
+      });
     });
 
     window.addEventListener("resize", function () {
@@ -208,6 +223,9 @@
       });
     }
 
+    var nav = document.querySelector(".imo-nav");
+    if (nav) nav.addEventListener("navigationclose", function () { closeAll(); });
+
     items.forEach(function (item) {
       var btn = item.querySelector("button.imo-nav__link");
       if (!btn) return;
@@ -220,6 +238,18 @@
         var willOpen = wasOpenedByHover || !item.classList.contains("is-open");
         closeAll(item);
         setOpen(item, willOpen);
+      });
+
+      btn.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        e.preventDefault();
+        closeAll(item);
+        setOpen(item, true);
+        var links = item.querySelectorAll(".imo-dropdown a[href]");
+        var target = e.key === "ArrowUp" ? links[links.length - 1] : links[0];
+        window.requestAnimationFrame(function () {
+          if (target && item.classList.contains("is-open") && document.activeElement === btn) target.focus();
+        });
       });
 
       item.addEventListener("mouseenter", function () {
@@ -255,6 +285,7 @@
       if (!openItem) return;
       var trigger = openItem.querySelector("button.imo-nav__link");
       closeAll();
+      e.preventDefault();
       if (trigger) trigger.focus();
     });
 
@@ -264,6 +295,18 @@
   }
 
   function initCodeCopy() {
+    var status = document.createElement("span");
+    status.className = "imo-copy-status";
+    status.setAttribute("role", "status");
+    document.body.appendChild(status);
+    var statusTimer;
+
+    function reportCopy(message) {
+      clearTimeout(statusTimer);
+      status.textContent = message;
+      statusTimer = setTimeout(function () { status.textContent = ""; }, 4000);
+    }
+
     document.addEventListener("click", function (e) {
       var btn = e.target.closest(".imo-install__copy, [data-copy]");
       if (!btn) return;
@@ -276,10 +319,14 @@
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function () {
           btn.classList.add("is-copied");
+          reportCopy("Copied to clipboard.");
           setTimeout(function () { btn.classList.remove("is-copied"); }, 2000);
         }).catch(function () {
           btn.classList.remove("is-copied");
+          reportCopy("Clipboard unavailable. Select the command and copy it manually.");
         });
+      } else {
+        reportCopy("Clipboard unavailable. Select the command and copy it manually.");
       }
     });
   }
@@ -287,7 +334,18 @@
   function initTabs() {
     document.querySelectorAll('[role="tablist"]').forEach(function (tablist) {
       var tabs = tablist.querySelectorAll('[role="tab"]');
-      tabs.forEach(function (tab) {
+      tabs.forEach(function (tab, index) {
+        tab.addEventListener("keydown", function (event) {
+          var next;
+          if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+          else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = tabs.length - 1;
+          else return;
+          event.preventDefault();
+          tabs[next].click();
+          tabs[next].focus();
+        });
         tab.addEventListener("click", function () {
           var panelId = tab.getAttribute("aria-controls");
           var panel = panelId ? document.getElementById(panelId) : null;
@@ -327,8 +385,13 @@
     var frame = document.querySelector('.imo-converter-launch__frame');
     if (!frame) return;
 
-    var observer = null;
-    var compactViewport = window.matchMedia('(max-width: 760px)');
+    // The app owns route validation; the website forwards only its public selection keys.
+    var workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
+    var pageParameters = new URLSearchParams(window.location.search);
+    ['workspace', 'route', 'tool'].forEach(function (key) {
+      if (pageParameters.has(key)) workspaceUrl.searchParams.set(key, pageParameters.get(key));
+    });
+    if (workspaceUrl.href !== frame.src) frame.src = workspaceUrl.href;
 
     function syncTheme() {
       try {
@@ -338,60 +401,37 @@
         frameRoot.setAttribute('data-theme', theme);
         frameRoot.style.colorScheme = theme;
       } catch (error) {
-        // Same-origin in production; keep the converter's saved preference otherwise.
+        // The standalone application retains its saved theme if hosted elsewhere.
       }
     }
 
-    function syncHeight() {
-      if (compactViewport.matches) {
-        frame.style.removeProperty('height');
-        return;
+    window.addEventListener('message', function (event) {
+      if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
+          !event.data || event.data.type !== 'officeimo:workspace-selection') return;
+      var selection = event.data;
+      if (['workspace', 'route', 'tool'].some(function (key) {
+        return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
+      })) return;
+      var target = new URL(window.location.href);
+      ['workspace', 'route', 'tool'].forEach(function (key) {
+        var value = selection[key];
+        if (key === 'workspace' && value === 'convert') value = null;
+        if (value) target.searchParams.set(key, value);
+        else target.searchParams.delete(key);
+      });
+      if (target.href !== window.location.href) {
+        window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
       }
-
-      try {
-        var frameDocument = frame.contentDocument;
-        if (!frameDocument) return;
-
-        var documentHeight = frameDocument.documentElement ? frameDocument.documentElement.scrollHeight : 0;
-        var bodyHeight = frameDocument.body ? frameDocument.body.scrollHeight : 0;
-        var height = Math.max(documentHeight, bodyHeight);
-        if (height > 0) frame.style.height = Math.ceil(height) + 'px';
-      } catch (error) {
-        // The converter is same-origin in production. Keep the CSS fallback if a preview host changes that.
-      }
-    }
-
-    if (typeof compactViewport.addEventListener === 'function') {
-      compactViewport.addEventListener('change', syncHeight);
-    } else if (typeof compactViewport.addListener === 'function') {
-      compactViewport.addListener(syncHeight);
-    }
-
-    function observeFrame() {
-      if (observer) observer.disconnect();
-      syncTheme();
-      syncHeight();
-
-      try {
-        var frameWindow = frame.contentWindow;
-        var frameDocument = frame.contentDocument;
-        if (frameWindow && frameWindow.ResizeObserver && frameDocument) {
-          observer = new frameWindow.ResizeObserver(syncHeight);
-          if (frameDocument.documentElement) observer.observe(frameDocument.documentElement);
-          if (frameDocument.body) observer.observe(frameDocument.body);
-        }
-      } catch (error) {
-        // The fixed minimum height remains usable if same-origin observation is unavailable.
-      }
-
-      window.setTimeout(syncHeight, 250);
-      window.setTimeout(syncHeight, 1000);
-    }
-
-    frame.addEventListener('load', observeFrame);
-    window.addEventListener('resize', syncHeight);
+    });
+    window.addEventListener('popstate', function () {
+      var selection = new URLSearchParams(window.location.search);
+      frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
+        workspace: selection.get('workspace'), route: selection.get('route'), tool: selection.get('tool')
+      }, workspaceUrl.origin);
+    });
+    frame.addEventListener('load', syncTheme);
     new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    observeFrame();
+    syncTheme();
   }
 
   function initDocsSidebar() {
@@ -405,6 +445,7 @@
         toggle.setAttribute("aria-expanded", "false");
         if (overlay) overlay.hidden = true;
         document.body.style.overflow = "";
+        if (sidebar.contains(document.activeElement)) toggle.focus();
       }
 
       function openSidebar() {
@@ -412,6 +453,8 @@
         toggle.setAttribute("aria-expanded", "true");
         if (overlay) overlay.hidden = false;
         document.body.style.overflow = "hidden";
+        var firstLink = sidebar.querySelector('a[aria-current], a[href]');
+        if (firstLink) firstLink.focus();
       }
 
       toggle.setAttribute("aria-expanded", "false");
@@ -437,6 +480,13 @@
       });
 
       document.addEventListener("keydown", function (e) {
+        if (e.key === "Tab" && sidebar.classList.contains("is-open")) {
+          var focusable = Array.from(sidebar.querySelectorAll('a[href], summary')).filter(function (el) { return el.getClientRects().length > 0; });
+          var first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); toggle.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); toggle.focus(); }
+          else if (document.activeElement === toggle) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+        }
         if (e.key === "Escape" && sidebar.classList.contains("is-open")) {
           closeSidebar();
         }
@@ -450,12 +500,17 @@
     }
 
     var currentPath = window.location.pathname;
+    document.querySelectorAll('.imo-docs__nav-intro a').forEach(function (link) {
+      if (link.getAttribute('href') === currentPath) link.setAttribute('aria-current', 'page');
+    });
+    var referenceDetails = document.querySelector('.imo-reference-browser > details');
+    if (referenceDetails && window.innerWidth < 1024) referenceDetails.open = false;
     document.querySelectorAll(".imo-docs__group").forEach(function (group) {
       var links = group.querySelectorAll(".imo-docs__link");
       var hasActive = false;
       links.forEach(function (link) {
         var href = link.getAttribute("href");
-        if (href && currentPath === href) {
+        if (href && (currentPath === href || (link.hasAttribute('data-reference-root') && currentPath.indexOf(href) === 0))) {
           hasActive = true;
           link.classList.add("active");
           link.setAttribute("aria-current", "page");
@@ -468,7 +523,7 @@
 
     document.querySelectorAll(".imo-docs__link--top").forEach(function (link) {
       var href = link.getAttribute("href");
-      if (href && currentPath === href) {
+      if (href && (currentPath === href || (link.hasAttribute('data-reference-root') && currentPath.indexOf(href) === 0))) {
         link.classList.add("active");
       }
     });
@@ -506,40 +561,6 @@
     highlight();
   }
 
-  function initShowcaseFilters() {
-    var controls = Array.prototype.slice.call(document.querySelectorAll("[data-showcase-filter]"));
-    var cards = Array.prototype.slice.call(document.querySelectorAll("[data-showcase-tags]"));
-    var resultCount = document.getElementById("showcase-result-count");
-    if (!controls.length || !cards.length) return;
-
-    function applyFilter(filter) {
-      var visible = 0;
-
-      cards.forEach(function (card) {
-        var tags = (card.getAttribute("data-showcase-tags") || "").split(/\s+/);
-        var matches = filter === "all" || tags.indexOf(filter) !== -1;
-        card.hidden = !matches;
-        if (matches) visible += 1;
-      });
-
-      controls.forEach(function (control) {
-        var active = control.getAttribute("data-showcase-filter") === filter;
-        control.classList.toggle("is-active", active);
-        control.setAttribute("aria-pressed", active ? "true" : "false");
-      });
-
-      if (resultCount) {
-        resultCount.textContent = visible + (visible === 1 ? " workflow" : " workflows");
-      }
-    }
-
-    controls.forEach(function (control) {
-      control.addEventListener("click", function () {
-        applyFilter(control.getAttribute("data-showcase-filter") || "all");
-      });
-    });
-  }
-
   function init() {
     initTheme();
     initMobileNav();
@@ -551,7 +572,6 @@
     initConverterFrame();
     initDocsSidebar();
     initPrism();
-    initShowcaseFilters();
   }
 
   if (document.readyState === "loading") {

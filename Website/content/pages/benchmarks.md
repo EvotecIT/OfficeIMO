@@ -1,6 +1,7 @@
 ---
 title: "Benchmarks"
 description: "Compare reproducible OfficeIMO performance evidence across document and data workloads, with measured environments, datasets, results, and repeatable commands."
+meta.seo_title: "OfficeIMO benchmarks for .NET document workflows"
 layout: page
 meta.raw_html: true
 ---
@@ -58,7 +59,7 @@ meta.raw_html: true
       <article data-family="csv"><span>Current and historical evidence</span><h3>CSV write workloads</h3><p>The current IDataReader lane records OS and run mode. Additional wide and database-shaped snapshots are retained as historical engineering evidence because their original environment dimensions were not recorded.</p><a href="#library-comparison-evidence">Select current CSV write evidence</a></article>
       <article data-family="reader"><span>Regression baseline</span><h3>Reader</h3><p>25 cases across 14 document formats, with detection, chunking, and transport lanes. Timings are a local regression baseline, not a cross-machine promise.</p><a href="https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/officeimo.reader.foundation-2026-07-10.md" target="_blank" rel="noopener">Open the Reader evidence</a></article>
       <article data-family="guardrails"><span>Performance guardrails</span><h3>PDF, RTF, and Email</h3><p>Budget and regression checks cover representative rendering, parsing, memory, and I/O behavior without presenting unrelated engines as equivalent competitors.</p><a href="/docs/capabilities/benchmarks/#performance-guardrails">Run the guardrail suites</a></article>
-      <article data-family="formats"><span>Repeatable suites</span><h3>Markdown, HTML, and open formats</h3><p>Dedicated projects exercise Markdown, HTML, OneNote, OpenDocument, and drawing workloads with scenario-specific validation.</p><a href="/docs/capabilities/benchmarks/#additional-benchmark-projects">Find the projects and commands</a></article>
+      <article data-family="formats"><span>Repeatable suites</span><h3>Markdown, HTML, and open formats</h3><p>Dedicated projects exercise Markdown, HTML, OneNote, OpenDocument, and drawing workloads with scenario-specific validation.</p><a href="/docs/capabilities/benchmarks/#current-source-suite-inventory">Find the projects and commands</a></article>
       <article data-family="powershell"><span>Published comparisons</span><h3>PSWriteOffice</h3><p>PowerForge-backed Excel and CSV comparisons cover PowerShell object, DataTable, compression, workbook, and database-shaped workflows with validation.</p><a href="/docs/workflows/powershell-benchmarks/">Reproduce the PSWriteOffice suites</a></article>
       <article data-family="boundaries"><span>Coverage boundary</span><h3>Word and PowerPoint</h3><p>Performance-focused tests protect known workflows. We do not publish a cross-library ranking until equivalent workloads and committed result artifacts exist.</p><a href="/docs/capabilities/benchmarks/#word-and-powerpoint">See what is verified today</a></article>
     </div>

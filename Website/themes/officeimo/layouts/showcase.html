@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ page.title }} | {{ site.name }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
   <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
@@ -19,118 +21,78 @@
 <body class="imo-body imo-body--page">
   <a class="imo-skip-link" href="#content">Skip to main content</a>
   {{ include "header" }}
-  <main id="content">
-    <section class="imo-showcase-hero">
-      <div class="imo-container">
+  <main id="content" class="imo-gallery">
+    <div class="imo-container">
+      <header class="imo-gallery__intro">
+        <p class="imo-gallery__eyebrow">{{ data.showcase.cards.size }} examples · {{ data.showcase.formats.size }} formats</p>
         <h1>{{ data.showcase.title }}</h1>
         <p>{{ data.showcase.description }}</p>
-        <div class="imo-showcase-filters" role="group" aria-label="Filter workflows">
-          {{ for filter in data.showcase.filters }}
-          <button type="button" class="imo-showcase-filter{{ if filter.active }} is-active{{ end }}" data-showcase-filter="{{ filter.id }}" aria-pressed="{{ if filter.active }}true{{ else }}false{{ end }}">{{ filter.label }}</button>
-          {{ end }}
-        </div>
-      </div>
-    </section>
+      </header>
 
-    <section class="imo-section imo-section--showcase">
-      <div class="imo-container">
-        <article class="imo-featured-workflow">
-          <div class="imo-featured-workflow__copy">
-            <span>{{ data.showcase.featured.eyebrow }}</span>
-            <h2>{{ data.showcase.featured.title }}</h2>
-            <p>{{ data.showcase.featured.description }}</p>
-            <a class="imo-action-link" href="{{ data.showcase.featured.guide_url }}">Follow the database reporting guide <span aria-hidden="true">→</span></a>
+      <form id="showcase-controls" class="imo-gallery__controls" role="search" aria-label="Find a showcase example">
+        <label class="imo-gallery__search" for="showcase-query"><span>Search examples</span>
+          <input id="showcase-query" name="q" type="search" maxlength="160" placeholder="Try charts, mail merge, forms…" autocomplete="off" />
+        </label>
+        <label for="showcase-format"><span>Format</span>
+          <select id="showcase-format" name="format"><option value="all">All formats</option>
+            {{ for format in data.showcase.formats }}<option value="{{ format.id }}">{{ format.label }}</option>{{ end }}
+          </select>
+        </label>
+        <label for="showcase-capability"><span>Capability</span>
+          <select id="showcase-capability" name="capability"><option value="all">All capabilities</option>
+            {{ for operation in data.showcase.operations }}<option value="{{ operation.id }}">{{ operation.label }}</option>{{ end }}
+          </select>
+        </label>
+        <button type="reset" class="imo-gallery__reset">Reset filters</button>
+      </form>
+      <noscript><p>All examples are shown below. Enable JavaScript to search and filter this gallery.</p></noscript>
+      <div class="imo-gallery__heading"><h2>Explore the examples</h2><p id="showcase-result-count" role="status" aria-live="polite">{{ data.showcase.cards.size }} examples</p></div>
+      <div class="imo-gallery__empty" id="showcase-empty" hidden>
+        <h3>No examples match these filters</h3><p>Try a different search, choose another format, or reset the filters.</p>
+        <button type="reset" form="showcase-controls" class="imo-btn imo-btn-ghost">Reset filters</button>
+      </div>
+      <div class="imo-gallery__grid">
+        {{ for card in data.showcase.cards }}
+        <article class="imo-example" id="{{ card.id }}" data-showcase-format="{{ card.format_id }}" data-showcase-capabilities="{{ card.operation_tags }}" data-showcase-search="{{ card.search_text | html.escape }}">
+          <div class="imo-example__preview">
+            <span class="imo-example__format">{{ card.format }}</span>
+            {{ if card.preview_kind == "reader" }}
+            <div class="imo-example__data-preview"><small>Structured extraction</small><strong>{{ card.preview_title }}</strong><ul>{{ for item in card.preview_items }}<li>{{ item }}</li>{{ end }}</ul></div>
+            {{ else if card.preview_kind == "onenote" }}
+            <div class="imo-example__data-preview"><small>Notebook export</small><strong>{{ card.preview_title }}</strong><p>{{ card.preview_body }}</p><ul><li>{{ card.preview_item }}</li></ul></div>
+            {{ else }}
+            <a href="{{ card.image }}" target="_blank" rel="noopener" aria-label="Open preview: {{ card.title | html.escape }}">
+              <img src="{{ card.image }}" alt="{{ card.image_alt | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
+              <span class="imo-example__preview-action" aria-hidden="true">Open preview ↗</span>
+            </a>
+            {{ end }}
           </div>
-          <div class="imo-featured-workflow__pipeline" aria-label="DbaClientX to OfficeIMO to PSWriteOffice workflow">
-            <div class="imo-featured-workflow__node">
-              <span class="imo-featured-workflow__icon">{{ data.showcase.featured.source.icon }}</span>
-              <strong>{{ data.showcase.featured.source.title }}</strong>
-              <small>{{ data.showcase.featured.source.detail }}</small>
-            </div>
-            <span class="imo-featured-workflow__arrow" aria-hidden="true">→</span>
-            <div class="imo-featured-workflow__office">
-              <strong>OfficeIMO</strong>
-              <div>
-                {{ for output in data.showcase.featured.outputs }}
-                <span><b>{{ output.icon }}</b><em>{{ output.title }}</em><small>{{ output.detail }}</small></span>
-                {{ end }}
+          <div class="imo-example__body">
+            <h3><a href="#{{ card.id }}">{{ card.title }}</a></h3>
+            <p>{{ card.description }}</p>
+            <div class="imo-example__tags">{{ for badge in card.badge_tags }}<span>{{ badge }}</span>{{ end }}</div>
+            <details class="imo-example__details">
+              <summary>Explore example<span class="imo-visually-hidden">: {{ card.title }}</span></summary>
+              <div class="imo-example__detail-content">
+                <nav class="imo-example__downloads" aria-label="{{ card.title | html.escape }} downloads">
+                  {{ for download in card.downloads }}<a href="{{ download.url }}" target="_blank" rel="noopener">{{ download.label }}</a>{{ end }}
+                </nav>
+                <dl><div><dt>Input</dt><dd>{{ card.input }}</dd></div><div><dt>Output</dt><dd>{{ card.output }}</dd></div></dl>
+                <h4>What to check</h4><p>{{ card.proof }}</p>
+                <h4>Scope</h4><p>{{ card.limit }}</p>
+                <nav class="imo-example__references" aria-label="{{ card.title | html.escape }} implementation">
+                  <a href="{{ card.source_url }}" target="_blank" rel="noopener">View C# source</a>
+                  <a href="{{ card.guide_url }}">Read guide</a><a href="{{ card.api_url }}">API reference</a>
+                </nav>
+                <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ card.run_command | html.escape }}</code></pre></details>
               </div>
-            </div>
-            <span class="imo-featured-workflow__arrow" aria-hidden="true">→</span>
-            <div class="imo-featured-workflow__node">
-              <span class="imo-featured-workflow__icon">{{ data.showcase.featured.delivery.icon }}</span>
-              <strong>{{ data.showcase.featured.delivery.title }}</strong>
-              <small>{{ data.showcase.featured.delivery.detail }}</small>
-            </div>
+            </details>
           </div>
         </article>
-
-        <div class="imo-showcase-heading">
-          <div><span>Real generated output</span><h2>Workflow gallery</h2></div>
-          <p id="showcase-result-count" aria-live="polite">{{ data.showcase.cards.size }} workflows</p>
-        </div>
-
-        <div class="imo-showcase-grid">
-          {{ for card in data.showcase.cards }}
-          <article class="imo-workflow-card" data-showcase-tags="{{ card.tags }}">
-            <div class="imo-workflow-card__preview">
-              <span>{{ card.format }}</span>
-              {{ if card.preview_kind == "reader" }}
-              <div class="imo-showcase-reader" aria-label="Reader extraction preview">
-                <div><b>Document extraction</b><small>{{ card.preview_meta }}</small></div>
-                <strong>{{ card.preview_title }}</strong>
-                <ul>
-                  {{ for item in card.preview_items }}<li>{{ item }}</li>{{ end }}
-                </ul>
-              </div>
-              {{ else if card.preview_kind == "onenote" }}
-              <div class="imo-showcase-onenote" aria-label="OneNote HTML export preview">
-                <div><span>N</span><small>HTML export</small></div>
-                <h3>{{ card.preview_title }}</h3>
-                <h4>{{ card.preview_heading }}</h4>
-                <p>{{ card.preview_body }}</p>
-                <ul><li>{{ card.preview_item }}</li></ul>
-              </div>
-              {{ else }}
-              <img src="{{ card.image }}" alt="{{ card.image_alt }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
-              {{ end }}
-            </div>
-            <div class="imo-workflow-card__body">
-              <h2>{{ card.title }}</h2>
-              <p>{{ card.description }}</p>
-              <div class="imo-workflow-card__tags" aria-label="Workflow categories">
-                {{ for badge in card.badge_tags }}<span>{{ badge }}</span>{{ end }}
-              </div>
-              <dl class="imo-workflow-card__io">
-                <div><dt>Input</dt><dd>{{ card.input }}</dd></div>
-                <div><dt>Output</dt><dd>{{ card.output }}</dd></div>
-              </dl>
-              <details class="imo-workflow-card__proof">
-                <summary>Inspect proof and known limits</summary>
-                <div><strong>What this proves</strong><p>{{ card.proof }}</p></div>
-                <div class="is-limit"><strong>Known boundary</strong><p>{{ card.limit }}</p></div>
-              </details>
-              <div class="imo-workflow-card__actions">
-                <a class="imo-btn imo-btn-primary" href="{{ card.guide_url }}">Follow the {{ card.format }} guide</a>
-                <a class="imo-btn imo-btn-secondary" href="{{ card.artifact_url }}" download>{{ card.artifact_label }}</a>
-                <nav aria-label="{{ card.title }} evidence links">
-                  <a href="{{ card.evidence_url }}">{{ card.evidence_label }}</a>
-                  <a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.format }} source</a>
-                  <a href="{{ card.api_url }}">{{ if card.api_label }}{{ card.api_label }}{{ else }}{{ card.format }} API{{ end }}</a>
-                </nav>
-              </div>
-            </div>
-          </article>
-          {{ end }}
-        </div>
-
-        <aside class="imo-showcase-proof-note">
-          <strong>Generated from runnable examples</strong>
-          <span>Every card links to committed output and its generating source. Conversion previews are independently rendered from the generated PDF; other image previews are generated renders or visual baselines. Structured previews reproduce bundled Reader JSON or OneNote HTML. Open each proof disclosure for the boundary. <a href="/downloads/showcase/manifest.json">Inspect hashes and generators</a>.</span>
-        </aside>
-{{ content }}
+        {{ end }}
       </div>
-    </section>
+      <aside class="imo-gallery__note"><h2>Start with the example closest to your document</h2><p>Download the output, inspect its source, and check the scope before adapting it. Previews show generated output; each example explains its rendering and validation limits.</p><nav aria-label="More document resources"><a href="/convert/">Try the browser tools</a><a href="/docs/workflows/database-reporting/">Build a reporting workflow</a><a href="/downloads/showcase/manifest.json">Download manifest</a></nav></aside>
+    </div>
   </main>
   {{ include "footer" }}
   {{ assets.js_html }}

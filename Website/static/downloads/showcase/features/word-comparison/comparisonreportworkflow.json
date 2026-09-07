@@ -1,0 +1,232 @@
+﻿{
+  "sourcePath": "ComparisonReportWorkflow.Source.docx",
+  "targetPath": "ComparisonReportWorkflow.Target.docx",
+  "hasChanges": true,
+  "findingCount": 18,
+  "hasLimitations": true,
+  "limitationCount": 1,
+  "summary": {
+    "byScope": {
+      "Comment": 1,
+      "ContentControl": 1,
+      "Field": 1,
+      "Paragraph": 9,
+      "Run": 3,
+      "Table": 1,
+      "TableCell": 1,
+      "TableRow": 1
+    },
+    "byChange": {
+      "Inserted": 2,
+      "Modified": 16
+    }
+  },
+  "findings": [
+    {
+      "scope": "Field",
+      "changeKind": "Modified",
+      "location": "field[0]",
+      "detailedLocation": "Body//word/document.xml/field[0]/Simple",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceText": "DocProperty:  DOCPROPERTY  \"Client\"\\* MERGEFORMAT  => [Document DocProperty]",
+      "targetText": "DocProperty:  DOCPROPERTY  \"Customer\"\\* MERGEFORMAT  => [Document DocProperty]",
+      "message": "Field changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[1]",
+      "detailedLocation": "paragraph[1]",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceText": "Service tier: Standard",
+      "targetText": "Service tier: Premium",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[2]",
+      "detailedLocation": "paragraph[2]",
+      "sourceIndex": 2,
+      "targetIndex": 2,
+      "sourceText": "The supplier must respond within 48 hours.",
+      "targetText": "The supplier must respond within 24 hours.",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "TableCell",
+      "changeKind": "Modified",
+      "location": "table[0]/row[1]/cell[1]",
+      "detailedLocation": "table[0]/row[1]/cell[1]",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceText": "Legal",
+      "targetText": "Compliance",
+      "message": "Table cell text changed."
+    },
+    {
+      "scope": "TableRow",
+      "changeKind": "Inserted",
+      "location": "table[0]/row[2]",
+      "detailedLocation": "table[0]/row[2]",
+      "sourceIndex": null,
+      "targetIndex": 2,
+      "sourceText": null,
+      "targetText": "Escalation review | Support",
+      "message": "Table row inserted."
+    },
+    {
+      "scope": "Table",
+      "changeKind": "Inserted",
+      "location": "table[1]",
+      "detailedLocation": "table[1]",
+      "sourceIndex": null,
+      "targetIndex": 1,
+      "sourceText": null,
+      "targetText": "Audit pack | Quarterly",
+      "message": "Table inserted."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[3]",
+      "detailedLocation": "paragraph[3]",
+      "sourceIndex": 3,
+      "targetIndex": 3,
+      "sourceText": "Disclosure footnote[FootnoteReference:1]",
+      "targetText": "Disclosure footnote[FootnoteReference:1]",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[4]",
+      "detailedLocation": "paragraph[4]",
+      "sourceIndex": 4,
+      "targetIndex": 4,
+      "sourceText": "Retention endnote[EndnoteReference:2]",
+      "targetText": "Retention endnote[EndnoteReference:2]",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Run",
+      "changeKind": "Modified",
+      "location": "paragraph[5]/run[1]",
+      "detailedLocation": "paragraph[5]/run[1]",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceText": "Manual review required",
+      "targetText": "Manual review required",
+      "message": "Run formatting changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[6]",
+      "detailedLocation": "paragraph[6]",
+      "sourceIndex": 6,
+      "targetIndex": 6,
+      "sourceText": "Client field: [Document DocProperty]",
+      "targetText": "Client field: [Document DocProperty]",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "ContentControl",
+      "changeKind": "Modified",
+      "location": "content-control[0]",
+      "detailedLocation": "Body//word/document.xml/content-control[0]/sdt",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceText": "sdt: alias=Client; tag=ClientName; binding=; text=Northwind Traders",
+      "targetText": "sdt: alias=Customer; tag=CustomerName; binding=; text=Northwind Traders",
+      "message": "Content control changed."
+    },
+    {
+      "scope": "Comment",
+      "changeKind": "Modified",
+      "location": "comment[0]",
+      "detailedLocation": "Body//word/document.xml/comment[0]/comment",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-09-07T11:40:02.8756136Z; resolved=unknown; target=Review target; text=Confirm this wording before approval.",
+      "targetText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-09-07T11:40:02.9057743Z; resolved=unknown; target=Review target; text=Approved for the premium contract.",
+      "message": "Comment changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[9]",
+      "detailedLocation": "paragraph[9]",
+      "sourceIndex": 9,
+      "targetIndex": 9,
+      "sourceText": "Classification: Internal",
+      "targetText": "Classification: Customer",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[10]",
+      "detailedLocation": "paragraph[10]",
+      "sourceIndex": 10,
+      "targetIndex": 10,
+      "sourceText": "Contract pack: Draft",
+      "targetText": "Contract pack: Approved",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[11]",
+      "detailedLocation": "paragraph[11]",
+      "sourceIndex": 11,
+      "targetIndex": 11,
+      "sourceText": "Source disclosure note.",
+      "targetText": "Target disclosure note.",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Run",
+      "changeKind": "Modified",
+      "location": "paragraph[11]/run[1]",
+      "detailedLocation": "paragraph[11]/run[1]",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceText": "Source disclosure note.",
+      "targetText": "Target disclosure note.",
+      "message": "Run text changed."
+    },
+    {
+      "scope": "Paragraph",
+      "changeKind": "Modified",
+      "location": "paragraph[12]",
+      "detailedLocation": "paragraph[12]",
+      "sourceIndex": 12,
+      "targetIndex": 12,
+      "sourceText": "Source retention note.",
+      "targetText": "Target retention note.",
+      "message": "Paragraph text changed."
+    },
+    {
+      "scope": "Run",
+      "changeKind": "Modified",
+      "location": "paragraph[12]/run[1]",
+      "detailedLocation": "paragraph[12]/run[1]",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceText": "Source retention note.",
+      "targetText": "Target retention note.",
+      "message": "Run text changed."
+    }
+  ],
+  "limitations": [
+    {
+      "code": "EffectiveFormatting.ThemeResolution",
+      "message": "Theme font and theme color tokens are compared as declared tokens; Office theme resolution and layout-dependent appearance are not evaluated.",
+      "sourceContainsShape": true,
+      "targetContainsShape": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Positioned content and layers</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:16px/1.5 Arial,sans-serif; color:#172033; background:#f3f6fb; }
+main { padding:32px; }
+.eyebrow { color:#7c3aed; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0; font-size:36px; line-height:1.15; }
+.intro { margin:0 0 28px; color:#526179; }
+.canvas { position:relative; height:340px; background:#e7edf7; border-radius:20px; }
+.back { position:absolute; left:68px; top:50px; width:550px; height:235px; border-radius:16px; background:#c7d2fe; }
+.front { position:absolute; left:92px; top:28px; width:550px; height:235px; padding:30px; border:1px solid #dbe3ee; border-radius:16px; background:white; }
+.front h2 { margin:0 0 16px; font-size:27px; }
+.front p { margin:12px 0; color:#526179; }
+.badge { position:absolute; right:44px; top:48px; padding:18px 24px; border-radius:12px; color:white; background:#7c3aed; font-weight:bold; }
+.caption { position:absolute; right:44px; bottom:38px; width:260px; color:#526179; font-size:14px; }
+.note { font-size:13px; color:#526179; }
+</style></head><body><main><div class="eyebrow">OFFICEIMO / POSITIONED CONTENT</div><h1>Place the important details.</h1><p class="intro">A relative container gives each absolute element a predictable frame.</p>
+<div class="canvas"><div class="back"></div><article class="front"><h2>Project handover</h2><p>Delivery documents are ready for review.</p><p>Owner: Operations<br>Next step: Confirm acceptance</p></article><div class="badge">READY FOR REVIEW</div><div class="caption">The status badge and caption stay anchored to the frame.</div></div>
+<p class="note">Static relative and absolute positioning; no animation, scrolling, or scripted layout.</p></main></body></html>

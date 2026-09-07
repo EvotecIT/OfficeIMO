@@ -1,0 +1,129 @@
+﻿{
+  "commentCount": 2,
+  "commentThreadCount": 1,
+  "revisionCount": 2,
+  "unresolvedThreadCount": 0,
+  "actionCount": 0,
+  "unsupportedMetadataCount": 0,
+  "comments": [
+    {
+      "index": 0,
+      "id": "1",
+      "author": "Legal Reviewer",
+      "initials": "LR",
+      "dateTime": "2026-09-07T11:40:02.5008859Z",
+      "text": "Please align this notification period with the incident policy.",
+      "paraId": "00000001",
+      "parentParaId": null,
+      "isReply": false,
+      "isResolved": true,
+      "targetText": "The supplier must notify the customer within 48 hours.",
+      "targetLocationKind": "Body",
+      "targetPartUri": "/word/document.xml",
+      "isInTable": false,
+      "isInContentControl": false,
+      "isInTextBox": false
+    },
+    {
+      "index": 1,
+      "id": "2",
+      "author": "Document Owner",
+      "initials": "DO",
+      "dateTime": "2026-09-07T11:40:02.5112369Z",
+      "text": "Updated in the tracked revision below.",
+      "paraId": "00000002",
+      "parentParaId": "00000001",
+      "isReply": true,
+      "isResolved": null,
+      "targetText": "",
+      "targetLocationKind": null,
+      "targetPartUri": null,
+      "isInTable": false,
+      "isInContentControl": false,
+      "isInTextBox": false
+    }
+  ],
+  "unresolvedThreads": [
+  ],
+  "commentThreads": [
+    {
+      "replyCount": 1,
+      "isResolved": true,
+      "targetText": "The supplier must notify the customer within 48 hours.",
+      "parent": {
+        "index": 0,
+        "id": "1",
+        "author": "Legal Reviewer",
+        "initials": "LR",
+        "dateTime": "2026-09-07T11:40:02.5008859Z",
+        "text": "Please align this notification period with the incident policy.",
+        "paraId": "00000001",
+        "parentParaId": null,
+        "isReply": false,
+        "isResolved": true,
+        "targetText": "The supplier must notify the customer within 48 hours.",
+        "targetLocationKind": "Body",
+        "targetPartUri": "/word/document.xml",
+        "isInTable": false,
+        "isInContentControl": false,
+        "isInTextBox": false
+      },
+      "replies": [
+        {
+          "index": 1,
+          "id": "2",
+          "author": "Document Owner",
+          "initials": "DO",
+          "dateTime": "2026-09-07T11:40:02.5112369Z",
+          "text": "Updated in the tracked revision below.",
+          "paraId": "00000002",
+          "parentParaId": "00000001",
+          "isReply": true,
+          "isResolved": null,
+          "targetText": "",
+          "targetLocationKind": null,
+          "targetPartUri": null,
+          "isInTable": false,
+          "isInContentControl": false,
+          "isInTextBox": false
+        }
+      ]
+    }
+  ],
+  "revisions": [
+    {
+      "index": 0,
+      "revisionType": "Deletion",
+      "elementName": "del",
+      "id": "1",
+      "author": "Legal Reviewer",
+      "dateTime": "2026-06-01T09:00:00.0000000Z",
+      "affectedText": "best effort",
+      "locationText": "Tracked clause: best effortcommercially reasonable efforts",
+      "locationKind": "Body",
+      "partUri": "/word/document.xml",
+      "isInTable": false,
+      "isInContentControl": false,
+      "isInTextBox": false
+    },
+    {
+      "index": 1,
+      "revisionType": "Insertion",
+      "elementName": "ins",
+      "id": "2",
+      "author": "Legal Reviewer",
+      "dateTime": "2026-06-01T09:05:00.0000000Z",
+      "affectedText": "commercially reasonable efforts",
+      "locationText": "Tracked clause: best effortcommercially reasonable efforts",
+      "locationKind": "Body",
+      "partUri": "/word/document.xml",
+      "isInTable": false,
+      "isInContentControl": false,
+      "isInTextBox": false
+    }
+  ],
+  "actions": [
+  ],
+  "unsupportedMetadata": [
+  ]
+}

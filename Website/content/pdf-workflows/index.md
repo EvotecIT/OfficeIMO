@@ -1,7 +1,7 @@
 ---
 title: "PDF tools for browsers and .NET"
 description: "Inspect, compare, organize, optimize, protect, unlock, and redact PDF files locally in your browser or through the OfficeIMO.Pdf API."
-layout: page
+layout: docs
 slug: index
 ---
 

@@ -5,8 +5,8 @@
     {
       "id": "powerpoint-output",
       "path": "/downloads/showcase/powerpoint/design-brief-recommendations.pptx",
-      "bytes": 34755,
-      "sha256": "c1b000b8eaffc984be9af826a21a9666aea8f6220eb9e8dd499296e81d3e3d4c",
+      "bytes": 34756,
+      "sha256": "ce22a205f0950fe8af02055616f2bd18aa82eaa768af4a0891122831e96d1336",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --powerpoint-design-brief",
       "evidence": "Editable PPTX; Open XML validation is part of the example."
     },
@@ -21,8 +21,8 @@
     {
       "id": "pdf-output",
       "path": "/downloads/showcase/pdf/showcase-dashboard.pdf",
-      "bytes": 19707,
-      "sha256": "3f9025afa9a09b08be54fac5bd48a119619223ce234d0664d0cc8e1bb0bdfc31",
+      "bytes": 19852,
+      "sha256": "d763aa7289b528df6fb3896b2363c9106f1392a8e44fd55b318e940166b48f22",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --pdf-showcase",
       "evidence": "First-party PDF dashboard output."
     },
@@ -37,80 +37,80 @@
     {
       "id": "html-pdf-output",
       "path": "/downloads/showcase/html/invoice.pdf",
-      "bytes": 162718,
-      "sha256": "7375be4bb2ca55e72fd5a5393e8b81ff8974351d1965c69e25b39f2759d60f79",
+      "bytes": 80189,
+      "sha256": "860345f55633475b0cfa75fd56d609e58c14c8260828aea0cac66807d0479bca",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "Three-page searchable purchase report with wrapped rows, repeated table headers, page counters, and one totals block."
     },
     {
       "id": "html-png-output",
       "path": "/downloads/showcase/html/invoice.png",
-      "bytes": 104280,
-      "sha256": "ce504ed926c801ac8a39b6a33119893ef0590aeb4924c22bfb831bc1d6e8417e",
+      "bytes": 131847,
+      "sha256": "efe551d2df5fe1cda3e3697b802d5637eef546d3528e5adcd8c44d779c3f48f8",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "First-page PNG generated from the same parsed HTML and options object as the multi-page PDF."
     },
     {
       "id": "html-svg-output",
       "path": "/downloads/showcase/html/invoice.svg",
-      "bytes": 33800,
-      "sha256": "32f7cf8fc9c5ec2f5e7bae7fdeee3b64b67393c29d6c5e2e2349d9943c995d11",
+      "bytes": 33905,
+      "sha256": "49793eeb80d450ba6763b6b947b3dfee51721bdb806ec899a03f6d63af95b4f1",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "First-page SVG generated from the same parsed HTML and options object as the multi-page PDF."
     },
     {
       "id": "html-renderer-gallery-source",
       "path": "/downloads/showcase/html/managed-renderer-gallery.source.txt",
-      "bytes": 10394,
-      "sha256": "643f0209aaa5215f7b649447b28ed9a24c56dd47f803318c8deb3b6485cfb03a",
+      "bytes": 10629,
+      "sha256": "1a358ed3759be8ecab75c813bada1e3b73071f8b257d745fa22916c03f82623b",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Authored HTML and CSS source used for every managed renderer gallery output."
     },
     {
       "id": "html-renderer-gallery-pdf",
       "path": "/downloads/showcase/html/managed-renderer-gallery.pdf",
-      "bytes": 512835,
-      "sha256": "351753fd47e378517c2e68080ad1998dcaec4aab5515fa475629fbe1e206be03",
+      "bytes": 533691,
+      "sha256": "2e47a0986f627a231fffcd156fe990e7861b626ef24d6202cc52c0c784be41f0",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Searchable managed PDF with native AcroForm controls and page-margin content."
     },
     {
       "id": "html-renderer-gallery-png",
       "path": "/downloads/showcase/html/managed-renderer-gallery.png",
-      "bytes": 90855,
-      "sha256": "21979561a6d0d91d7bac9c750c7e1745571cc630db3e6a2c63937d51763585de",
+      "bytes": 125742,
+      "sha256": "99b93d5c51cd23bfda9f4e695ed27418a39a1211e4d46013b436a82ff2c4f384",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Deterministic first-page PNG generated from the same managed scene as the PDF."
     },
     {
       "id": "html-renderer-gallery-svg",
       "path": "/downloads/showcase/html/managed-renderer-gallery.svg",
-      "bytes": 51584,
-      "sha256": "1b77443a1279eef621636833da522ae0ebe14d10ae8700141271e6184c0c1f01",
+      "bytes": 51939,
+      "sha256": "d2d36f3548f579f5c4efd18960f2a7f0f820dca934e3b1be17bdf598e130e888",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Vector SVG generated from the shared backend-neutral scene."
     },
     {
       "id": "word-workflow-source",
       "path": "/downloads/showcase/word/customer-delivery-summary.docx",
-      "bytes": 20887,
-      "sha256": "408004b32a1e201efc908750348b11ccdb9427899ef30aa691632a2c08c1dea1",
+      "bytes": 20886,
+      "sha256": "fcac335e144e80b969d374ae8a627ca26d5226af52441c1d79313bfb29d4a6e9",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Editable DOCX generated from the same Word model as the PDF conversion."
     },
     {
       "id": "word-workflow-pdf",
       "path": "/downloads/showcase/word/customer-delivery-summary.pdf",
-      "bytes": 9245,
-      "sha256": "9915934d40153af92b6839584ce61feff1d7b33f2ab269b944473045c6b5f0b3",
+      "bytes": 3093,
+      "sha256": "53796de32d1d8d1b7584a9360d37d96bac5f5d39ce9d0ada9139eb8462e1571c",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party Word-to-PDF conversion of the downloadable DOCX."
     },
     {
       "id": "word-workflow-preview",
       "path": "/downloads/showcase/word/customer-delivery-summary-page1.png",
-      "bytes": 89136,
-      "sha256": "85142e1c587cdd8249f7a44e32b03ea5b1dbb40a87e08016c91584f759439b84",
+      "bytes": 75188,
+      "sha256": "06e63b07ad7bb8a8aa0955c1e9bc793386b08c8f74747d854bb1b2e89d69ccc8",
       "generator": "Poppler pdftocairo page-one render of the generated Word PDF",
       "evidence": "Independent page-one render of the first-party Word-to-PDF result."
     },
@@ -125,16 +125,16 @@
     {
       "id": "rtf-workflow-pdf",
       "path": "/downloads/showcase/rtf/change-approval-memo.pdf",
-      "bytes": 6094,
-      "sha256": "f1843e8d92e227ea29d591c403972774fc0c8c71daa0c86d4f7133e6dd4c5b44",
+      "bytes": 1822,
+      "sha256": "fb8c8952306a3ca66693ac80a84d10189280d3021fddc874d0a86ca4689ae8b0",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party RTF-to-PDF conversion of the downloadable memo."
     },
     {
       "id": "rtf-workflow-preview",
       "path": "/downloads/showcase/rtf/change-approval-memo-page1.png",
-      "bytes": 71001,
-      "sha256": "500fd5d53c4d73c622943f257a1eb8e36a651b26acf9fc948601a6906d35a9d6",
+      "bytes": 59530,
+      "sha256": "247ba82553a039e1da49760428eba4c7cf9c670ed73ea09a2dfa90010342fb75",
       "generator": "Poppler pdftocairo page-one render of the generated RTF PDF",
       "evidence": "Independent page-one render of the first-party RTF-to-PDF result."
     },
@@ -149,16 +149,16 @@
     {
       "id": "markdown-workflow-pdf",
       "path": "/downloads/showcase/markdown/release-readiness-report.pdf",
-      "bytes": 200031,
-      "sha256": "e29568be950461f0c620d13c90220df33776818f71a9d36d1ef59f0b0110b3d8",
+      "bytes": 3639,
+      "sha256": "99587e84889683c17fd9b959f63eec8c5c054c6dd19300c0840e6224480a936e",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Themed first-party Markdown-to-PDF conversion."
     },
     {
       "id": "markdown-workflow-preview",
       "path": "/downloads/showcase/markdown/release-readiness-report-page1.png",
-      "bytes": 85978,
-      "sha256": "3c20d2deebb1ef93fae0bc3e39014d3e3ca102cbc6637ebb25628cbe713a622d",
+      "bytes": 72095,
+      "sha256": "7d709d2c3568f071bb943620cf1b70560e2e9e8df6f4004f20a02b730b28935a",
       "generator": "Poppler pdftocairo page-one render of the generated Markdown PDF",
       "evidence": "Independent page-one render of the themed Markdown PDF."
     },
@@ -173,32 +173,32 @@
     {
       "id": "opendocument-workflow-pdf",
       "path": "/downloads/showcase/open-document/project-handover-brief.pdf",
-      "bytes": 6722,
-      "sha256": "e2aa2b0d017931934f35d41c6629ff3b6a30d0496d3b4cda8c14e6cbcbb673a4",
+      "bytes": 2523,
+      "sha256": "c6798543f5d1b3830fcb04537f6f9c8a3c15211f598ff50bd775d32680feceeb",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party OpenDocument-to-PDF conversion of the downloadable ODT."
     },
     {
       "id": "opendocument-workflow-preview",
       "path": "/downloads/showcase/open-document/project-handover-brief-page1.png",
-      "bytes": 68648,
-      "sha256": "b890928c89b573388f2cc6aab07f89e09807b2cdd520c0819e46e58abf001cbd",
+      "bytes": 53292,
+      "sha256": "2970702819ebab5d96f30806068f5b1addd709a1ef9f2230ed0209e4b838e8c1",
       "generator": "Poppler pdftocairo page-one render of the generated OpenDocument PDF",
       "evidence": "Independent page-one render of the first-party OpenDocument-to-PDF result."
     },
     {
       "id": "excel-output",
       "path": "/downloads/showcase/excel/report-workflow.xlsx",
-      "bytes": 11782,
-      "sha256": "470d4dc3e962705e557d0f9f80343a114b1b0050d922c633f2a2bf0a8bbf096d",
+      "bytes": 11775,
+      "sha256": "2448571caaf12d8e89a70bf6c69a9efb73e587c9f0d4e7ffc269199dbabd5886",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --excel-report-workflow",
       "evidence": "Editable XLSX with formulas, chart, table, and pivot metadata."
     },
     {
       "id": "excel-preview",
       "path": "/downloads/showcase/excel/report-workflow.png",
-      "bytes": 13303,
-      "sha256": "693e2c645ee100983bec0e9be2bbdabbdd54a4967298eef1ae274b3c7013e00e",
+      "bytes": 11409,
+      "sha256": "64a14caa57125f49cef5abe17a0f72beccea1ed2f06cdd0417b562ba7d3b6ef9",
       "generator": "OfficeIMO.Excel range ExportImage",
       "evidence": "Dependency-free rendered worksheet range."
     },
@@ -213,16 +213,16 @@
     {
       "id": "visio-output",
       "path": "/downloads/showcase/visio/premium-cloud-architecture.vsdx",
-      "bytes": 73699,
-      "sha256": "da09ad4c9e3c29e083e36a74974153ba9a04a685cfe962711e704a81d78a651a",
+      "bytes": 72576,
+      "sha256": "084e4fb6b78ecff8d214e3b79efc4c4405eb8968b1a42dc260e7e1b548b57187",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --visio-premium",
       "evidence": "Editable VSDX validated by the premium gallery example."
     },
     {
       "id": "visio-preview",
       "path": "/downloads/showcase/visio/premium-cloud-architecture-page1.png",
-      "bytes": 52998,
-      "sha256": "1b8133e3956193559709760421dda7e7dfaabd7d1f2ad86fae054f5825c27de1",
+      "bytes": 45553,
+      "sha256": "4d87666d5e12461da75f44251bd43b757ff3c4e93e28e722c3073a2b2308f6ec",
       "generator": "OfficeIMO.Visio dependency-free native PNG renderer",
       "evidence": "Approved native-renderer baseline for the same premium scenario."
     },
@@ -230,49 +230,1001 @@
       "id": "reader-output",
       "path": "/downloads/showcase/reader/design-brief.reader.json",
       "bytes": 226979,
-      "sha256": "390b0327c1993b4ee0ca97079444b4e7007cc7471cc29958b982ee0b1b9c0bf7",
+      "sha256": "09528fa1815fd116103dd9576467197d70dc3b07ab1aa112b4de5a62cdc3e16e",
       "generator": "officeimo reader read - --name design-brief.pptx --format json",
       "evidence": "Schema-versioned Reader result generated from the downloadable PPTX."
     },
     {
       "id": "onenote-section",
       "path": "/downloads/showcase/onenote/offline-planning.one",
-      "bytes": 4656,
-      "sha256": "ba9284753455378dc8be99ad0c96576b5bb12f30f965dd1e691f6f234cc4f9bc",
+      "bytes": 4896,
+      "sha256": "b91e12481ccf33ca70dc0ab4dad3683b9ff8516f0c5be2dbd1b0d23ebe63cfb4",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --onenote",
       "evidence": "Native offline OneNote section."
     },
     {
       "id": "onenote-package",
       "path": "/downloads/showcase/onenote/offline-planning.onepkg",
-      "bytes": 6464,
-      "sha256": "5f34586150f20d89a28e8addd40795dc0efc959cfde79f70a898b19e5605385d",
+      "bytes": 6704,
+      "sha256": "f14f716960bfccd8ac7e7fe42581784a53f81d39feeaeceadb872bea183f5cfa",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --onenote",
       "evidence": "Native offline OneNote notebook package."
     },
     {
       "id": "onenote-pdf",
       "path": "/downloads/showcase/onenote/offline-planning.pdf",
-      "bytes": 186622,
-      "sha256": "6e667187dcc4135c9aa20bf403c2944fa583feed5c212e02b8902a2c04635ee4",
+      "bytes": 1827,
+      "sha256": "26f482d8ba6909a9d620e372a0b74e23b72ba272db7142db722dd0a64643a033",
       "generator": "OfficeIMO.OneNote.Pdf SaveAsPdf",
       "evidence": "PDF export of the same generated section."
     },
     {
       "id": "onenote-html",
       "path": "/downloads/showcase/onenote/offline-planning.html.txt",
-      "bytes": 248,
-      "sha256": "b24aaabf637d521d90cec2722bcfda202ae844b051fab4ba57f3621660bd1dd8",
+      "bytes": 508,
+      "sha256": "3bf8f3a4caef8e465eee696e3a7d0b6bf3ec937103dcd37d722d137745595120",
       "generator": "OfficeIMO.OneNote.Html SaveAsHtml",
       "evidence": "HTML export used by the code-native gallery preview."
     },
     {
       "id": "onenote-markdown",
       "path": "/downloads/showcase/onenote/offline-planning.md",
-      "bytes": 125,
-      "sha256": "3f14b94b74f8b1ac76631ed2ebf31d601f8b5aea63fc6b99d119df612a0b1d15",
+      "bytes": 170,
+      "sha256": "e56ba2b2cb53cf83969880534cff3667f284e5a9c18bec74acfb16da59ab6ec2",
       "generator": "OfficeIMO.OneNote.Markdown ToMarkdown",
       "evidence": "Markdown export of the same generated section."
+    },
+    {
+      "id": "html-feature-color-and-gradients-html",
+      "path": "/downloads/showcase/html/features/color-and-gradients.source.txt",
+      "bytes": 1999,
+      "sha256": "c4207d995eae67027e216b4a80f70b586421e8de293b682a5184c81a477c3954",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "CSS color and gradients. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-color-and-gradients-pdf",
+      "path": "/downloads/showcase/html/features/color-and-gradients.pdf",
+      "bytes": 9303,
+      "sha256": "d35504a7d3235a37782db45cdf383ae29a25713ce57340de1ba80584f23af0a5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "CSS color and gradients. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-color-and-gradients-png",
+      "path": "/downloads/showcase/html/features/color-and-gradients.png",
+      "bytes": 73496,
+      "sha256": "4b52dc72b019e9cb3fcc47e1f922139828dc607376cfc823f89e864fb7786a0c",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "CSS color and gradients. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-color-and-gradients-svg",
+      "path": "/downloads/showcase/html/features/color-and-gradients.svg",
+      "bytes": 10531,
+      "sha256": "cd6e7eb7aaecf257144efd18f1caffa4c46f8b9f423a548f1ff9f7ae7e7a1a68",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "CSS color and gradients. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-report-layout-html",
+      "path": "/downloads/showcase/html/features/report-layout.source.txt",
+      "bytes": 2579,
+      "sha256": "cb85fbf64bc0bf6c1367a9ece27a3347f70ebf4bd681fa5d3c9d1f86f475005d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "A report with grid and flex layout. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-report-layout-pdf",
+      "path": "/downloads/showcase/html/features/report-layout.pdf",
+      "bytes": 11781,
+      "sha256": "c6dea902db979e297c4ae404ffa31cd9e92a94cc4c78cf3295a7ca21b1335365",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "A report with grid and flex layout. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-report-layout-png",
+      "path": "/downloads/showcase/html/features/report-layout.png",
+      "bytes": 45796,
+      "sha256": "e03dc18db19933dfee59bac3286013e59a7be296718d122a9208719963415b1e",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "A report with grid and flex layout. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-report-layout-svg",
+      "path": "/downloads/showcase/html/features/report-layout.svg",
+      "bytes": 13692,
+      "sha256": "9f48a2a5148c0b1c4ce8804d28ca1a24c2aa68e099e8916eb8acb7ab645c79f6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "A report with grid and flex layout. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-fillable-forms-html",
+      "path": "/downloads/showcase/html/features/fillable-forms.source.txt",
+      "bytes": 2436,
+      "sha256": "71c7e9a29302be8d01c7468396de9f3d98c604751caf82a663cd111acdf29ce6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "HTML controls to fillable PDF fields. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-fillable-forms-pdf",
+      "path": "/downloads/showcase/html/features/fillable-forms.pdf",
+      "bytes": 13705,
+      "sha256": "a82315fe2f752868f6b92b6fd42281e9d28589385b13d646fe600fcc6647caa1",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "HTML controls to fillable PDF fields. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-fillable-forms-png",
+      "path": "/downloads/showcase/html/features/fillable-forms.png",
+      "bytes": 41174,
+      "sha256": "f6e27c40aaabf228a6bd6b4570a18ac18ac957bb2cccc4c17c74830007b16af0",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "HTML controls to fillable PDF fields. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-fillable-forms-svg",
+      "path": "/downloads/showcase/html/features/fillable-forms.svg",
+      "bytes": 9907,
+      "sha256": "a18a3ac8f38913e0c79c9729fff28d951ea58025a7c5fd91db1747eb285d6fc8",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "HTML controls to fillable PDF fields. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-math-and-science-html",
+      "path": "/downloads/showcase/html/features/math-and-science.source.txt",
+      "bytes": 2192,
+      "sha256": "c01fddd8f6d72584fb76a5829984a376163cb536208fac9f51b286a67bb3d5cf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Mathematics in technical documents. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-math-and-science-pdf",
+      "path": "/downloads/showcase/html/features/math-and-science.pdf",
+      "bytes": 74972,
+      "sha256": "0f5d6c9d6c4b0f1a23b6aac11311e1579231f88ef1cf8a78107f9e6f78eb0d14",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Mathematics in technical documents. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-math-and-science-png",
+      "path": "/downloads/showcase/html/features/math-and-science.png",
+      "bytes": 49479,
+      "sha256": "5ae77027f681796654f188cd8b62e7f46b4eabe9668af0c5289489a532f443db",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Mathematics in technical documents. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-math-and-science-svg",
+      "path": "/downloads/showcase/html/features/math-and-science.svg",
+      "bytes": 12990,
+      "sha256": "a0dc476e1923557ae0575ddc1cc5a3d50a7018c7c7072faa73ca0fda414fcf0b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Mathematics in technical documents. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-typography-and-lists-html",
+      "path": "/downloads/showcase/html/features/typography-and-lists.source.txt",
+      "bytes": 2024,
+      "sha256": "e802a0b6298ec77f4a78844187c30d65d70110cc510f0df4c88411fe0bdb11e8",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Readable prose and structured lists. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-typography-and-lists-pdf",
+      "path": "/downloads/showcase/html/features/typography-and-lists.pdf",
+      "bytes": 11028,
+      "sha256": "a06bf9e4bca6fcc938071fb8888548e8b1bad971378c4f89ba16a4d715542770",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Readable prose and structured lists. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-typography-and-lists-png",
+      "path": "/downloads/showcase/html/features/typography-and-lists.png",
+      "bytes": 53379,
+      "sha256": "e337f9052994a3ee43d13924e007d4666e6de451cafd416eada1ae3cca197f02",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Readable prose and structured lists. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-typography-and-lists-svg",
+      "path": "/downloads/showcase/html/features/typography-and-lists.svg",
+      "bytes": 11939,
+      "sha256": "026f4ef3b8f19891e03ebd4f8dabecf21fc4bedbc51b057d4eaf073a2f7c5a21",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Readable prose and structured lists. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-vector-diagrams-html",
+      "path": "/downloads/showcase/html/features/vector-diagrams.source.txt",
+      "bytes": 2530,
+      "sha256": "39e6f88823a5af72e9204d2b27de880b2241f41cd8a725c3c93586b66a224f7d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Inline SVG diagrams. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-vector-diagrams-pdf",
+      "path": "/downloads/showcase/html/features/vector-diagrams.pdf",
+      "bytes": 8999,
+      "sha256": "d2430649dc8d1c0b40e57cb6c5d463fa63e0a0fc7e75e2849c0ab2f07ae1fd1f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Inline SVG diagrams. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-vector-diagrams-png",
+      "path": "/downloads/showcase/html/features/vector-diagrams.png",
+      "bytes": 43801,
+      "sha256": "41c91b051fff619bc2e68b5daa04f1ccaf1b5b8408c824f34a6ad76abc5e6105",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Inline SVG diagrams. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "html-feature-vector-diagrams-svg",
+      "path": "/downloads/showcase/html/features/vector-diagrams.svg",
+      "bytes": 8613,
+      "sha256": "6fd4e6376e74e0db20fac116c378774f2aa5a620ae0739d08d5a5cffab2d0213",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Inline SVG diagrams. Exact HTML input and matching managed PDF, PNG, and SVG output."
+    },
+    {
+      "id": "source-officeimo-examples-powerpoint-designbriefrecommendationspowerpoint-cs",
+      "path": "/downloads/showcase/source/PowerPoint/DesignBriefRecommendationsPowerPoint.cs.txt",
+      "bytes": 6890,
+      "sha256": "23b3b529dbb467b16ec037e8de79247fce995037d49a7a9a0e4084a7e4f3fee9",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-showcasedashboard-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseDashboard.cs.txt",
+      "bytes": 10989,
+      "sha256": "1af621eb45d622d90b3ee000345b3f5f787ab38c8a6247c5e403915ea4a38dbe",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-converters-html-htmlmanagedrenderergallery-cs",
+      "path": "/downloads/showcase/source/Converters/Html/HtmlManagedRendererGallery.cs.txt",
+      "bytes": 19385,
+      "sha256": "a5084133889505ed0b417f88212f6e625b4cdd8d1a7b3a6a2337c286580f4f6c",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-converters-html-htmlinvoiceshowcase-cs",
+      "path": "/downloads/showcase/source/Converters/Html/HtmlInvoiceShowcase.cs.txt",
+      "bytes": 7070,
+      "sha256": "b1eaa1fca5a0810af87e378610e327f029240ff2f7d181758c0ca4ca4ff5f5da",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-showcase-realworldworkflowshowcase-cs",
+      "path": "/downloads/showcase/source/Showcase/RealWorldWorkflowShowcase.cs.txt",
+      "bytes": 9859,
+      "sha256": "de023b95ff121374bbefd1f5a52a1edd7b99d5b833e6bb3e3bfb1ee390c0f754",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-excel-reportworkflow-cs",
+      "path": "/downloads/showcase/source/Excel/ReportWorkflow.cs.txt",
+      "bytes": 4147,
+      "sha256": "05b036fd813f8e715b602f83a6d16641e0225bca493c179bf25693866e592fff",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-visio-premiumvisioshowcase-cs",
+      "path": "/downloads/showcase/source/Visio/PremiumVisioShowcase.cs.txt",
+      "bytes": 2708,
+      "sha256": "d007ae6c3c9e4a3e35f5507d2126ed64062d311a84356cc1af64d7de964a7c38",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-tool-commands-reader-readercommand-cs",
+      "path": "/downloads/showcase/source/OfficeIMO.Tool/Commands/Reader/ReaderCommand.cs.txt",
+      "bytes": 8471,
+      "sha256": "d69c0adf6f6bd24a628ae89204cbadec7606f9817a21ad90f08e6269ac841372",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-onenote-offlineonenoteexample-cs",
+      "path": "/downloads/showcase/source/OneNote/OfflineOneNoteExample.cs.txt",
+      "bytes": 3359,
+      "sha256": "e5e089417a179feb368e3f97cdc30bccb38cd00ef64ca9940625f2a51beb0655",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "source-officeimo-examples-converters-html-htmlfeatureshowcase-cs",
+      "path": "/downloads/showcase/source/Converters/Html/HtmlFeatureShowcase.cs.txt",
+      "bytes": 3114,
+      "sha256": "a0187e7952d1dbc6b03e42255428a64c56b18e5adcd4e95cc433098ea9875fe5",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "html-feature-table-spans-pdf",
+      "path": "/downloads/showcase/html/features/table-spans.pdf",
+      "bytes": 11285,
+      "sha256": "ed3f88c65af262a03b97adf9a8b85af6efe53e3f776fa278c051ba9d3fa59b5a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-table-spans-html",
+      "path": "/downloads/showcase/html/features/table-spans.source.txt",
+      "bytes": 1716,
+      "sha256": "b46a092150527c409888f9d58af38d4f72fbbe413009f0c4575f0f3fddd81064",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-table-spans-png",
+      "path": "/downloads/showcase/html/features/table-spans.png",
+      "bytes": 37350,
+      "sha256": "f27b50b83641132e82e5b78d9bc6169a519be2739504c1aa01650a802b07252d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-table-spans-svg",
+      "path": "/downloads/showcase/html/features/table-spans.svg",
+      "bytes": 16711,
+      "sha256": "1b11800966f837ea524bddf9f98cda6ebfd2ed40e1520145e1bfe08ece35b915",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-positioning-and-layers-pdf",
+      "path": "/downloads/showcase/html/features/positioning-and-layers.pdf",
+      "bytes": 6070,
+      "sha256": "4f422f56dda51a9230b4c5859e677b44ef98dbbf59ba68d6261bd098f639c265",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-positioning-and-layers-html",
+      "path": "/downloads/showcase/html/features/positioning-and-layers.source.txt",
+      "bytes": 1904,
+      "sha256": "4600cc75b9177cc148051866d520a746508dbd36270d34a60b91306de741aba5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-positioning-and-layers-png",
+      "path": "/downloads/showcase/html/features/positioning-and-layers.png",
+      "bytes": 37399,
+      "sha256": "93be1889caea2655f33090e6f2131292eccb734712bc115a3a8229df33c76362",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-positioning-and-layers-svg",
+      "path": "/downloads/showcase/html/features/positioning-and-layers.svg",
+      "bytes": 8608,
+      "sha256": "4f7e44769251219f4cc1eee470d16e772362a7bc8d582d811d20c50b60cafd4a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-page-breaks-pdf",
+      "path": "/downloads/showcase/html/features/page-breaks.pdf",
+      "bytes": 8948,
+      "sha256": "cdc7756f627201c003797d90d08ae7f40bb369348cbecb4ccdb1714fd50b07fc",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-page-breaks-html",
+      "path": "/downloads/showcase/html/features/page-breaks.source.txt",
+      "bytes": 1713,
+      "sha256": "86b61c0a331d2cae88a7b7d20d0112a2f955abe2080c995a735520b85fb4d0c5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-page-breaks-png",
+      "path": "/downloads/showcase/html/features/page-breaks.png",
+      "bytes": 28420,
+      "sha256": "38761586c3e23142a24cf97ff0fa5547307f767f8b16c79c51f8d960f947ea8f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "html-feature-page-breaks-svg",
+      "path": "/downloads/showcase/html/features/page-breaks.svg",
+      "bytes": 6300,
+      "sha256": "9a85ba1b13efdf29ed6a6241360f56a48a8f48143227ee386fd35ca1f7b476a0",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-feature-showcase",
+      "evidence": "Exact HTML input and matching PDF, first-page PNG, and first-page SVG output."
+    },
+    {
+      "id": "word-mail-merge-mailmergeinvoiceworkflow.docx",
+      "path": "/downloads/showcase/features/word-mail-merge/mailmergeinvoiceworkflow.docx",
+      "bytes": 18692,
+      "sha256": "ada1d513c004e5c4dbe653a3875b90f2fea3d2624eea68c44b141e6edd9f6b64",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-mail-merge-mailmergeinvoiceworkflow.pdf",
+      "path": "/downloads/showcase/features/word-mail-merge/mailmergeinvoiceworkflow.pdf",
+      "bytes": 1845,
+      "sha256": "040151d03f385c31f1fd99e7a49fd7ff86ba5f5de75db70e042e5ee1e46cc683",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-mail-merge-mailmergeinvoiceworkflow.preflight.md",
+      "path": "/downloads/showcase/features/word-mail-merge/mailmergeinvoiceworkflow.preflight.md",
+      "bytes": 412,
+      "sha256": "fb16fa71f0711ff9e4c22c6e18cef293f4824b301067ee5a394ba060e0aa5e1b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-mail-merge-preview",
+      "path": "/downloads/showcase/features/word-mail-merge/preview.png",
+      "bytes": 34256,
+      "sha256": "5a0ab20366fcd9fd1fd9de49159a0518031032b0afa763bf831f7337d9a61c69",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-word-mailmerge-mailmerge-workflows-cs",
+      "path": "/downloads/showcase/source/Word/MailMerge/MailMerge.Workflows.cs.txt",
+      "bytes": 24407,
+      "sha256": "6e2dcd9ea58354ca848d7fa2d81315713a297900c977bbe8b57602bcadcb5a3a",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "word-grouped-tables-mailmergegroupedtableworkflow.docx",
+      "path": "/downloads/showcase/features/word-grouped-tables/mailmergegroupedtableworkflow.docx",
+      "bytes": 18729,
+      "sha256": "38552405b565f7322836bf843953a73dbedc1f9519f8bb6118b7864ef3c0a016",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-grouped-tables-mailmergegroupedtableworkflow.pdf",
+      "path": "/downloads/showcase/features/word-grouped-tables/mailmergegroupedtableworkflow.pdf",
+      "bytes": 2041,
+      "sha256": "85eedc31c58b42051d04d5fb0563eeae9f8f1047135b643c6154c311f6a8eb29",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-grouped-tables-mailmergegroupedtableworkflow.preflight.md",
+      "path": "/downloads/showcase/features/word-grouped-tables/mailmergegroupedtableworkflow.preflight.md",
+      "bytes": 389,
+      "sha256": "df35732f34e32b719082da8a2ef5c74c9d5f78ae3dc0355bded2e3f1c72449d6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-grouped-tables-preview",
+      "path": "/downloads/showcase/features/word-grouped-tables/preview.png",
+      "bytes": 43854,
+      "sha256": "37e0a4b89d5ac9625f5e23853bb19c3deab111e9358e1039caf765d323894eb4",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "word-review-report-reviewreportworkflow.docx",
+      "path": "/downloads/showcase/features/word-review-report/reviewreportworkflow.docx",
+      "bytes": 19440,
+      "sha256": "eb91755dccfea1b812699768048609357ce1dbc32efa6bb47b8859b710258c52",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-review-report-reviewreportworkflow.json",
+      "path": "/downloads/showcase/features/word-review-report/reviewreportworkflow.json",
+      "bytes": 3860,
+      "sha256": "25a38811ae209d0761f1c6b3e422b2af587cdc43485d047e00914f3e9f551135",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-review-report-reviewreportworkflow.md",
+      "path": "/downloads/showcase/features/word-review-report/reviewreportworkflow.md",
+      "bytes": 1543,
+      "sha256": "b147ad358b97ebfac3149465ac2f8d1b346221df9a760ae34574d1f74cc63ddd",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-review-report-review-report.pdf",
+      "path": "/downloads/showcase/features/word-review-report/review-report.pdf",
+      "bytes": 7987,
+      "sha256": "0568ed7b3116fd56ce0454eb4cf94f607ebc62f288e7fd18a68975fba1515540",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-review-report-preview",
+      "path": "/downloads/showcase/features/word-review-report/preview.png",
+      "bytes": 87559,
+      "sha256": "bc4338ff711f98b48327f7013a9c4d5a319bb830c0fd3cbd98e9debdcceb9963",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-word-reviewreports-reviewreports-workflow-cs",
+      "path": "/downloads/showcase/source/Word/ReviewReports/ReviewReports.Workflow.cs.txt",
+      "bytes": 2074,
+      "sha256": "e68178848cbd828d45dc02ef2a17bf0870d2b33f86eec6827e8c5c819425dccd",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "word-comparison-comparisonreportworkflow.redline.docx",
+      "path": "/downloads/showcase/features/word-comparison/comparisonreportworkflow.redline.docx",
+      "bytes": 20257,
+      "sha256": "47d0a728b3348c763cd275ab158582b59fa6681ebfb02d642c33a4a1ac108cc4",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-comparison-comparisonreportworkflow.source.docx",
+      "path": "/downloads/showcase/features/word-comparison/comparisonreportworkflow.source.docx",
+      "bytes": 20428,
+      "sha256": "d0543e040cff92cc935c68944ccd8a55d45508f7f0c8d30347707fda769b7b3b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-comparison-comparisonreportworkflow.target.docx",
+      "path": "/downloads/showcase/features/word-comparison/comparisonreportworkflow.target.docx",
+      "bytes": 20485,
+      "sha256": "e77f1a15a4e944923e5533c5218010f26709c76d49974a75f20580de545b7331",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-comparison-comparisonreportworkflow.json",
+      "path": "/downloads/showcase/features/word-comparison/comparisonreportworkflow.json",
+      "bytes": 7717,
+      "sha256": "1cfbead99ef6e18edddbdbfe352c2744eb770309b39835dbb7bec31ced557fee",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-comparison-comparison-report.pdf",
+      "path": "/downloads/showcase/features/word-comparison/comparison-report.pdf",
+      "bytes": 14370,
+      "sha256": "58e1a14c8104a33145e02a54aac375eb60aeaf6a4d4202d91ffac1aaee72dd5b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group word",
+      "evidence": "Generated Word example output."
+    },
+    {
+      "id": "word-comparison-preview",
+      "path": "/downloads/showcase/features/word-comparison/preview.png",
+      "bytes": 58616,
+      "sha256": "104453921fb120acbebacca75a35b036be47c38749247bb1adfb36cbc58b02e9",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-word-comparedocuments-comparedocuments-reports-cs",
+      "path": "/downloads/showcase/source/Word/CompareDocuments/CompareDocuments.Reports.cs.txt",
+      "bytes": 8553,
+      "sha256": "8dbdebcd7421263d84381d2212ab8a0074e08dc2001578d3e70bef5a28c44d3b",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "excel-formulas-forecast.xlsx",
+      "path": "/downloads/showcase/features/excel-formulas/forecast.xlsx",
+      "bytes": 4508,
+      "sha256": "9aae96253f3cf127b785cb513d110081105d25d4d00f4862bc76a5b1c79a72b4",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Generated Excel example output."
+    },
+    {
+      "id": "excel-formulas-preview",
+      "path": "/downloads/showcase/features/excel-formulas/preview.png",
+      "bytes": 17779,
+      "sha256": "544ee8e1d78492857ddf8a4d8710ffa98d0ffeaf68377d0fd3aa60f92eb5607d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "source-officeimo-examples-showcase-documentfeatureshowcase-excel-cs",
+      "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.Excel.cs.txt",
+      "bytes": 7903,
+      "sha256": "e7325c7787f37fb6c9c5c812c39a5e824b2dbf4d8894dfdb84f453d88e60190e",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "excel-tables-inventory.xlsx",
+      "path": "/downloads/showcase/features/excel-tables/inventory.xlsx",
+      "bytes": 5313,
+      "sha256": "02cf0d8cd17b2d0aabd101e32f9f3a053b5eec0ad2674ecd9f9da3b04898b26f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Generated Excel example output."
+    },
+    {
+      "id": "excel-tables-preview",
+      "path": "/downloads/showcase/features/excel-tables/preview.png",
+      "bytes": 15724,
+      "sha256": "5e6f682c5a522608507e2cc5d681d2043dab25c8dfed7cc2a2ced68434f5c461",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "excel-charts-quarterly-sales.xlsx",
+      "path": "/downloads/showcase/features/excel-charts/quarterly-sales.xlsx",
+      "bytes": 9023,
+      "sha256": "85bf32ac640969ab7747e539fa59e6234cc237dce3e38f1d371dc210cbbd4472",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Generated Excel example output."
+    },
+    {
+      "id": "excel-charts-preview",
+      "path": "/downloads/showcase/features/excel-charts/preview.png",
+      "bytes": 16473,
+      "sha256": "775f4186acfa0e2a4d8008340c80b1772441a28ee7561b8d3a03210c6bc1adf3",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "excel-conditional-formatting-capacity.xlsx",
+      "path": "/downloads/showcase/features/excel-conditional-formatting/capacity.xlsx",
+      "bytes": 4266,
+      "sha256": "ac22c32f95004d3a3591fbbc797c65a420b845c7900f4987cbcff6f5d84d1b5f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Generated Excel example output."
+    },
+    {
+      "id": "excel-conditional-formatting-preview",
+      "path": "/downloads/showcase/features/excel-conditional-formatting/preview.png",
+      "bytes": 16840,
+      "sha256": "52f17bcd6a3d4f9f33aac89e0de79f7341f053609c607aa06245fa852236328d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "excel-validation-request-register.xlsx",
+      "path": "/downloads/showcase/features/excel-validation/request-register.xlsx",
+      "bytes": 5322,
+      "sha256": "ff3d86657f221ef720772be403eb0626c04ca579d1d36f7502cd99d2e8dfd5aa",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Generated Excel example output."
+    },
+    {
+      "id": "excel-validation-preview",
+      "path": "/downloads/showcase/features/excel-validation/preview.png",
+      "bytes": 17787,
+      "sha256": "727d6629d146e5b8b07bc771b3d2f4d210313ea5ee1be7876879ef570db5b919",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group excel",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "powerpoint-data-tables-sales-table.pptx",
+      "path": "/downloads/showcase/features/powerpoint-data-tables/sales-table.pptx",
+      "bytes": 25271,
+      "sha256": "80d83aca1d2596e3054c9ec7c19ce4b5ffe1ecf1d3b3b32c1cf17c355fff0dda",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-data-tables-slides.pdf",
+      "path": "/downloads/showcase/features/powerpoint-data-tables/slides.pdf",
+      "bytes": 2267,
+      "sha256": "886a5ca29f358cd1ce6fba40bf0b2dac5087ffcca321e2fba717bbc34cfa3e98",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-data-tables-preview.svg",
+      "path": "/downloads/showcase/features/powerpoint-data-tables/preview.svg",
+      "bytes": 12974,
+      "sha256": "ac27e642fb1dd05cdc20dfad77a839501b748bd502a6d427dd43e76160664091",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-data-tables-preview",
+      "path": "/downloads/showcase/features/powerpoint-data-tables/preview.png",
+      "bytes": 20698,
+      "sha256": "90bb9ebdf3fe71f49c6fb5e93ab247ad95732b5963331cf109ee132ba9a6a7dc",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "source-officeimo-examples-showcase-documentfeatureshowcase-powerpoint-cs",
+      "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.PowerPoint.cs.txt",
+      "bytes": 6638,
+      "sha256": "c331308115d5507bea505aa210ca605d8dc5a5d3de0b6c9673354f44225d04fa",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "powerpoint-shapes-workflow-shapes.pptx",
+      "path": "/downloads/showcase/features/powerpoint-shapes/workflow-shapes.pptx",
+      "bytes": 24994,
+      "sha256": "dedd0311745fa0e0789fe6e65747618ee8bc754d2a37fceab7b379550b71bbe5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-shapes-slides.pdf",
+      "path": "/downloads/showcase/features/powerpoint-shapes/slides.pdf",
+      "bytes": 1425,
+      "sha256": "33021df59d62a7bf793fd668f5fbd9716c4dfe10899a5e8c9c84a86c70cf5f34",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-shapes-preview.svg",
+      "path": "/downloads/showcase/features/powerpoint-shapes/preview.svg",
+      "bytes": 2383,
+      "sha256": "7d6d2acb5f1be0d5186e8dde62aa11c9101237fb012a53142f2e7d748af7a70a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-shapes-preview",
+      "path": "/downloads/showcase/features/powerpoint-shapes/preview.png",
+      "bytes": 23103,
+      "sha256": "c51656f3981c756bc425ab9f997a9a7ace1669e1d46a42e51250a7a2dc14ca87",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "powerpoint-text-formatted-text.pptx",
+      "path": "/downloads/showcase/features/powerpoint-text/formatted-text.pptx",
+      "bytes": 25004,
+      "sha256": "e17abe87315926e141f394166b46a8a24d1df735ede14a1f2d5b9373e24c7b76",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-text-slides.pdf",
+      "path": "/downloads/showcase/features/powerpoint-text/slides.pdf",
+      "bytes": 1755,
+      "sha256": "09d140d823844f61a5d0602bfe77a291f549a150a5dcb76b15c784f70651709a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-text-preview.svg",
+      "path": "/downloads/showcase/features/powerpoint-text/preview.svg",
+      "bytes": 2639,
+      "sha256": "0b57460fa2b9f4f6fc22f6d631fad4aac9cf3acac66652d17c4ea43cfa0471bb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-text-preview",
+      "path": "/downloads/showcase/features/powerpoint-text/preview.png",
+      "bytes": 26564,
+      "sha256": "9f8874edeb07304ea38aeeb6cfba8c43fa5054aa6e192173ef8a9153015e69d2",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "powerpoint-theme-themeandlayout.pptx",
+      "path": "/downloads/showcase/features/powerpoint-theme/themeandlayout.pptx",
+      "bytes": 27888,
+      "sha256": "907375f8e7cd61cfa94d3b0304ba3359a577b755d7528d02767af76b31609ebf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-theme-slides.pdf",
+      "path": "/downloads/showcase/features/powerpoint-theme/slides.pdf",
+      "bytes": 2265,
+      "sha256": "34a5ef6c4ba0021fe5d321a900706c963829ffb5c0de606cddd0e2dcfbb21aea",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-theme-preview.svg",
+      "path": "/downloads/showcase/features/powerpoint-theme/preview.svg",
+      "bytes": 1270,
+      "sha256": "397ce18bb3d6cc6a1a6fb0bfec831c1f0382e6581e0ae43932bbd835e0c22eaf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Generated PowerPoint example output."
+    },
+    {
+      "id": "powerpoint-theme-preview",
+      "path": "/downloads/showcase/features/powerpoint-theme/preview.png",
+      "bytes": 11172,
+      "sha256": "26ddec062d5cac05080c20301a7c268486a72b6da7d99a78f7f22d10218289b7",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group powerpoint",
+      "evidence": "Native image export of the example document."
+    },
+    {
+      "id": "source-officeimo-examples-powerpoint-themeandlayoutpowerpoint-cs",
+      "path": "/downloads/showcase/source/PowerPoint/ThemeAndLayoutPowerPoint.cs.txt",
+      "bytes": 6171,
+      "sha256": "7a622cdfe1066d8444116010582151a3aed4fefa0e7058ab7267a8b92316649d",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "pdf-statement-pdf.showcase.statement.pdf",
+      "path": "/downloads/showcase/features/pdf-statement/pdf.showcase.statement.pdf",
+      "bytes": 24262,
+      "sha256": "8b42cfe1affb2d56f8191ca04e5e63aad167c8feb4e6fe3c6eb9e6872caae869",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-statement-preview",
+      "path": "/downloads/showcase/features/pdf-statement/preview.png",
+      "bytes": 135070,
+      "sha256": "e091cc7cfedc48c36291cddbb4bff73296352bdc8d330f5dce8a26ccbd533857",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-showcasestatement-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseStatement.cs.txt",
+      "bytes": 11258,
+      "sha256": "04f0efd4918e0b994f17d8ee2ae2e43fccc0392ea53bdf6d631755e6e53ee06b",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "pdf-columns-pdf.rowcolumns.pdf",
+      "path": "/downloads/showcase/features/pdf-columns/pdf.rowcolumns.pdf",
+      "bytes": 11631,
+      "sha256": "088d26de6719f5ee37e04321ab7e8dbe188b525b573595f3a9be515402971125",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-columns-preview",
+      "path": "/downloads/showcase/features/pdf-columns/preview.png",
+      "bytes": 107255,
+      "sha256": "53f8a27a668001bc91f4d24d649b1e5f15f4fb9ef978378ae394afcb26d44a94",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-rowcolumns-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.RowColumns.cs.txt",
+      "bytes": 6607,
+      "sha256": "53e2fb9efdbc1fb3a0a2a748f283fbbe41f10987897695def61223a29d5d409b",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "pdf-drawing-pdf.drawinggallery.pdf",
+      "path": "/downloads/showcase/features/pdf-drawing/pdf.drawinggallery.pdf",
+      "bytes": 5744,
+      "sha256": "43a9c567bb4a65f9bdfaf31b3b360e7f2a9ceae6aede6a836178b5041263a7c6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-drawing-preview",
+      "path": "/downloads/showcase/features/pdf-drawing/preview.png",
+      "bytes": 54720,
+      "sha256": "9b7848475c491e8f3d702e6a5e8c25adf94bb62f26137978590c2a018338ea9c",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-drawinggallery-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.DrawingGallery.cs.txt",
+      "bytes": 5277,
+      "sha256": "f1463f0a2420263e128ac9af6c16762a89c0552201d8ad4676e2eecc742a98df",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "pdf-table-styles-pdf.tablestylegallery.pdf",
+      "path": "/downloads/showcase/features/pdf-table-styles/pdf.tablestylegallery.pdf",
+      "bytes": 99198,
+      "sha256": "3e3853175f7d639b26b1fb075517b56fb51133a81201a4f696f20501c962770e",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-table-styles-preview",
+      "path": "/downloads/showcase/features/pdf-table-styles/preview.png",
+      "bytes": 126481,
+      "sha256": "2881418ae7ad60e7a84ed8713b79a32d62af628a5c7d066aad085e7549563faf",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-tablestylegallery-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.TableStyleGallery.cs.txt",
+      "bytes": 2994,
+      "sha256": "3faf031769346f8c8757c2333d392211ee2c4c9ebeeb983c24357a6f7635fd6e",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "pdf-page-operations-pdf.showcase.manipulation.stamped.pdf",
+      "path": "/downloads/showcase/features/pdf-page-operations/pdf.showcase.manipulation.stamped.pdf",
+      "bytes": 15232,
+      "sha256": "1a0fe0d17646ab221603bd4ba1560a533c8dd220abecf389c0591fc55da642ac",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-page-operations-pdf.showcase.manipulation.merged.pdf",
+      "path": "/downloads/showcase/features/pdf-page-operations/pdf.showcase.manipulation.merged.pdf",
+      "bytes": 14218,
+      "sha256": "382e8add47cdc6e15791a373d33d2a4f68b0425559ba2d0d5c8d3cf4621d4a3b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-page-operations-pdf.showcase.manipulation.extractedpage2.pdf",
+      "path": "/downloads/showcase/features/pdf-page-operations/pdf.showcase.manipulation.extractedpage2.pdf",
+      "bytes": 2730,
+      "sha256": "62de6b93d30406ad649e258251ccedc449e84756a1ecaaa5e9ddb9155f1b4e59",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-page-operations-pdf.showcase.manipulation.extractedtext.txt",
+      "path": "/downloads/showcase/features/pdf-page-operations/pdf.showcase.manipulation.extractedtext.txt",
+      "bytes": 1216,
+      "sha256": "92cf0846cbdbbf3282b4a10d0f980630cdceeb4f0050b96a49a774ea7ccba8e3",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group pdf",
+      "evidence": "Generated PDF example output."
+    },
+    {
+      "id": "pdf-page-operations-preview",
+      "path": "/downloads/showcase/features/pdf-page-operations/preview.png",
+      "bytes": 43382,
+      "sha256": "0e9455ab63e2b23c719d0245573b6e4f5c99d31bce5e1a19594031ff72ae1374",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-pdf-pdf-showcasemanipulation-cs",
+      "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseManipulation.cs.txt",
+      "bytes": 5948,
+      "sha256": "59704e4586a3b6a7d9cb859db7b0269778e6a4c931793f94b303589902c3eeba",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "markdown-technical-guide-technical-guide.md",
+      "path": "/downloads/showcase/features/markdown-technical-guide/technical-guide.md",
+      "bytes": 777,
+      "sha256": "e76f45678f31da8c694971a131ce7fc4b8b32515cbcba54f281033c5fbf7d001",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group markdown",
+      "evidence": "Generated Markdown example output."
+    },
+    {
+      "id": "markdown-technical-guide-technical-guide.pdf",
+      "path": "/downloads/showcase/features/markdown-technical-guide/technical-guide.pdf",
+      "bytes": 4233,
+      "sha256": "50239737d8a0a78ebbcdc80bd18fb8434de9fa9c3e379ba66b45c52b78801911",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-features --showcase-group markdown",
+      "evidence": "Generated Markdown example output."
+    },
+    {
+      "id": "markdown-technical-guide-preview",
+      "path": "/downloads/showcase/features/markdown-technical-guide/preview.png",
+      "bytes": 89052,
+      "sha256": "555a24b70c3db5f09a90a93f989e445a1d515cb3c09a82ea613e456708907bb7",
+      "generator": "Poppler pdftocairo page-one render",
+      "evidence": "Independent page-one PDF render. Open the PDF for the complete document."
+    },
+    {
+      "id": "source-officeimo-examples-showcase-documentfeatureshowcase-cs",
+      "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.cs.txt",
+      "bytes": 3269,
+      "sha256": "0d76bac5aa1058ca7dd6bcdbbf9ebf095034ac775d9f206dca717cf5bd2d0a2d",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "C# source for the runnable example."
     }
   ]
 }

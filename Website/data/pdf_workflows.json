@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "browserBaseUrl": "/apps/officeimo-converter/?workspace=pdf&tool=",
+  "browserBaseUrl": "/convert/?workspace=pdf&tool=",
   "operations": [
     { "id": "inspect", "slug": "inspect", "category": "Understand", "title": "Inspect PDF", "summary": "Read page, security, form, signature-marker, active-content, and rewrite-readiness evidence without changing the file." },
     { "id": "compare", "slug": "compare", "category": "Understand", "title": "Compare PDFs", "summary": "Render two PDFs and produce a self-contained gallery with expected, actual, and highlighted page differences." },

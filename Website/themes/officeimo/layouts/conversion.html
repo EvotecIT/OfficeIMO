@@ -18,33 +18,23 @@
   {{ opengraph_html }}
   {{ structured_data_html }}
 </head>
-<body class="imo-body imo-body--conversion">
+<body class="imo-body imo-body--docs imo-body--conversion">
   <a class="imo-skip-link" href="#content">Skip to main content</a>
   {{ include "header" }}
-
-  <main id="content" class="imo-main">
-    <section class="imo-intent-hero">
-      <div class="imo-container imo-intent-hero__inner">
-        <div>
-          <p class="imo-section__eyebrow">{{ page.meta.eyebrow ?? "Document conversion for .NET" }}</p>
+  {{ include "documentation-toolbar" }}
+  {{ include "documentation-sidebar" }}
+  <div class="imo-docs">
+  <main id="content" class="imo-docs__main">
+    <article class="imo-docs__article">
+        <header class="imo-docs__header">
           <h1>{{ page.title }}</h1>
           {{ if page.description }}<p class="imo-intent-hero__lead">{{ page.description }}</p>{{ end }}
           <div class="imo-intent-hero__actions">
             <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? page.meta.package_url ?? "/downloads/" }}">{{ page.meta.primary_label ?? "Get the package" }}</a>
             <a class="imo-btn imo-btn-ghost" href="{{ page.meta.secondary_url ?? "/compatibility/" }}">{{ page.meta.secondary_label ?? "Check format support" }}</a>
           </div>
-        </div>
-        <aside class="imo-intent-proof" aria-label="Conversion route">
-          <span>{{ page.meta.source_format ?? "Source" }}</span>
-          <strong aria-hidden="true">→</strong>
-          <span>{{ page.meta.destination_format ?? "Destination" }}</span>
-          <small>{{ page.meta.runtime ?? ".NET and PowerShell" }}</small>
-        </aside>
-      </div>
-    </section>
-
-    <div class="imo-container imo-intent-layout">
-      <div class="imo-intent-content imo-prose markdown-body">
+        </header>
+      <div class="imo-docs__content imo-intent-content imo-prose markdown-body">
         {{ if page.meta.howto.steps }}
         <section class="imo-howto" aria-labelledby="conversion-steps-title">
           <p class="imo-section__eyebrow">Practical steps</p>
@@ -59,7 +49,9 @@
         {{ end }}
 {{ content }}
       </div>
-      <aside class="imo-intent-sidebar">
+    </article>
+  </main>
+      <aside class="imo-docs__toc imo-conversion-summary">
         <h2>{{ page.meta.summary_title ?? "Route summary" }}</h2>
         <dl>
           <div><dt>Package</dt><dd>{{ page.meta.package ?? "Focused OfficeIMO package" }}</dd></div>
@@ -70,8 +62,7 @@
         {{ if page.meta.limit }}<p>{{ page.meta.limit }}</p>{{ end }}
         <a href="{{ page.meta.related_url ?? "/convert/guides/" }}">{{ page.meta.related_label ?? "Browse all conversion routes" }}</a>
       </aside>
-    </div>
-  </main>
+  </div>
 
   {{ include "footer" }}
   {{ assets.js_html }}

@@ -10,7 +10,6 @@ namespace OfficeIMO.Web.Converter.Components;
 public partial class PdfWorkbench {
     [Inject] private HttpClient Http { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
-    [Inject] private NavigationManager Navigation { get; set; } = null!;
     [Inject] private BrowserPdfToolService PdfTools { get; set; } = null!;
 
     private ConverterInterop? _interop;
@@ -50,8 +49,12 @@ public partial class PdfWorkbench {
 
     protected override void OnInitialized() {
         _interop = new ConverterInterop(JS);
-        ActiveTool = PdfToolCatalog.Find(GetQueryValue("tool"));
+        ActiveTool = PdfToolCatalog.Find(ToolId);
     }
+
+    [Parameter] public string? ToolId { get; set; }
+
+    protected override Task OnParametersSetAsync() => SelectToolAsync(PdfToolCatalog.Find(ToolId));
 
     private async Task SelectToolAsync(PdfToolDefinition tool) {
         if (ActiveTool.Id == tool.Id) return;
@@ -60,12 +63,6 @@ public partial class PdfWorkbench {
         Files.Clear();
         ResetSettings();
         Diagnostics.Clear();
-        var values = new Dictionary<string, object?> {
-            ["workspace"] = "pdf",
-            ["tool"] = tool.Id,
-            ["route"] = null
-        };
-        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(values), replace: true);
     }
 
     private async Task HandleFilesSelectedAsync(InputFileChangeEventArgs args) {
@@ -199,17 +196,6 @@ public partial class PdfWorkbench {
         Result = null;
     }
 
-    private string GetQueryValue(string name) {
-        string query = new Uri(Navigation.Uri).Query;
-        if (query.Length <= 1) return string.Empty;
-        foreach (string pair in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
-            string[] parts = pair.Split('=', 2);
-            if (string.Equals(Uri.UnescapeDataString(parts[0]), name, StringComparison.OrdinalIgnoreCase)) {
-                return parts.Length == 2 ? Uri.UnescapeDataString(parts[1].Replace("+", " ")) : string.Empty;
-            }
-        }
-        return string.Empty;
-    }
 
     private static string DescribeFailure(Exception ex) => ex switch {
         IOException when ex is not InvalidDataException => "The browser workbench accepts PDFs up to 25 MB each.",

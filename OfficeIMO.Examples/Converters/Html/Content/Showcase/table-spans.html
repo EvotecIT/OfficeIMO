@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Grouped table headings</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:16px/1.5 Arial,sans-serif; color:#172033; background:#f3f6fb; }
+main { padding:32px; }
+.eyebrow { color:#2563eb; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0; font-size:36px; line-height:1.15; }
+.intro { margin:0 0 28px; color:#526179; }
+table { width:100%; border-collapse:collapse; background:white; }
+th,td { padding:15px 18px; border:1px solid #cbd5e1; text-align:left; }
+thead th { background:#17365d; color:white; }
+tbody th { color:#17365d; background:#eaf1fb; }
+.total { font-weight:bold; background:#edf8f2; }
+.note { margin-top:24px; color:#526179; font-size:13px; }
+</style></head><body><main>
+<div class="eyebrow">OFFICEIMO / TABLE STRUCTURE</div><h1>One table. Several levels of detail.</h1>
+<p class="intro">Row and column spans express groups without repeating every label.</p>
+<table><thead><tr><th rowspan="2">Region</th><th rowspan="2">Team</th><th colspan="2">Delivery metrics</th></tr><tr><th>Completed</th><th>On time</th></tr></thead>
+<tbody><tr><th rowspan="2">North</th><td>Implementation</td><td>124</td><td>98%</td></tr><tr><td>Operations</td><td>208</td><td>99%</td></tr><tr><th rowspan="2">South</th><td>Implementation</td><td>96</td><td>97%</td></tr><tr><td>Operations</td><td>175</td><td>98%</td></tr><tr class="total"><td colspan="2">All teams</td><td>603</td><td>98%</td></tr></tbody></table>
+<p class="note">This fixture combines collapsed borders, header cells, colspan, and rowspan on one printed page.</p>
+</main></body></html>

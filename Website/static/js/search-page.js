@@ -1,141 +1,142 @@
-(async function () {
-  const input = document.getElementById('imo-search-query');
-  const meta = document.getElementById('imo-search-meta');
-  const results = document.getElementById('imo-search-results');
+(function () {
+  'use strict';
+  var dialog = document.querySelector('[data-site-search-dialog]');
+  if (!dialog) return;
+  var panels = Array.from(document.querySelectorAll('[data-site-search-panel]'));
+  var pagePanel = document.querySelector('[data-site-search-page]');
+  var dialogPanel = dialog.querySelector('[data-site-search-panel]');
+  var opener = null;
+  var api = window.PowerForgeWebMcpSearch = window.PowerForgeWebMcpSearch || {};
+  var labels = { api: 'API reference', powershell: 'PowerShell', docs: 'Guide', products: 'Library', 'pdf-workflows': 'PDF workflow', conversions: 'Conversion', blog: 'Article', pages: 'Page', solutions: 'Solution', comparisons: 'Comparison' };
 
-  if (!input || !meta || !results) {
-    return;
+  function openSearch(trigger) {
+    if (!dialog.open) {
+      opener = trigger || document.activeElement;
+      dialog.showModal();
+    }
+    var input = dialogPanel.querySelector('[data-search-page-input]');
+    input.focus();
+    input.select();
   }
 
-  let entries = [];
-  let indexLoaded = false;
-  let webMcpResultsVisible = false;
-  const webMcpSearch = window.PowerForgeWebMcpSearch || {};
-  window.PowerForgeWebMcpSearch = webMcpSearch;
-
-  const params = new URLSearchParams(window.location.search);
-  const seededQuery = (params.get('q') || '').trim();
-  if (seededQuery) {
-    input.value = seededQuery;
+  function updatePageQuery(panel, query) {
+    if (panel !== pagePanel) return;
+    var url = new URL(window.location.href);
+    if (query) url.searchParams.set('q', query);
+    else url.searchParams.delete('q');
+    history.replaceState(history.state, '', url);
   }
 
-  function escapeHtml(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+  function render(panel, response) {
+    var results = panel.querySelector('[data-search-page-results]');
+    var meta = panel.querySelector('[data-site-search-meta]');
+    var items = response.results || [];
+    results.replaceChildren();
+    items.forEach(function (item) {
+      var url;
+      try { url = new URL(item.url, window.location.origin); } catch (_) { return; }
+      if (url.origin !== window.location.origin || !/^https?:$/.test(url.protocol)) return;
+      var card = document.createElement('article');
+      card.className = 'imo-search__result';
+      var type = document.createElement('span');
+      type.className = 'imo-search__type';
+      type.textContent = labels[item.collection] || 'Page';
+      var link = document.createElement('a');
+      link.href = url.pathname + url.search + url.hash;
+      link.textContent = item.title || item.url;
+      card.append(type, link);
+      var description = item.description || item.snippet;
+      if (description) {
+        var text = document.createElement('p');
+        text.textContent = description;
+        card.append(text);
+      }
+      results.append(card);
+    });
+    var count = response.totalMatches;
+    meta.textContent = count === 0 ? 'No results. Try a shorter topic or an API or command name.'
+      : 'Showing ' + items.length + ' of ' + count + ' results for “' + response.query + '”.';
+    panel.querySelector('[data-site-search-more]').hidden = items.length >= count || items.length >= 100;
+    if (items.length >= 100 && count > 100) meta.textContent += ' Refine your query to narrow the results.';
+    updatePageQuery(panel, response.query);
+    dialog.querySelector('[data-site-search-page-link]').href = '/search/?q=' + encodeURIComponent(response.query);
   }
 
-  function searchText(entry) {
-    const tags = Array.isArray(entry.tags) ? entry.tags.join(' ') : '';
-    return [
-      entry.title,
-      entry.description,
-      entry.snippet,
-      entry.searchText,
-      entry.collection,
-      entry.kind,
-      tags
-    ].join(' ').toLowerCase();
-  }
-
-  function render(entries, query) {
-    if (!entries.length) {
-      results.innerHTML = '<p>No results found.</p>';
-      meta.textContent = query ? '0 results for "' + query + '"' : 'No search entries found.';
+  async function search(panel, limit) {
+    var query = panel.querySelector('[data-search-page-input]').value.trim();
+    var version = panel.searchVersion = (panel.searchVersion || 0) + 1;
+    var meta = panel.querySelector('[data-site-search-meta]');
+    panel.searchLimit = limit || 20;
+    panel.querySelector('[data-site-search-more]').hidden = true;
+    if (!query) {
+      panel.querySelector('[data-search-page-results]').replaceChildren();
+      meta.textContent = 'Enter a topic, API type, or PowerShell command.';
+      if (panel === dialogPanel) dialog.querySelector('[data-site-search-page-link]').href = '/search/';
+      updatePageQuery(panel, '');
       return;
     }
-
-    meta.textContent = query
-      ? entries.length + ' results for "' + query + '"'
-      : entries.length + ' pages indexed';
-
-    results.innerHTML = entries.map(function (item) {
-      const title = item.title || item.url || '/';
-      const description = item.description
-        ? '<div class="imo-search__desc">' + escapeHtml(item.description) + '</div>'
-        : '';
-      const snippet = item.snippet
-        ? '<div class="imo-search__snippet">' + escapeHtml(item.snippet) + '</div>'
-        : '';
-      const tags = Array.isArray(item.tags) && item.tags.length
-        ? '<div class="imo-search__tags">' + item.tags.map(function (tag) {
-            return '<span class="imo-search__tag">' + escapeHtml(tag) + '</span>';
-          }).join('') + '</div>'
-        : '';
-
-      return '<article class="imo-search__result"><a href="' + escapeHtml(item.url || '/') + '">' + escapeHtml(title) + '</a>' + description + snippet + tags + '</article>';
-    }).join('');
+    meta.textContent = 'Searching…';
+    try {
+      var response = await api.search({ query: query, limit: panel.searchLimit });
+      if (version !== panel.searchVersion) return;
+      response.query = query;
+      render(panel, response);
+    } catch (_) {
+      if (version !== panel.searchVersion) return;
+      panel.querySelector('[data-search-page-results]').replaceChildren();
+      meta.textContent = 'Search is unavailable. Please try again.';
+    }
   }
 
-  webMcpSearch.renderVisibleResults = function (response) {
-    webMcpResultsVisible = true;
-    input.value = response.query;
-    render(response.results, response.query);
-  };
-
-  input.addEventListener('input', function () {
-    webMcpResultsVisible = false;
-    if (indexLoaded) {
-      runSearch();
+  panels.forEach(function (panel) {
+    panel.querySelector('[data-search-page-input]').addEventListener('input', function () { search(panel); });
+    panel.addEventListener('keydown', function (event) {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+      var links = Array.from(panel.querySelectorAll('[data-search-page-results] a'));
+      var index = links.indexOf(document.activeElement);
+      if (!links.length || index < 0 && !event.target.matches('[data-search-page-input]')) return;
+      event.preventDefault();
+      if (event.key === 'ArrowUp' && index <= 0) panel.querySelector('[data-search-page-input]').focus();
+      else links[Math.min(links.length - 1, Math.max(0, index + (event.key === 'ArrowDown' ? 1 : -1)))].focus();
+    });
+    panel.querySelector('[data-site-search-more]').addEventListener('click', function () { search(panel, (panel.searchLimit || 20) + 20); });
+  });
+  document.querySelectorAll('[data-site-search-open]').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      openSearch(link);
+    });
+  });
+  dialog.querySelector('[data-site-search-close]').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('close', function () { if (opener && opener.isConnected) opener.focus(); });
+  window.addEventListener('message', function (event) {
+    var frame = document.querySelector('iframe[data-workspace-src]');
+    if (event.origin === location.origin && frame && event.source === frame.contentWindow && event.data && event.data.type === 'officeimo:open-search') openSearch(frame);
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.defaultPrevented || event.isComposing) return;
+    var typing = event.target.closest && event.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]');
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' ||
+        event.key === '/' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      openSearch();
     }
   });
 
-  try {
-    let indexPath = '/search/index.json';
-    const manifestResponse = await fetch('/search/manifest.json', { cache: 'no-cache' });
-    if (manifestResponse.ok) {
-      const manifest = await manifestResponse.json();
-      if (manifest && typeof manifest.searchIndexPath === 'string' && manifest.searchIndexPath.trim()) {
-        indexPath = manifest.searchIndexPath;
-      }
-    }
-
-    const indexResponse = await fetch(indexPath, { cache: 'no-cache' });
-    if (!indexResponse.ok) {
-      throw new Error('Failed to load search index: ' + indexResponse.status);
-    }
-
-    entries = await indexResponse.json();
-    indexLoaded = true;
-  } catch (error) {
-    if (!webMcpResultsVisible) {
-      meta.textContent = 'Search index unavailable.';
-      results.innerHTML = '<p>' + escapeHtml(error && error.message ? error.message : error) + '</p>';
-    }
-    return;
+  // WebMCP searches use the same visible UI without leaving the current page.
+  api.renderVisibleResults = function (response) {
+    var panel = pagePanel || dialogPanel;
+    panel.searchVersion = (panel.searchVersion || 0) + 1;
+    panel.querySelector('[data-search-page-input]').value = response.query;
+    if (!pagePanel) openSearch();
+    render(panel, response);
+  };
+  function seedPage() {
+    if (!pagePanel) return;
+    pagePanel.querySelector('[data-search-page-input]').value = new URLSearchParams(location.search).get('q') || '';
+    search(pagePanel);
   }
-
-  function runSearch() {
-    const query = input.value.trim().toLowerCase();
-    if (!query) {
-      render(entries, '');
-      return;
-    }
-
-    const matches = entries
-      .map(function (item) {
-        return { item: item, haystack: searchText(item), weight: Number(item.weight || 1) };
-      })
-      .filter(function (row) {
-        return row.haystack.indexOf(query) >= 0;
-      })
-      .sort(function (left, right) {
-        if (right.weight !== left.weight) {
-          return right.weight - left.weight;
-        }
-
-        return String(left.item.title || '').localeCompare(String(right.item.title || ''));
-      })
-      .map(function (row) {
-        return row.item;
-      });
-
-    render(matches, query);
-  }
-
-  if (!webMcpResultsVisible) {
-    runSearch();
-  }
+  if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', seedPage, { once: true });
+  else seedPage();
 })();

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--application">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+  {{ app = data.applications[page.meta.application] }}
+  <main id="content" class="imo-main">
+    <section class="imo-application-hero imo-container" aria-labelledby="application-title">
+      <p class="imo-application-eyebrow">{{ page.title }} · {{ app.eyebrow }}</p>
+      <h1 id="application-title">{{ app.headline }}</h1>
+      <p class="imo-application-summary">{{ app.summary }}</p>
+      <div class="imo-application-actions">
+        <a class="imo-btn imo-btn-primary" href="{{ app.primaryUrl }}">{{ app.primaryLabel }}</a>
+        <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
+      </div>
+      <p class="imo-application-availability">{{ app.availability }}</p>
+      <ul class="imo-application-facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
+      {{ if app.image }}
+      <figure class="imo-application-preview">
+        <a href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
+        <figcaption>{{ app.caption }}</figcaption>
+      </figure>
+      {{ else }}
+      <div class="imo-application-terminal" aria-label="OfficeIMO CLI install and example commands">
+        <p>OfficeIMO.Tool <span>Terminal</span></p>
+        <pre><code><span># Install</span>
+{{ app.install }}
+
+<span># Convert a document</span>
+officeimo convert report.docx report.pdf
+
+<span># Extract readable content</span>
+officeimo convert report.pdf report.md</code></pre>
+        <button type="button" data-copy="{{ app.install }}" aria-label="Copy CLI installation command">Copy install command</button>
+      </div>
+      {{ end }}
+    </section>
+    <div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>
+    <section class="imo-container imo-application-channels" aria-labelledby="channels-title">
+      <h2 id="channels-title">Installation channels</h2>
+      <div class="imo-application-channel-grid">
+        {{ for channel in app.channels }}
+        <article><p class="imo-application-eyebrow">{{ channel.state }}</p><h3>{{ channel.name }}</h3><p>{{ channel.detail }}</p>{{ if channel.url }}<a href="{{ channel.url }}">{{ channel.label }} →</a>{{ end }}</article>
+        {{ end }}
+      </div>
+    </section>
+
+    {{ if app.image }}
+    <section class="imo-container imo-application-gallery" aria-labelledby="gallery-title">
+      <h2 id="gallery-title">A workspace that follows your reading</h2>
+      <div class="imo-application-gallery-grid">
+        <figure><a href="/images/studio/workspace-dark.png"><img src="/images/studio/workspace-dark.png" width="1440" height="960" loading="lazy" alt="The same sample PDF open in Studio with dark application appearance." /></a><figcaption>Dark application appearance keeps the PDF's original colors.</figcaption></figure>
+        <figure><a href="/images/studio/find.png"><img src="/images/studio/find.png" width="1440" height="960" loading="lazy" alt="Studio's Find panel showing matches alongside the sample PDF." /></a><figcaption>Find individual occurrences and follow their page highlights.</figcaption></figure>
+      </div>
+    </section>
+    {{ end }}
+  </main>
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

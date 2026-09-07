@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Fillable PDF forms</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.5 Arial,sans-serif; color:#172033; background:#edf3fa; }
+main { display:grid; grid-template-columns:1fr 1.3fr; gap:36px; padding:38px; }
+.eyebrow { color:#2563eb; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:12px 0 20px; font-size:40px; line-height:1.08; }
+p { color:#526179; }
+.form { padding:28px; border:1px solid #cbd7e6; border-radius:16px; background:white; }
+h2 { margin:0 0 20px; font-size:24px; }
+.field { margin-bottom:18px; }
+.field label { display:block; margin-bottom:6px; color:#475569; font-size:12px; font-weight:700; }
+.field input,.field select { display:block; width:100%; height:38px; padding:8px; border:1px solid #94a3b8; border-radius:6px; color:#172033; background:#f8fafc; }
+.choices { display:flex; gap:20px; margin:16px 0; }
+.choices label { display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap; }
+.choices input { width:14px; height:14px; }
+.note { padding:12px; background:#eaf7f2; color:#065f46; border-radius:7px; font-size:12px; }
+</style></head><body><main>
+<section><div class="eyebrow">OFFICEIMO / INTERACTIVE PDF</div><h1>A document you can complete.</h1><p>HTML form controls become PDF fields. Open the PDF in a viewer that supports forms, edit the name, and choose a review outcome.</p><p>The PNG and SVG are visual snapshots. The downloadable PDF carries the interactive fields.</p></section>
+<form class="form"><h2>Project review</h2><div class="field"><label for="reviewer">Reviewer</label><input id="reviewer" name="reviewer" type="text" value="Alex Morgan"></div><div class="field"><label for="decision">Decision</label><select id="decision" name="decision"><option selected>Ready for review</option><option>Approved</option><option>Needs changes</option></select></div><div class="choices"><label><input type="checkbox" name="attachments" checked><span>Attachments checked</span></label></div><div class="choices"><label><input type="radio" name="priority" value="normal" checked><span>Normal</span></label><label><input type="radio" name="priority" value="urgent"><span>Urgent</span></label></div><p class="note">Example data only. No form submission or network service is involved.</p></form>
+</main></body></html>

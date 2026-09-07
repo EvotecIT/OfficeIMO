@@ -44,6 +44,22 @@ function Assert-ContainsLiteral {
 
 $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $sourceRootPath = (Resolve-Path -LiteralPath $SourceRoot).Path
+foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+    $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
+    $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\bid="main-navigation"').Count
+    if ($navigationCount -ne 1) {
+        throw "Route '/$route/' must render one global navigation menu; found $navigationCount."
+    }
+    foreach ($destination in @('/studio/', '/convert/', '/tool/', '/libraries/', '/docs/', '/downloads/')) {
+        Assert-ContainsLiteral -Text $routeHtml -Expected "href=`"$destination`"" -Contract "global navigation on /$route/"
+    }
+}
+foreach ($route in @('docs', 'api/word', 'convert/guides', 'convert/doc-docx', 'pdf', 'pdf/merge')) {
+    $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
+    Assert-ContainsLiteral -Text $routeHtml -Expected 'id="documentation-navigation"' -Contract "documentation navigation on /$route/"
+    Assert-ContainsLiteral -Text $routeHtml -Expected 'imo-documentation-toolbar' -Contract "documentation toolbar on /$route/"
+}
+
 $solutionHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'solutions\legacy-office-modernization\index.html')
 $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'convert\doc-docx\index.html')
 $comparisonHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'comparisons\officeimo-vs-closedxml-epplus\index.html')
@@ -81,7 +97,7 @@ foreach ($operation in @($pdfWorkflowCatalog.operations)) {
 
 foreach ($conversion in @($pdfWorkflowCatalog.browserConversions)) {
     $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath "convert\$($conversion.slug)\index.html")
-    $expectedUrl = "/apps/officeimo-converter/?workspace=convert&route=$($conversion.routeId)"
+    $expectedUrl = "/convert/?workspace=convert&route=$($conversion.routeId)"
     Assert-ContainsLiteral -Text $conversionHtml -Expected $expectedUrl -Contract "PDF conversion handoff '$($conversion.routeId)'"
 }
 

@@ -59,7 +59,12 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
             }
 
-            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            WordComparisonResult result;
+            using (WordDocument source = WordDocument.Load(sourcePath))
+            using (WordDocument target = WordDocument.Load(targetPath)) {
+                result = WordDocumentComparer.CompareStructure(source, target,
+                    sourceLabel: Path.GetFileName(sourcePath), targetLabel: Path.GetFileName(targetPath));
+            }
             EnsureComparisonFinding(result, WordComparisonScope.Run, "Run formatting changed.");
             EnsureComparisonFinding(result, WordComparisonScope.Field, "Field changed.");
             EnsureComparisonFinding(result, WordComparisonScope.ContentControl, "Content control changed.");
@@ -77,6 +82,7 @@ namespace OfficeIMO.Examples.Word {
                 redlinePath,
                 new WordComparisonRedlineOptions {
                     Author = "OfficeIMO Examples",
+                    IncludeSummary = false,
                     DateTime = new DateTime(2026, 6, 29, 12, 0, 0, DateTimeKind.Utc),
                     TrackReviewFindings = false,
                     TrackFormattingFindings = false

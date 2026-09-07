@@ -1,0 +1,30 @@
+OfficeIMO.Pdf manipulation source A
+Source A
+This page is created first, then merged with Source B through the fluent PdfDocument API.
+Capability	Status	Notes
+Create	Ready	Dependency-free writer surface
+Inspect	Ready	Metadata, pages, links, outlines, blockers
+Extract	Ready	Page ranges and reordered pages
+OfficeIMO.Pdf examples - page 1/2
+OfficeIMO.Pdf
+
+OfficeIMO.Pdf manipulation source A
+Source A - details
+Page two is extracted later. This proves the example is not just visual; it also exercises read/rewrite
+operations.
+OfficeIMO.Pdf examples - page 2/2
+OfficeIMO.Pdf
+
+OfficeIMO.Pdf manipulation source B
+Source B
+A second input document is merged into the final pack, then a stamp is applied to the combined output.
+• Merge reads source pages and rewrites a new document.
+• Stamp adds a content stream to selected pages.
+• Text extraction writes a sidecar text file for PowerShell-friendly workflows.
+Operation	Output
+MergeWith	Pdf.Showcase.Manipulation.Merged.pdf
+Pages.Extract	Pdf.Showcase.Manipulation.ExtractedPage2.pdf
+Stamp.Text	Pdf.Showcase.Manipulation.Stamped.pdf
+Read.Text	Pdf.Showcase.Manipulation.ExtractedText.txt
+OfficeIMO.Pdf examples - page 1/1
+OfficeIMO.Pdf

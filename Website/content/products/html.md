@@ -3,7 +3,6 @@ title: "OfficeIMO.Html"
 description: "Parse HTML, resolve resources safely, and render web content into OfficeIMO models. Add focused bridges only for MHTML, RTF, email, or PDF workflows."
 layout: product
 meta.seo_title: "OfficeIMO.Html for web document workflows"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/html/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/html/" />'
 product_label: "Web document engine"
 product_color: "#ea580c"
 install: "dotnet add package OfficeIMO.Html"
@@ -19,6 +18,8 @@ meta.software.price_currency: "USD"
 ---
 
 ## Shared HTML behavior for every converter
+
+Browse the [HTML examples](/showcase/?format=html) for source files, rendered previews, and downloads.
 
 `OfficeIMO.Html` owns HTML parsing, resource policy, base-URI resolution, accessible structure, layout scenes, and direct image rendering. Word, Excel, PowerPoint, Markdown, and focused bridge packages reuse this owner instead of implementing separate web-content rules.
 

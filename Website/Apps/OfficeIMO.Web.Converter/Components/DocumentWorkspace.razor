@@ -1,60 +1,40 @@
 @namespace OfficeIMO.Web.Converter.Components
-@inject NavigationManager Navigation
+@implements IAsyncDisposable
 
 <StandaloneSiteHeader />
-
-<main id="converter-main" class="ocx-shell" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1">
-
-    <section class="ocx-product-heading" aria-labelledby="workspace-title">
-        <div>
-            <h1 id="workspace-title">@(IsPdfWorkspace ? "Work with PDFs" : "Convert documents")</h1>
-            <p><span class="ocx-local-dot" aria-hidden="true"></span>Runs locally in this tab</p>
-        </div>
-        <nav class="ocx-mode-switch" aria-label="Choose workspace">
-            <button type="button" class="@(!IsPdfWorkspace ? "is-active" : null)" aria-pressed="@(!IsPdfWorkspace)" @onclick="() => SelectWorkspace(false)">Convert</button>
-            <button type="button" class="@(IsPdfWorkspace ? "is-active" : null)" aria-pressed="@IsPdfWorkspace" @onclick="() => SelectWorkspace(true)">PDF tools</button>
-        </nav>
-    </section>
-
-    @if (IsPdfWorkspace) {
-        <PdfWorkbench />
-    } else {
-        <ConverterWorkspace />
-    }
-</main>
-
-<StandaloneSiteFooter />
-
-@code {
-    private bool IsPdfWorkspace { get; set; }
-    private string WorkspaceId => IsPdfWorkspace ? "pdf" : "convert";
-
-    protected override void OnInitialized() {
-        IsPdfWorkspace = string.Equals(GetQueryValue("workspace"), "pdf", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private void SelectWorkspace(bool pdf) {
-        if (IsPdfWorkspace == pdf) {
-            return;
-        }
-        IsPdfWorkspace = pdf;
-        var values = new Dictionary<string, object?> {
-            ["workspace"] = pdf ? "pdf" : null,
-            ["tool"] = pdf ? PdfToolCatalog.Default.Id : null,
-            ["route"] = pdf ? null : ConversionRouteCatalog.Default.Id
-        };
-        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(values), replace: true);
-    }
-
-    private string GetQueryValue(string name) {
-        string query = new Uri(Navigation.Uri).Query;
-        if (query.Length <= 1) return string.Empty;
-        foreach (string pair in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
-            string[] parts = pair.Split('=', 2);
-            if (string.Equals(Uri.UnescapeDataString(parts[0]), name, StringComparison.OrdinalIgnoreCase)) {
-                return parts.Length == 2 ? Uri.UnescapeDataString(parts[1].Replace("+", " ")) : string.Empty;
+<main id="converter-main" class="ocx-workspace-shell" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1" @onkeydown="HandleKeyDown">
+    <header class="ocx-workspace-toolbar">
+        <strong>Browser tools</strong>
+        <span class="ocx-workspace-toolbar__privacy">Files stay in this browser</span>
+        <button id="workspace-menu-toggle" type="button" aria-controls="workspace-navigation" aria-expanded="@(IsMenuOpen ? "true" : "false")" @onclick="ToggleMenuAsync">Tools</button>
+    </header>
+    <aside id="workspace-navigation" class="ocx-workspace-navigation @(IsMenuOpen ? "is-open" : null)" aria-label="Browser tools">
+        <nav aria-label="Choose a browser tool">
+            <h2>Convert documents</h2>
+            @foreach (ConversionRoute route in ConversionRouteCatalog.All) {
+                <a href="/convert/?route=@route.Id" target="_top" data-route="@route.Id" class="@(!IsPdfWorkspace && ActiveRoute.Id == route.Id ? "is-active" : null)"
+                   aria-current="@(!IsPdfWorkspace && ActiveRoute.Id == route.Id ? "page" : null)">@route.Title</a>
             }
-        }
-        return string.Empty;
+            <h2>PDF tools</h2>
+            @foreach (PdfToolDefinition tool in PdfToolCatalog.All) {
+                <a href="/convert/?workspace=pdf&tool=@tool.Id" target="_top" data-pdf-tool="@tool.Id" class="@(IsPdfWorkspace && ActiveTool.Id == tool.Id ? "is-active" : null)"
+                   aria-current="@(IsPdfWorkspace && ActiveTool.Id == tool.Id ? "page" : null)">@tool.Label</a>
+            }
+        </nav>
+    </aside>
+    @if (IsMenuOpen) {
+        <button class="ocx-workspace-overlay" type="button" aria-label="Close tools menu" @onclick="ToggleMenuAsync"></button>
     }
-}
+    <section class="ocx-workspace-content" aria-labelledby="workspace-title">
+        <header class="ocx-workspace-heading">
+            <div><h1 id="workspace-title" tabindex="-1">@(IsPdfWorkspace ? ActiveTool.Label : ActiveRoute.Title)</h1></div>
+            <nav aria-label="Workflow resources"><a href="@GuideUrl" target="_top">Guide</a><a href="@LibraryUrl" target="_top">@LibraryLabel</a></nav>
+        </header>
+        @if (IsPdfWorkspace) {
+            <PdfWorkbench ToolId="@ActiveTool.Id" />
+        } else {
+            <ConverterWorkspace RouteId="@ActiveRoute.Id" />
+        }
+    </section>
+</main>
+<StandaloneSiteFooter />

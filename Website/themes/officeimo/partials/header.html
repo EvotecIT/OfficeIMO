@@ -9,24 +9,24 @@
       <span>OfficeIMO</span>
     </a>
 
-    <button class="imo-hamburger" type="button" aria-label="Toggle navigation">
+    <button class="imo-hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="main-navigation">
       <span class="imo-hamburger__line"></span>
       <span class="imo-hamburger__line"></span>
       <span class="imo-hamburger__line"></span>
     </button>
 
-    <nav class="imo-nav" aria-label="Main navigation">
+    <nav class="imo-nav" id="main-navigation" aria-label="Main navigation">
       {{ if navigation.menus && navigation.menus.size > 0 }}
         {{ for menu in navigation.menus }}
           {{ if menu.name == "main" }}
             {{ for link in menu.items }}
               {{ if link.sections && link.sections.size > 0 }}
               <div class="imo-nav__item">
-                <button class="imo-nav__link" type="button" aria-expanded="false" aria-haspopup="true">
+                <button class="imo-nav__link" type="button" aria-expanded="false" aria-controls="navigation-panel-{{ for.index }}">
                   {{ link.title }}
                   <svg class="imo-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
-                <div class="imo-dropdown imo-dropdown--mega" style="--imo-menu-columns: {{ link.sections.size }}">
+                <div class="imo-dropdown imo-dropdown--mega" id="navigation-panel-{{ for.index }}" style="--imo-menu-columns: {{ link.sections.size }}">
                   {{ for section in link.sections }}
                   <div class="imo-dropdown__group">
                     <span class="imo-dropdown__title">{{ section.title }}</span>
@@ -52,6 +52,10 @@
     </nav>
 
     <div class="imo-header__actions">
+      <a class="imo-header-search" href="/search/" data-site-search-open aria-label="Search OfficeIMO" aria-keyshortcuts="Control+K Meta+K /">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <span>Search</span><kbd>Ctrl K</kbd>
+      </a>
       <button class="imo-theme-toggle" type="button" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -69,3 +73,4 @@
     </div>
   </div>
 </header>
+{{ include "global-search" }}

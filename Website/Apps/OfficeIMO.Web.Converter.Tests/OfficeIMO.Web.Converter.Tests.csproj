@@ -24,8 +24,8 @@
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\conversion-proof.pptx"
           Link="samples\conversion-proof.pptx"
           CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\static\downloads\showcase\pdf\showcase-dashboard.pdf"
-          Link="samples\showcase-dashboard.pdf"
+    <!-- Keep the positioned-text and dash regression fixture stable when gallery examples are regenerated. -->
+    <None Update="samples\showcase-dashboard.pdf"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
