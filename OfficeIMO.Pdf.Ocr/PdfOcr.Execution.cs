@@ -82,11 +82,13 @@ internal static partial class PdfOcr {
         async Task RecognizePageAsync(int index, OcrRequest request, IReadOnlyList<string> renderDiagnostics,
             PdfLogicalPage nativePage, IReadOnlyList<PdfSelectionQuad> nativeBounds) {
             try {
+                PreparedPage prepared = await PreparePageAsync(request, engine, options, workCancellation.Token).ConfigureAwait(false);
                 OcrResult recognized = await engine.RecognizeAsync(
                     request, options.ProviderTimeout, workCancellation.Token).ConfigureAwait(false);
-                ProjectedOcrResult projected = ProjectResult(recognized, request, engine.Id, options, workCancellation.Token);
-                if (renderDiagnostics.Count > 0) {
+                ProjectedOcrResult projected = ProjectResult(recognized, request, engine.Id, options, workCancellation.Token, prepared);
+                if (renderDiagnostics.Count > 0 || prepared.Diagnostics.Count > 0) {
                     var diagnostics = new List<string>(renderDiagnostics);
+                    diagnostics.AddRange(prepared.Diagnostics);
                     diagnostics.AddRange(projected.Diagnostics);
                     if (diagnostics.Count > options.MaxDiagnosticsPerPage) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, diagnostics.Count);
@@ -95,7 +97,7 @@ internal static partial class PdfOcr {
                     projected = new ProjectedOcrResult(projected.Words, diagnostics.AsReadOnly(),
                         projected.Provider, projected.Model, projected.Language);
                 }
-                results[index] = MergePage(nativePage, nativeBounds, projected, options, workCancellation.Token);
+                results[index] = MergePage(nativePage, nativeBounds, projected, options, workCancellation.Token, prepared.Report);
             } catch (Exception exception) {
                 if (exception is not OperationCanceledException)
                     Interlocked.CompareExchange(ref providerFailure, ExceptionDispatchInfo.Capture(exception), null);

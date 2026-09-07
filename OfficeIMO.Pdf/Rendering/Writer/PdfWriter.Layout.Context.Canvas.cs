@@ -208,6 +208,18 @@ internal static partial class PdfWriter {
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
             string fontResource = GetFontResourceName(font, null, font);
             double baselineY = currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D);
+            double baselineX = item.X, textWidth = item.Width, textHeight = item.Height;
+            double a = 1D, b = 0D, c = 0D, d = 1D;
+            if (item.Geometry is PdfSelectionQuad quad) {
+                double advanceX = quad.BottomRight.X - quad.BottomLeft.X, advanceY = quad.BottomRight.Y - quad.BottomLeft.Y;
+                double upX = quad.TopLeft.X - quad.BottomLeft.X, upY = quad.TopLeft.Y - quad.BottomLeft.Y;
+                textWidth = Math.Sqrt(advanceX * advanceX + advanceY * advanceY);
+                textHeight = Math.Sqrt(upX * upX + upY * upY);
+                Guard.Positive(textWidth, nameof(item)); Guard.Positive(textHeight, nameof(item));
+                a = advanceX / textWidth; b = -advanceY / textWidth;
+                c = upX / textHeight; d = -upY / textHeight;
+                baselineX = quad.BottomLeft.X; baselineY = currentOpts.PageHeight - quad.BottomLeft.Y;
+            }
             // One anchor per Unicode scalar keeps reader spacing heuristics proportional
             // to characters instead of presenting the entire word as one stretched space.
             int anchorCount = 0;
@@ -215,16 +227,16 @@ internal static partial class PdfWriter {
                 if (char.IsHighSurrogate(item.Text[index]) && index + 1 < item.Text.Length &&
                     char.IsLowSurrogate(item.Text[index + 1])) index++;
             }
-            double horizontalScaling = item.Width / (SpaceWidthEmFor(font) * item.Height * anchorCount) * 100D;
+            double horizontalScaling = textWidth / (SpaceWidthEmFor(font) * textHeight * anchorCount) * 100D;
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
 
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, item.Height)
+                .Font(fontResource, textHeight)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
-                .TextMatrix(item.X, baselineY);
+                .TextMatrix(a, b, c, d, baselineX, baselineY);
             sb.Append("/Span << /ActualText ")
                 .Append(PdfSyntaxEscaper.TextString(item.Text));
             if (markedContentId.HasValue) {
@@ -232,7 +244,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeActualTextAnchor(font, currentOpts, anchorCount), item.Height);
+            content.ShowText(EncodeActualTextAnchor(font, currentOpts, anchorCount), textHeight);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 

@@ -60,6 +60,10 @@ public static class OcrEngineRunner {
         CancellationToken cancellationToken) {
         if (execution == null) throw new ArgumentNullException(nameof(execution));
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (request.Operation != OcrOperation.RecognizeText && request.Operation != OcrOperation.DetectOrientation)
+            throw new ArgumentOutOfRangeException(nameof(request.Operation));
+        if (request.Operation == OcrOperation.DetectOrientation && !execution.Capabilities.SupportsOrientationDetection)
+            throw new NotSupportedException("This OCR engine does not support orientation detection.");
         if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
         IOcrEngine engine = execution.Engine;
         string engineId = execution.Id;

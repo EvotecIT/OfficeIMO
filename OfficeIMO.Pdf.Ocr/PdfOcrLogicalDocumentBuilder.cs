@@ -220,10 +220,10 @@ internal static class PdfOcrLogicalDocumentBuilder {
     }
 
     private static PdfUnderstandingWord ProjectWord(PdfLogicalPage page, PdfRecognizedWord word) {
-        double visualBaseline = word.Y + word.Height;
-        PdfPagePoint start = page.MapVisualPointToUserSpace(word.X, visualBaseline);
-        PdfPagePoint end = page.MapVisualPointToUserSpace(word.X + word.Width, visualBaseline);
-        PdfPagePoint top = page.MapVisualPointToUserSpace(word.X, word.Y);
+        PdfSelectionQuad geometry = word.Geometry;
+        PdfPagePoint start = page.MapVisualPointToUserSpace(geometry.BottomLeft.X, geometry.BottomLeft.Y);
+        PdfPagePoint end = page.MapVisualPointToUserSpace(geometry.BottomRight.X, geometry.BottomRight.Y);
+        PdfPagePoint top = page.MapVisualPointToUserSpace(geometry.TopLeft.X, geometry.TopLeft.Y);
         double advance = Distance(start, end);
         double fontSize = Math.Max(1D, Distance(start, top));
         double rotation = Math.Atan2(end.Y - start.Y, end.X - start.X) * 180D / Math.PI;
@@ -462,16 +462,27 @@ internal static class PdfOcrLogicalDocumentBuilder {
     }
 
     private static bool AreVisuallyAdjacent(PdfRecognizedWord left, PdfRecognizedWord right) {
-        double leftEdge = left.X;
-        double leftEnd = left.X + left.Width;
-        double rightEdge = right.X;
-        double rightEnd = right.X + right.Width;
+        // Measure along the actual baseline: a quarter-turn makes unrelated word bounds overlap on X.
+        PdfSelectionQuad a = left.Geometry, b = right.Geometry;
+        double dx = a.BottomRight.X - a.BottomLeft.X, dy = a.BottomRight.Y - a.BottomLeft.Y;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        if (length <= 0D) return false;
+        dx /= length; dy /= length;
+        double Project(PdfSelectionPoint point) => point.X * dx + point.Y * dy;
+        double a1 = Project(a.BottomLeft), a2 = Project(a.BottomRight);
+        double b1 = Project(b.BottomLeft), b2 = Project(b.BottomRight);
+        double leftEdge = Math.Min(a1, a2), leftEnd = Math.Max(a1, a2);
+        double rightEdge = Math.Min(b1, b2), rightEnd = Math.Max(b1, b2);
         double gap = rightEdge >= leftEnd
             ? rightEdge - leftEnd
             : leftEdge >= rightEnd
                 ? leftEdge - rightEnd
                 : 0D;
-        return gap <= Math.Max(0.5D, Math.Min(left.Height, right.Height) * 0.12D);
+        static double Height(PdfSelectionQuad quad) {
+            double x = quad.BottomLeft.X - quad.TopLeft.X, y = quad.BottomLeft.Y - quad.TopLeft.Y;
+            return Math.Sqrt(x * x + y * y);
+        }
+        return gap <= Math.Max(0.5D, Math.Min(Height(a), Height(b)) * 0.12D);
     }
 
 }

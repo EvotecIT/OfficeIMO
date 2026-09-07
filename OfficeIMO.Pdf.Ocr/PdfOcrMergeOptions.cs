@@ -26,6 +26,12 @@ public sealed class PdfOcrMergeOptions {
     public double Dpi { get; set; } = 150D;
     /// <summary>Optional shared raster decoder for source encodings such as JPEG 2000.</summary>
     public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Optional shared scan-cleanup settings. Null preserves the rendered samples.</summary>
+    public OfficeIMO.Drawing.OfficeScanProcessingOptions? ScanProcessing { get; set; }
+    /// <summary>Requests provider orientation evidence before cleanup. Unsupported or inconclusive detection retains the source orientation.</summary>
+    public bool DetectOrientation { get; set; }
+    /// <summary>Minimum normalized provider orientation confidence required to rotate the OCR image.</summary>
+    public double MinimumOrientationConfidence { get; set; } = 0.75D;
     /// <summary>Minimum accepted provider confidence from 0 through 1.</summary>
     public double MinimumConfidence { get; set; } = 0.5D;
     /// <summary>Overlap ratio at which OCR words duplicating native text are removed.</summary>
@@ -75,6 +81,9 @@ public sealed class PdfOcrMergeOptions {
                 : ProviderOptions.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
             Dpi = Dpi,
             ImageCodec = ImageCodec,
+            ScanProcessing = ScanProcessing?.Clone(),
+            DetectOrientation = DetectOrientation,
+            MinimumOrientationConfidence = MinimumOrientationConfidence,
             MinimumConfidence = MinimumConfidence,
             NativeTextOverlapThreshold = NativeTextOverlapThreshold,
             MaxPages = MaxPages,
@@ -96,10 +105,12 @@ public sealed class PdfOcrMergeOptions {
     }
 
     internal void Validate() {
+        ScanProcessing?.Validate();
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         PdfReadOptions.Resolve(ReadOptions);
         Guard.Positive(Dpi, nameof(Dpi));
         ValidateRatio(MinimumConfidence, nameof(MinimumConfidence));
+        ValidateRatio(MinimumOrientationConfidence, nameof(MinimumOrientationConfidence));
         ValidateRatio(ConfidenceWhenUnavailable, nameof(ConfidenceWhenUnavailable));
         ValidateRatio(NativeTextOverlapThreshold, nameof(NativeTextOverlapThreshold));
         Guard.PositiveInteger(MaxPages, nameof(MaxPages));

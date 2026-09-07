@@ -47,6 +47,39 @@ Every selected page is rendered to a bounded raster request. Pixel, point, and n
 
 `NativeDocument` retains the native-only parse. `Document` is the canonical native-plus-OCR parse and can be passed directly to the existing PDF-to-Word, Excel, PowerPoint, HTML, RTF, or OpenDocument adapters. Page results retain accepted words, provider/model/language evidence, rejections, and diagnostics.
 
+## Prepare uneven or rotated scans
+
+Scan cleanup is opt-in and uses the shared `OfficeIMO.Core` image processor. It changes the raster sent to OCR; the source PDF and its visible scans are preserved.
+
+```csharp
+using OfficeIMO.Drawing;
+
+PdfSearchableOcrReview review = await pdf.PrepareSearchableOcrAsync(engine,
+    new PdfOcrMergeOptions {
+        Dpi = 300,
+        DetectOrientation = true,
+        MinimumOrientationConfidence = 0.75,
+        ScanProcessing = new OfficeScanProcessingOptions {
+            Deskew = true,
+            NormalizeBackground = true,
+            ColorMode = OfficeScanColorMode.Grayscale,
+            MaximumDimension = 3000,
+            MaximumWorkingBytes = 256L * 1024 * 1024
+        }
+    });
+
+foreach (PdfOcrPageMergeResult page in review.Ocr.Pages) {
+    Console.WriteLine($"Page {page.PageNumber}: deskew {page.ScanProcessing?.AppliedDeskewDegrees}");
+}
+PdfSearchableOcrResult searchable = review.ApplyAll();
+```
+
+Orientation detection uses the provider's optional orientation capability and the same timeout, cancellation, and concurrency gate as recognition. Missing or low-confidence evidence retains the source orientation and produces a diagnostic. Tesseract needs its `osd` trained data. An explicit `ClockwiseQuarterTurns` value can supply a caller-reviewed correction; it combines with any accepted provider correction.
+
+Deskew searches a bounded range of small angles. Background normalization estimates local paper brightness, and `Bilevel` uses a measured or explicit global threshold. Downsampling never enlarges a scan. Blank-page detection reports a suggestion and keeps the page. These operations do not perform perspective correction, curved-page dewarping, or document cropping.
+
+`ScanProcessing` reports applied and skipped operations, buffer estimates, and forward/inverse pixel transforms. Its pixel, buffer, and analysis-work limits reject optional cleanup with an `ocr-scan-limit` diagnostic and retain the original OCR raster; cancellation still propagates. Buffer accounting covers the managed image operation, while encoded PDF/raster and provider-process limits remain separate. `PdfRecognizedWord.Geometry` retains all four corners on the original page, so the invisible text layer follows the original scan's angle after deskew or a quarter-turn. `X`, `Y`, `Width`, and `Height` remain its enclosing visual bounds.
+
 ## Discover scanned redaction candidates
 
 Use the same OCR geometry and native-overlap owner to map literal or bounded-regex matches into PDF user-space areas:
@@ -122,7 +155,7 @@ Opaque JPEG 2000 images with baseline Gray/sRGB headers or one/three-component c
 ## Targets and dependency footprint
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).
-- OfficeIMO dependencies: `OfficeIMO.Ocr` and `OfficeIMO.Pdf`.
+- OfficeIMO dependencies: `OfficeIMO.Core`, `OfficeIMO.Ocr`, and `OfficeIMO.Pdf`.
 - Not dependencies: Reader, Tesseract, process execution, cloud SDKs, or native OCR runtimes.
 - License: MIT.
 

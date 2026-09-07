@@ -13,6 +13,25 @@ The assembly was previously named `OfficeIMO.Drawing`. Drawing became the origin
 dotnet add package OfficeIMO.Core
 ```
 
+## Prepare document scans
+
+`OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, confidence-filtered deskew, local paper-brightness normalization, grayscale or bilevel output, and proportional downsampling:
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeScanProcessingResult processed = OfficeScanProcessor.Process(sourceImage,
+    new OfficeScanProcessingOptions {
+        Deskew = true,
+        NormalizeBackground = true,
+        ColorMode = OfficeScanColorMode.Grayscale,
+        MaximumDimension = 3000
+    }, cancellationToken);
+OfficePoint sourcePoint = processed.Report.ProcessedToSource.TransformPoint(ocrPixelPoint);
+```
+
+The source image stays unchanged. The report records transformations, skipped decisions, estimated managed buffers, and a blank-page suggestion; pages are never removed. Pixel, buffer, and analysis-work limits throw `OfficeScanProcessingLimitException`, allowing the caller to retain the original. The operation does not detect quarter-turn orientation itself; an OCR provider or the caller supplies that evidence. Perspective correction, dewarping, and cropping are outside this contract.
+
 ## Quick start
 
 ### Document lifecycle policy

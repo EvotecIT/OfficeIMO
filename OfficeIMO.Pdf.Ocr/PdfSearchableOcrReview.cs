@@ -98,7 +98,7 @@ public sealed class PdfSearchableOcrReview {
                 bool changed = !string.Equals(text, word.Text, StringComparison.Ordinal);
                 if (changed) correctedCount++;
                 replacementWords.Add(word, changed ? new PdfRecognizedWord(text, word.X, word.Y, word.Width, word.Height,
-                    word.Confidence, word.ProviderSequence, word.BlockId, word.ParagraphId, word.LineId) : word);
+                    word.Confidence, word.ProviderSequence, word.BlockId, word.ParagraphId, word.LineId, word.Geometry) : word);
             }
         }
         var writtenWords = new ReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>>(wordsByPage.ToDictionary(
@@ -116,7 +116,7 @@ public sealed class PdfSearchableOcrReview {
                 canonicalPage, _options.ReadOptions.LayoutOptions.ReadingDirection, cancellationToken);
             foreach (var word in logicalWords) {
                 cancellationToken.ThrowIfCancellationRequested();
-                canvas.SearchableText(replacementWords[word].Text, word.X, word.Y, word.Width, word.Height);
+                canvas.SearchableText(replacementWords[word].Text, word.Geometry);
             }
         }, new PdfCanvasStampOptions().UseTargetPages(pageSelector), _source.ReadOptions);
         return new PdfSearchableOcrResult(searchable, Ocr, Array.AsReadOnly(modifiedPages), writtenWords, correctedCount);

@@ -30,9 +30,10 @@ public sealed class PdfOcrMergeResult {
 
 /// <summary>Accepted OCR words and evidence for one page.</summary>
 public sealed class PdfOcrPageMergeResult {
-    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null) {
+    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null, OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null) {
         PageNumber = pageNumber; Words = words; RejectedLowConfidenceCount = rejectedLowConfidenceCount; RejectedNativeOverlapCount = rejectedNativeOverlapCount; Diagnostics = diagnostics; Text = text;
         Provider = provider; Model = model; Language = language;
+        ScanProcessing = scanProcessing;
         WordEvidence = wordEvidence ?? Array.AsReadOnly(words.Select(word => new PdfOcrWordEvidence(word, PdfOcrWordDisposition.Accepted)).ToArray());
     }
     /// <summary>One-based page number.</summary>
@@ -47,6 +48,8 @@ public sealed class PdfOcrPageMergeResult {
     public int RejectedNativeOverlapCount { get; }
     /// <summary>Rendering, provider, and normalization diagnostics.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+    /// <summary>Applied scan transformations and their inverse geometry. Null means cleanup was disabled or retained the original after a reported limit.</summary>
+    public OfficeIMO.Drawing.OfficeScanProcessingReport? ScanProcessing { get; }
     /// <summary>Native and accepted OCR text in approximate visual order.</summary>
     public string Text { get; }
     /// <summary>OCR provider identifier reported for this page, when available.</summary>
@@ -71,7 +74,7 @@ public sealed class PdfOcrPageMergeResult {
             Provider,
             Model,
             Language,
-            WordEvidence);
+            WordEvidence, ScanProcessing);
     }
 }
 
@@ -87,9 +90,12 @@ public sealed class PdfRecognizedWord {
         int providerSequence,
         string? blockId = null,
         string? paragraphId = null,
-        string? lineId = null) {
+        string? lineId = null,
+        PdfSelectionQuad? geometry = null) {
         Text = text; X = x; Y = y; Width = width; Height = height; Confidence = confidence; ProviderSequence = providerSequence;
         BlockId = blockId; ParagraphId = paragraphId; LineId = lineId;
+        Geometry = geometry ?? new PdfSelectionQuad(new PdfSelectionPoint(x, y), new PdfSelectionPoint(x + width, y),
+            new PdfSelectionPoint(x + width, y + height), new PdfSelectionPoint(x, y + height));
     }
     /// <summary>Recognized text.</summary>
     public string Text { get; }
@@ -101,6 +107,8 @@ public sealed class PdfRecognizedWord {
     public double Width { get; }
     /// <summary>Height in PDF points.</summary>
     public double Height { get; }
+    /// <summary>Four-corner geometry in the original page, preserving deskew and orientation transforms.</summary>
+    public PdfSelectionQuad Geometry { get; }
     /// <summary>Provider confidence.</summary>
     public double Confidence { get; }
     /// <summary>Provider block identifier, when available.</summary>

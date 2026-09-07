@@ -8,5 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Ocr.Tesseract/OfficeIMO.Ocr.Tesseract.csproj" />
   </ItemGroup>
 </Project>
