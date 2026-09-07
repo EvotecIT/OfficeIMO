@@ -41,7 +41,7 @@ public class PdfOcrExecutionTests {
     }
 
     [Fact]
-    public async Task Ocr_CancellationDrainsOutstandingRequests() {
+    public async Task Ocr_CancellationReachesOutstandingProviders() {
         var engine = new ControlledEngine(true);
         var document = PdfDocument.Create().Paragraph(p => p.Text("One")).PageBreak().Paragraph(p => p.Text("Two"));
         using var cancellation = new CancellationTokenSource();
@@ -50,6 +50,7 @@ public class PdfOcrExecutionTests {
         await engine.WaitForCallsAsync(2);
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
+        await engine.WaitForIdleAsync();
         Assert.Equal(0, engine.ActiveCalls);
     }
 
@@ -91,6 +92,7 @@ public class PdfOcrExecutionTests {
         private readonly bool _completeImmediately;
         private int _calls;
         private int _active;
+        private readonly TaskCompletionSource<bool> _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal ControlledEngine(bool concurrent, bool completeImmediately = false) {
             _completeImmediately = completeImmediately;
             Capabilities = new OcrEngineCapabilities {
@@ -110,7 +112,9 @@ public class PdfOcrExecutionTests {
             try {
                 if (_completeImmediately) Complete(request.PageNumber.Value);
                 return await completion.Task.ConfigureAwait(false);
-            } finally { Interlocked.Decrement(ref _active); }
+            } finally {
+                if (Interlocked.Decrement(ref _active) == 0) _idle.TrySetResult(true);
+            }
         }
         internal void Complete(int page) {
             lock (_gate) _requests[page].TrySetResult(new OcrResult {
@@ -120,6 +124,12 @@ public class PdfOcrExecutionTests {
         internal async Task WaitForCallsAsync(int count) {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             while (CallCount < count) await Task.Delay(10, timeout.Token);
+        }
+        internal async Task WaitForIdleAsync() {
+            // The shared runner returns promptly on cancellation even when a provider ignores it.
+            // A cooperative provider settles asynchronously; require that settlement without a race.
+            Assert.Same(_idle.Task, await Task.WhenAny(_idle.Task, Task.Delay(TimeSpan.FromSeconds(30))));
+            await _idle.Task;
         }
     }
 }

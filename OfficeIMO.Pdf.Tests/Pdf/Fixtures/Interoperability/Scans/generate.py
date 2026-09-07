@@ -26,6 +26,19 @@ for compression in ("group3", "group4"):
     payload = buffer.getvalue()[offsets[0]:offsets[0] + lengths[0]]
     (root / ("fax-pattern." + compression)).write_bytes(payload)
 
+# TIFF T4Options bit 0 enables mixed 2-D lines; bit 2 puts fill before each EOL.
+for options in (1, 4, 5):
+    buffer = BytesIO()
+    image.save(buffer, format="TIFF", compression="group3", tiffinfo={292: options})
+    buffer.seek(0)
+    tiff = Image.open(buffer)
+    assert tiff.tag_v2[292] == options
+    assert tiff.tobytes() == image.tobytes()
+    offsets, lengths = tiff.tag_v2[273], tiff.tag_v2[279]
+    assert len(offsets) == 1
+    payload = buffer.getvalue()[offsets[0]:offsets[0] + lengths[0]]
+    (root / ("fax-pattern.group3-options" + str(options))).write_bytes(payload)
+
 # Independent JPEG 2000 samples exercise the PDF boundary with and without opacity.
 for mode, color in (("RGB", (255, 0, 0)), ("RGBA", (255, 0, 0, 0))):
     Image.new(mode, (1, 1), color).save(root / ("red-" + mode.lower() + ".jp2"), format="JPEG2000")

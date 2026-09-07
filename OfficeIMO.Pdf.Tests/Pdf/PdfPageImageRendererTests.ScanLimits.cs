@@ -140,7 +140,7 @@ public partial class PdfPageImageRendererTests {
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter [/FlateDecode /JPXDecode]");
         Assert.True(Assert.Single(PdfPageImageRenderer.RenderPages(wrapped,
             options: new PdfPageRenderOptions { ImageCodec = codec })).Succeeded);
-        Assert.True(codec.Calls > 0);
+        Assert.Equal(1, codec.Calls);
     }
 
     [Fact]

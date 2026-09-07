@@ -23,7 +23,9 @@ internal static partial class OfficeFaxDecoder {
             bool oneDimensional = k == 0 || (k > 0 && bits.Read() != 0);
             if (oneDimensional) DecodeOneDimensional(bits, output, row * stride, columns, cancellationToken);
             else DecodeTwoDimensional(bits, output, row * stride, row == 0 ? -1 : (row - 1) * stride, columns, cancellationToken);
-            if (byteAligned) bits.Align();
+            // Group 3 fill bits precede the next EOL (and its optional 2-D tag).
+            // Let TryReadEndOfLine consume them; aligning here can skip into the marker.
+            if (byteAligned && !foundEndOfLine && !endOfLine) bits.Align();
         }
         if (endOfBlock) {
             int markers = k < 0 ? 2 : 6;

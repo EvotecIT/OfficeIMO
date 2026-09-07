@@ -534,6 +534,8 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 - Shared SVG formatting, primitive writing, image projection, text-block rendering, hatch-pattern, data-bar, and sparkline helpers.
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 
+Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when every image must render. An unsupported image, failed optional codec, or decoded raster above `MaximumRasterPixels` then stops rendering with `NotSupportedException`. Successful image decoding happens in the drawing pass, including nested groups and patterns.
+
 ## Boundaries
 
 - This package owns shared lifecycle contracts, persistence mechanics, drawing intent, ink/math models and renderers, raster buffers, SVG and raster encoding primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.

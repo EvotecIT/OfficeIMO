@@ -122,7 +122,7 @@ Opaque JPEG 2000 images with baseline Gray/sRGB headers or one/three-component c
 ## Targets and dependency footprint
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).
-- OfficeIMO dependencies: `OfficeIMO.Ocr` and `OfficeIMO.Pdf`.
+- OfficeIMO dependencies: `OfficeIMO.Core`, `OfficeIMO.Ocr`, and `OfficeIMO.Pdf`.
 - Not dependencies: Reader, Tesseract, process execution, cloud SDKs, or native OCR runtimes.
 - License: MIT.
 

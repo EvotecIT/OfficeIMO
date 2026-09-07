@@ -555,6 +555,7 @@ public sealed class PackageDependencyGuardrailTests {
             "OfficeIMO.Reader.Core");
         AssertProjectReferences(
             "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
+            "OfficeIMO.Core",
             "OfficeIMO.Ocr",
             "OfficeIMO.Pdf");
     }

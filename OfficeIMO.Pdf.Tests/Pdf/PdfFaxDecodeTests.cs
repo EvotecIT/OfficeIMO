@@ -7,13 +7,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFaxDecodeTests {
     [Theory]
-    [InlineData("group3", 0)]
-    [InlineData("group4", -1)]
-    public void Fax_DecodesIndependentTiffStripsIncludingOddRowsAndLongRuns(string encoding, int k) {
+    [InlineData("group3", 0, false)]
+    [InlineData("group4", -1, false)]
+    [InlineData("group3-options1", 2, false)]
+    [InlineData("group3-options4", 0, true)]
+    [InlineData("group3-options5", 2, true)]
+    public void Fax_DecodesIndependentTiffStripsIncludingOddRowsAndLongRuns(string encoding, int k, bool aligned) {
         string root = Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans");
         byte[] encoded = File.ReadAllBytes(Path.Combine(root, "fax-pattern." + encoding));
         byte[] expected = File.ReadAllBytes(Path.Combine(root, "fax-pattern.pixels"));
         PdfDictionary dictionary = FaxDictionary(3001, 17, k, blackIsOne: true);
+        ((PdfDictionary)dictionary.Items["DecodeParms"]).Items["EndOfLine"] = new PdfBoolean(k >= 0);
+        ((PdfDictionary)dictionary.Items["DecodeParms"]).Items["EncodedByteAlign"] = new PdfBoolean(aligned);
         byte[] decoded = StreamDecoder.DecodeRequired(dictionary, encoded);
         Assert.Equal(expected, decoded);
         ((PdfDictionary)dictionary.Items["DecodeParms"]).Items["BlackIs1"] = new PdfBoolean(false);
