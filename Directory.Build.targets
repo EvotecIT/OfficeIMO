@@ -1,4 +1,14 @@
 <Project>
+  <!-- Keep shipped release binaries reproducible without embedding a maintainer's
+       checkout path in portable PDB documents or CodeView content IDs. Limit the
+       source mapping to packable production projects: non-packable test projects
+       retain physical CallerFilePath values for Verify snapshots, and Debug builds
+       retain local paths for source breakpoints. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(IsPackable)' != 'false' And '$(IsTestProject)' != 'true'">
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
+  </PropertyGroup>
+
   <!-- Production projects inherit TreatWarningsAsErrors=true from Directory.Build.props.
        Tests and benchmarks still show warnings, but warnings do not block local or CI validation. -->
   <PropertyGroup Condition="
