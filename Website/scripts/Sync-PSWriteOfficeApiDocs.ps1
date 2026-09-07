@@ -94,7 +94,8 @@ function Sync-DirectoryContents {
 function Sync-DocumentationPages {
     param(
         [Parameter(Mandatory)][string] $Source,
-        [Parameter(Mandatory)][string] $Destination
+        [Parameter(Mandatory)][string] $Destination,
+        [Parameter(Mandatory)][object[]] $CommandFamilies
     )
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -111,7 +112,15 @@ function Sync-DocumentationPages {
             $targetPath = Join-Path $targetDirectory 'index.md'
         }
 
-        Copy-Item -LiteralPath $sourceFile.FullName -Destination $targetPath -Force
+        $content = [IO.File]::ReadAllText($sourceFile.FullName)
+        $family = @($CommandFamilies | Where-Object id -eq $slug)
+        if ($family.Count -eq 1) {
+            # Quantitative summaries follow the validated catalog from this same snapshot.
+            # The upstream human-authored guide may retain an older total.
+            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)')
+            $content = $summaryCount.Replace($content, [string] $family[0].commandCount, 1)
+        }
+        [IO.File]::WriteAllText($targetPath, $content, [Text.UTF8Encoding]::new($false))
     }
 }
 
@@ -402,7 +411,7 @@ if (-not $SkipDocumentation) {
     }
 
     if ($sourceDocumentationAvailable -and $sourceCatalogValid) {
-        Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath
+        Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath -CommandFamilies @($sourceCatalog.families)
         Sync-DocumentationToc `
             -Source $sourceDocumentationPath `
             -TocPath (Join-Path $resolvedSiteRoot 'content\docs\toc.json')

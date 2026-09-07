@@ -184,6 +184,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--showcase-workflows")) {
+                Showcase.Workflows.WorkflowShowcase.Run(folderPath, GetArgumentValue(args, "--showcase-example"));
+                return;
+            }
+
             if (HasArgument(args, "--modern-powerpoint")) {
                 PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
                 return;

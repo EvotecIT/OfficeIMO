@@ -1,6 +1,6 @@
 {
   "title": "Find your next document example",
-  "description": "Explore real output across the OfficeIMO libraries. Filter by format or capability, then open an example for downloads and source.",
+  "description": "Explore real output across the OfficeIMO libraries. Open a code walkthrough or filter the gallery by format and capability.",
   "formats": [
     {
       "id": "word",
@@ -74,6 +74,1664 @@
     }
   ],
   "cards": [
+    {
+      "id": "word-project-charter",
+      "format": "Word",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp word create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/word-project-charter/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Word example: Project charter",
+      "title": "Project charter",
+      "description": "Create an editable Word project charter in C# with scope, milestone owners, acceptance evidence, and a PDF copy for review and handover.",
+      "input": "Project scope and milestone data",
+      "output": "DOCX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "limit": "The bookmark is part of the DOCX structure. The PDF preview demonstrates page layout; it does not expose Word bookmark navigation.",
+      "artifact_url": "/downloads/showcase/workflows/word-project-charter/example.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/workflows/word-project-charter/preview.png",
+      "evidence_label": "Open Project charter preview",
+      "source_url": "/downloads/showcase/workflows/word-project-charter/ProjectCharter.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ProjectCharter.cs",
+      "guide_url": "/docs/word/",
+      "api_url": "/api/word/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-project-charter",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/workflows/word-project-charter/example.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/word-project-charter/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/word-project-charter/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/word-project-charter/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/word-project-charter/",
+      "walkthrough": {
+        "use_case": "Start a project with a shared definition of success. This charter keeps scope, ownership, and acceptance evidence together so the delivery team can update one document as the plan changes.",
+        "steps": [
+          {
+            "title": "Define the document",
+            "body": "Set the document title and default font, then use Word heading styles for a navigable structure."
+          },
+          {
+            "title": "Describe the boundary",
+            "body": "Add a bulleted scope list and a bookmark on the scope heading. The bookmark gives later code a stable place to find that section."
+          },
+          {
+            "title": "Turn milestones into a table",
+            "body": "Populate rows from a two-dimensional array, emphasize the header, and keep the acceptance evidence beside its owner."
+          }
+        ],
+        "adapt": "Replace the sample scope and milestone array with your project data. Keep the acceptance column specific: a named artifact or observable result is more useful than a general completion statement.",
+        "related": [
+          "word-meeting-minutes",
+          "word-decision-record",
+          "customer-delivery-summary"
+        ]
+      },
+      "search_text": "Project charter Create an editable Word project charter in C# with scope, milestone owners, acceptance evidence, and a PDF copy for review and handover. Word .NET C# walkthrough code sample Project scope and milestone data"
+    },
+    {
+      "id": "excel-budget-scenarios",
+      "format": "Excel",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp excel create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/excel-budget-scenarios/preview.png",
+      "image_width": 905,
+      "image_height": 240,
+      "image_alt": "Generated Excel example: Budget scenario comparison",
+      "title": "Budget scenario comparison",
+      "description": "Compare budget scenarios in Excel with C# formulas, editable assumptions, and calculated contribution. Download the workbook, preview, and source.",
+      "input": "Volume, unit price, and fixed-cost assumptions",
+      "output": "XLSX",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
+      "limit": "Contribution here is units multiplied by price minus fixed cost. Variable costs, tax, and cash timing are outside this small model. The calculation is split into cells supported by the native formula engine; more complex expressions may need a spreadsheet application.",
+      "artifact_url": "/downloads/showcase/workflows/excel-budget-scenarios/example.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/workflows/excel-budget-scenarios/preview.png",
+      "evidence_label": "Open Budget scenario comparison preview",
+      "source_url": "/downloads/showcase/workflows/excel-budget-scenarios/BudgetScenarios.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/BudgetScenarios.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-budget-scenarios",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/workflows/excel-budget-scenarios/example.xlsx"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/excel-budget-scenarios/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/excel-budget-scenarios/preview.png",
+          "label": "Generated worksheet",
+          "width": 905,
+          "height": 240
+        }
+      ],
+      "walkthrough_url": "/showcase/excel-budget-scenarios/",
+      "walkthrough": {
+        "use_case": "Compare conservative, expected, and growth plans in one worksheet. The example distinguishes editable assumptions from calculated contribution and keeps the formulas inside the workbook.",
+        "steps": [
+          {
+            "title": "Lay out the assumptions",
+            "body": "Write volume, unit price, and fixed cost as numeric cells. Use number formats to control display without turning numbers into strings."
+          },
+          {
+            "title": "Calculate contribution",
+            "body": "Calculate revenue from volume and price, then contribution from revenue and fixed cost. Call Calculate before rendering so both steps have cached values."
+          },
+          {
+            "title": "Make the inputs visible",
+            "body": "Use blue fills for assumptions and green for results. Export the range before Save closes the workbook package."
+          }
+        ],
+        "adapt": "Add scenarios as rows or introduce more cost drivers as columns. For the supplied data, the calculated contributions are 26,000, 51,500, and 85,500.",
+        "related": [
+          "excel-named-range-pricing",
+          "excel-formulas",
+          "excel-project-workbook"
+        ]
+      },
+      "search_text": "Budget scenario comparison Compare budget scenarios in Excel with C# formulas, editable assumptions, and calculated contribution. Download the workbook, preview, and source. Excel .NET C# walkthrough code sample Volume, unit price, and fixed-cost assumptions"
+    },
+    {
+      "id": "powerpoint-project-roadmap",
+      "format": "PowerPoint",
+      "format_id": "powerpoint",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp powerpoint create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png",
+      "image_width": 960,
+      "image_height": 540,
+      "image_alt": "Generated PowerPoint example: An editable project roadmap deck",
+      "title": "An editable project roadmap deck",
+      "description": "Create a PowerPoint roadmap in C# with editable phase cards and a decision-checkpoint table. Preview the slides and download the PPTX and PDF.",
+      "input": "Project phases, activities, and decision gates",
+      "output": "PPTX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy.",
+      "limit": "Previews show OfficeIMO's rendering of the generated slides. Fonts and layout can differ in other presentation applications.",
+      "artifact_url": "/downloads/showcase/workflows/powerpoint-project-roadmap/example.pptx",
+      "artifact_label": "Download PPTX",
+      "evidence_url": "/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png",
+      "evidence_label": "Open An editable project roadmap deck preview",
+      "source_url": "/downloads/showcase/workflows/powerpoint-project-roadmap/ProjectRoadmap.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ProjectRoadmap.cs",
+      "guide_url": "/docs/powerpoint/",
+      "api_url": "/api/powerpoint/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-project-roadmap",
+      "downloads": [
+        {
+          "label": "PPTX",
+          "url": "/downloads/showcase/workflows/powerpoint-project-roadmap/example.pptx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/powerpoint-project-roadmap/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-project-roadmap/preview.png",
+          "label": "Slide 1",
+          "width": 960,
+          "height": 540
+        },
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-project-roadmap/slide-2.png",
+          "label": "Slide 2",
+          "width": 960,
+          "height": 540
+        }
+      ],
+      "walkthrough_url": "/showcase/powerpoint-project-roadmap/",
+      "walkthrough": {
+        "use_case": "Explain the path from pilot to routine service with a small deck. The first slide shows phases; the second makes the evidence and decision owner for each checkpoint explicit.",
+        "steps": [
+          {
+            "title": "Build phase cards from data",
+            "body": "Use arrays for phase labels, activities, and fills, and position native rectangles and text boxes in three columns."
+          },
+          {
+            "title": "Add the decision slide",
+            "body": "Create a native PowerPoint table for checkpoints, evidence, and owners."
+          },
+          {
+            "title": "Keep the deck editable",
+            "body": "Save the PPTX with shapes, text, and table cells intact. The walkthrough runner also exports the slides to images and PDF."
+          }
+        ],
+        "adapt": "Change the phase data and decision gates to match your delivery plan. Recheck text fit when a phase label or activity list becomes longer.",
+        "related": [
+          "word-project-charter",
+          "excel-project-workbook",
+          "powerpoint-service-overview"
+        ]
+      },
+      "search_text": "An editable project roadmap deck Create a PowerPoint roadmap in C# with editable phase cards and a decision-checkpoint table. Preview the slides and download the PPTX and PDF. PowerPoint .NET C# walkthrough code sample Project phases, activities, and decision gates"
+    },
+    {
+      "id": "pdf-workshop-pack",
+      "format": "PDF",
+      "format_id": "pdf",
+      "operations": [
+        "create"
+      ],
+      "operation_tags": "create",
+      "tags": "dotnet csharp pdf create",
+      "badge_tags": [
+        "Create"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/pdf-workshop-pack/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated PDF example: A two-page workshop pack",
+      "title": "A two-page workshop pack",
+      "description": "Build a two-page PDF workshop pack in C# with an agenda, exercise sheet, running header, and page numbers. Preview both pages and download the PDF.",
+      "input": "Workshop objectives, agenda, and exercise prompts",
+      "output": "PDF",
+      "proof": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "limit": "The writing lines are static page content. This example does not create fillable PDF form fields.",
+      "artifact_url": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf",
+      "artifact_label": "Download PDF",
+      "evidence_url": "/downloads/showcase/workflows/pdf-workshop-pack/preview.png",
+      "evidence_label": "Open A two-page workshop pack preview",
+      "source_url": "/downloads/showcase/workflows/pdf-workshop-pack/WorkshopPack.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/WorkshopPack.cs",
+      "guide_url": "/docs/pdf/authoring/",
+      "api_url": "/api/pdf/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-workshop-pack",
+      "downloads": [
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/pdf-workshop-pack/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/pdf-workshop-pack/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        },
+        {
+          "url": "/downloads/showcase/workflows/pdf-workshop-pack/page-2.png",
+          "label": "Page 2: exercise sheet",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/pdf-workshop-pack/",
+      "walkthrough": {
+        "use_case": "Prepare an agenda and a printable exercise sheet as one document. A shared header and page-numbered footer hold the pack together while an explicit page break separates the two uses.",
+        "steps": [
+          {
+            "title": "Set document-wide furniture",
+            "body": "Configure the running header and the footer's page and total-page tokens through PdfOptions."
+          },
+          {
+            "title": "Build the agenda page",
+            "body": "Combine the outcome list with a compact table of sessions and outputs."
+          },
+          {
+            "title": "Start the exercise sheet",
+            "body": "Insert a page break, then add prompts and writing lines. Inspect both previews to check the complete two-page pack."
+          }
+        ],
+        "adapt": "Replace the sessions and exercises with your workshop plan. Keep the exercise page sparse enough for handwritten notes, and recheck page flow when adding prompts.",
+        "related": [
+          "pdf-columns",
+          "pdf-service-catalog",
+          "powerpoint-training-quiz"
+        ]
+      },
+      "search_text": "A two-page workshop pack Build a two-page PDF workshop pack in C# with an agenda, exercise sheet, running header, and page numbers. Preview both pages and download the PDF. PDF .NET C# walkthrough code sample Workshop objectives, agenda, and exercise prompts"
+    },
+    {
+      "id": "markdown-incident-runbook",
+      "format": "Markdown",
+      "format_id": "markdown",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp markdown create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/markdown-incident-runbook/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Markdown example: A portable incident runbook",
+      "title": "A portable incident runbook",
+      "description": "Author an incident runbook in C# as Markdown, with a decision table, warning, and update template. Download the editable source and rendered PDF.",
+      "input": "Response steps, ownership, and communication guidance",
+      "output": "MD + PDF",
+      "proof": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "limit": "The content is a sample runbook, not a validated response procedure for your service. PDF export is a separate rendering step.",
+      "artifact_url": "/downloads/showcase/workflows/markdown-incident-runbook/example.md",
+      "artifact_label": "Download MD",
+      "evidence_url": "/downloads/showcase/workflows/markdown-incident-runbook/preview.png",
+      "evidence_label": "Open A portable incident runbook preview",
+      "source_url": "/downloads/showcase/workflows/markdown-incident-runbook/IncidentRunbook.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/IncidentRunbook.cs",
+      "guide_url": "/docs/markdown/",
+      "api_url": "/api/markdown/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-incident-runbook",
+      "downloads": [
+        {
+          "label": "MD",
+          "url": "/downloads/showcase/workflows/markdown-incident-runbook/example.md"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/markdown-incident-runbook/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/markdown-incident-runbook/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/markdown-incident-runbook/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/markdown-incident-runbook/",
+      "walkthrough": {
+        "use_case": "Keep a runbook usable in a repository and as an offline document. The example combines short steps with a decision table and a copyable incident-update template.",
+        "steps": [
+          {
+            "title": "Put the precondition first",
+            "body": "Add a warning callout that asks the responder to establish impact and ownership before making changes."
+          },
+          {
+            "title": "Describe the next check",
+            "body": "Build a table that maps an observation to a concrete check and its owner."
+          },
+          {
+            "title": "Provide a reusable update format",
+            "body": "Add a fenced text block for impact, owner, next action, and next update, then save the Markdown source."
+          }
+        ],
+        "adapt": "Replace the fictional service details with reviewed instructions for your environment. Keep the diagnostic steps specific and use the Markdown file as the editable source of truth.",
+        "related": [
+          "markdown-api-handover",
+          "pdf-weekly-brief",
+          "word-policy-brief"
+        ]
+      },
+      "search_text": "A portable incident runbook Author an incident runbook in C# as Markdown, with a decision table, warning, and update template. Download the editable source and rendered PDF. Markdown .NET C# walkthrough code sample Response steps, ownership, and communication guidance"
+    },
+    {
+      "id": "word-meeting-minutes",
+      "format": "Word",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp word create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/word-meeting-minutes/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Word example: Meeting minutes and actions",
+      "title": "Meeting minutes and actions",
+      "description": "Generate Word meeting minutes in C# with a running header, decisions, action owners, and due dates. Download the editable record and PDF preview.",
+      "input": "Meeting details, decisions, and action items",
+      "output": "DOCX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "limit": "The sample is an editable meeting record. It does not create calendar events, send reminders, or synchronize action status.",
+      "artifact_url": "/downloads/showcase/workflows/word-meeting-minutes/example.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/workflows/word-meeting-minutes/preview.png",
+      "evidence_label": "Open Meeting minutes and actions preview",
+      "source_url": "/downloads/showcase/workflows/word-meeting-minutes/MeetingMinutes.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/MeetingMinutes.cs",
+      "guide_url": "/docs/word/",
+      "api_url": "/api/word/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-meeting-minutes",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/workflows/word-meeting-minutes/example.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/word-meeting-minutes/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/word-meeting-minutes/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/word-meeting-minutes/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/word-meeting-minutes/",
+      "walkthrough": {
+        "use_case": "Publish a meeting record that makes the follow-up clear. The example separates decisions from actions, gives each action an owner and due date, and adds a running header and footer.",
+        "steps": [
+          {
+            "title": "Set up the running furniture",
+            "body": "Create headers and footers before adding the meeting content. Put the team name in the header and the working-copy label in the footer."
+          },
+          {
+            "title": "Capture decisions separately",
+            "body": "Use a bulleted list for agreed decisions so readers can distinguish them from work that is still pending."
+          },
+          {
+            "title": "Assign the follow-up",
+            "body": "Write the actions, owners, and due dates into a table, then finish with the purpose of the next meeting."
+          }
+        ],
+        "adapt": "Feed the action table from your meeting notes or task system. Preserve the difference between a decision already made and an action somebody still needs to complete.",
+        "related": [
+          "word-project-charter",
+          "word-onboarding-checklist",
+          "markdown-decision-record"
+        ]
+      },
+      "search_text": "Meeting minutes and actions Generate Word meeting minutes in C# with a running header, decisions, action owners, and due dates. Download the editable record and PDF preview. Word .NET C# walkthrough code sample Meeting details, decisions, and action items"
+    },
+    {
+      "id": "word-onboarding-checklist",
+      "format": "Word",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp word create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/word-onboarding-checklist/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Word example: Employee onboarding checklist",
+      "title": "Employee onboarding checklist",
+      "description": "Build a Word onboarding checklist in C# with tasks grouped by stage, named owners, and completion status. Inspect the PDF and download the DOCX.",
+      "input": "Onboarding stages and assigned tasks",
+      "output": "DOCX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "limit": "Status values are ordinary editable table text. This sample does not implement interactive checkbox controls or an approval workflow.",
+      "artifact_url": "/downloads/showcase/workflows/word-onboarding-checklist/example.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/workflows/word-onboarding-checklist/preview.png",
+      "evidence_label": "Open Employee onboarding checklist preview",
+      "source_url": "/downloads/showcase/workflows/word-onboarding-checklist/OnboardingChecklist.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/OnboardingChecklist.cs",
+      "guide_url": "/docs/word/",
+      "api_url": "/api/word/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-onboarding-checklist",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/workflows/word-onboarding-checklist/example.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/word-onboarding-checklist/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/word-onboarding-checklist/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/word-onboarding-checklist/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/word-onboarding-checklist/",
+      "walkthrough": {
+        "use_case": "Give a manager, buddy, and new employee the same first-week plan. Grouped tables keep preparation, day-one work, and the first review easy to scan without mixing their owners.",
+        "steps": [
+          {
+            "title": "Group tasks by stage",
+            "body": "Represent each stage as a title and an array of task, owner, and status tuples."
+          },
+          {
+            "title": "Render the same table structure",
+            "body": "A local function creates the stage heading and fills its table. The task data changes while the document structure stays consistent."
+          },
+          {
+            "title": "Leave an editable working record",
+            "body": "Save the DOCX so the receiving team can update statuses, and use the generated PDF for a printable overview."
+          }
+        ],
+        "adapt": "Use the same structure for equipment handovers, event preparation, or a service launch. Add stages only when they help readers understand when the work should happen.",
+        "related": [
+          "word-meeting-minutes",
+          "word-policy-brief",
+          "excel-project-workbook"
+        ]
+      },
+      "search_text": "Employee onboarding checklist Build a Word onboarding checklist in C# with tasks grouped by stage, named owners, and completion status. Inspect the PDF and download the DOCX. Word .NET C# walkthrough code sample Onboarding stages and assigned tasks"
+    },
+    {
+      "id": "word-policy-brief",
+      "format": "Word",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp word create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/word-policy-brief/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Word example: A concise policy brief",
+      "title": "A concise policy brief",
+      "description": "Author a Word policy brief in C# with document metadata, styled headings, and practical bullet lists. Download the source, editable file, and PDF.",
+      "input": "Working agreements and review ownership",
+      "output": "DOCX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "limit": "This is a formatting and authoring example with fictional workplace content. It does not supply an organization's approved policy or enforce compliance.",
+      "artifact_url": "/downloads/showcase/workflows/word-policy-brief/example.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/workflows/word-policy-brief/preview.png",
+      "evidence_label": "Open A concise policy brief preview",
+      "source_url": "/downloads/showcase/workflows/word-policy-brief/PolicyBrief.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/PolicyBrief.cs",
+      "guide_url": "/docs/word/",
+      "api_url": "/api/word/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-policy-brief",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/workflows/word-policy-brief/example.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/word-policy-brief/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/word-policy-brief/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/word-policy-brief/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/word-policy-brief/",
+      "walkthrough": {
+        "use_case": "Turn a short working agreement into a consistent document. The example names the owner and review date, explains who the agreement applies to, and keeps the instructions close to their exceptions.",
+        "steps": [
+          {
+            "title": "Set searchable metadata",
+            "body": "Populate the built-in title and subject so the file carries context beyond its filename."
+          },
+          {
+            "title": "Use a small heading hierarchy",
+            "body": "Build sections through a local function that adds a heading and paragraph. Word's native heading styles keep the document editable."
+          },
+          {
+            "title": "Make the actions scannable",
+            "body": "Use a bullet list for the steps somebody should follow, then describe the exception and review paths."
+          }
+        ],
+        "adapt": "Replace the shared-workspace content with an agreement owned by your team. Keep the owner and review date visible, and use the metadata fields to support your document inventory.",
+        "related": [
+          "word-onboarding-checklist",
+          "word-decision-record",
+          "markdown-incident-runbook"
+        ]
+      },
+      "search_text": "A concise policy brief Author a Word policy brief in C# with document metadata, styled headings, and practical bullet lists. Download the source, editable file, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
+    },
+    {
+      "id": "word-decision-record",
+      "format": "Word",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp word create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/word-decision-record/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Word example: An editable decision record",
+      "title": "An editable decision record",
+      "description": "Create a Word decision record in C# with context, alternatives, trade-offs, and a revisit condition. Compare the editable DOCX with its PDF preview.",
+      "input": "Decision context and evaluated options",
+      "output": "DOCX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "limit": "The example records a decision in a document. It does not calculate option scores or collect electronic approvals.",
+      "artifact_url": "/downloads/showcase/workflows/word-decision-record/example.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/workflows/word-decision-record/preview.png",
+      "evidence_label": "Open An editable decision record preview",
+      "source_url": "/downloads/showcase/workflows/word-decision-record/WordDecisionRecord.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/WordDecisionRecord.cs",
+      "guide_url": "/docs/word/",
+      "api_url": "/api/word/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-decision-record",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/workflows/word-decision-record/example.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/word-decision-record/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/word-decision-record/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/word-decision-record/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/word-decision-record/",
+      "walkthrough": {
+        "use_case": "Preserve why a team chose an approach, not just the final choice. The record puts the alternatives beside their strengths and costs, then states the condition that should trigger another review.",
+        "steps": [
+          {
+            "title": "Identify the decision",
+            "body": "Start with an identifier, owner, status, and date so the record can be referenced from other documents."
+          },
+          {
+            "title": "Compare alternatives explicitly",
+            "body": "Build a three-column table for the option, its strength, and its trade-off."
+          },
+          {
+            "title": "Record the consequence",
+            "body": "State the selected approach and the conditions for revisiting it in separate sections."
+          }
+        ],
+        "adapt": "Use an options array from your own evaluation. Keep the decision statement short and link supporting evidence from the surrounding document system.",
+        "related": [
+          "word-project-charter",
+          "markdown-decision-record",
+          "powerpoint-project-roadmap"
+        ]
+      },
+      "search_text": "An editable decision record Create a Word decision record in C# with context, alternatives, trade-offs, and a revisit condition. Compare the editable DOCX with its PDF preview. Word .NET C# walkthrough code sample Decision context and evaluated options"
+    },
+    {
+      "id": "excel-named-range-pricing",
+      "format": "Excel",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp excel create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/excel-named-range-pricing/preview.png",
+      "image_width": 694,
+      "image_height": 280,
+      "image_alt": "Generated Excel example: Pricing with named ranges",
+      "title": "Pricing with named ranges",
+      "description": "Use named ranges in a C# Excel pricing model so formulas read like the business calculation. Inspect the rendered quote and download the workbook.",
+      "input": "Quantity, unit price, and discount rate",
+      "output": "XLSX",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
+      "limit": "The sample demonstrates one workbook-level calculation. It does not implement a pricing policy, tax engine, or negotiated-price approval process. Each calculation step uses the native formula engine supported by this example.",
+      "artifact_url": "/downloads/showcase/workflows/excel-named-range-pricing/example.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/workflows/excel-named-range-pricing/preview.png",
+      "evidence_label": "Open Pricing with named ranges preview",
+      "source_url": "/downloads/showcase/workflows/excel-named-range-pricing/NamedRangePricing.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/NamedRangePricing.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-named-range-pricing",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/workflows/excel-named-range-pricing/example.xlsx"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/excel-named-range-pricing/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/excel-named-range-pricing/preview.png",
+          "label": "Generated worksheet",
+          "width": 694,
+          "height": 280
+        }
+      ],
+      "walkthrough_url": "/showcase/excel-named-range-pricing/",
+      "walkthrough": {
+        "use_case": "Make a small pricing calculation understandable to the next person who edits it. Named ranges give the formula meaningful terms and make the assumptions visible in the worksheet.",
+        "steps": [
+          {
+            "title": "Name the inputs",
+            "body": "Create workbook-scoped ranges for Quantity, UnitPrice, and DiscountRate, each pointing at its input cell."
+          },
+          {
+            "title": "Write a readable formula",
+            "body": "Use named formulas for gross total, discount amount, and net total. Each step has its own cell so a reader can inspect the calculation."
+          },
+          {
+            "title": "Format and inspect the result",
+            "body": "Evaluate the formula, apply numeric and percentage formats, and render the quote. The sample net total is 2,700."
+          }
+        ],
+        "adapt": "Use names from your business vocabulary and keep their definitions near the inputs. Extend the model with separate named assumptions when the calculation grows.",
+        "related": [
+          "excel-budget-scenarios",
+          "excel-formulas",
+          "excel-expense-register"
+        ]
+      },
+      "search_text": "Pricing with named ranges Use named ranges in a C# Excel pricing model so formulas read like the business calculation. Inspect the rendered quote and download the workbook. Excel .NET C# walkthrough code sample Quantity, unit price, and discount rate"
+    },
+    {
+      "id": "excel-project-workbook",
+      "format": "Excel",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp excel create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/excel-project-workbook/preview.png",
+      "image_width": 692,
+      "image_height": 260,
+      "image_alt": "Generated Excel example: A project workbook with a summary",
+      "title": "A project workbook with a summary",
+      "description": "Build an Excel project workbook in C# with detail and summary sheets, cross-sheet formulas, and a filterable delivery table. Download the XLSX.",
+      "input": "Planned and used days by workstream",
+      "output": "XLSX",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
+      "limit": "The image shows the Summary sheet. Open the XLSX to inspect and edit Delivery; the preview is not an interactive workbook.",
+      "artifact_url": "/downloads/showcase/workflows/excel-project-workbook/example.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/workflows/excel-project-workbook/preview.png",
+      "evidence_label": "Open A project workbook with a summary preview",
+      "source_url": "/downloads/showcase/workflows/excel-project-workbook/ProjectWorkbook.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ProjectWorkbook.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-project-workbook",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/workflows/excel-project-workbook/example.xlsx"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/excel-project-workbook/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/excel-project-workbook/preview.png",
+          "label": "Generated worksheet",
+          "width": 692,
+          "height": 260
+        }
+      ],
+      "walkthrough_url": "/showcase/excel-project-workbook/",
+      "walkthrough": {
+        "use_case": "Let one worksheet own the detailed numbers while a second presents the review view. This workbook demonstrates cross-sheet references without manually copying the same figures into two places.",
+        "steps": [
+          {
+            "title": "Separate detail from presentation",
+            "body": "Create Summary first for the opening view, and Delivery for the data table."
+          },
+          {
+            "title": "Calculate in the owning sheet",
+            "body": "Compute remaining days beside each delivery row, then point the summary formulas at those cells."
+          },
+          {
+            "title": "Keep the detail usable",
+            "body": "Add a table and freeze its heading row. Calculate before creating the summary image and saving the workbook."
+          }
+        ],
+        "adapt": "Add workstreams to the detail sheet and extend the corresponding summary references. The sample remaining-day values are 0, 12, 7, and 8.",
+        "related": [
+          "excel-budget-scenarios",
+          "word-project-charter",
+          "powerpoint-project-roadmap"
+        ]
+      },
+      "search_text": "A project workbook with a summary Build an Excel project workbook in C# with detail and summary sheets, cross-sheet formulas, and a filterable delivery table. Download the XLSX. Excel .NET C# walkthrough code sample Planned and used days by workstream"
+    },
+    {
+      "id": "excel-expense-register",
+      "format": "Excel",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp excel create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/excel-expense-register/preview.png",
+      "image_width": 837,
+      "image_height": 240,
+      "image_alt": "Generated Excel example: A structured expense register",
+      "title": "A structured expense register",
+      "description": "Generate an Excel expense register in C# with real dates, numeric amounts, dropdown validation, and a total. Download the workbook and range preview.",
+      "input": "Expense dates, categories, amounts, and review status",
+      "output": "XLSX",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
+      "limit": "Dropdown validation guides entry in a spreadsheet application. It is not a security boundary or an expense approval service.",
+      "artifact_url": "/downloads/showcase/workflows/excel-expense-register/example.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/workflows/excel-expense-register/preview.png",
+      "evidence_label": "Open A structured expense register preview",
+      "source_url": "/downloads/showcase/workflows/excel-expense-register/ExpenseRegister.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ExpenseRegister.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-expense-register",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/workflows/excel-expense-register/example.xlsx"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/excel-expense-register/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/excel-expense-register/preview.png",
+          "label": "Generated worksheet",
+          "width": 837,
+          "height": 240
+        }
+      ],
+      "walkthrough_url": "/showcase/excel-expense-register/",
+      "walkthrough": {
+        "use_case": "Export expenses as data people can filter and total. The example keeps dates and amounts typed, constrains category and status entry with lists, and freezes the heading area.",
+        "steps": [
+          {
+            "title": "Preserve data types",
+            "body": "Write DateTime and numeric values directly. Apply date and decimal formats for a readable display."
+          },
+          {
+            "title": "Add entry guidance",
+            "body": "Declare validation lists for category and status, then wrap the populated area in an Excel table."
+          },
+          {
+            "title": "Calculate the total",
+            "body": "Use SUM over the amount cells, evaluate the workbook, and render the register. The four sample expenses total 385.15 EUR."
+          }
+        ],
+        "adapt": "Extend the table and validation ranges when you add rows. Use your own categories and keep the currency explicit in the column heading.",
+        "related": [
+          "excel-validation",
+          "excel-object-export",
+          "excel-named-range-pricing"
+        ]
+      },
+      "search_text": "A structured expense register Generate an Excel expense register in C# with real dates, numeric amounts, dropdown validation, and a total. Download the workbook and range preview. Excel .NET C# walkthrough code sample Expense dates, categories, amounts, and review status"
+    },
+    {
+      "id": "excel-object-export",
+      "format": "Excel",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp excel create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/excel-object-export/preview.png",
+      "image_width": 692,
+      "image_height": 160,
+      "image_alt": "Generated Excel example: Export application records to Excel",
+      "title": "Export application records to Excel",
+      "description": "Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source.",
+      "input": "An array of typed asset records",
+      "output": "XLSX",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
+      "limit": "The sample uses five flat records. It is not a benchmark or a demonstration of streaming a large database result.",
+      "artifact_url": "/downloads/showcase/workflows/excel-object-export/example.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/workflows/excel-object-export/preview.png",
+      "evidence_label": "Open Export application records to Excel preview",
+      "source_url": "/downloads/showcase/workflows/excel-object-export/ObjectExport.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ObjectExport.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-object-export",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/workflows/excel-object-export/example.xlsx"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/excel-object-export/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/excel-object-export/preview.png",
+          "label": "Generated worksheet",
+          "width": 692,
+          "height": 160
+        }
+      ],
+      "walkthrough_url": "/showcase/excel-object-export/",
+      "walkthrough": {
+        "use_case": "Export application data without writing every cell by hand. A typed asset array becomes an Excel table, with a frozen header and a formatted purchase-cost column.",
+        "steps": [
+          {
+            "title": "Define the record shape",
+            "body": "Use a small C# type for the fields that belong in the export. Keep unrelated application state out of the record."
+          },
+          {
+            "title": "Map records through RowsFrom",
+            "body": "Pass the array to the fluent sheet builder and add a named, styled table over the generated data."
+          },
+          {
+            "title": "Finish the worksheet",
+            "body": "Set practical widths, freeze the header, and format the cost column before rendering and saving."
+          }
+        ],
+        "adapt": "Replace the asset type with the fields your recipient needs. RowsFrom also supports more explicit mapping options when your source has nested or optional properties.",
+        "related": [
+          "excel-tables",
+          "excel-expense-register",
+          "operational-excel-report"
+        ]
+      },
+      "search_text": "Export application records to Excel Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source. Excel .NET C# walkthrough code sample An array of typed asset records"
+    },
+    {
+      "id": "pdf-dispatch-note",
+      "format": "PDF",
+      "format_id": "pdf",
+      "operations": [
+        "create"
+      ],
+      "operation_tags": "create",
+      "tags": "dotnet csharp pdf create",
+      "badge_tags": [
+        "Create"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/pdf-dispatch-note/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated PDF example: A PDF dispatch note",
+      "title": "A PDF dispatch note",
+      "description": "Create a PDF dispatch note in C# with shipment references, item quantities, delivery instructions, and a receipt area. Inspect and download the output.",
+      "input": "Shipment reference, item rows, and receiving instructions",
+      "output": "PDF",
+      "proof": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "limit": "The receipt area is printed text, not an interactive form or digital signature field. Sample data does not represent a real shipment.",
+      "artifact_url": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf",
+      "artifact_label": "Download PDF",
+      "evidence_url": "/downloads/showcase/workflows/pdf-dispatch-note/preview.png",
+      "evidence_label": "Open A PDF dispatch note preview",
+      "source_url": "/downloads/showcase/workflows/pdf-dispatch-note/DispatchNote.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/DispatchNote.cs",
+      "guide_url": "/docs/pdf/authoring/",
+      "api_url": "/api/pdf/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-dispatch-note",
+      "downloads": [
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/pdf-dispatch-note/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/pdf-dispatch-note/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/pdf-dispatch-note/",
+      "walkthrough": {
+        "use_case": "Generate a shareable dispatch note from logistics data. The document puts the recipient, quantities, packaging references, and receiving instructions in one printable layout.",
+        "steps": [
+          {
+            "title": "Define the table appearance",
+            "body": "Use a table style with a colored header, alternating row fill, and enough cell padding for item descriptions."
+          },
+          {
+            "title": "Compose the shipment record",
+            "body": "Add the reference and delivery details before the item table, keeping the document easy to check during receipt."
+          },
+          {
+            "title": "Highlight the receiving instructions",
+            "body": "Put the delivery note in a panel, then leave a simple receipt area and add PDF title metadata."
+          }
+        ],
+        "adapt": "Populate the rows from the shipment record. Keep package references and quantities together so a receiver can compare the note with the physical delivery.",
+        "related": [
+          "pdf-statement",
+          "pdf-weekly-brief",
+          "word-onboarding-checklist"
+        ]
+      },
+      "search_text": "A PDF dispatch note Create a PDF dispatch note in C# with shipment references, item quantities, delivery instructions, and a receipt area. Inspect and download the output. PDF .NET C# walkthrough code sample Shipment reference, item rows, and receiving instructions"
+    },
+    {
+      "id": "pdf-service-catalog",
+      "format": "PDF",
+      "format_id": "pdf",
+      "operations": [
+        "create"
+      ],
+      "operation_tags": "create",
+      "tags": "dotnet csharp pdf create",
+      "badge_tags": [
+        "Create"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/pdf-service-catalog/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated PDF example: A three-column service catalog",
+      "title": "A three-column service catalog",
+      "description": "Lay out a PDF service catalog in C# with relative columns, feature lists, and colored guidance panels. Download the generated PDF and source.",
+      "input": "Three service offerings and their intended use",
+      "output": "PDF",
+      "proof": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "limit": "The offerings are fictional sample content. The layout demonstrates fixed PDF output rather than a responsive web pricing component.",
+      "artifact_url": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf",
+      "artifact_label": "Download PDF",
+      "evidence_url": "/downloads/showcase/workflows/pdf-service-catalog/preview.png",
+      "evidence_label": "Open A three-column service catalog preview",
+      "source_url": "/downloads/showcase/workflows/pdf-service-catalog/ServiceCatalog.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ServiceCatalog.cs",
+      "guide_url": "/docs/pdf/authoring/",
+      "api_url": "/api/pdf/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-service-catalog",
+      "downloads": [
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/pdf-service-catalog/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/pdf-service-catalog/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/pdf-service-catalog/",
+      "walkthrough": {
+        "use_case": "Present three offerings side by side without turning the whole page into a table. Each column contains its own heading, list, and guidance panel.",
+        "steps": [
+          {
+            "title": "Establish a page hierarchy",
+            "body": "Place the main heading and short introduction above the comparison area."
+          },
+          {
+            "title": "Use relative columns",
+            "body": "Create three equal relative columns and set a gutter so each offering has a distinct reading area."
+          },
+          {
+            "title": "Keep the next decision visible",
+            "body": "Finish with the questions a reader should resolve before choosing an offering."
+          }
+        ],
+        "adapt": "Use unequal column weights if one offering needs more room. Keep descriptions short and inspect the rendered PDF when a list becomes longer.",
+        "related": [
+          "pdf-columns",
+          "powerpoint-service-overview",
+          "pdf-weekly-brief"
+        ]
+      },
+      "search_text": "A three-column service catalog Lay out a PDF service catalog in C# with relative columns, feature lists, and colored guidance panels. Download the generated PDF and source. PDF .NET C# walkthrough code sample Three service offerings and their intended use"
+    },
+    {
+      "id": "pdf-weekly-brief",
+      "format": "PDF",
+      "format_id": "pdf",
+      "operations": [
+        "create"
+      ],
+      "operation_tags": "create",
+      "tags": "dotnet csharp pdf create",
+      "badge_tags": [
+        "Create"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/pdf-weekly-brief/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated PDF example: A decision-focused weekly PDF brief",
+      "title": "A decision-focused weekly PDF brief",
+      "description": "Generate a weekly PDF brief in C# with a highlighted decision, progress bullets, risks, and an action table. Download the report and runnable source.",
+      "input": "Weekly progress, risks, and next actions",
+      "output": "PDF",
+      "proof": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "limit": "The numbers and actions are demonstration data. This example formats a report; it does not collect live service telemetry.",
+      "artifact_url": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf",
+      "artifact_label": "Download PDF",
+      "evidence_url": "/downloads/showcase/workflows/pdf-weekly-brief/preview.png",
+      "evidence_label": "Open A decision-focused weekly PDF brief preview",
+      "source_url": "/downloads/showcase/workflows/pdf-weekly-brief/WeeklyBrief.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/WeeklyBrief.cs",
+      "guide_url": "/docs/pdf/authoring/",
+      "api_url": "/api/pdf/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-weekly-brief",
+      "downloads": [
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/pdf-weekly-brief/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/pdf-weekly-brief/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/pdf-weekly-brief/",
+      "walkthrough": {
+        "use_case": "Give reviewers a short report they can act on. A highlighted decision appears first, followed by the progress and risks that explain it and an action table with owners.",
+        "steps": [
+          {
+            "title": "Lead with the decision",
+            "body": "Use a colored paragraph panel to make the requested decision stand out from the narrative."
+          },
+          {
+            "title": "Keep the supporting detail short",
+            "body": "Separate progress bullets from the issue that needs attention."
+          },
+          {
+            "title": "Close with ownership",
+            "body": "Put the next actions, owners, and due dates into a styled table. Add PDF metadata for the exported file."
+          }
+        ],
+        "adapt": "Build the progress list and action rows from your reporting data. Retain the decision-first order so the report does not become a list of activity.",
+        "related": [
+          "executive-pdf-dashboard",
+          "word-meeting-minutes",
+          "markdown-incident-runbook"
+        ]
+      },
+      "search_text": "A decision-focused weekly PDF brief Generate a weekly PDF brief in C# with a highlighted decision, progress bullets, risks, and an action table. Download the report and runnable source. PDF .NET C# walkthrough code sample Weekly progress, risks, and next actions"
+    },
+    {
+      "id": "powerpoint-training-quiz",
+      "format": "PowerPoint",
+      "format_id": "powerpoint",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp powerpoint create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/powerpoint-training-quiz/preview.png",
+      "image_width": 960,
+      "image_height": 540,
+      "image_alt": "Generated PowerPoint example: A short training quiz deck",
+      "title": "A short training quiz deck",
+      "description": "Generate a PowerPoint training quiz in C# with question, answer, and team-exercise slides. Inspect every slide and download editable PPTX source.",
+      "input": "A training question, explanation, and discussion prompts",
+      "output": "PPTX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy.",
+      "limit": "This is a static presentation. It does not score answers, record attendance, or implement clickable quiz branching.",
+      "artifact_url": "/downloads/showcase/workflows/powerpoint-training-quiz/example.pptx",
+      "artifact_label": "Download PPTX",
+      "evidence_url": "/downloads/showcase/workflows/powerpoint-training-quiz/preview.png",
+      "evidence_label": "Open A short training quiz deck preview",
+      "source_url": "/downloads/showcase/workflows/powerpoint-training-quiz/TrainingQuiz.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/TrainingQuiz.cs",
+      "guide_url": "/docs/powerpoint/",
+      "api_url": "/api/powerpoint/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "downloads": [
+        {
+          "label": "PPTX",
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/example.pptx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/preview.png",
+          "label": "Slide 1",
+          "width": 960,
+          "height": 540
+        },
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/slide-2.png",
+          "label": "Slide 2",
+          "width": 960,
+          "height": 540
+        },
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-training-quiz/slide-3.png",
+          "label": "Slide 3",
+          "width": 960,
+          "height": 540
+        }
+      ],
+      "walkthrough_url": "/showcase/powerpoint-training-quiz/",
+      "walkthrough": {
+        "use_case": "Create a short teaching sequence that separates the question from its answer. A third slide turns the explanation into a team exercise.",
+        "steps": [
+          {
+            "title": "Describe each teaching moment",
+            "body": "Supply a title, explanation, point list, label, and background color to a local slide-building function."
+          },
+          {
+            "title": "Keep the text native",
+            "body": "Use editable text boxes so a trainer can revise the question and discussion prompts in PowerPoint."
+          },
+          {
+            "title": "Review the sequence",
+            "body": "Inspect the question, answer, and exercise previews in order. The PDF provides a convenient read-through copy."
+          }
+        ],
+        "adapt": "Generate several sequences from a question catalog, or add a facilitator-notes workflow in your application. Keep each prompt short enough to discuss from the slide.",
+        "related": [
+          "powerpoint-text",
+          "pdf-workshop-pack",
+          "markdown-incident-runbook"
+        ]
+      },
+      "search_text": "A short training quiz deck Generate a PowerPoint training quiz in C# with question, answer, and team-exercise slides. Inspect every slide and download editable PPTX source. PowerPoint .NET C# walkthrough code sample A training question, explanation, and discussion prompts"
+    },
+    {
+      "id": "powerpoint-service-overview",
+      "format": "PowerPoint",
+      "format_id": "powerpoint",
+      "operations": [
+        "create",
+        "render"
+      ],
+      "operation_tags": "create render",
+      "tags": "dotnet csharp powerpoint create render",
+      "badge_tags": [
+        "Create",
+        "Render"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/powerpoint-service-overview/preview.png",
+      "image_width": 960,
+      "image_height": 540,
+      "image_alt": "Generated PowerPoint example: A service handover briefing deck",
+      "title": "A service handover briefing deck",
+      "description": "Build a PowerPoint service handover deck in C# with a cover, responsibility cards, and a first-week checklist. Download the PPTX, PDF, and previews.",
+      "input": "Service ownership and handover tasks",
+      "output": "PPTX + PDF",
+      "proof": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy.",
+      "limit": "The checklist is presentation content. It does not provision a service or transfer operational permissions.",
+      "artifact_url": "/downloads/showcase/workflows/powerpoint-service-overview/example.pptx",
+      "artifact_label": "Download PPTX",
+      "evidence_url": "/downloads/showcase/workflows/powerpoint-service-overview/preview.png",
+      "evidence_label": "Open A service handover briefing deck preview",
+      "source_url": "/downloads/showcase/workflows/powerpoint-service-overview/ServiceOverview.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ServiceOverview.cs",
+      "guide_url": "/docs/powerpoint/",
+      "api_url": "/api/powerpoint/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "downloads": [
+        {
+          "label": "PPTX",
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/example.pptx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/preview.png",
+          "label": "Slide 1",
+          "width": 960,
+          "height": 540
+        },
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/slide-2.png",
+          "label": "Slide 2",
+          "width": 960,
+          "height": 540
+        },
+        {
+          "url": "/downloads/showcase/workflows/powerpoint-service-overview/slide-3.png",
+          "label": "Slide 3",
+          "width": 960,
+          "height": 540
+        }
+      ],
+      "walkthrough_url": "/showcase/powerpoint-service-overview/",
+      "walkthrough": {
+        "use_case": "Brief the team taking responsibility for a service. The deck moves from the purpose of the handover to role boundaries and the first week's concrete checks.",
+        "steps": [
+          {
+            "title": "Create a clear cover",
+            "body": "Use a full-slide rectangle and contrasting text to give the opening slide a distinct appearance."
+          },
+          {
+            "title": "Explain the roles",
+            "body": "Build three responsibility cards from arrays, using the same spacing and typography for each role."
+          },
+          {
+            "title": "Turn the handover into actions",
+            "body": "End with a numbered checklist that the receiving and delivery teams can walk through together."
+          }
+        ],
+        "adapt": "Replace the role descriptions and checklist with your service's operating model. Add specific contacts and links in your own deck when the audience needs them.",
+        "related": [
+          "powerpoint-project-roadmap",
+          "pdf-service-catalog",
+          "portable-project-handover"
+        ]
+      },
+      "search_text": "A service handover briefing deck Build a PowerPoint service handover deck in C# with a cover, responsibility cards, and a first-week checklist. Download the PPTX, PDF, and previews. PowerPoint .NET C# walkthrough code sample Service ownership and handover tasks"
+    },
+    {
+      "id": "markdown-decision-record",
+      "format": "Markdown",
+      "format_id": "markdown",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp markdown create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/markdown-decision-record/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Markdown example: An architecture decision record",
+      "title": "An architecture decision record",
+      "description": "Generate an architecture decision record as Markdown in C# with context, alternatives, and consequences. Inspect the PDF and download the source.",
+      "input": "An architectural choice and the reasons behind it",
+      "output": "MD + PDF",
+      "proof": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "limit": "The report-bundle design is illustrative. This example writes the decision record; it does not create or hash a report bundle.",
+      "artifact_url": "/downloads/showcase/workflows/markdown-decision-record/example.md",
+      "artifact_label": "Download MD",
+      "evidence_url": "/downloads/showcase/workflows/markdown-decision-record/preview.png",
+      "evidence_label": "Open An architecture decision record preview",
+      "source_url": "/downloads/showcase/workflows/markdown-decision-record/MarkdownDecisionRecord.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/MarkdownDecisionRecord.cs",
+      "guide_url": "/docs/markdown/",
+      "api_url": "/api/markdown/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-decision-record",
+      "downloads": [
+        {
+          "label": "MD",
+          "url": "/downloads/showcase/workflows/markdown-decision-record/example.md"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/markdown-decision-record/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/markdown-decision-record/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/markdown-decision-record/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/markdown-decision-record/",
+      "walkthrough": {
+        "use_case": "Create a decision record that works naturally in version control. The example preserves the context, chosen approach, alternatives, and consequences in portable Markdown.",
+        "steps": [
+          {
+            "title": "Record identity and status",
+            "body": "Give the decision an identifier, owner, date, and status before explaining the context."
+          },
+          {
+            "title": "Show the selected shape",
+            "body": "Use a fenced text block for the proposed report-bundle structure."
+          },
+          {
+            "title": "Preserve the reasoning",
+            "body": "Add an alternatives table, consequence list, and a condition for revisiting the decision."
+          }
+        ],
+        "adapt": "Generate the fixed sections from your decision-record template and supply the content from your review process. Keep the actual reasoning in the record rather than relying only on a status field.",
+        "related": [
+          "word-decision-record",
+          "markdown-technical-guide",
+          "markdown-api-handover"
+        ]
+      },
+      "search_text": "An architecture decision record Generate an architecture decision record as Markdown in C# with context, alternatives, and consequences. Inspect the PDF and download the source. Markdown .NET C# walkthrough code sample An architectural choice and the reasons behind it"
+    },
+    {
+      "id": "markdown-api-handover",
+      "format": "Markdown",
+      "format_id": "markdown",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "operation_tags": "create convert",
+      "tags": "dotnet csharp markdown create convert",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/workflows/markdown-api-handover/preview.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Generated Markdown example: An API handover guide",
+      "title": "An API handover guide",
+      "description": "Build an API handover guide as Markdown in C# with request and response examples, a field table, and integration notes. Download Markdown and PDF.",
+      "input": "Request fields, example payloads, and integration notes",
+      "output": "MD + PDF",
+      "proof": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "limit": "The Northwind API is fictional. The example generates documentation and does not make network requests or validate an OpenAPI specification.",
+      "artifact_url": "/downloads/showcase/workflows/markdown-api-handover/example.md",
+      "artifact_label": "Download MD",
+      "evidence_url": "/downloads/showcase/workflows/markdown-api-handover/preview.png",
+      "evidence_label": "Open An API handover guide preview",
+      "source_url": "/downloads/showcase/workflows/markdown-api-handover/ApiHandover.cs.txt",
+      "source_path": "OfficeIMO.Examples/Showcase/Workflows/ApiHandover.cs",
+      "guide_url": "/docs/markdown/",
+      "api_url": "/api/markdown/",
+      "generator_switch": "--showcase-workflows",
+      "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-api-handover",
+      "downloads": [
+        {
+          "label": "MD",
+          "url": "/downloads/showcase/workflows/markdown-api-handover/example.md"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/workflows/markdown-api-handover/preview.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/workflows/markdown-api-handover/preview.png"
+        }
+      ],
+      "previews": [
+        {
+          "url": "/downloads/showcase/workflows/markdown-api-handover/preview.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        },
+        {
+          "url": "/downloads/showcase/workflows/markdown-api-handover/page-2.png",
+          "label": "Page 2: integration and support",
+          "width": 868,
+          "height": 1123
+        }
+      ],
+      "walkthrough_url": "/showcase/markdown-api-handover/",
+      "walkthrough": {
+        "use_case": "Give an integration team a compact guide they can keep with the code. The example brings a request, response, field contract, and handover checklist into one Markdown document.",
+        "steps": [
+          {
+            "title": "Show a representative request",
+            "body": "Use an HTTP code fence to keep the method, path, headers, and body together."
+          },
+          {
+            "title": "Explain the fields",
+            "body": "Build a table for required fields and their meaning, then add a JSON response example."
+          },
+          {
+            "title": "Name the unresolved integration details",
+            "body": "Use a note callout for authentication, retries, validation errors, and limits that must be agreed with the service owner."
+          }
+        ],
+        "adapt": "Replace the fictional request service with examples from your real contract. Validate those payloads through the owning API tests when using this pattern for a production guide.",
+        "related": [
+          "markdown-incident-runbook",
+          "markdown-decision-record",
+          "markdown-technical-guide"
+        ]
+      },
+      "search_text": "An API handover guide Build an API handover guide as Markdown in C# with request and response examples, a field table, and integration notes. Download Markdown and PDF. Markdown .NET C# walkthrough code sample Request fields, example payloads, and integration notes"
+    },
     {
       "id": "design-guided-presentation-deck",
       "format": "PowerPoint",
@@ -3370,6 +5028,658 @@
       "destination": "source/Showcase/DocumentFeatureShowcase.cs.txt",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
+    },
+    {
+      "id": "word-project-charter-example.docx",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-project-charter/example.docx",
+      "destination": "workflows/word-project-charter/example.docx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-project-charter",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-project-charter-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-project-charter/preview.pdf",
+      "destination": "workflows/word-project-charter/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-project-charter",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-project-charter-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-project-charter/preview.png",
+      "destination": "workflows/word-project-charter/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "previewSource": "Workflows/word-project-charter/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "word-project-charter-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ProjectCharter.cs",
+      "destination": "workflows/word-project-charter/ProjectCharter.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-meeting-minutes-example.docx",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-meeting-minutes/example.docx",
+      "destination": "workflows/word-meeting-minutes/example.docx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-meeting-minutes",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-meeting-minutes-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-meeting-minutes/preview.pdf",
+      "destination": "workflows/word-meeting-minutes/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-meeting-minutes",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-meeting-minutes-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-meeting-minutes/preview.png",
+      "destination": "workflows/word-meeting-minutes/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "previewSource": "Workflows/word-meeting-minutes/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "word-meeting-minutes-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/MeetingMinutes.cs",
+      "destination": "workflows/word-meeting-minutes/MeetingMinutes.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-onboarding-checklist-example.docx",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-onboarding-checklist/example.docx",
+      "destination": "workflows/word-onboarding-checklist/example.docx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-onboarding-checklist",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-onboarding-checklist-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-onboarding-checklist/preview.pdf",
+      "destination": "workflows/word-onboarding-checklist/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-onboarding-checklist",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-onboarding-checklist-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-onboarding-checklist/preview.png",
+      "destination": "workflows/word-onboarding-checklist/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "previewSource": "Workflows/word-onboarding-checklist/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "word-onboarding-checklist-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/OnboardingChecklist.cs",
+      "destination": "workflows/word-onboarding-checklist/OnboardingChecklist.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-policy-brief-example.docx",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-policy-brief/example.docx",
+      "destination": "workflows/word-policy-brief/example.docx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-policy-brief",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-policy-brief-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-policy-brief/preview.pdf",
+      "destination": "workflows/word-policy-brief/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-policy-brief",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-policy-brief-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-policy-brief/preview.png",
+      "destination": "workflows/word-policy-brief/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "previewSource": "Workflows/word-policy-brief/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "word-policy-brief-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/PolicyBrief.cs",
+      "destination": "workflows/word-policy-brief/PolicyBrief.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-decision-record-example.docx",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-decision-record/example.docx",
+      "destination": "workflows/word-decision-record/example.docx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-decision-record",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-decision-record-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-decision-record/preview.pdf",
+      "destination": "workflows/word-decision-record/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-decision-record",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
+    },
+    {
+      "id": "word-decision-record-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/word-decision-record/preview.png",
+      "destination": "workflows/word-decision-record/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
+      "previewSource": "Workflows/word-decision-record/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "word-decision-record-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/WordDecisionRecord.cs",
+      "destination": "workflows/word-decision-record/WordDecisionRecord.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-budget-scenarios-example.xlsx",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-budget-scenarios/example.xlsx",
+      "destination": "workflows/excel-budget-scenarios/example.xlsx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-budget-scenarios",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-budget-scenarios-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-budget-scenarios/preview.png",
+      "destination": "workflows/excel-budget-scenarios/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-budget-scenarios",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-budget-scenarios-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/BudgetScenarios.cs",
+      "destination": "workflows/excel-budget-scenarios/BudgetScenarios.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-named-range-pricing-example.xlsx",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-named-range-pricing/example.xlsx",
+      "destination": "workflows/excel-named-range-pricing/example.xlsx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-named-range-pricing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-named-range-pricing-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-named-range-pricing/preview.png",
+      "destination": "workflows/excel-named-range-pricing/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-named-range-pricing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-named-range-pricing-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/NamedRangePricing.cs",
+      "destination": "workflows/excel-named-range-pricing/NamedRangePricing.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-project-workbook-example.xlsx",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-project-workbook/example.xlsx",
+      "destination": "workflows/excel-project-workbook/example.xlsx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-project-workbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-project-workbook-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-project-workbook/preview.png",
+      "destination": "workflows/excel-project-workbook/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-project-workbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-project-workbook-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ProjectWorkbook.cs",
+      "destination": "workflows/excel-project-workbook/ProjectWorkbook.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-expense-register-example.xlsx",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-expense-register/example.xlsx",
+      "destination": "workflows/excel-expense-register/example.xlsx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-expense-register",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-expense-register-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-expense-register/preview.png",
+      "destination": "workflows/excel-expense-register/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-expense-register",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-expense-register-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ExpenseRegister.cs",
+      "destination": "workflows/excel-expense-register/ExpenseRegister.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-object-export-example.xlsx",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-object-export/example.xlsx",
+      "destination": "workflows/excel-object-export/example.xlsx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-object-export",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-object-export-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/excel-object-export/preview.png",
+      "destination": "workflows/excel-object-export/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-object-export",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
+    },
+    {
+      "id": "excel-object-export-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ObjectExport.cs",
+      "destination": "workflows/excel-object-export/ObjectExport.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-dispatch-note-example.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-dispatch-note/example.pdf",
+      "destination": "workflows/pdf-dispatch-note/example.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-dispatch-note",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
+    },
+    {
+      "id": "pdf-dispatch-note-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-dispatch-note/preview.png",
+      "destination": "workflows/pdf-dispatch-note/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "previewSource": "Workflows/pdf-dispatch-note/example.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pdf-dispatch-note-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/DispatchNote.cs",
+      "destination": "workflows/pdf-dispatch-note/DispatchNote.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-workshop-pack-example.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-workshop-pack/example.pdf",
+      "destination": "workflows/pdf-workshop-pack/example.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-workshop-pack",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
+    },
+    {
+      "id": "pdf-workshop-pack-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-workshop-pack/preview.png",
+      "destination": "workflows/pdf-workshop-pack/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "previewSource": "Workflows/pdf-workshop-pack/example.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pdf-workshop-pack-page-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-workshop-pack/page-2.png",
+      "destination": "workflows/pdf-workshop-pack/page-2.png",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "previewSource": "Workflows/pdf-workshop-pack/example.pdf",
+      "previewPage": 2
+    },
+    {
+      "id": "pdf-workshop-pack-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/WorkshopPack.cs",
+      "destination": "workflows/pdf-workshop-pack/WorkshopPack.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-service-catalog-example.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-service-catalog/example.pdf",
+      "destination": "workflows/pdf-service-catalog/example.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-service-catalog",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
+    },
+    {
+      "id": "pdf-service-catalog-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-service-catalog/preview.png",
+      "destination": "workflows/pdf-service-catalog/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "previewSource": "Workflows/pdf-service-catalog/example.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pdf-service-catalog-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ServiceCatalog.cs",
+      "destination": "workflows/pdf-service-catalog/ServiceCatalog.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-weekly-brief-example.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-weekly-brief/example.pdf",
+      "destination": "workflows/pdf-weekly-brief/example.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-weekly-brief",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
+    },
+    {
+      "id": "pdf-weekly-brief-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/pdf-weekly-brief/preview.png",
+      "destination": "workflows/pdf-weekly-brief/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler.",
+      "previewSource": "Workflows/pdf-weekly-brief/example.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pdf-weekly-brief-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/WeeklyBrief.cs",
+      "destination": "workflows/pdf-weekly-brief/WeeklyBrief.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "powerpoint-project-roadmap-example.pptx",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-project-roadmap/example.pptx",
+      "destination": "workflows/powerpoint-project-roadmap/example.pptx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-project-roadmap",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-project-roadmap-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-project-roadmap/preview.pdf",
+      "destination": "workflows/powerpoint-project-roadmap/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-project-roadmap",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-project-roadmap-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-project-roadmap/preview.png",
+      "destination": "workflows/powerpoint-project-roadmap/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-project-roadmap",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-project-roadmap-slide-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-project-roadmap/slide-2.png",
+      "destination": "workflows/powerpoint-project-roadmap/slide-2.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-project-roadmap",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-project-roadmap-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ProjectRoadmap.cs",
+      "destination": "workflows/powerpoint-project-roadmap/ProjectRoadmap.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "powerpoint-training-quiz-example.pptx",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-training-quiz/example.pptx",
+      "destination": "workflows/powerpoint-training-quiz/example.pptx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-training-quiz-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-training-quiz/preview.pdf",
+      "destination": "workflows/powerpoint-training-quiz/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-training-quiz-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-training-quiz/preview.png",
+      "destination": "workflows/powerpoint-training-quiz/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-training-quiz-slide-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-training-quiz/slide-2.png",
+      "destination": "workflows/powerpoint-training-quiz/slide-2.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-training-quiz-slide-3.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-training-quiz/slide-3.png",
+      "destination": "workflows/powerpoint-training-quiz/slide-3.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-training-quiz",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-training-quiz-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/TrainingQuiz.cs",
+      "destination": "workflows/powerpoint-training-quiz/TrainingQuiz.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "powerpoint-service-overview-example.pptx",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-service-overview/example.pptx",
+      "destination": "workflows/powerpoint-service-overview/example.pptx",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-service-overview-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-service-overview/preview.pdf",
+      "destination": "workflows/powerpoint-service-overview/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-service-overview-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-service-overview/preview.png",
+      "destination": "workflows/powerpoint-service-overview/preview.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-service-overview-slide-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-service-overview/slide-2.png",
+      "destination": "workflows/powerpoint-service-overview/slide-2.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-service-overview-slide-3.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/powerpoint-service-overview/slide-3.png",
+      "destination": "workflows/powerpoint-service-overview/slide-3.png",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-service-overview",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-service-overview-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ServiceOverview.cs",
+      "destination": "workflows/powerpoint-service-overview/ServiceOverview.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-incident-runbook-example.md",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-incident-runbook/example.md",
+      "destination": "workflows/markdown-incident-runbook/example.md",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-incident-runbook",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-incident-runbook-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-incident-runbook/preview.pdf",
+      "destination": "workflows/markdown-incident-runbook/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-incident-runbook",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-incident-runbook-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-incident-runbook/preview.png",
+      "destination": "workflows/markdown-incident-runbook/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "previewSource": "Workflows/markdown-incident-runbook/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "markdown-incident-runbook-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/IncidentRunbook.cs",
+      "destination": "workflows/markdown-incident-runbook/IncidentRunbook.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-decision-record-example.md",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-decision-record/example.md",
+      "destination": "workflows/markdown-decision-record/example.md",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-decision-record",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-decision-record-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-decision-record/preview.pdf",
+      "destination": "workflows/markdown-decision-record/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-decision-record",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-decision-record-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-decision-record/preview.png",
+      "destination": "workflows/markdown-decision-record/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "previewSource": "Workflows/markdown-decision-record/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "markdown-decision-record-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/MarkdownDecisionRecord.cs",
+      "destination": "workflows/markdown-decision-record/MarkdownDecisionRecord.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-api-handover-example.md",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-api-handover/example.md",
+      "destination": "workflows/markdown-api-handover/example.md",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-api-handover",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-api-handover-preview.pdf",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-api-handover/preview.pdf",
+      "destination": "workflows/markdown-api-handover/preview.pdf",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-api-handover",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview."
+    },
+    {
+      "id": "markdown-api-handover-preview.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-api-handover/preview.png",
+      "destination": "workflows/markdown-api-handover/preview.png",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The Markdown builder creates the source file. The runner exports a PDF, which is rendered for the preview.",
+      "previewSource": "Workflows/markdown-api-handover/preview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "markdown-api-handover-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/Showcase/Workflows/ApiHandover.cs",
+      "destination": "workflows/markdown-api-handover/ApiHandover.cs.txt",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-api-handover-page-2.png",
+      "sourceRoot": "documents",
+      "source": "Workflows/markdown-api-handover/page-2.png",
+      "destination": "workflows/markdown-api-handover/page-2.png",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "Second page of the generated API handover guide.",
+      "previewSource": "Workflows/markdown-api-handover/preview.pdf",
+      "previewPage": 2
     }
   ]
 }

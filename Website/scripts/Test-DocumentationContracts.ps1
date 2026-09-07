@@ -366,11 +366,14 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
 $psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
+$psWriteOfficeModule = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')
+$psWriteOfficeVersion = [string] $psWriteOfficeModule.ModuleVersion
 if ($psWriteOfficeSource.Count -ne 1 -or
     $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
     $psWriteOfficeSource[0].Clean -ne $true -or
-    -not [string]::IsNullOrWhiteSpace([string] $psWriteOfficeSource[0].Ref)) {
-    Add-Failure 'The default PSWriteOffice source must cleanly clone the repository default branch.'
+    $psWriteOfficeVersion -notmatch '^\d+\.\d+\.\d+$' -or
+    $psWriteOfficeSource[0].Ref -cne "v$psWriteOfficeVersion") {
+    Add-Failure 'The PSWriteOffice source tag must match the imported three-part module version.'
 }
 $sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
 if ($sourceSyncStep.Count -ne 1 -or

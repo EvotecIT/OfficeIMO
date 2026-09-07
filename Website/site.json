@@ -70,6 +70,15 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "showcase-examples",
+      "Input": "content/showcase-examples",
+      "Output": "/showcase",
+      "DefaultLayout": "showcase-example",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "conversions",
       "Input": "content/conversions",
       "Output": "/convert",
@@ -387,7 +396,7 @@
       },
       {
         "Name": "showcase",
-        "Css": ["/css/showcase.css"],
+        "Css": ["/css/showcase.css", "/css/showcase-walkthrough.css"],
         "Js": ["/js/showcase.js"]
       },
       {

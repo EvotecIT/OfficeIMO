@@ -4,7 +4,7 @@ description: "Build, inspect, validate, compare, repair, and publish workbook wo
 layout: docs
 ---
 
-Excel is the largest PSWriteOffice family with 157 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, streaming contracts, and direct range or chart image export.
+Excel is the largest PSWriteOffice family with 158 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, streaming contracts, and direct range or chart image export.
 
 ## Create a workbook from data
 

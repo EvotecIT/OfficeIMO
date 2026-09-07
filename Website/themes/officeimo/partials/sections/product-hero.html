@@ -42,12 +42,13 @@
       {{ end }}
       {{ if preview }}
       <figure class="imo-product-example">
-        <a href="{{ preview.evidence_url }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
+        <a href="{{ preview.image }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
         <figcaption><strong>{{ preview.title }}</strong><p>{{ preview.proof }}</p><a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ preview.source_url }}">View source</a> · <a href="/showcase/#{{ preview.id }}">Explore the example</a></figcaption>
       </figure>
       {{ else }}
       <div class="imo-product-example imo-product-example--guide"><h2>Start with a working example</h2><p>Find the input, generated output, and source for the document workflow you need.</p><a href="/showcase/">Browse document examples →</a></div>
       {{ end }}
+      {{ if page.title == "PSWriteOffice" || nuget_pkg == "OfficeIMO.Word" || nuget_pkg == "OfficeIMO.Pdf" }}
       <div class="imo-product-proof__code">
         {{ if page.title == "PSWriteOffice" }}
         <span>PowerShell</span><pre class="language-powershell"><code class="language-powershell">New-OfficeWord -Path '.\report.docx' {
@@ -71,6 +72,7 @@ PdfDocument.Create(pdf =&gt; pdf.Content(content =&gt; content
     .Save("report.pdf");</code></pre>
         {{ end }}
       </div>
+      {{ end }}
     </div>
   </div>
 </section>

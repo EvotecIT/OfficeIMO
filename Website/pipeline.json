@@ -109,8 +109,16 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "test-showcase-walkthroughs",
       "dependsOn": ["test-discovery-evidence"],
+      "command": "pwsh",
+      "argsList": ["-NoLogo", "-NoProfile", "-File", "./scripts/Sync-ShowcaseWalkthroughs.ps1", "-Check"],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": ["test-showcase-walkthroughs"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
