@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -310,7 +311,7 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor? imageMaskColor,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
         if (imageMaskColor.HasValue) {
             return TryBuildPngFileFromImageMask(
                 stream,
@@ -320,10 +321,10 @@ internal static partial class ResourceResolver {
                 objects,
                 imageMaskColor.Value,
                 maxDecodedStreamBytes,
-                out pngBytes);
+                out pngBytes, cancellationToken);
         }
 
-        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maxDecodedStreamBytes, out pngBytes);
+        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maxDecodedStreamBytes, out pngBytes, cancellationToken);
     }
 
     private static bool TryBuildPngFileFromImageMask(
@@ -334,7 +335,8 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor imageMaskColor,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         pngBytes = Array.Empty<byte>();
         if (bitsPerComponent is not (0 or 1)) {
             return false;
@@ -349,11 +351,12 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maxDecodedStreamBytes)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maxDecodedStreamBytes, cancellationToken)) {
             return false;
         }
         byte[] scanlines = new byte[scanlineBytes];
         for (int sampleIndex = 0; sampleIndex < pixelCount; sampleIndex++) {
+            if ((sampleIndex & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadIndexedSample(maskPixels, width, sampleIndex, 1, out int sample)) {
                 return false;
             }
@@ -625,8 +628,8 @@ internal static partial class ResourceResolver {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] decoded,
-        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) =>
-        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maxDecodedBytes);
+        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maxDecodedBytes, cancellationToken);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;

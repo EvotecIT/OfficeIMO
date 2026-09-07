@@ -133,7 +133,7 @@ internal static partial class PdfPageImageRenderer {
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
+            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(cancellationToken);
             OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken)
                 : RenderPage(document, pageNumber, cancellationToken);
             drawing.Fonts.AddRangePreservingExisting(options.Fonts);

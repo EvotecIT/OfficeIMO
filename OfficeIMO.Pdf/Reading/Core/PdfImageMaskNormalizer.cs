@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -9,7 +10,8 @@ internal static class PdfImageMaskNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
@@ -21,7 +23,7 @@ internal static class PdfImageMaskNormalizer {
                 maxDecodedStreamBytes,
                 out _,
                 out int scanlineBytes) ||
-            !TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out var maskPixels)) {
+            !TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out var maskPixels, cancellationToken)) {
             return false;
         }
 
@@ -46,11 +48,13 @@ internal static class PdfImageMaskNormalizer {
         }
         byte[] scanlines = new byte[scanlineBytes];
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;
             scanlines[outputRow] = 0;
 
             for (int pixel = 0; pixel < width; pixel++) {
+                if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int sample = ReadMaskSample(maskPixels, sourceRow, pixel);
                 if (decodeTransform is not null) {
                     sample = decodeTransform.TransformIndexedSample(sample, 1, 1);
@@ -82,8 +86,8 @@ internal static class PdfImageMaskNormalizer {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out byte[] bytes) {
-        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maxDecodedStreamBytes) && bytes.Length > 0;
+        out byte[] bytes, CancellationToken cancellationToken) {
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maxDecodedStreamBytes, cancellationToken) && bytes.Length > 0;
     }
 
     private static int ReadMaskSample(byte[] maskPixels, int rowOffset, int pixelIndex) {

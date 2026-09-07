@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 using System.IO;
 
@@ -466,13 +467,13 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget, CancellationToken cancellationToken = default) {
         return GetImagesForResources(
             ResolveDictionary(GetInheritedValue("Resources")),
             pageNumber,
             imagePlacements,
             colorizeImageMasks,
-            pageContentBudget);
+            pageContentBudget, cancellationToken);
     }
 
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(
@@ -480,7 +481,9 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks = false,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
+        if (!cancellationToken.CanBeCanceled) cancellationToken = pageContentBudget?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         var images = resources == null
             ? new List<PdfExtractedImage>()
             : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(
@@ -492,7 +495,7 @@ public sealed partial class PdfReadPage {
                 _limits,
                 EffectiveOutputIntentColorTransform,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                pageContentBudget?.ColorFunctionResolutionContext));
+                pageContentBudget?.ColorFunctionResolutionContext, cancellationToken));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
@@ -515,7 +518,7 @@ public sealed partial class PdfReadPage {
                     EffectiveOutputIntentColorTransform,
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                     pageContentBudget?.ColorFunctionResolutionContext,
-                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent));
+                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
             }
         }
 
@@ -2142,13 +2145,15 @@ public sealed partial class PdfReadPage {
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
 
-        internal PageContentBudget(PdfReadPage page) {
+        internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default) {
+            CancellationToken = cancellationToken;
             _page = page;
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
             ColorFunctionResolutionContext = new PdfColorFunctionResolutionContext(
                 Math.Min(page._limits.MaxDecodedStreamBytes, page._limits.MaxPageContentBytes));
         }
 
+        internal CancellationToken CancellationToken { get; }
         internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
 
         internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) =>

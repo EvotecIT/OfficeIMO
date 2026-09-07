@@ -1,3 +1,4 @@
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfImageStreamDecoder {
@@ -5,13 +6,13 @@ internal static class PdfImageStreamDecoder {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] decoded,
-        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) {
+        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) {
         try {
             decoded = Filters.StreamDecoder.DecodeRequired(
                 stream.Dictionary,
                 stream.Data,
                 objects,
-                maxDecodedBytes);
+                maxDecodedBytes, cancellationToken);
             return true;
         } catch (InvalidDataException) {
             decoded = Array.Empty<byte>();
