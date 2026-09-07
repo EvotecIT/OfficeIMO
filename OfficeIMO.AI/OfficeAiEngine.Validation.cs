@@ -105,7 +105,10 @@ public sealed partial class OfficeAiEngine {
             if (!unique.Add((id, quote))) throw Invalid();
             if (batch.Evidence.TryGetValue(id, out OfficeAiEvidence? observation)) {
                 if (quote is null || !observation.Text.Contains(quote, StringComparison.Ordinal)) throw Invalid();
-                citations.Add(new(id, observation.Page, quote, true));
+                EvidenceSlice slice = batch.Slices.TryGetValue(id, out var fragment) ? fragment : new(id, 0, observation.Text.Length);
+                citations.Add(new(slice.OriginalId, observation.Page, quote, true) {
+                    QuoteStart = slice.Start + observation.Text.IndexOf(quote, StringComparison.Ordinal)
+                });
             } else if (batch.Images.TryGetValue(id, out OfficeAiImage? image)) {
                 if (quote is not null) throw Invalid();
                 citations.Add(new(id, image.Page, null, false));

@@ -36,12 +36,14 @@ public sealed partial class OfficeAiEngine {
         CancellationToken token = deadline.Token;
         token.ThrowIfCancellationRequested();
         string requestId = Guid.NewGuid().ToString("N");
-        Plan plan = Prepare(document, request, profile, requestId);
+        Plan plan = Prepare(document, request, profile, requestId, token);
         var claims = new List<OfficeAiClaim>();
         var fields = new List<OfficeAiField>();
         var blocks = new List<OfficeAiBlock>();
         var tables = new List<OfficeAiTable>();
         var processed = new List<string>();
+        var ranges = new List<OfficeAiEvidenceRange>();
+        int requestCount = 0;
         var omitted = new List<string>(plan.Omitted);
         var diagnostics = new HashSet<string>(StringComparer.Ordinal) { "semantic-support-not-assessed" };
         if (!profile.EnforcesJsonSchema) diagnostics.Add("prompted-json-local-validation");
@@ -56,6 +58,7 @@ public sealed partial class OfficeAiEngine {
             Batch batch = plan.Batches[index];
             progress?.Report(new("Running", index, plan.Batches.Count));
             try {
+                requestCount++;
                 OfficeAiExecutionResponse response = await ExecuteBoundedAsync(batch.Request, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 if (response.InputTokens < 0 || response.OutputTokens < 0) throw new InvalidDataException("Invalid usage counters.");
@@ -66,6 +69,11 @@ public sealed partial class OfficeAiEngine {
                 claims.AddRange(parsed.Claims); fields.AddRange(parsed.Fields);
                 blocks.AddRange(parsed.Blocks); tables.AddRange(parsed.Tables);
                 processed.AddRange(batch.Ids);
+                foreach (OfficeAiEvidence evidence in batch.Evidence.Values) {
+                    EvidenceSlice slice = batch.Slices.TryGetValue(evidence.Id, out var fragment)
+                        ? fragment : new(evidence.Id, 0, evidence.Text.Length);
+                    ranges.Add(new(slice.OriginalId, slice.Start, slice.Length));
+                }
             } catch (OperationCanceledException) when (token.IsCancellationRequested) {
                 throw;
             } catch (InvalidDataException) {
@@ -77,15 +85,32 @@ public sealed partial class OfficeAiEngine {
             }
         }
         token.ThrowIfCancellationRequested();
+        // A successful fragment is coverage, not proof that the whole original record was processed.
+        var coveredCharacters = ranges.GroupBy(range => range.EvidenceId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Sum(range => range.Length), StringComparer.Ordinal);
+        foreach (OfficeAiEvidence evidence in document.Evidence)
+            if (coveredCharacters.TryGetValue(evidence.Id, out int covered) && covered != evidence.Text.Length) omitted.Add(evidence.Id);
+        omitted = omitted.Distinct(StringComparer.Ordinal).ToList();
+        processed = processed.Distinct(StringComparer.Ordinal).Except(omitted, StringComparer.Ordinal).ToList();
+        OfficeAiSynthesisStatus synthesisStatus = OfficeAiSynthesisStatus.NotRequired;
+        if (request.Operation == OfficeAiOperation.Summarize && plan.Batches.Count > 1 && claims.Count > 0) {
+            progress?.Report(new("Synthesizing", requestCount, request.Limits.MaxRequests));
+            Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
+            claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;
+            inputTokens = SumUsage(inputTokens, synthesis.InputTokens); outputTokens = SumUsage(outputTokens, synthesis.OutputTokens);
+            synthesisStatus = synthesis.Completed ? OfficeAiSynthesisStatus.Completed : OfficeAiSynthesisStatus.Incomplete;
+            if (!synthesis.Completed) diagnostics.Add("summary-synthesis-incomplete");
+        }
         IReadOnlyList<OfficeAiField> mergedFields = MergeFields(fields, request.Fields);
-        bool incomplete = omitted.Count > 0 || plan.EmptyPages.Count > 0 || document.HasSourceDiagnostics;
+        bool incomplete = omitted.Count > 0 || plan.EmptyPages.Count > 0 || document.HasSourceDiagnostics
+            || synthesisStatus == OfficeAiSynthesisStatus.Incomplete;
         if (incomplete) mergedFields = Array.AsReadOnly(mergedFields.Select(field => field.Status == OfficeAiFieldStatus.Missing
             ? field with { Status = OfficeAiFieldStatus.NotEvaluated } : field).ToArray());
         bool normalizationFailed = mergedFields.Any(field => field.Status == OfficeAiFieldStatus.Invalid);
         if (normalizationFailed) diagnostics.Add("field-normalization-failed");
         bool useful = claims.Count > 0 || blocks.Count > 0 || tables.Count > 0 || mergedFields.Any(field => field.Status is not (OfficeAiFieldStatus.Missing or OfficeAiFieldStatus.NotEvaluated));
         OfficeAiResultStatus status = incomplete || normalizationFailed
-            ? (processed.Count == 0 && failed ? OfficeAiResultStatus.InvalidResponse : OfficeAiResultStatus.Partial)
+            ? (processed.Count == 0 && ranges.Count == 0 && failed ? OfficeAiResultStatus.InvalidResponse : OfficeAiResultStatus.Partial)
             : useful ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InsufficientEvidence;
         progress?.Report(new(status.ToString(), plan.Batches.Count, plan.Batches.Count));
         return new OfficeAiResult {
@@ -93,7 +118,8 @@ public sealed partial class OfficeAiEngine {
             Status = status, Claims = claims.AsReadOnly(), Fields = mergedFields, Blocks = blocks.AsReadOnly(), Tables = tables.AsReadOnly(),
             ProcessedEvidenceIds = processed.AsReadOnly(), OmittedEvidenceIds = omitted.AsReadOnly(), EmptyPages = plan.EmptyPages,
             Diagnostics = Array.AsReadOnly(diagnostics.OrderBy(value => value, StringComparer.Ordinal).ToArray()),
-            InputTokens = inputTokens, OutputTokens = outputTokens
+            InputTokens = inputTokens, OutputTokens = outputTokens, RequestCount = requestCount,
+            ProcessedTextRanges = ranges.AsReadOnly(), SynthesisStatus = synthesisStatus
         };
     }
 

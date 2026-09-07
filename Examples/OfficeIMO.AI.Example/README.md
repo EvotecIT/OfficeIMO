@@ -55,9 +55,11 @@ dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -
 
 Use a request appropriate for the file: a plain-text source may have no native page 1. A hosted compatible endpoint requires HTTPS, `--allow-remote`, and, when needed, `OFFICEIMO_AI_API_KEY` in the process environment. Do not put credentials in the endpoint URL or request JSON. Configure a vision-capable model before adding `--images`.
 
+For LM Studio, start its server on loopback and use the loaded model's API identifier with `--endpoint http://127.0.0.1:1234/v1 --local --model <identifier>`. Use `--request-characters 16000` to exercise a smaller request profile. Character limits do not predict token counts exactly; qualify the chosen model's context and output budget. Omit `--prompted-json` when the configured runtime enforces JSON Schema. A vision-capable local model uses the same `--images` option and image evidence checks as a hosted model.
+
 ## Evaluation corpus
 
-`--evaluate` generates the versioned synthetic corpus and makes at most one engine operation per case. It checks English and Polish fields, exact table cells, images, scanned and rotated PDFs, mixed sources, abstention, conflicting values, source-instruction isolation, summaries, and explanations. It has a 15-minute run deadline and uses each operation's own request limits. It never reads arbitrary input documents in evaluation mode.
+`--evaluate` generates the versioned synthetic corpus and runs each selected case once by default. `--repeat 2` or `--repeat 3` measures repeated-call stability. It checks English and Polish fields, exact table cells, images, scanned and rotated PDFs, mixed sources, abstention, conflicting values, source-instruction isolation, summaries, explanations, missing and ambiguous fields, refunds, regional columns, a directed-flow diagram and long-document synthesis. It has a one-hour run deadline and uses each operation's own request limits. It never reads arbitrary input documents in evaluation mode.
 
 ```powershell
 dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --evaluate --allow-remote --codex-session --output output/evaluation
@@ -65,6 +67,12 @@ dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -
 
 Each case saves its source, hash-bound report, provider response, and applicable Reader/CSV/Excel artifacts. `evaluation.json` records the profile, corpus version, exact assertions, statuses, omissions, usage when available, and elapsed times. Fonts come from the host's embeddable system fonts; preserve the generated source files and hashes when comparing runs on different machines. `--case contradictory` selects one case for diagnosis and produces a report for that subset only.
 
-Every case must meet its field/table/status assertion for the run to pass. Claim checks are smoke checks; they do not replace independent semantic assessment. A passing finite synthetic corpus is not a general document-accuracy guarantee. See the [support matrix](../../Docs/officeimo.document-assistant-design.md) for unverified deployment and quality coverage.
+Use `--split development` while refining behavior and `--split heldout` for separately declared challenge values and layouts. Once a held-out failure guides a change, treat that case as regression evidence and use fresh reserve cases for the next independent check. Expected values are declared in the corpus before inference, not inferred from model output.
+
+Every case has typed gold values declared before inference. Reports include exact field matches, position-sensitive table-cell precision/recall, fact-marker recall, request attempts, maximum measured request size, synthesis state, and text coverage. Extra returned fields or tables fail the corresponding exact-match check. Memory samples describe the evaluation process only; they exclude model-server and GPU memory. A case failure does not discard earlier results, and reports are checkpointed after each completed case. `--request-characters` sets a profile-specific request bound for smaller contexts.
+
+For an installed Copilot CLI, use `--copilot --text-only --allow-remote --model <available-model>`. `OFFICEIMO_AI_API_KEY` can provide its accepted GitHub token. `--text-only` explicitly excludes image-required cases and records their identifiers in the report. The SDK disables tools and ambient configuration for this route. Model availability and subscription access must be verified for the account.
+
+Every selected repetition must meet its field/table/status assertion for the run to pass. Claim checks are smoke checks; they do not replace independent semantic assessment. A passing finite synthetic corpus is not a general document-accuracy guarantee. See the [support matrix](../../Docs/officeimo.document-assistant-design.md) for unverified deployment and quality coverage.
 
 Exit codes: `0` completed or evaluation assertions passed; `1` partial, insufficient, invalid, or a failed evaluation assertion; `2` setup/input failure; `3` cancellation or timeout. The general file-processing path reports diagnostic codes and exception types without raw provider errors. Evaluation response recording is limited to the synthetic corpus.

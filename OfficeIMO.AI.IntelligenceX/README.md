@@ -48,6 +48,12 @@ Use the model identifier and capabilities of the configured runtime. `EnforcesJs
 
 Local profiles require a loopback endpoint. HTTP redirects are disabled; local connections also bypass system proxies. The operator must verify that the service listening on loopback performs inference locally and does not itself forward requests to a hosted service. Transport checks do not certify the server's deployment.
 
+## Copilot text processing
+
+Select `OfficeAiIntelligenceXTransport.CopilotCli` with an explicit model available to the authenticated account. The profile must use `IsLocal = false`, `SupportsImages = false`, and `EnforcesJsonSchema = false`. `ApiKey` may supply a GitHub token accepted by the installed Copilot CLI; `CopilotCliPath` optionally selects its executable. Credentials remain connection settings, separate from document requests.
+
+The SDK runs each treatment in a fresh restricted headless CLI process and a private temporary runtime directory. It disables tools, ambient configuration discovery, skills, hooks, memory and session persistence. It deletes the session and runtime after processing. The route requires a current CLI supporting the headless JSON-RPC protocol; it never installs or updates the CLI automatically. Prompts contain the output schema, and OfficeIMO validates every response locally. Image-required operations must use another qualified route or locally recognized text.
+
 ## Isolation and limits
 
 Each Treatment request is ephemeral: it starts fresh and removes local SDK thread state when the request settles. No ambient tool packs, filesystem tools, image-generation tools, or provider model fallback are enabled. Native request/response payload tracing and usage telemetry are disabled. These controls do not assert that a hosted provider deletes its own records.

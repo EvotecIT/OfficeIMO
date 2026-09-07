@@ -15,7 +15,23 @@ public enum OfficeAiResultStatus {
 }
 
 /// <summary>Deterministically checked source reference; semantic entailment is deliberately not implied.</summary>
-public sealed record OfficeAiCitation(string EvidenceId, int? Page, string? Quote, bool QuoteMatched);
+public sealed record OfficeAiCitation(string EvidenceId, int? Page, string? Quote, bool QuoteMatched) {
+    /// <summary>Zero-based UTF-16 offset of the matched quote in the original snapshot evidence; null for images.</summary>
+    public int? QuoteStart { get; init; }
+}
+
+/// <summary>A contiguous UTF-16 range supplied in a successfully validated request.</summary>
+public sealed record OfficeAiEvidenceRange(string EvidenceId, int Start, int Length);
+
+/// <summary>Whether a summary combines the validated batch drafts.</summary>
+public enum OfficeAiSynthesisStatus {
+    /// <summary>The operation did not need multi-batch synthesis.</summary>
+    NotRequired,
+    /// <summary>All draft groups were combined into a single validated summary response.</summary>
+    Completed,
+    /// <summary>Request, response or duration constraints prevented complete synthesis; validated drafts remain available.</summary>
+    Incomplete
+}
 
 /// <summary>Model-authored text with validated source references; interpretation still requires review.</summary>
 public sealed record OfficeAiClaim(string Text, IReadOnlyList<OfficeAiCitation> Citations);
@@ -70,10 +86,16 @@ public sealed record OfficeAiResult {
     public IReadOnlyList<OfficeAiBlock> Blocks { get; init; } = Array.Empty<OfficeAiBlock>();
     /// <summary>Proposed rectangular tables.</summary>
     public IReadOnlyList<OfficeAiTable> Tables { get; init; } = Array.Empty<OfficeAiTable>();
-    /// <summary>Identifiers actually supplied in successfully validated model requests.</summary>
+    /// <summary>Identifiers fully supplied in successfully validated model requests.</summary>
     public IReadOnlyList<string> ProcessedEvidenceIds { get; init; } = Array.Empty<string>();
     /// <summary>Selected identifiers omitted due to request bounds or validation failures.</summary>
     public IReadOnlyList<string> OmittedEvidenceIds { get; init; } = Array.Empty<string>();
+    /// <summary>Validated text coverage in original snapshot coordinates, including partially processed records.</summary>
+    public IReadOnlyList<OfficeAiEvidenceRange> ProcessedTextRanges { get; init; } = Array.Empty<OfficeAiEvidenceRange>();
+    /// <summary>Number of model execution attempts, including summary synthesis and failed calls.</summary>
+    public int RequestCount { get; init; }
+    /// <summary>Outcome of combining summary drafts across requests.</summary>
+    public OfficeAiSynthesisStatus SynthesisStatus { get; init; }
     /// <summary>Known selected pages for which no text/image evidence was available.</summary>
     public IReadOnlyList<int> EmptyPages { get; init; } = Array.Empty<int>();
     /// <summary>Non-content diagnostic codes; raw provider errors and document text are excluded.</summary>

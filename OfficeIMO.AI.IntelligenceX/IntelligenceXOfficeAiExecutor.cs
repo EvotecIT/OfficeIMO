@@ -8,13 +8,17 @@ namespace OfficeIMO.AI.IntelligenceX;
 
 /// <summary>Thin adapter to IX Treatment. Each request starts fresh and supplies only inline evidence.</summary>
 public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposable {
-    private readonly IntelligenceXClient _client;
-    private readonly OpenAIChatTreatmentProvider _provider;
+    private readonly IntelligenceXClient? _client;
+    private readonly ITreatmentProvider _provider;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _disposed;
 
     private IntelligenceXOfficeAiExecutor(IntelligenceXClient client, OfficeAiExecutionProfile profile) {
         _client = client; _provider = new OpenAIChatTreatmentProvider(client); Profile = profile;
+    }
+
+    private IntelligenceXOfficeAiExecutor(ITreatmentProvider provider, OfficeAiExecutionProfile profile) {
+        _provider = provider; Profile = profile;
     }
 
     /// <inheritdoc />
@@ -26,6 +30,11 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         ArgumentNullException.ThrowIfNull(profile);
         connection ??= new();
         profile.Validate();
+        if (connection.Transport == OfficeAiIntelligenceXTransport.CopilotCli) {
+            if (profile.IsLocal || profile.SupportsImages || profile.EnforcesJsonSchema || connection.Endpoint is not null)
+                throw new ArgumentException("Copilot treatment supports hosted inline text with prompted JSON only.", nameof(profile));
+            return new IntelligenceXOfficeAiExecutor(new CopilotTreatmentProvider(connection.CopilotCliPath, connection.ApiKey), profile with { });
+        }
         var options = new IntelligenceXClientOptions { DefaultModel = profile.Model, EnableUsageTelemetry = false };
         switch (connection.Transport) {
             case OfficeAiIntelligenceXTransport.ChatGpt:
@@ -110,6 +119,6 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
-        _client.Dispose();
+        _client?.Dispose();
     }
 }

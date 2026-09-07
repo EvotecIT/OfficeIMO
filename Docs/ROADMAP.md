@@ -165,9 +165,8 @@ Completion evidence: accepted physical-device journeys and explicit unsupported-
 
 Current APIs and qualification limits are documented in the [architecture and support matrix](officeimo.document-assistant-design.md) and package READMEs.
 
-- [ ] Expand independent held-out evaluation to diagrams, multi-column reading order, long documents and geometry alignment. Measure recognition error, semantic support, omission rates and peak memory by operation and document class; compare specialist recognition with general vision on equivalent labelled inputs.
-- [ ] Qualify the existing execution contract against another independently authenticated hosted vendor and an actual local model. Measure the same extraction/reasoning cases, text-only OCR composition, capability limits and failure behavior; protocol fixtures alone do not establish model quality.
-- [ ] Add whole-document synthesis and better oversized-record planning when measured workloads require it, retaining explicit coverage and bounded requests.
+- [ ] Expand the synthetic AI corpus into independently produced documents, complex diagrams, multi-column reading order and geometry alignment. Measure recognition error, semantic support, omission rates and peak memory by operation and document class; compare specialist recognition with general vision on equivalent labelled inputs.
+- [ ] Improve repeated-call reliability across hosted and local model profiles, including exact scalar evidence and long-document coverage. Extend qualification to text-only OCR composition, direct vendor authentication and additional context/resource profiles; preserve failed runs and require equivalent extraction/reasoning assertions.
 - [ ] Extend headless operations with one supported edit proposal and explicitly attached document collections. Reuse mutation/publication guards, bind approval to source identity and concrete before/after changes, reject stale sources and reopen artifacts. Decide retention/storage before persistent history or indexing.
 - [ ] Integrate Studio last over the engine contracts: current unsaved workspace snapshots, evidence navigation, review previews, processing setup and per-tab cancellation/lifetime. Validate tab changes, stale results and actual compact/wide accessible interaction on claimed platforms. Mobile follows its separate acceptance gates.
 

@@ -2,7 +2,7 @@
 
 `OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
 
-Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
+Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, restricted Copilot text processing, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
 ## Extract named fields
 
@@ -41,7 +41,7 @@ static async Task<OfficeAiResult> ExtractAsync(
 | --- | --- |
 | `Ask` | Claims answering the question, each with source references |
 | `Explain` | Source-linked explanations within the selected scope |
-| `Summarize` | Source-linked claims for each processed batch |
+| `Summarize` | Source-linked summary combining validated batch drafts within the operation budget |
 | `ExtractFields` | Exactly the requested field names, with raw values, invariant normalized values, status, and references |
 | `Parse` | Proposed Reader blocks and rectangular tables, with references |
 
@@ -49,11 +49,13 @@ Select one-based `Pages`, `EvidenceIds`, or both. Unknown identifiers and select
 
 Each snapshot retains the SHA-256 of the original bytes, Reader page provenance, source block identifiers, and available source geometry. A separate `SnapshotHash` binds results and exports to the exact evidence projection, image payload hashes and coverage state; the same original bytes with different observations are not interchangeable. `FromReadResult` is a trusted-adapter entry point: its caller must enforce source permissions and ensure the supplied Reader result and images describe those exact bytes. `OfficeAiImage` takes verified dimensions from the rendering/image owner and copies its payload. It does not decode or certify an image itself.
 
-Text references must contain an exact contiguous source quote. Unknown references and altered quotes invalidate the response. Image references have no text-match claim. A matching quote proves where text occurs; it does **not** establish that the model's interpretation follows from it. Every result has `RequiresReview = true`.
+Text references must contain an exact contiguous source quote. `QuoteStart` records its zero-based UTF-16 offset within the original evidence record. Unknown references and altered quotes invalidate the response. Image references have no text-match claim. A matching quote proves where text occurs; it does **not** establish that the model's interpretation follows from it. Every result has `RequiresReview = true`.
 
 ## Result states
 
 `Completed` means all selected evidence reached requests whose responses satisfied the structural contract. It does not mean every claim is correct or every visible detail was recognized. `Partial` identifies omissions, source warnings (including truncated tables and chunk warnings), pages without evidence, or invalid scalar normalization. `InsufficientEvidence` identifies a valid abstention. `InvalidResponse` means no batch produced a validated result after provider or response-validation failures; diagnostic codes distinguish those failures without exposing raw errors.
+
+The response schema matches the selected operation. Field extraction requires empty claims, blocks and tables; parsing requires empty claims and fields; questions, explanations and summaries require empty fields, blocks and tables. Schema-enforcing providers can prevent these unrelated outputs during generation. The same rules are checked locally for every provider.
 
 Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Invalid`, and `NotEvaluated`. A field is `Missing` only when the processed evidence did not provide it; incomplete source coverage uses `NotEvaluated` for otherwise missing fields. Conflicting values are not collapsed into one normalized value. Decimal normalization uses the explicit culture and validates grouping. Dates require an exact format. Integer and Boolean normalization accept their ordinary signed-integer and `true`/`false` forms.
 
@@ -61,7 +63,9 @@ Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Inva
 
 `OfficeAiLimits` bounds captured bytes, retained observations, pages, request text, image payloads/pixels, response text, result sizes, request count, and duration. Format readers and renderers also need their own allocation and decoding limits. Snapshot limits do not replace those owners' parser limits.
 
-The engine includes the executor's prompt-wrapper measurement when batching. Oversized evidence records and request-count overflow are reported as omitted; they are not silently truncated. A summary is a collection of batch-level claims, without an additional whole-document synthesis pass. Blocks are not split mid-record.
+The engine includes the executor's prompt-wrapper measurement when batching. Oversized text records are split into contiguous windows at nearby natural boundaries without splitting a UTF-16 surrogate pair. The snapshot stays unchanged, and validated citations map back to its original identifiers and offsets. `ProcessedTextRanges` records successful windows. `ProcessedEvidenceIds` contains fully processed records; a record with any unprocessed text remains in `OmittedEvidenceIds`.
+
+Multi-batch summaries combine validated drafts through bounded reduction passes. Each combined claim references known draft identifiers; the engine attaches their original citations and rejects unknown identifiers or omitted draft groups. This preserves reference lineage, not a proof of semantic entailment. `SynthesisStatus` reports whether combination completed. If the request budget, response validation, or pass limit prevents completion, validated drafts remain available with `Partial` and `summary-synthesis-incomplete`. `RequestCount` includes map and synthesis attempts. `MaxSynthesisPasses` defaults to three, and every pass shares `MaxRequests` and the operation deadline.
 
 Use one linked cancellation token for read, render/OCR, inference, and artifact writing when the host needs one end-to-end deadline. Cancellation stops waiting and discards late results. An executor that ignores cancellation retains its execution gate until its actual work settles, preventing overlapping calls through that executor. Callers remain responsible for the lifetime of a supplied stream or provider that continues working after cancellation. The engine makes no automatic repair request.
 

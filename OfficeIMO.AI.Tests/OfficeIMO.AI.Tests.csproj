@@ -14,6 +14,7 @@
     <ProjectReference Include="../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj" />
     <ProjectReference Include="../Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/DocumentInputs.cs" Link="Example/DocumentInputs.cs" />
+    <Compile Include="../Examples/OfficeIMO.AI.Example/EvaluationGold.cs" Link="Example/EvaluationGold.cs" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/ArtifactWriter.cs" Link="Example/ArtifactWriter.cs" />
   </ItemGroup>
 </Project>

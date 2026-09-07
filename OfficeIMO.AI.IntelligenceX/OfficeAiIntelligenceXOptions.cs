@@ -1,11 +1,13 @@
 namespace OfficeIMO.AI.IntelligenceX;
 
-/// <summary>Restricted SDK connection modes: neither route launches an agent or inherits tool packs.</summary>
+/// <summary>Restricted SDK connection modes for document evidence.</summary>
 public enum OfficeAiIntelligenceXTransport {
     /// <summary>IX's native ChatGPT transport using its configured local authentication store.</summary>
     ChatGpt,
     /// <summary>Explicit OpenAI-compatible HTTP endpoint, hosted or loopback-local.</summary>
-    CompatibleHttp
+    CompatibleHttp,
+    /// <summary>Fresh restricted Copilot CLI process for inline text and prompted JSON.</summary>
+    CopilotCli
 }
 
 /// <summary>Connection-only settings; document operations do not depend on these transport details.</summary>
@@ -16,6 +18,8 @@ public sealed class OfficeAiIntelligenceXOptions {
     public Uri? Endpoint { get; init; }
     /// <summary>Caller-supplied API credential; never included in results or diagnostics.</summary>
     public string? ApiKey { get; init; }
+    /// <summary>Optional installed Copilot CLI executable path; the SDK does not install it for document operations.</summary>
+    public string? CopilotCliPath { get; init; }
     /// <summary>Whether the compatible endpoint supports SSE. Non-streaming retains the same result contract.</summary>
     public bool Streaming { get; init; }
     /// <summary>Explicitly prefer the current local Codex login over IX's saved ChatGPT credential.</summary>

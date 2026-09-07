@@ -8,6 +8,27 @@ namespace OfficeIMO.AI.Tests;
 public sealed class EngineContractTests {
     private const string Empty = "{\"status\":\"insufficient\",\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}";
 
+    [Theory]
+    [InlineData(OfficeAiOperation.Ask, "claims")]
+    [InlineData(OfficeAiOperation.Explain, "claims")]
+    [InlineData(OfficeAiOperation.Summarize, "claims")]
+    [InlineData(OfficeAiOperation.ExtractFields, "fields")]
+    [InlineData(OfficeAiOperation.Parse, "blocks,tables")]
+    public async Task GenerationSchemaExcludesResultsFromOtherOperations(OfficeAiOperation operation, string enabledNames) {
+        var executor = new Executor(Empty);
+        await new OfficeAiEngine(executor).RunAsync(Document("Total 42"), Request() with {
+            Operation = operation,
+            Fields = operation == OfficeAiOperation.ExtractFields ? new[] { new OfficeAiFieldDefinition("total") } : Array.Empty<OfficeAiFieldDefinition>()
+        });
+        using JsonDocument schema = JsonDocument.Parse(Assert.Single(executor.Requests).OutputSchema);
+        string[] enabled = enabledNames.Split(',');
+        foreach (string name in new[] { "claims", "fields", "blocks", "tables" }) {
+            JsonElement array = schema.RootElement.GetProperty("properties").GetProperty(name);
+            Assert.Equal("array", array.GetProperty("type").GetString());
+            Assert.Equal(enabled.Contains(name) ? 200 : 0, array.GetProperty("maxItems").GetInt32());
+        }
+    }
+
     [Fact]
     public async Task RemoteEvidenceRequiresConsentBeforeExecution() {
         var executor = new Executor(Empty, local: false);
@@ -78,13 +99,14 @@ public sealed class EngineContractTests {
     }
 
     [Fact]
-    public async Task BudgetOmissionsAreExplicitAndDoNotReachProvider() {
+    public async Task BudgetOmissionsRetainValidatedPartialCoverage() {
         var executor = new Executor(Empty);
-        OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document(new string('x', 60_000)), Request());
+        OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document(new string('x', 60_000)), Request() with { Limits = new() { MaxRequests = 1 } });
         Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
         Assert.Equal(new[] { "e1" }, result.OmittedEvidenceIds);
         Assert.Empty(result.ProcessedEvidenceIds);
-        Assert.Empty(executor.Requests);
+        Assert.Single(executor.Requests);
+        Assert.InRange(Assert.Single(result.ProcessedTextRanges).Length, 1, 59_999);
     }
 
     [Fact]
