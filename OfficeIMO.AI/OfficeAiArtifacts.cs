@@ -16,9 +16,9 @@ public static class OfficeAiArtifacts {
         CheckSource(document, result);
         return JsonSerializer.Serialize(new {
             schema = "officeimo.ai.report.v1",
-            source = new { document.SourceHash, document.SourceByteLength, document.PageProvenance, document.Pages },
+            source = new { document.SourceHash, document.SnapshotHash, document.SourceByteLength, document.PageProvenance, document.Pages },
             evidence = document.Evidence,
-            images = document.Images.Select(image => new { image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ByteLength }),
+            images = document.Images.Select(image => new { image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ByteLength, image.ContentHash }),
             result
         }, JsonOptions);
     }
@@ -42,7 +42,8 @@ public static class OfficeAiArtifacts {
 
     private static void CheckSource(OfficeAiDocument document, OfficeAiResult result) {
         ArgumentNullException.ThrowIfNull(document); ArgumentNullException.ThrowIfNull(result);
-        if (!string.Equals(document.SourceHash, result.SourceHash, StringComparison.Ordinal))
+        if (!string.Equals(document.SourceHash, result.SourceHash, StringComparison.Ordinal)
+            || !string.Equals(document.SnapshotHash, result.SnapshotHash, StringComparison.Ordinal))
             throw new ArgumentException("Result and source snapshot fingerprints differ.", nameof(result));
     }
 }

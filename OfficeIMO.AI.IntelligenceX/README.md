@@ -52,6 +52,6 @@ Local profiles require a loopback endpoint. HTTP redirects are disabled; local c
 
 Each Treatment request is ephemeral: it starts fresh and removes local SDK thread state when the request settles. No ambient tool packs, filesystem tools, image-generation tools, or provider model fallback are enabled. Native request/response payload tracing and usage telemetry are disabled. These controls do not assert that a hosted provider deletes its own records.
 
-Inline images, prompt text, model output, and response wire bytes have separate bounds. The wire bound includes SSE overhead. Cancellation is forwarded to IX, and the document engine suppresses late results. Finish or cancel active operations before disposing the executor; a provider that ignores cancellation may still be running until its task settles.
+Inline images, prompt text, model output, and response wire bytes have separate bounds. The wire bound includes SSE overhead. The SDK rejects JSON nesting beyond 128 containers before parsing provider envelopes or candidate output. Cancellation is forwarded to IX, and the document engine suppresses late results. Finish or cancel active operations before disposing the executor; a provider that ignores cancellation may still be running until its task settles.
 
 The [headless example](../Examples/OfficeIMO.AI.Example/README.md) demonstrates authentication selection, local/hosted profiles, PDF/image input, and artifact output. The [engine README](../OfficeIMO.AI/README.md) defines evidence checks, review requirements, and result states.

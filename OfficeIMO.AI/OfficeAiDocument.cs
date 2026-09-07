@@ -1,9 +1,10 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using OfficeIMO.Reader;
 
 namespace OfficeIMO.AI;
 
-/// <summary>Immutable text observation projected from Reader; its identifier is scoped to the snapshot hash.</summary>
+/// <summary>Immutable text observation projected from Reader; its identifier is scoped to the evidence snapshot hash.</summary>
 public sealed record OfficeAiEvidence(string Id, string Kind, string Text, int? Page, string? SourceBlockId) {
     /// <summary>Original source geometry where the Reader supplied it, in source coordinate units.</summary>
     public OfficeAiRegion? Region { get; init; }
@@ -23,10 +24,16 @@ public sealed class OfficeAiDocument {
         Images = Array.AsReadOnly(images);
         PageProvenance = pageProvenance;
         HasSourceDiagnostics = hasSourceDiagnostics;
+        SnapshotHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new {
+            sourceHash = hash, evidence, pages, pageProvenance, hasSourceDiagnostics,
+            images = images.Select(image => new { image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ContentHash })
+        }))).ToLowerInvariant();
     }
 
     /// <summary>SHA-256 of the exact captured source bytes.</summary>
     public string SourceHash { get; }
+    /// <summary>SHA-256 binding source bytes to this exact evidence projection, page metadata, image payload identities and coverage state.</summary>
+    public string SnapshotHash { get; }
     /// <summary>Number of original bytes captured for this snapshot.</summary>
     public int SourceByteLength { get; }
     /// <summary>Immutable text observations in source order.</summary>
@@ -135,8 +142,14 @@ public sealed class OfficeAiDocument {
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");
             imageList.Add(image); pages.Add(image.Page);
         }
+        bool incompleteSource = document.Diagnostics.Count > 0 || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0);
+        // Table truncation is independent of top-level diagnostics. Inspect every Reader owner,
+        // including chunk tables, so alternate projections cannot silently erase known omissions.
+        incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))
+            .Concat(document.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
+            .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count || table.Diagnostics?.SourceRowCount > table.Rows.Count);
         return new OfficeAiDocument(Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant(), sourceBytes.Length, evidence.ToArray(),
-            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), document.Diagnostics.Count > 0);
+            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), incompleteSource);
     }
 
     private static async Task<byte[]> ReadBoundedAsync(Stream source, int maximum, CancellationToken cancellationToken) {

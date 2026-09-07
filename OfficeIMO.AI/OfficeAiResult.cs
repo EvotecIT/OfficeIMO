@@ -54,6 +54,8 @@ public sealed record OfficeAiResult {
     public required string RequestId { get; init; }
     /// <summary>Fingerprint of the original captured source.</summary>
     public required string SourceHash { get; init; }
+    /// <summary>Fingerprint of the exact evidence projection used by this operation.</summary>
+    public required string SnapshotHash { get; init; }
     /// <summary>Operation that produced this result.</summary>
     public OfficeAiOperation Operation { get; init; }
     /// <summary>Actual execution profile captured before inference.</summary>

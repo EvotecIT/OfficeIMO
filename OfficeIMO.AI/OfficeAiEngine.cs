@@ -89,7 +89,7 @@ public sealed partial class OfficeAiEngine {
             : useful ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InsufficientEvidence;
         progress?.Report(new(status.ToString(), plan.Batches.Count, plan.Batches.Count));
         return new OfficeAiResult {
-            RequestId = requestId, SourceHash = document.SourceHash, Operation = request.Operation, Profile = profile,
+            RequestId = requestId, SourceHash = document.SourceHash, SnapshotHash = document.SnapshotHash, Operation = request.Operation, Profile = profile,
             Status = status, Claims = claims.AsReadOnly(), Fields = mergedFields, Blocks = blocks.AsReadOnly(), Tables = tables.AsReadOnly(),
             ProcessedEvidenceIds = processed.AsReadOnly(), OmittedEvidenceIds = omitted.AsReadOnly(), EmptyPages = plan.EmptyPages,
             Diagnostics = Array.AsReadOnly(diagnostics.OrderBy(value => value, StringComparer.Ordinal).ToArray()),

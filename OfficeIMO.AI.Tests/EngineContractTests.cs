@@ -213,6 +213,67 @@ public sealed class EngineContractTests {
         await Assert.ThrowsAsync<ArgumentException>(() => new OfficeAiEngine(new Executor(Empty)).RunAsync(Document("more than one byte"),
             Request() with { Limits = new OfficeAiLimits { MaxInputBytes = 1 } }));
     }
+    [Fact]
+    public async Task ArtifactsRejectDifferentEvidenceFromIdenticalSourceBytes() {
+        byte[] bytes = Encoding.UTF8.GetBytes("Total 42. Other 99.");
+        var first = OfficeAiDocument.FromReadResult(bytes, new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = "Total 42" } } });
+        var second = OfficeAiDocument.FromReadResult(bytes, new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = "Other 99" } } });
+        var result = await new OfficeAiEngine(new Executor(Claim("e1", "Total 42"))).RunAsync(first, Request());
+        Assert.Equal(first.SourceHash, second.SourceHash);
+        Assert.Throws<ArgumentException>(() => OfficeAiArtifacts.SerializeReport(second, result));
+        Assert.Throws<ArgumentException>(() => OfficeAiArtifacts.CreateProposedReadResult(second, result with { Operation = OfficeAiOperation.Parse }));
+    }
+
+    [Fact]
+    public void SnapshotFingerprintIncludesImagesAndIsStableForEquivalentEvidence() {
+        byte[] bytes = new byte[] { 1 };
+        var read = new OfficeDocumentReadResult();
+        OfficeAiDocument Capture(byte pixel) => OfficeAiDocument.FromReadResult(bytes, read,
+            new[] { new OfficeAiImage("page", 1, "image/png", new byte[] { pixel }, 1, 1) });
+        Assert.Equal(Capture(1).SnapshotHash, Capture(1).SnapshotHash);
+        Assert.NotEqual(Capture(1).SnapshotHash, Capture(2).SnapshotHash);
+        var noImages = OfficeAiDocument.FromReadResult(bytes, read);
+        Assert.NotEqual(Capture(1).SnapshotHash, noImages.SnapshotHash);
+    }
+
+    [Theory]
+    [InlineData("chunk-warning")]
+    [InlineData("chunk-table")]
+    [InlineData("table-count")]
+    [InlineData("table-diagnostics")]
+    public void AlternateReaderIncompletenessSignalsAreRetained(string signal) {
+        var table = new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "retained" } } };
+        var read = new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = "retained" } } };
+        if (signal == "chunk-warning") read.Chunks = new[] { new ReaderChunk { Text = "retained", Warnings = new[] { "truncated" } } };
+        else if (signal == "chunk-table") { table.Truncated = true; read.Chunks = new[] { new ReaderChunk { Tables = new[] { table } } }; }
+        else {
+            read.Tables = new[] { table };
+            if (signal == "table-count") table.TotalRowCount = 2;
+            else table.Diagnostics = new ReaderTableDiagnostics { SourceRowCount = 2 };
+        }
+        Assert.True(OfficeAiDocument.FromReadResult(new byte[] { 1 }, read).HasSourceDiagnostics);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TruncatedTableWithoutTopLevelDiagnosticsPreservesIncompleteCoverage(bool pageOwned) {
+        var table = new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "retained" } }, Truncated = true, TotalRowCount = 2 };
+        var source = new OfficeDocumentReadResult();
+        if (pageOwned) source.Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { table } } };
+        else source.Tables = new[] { table };
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source);
+        Assert.True(document.HasSourceDiagnostics);
+        const string missing = """
+            {"status":"insufficient","claims":[],"fields":[{"name":"value","status":"missing","rawValue":null,"evidence":[]}],"blocks":[],"tables":[]}
+            """;
+        var result = await new OfficeAiEngine(new Executor(missing)).RunAsync(document, Request() with {
+            Operation = OfficeAiOperation.ExtractFields, Fields = new[] { new OfficeAiFieldDefinition("value") }
+        });
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Equal(OfficeAiFieldStatus.NotEvaluated, Assert.Single(result.Fields).Status);
+    }
+
     private static OfficeAiDocument Document(string text) => OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(text),
         new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = text, Kind = "paragraph", Location = new() { Page = 1 } } } });
     private static string Claim(string id, string? quote) => JsonSerializer.Serialize(new {

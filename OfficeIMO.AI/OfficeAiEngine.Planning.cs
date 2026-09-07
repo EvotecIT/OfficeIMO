@@ -31,7 +31,7 @@ public sealed partial class OfficeAiEngine {
         var currentText = new List<OfficeAiEvidence>();
         var currentImages = new List<OfficeAiImage>();
         string Serialize() => JsonSerializer.Serialize(new {
-            schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, pageProvenance = document.PageProvenance,
+            schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, snapshotHash = document.SnapshotHash, pageProvenance = document.PageProvenance,
             operation = request.Operation.ToString(), instruction = request.Instruction,
             fields = request.Fields.Select(field => new { name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
             evidence = currentText.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page }),

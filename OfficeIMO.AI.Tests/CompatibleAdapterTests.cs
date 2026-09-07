@@ -75,6 +75,26 @@ public sealed class CompatibleAdapterTests {
         }));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeeplyNestedProviderContentAndEnvelopeFailWithoutTerminatingTheHost(bool envelope) {
+        string deep = new string('[', 15_000) + "0" + new string(']', 15_000);
+        using var server = new Server(async context => {
+            if (!envelope) { await Reply(context, deep); return; }
+            byte[] bytes = Encoding.UTF8.GetBytes("{\"unexpected\":" + deep + "}");
+            context.Response.ContentType = "application/json"; context.Response.ContentLength64 = bytes.Length;
+            await context.Response.OutputStream.WriteAsync(bytes); context.Response.Close();
+        });
+        using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(Profile(), new() {
+            Transport = OfficeAiIntelligenceXTransport.CompatibleHttp, Endpoint = server.Endpoint
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(Document(), new() { Instruction = "Total?" });
+        Assert.Equal(OfficeAiResultStatus.InvalidResponse, result.Status);
+        Assert.Empty(result.Claims);
+        Assert.Single(server.Requests);
+    }
+
     private static OfficeAiExecutionProfile Profile(bool local = true, bool schema = true) => new() {
         Id = "protocol-fixture", Provider = "fixture", Model = "fixture-model", IsLocal = local, EnforcesJsonSchema = schema
     };

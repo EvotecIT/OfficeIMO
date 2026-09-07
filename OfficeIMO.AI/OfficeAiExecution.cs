@@ -52,6 +52,7 @@ public sealed class OfficeAiImage {
         if (mediaType is not ("image/png" or "image/jpeg" or "image/webp")) throw new NotSupportedException("AI image evidence accepts PNG, JPEG and WebP.");
         if (bytes.Length is < 1 or > 67_108_864) throw new ArgumentOutOfRangeException(nameof(bytes));
         Id = id; Page = page; MediaType = mediaType; Width = width; Height = height; _bytes = (byte[])bytes.Clone();
+        ContentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(_bytes)).ToLowerInvariant();
     }
     /// <summary>Evidence identifier within its source snapshot.</summary>
     public string Id { get; }
@@ -65,6 +66,8 @@ public sealed class OfficeAiImage {
     public int Height { get; }
     /// <summary>Encoded payload length.</summary>
     public int ByteLength => _bytes.Length;
+    /// <summary>SHA-256 of the immutable encoded payload.</summary>
+    public string ContentHash { get; }
     /// <summary>Copies the payload for a transport without exposing mutable snapshot state.</summary>
     public byte[] CopyBytes() => (byte[])_bytes.Clone();
 }
