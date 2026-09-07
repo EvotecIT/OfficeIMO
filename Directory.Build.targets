@@ -1,10 +1,12 @@
 <Project>
-  <!-- Keep release binaries reproducible without embedding a maintainer's checkout path
-       in their CodeView debug-directory entries. Map only compiler intermediates so
-       CallerFilePath values still resolve to source files at runtime (Verify uses them
-       to locate snapshots). Debug builds retain local paths for local breakpoints. -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <PathMap>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)', '$(MSBuildProjectDirectory)'))=/_/obj/</PathMap>
+  <!-- Keep shipped release binaries reproducible without embedding a maintainer's
+       checkout path in portable PDB documents or CodeView content IDs. Limit the
+       source mapping to packable production projects: non-packable test projects
+       retain physical CallerFilePath values for Verify snapshots, and Debug builds
+       retain local paths for source breakpoints. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And '$(IsPackable)' != 'false' And '$(IsTestProject)' != 'true'">
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
   </PropertyGroup>
 
   <!-- Production projects inherit TreatWarningsAsErrors=true from Directory.Build.props.
