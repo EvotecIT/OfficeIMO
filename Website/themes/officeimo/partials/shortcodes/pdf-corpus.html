@@ -27,7 +27,7 @@
     <summary>{{ sample.id }} — {{ sample.outcome }}</summary>
     <p>Source: <code>{{ sample.sourceId }}</code> · {{ sample.byteLength }} bytes · SHA-256: <code>{{ sample.sha256 }}</code></p>
     {{~ for source in report.sources ~}}{{~ if source.id == sample.sourceId ~}}
-    <p><a href="{{ source.repository }}/blob/{{ source.commit }}/{{ sample.sourcePath }}">Open the pinned source file</a> · {{ source.license }}</p>
+    <p><a href="{{ source.repository }}/blob/{{ source.commit }}/{{ sample.sourcePath }}">Open source: {{ sample.id }}</a> · {{ source.license }}</p>
     {{~ end ~}}{{~ end ~}}
     <p>Rendered {{ sample.metrics.renderSucceededPages }} / {{ sample.metrics.renderAttemptedPages }} attempted pages; extracted {{ sample.metrics.textCharacters }} characters. Mutation decision: <strong>{{ sample.metrics.mutationMode }}</strong>.</p>
     <p>Mutation plans: {{ sample.metrics.fullRewriteMutationPlanCount }} full rewrite, {{ sample.metrics.appendOnlyMutationPlanCount }} append-only, {{ sample.metrics.blockedMutationPlanCount }} blocked. Claimable compliance declarations: {{ sample.metrics.claimableComplianceClaimCount }}.</p>
