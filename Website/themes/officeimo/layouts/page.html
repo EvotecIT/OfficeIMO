@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else if taxonomy }}{{ page.title }} {{ if taxonomy.name == "tags" }}topics{{ else }}articles{{ end }} | {{ site.name }}{{ else if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />

@@ -3,7 +3,6 @@ title: "OfficeIMO.Pdf"
 description: "Create, inspect, edit, merge, split, stamp, sign, validate, and render PDF files with a first-party .NET engine. Compare packages, examples, and limits."
 layout: product
 meta.seo_title: "OfficeIMO.Pdf for .NET applications"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/pdf/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/pdf/" />'
 product_label: "PDF engine"
 product_color: "#ef4444"
 install: "dotnet add package OfficeIMO.Pdf"
@@ -46,7 +45,7 @@ Complex source formats do not map perfectly to PDF in every case. Conversion res
 
 ## Try real PDF workflows in the browser
 
-The [browser document workspace](/apps/officeimo-converter/?workspace=pdf&tool=inspect) runs a focused set of `OfficeIMO.Pdf` operations through WebAssembly. Files stay in the current tab, and every successful operation produces a downloadable artifact plus a JSON report with input and output fingerprints.
+The [browser document workspace](/convert/?workspace=pdf&tool=inspect) runs a focused set of `OfficeIMO.Pdf` operations through WebAssembly. Files stay in the current tab, and every successful operation produces a downloadable artifact plus a JSON report with input and output fingerprints.
 
 | Browser task | Result |
 |---|---|
@@ -57,7 +56,7 @@ The [browser document workspace](/apps/officeimo-converter/?workspace=pdf&tool=i
 | [Redact](/pdf/redact/) | Literal text removal followed by checks of extracted text, encoded strings, and decoded streams |
 | [Compare](/pdf/compare/) | A self-contained visual gallery with expected, actual, and highlighted page differences |
 
-[Browse every PDF workflow](/pdf/), [open PDF tools](/apps/officeimo-converter/?workspace=pdf&tool=inspect), or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
+[Browse every PDF workflow](/pdf/), [open PDF tools](/convert/?workspace=pdf&tool=inspect), or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
 
 ## Convert PDF content into editable formats
 

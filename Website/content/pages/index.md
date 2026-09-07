@@ -1,6 +1,6 @@
 ---
-title: "OfficeIMO — Office Documents for .NET and PowerShell"
-description: "Explore documented OfficeIMO support for Office formats, PDF, conversion, extraction, and PowerShell automation, with explicit compatibility limits."
+title: "OfficeIMO — Studio, CLI, and document libraries"
+description: "Work with documents in Studio, automate with OfficeIMO.Tool, or build with .NET and PowerShell libraries. Explore document tools without Microsoft Office."
 layout: home
 slug: index
 meta.social_image: "/images/officeimo-social-premium.jpg"

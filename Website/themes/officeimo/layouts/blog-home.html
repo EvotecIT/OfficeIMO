@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ if page.meta.pagination_page && page.meta.pagination_page > 1 }}{{ page.title }} — Page {{ page.meta.pagination_page }} | {{ site.name }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}{{ end }}</title>
   {{ description_meta_html }}{{ canonical_html }}
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
   <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
@@ -18,13 +18,14 @@
   <div class="imo-blog-toolbar"><div class="imo-container imo-blog-toolbar__inner"><strong>OfficeIMO Journal</strong><nav aria-label="Journal sections"><a href="/blog/">Latest</a><a href="/categories/tutorial/">Tutorials</a><a href="/categories/deep-dive/">Deep dives</a><a href="/benchmarks/">Benchmarks</a></nav><a class="imo-blog-toolbar__search" href="/search/"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search articles</span></a></div></div>
 
   <main id="content" class="imo-main imo-main--blog"><div class="imo-container">
-    <header class="imo-blog-hero"><div><p class="imo-blog-hero__eyebrow">Guides · Releases · Engineering</p><h1>Ideas for better <br><span>document workflows.</span></h1><p>Practical guides, engineering decisions, release context, and measured tradeoffs from the OfficeIMO and PSWriteOffice ecosystem.</p></div><aside><strong>Explore by topic</strong><div><a href="/tags/word/">Word</a><a href="/tags/excel/">Excel</a><a href="/tags/pdf/">PDF</a><a href="/tags/powershell/">PowerShell</a><a href="/tags/reader/">Extraction</a><a href="/categories/deep-dive/">Deep dives</a></div></aside></header>
+    <header class="imo-blog-hero"><div><p class="imo-blog-hero__eyebrow">Guides · Releases · Engineering</p><h1>Ideas for better <br><span>document workflows.</span></h1><p>Practical guides, engineering decisions, release context, and measured tradeoffs from the OfficeIMO and PSWriteOffice ecosystem.</p></div><aside><strong>Explore by topic</strong><div><a href="/tags/word/">Word</a><a href="/tags/excel/">Excel</a><a href="/tags/pdf/">PDF</a><a href="/tags/powershell/" aria-label="PowerShell articles">PowerShell</a><a href="/tags/reader/">Extraction</a><a href="/categories/deep-dive/">Deep dives</a></div></aside></header>
 
     <section class="imo-blog-featured" aria-labelledby="featured-story"><div class="imo-blog-featured__visual" aria-hidden="true"><div class="imo-blog-featured__file"><span>INPUT</span><strong>project documents</strong><i></i><i></i><i></i></div><div class="imo-blog-featured__flow"><i></i><i></i><i></i></div><div class="imo-blog-featured__chunks"><span>OUTPUT</span><strong>normalized chunks</strong><div><i></i><i></i><i></i><i></i></div></div></div><div class="imo-blog-featured__copy"><p class="imo-blog-featured__eyebrow">Featured · Tutorial</p><h2 id="featured-story">Reading documents with OfficeIMO.Reader</h2><p>Build selective extraction pipelines for search, AI ingestion, review, and batch processing without forcing every format engine into every deployment.</p><div class="imo-blog-featured__meta"><span>March 1, 2026</span><span>Reader</span><span>Ingestion</span></div><a href="/blog/reading-documents-with-reader/">Read the article <span aria-hidden="true">→</span></a></div></section>
 
     <section class="imo-blog-archive" aria-labelledby="all-stories"><div class="imo-blog-archive__heading"><div><p>Latest writing</p><h2 id="all-stories">Guides and engineering notes</h2></div><a href="/docs/">Prefer reference docs? <span aria-hidden="true">→</span></a></div>
       {{ if items && items.size > 0 }}{{ pf.editorial_cards 0 180 true true true false "16/9" "" "featured" "imo-editorial-list imo-editorial-list-blog" "imo-editorial-card imo-editorial-card-blog" }}{{ pf.editorial_pager "Newer posts" "Older posts" "imo-editorial-pager" }}{{ end }}
     </section>
+    <p><a href="/tags/">Browse all topics</a> · <a href="/categories/">Browse article categories</a></p>
     <details class="imo-blog-about"><summary>What the journal covers</summary><div class="imo-prose">{{ content }}</div></details>
   </div></main>
   {{ include "footer" }}{{ assets.js_html }}{{ extra_scripts_html }}

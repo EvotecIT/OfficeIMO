@@ -1,0 +1,48 @@
+.imo-header .imo-header__actions { flex-basis: auto; gap: 12px; }
+.imo-header-search { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 1px solid var(--imo-border); border-radius: 6px; color: var(--imo-text-secondary); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.imo-header-search kbd { font: inherit; font-size: 11px; color: var(--imo-text-muted); }
+.imo-search-dialog { width: min(760px, calc(100vw - 40px)); max-height: calc(100dvh - 64px); padding: 0; margin: 32px auto; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-bg); color: var(--imo-text); box-shadow: 0 24px 90px #0005; overflow: auto; }
+.imo-search-dialog::backdrop { background: #07101eb3; backdrop-filter: blur(3px); }
+.imo-search-dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
+.imo-search-dialog__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px 0; }
+.imo-search-dialog__heading h2 { margin: 0; font-size: 20px; }
+.imo-search-dialog__heading button { min-height: 36px; border: 1px solid var(--imo-border); border-radius: 6px; padding: 4px 10px; background: var(--imo-bg-alt); color: var(--imo-text-secondary); cursor: pointer; }
+.imo-search-dialog [data-site-search-panel] { display: flex; flex-direction: column; min-height: 0; padding: 20px 24px; }
+.imo-search-dialog .imo-search__results { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.imo-search-dialog__heading, .imo-search-dialog__footer, .imo-search-dialog .imo-search__label, .imo-search-dialog .imo-search__meta, .imo-search-dialog .imo-search__more { flex-shrink: 0; }
+.imo-search-dialog__footer { display: flex; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--imo-border); color: var(--imo-text-muted); font-size: 12px; }
+.imo-search { padding: 40px 0 64px; }
+.imo-search__panel { max-width: 920px; margin: 0 auto; }
+.imo-search__intro { margin-bottom: 28px; }
+.imo-search__label { display: grid; gap: 8px; font-size: 13px; font-weight: 650; }
+.imo-search__input { box-sizing: border-box; width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-bg-alt); color: var(--imo-text); font: inherit; font-size: 16px; font-weight: 400; }
+.imo-search__input:focus-visible, .imo-header-search:focus-visible, .imo-search-dialog a:focus-visible, .imo-search-dialog button:focus-visible { outline: 2px solid var(--imo-accent, #2563eb); outline-offset: 3px; }
+.imo-search__meta { margin: 14px 0; color: var(--imo-text-secondary); font-size: 13px; line-height: 1.5; }
+.imo-search__results { display: grid; }
+.imo-search__result { display: grid; gap: 6px; padding: 16px 0; border-top: 1px solid var(--imo-border); min-width: 0; }
+.imo-search__result a { color: var(--imo-text); font-size: 16px; line-height: 1.5; font-weight: 650; overflow-wrap: anywhere; }
+.imo-search__result a:hover { text-decoration: underline; }
+.imo-search__result p { margin: 0; color: var(--imo-text-secondary); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.imo-search__type { color: var(--imo-text-muted); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.imo-search__more { min-height: 40px; margin-top: 16px; padding: 8px 16px; border: 1px solid var(--imo-border); border-radius: 6px; background: var(--imo-bg-alt); color: var(--imo-text); font: inherit; font-size: 13px; cursor: pointer; }
+@media (max-width: 1250px) { .imo-header-search span, .imo-header-search kbd { display: none; } }
+@media (max-width: 600px) {
+  .imo-header .imo-header__actions { gap: 8px; }
+  .imo-header-search { min-height: 40px; padding: 0 10px; }
+  .imo-search-dialog { width: calc(100vw - 24px); margin: 12px auto; max-height: calc(100dvh - 24px); }
+  .imo-search-dialog__heading { padding: 16px 16px 0; }
+  .imo-search-dialog [data-site-search-panel] { padding: 16px; }
+  .imo-search-dialog__footer { padding: 12px 16px; }
+}
+@media (max-height: 500px) {
+  .imo-search-dialog { margin: 12px auto; max-height: calc(100dvh - 24px); }
+  .imo-search-dialog__heading { padding: 10px 16px 0; }
+  .imo-search-dialog__heading h2 { font-size: 18px; }
+  .imo-search-dialog__heading button { min-height: 28px; }
+  .imo-search-dialog [data-site-search-panel] { padding: 10px 16px; }
+  .imo-search-dialog .imo-search__label { font-size: 0; gap: 0; }
+  .imo-search-dialog .imo-search__input { min-height: 40px; padding: 8px 12px; }
+  .imo-search-dialog .imo-search__meta { margin: 8px 0; }
+  .imo-search-dialog .imo-search__more { min-height: 32px; margin-top: 8px; padding: 4px 12px; }
+  .imo-search-dialog__footer { padding: 8px 16px; }
+}

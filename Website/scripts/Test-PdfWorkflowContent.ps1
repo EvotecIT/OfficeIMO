@@ -117,7 +117,7 @@ foreach ($item in $browserConversions) {
         throw "PDF browser conversion '$($item.routeId)' presentation differs from the conversion catalog."
     }
     $pagePath = Join-Path $siteRootPath "content\conversions\$($item.slug).md"
-    $browserUrl = "/apps/officeimo-converter/?workspace=convert&route=$($item.routeId)"
+    $browserUrl = "/convert/?workspace=convert&route=$($item.routeId)"
     Assert-WorkflowPage -Path $pagePath -Identity ([string] $item.routeId) -PrimaryUrl $browserUrl
 }
 

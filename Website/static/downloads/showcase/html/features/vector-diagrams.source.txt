@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Vector diagrams</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.5 Arial,sans-serif; color:#172033; background:#f2f6fc; }
+main { padding:30px; }
+.eyebrow { color:#2563eb; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0; font-size:38px; }
+.intro { margin:0 0 24px; color:#526179; }
+.diagram { padding:20px; background:white; border:1px solid #d7e2f0; border-radius:16px; }
+svg { display:block; width:100%; height:250px; }
+.captions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-top:20px; }
+h2 { margin:0 0 5px; font-size:20px; }
+.captions p { margin:0; color:#526179; font-size:13px; }
+</style></head><body><main>
+<div class="eyebrow">OFFICEIMO / SVG IN HTML</div><h1>Keep the diagram sharp.</h1><p class="intro">Inline SVG shapes and paths sit alongside HTML headings and explanatory text.</p>
+<section class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240"><rect x="25" y="30" width="230" height="170" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/><rect x="335" y="30" width="230" height="170" rx="18" fill="#eef2ff" stroke="#a5b4fc" stroke-width="2"/><rect x="645" y="30" width="230" height="170" rx="18" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="2"/><path d="M270 115 H315 M302 102 L315 115 L302 128 M580 115 H625 M612 102 L625 115 L612 128" fill="none" stroke="#64748b" stroke-width="4"/><rect x="93" y="66" width="94" height="102" rx="6" fill="white" stroke="#2563eb" stroke-width="3"/><path d="M110 88 H171 M110 108 H171 M110 128 H156 M110 148 H165" fill="none" stroke="#2563eb" stroke-width="4"/><circle cx="450" cy="115" r="49" fill="#4f46e5"/><path d="M423 115 L442 134 L478 96" fill="none" stroke="white" stroke-width="7"/><rect x="700" y="117" width="30" height="46" fill="#10b981"/><rect x="750" y="86" width="30" height="77" fill="#10b981"/><rect x="800" y="65" width="30" height="98" fill="#10b981"/><path d="M687 170 H843" stroke="#047857" stroke-width="3"/></svg></section>
+<section class="captions"><article><h2>1. Author</h2><p>Start with structured HTML and an inline vector illustration.</p></article><article><h2>2. Render</h2><p>Use the managed layout and paint pipeline for this static document.</p></article><article><h2>3. Deliver</h2><p>Generate the PDF, PNG preview, and SVG output from the same input.</p></article></section>
+</main></body></html>

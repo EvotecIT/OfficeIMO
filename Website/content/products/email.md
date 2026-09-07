@@ -3,7 +3,6 @@ title: "OfficeIMO.Email"
 description: "Read and write email, Outlook items, mailbox stores, calendars, contacts, and address books without Outlook or third-party message parsers."
 layout: product
 meta.seo_title: "OfficeIMO.Email for .NET applications"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/email/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/email/" />'
 product_label: "Email and Outlook data"
 product_color: "#0284c7"
 install: "dotnet add package OfficeIMO.Email"

@@ -20,7 +20,7 @@ $managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTIC
 $japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
-$playgroundPagePath = Join-Path $SiteRoot 'playground/index.html'
+$redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 
 foreach ($path in @(
         $indexPath,
@@ -31,14 +31,14 @@ foreach ($path in @(
         $japaneseFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
-        $playgroundPagePath
+        $redirectManifestPath
     )) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Converter publish is missing '$path'."
     }
 }
 
-$converterFramePattern = 'src="/apps/officeimo-converter/\?embedded=1"'
+$converterFramePattern = 'data-workspace-src="/apps/officeimo-converter/\?embedded=1"'
 $convertPage = Get-Content -LiteralPath $convertPagePath -Raw
 if ($convertPage -notmatch $converterFramePattern) {
     throw "The primary /convert/ route does not host the browser converter."
@@ -49,31 +49,13 @@ if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>')
     throw "The /convert/guides/ route does not contain the conversion guide."
 }
 
-$playgroundPage = Get-Content -LiteralPath $playgroundPagePath -Raw
-if ($playgroundPage -notmatch $converterFramePattern) {
-    throw "The compatibility /playground/ route does not host the browser converter."
-}
-$canonicalLink = [regex]::Matches(
-    $playgroundPage,
-    '<link\b[^>]*>',
-    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-) | Where-Object {
-    $_.Value -match '\brel\s*=\s*(?:"canonical"|''canonical''|canonical)(?:\s|/?>)' -and
-    $_.Value -match '\bhref\s*=\s*(?:"https://officeimo\.com/convert/"|''https://officeimo\.com/convert/''|https://officeimo\.com/convert/)(?:\s|/?>)'
-} | Select-Object -First 1
-if (-not $canonicalLink) {
-    throw "The compatibility /playground/ route does not canonicalize to /convert/."
-}
-$robotsMeta = [regex]::Matches(
-    $playgroundPage,
-    '<meta\b[^>]*>',
-    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-) | Where-Object {
-    $_.Value -match '\bname\s*=\s*(?:"robots"|''robots''|robots)(?:\s|/?>)' -and
-    $_.Value -match '\bcontent\s*=\s*(?:"[^"]*\bnoindex\b[^"]*"|''[^'']*\bnoindex\b[^'']*''|[^\s>]*\bnoindex\b[^\s>]*)(?:\s|/?>)'
-} | Select-Object -First 1
-if (-not $robotsMeta) {
-    throw "The compatibility /playground/ route is indexable instead of being a noindex alias."
+$redirectManifest = Get-Content -LiteralPath $redirectManifestPath -Raw | ConvertFrom-Json
+$playgroundRedirect = @($redirectManifest.redirects | Where-Object {
+    $_.from -eq '/playground/' -and $_.to -eq '/convert/' -and
+    $_.status -eq 301 -and $_.preserveQuery -eq $true
+})
+if ($playgroundRedirect.Count -ne 1) {
+    throw 'The compatibility /playground/ route must redirect to /convert/ and preserve workflow query parameters.'
 }
 
 $runtimeWasm = [System.Text.Encoding]::ASCII.GetString(

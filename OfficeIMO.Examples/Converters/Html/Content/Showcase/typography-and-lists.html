@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Typography and lists</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.6 Arial,sans-serif; color:#172033; background:#f4f6f8; }
+main { padding:30px; }
+.eyebrow { color:#047857; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0 24px; font-size:38px; line-height:1.1; }
+.grid { display:grid; grid-template-columns:1.2fr 1fr; gap:24px; }
+article { padding:24px; border:1px solid #d7e2dc; border-radius:12px; background:white; }
+h2 { margin:0 0 14px; font-size:22px; }
+p { margin:0 0 14px; color:#475569; }
+blockquote { margin:20px 0; padding:14px 18px; border-left:4px solid #10b981; background:#effaf5; color:#065f46; font-style:italic; }
+strong { color:#172033; }
+code { font-family:Consolas,monospace; color:#075985; background:#eff6ff; }
+ol,ul { padding-left:24px; }
+li { margin-bottom:10px; }
+.foot { color:#64748b; font-size:12px; }
+</style></head><body><main>
+<div class="eyebrow">OFFICEIMO / DOCUMENT TYPOGRAPHY</div><h1>Give the content a clear reading order.</h1>
+<section class="grid"><article><h2>Structured prose</h2><p>Clear headings and readable paragraphs make a technical report easier to scan.</p><blockquote>Keep the source document alongside its output so a reader can inspect the same example.</blockquote><p>Use inline code for identifiers such as <code>HtmlConversionDocument</code>. Keep normal prose in the body typeface.</p><p class="foot">Text remains part of the generated PDF; the page is not a screenshot of a web browser.</p></article><article><h2>A repeatable workflow</h2><ol><li>Write a small, self-contained HTML document.</li><li>Parse it with the managed HTML API.</li><li>Export the supported document and image formats.</li></ol><h2>Delivery formats</h2><ul><li>PDF for a paginated document</li><li>PNG for a raster preview</li><li>SVG for a vector image</li></ul></article></section>
+</main></body></html>

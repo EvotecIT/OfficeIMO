@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Math and science</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:15px/1.6 Arial,sans-serif; color:#172033; background:#f5f3fa; }
+main { padding:30px; }
+.eyebrow { color:#6d28d9; font-size:11px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:8px 0 10px; font-size:36px; }
+.intro { color:#64748b; margin:0 0 24px; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+article { padding:22px; border:1px solid #ded7ed; border-radius:14px; background:white; }
+.number { color:#8b5cf6; font-size:12px; font-weight:800; }
+h2 { margin:12px 0; font-size:20px; }
+.formula { padding:24px 12px; margin:18px 0; background:#f5f0ff; border-radius:9px; color:#4c1d95; font-size:26px; }
+article p { font-size:13px; color:#526179; }
+.note { margin-top:24px; color:#64748b; font-size:12px; }
+</style></head><body><main>
+<div class="eyebrow">OFFICEIMO / TECHNICAL PUBLISHING</div><h1>Equations belong in the document.</h1><p class="intro">Author presentation MathML alongside normal HTML text, headings, and layout.</p>
+<section class="grid"><article><div class="number">01 / SUPERSCRIPT</div><h2>Mass and energy</h2><div class="formula"><math><mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow></math></div><p>A familiar equation uses identifiers, an operator, and a superscript.</p></article><article><div class="number">02 / FRACTION</div><h2>Average speed</h2><div class="formula"><math><mfrac><mi>d</mi><mi>t</mi></mfrac></math></div><p>A fraction keeps the numerator and denominator in a structured expression.</p></article><article><div class="number">03 / SQUARE ROOT</div><h2>Right triangle</h2><div class="formula"><math><mrow><msqrt><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup></mrow></msqrt></mrow></math></div><p>Nested expressions combine a root, powers, and an addition.</p></article></section>
+<p class="note">This example exercises three presentation MathML expressions. It is not a claim of full MathML or TeX support.</p>
+</main></body></html>

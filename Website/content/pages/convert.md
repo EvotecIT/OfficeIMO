@@ -3,15 +3,13 @@ title: "Browser Document Workspace"
 description: "Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly, without uploading document bytes."
 layout: playground
 meta.seo_title: "Browser document converter | OfficeIMO"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/convert/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/convert/" />'
 ---
 
 <section class="imo-converter-launch">
   <div class="imo-container imo-converter-launch__intro">
-    <div><p class="imo-converter-launch__eyebrow">Local WebAssembly workspace</p><h1>Convert and work with PDFs<br><span>without uploading them.</span></h1><p>Use twelve document conversion routes, including PDF to Word, detected tables in Excel, native or visual PowerPoint slides, HTML, and detailed PNG page images. Switch to PDF tools to inspect, merge, split, extract, delete, reorder, rotate, optimize, protect, unlock, redact, or visually compare files through the first-party OfficeIMO.Pdf engine. Need a server-side or legacy route? <a href="/convert/guides/">Browse the .NET conversion guides</a>.</p><p><a href="/pdf/">Review every PDF workflow</a> · <a href="/apps/officeimo-converter/?workspace=pdf&amp;tool=inspect">Open PDF tools in a full page</a> · <a href="/docs/converters/browser-playground/">Review browser limits</a></p></div>
-    <aside><strong>Privacy boundary</strong><p>Files remain in the browser session. OfficeIMO does not receive or retain them.</p></aside>
+    <div><p class="imo-converter-launch__eyebrow">Browser tools</p><h1>Convert documents and work with PDFs.</h1><p>Your files stay in this browser. Choose a conversion or a PDF tool below.</p></div>
   </div>
-  <div class="imo-container imo-converter-launch__frame-shell"><iframe class="imo-converter-launch__frame" src="/apps/officeimo-converter/?embedded=1" title="OfficeIMO browser document workspace" loading="lazy"></iframe></div>
+  <div class="imo-container imo-converter-launch__frame-shell"><iframe class="imo-converter-launch__frame" data-workspace-src="/apps/officeimo-converter/?embedded=1" title="OfficeIMO browser document workspace" loading="lazy"></iframe></div>
   <section class="imo-container imo-converter-launch__details" aria-labelledby="browser-workspace-details">
     <div><p class="imo-converter-launch__eyebrow">What runs in this tab</p><h2 id="browser-workspace-details">One workspace, two focused paths</h2><p>Convert between twelve supported document routes, or switch to twelve PDF tools backed by the same first-party APIs available to .NET applications.</p></div>
     <div class="imo-converter-launch__detail-grid">

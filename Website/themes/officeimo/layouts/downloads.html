@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ page.title }} | {{ site.name }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
   <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
@@ -23,16 +25,8 @@
 
   {{ downloads = data.downloads_catalog }}
   {{ release_hub = data.release_hub }}
-  {{ stats_doc = null }}
-  {{ if data.ecosystem }}
-    {{ stats_doc = data.ecosystem.stats }}
-  {{ end }}
   {{ latest_release = null }}
   {{ latest_tag = "" }}
-  {{ tracked_package_count = 0 }}
-  {{ tracked_nuget_count = 0 }}
-  {{ tracked_downloads = 0 }}
-  {{ telemetry_available = false }}
 
   {{ if release_hub && release_hub.latest }}
     {{ latest_tag = release_hub.latest.stableTag ?? "" }}
@@ -45,99 +39,15 @@
     {{ end }}
   {{ end }}
 
-  {{ if downloads && downloads.sections }}
-    {{ for section in downloads.sections }}
-      {{ for package in section.packages }}
-        {{ tracked_package_count = tracked_package_count + 1 }}
-        {{ if package.registry == "nuget" }}
-          {{ tracked_nuget_count = tracked_nuget_count + 1 }}
-          {{ if section.id != "reader-adapters" && section.id != "google-bridges" && stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
-            {{ for stat_package in stats_doc.nuget.packages }}
-              {{ if stat_package.id == package.registry_package }}
-                {{ tracked_downloads = tracked_downloads + stat_package.totalDownloads }}
-                {{ telemetry_available = true }}
-                {{ break }}
-              {{ end }}
-            {{ end }}
-          {{ end }}
-        {{ end }}
-      {{ end }}
-    {{ end }}
-  {{ end }}
-
   <main id="content" class="imo-main imo-main--downloads">
     <div class="imo-container">
       <div class="imo-downloads">
-        <section class="imo-downloads__hero">
-          <div class="imo-downloads__hero-shell">
-            <div class="imo-downloads__hero-copy">
-              <h1 class="imo-downloads__title">{{ downloads.hero.title ?? page.title }}</h1>
-              <p class="imo-downloads__copy">{{ downloads.hero.description ?? page.description }}</p>
-              <div class="imo-downloads__hero-actions">
-                <a href="#downloads-packages" class="imo-btn imo-btn-primary">Browse packages</a>
-                {{ if latest_release }}
-                <a href="{{ latest_release.url }}" class="imo-btn imo-btn-ghost" target="_blank" rel="noopener">Latest stable release</a>
-                {{ end }}
-              </div>
-            </div>
-
-            <aside class="imo-downloads__hero-panel" aria-label="Choose an installation channel">
-              <p class="imo-downloads__panel-eyebrow">Recommended path</p>
-              <h2>Install the smallest package that owns your workflow.</h2>
-              <div class="imo-downloads__quick-command">
-                <span>.NET</span>
-                <code>dotnet add package OfficeIMO.Word</code>
-                <button type="button" aria-label="Copy .NET install command" data-copy="dotnet add package OfficeIMO.Word">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              </div>
-              <div class="imo-downloads__quick-command">
-                <span>PowerShell</span>
-                <code>Install-Module PSWriteOffice</code>
-                <button type="button" aria-label="Copy PowerShell install command" data-copy="Install-Module PSWriteOffice">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              </div>
-              <ul class="imo-downloads__channel-notes"><li>NuGet and PowerShell Gallery are the normal consumer channels.</li><li>Release archives preserve exact published artifacts.</li><li>The API site describes repository source; package feeds show installable releases.</li></ul>
-            </aside>
-          </div>
-        </section>
-
-        <section class="imo-downloads__section">
-          <div class="imo-downloads__section-header">
-            <div>
-              <div class="imo-downloads__eyebrow">Choose the path</div>
-              <h2>Pick the distribution surface that matches how you work</h2>
-            </div>
-            <p>Most teams should install from a package manager and use release archives only when they need an exact artifact from a specific stable release.</p>
-          </div>
-          <div class="imo-downloads__path-grid">
-            {{ for path in downloads.paths }}
-            <article class="imo-downloads__path-card">
-              <div class="imo-downloads__path-heading">
-                <span class="imo-downloads__path-number">0{{ for.index + 1 }}</span>
-                <div>
-                  <span class="imo-downloads__path-label">{{ path.badge }}</span>
-                  <h3>{{ path.title }}</h3>
-                </div>
-              </div>
-              <p>{{ path.description }}</p>
-              <a class="imo-btn imo-btn-ghost" href="{{ path.href }}" target="_blank" rel="noopener">{{ path.label }}</a>
-            </article>
-            {{ end }}
-          </div>
-        </section>
-
+        {{ include "sections/download-choices" }}
+        <p><a href="/releases/">Release history and upgrade notes</a></p>
         <section id="downloads-packages" class="imo-downloads__section">
           {{ for section in downloads.sections }}
-          <div class="imo-downloads__group">
-            <div class="imo-downloads__section-header">
-              <div>
-                <div class="imo-downloads__eyebrow">{{ section.eyebrow }}</div>
-                <h2>{{ section.title }}</h2>
-              </div>
-              <p>{{ section.description }}</p>
-            </div>
+          <details class="imo-downloads__group imo-package-disclosure"><summary><h2>{{ section.title }}</h2><span>{{ section.packages.size }} packages</span></summary>
+            <p class="imo-downloads__group-description">{{ section.description }}</p>
 
             <div class="imo-downloads__grid">
               {{ for package in section.packages }}
@@ -160,36 +70,29 @@
                   </button>
                 </div>
 
-                <div class="imo-download-card__meta">
-                  <span class="imo-badge">{{ package.registry_label }}</span>
-                  {{ if package.release_product }}
-                  <span class="imo-badge">Release archives available</span>
-                  {{ end }}
-                </div>
-
                 <div class="imo-download-card__actions">
-                  <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener">Open {{ package.registry_label }} for {{ package.title }}</a>
+                  <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener" aria-label="Open {{ package.title }} on {{ package.registry_label }}">Open {{ package.registry_label }}</a>
                   {{ if package.release_product && latest_release }}
-                  <a class="imo-btn imo-btn-ghost" href="{{ latest_release.url }}" target="_blank" rel="noopener">Latest release archives</a>
+                  <a class="imo-btn imo-btn-ghost" href="{{ latest_release.url }}" target="_blank" rel="noopener">Release archives</a>
                   {{ end }}
                 </div>
 
                 <div class="imo-download-card__links">
                   {{ if package.product_url }}
-                  <a class="imo-action-link" href="{{ package.product_url }}">
-                    <span>{{ package.title }} product overview</span>
+                  <a class="imo-action-link" href="{{ package.product_url }}" aria-label="Overview: {{ package.title | html.escape }}">
+                    <span>Overview</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>
                   {{ end }}
                   {{ if package.docs_url }}
-                  <a class="imo-action-link" href="{{ package.docs_url }}">
-                    <span>{{ package.title }} documentation</span>
+                  <a class="imo-action-link" href="{{ package.docs_url }}" aria-label="Guides: {{ package.title | html.escape }}">
+                    <span>Guides</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>
                   {{ end }}
                   {{ if package.api_url }}
-                  <a class="imo-action-link" href="{{ package.api_url }}">
-                    <span>{{ package.title }} API reference</span>
+                  <a class="imo-action-link" href="{{ package.api_url }}" aria-label="API reference: {{ package.title | html.escape }}">
+                    <span>API reference</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>
                   {{ end }}
@@ -197,16 +100,16 @@
               </article>
               {{ end }}
             </div>
-          </div>
+          </details>
           {{ end }}
         </section>
 
         <section class="imo-downloads__section">
           <div class="imo-downloads__release-panel">
             <div>
-              <div class="imo-downloads__eyebrow">Release handoff</div>
-              <h2>Need the exact packaged artifact instead of a package-manager install?</h2>
-              <p>Use a release archive when you need a zip artifact, a pinned package payload, or release context for a coordinated version. Package-manager installs remain the best default for applications and scripts.</p>
+              <div class="imo-downloads__eyebrow">Release archives</div>
+              <h2>Looking for a release archive?</h2>
+              <p>Browse published package archives and release notes on GitHub.</p>
             </div>
             <div class="imo-downloads__release-actions">
               {{ if latest_release }}

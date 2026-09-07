@@ -1,0 +1,38 @@
+{
+  "studio": {
+    "eyebrow": "Desktop document workspace",
+    "headline": "Your documents. A clearer workspace.",
+    "summary": "Read a PDF, review comments, organize pages, and check the result before saving. Studio puts OfficeIMO's document tools in a visual workspace.",
+    "primaryLabel": "Explore the workspace",
+    "primaryUrl": "#application-guide",
+    "secondaryLabel": "Source and build guide",
+    "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme",
+    "availability": "Desktop source build · Public installers are not available yet",
+    "image": "/images/studio/workspace-light.png",
+    "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
+    "caption": "Actual Studio window with an OfficeIMO sample PDF. Captured from the desktop source build.",
+    "facts": ["Windows · macOS · Linux development", "Local document workflows", "MIT licensed"],
+    "channels": [
+      { "name": "Direct downloads", "detail": "Installers and portable archives", "state": "In preparation" },
+      { "name": "WinGet", "detail": "Install and upgrade from a terminal", "state": "Planned" },
+      { "name": "Microsoft Store / Mac App Store", "detail": "Store installation and updates", "state": "Planned" }
+    ]
+  },
+  "tool": {
+    "eyebrow": "Command-line document tools",
+    "headline": "Put document work in your scripts.",
+    "summary": "Convert files, extract readable content, inspect documents, and run supported workflows from one command-line tool.",
+    "primaryLabel": "Install the CLI",
+    "primaryUrl": "#application-guide",
+    "secondaryLabel": "View on NuGet",
+    "secondaryUrl": "https://www.nuget.org/packages/OfficeIMO.Tool",
+    "availability": "Available on NuGet · Requires the .NET SDK to install",
+    "install": "dotnet tool install --global OfficeIMO.Tool",
+    "facts": ["CLI and MCP", "Version-pinned automation", "MIT licensed"],
+    "channels": [
+      { "name": "NuGet tool", "detail": "Global installation or local tool manifest", "state": "Available", "url": "https://www.nuget.org/packages/OfficeIMO.Tool", "label": "Open NuGet" },
+      { "name": "Portable archives", "detail": "Standalone binaries for each platform", "state": "Planned" },
+      { "name": "WinGet", "detail": "Managed installation of the standalone CLI", "state": "Planned" }
+    ]
+  }
+}

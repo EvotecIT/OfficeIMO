@@ -26,6 +26,8 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 - `--pdf-table-styles`: generate the Word-like table style gallery.
 - `--pdf-showcase`: generate richer statement, dashboard, and manipulation PDF samples.
 - `--html-renderer-gallery`: generate matching HTML, searchable interactive PDF, PNG, and SVG renderer proof.
+- `--html-feature-showcase`: render focused HTML examples covering gradients, report layout, fillable fields, MathML, typography, SVG diagrams, table spans, positioning, and page breaks. Each writes HTML, PDF, PNG, and SVG under `Documents/HtmlFeatures`.
+- `--showcase-features`: generate focused Word, Excel, PowerPoint, PDF, and Markdown examples under `Documents/DocumentFeatures`. Add `--showcase-group word`, `excel`, `powerpoint`, `pdf`, or `markdown` to run one group.
 - `--powerpoint`: run PowerPoint examples.
 - `--opendocument`: generate native ODT/ODS/ODP, flat XML, formula, tracked-change, animation, and explicit conversion examples.
 - `--onenote`: generate a native `.one` section and `.onepkg`, reopen them offline, and emit Markdown, HTML, PDF, and Reader projections.

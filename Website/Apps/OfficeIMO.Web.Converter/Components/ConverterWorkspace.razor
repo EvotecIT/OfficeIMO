@@ -2,26 +2,10 @@
 @implements IAsyncDisposable
 
 <div class="ocx-conversion-workspace" data-converter-ready="true" data-active-route="@ActiveRoute.Id">
-    <nav class="ocx-route-rail" aria-label="Choose a conversion route">
-        @foreach (ConversionRoute route in Routes) {
-            <button @key="route.Id"
-                    type="button"
-                    data-route="@route.Id"
-                    class="ocx-route-tab @route.AccentClass @(ActiveRoute.Id == route.Id ? "is-active" : null)"
-                    @onclick="() => SelectRouteAsync(route)"
-                    aria-pressed="@(ActiveRoute.Id == route.Id)"
-                    title="@route.Description">
-                <span class="ocx-route-tab__icon">@route.Source</span>
-                <span class="ocx-route-tab__label">@route.Source <b aria-hidden="true">→</b> @route.Target</span>
-            </button>
-        }
-    </nav>
-
     <section class="ocx-converter" aria-label="@ActiveRoute.Title converter">
         <aside class="ocx-route-contract" data-support-level="@ActiveRoute.SupportLevel">
             <span class="ocx-support-badge">@ActiveRoute.SupportLabel</span>
             <div>
-                <strong>@ActiveRoute.Title</strong>
                 <span>@ActiveRoute.Description</span>
                 <small><b>@ActiveRoute.OutputModel.</b> @ActiveRoute.KnownLimitations</small>
             </div>
@@ -180,10 +164,5 @@
         </footer>
     </section>
 
-    <section class="ocx-utility-rail" aria-label="Converter details">
-        <div><span class="ocx-utility-icon ocx-utility-icon--private" aria-hidden="true">✓</span><span><strong>Browser-local</strong><small>Files stay in this tab</small></span></div>
-        <div><span class="ocx-utility-icon" aria-hidden="true">□</span><span><strong>Up to @FormatBytes(MaxUploadBytes)</strong><small>Per upload · huge sheets preview safely</small></span></div>
-        <div><span class="ocx-utility-icon" aria-hidden="true">&lt;/&gt;</span><span><strong>OfficeIMO engine</strong><small>WebAssembly</small></span></div>
-        <a href="/convert/guides/" target="_top"><strong>Need server or legacy formats?</strong><span>View conversion guides →</span></a>
-    </section>
+    <p class="ocx-workflow-help">Powered by OfficeIMO · <a href="/convert/guides/" target="_top">Server and legacy conversion guides →</a></p>
 </div>

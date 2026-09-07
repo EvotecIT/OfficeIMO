@@ -1,30 +1,28 @@
 {{ if data.showcase && data.showcase.cards }}
-<section class="imo-showcase-preview">
+<section class="imo-showcase-preview" aria-labelledby="showcase-preview-title">
   <div class="imo-container">
-    <h2 class="imo-section__title">{{ data.showcase.title ?? "Showcase" }}</h2>
-    {{ if data.showcase.description }}
-    <p class="imo-section__subtitle">{{ data.showcase.description }}</p>
-    {{ end }}
+    <p class="imo-section__eyebrow">Made with OfficeIMO</p>
+    <h2 class="imo-section__title" id="showcase-preview-title">See it in action.</h2>
+    <p class="imo-section__subtitle">Try a document tool, explore real output, or start from a working example.</p>
+    <div class="imo-showcase-preview__paths">
+      <a href="/convert/"><strong>Try the browser converter <span aria-hidden="true">→</span></strong><span>Work with your files directly in the browser.</span></a>
+      <a href="/showcase/"><strong>Explore generated documents <span aria-hidden="true">→</span></strong><span>Download the output and inspect its source.</span></a>
+      <a href="/libraries/#code-examples"><strong>Start with code <span aria-hidden="true">→</span></strong><span>Use a C# or PowerShell example in your project.</span></a>
+    </div>
 
     <div class="imo-showcase-preview__grid" role="list">
       {{ for card in data.showcase.cards }}
       {{ if for.index < 4 }}
       <article class="imo-showcase-card" role="listitem">
         {{ if card.image }}
-        <div class="imo-showcase-card__media">
-          <img src="{{ card.image }}" alt="{{ card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
-        </div>
+        <a class="imo-showcase-card__media" href="{{ card.artifact_url }}" aria-label="{{ card.artifact_label }}: {{ card.title }}">
+          <img src="{{ card.image }}" alt="{{ card.image_alt ?? card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
+        </a>
         {{ end }}
         <div class="imo-showcase-card__body">
-          <h3>{{ card.title }}</h3>
-          <p>{{ card.description }}</p>
-          {{ if card.badge_tags }}
-          <div class="imo-showcase-card__tags">
-            {{ for tag in card.badge_tags }}
-            <span class="imo-badge">{{ tag }}</span>
-            {{ end }}
-          </div>
-          {{ end }}
+          <h3>{{ card.preview_title ?? card.title }}</h3>
+          <p>{{ card.preview_description ?? card.description }}</p>
+          <div class="imo-showcase-card__links"><a href="{{ card.artifact_url }}">{{ card.artifact_label }}</a><a href="{{ card.source_url }}">View source<span class="imo-visually-hidden"> for {{ card.title }}</span></a></div>
         </div>
       </article>
       {{ end }}
@@ -32,7 +30,7 @@
     </div>
 
     <div class="imo-showcase-preview__footer">
-      <a href="/showcase/" class="imo-btn imo-btn-ghost">View Full Showcase</a>
+      <a href="/showcase/" class="imo-btn imo-btn-ghost">View all examples</a>
     </div>
   </div>
 </section>

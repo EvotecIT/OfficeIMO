@@ -16,6 +16,8 @@ meta.primary_url: "/compatibility/"
   <p>No document library is best at every operation. Start with the input and output formats, fidelity requirements, deployment boundary, license obligations, and support model—not a brand claim.</p>
 </section>
 
+<p>Evaluate a concrete document before choosing a library: <a href="/showcase/">download generated Office documents</a>, inspect the <a href="/showcase/?format=html">HTML rendering examples</a>, or <a href="/convert/">try the browser tools</a>.</p>
+
 <section id="commercial-suites" class="imo-comparison-group" aria-labelledby="commercial-suites-title">
   <div class="imo-comparison-group__heading">
     <div>

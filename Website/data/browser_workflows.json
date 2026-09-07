@@ -1,0 +1,26 @@
+{
+  "OfficeIMO.Word": {
+    "label": "Try DOCX to PDF",
+    "url": "/convert/?route=docx-pdf"
+  },
+  "OfficeIMO.Excel": {
+    "label": "Try XLSX to PDF",
+    "url": "/convert/?route=xlsx-pdf"
+  },
+  "OfficeIMO.PowerPoint": {
+    "label": "Try PPTX to PDF",
+    "url": "/convert/?route=pptx-pdf"
+  },
+  "OfficeIMO.Html": {
+    "label": "Try HTML to PDF",
+    "url": "/convert/?route=html-pdf"
+  },
+  "OfficeIMO.Markdown": {
+    "label": "Try Markdown to HTML",
+    "url": "/convert/?route=markdown-html"
+  },
+  "OfficeIMO.Pdf": {
+    "label": "Open PDF tools",
+    "url": "/convert/?workspace=pdf&tool=inspect"
+  }
+}

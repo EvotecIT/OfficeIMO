@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{TITLE}}{{ end }}</title>
+  <meta name="generator" content="PowerForge.Web API Docs" data-pf="api-docs" />
+  {{DESCRIPTION_META}}
+  {{OPEN_GRAPH_META}}
+  {{HEAD_HTML}}
+  {{CRITICAL_CSS}}
+  {{CSS}}
+</head>
+<body class="{{BODY_CLASS}} imo-body imo-body--docs imo-body--reference">
+<a class="imo-skip-link" href="#content">Skip to main content</a>
+{{HEADER}}
+<div class="imo-docs api-layout">
+  <main id="content" class="api-content imo-docs__main">
+    {{MAIN}}
+  </main>
+  <aside class="imo-reference-browser">
+    <details open>
+      <summary>Types and members</summary>
+      <div class="api-sidebar">{{SIDEBAR}}</div>
+    </details>
+  </aside>
+</div>
+{{FOOTER}}
+{{DOCS_SCRIPT}}
+</body>
+</html>

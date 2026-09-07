@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Report layout</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.5 Arial,sans-serif; color:#172033; background:#f3f6fb; }
+main { padding:24px; }
+header { display:flex; justify-content:space-between; align-items:center; padding:24px; background:#142f58; color:white; border-radius:14px; }
+.eyebrow { color:#93c5fd; font-size:10px; font-weight:800; letter-spacing:.14em; }
+h1 { margin:6px 0 0; font-size:32px; }
+.period { padding:10px 16px; border:1px solid #5a7499; border-radius:8px; }
+.metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.metric { padding:16px 20px; border:1px solid #dbe3ee; border-radius:12px; background:white; }
+.metric span { color:#64748b; font-size:12px; }
+.metric strong { display:block; margin:4px 0; color:#1d4ed8; font-size:30px; }
+.metric small { color:#047857; }
+.columns { display:grid; grid-template-columns:2fr 1fr; gap:20px; }
+.panel { padding:20px; background:white; border:1px solid #dbe3ee; border-radius:12px; }
+h2 { margin:0 0 14px; font-size:19px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { background:#eaf1ff; color:#1e40af; text-align:left; }
+th,td { padding:10px; border-bottom:1px solid #dbe3ee; }
+.note { margin:0; color:#526179; }
+</style></head><body><main>
+<header><div><div class="eyebrow">OFFICEIMO / OPERATIONS REPORT</div><h1>Operations at a glance.</h1></div><div class="period">Q3 / DEMO DATA</div></header>
+<section class="metrics"><div class="metric"><span>Completed orders</span><strong>1,284</strong><small>+12% this quarter</small></div><div class="metric"><span>On-time delivery</span><strong>98.6%</strong><small>Above the 97% target</small></div><div class="metric"><span>Average lead time</span><strong>2.4 days</strong><small>Down from 3.1 days</small></div></section>
+<section class="columns"><article class="panel"><h2>Regional performance</h2><table><thead><tr><th>Region</th><th>Orders</th><th>On time</th></tr></thead><tbody><tr><td>North</td><td>482</td><td>99.2%</td></tr><tr><td>Central</td><td>437</td><td>98.1%</td></tr><tr><td>South</td><td>365</td><td>98.4%</td></tr></tbody></table></article><aside class="panel"><h2>What changed</h2><p class="note">The regional teams shortened handover time and cleared the oldest orders first.</p><p class="note">This sample combines a flex header, grid cards, a table, and a side note.</p></aside></section>
+</main></body></html>

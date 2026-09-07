@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Deliberate page breaks</title>
+<style>
+@page { size:A4 landscape; margin:24px; }
+* { box-sizing:border-box; }
+body { margin:0; font:17px/1.6 Arial,sans-serif; color:#172033; }
+section { padding:36px; }
+.cover { break-after:page; background:#17365d; color:white; height:650px; }
+.eyebrow { font-size:12px; font-weight:bold; letter-spacing:.14em; color:#93c5fd; }
+h1 { font-size:48px; line-height:1.1; margin:70px 0 24px; }
+.cover p { max-width:600px; color:#dbeafe; font-size:21px; }
+h2 { font-size:32px; margin:12px 0 22px; }
+.steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+article { background:#f1f5f9; padding:24px; border-radius:14px; }
+article h3 { color:#2563eb; margin:0 0 12px; }
+.note { color:#526179; font-size:14px; margin-top:28px; }
+</style></head><body><section class="cover"><div class="eyebrow">OFFICEIMO / PAGED DOCUMENTS</div><h1>A cover deserves<br>its own page.</h1><p>Use an explicit CSS page break to separate the introduction from the working detail.</p><p>Open the PDF to inspect both pages.</p></section>
+<section><div class="eyebrow" style="color:#2563eb">PAGE TWO / DELIVERY PLAN</div><h2>The detail starts here.</h2><div class="steps"><article><h3>1. Prepare</h3><p>Collect the source data and identify the document sections.</p></article><article><h3>2. Render</h3><p>Keep the cover separate with a declared break after the section.</p></article><article><h3>3. Review</h3><p>Check both pages in the PDF before sharing the result.</p></article></div><p class="note">The PDF contains two pages. The linked PNG and SVG show the first page.</p></section></body></html>

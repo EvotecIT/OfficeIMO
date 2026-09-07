@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ page.title }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
@@ -24,13 +24,8 @@
   {{ include "header" }}
 
   <main id="content" class="imo-main imo-main--home">
-    {{ include "sections/hero" }}
+    {{ include "sections/platform-hero" }}
     {{ include "sections/trust-banner" }}
-    {{ include "sections/how-it-works" }}
-    {{ include "sections/format-ribbon" }}
-    {{ include "sections/stats" }}
-    {{ include "sections/product-family" }}
-    {{ include "sections/code-examples" }}
     {{ include "sections/showcase-preview" }}
     {{ include "sections/faq-preview" }}
     {{ include "sections/cta" }}

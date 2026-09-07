@@ -3,7 +3,6 @@ title: "OfficeIMO.Rtf"
 description: "Read, create, edit, preserve, and convert Rich Text Format documents with bounded parsing and explicit fidelity reports."
 layout: product
 meta.seo_title: "RTF editing and conversion for .NET"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/rtf/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/rtf/" />'
 product_color: "#0f766e"
 product_label: "Rich Text Format engine"
 install: "dotnet add package OfficeIMO.Rtf"
