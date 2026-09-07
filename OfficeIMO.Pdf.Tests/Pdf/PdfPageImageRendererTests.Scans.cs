@@ -78,7 +78,7 @@ public partial class PdfPageImageRendererTests {
         PdfOcrMergeResult result = await PdfDocument.Load(pdf).ReadWithOcrAsync(engine,
             new PdfOcrMergeOptions { Dpi = 72, ImageCodec = codec });
         Assert.Equal(1, calls);
-        Assert.True(codec.Calls > 0);
+        Assert.Equal(1, codec.Calls);
         Assert.Contains(result.Pages.Single().Diagnostics, diagnostic => diagnostic.StartsWith(PdfRenderCapabilities.OptionalImageCodecId));
     }
 
@@ -137,6 +137,7 @@ public partial class PdfPageImageRendererTests {
             Assert.Equal("image/jp2", contentType);
             Assert.Equal(_expected, encodedBytes);
             Calls++;
+            Assert.Equal(1, Calls); // A one-shot codec must suffice for a single image placement.
             image = new OfficeRasterImage(1, 1, OfficeColor.Red);
             return true;
         }

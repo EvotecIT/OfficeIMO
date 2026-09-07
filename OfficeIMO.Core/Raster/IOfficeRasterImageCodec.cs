@@ -14,6 +14,8 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public OfficeColor? Background { get; set; }
     /// <summary>Optional decoder for formats not handled by the dependency-free core.</summary>
     public IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Throws when an image cannot be decoded or exceeds the raster limit, instead of omitting it.</summary>
+    public bool ThrowOnImageDecodeFailure { get; set; }
     /// <summary>Optional host text shaper used for complex-script glyph positioning.</summary>
     public IOfficeTextShapingProvider? TextShapingProvider { get; set; }
     /// <summary>Optional BCP 47 language hint passed to the text shaper.</summary>
