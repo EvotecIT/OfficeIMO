@@ -147,7 +147,7 @@ public sealed class OfficeAiDocument {
         // including chunk tables, so alternate projections cannot silently erase known omissions.
         incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))
             .Concat(document.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
-            .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count || table.Diagnostics?.SourceRowCount > table.Rows.Count);
+            .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count);
         return new OfficeAiDocument(Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant(), sourceBytes.Length, evidence.ToArray(),
             pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), incompleteSource);
     }

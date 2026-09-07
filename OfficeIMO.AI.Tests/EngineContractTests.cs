@@ -240,7 +240,6 @@ public sealed class EngineContractTests {
     [InlineData("chunk-warning")]
     [InlineData("chunk-table")]
     [InlineData("table-count")]
-    [InlineData("table-diagnostics")]
     public void AlternateReaderIncompletenessSignalsAreRetained(string signal) {
         var table = new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "retained" } } };
         var read = new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = "retained" } } };
@@ -248,10 +247,20 @@ public sealed class EngineContractTests {
         else if (signal == "chunk-table") { table.Truncated = true; read.Chunks = new[] { new ReaderChunk { Tables = new[] { table } } }; }
         else {
             read.Tables = new[] { table };
-            if (signal == "table-count") table.TotalRowCount = 2;
-            else table.Diagnostics = new ReaderTableDiagnostics { SourceRowCount = 2 };
+            table.TotalRowCount = 2;
         }
         Assert.True(OfficeAiDocument.FromReadResult(new byte[] { 1 }, read).HasSourceDiagnostics);
+    }
+
+    [Fact]
+    public void SourceGeometryRowCountCanIncludeAHeaderWithoutBodyTruncation() {
+        var table = new ReaderTable {
+            Columns = new[] { "Item" }, Rows = new[] { new[] { "first" }, new[] { "second" } }, TotalRowCount = 2,
+            Diagnostics = new ReaderTableDiagnostics { SourceRowCount = 3 }
+        };
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, new OfficeDocumentReadResult { Tables = new[] { table } });
+        Assert.False(document.HasSourceDiagnostics);
+        Assert.Equal(2, document.Evidence.Count);
     }
 
     [Theory]
