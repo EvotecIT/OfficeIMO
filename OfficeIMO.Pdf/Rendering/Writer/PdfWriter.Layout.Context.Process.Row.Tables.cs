@@ -205,6 +205,15 @@ internal static partial class PdfWriter {
             int bodyRowIndex = rowIndex - table.HeaderRowCount;
             bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
             bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tbColumn, rowIndex, table.Columns);
+            // Rounded outer box (PdfTableStyle.CornerRadius) for a table nested in a row column - mirrors
+            // the top-level table path: round the top corners on the first row, the bottom on the last,
+            // clip fills and per-cell accents to the rounded box, and stroke the perimeter with the same
+            // corners.
+            double cornerRadius = tableStyle.CornerRadius;
+            bool roundTop = cornerRadius > 0 && rowIndex == 0 && startLine == 0 && !HasSkippedColumns(rowFillSkips, table.Columns);
+            bool roundBottom = cornerRadius > 0 && rowIndex == tbColumn.Rows.Count - 1 && startLine + lineCount >= table.RowLineCounts[rowIndex] && !HasSkippedColumns(rowFillSkips, table.Columns);
+            bool roundedRow = roundTop || roundBottom;
+            if (roundedRow) { BeginRoundedClip(sb, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom); }
             if (tableStyle.HeaderFill is not null && renderAsHeader) { pageDirty = true; DrawTableRowFill(sb, tableStyle.HeaderFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
             else if (tableStyle.FooterFill is not null && renderAsFooter) { pageDirty = true; DrawTableRowFill(sb, tableStyle.FooterFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
             else if (!renderAsHeader && !renderAsFooter && tableStyle.RowStripeFill is not null && stripeBodyRow) { pageDirty = true; DrawTableRowFill(sb, tableStyle.RowStripeFill.Value, xTable, table.ColumnWidths, columnGap, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
@@ -244,6 +253,7 @@ internal static partial class PdfWriter {
                     fillX += table.ColumnWidths[fillColumn] + columnGap;
                 }
             }
+            if (roundedRow) { EndRoundedClip(sb); }
             if (DrawTableCellDataBars(sb, tableStyle, cells, rowIndex, table.Columns, xTable, state.Y, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
                 pageDirty = true;
             }
@@ -365,7 +375,7 @@ internal static partial class PdfWriter {
                     DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
                     DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
                 } else {
-                    DrawRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, emitGeneratedStructure);
+                    DrawRoundedRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
                 }
 
                 double xi2 = xTable;
@@ -398,6 +408,7 @@ internal static partial class PdfWriter {
             }
 
             if (tableStyle.CellBorders != null && tableStyle.CellBorders.Count > 0) {
+                double roundedOuterBorder = (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) ? tableStyle.BorderWidth : 0D;
                 double borderX = xTable;
                 for (int borderColumn = 0; borderColumn < table.Columns; borderColumn++) {
                     if (tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
@@ -415,7 +426,11 @@ internal static partial class PdfWriter {
                         }
 
                         pageDirty = true;
-                        DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
+                        if (roundedRow) {
+                            DrawRoundedCellBorderStrokes(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                        } else {
+                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
+                        }
                     }
                     borderX += table.ColumnWidths[borderColumn] + columnGap;
                 }

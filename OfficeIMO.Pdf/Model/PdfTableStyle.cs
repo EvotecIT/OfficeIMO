@@ -24,6 +24,7 @@ public class PdfTableStyle {
     private System.Collections.Generic.List<double?>? _fixedRowHeights;
     private System.Collections.Generic.List<bool?>? _rowAllowBreakAcrossPages;
     private double _borderWidth = 0.5;
+    private double _cornerRadius;
     private double _rowSeparatorWidth;
     private double _headerSeparatorWidth;
     private double _footerSeparatorWidth;
@@ -63,6 +64,21 @@ public class PdfTableStyle {
         set {
             ValidateNonNegativeFiniteValue(value, nameof(BorderWidth), "Table border width must be a non-negative finite value.");
             _borderWidth = value;
+        }
+    }
+    /// <summary>
+    /// Corner radius, in points, for the table's outer box. Zero (the default) keeps square corners.
+    /// The rounding is applied to the outer perimeter only: the top corners of the first row and the
+    /// bottom corners of the last row are rounded, while interior grid lines stay straight. Cell fills
+    /// and per-cell border overrides (for example an accent stripe or a top-accent bar) are clipped to
+    /// the rounded outer box so they follow the curve instead of overrunning it. Most useful for
+    /// single-row / single-cell tables such as callouts and stat cards.
+    /// </summary>
+    public double CornerRadius {
+        get => _cornerRadius;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(CornerRadius), "Table corner radius must be a non-negative finite value.");
+            _cornerRadius = value;
         }
     }
     /// <summary>Background fill color for the header row. Set to null for no fill.</summary>
@@ -629,6 +645,7 @@ public class PdfTableStyle {
         var clone = new PdfTableStyle {
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
+            CornerRadius = CornerRadius,
             HeaderFill = HeaderFill,
             FooterFill = FooterFill,
             RowStripeFill = RowStripeFill,

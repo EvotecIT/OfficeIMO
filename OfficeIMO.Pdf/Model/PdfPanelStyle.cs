@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public class PdfPanelStyle {
     private PdfAlign _align = PdfAlign.Left;
     private double _borderWidth = 0.5;
+    private double _cornerRadius;
     private double _paddingY = 6;
     private double _paddingX = 6;
     private double? _maxWidth;
@@ -26,6 +27,18 @@ public class PdfPanelStyle {
         set {
             ValidateNonNegativeFiniteValue(value, nameof(BorderWidth), "Panel border width must be a non-negative finite value.");
             _borderWidth = value;
+        }
+    }
+    /// <summary>
+    /// Corner radius, in points, for the panel box. Zero (the default) keeps square corners. When set,
+    /// the background fill and the uniform border follow rounded corners; per-side border overrides are
+    /// clipped to the rounded box so they do not overrun the curve.
+    /// </summary>
+    public double CornerRadius {
+        get => _cornerRadius;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(CornerRadius), "Panel corner radius must be a non-negative finite value.");
+            _cornerRadius = value;
         }
     }
     /// <summary>Optional top border override. When set, it overrides the uniform border for this side.</summary>
@@ -112,6 +125,7 @@ public class PdfPanelStyle {
             Background = Background,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
+            CornerRadius = CornerRadius,
             TopBorder = _topBorder,
             RightBorder = _rightBorder,
             BottomBorder = _bottomBorder,

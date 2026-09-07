@@ -366,7 +366,7 @@ internal static partial class PdfWriter {
 
             var decoration = new StringBuilder();
             if (scope.Style.Background.HasValue) {
-                DrawRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure);
+                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, true, true, true, true, emitGeneratedStructure);
             }
 
             DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure);
