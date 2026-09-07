@@ -2,6 +2,24 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Text export and quote density
+
+`CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
+DataReader API and CsvHelper. It covers short labels, long notes, JSON-shaped
+text, and an all-quotes stress case under `AsNeeded` and `Always`. Setup reads
+every output field and requires identical CSV text, including headers, quoting,
+Unicode, and line endings. The timed operation includes writer and reader
+construction plus the complete export to a `StringWriter`.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvTextWriteBenchmarks*" --priority Normal --invocationCount 32 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove
+```
+
+On Windows, add `--affinityMasks` with masks derived from the current machine's
+cache topology. Keep each domain separate and retain outliers when background
+work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+records the long-note improvement and the limits of short-row timing on a busy PC.
+
 ## Historical generated workstation snapshot
 
 This single-workstation table is retained so the older focused investigations

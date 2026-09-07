@@ -1,0 +1,132 @@
+{
+  "date": "2026-09-07",
+  "baselineCommit": "d3aa130ac52beb39cf382cef7987cc5b29d5bd2e",
+  "csvCandidateCommit": "b387d70e5685deb3e63189f941ae3299ab05fc01",
+  "excelCandidateCommit": "d4335a46866980d65f2ada88620e40f7d33c42f8",
+  "sourceBoundary": "Product code is committed; documentation edits were present during measurements. Product and harness binary hashes identify the before/after and final text-export artifacts. Reader measurements preceded the final writer adjustment; reader source was unchanged.",
+  "cpu": "AMD Ryzen 9 9950X3D2; 16 cores; 32 logical processors",
+  "l3Domains": [
+    {
+      "mask": "0xFFFF",
+      "bytes": 100663296
+    },
+    {
+      "mask": "0xFFFF0000",
+      "bytes": 100663296
+    }
+  ],
+  "os": "Windows 11 10.0.26200.9168",
+  "sdk": "10.0.111",
+  "runtime": "10.0.11",
+  "benchmarkDotNet": "0.15.8",
+  "powerShell": "7.6.5",
+  "powerForgeHostModule": "PSPublishModule local installed build 3.0.135.1",
+  "priority": "Normal",
+  "outliers": "Retained",
+  "nativeTextJob": {
+    "iterationCount": 12,
+    "invocationCount": 8,
+    "warmupCount": 6,
+    "unrollFactor": 1,
+    "launchCount": 1
+  },
+  "rotatedJob": {
+    "runOrder": "Rotated",
+    "iterationCount": 24,
+    "warmupCount": 8,
+    "outlierMode": "None",
+    "exportsPerOperation": 32
+  },
+  "competitors": [
+    {
+      "Package": "csvhelper",
+      "LatestStable": "33.1.0"
+    },
+    {
+      "Package": "sep",
+      "LatestStable": "0.17.0"
+    },
+    {
+      "Package": "sylvan.data.csv",
+      "LatestStable": "1.4.4"
+    },
+    {
+      "Package": "sylvan.data.excel",
+      "LatestStable": "0.5.8"
+    },
+    {
+      "Package": "excelreader.net",
+      "LatestStable": "3.0.1"
+    },
+    {
+      "Package": "spreadcheetah",
+      "LatestStable": "1.28.0"
+    },
+    {
+      "Package": "largexlsx",
+      "LatestStable": "2.0.2"
+    },
+    {
+      "Package": "closedxml",
+      "LatestStable": "0.105.1"
+    },
+    {
+      "Package": "epplus",
+      "LatestStable": "8.7.0"
+    }
+  ],
+  "sha256": [
+    {
+      "artifact": "OfficeIMO.CSV.baseline.dll",
+      "hash": "625526515788958D4103C1BD461EE54122A448B93CCF5696BF698A2C0E67FD42"
+    },
+    {
+      "artifact": "OfficeIMO.Excel.baseline.dll",
+      "hash": "2CEAA715048C5115CE639E10FB2A8244B40A6D0BFB97A777F6E9E22744A3BD6A"
+    },
+    {
+      "artifact": "CSV-candidate/OfficeIMO.CSV.dll",
+      "hash": "9EDD669C17F3E78CCF3FD963EBA16E043BD923DF4F13D21354741693D7674359"
+    },
+    {
+      "artifact": "Excel-candidate/OfficeIMO.Excel.dll",
+      "hash": "C277D96E019D34914C2DF3FDB94086852FA4C5936CDCACCBB77C0BBE4FFBBCF6"
+    },
+    {
+      "artifact": "CSV-baseline/OfficeIMO.CSV.Benchmarks.dll",
+      "hash": "9B4C2596EE533CF17B89E0141A0364D048503B8267AFE0ECE9804658970CB0FD"
+    },
+    {
+      "artifact": "CSV-candidate/OfficeIMO.CSV.Benchmarks.dll",
+      "hash": "9B4C2596EE533CF17B89E0141A0364D048503B8267AFE0ECE9804658970CB0FD"
+    },
+    {
+      "artifact": "Excel-baseline/OfficeIMO.Excel.Benchmarks.dll",
+      "hash": "6591BA229A33A870CD8A9D0C1EEC474EE27F27C309E96704C909100C928567FC"
+    },
+    {
+      "artifact": "Excel-candidate/OfficeIMO.Excel.Benchmarks.dll",
+      "hash": "6591BA229A33A870CD8A9D0C1EEC474EE27F27C309E96704C909100C928567FC"
+    },
+    {
+      "artifact": "fixtures/65K_Records_Data.csv",
+      "hash": "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490"
+    },
+    {
+      "artifact": "fixtures/65K_Records_Data.xlsx",
+      "hash": "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8"
+    }
+  ],
+  "publicApiComparison": [
+    {
+      "Assembly": "OfficeIMO.CSV",
+      "ExportedTypeAndMemberRecords": 485,
+      "Equal": true
+    },
+    {
+      "Assembly": "OfficeIMO.Excel",
+      "ExportedTypeAndMemberRecords": 11402,
+      "Equal": true
+    }
+  ]
+}

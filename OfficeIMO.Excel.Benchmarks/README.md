@@ -2,6 +2,23 @@
 
 `OfficeIMO.Excel.Benchmarks` is the benchmark harness for `OfficeIMO.Excel`. It measures representative workbook read, write, edit, package-size, and real-world feature workloads. It is not a runtime package.
 
+## Text export
+
+`ExcelTextWriteBenchmarks` writes complete XLSX packages containing 1,000
+two-column rows with short or long strings, Unicode, sparse XML escapes, and dense markup.
+OfficeIMO and SpreadCheetah receive the same table. Setup reopens each package
+with ExcelDataReader, compares every cell, rejects extra rows, and records
+package bytes. The timed operation includes reader construction, serialization,
+compression, and package finalization; fixture creation and validation are outside it.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelTextWriteBenchmarks*" --priority Normal --invocationCount 16 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove
+```
+
+Use topology-derived `--affinityMasks` on Windows to compare cache domains
+separately. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+records the XML escaping improvement, package sizes, and remaining long-text cost.
+
 ## Run benchmarks
 
 ```powershell
