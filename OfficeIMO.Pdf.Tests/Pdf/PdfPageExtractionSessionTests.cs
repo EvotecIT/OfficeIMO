@@ -5,6 +5,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPageExtractionSessionTests {
     [Fact]
+    public void ReadModelEditsDoNotChangeMetadataPreservedByPageOperations() {
+        byte[] bytes = PdfDocument.Create().Meta(title: "Original title")
+            .Paragraph(p => p.Text("FirstPage")).PageBreak().Paragraph(p => p.Text("SecondPage")).ToBytes();
+        PdfDocument source = PdfDocument.Load(bytes);
+        source.Read().Metadata.Title = "Changed read model";
+        source.Inspect().Metadata.Author = "Changed inspection";
+
+        var outputs = new List<PdfDocument> { source.Pages.Extract(1), PdfDocument.Merge(new[] { source, source }) };
+        outputs.AddRange(source.Pages.Split());
+        outputs.AddRange(source.Pages.Split(PdfPageSelection.From(2), PdfPageSelection.From(1)));
+        foreach (PdfDocument output in outputs) {
+            PdfMetadata metadata = PdfReadDocument.Open(output.ToBytes()).Metadata;
+            Assert.Equal("Original title", metadata.Title);
+            Assert.Null(metadata.Author);
+        }
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
+    [Fact]
     public void CompoundSelectionsPreserveRepeatedPagesOrderAndSource() {
         byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("FirstPage"))
             .PageBreak().Paragraph(p => p.Text("SecondPage"))

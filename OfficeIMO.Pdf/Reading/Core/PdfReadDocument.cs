@@ -168,7 +168,8 @@ public sealed partial class PdfReadDocument {
     public PdfRepairReport RepairReport { get; }
 
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
-    internal PdfMetadata UncheckedMetadata => _metadata;
+    // Rewrites and inspection must read the parsed source, since Metadata is a mutable read model.
+    internal PdfMetadata UncheckedMetadata => ExtractMetadata();
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;
