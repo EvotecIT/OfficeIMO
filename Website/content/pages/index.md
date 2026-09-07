@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO — Studio, CLI, and document libraries"
-description: "Work with documents in Studio, automate with OfficeIMO.Tool, or build with .NET and PowerShell libraries. Explore document tools without Microsoft Office."
+description: "Create reports, convert Office files, organize PDFs, and extract document content with open-source .NET, PowerShell, CLI, browser tools, and OfficeIMO Studio."
 layout: home
 slug: index
 meta.social_image: "/images/officeimo-social-premium.jpg"

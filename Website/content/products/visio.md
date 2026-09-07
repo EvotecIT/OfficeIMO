@@ -2,6 +2,7 @@
 title: "OfficeIMO.Visio"
 description: "Create Visio diagrams with builders, stencils, graph layouts, shapes, connectors, and pages. No Visio installation required."
 layout: product
+meta.showcase_id: "cloud-architecture-diagram"
 product_color: "#ea580c"
 install: "dotnet add package OfficeIMO.Visio"
 nuget: "OfficeIMO.Visio"

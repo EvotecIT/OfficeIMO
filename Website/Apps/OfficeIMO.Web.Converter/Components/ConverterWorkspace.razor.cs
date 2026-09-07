@@ -150,7 +150,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
             "pdf-docx" or "pdf-xlsx" or "pdf-pptx" or "pdf-html" or "pdf-png" => new("Sample PDF", "samples/showcase-dashboard.pdf", "OfficeIMO-Showcase.pdf", ".pdf"),
             "xlsx-pdf" => new("Sample XLSX", "samples/basic.xlsx", "OfficeIMO-Table.xlsx", ".xlsx"),
             "pptx-pdf" => new("Sample PPTX", "samples/conversion-proof.pptx", "OfficeIMO-Conversion-Proof.pptx", ".pptx"),
-            _ => new("Sample DOCX", "samples/basic.docx", "OfficeIMO-Basic.docx", ".docx")
+            _ => new("Sample DOCX", "samples/business-summary.docx", "OfficeIMO-Monthly-Operations.docx", ".docx")
         };
         await ResetOutputAsync();
         Diagnostics.Clear();

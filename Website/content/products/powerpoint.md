@@ -2,6 +2,7 @@
 title: "OfficeIMO.PowerPoint"
 description: "Create and edit PPTX, work with documented legacy PowerPoint subsets, and inspect compatibility limits from .NET without Microsoft PowerPoint."
 layout: product
+meta.showcase_id: "design-guided-presentation-deck"
 product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
 nuget: "OfficeIMO.PowerPoint"

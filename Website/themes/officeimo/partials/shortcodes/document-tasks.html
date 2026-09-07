@@ -1,0 +1,13 @@
+<section class="imo-document-tasks" aria-labelledby="document-tasks-title">
+  <h2 id="document-tasks-title">{{ data.document_tasks.title }}</h2>
+  <div class="imo-document-tasks__grid">
+    {{~ for task in data.document_tasks.tasks ~}}
+    <article id="task-{{ task.id }}">
+      <h3><a href="{{ task.guide }}">{{ task.title }}</a></h3>
+      <p>{{ task.summary }}</p>
+      <ul>{{~ for path in task.paths ~}}<li><a href="{{ path.url }}">{{ path.label }}</a></li>{{~ end ~}}</ul>
+      <p class="imo-document-tasks__boundary">{{ task.boundary }}</p>
+    </article>
+    {{~ end ~}}
+  </div>
+</section>

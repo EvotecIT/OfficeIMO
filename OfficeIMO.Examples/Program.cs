@@ -174,6 +174,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--browser-business-sample")) {
+                Showcase.BrowserBusinessSample.Create(folderPath);
+                return;
+            }
+
             if (HasArgument(args, "--showcase-features")) {
                 Showcase.DocumentFeatureShowcase.Example(folderPath, GetArgumentValue(args, "--showcase-group"));
                 return;

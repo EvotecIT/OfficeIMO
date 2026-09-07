@@ -7,30 +7,30 @@ meta.primary_label: "Read the PDF guide"
 meta.primary_url: "/docs/pdf/"
 ---
 
-QuestPDF and OfficeIMO.Pdf both generate PDF files inside a .NET process without a hosted conversion service. QuestPDF is centered on a fluent layout API for generated documents. OfficeIMO.Pdf combines authoring with native parsing, inspection, forms, annotations, attachments, signatures, compliance, extraction, redaction, optimization, and adapters from other OfficeIMO formats.
+QuestPDF and OfficeIMO.Pdf both generate PDF files inside a .NET process without a hosted conversion service. QuestPDF combines a fluent layout API with operations on existing PDFs. OfficeIMO.Pdf combines authoring with native parsing, inspection, forms, annotations, attachments, signatures, compliance, extraction, redaction, optimization, and adapters from other OfficeIMO formats.
 
-QuestPDF facts and license boundaries were last checked on 27 July 2026 against its official [quick start](https://www.questpdf.com/quick-start.html), [pricing page](https://www.questpdf.com/pricing.html), and [Community License](https://www.questpdf.com/license/community.html).
+QuestPDF facts were checked on 7 September 2026 against its official [document operations](https://www.questpdf.com/concepts/document-operations.html), [quick start](https://www.questpdf.com/quick-start.html), and [Community License](https://www.questpdf.com/license/community.html). Documented support is recorded below; an unverified operation is not a claim that a feature is absent.
 
 ## Compare the product shape
 
 | Question | OfficeIMO.Pdf | QuestPDF |
 | --- | --- | --- |
-| Primary workflow | Author, parse, inspect, transform, and bridge PDF with other document formats | Compose generated PDFs with a fluent layout API |
-| Read and inspect existing PDFs | Yes | Not its primary documented purpose |
-| Forms, annotations, attachments, bookmarks, signatures | First-party APIs with explicit read/update paths | Verify current support for the exact operation |
-| Redaction, sanitization, optimization, preflight, diagnostics | Yes | Verify current support for the exact operation |
-| Word, Excel, PowerPoint, OneNote, HTML, Markdown adapters | Focused OfficeIMO converter packages | Application or other library responsibility |
-| Offline execution | Yes | Yes |
-| License | MIT open source | Source-available Community or paid commercial license |
-
-QuestPDF's current Community License is not an OSI-approved open-source license. Eligibility includes individuals, qualifying organizations, FOSS projects, and businesses below its stated revenue threshold; public-sector and publicly traded organizations have separate constraints. Recheck the controlling license before adoption.
+| Generate reports | Fluent authoring, tables, charts, and page-aware components | Fluent layout and reusable components |
+| Load, merge, select, and reorder pages | First-party parsing and page operations; [browser samples](/pdf/) | Document Operations API |
+| Overlay and attach files | Stamps, overlays, and embedded attachments | Overlay/underlay and attachment APIs |
+| Password protection and Fast Web View | AES-256 protection and lossless optimization profiles | Encryption, decryption, and linearization |
+| Text inspection, forms, redaction, and signing | Focused APIs; [supported workflows and limits](/products/pdf/) | Not established by the sources reviewed here; evaluate each required operation |
+| Word, Excel, PowerPoint, HTML, and Markdown conversion | Focused OfficeIMO adapters with diagnostics | Outside the document-operations comparison |
+| Offline execution | Yes; optional providers have their own dependencies | Yes |
+| License | MIT | Community eligibility or a paid license |
+QuestPDF's Community License has eligibility conditions; organizations outside them need a paid license. Consult its [current pricing](https://www.questpdf.com/pricing.html) and controlling license when choosing a deployment.
 
 ## Choose QuestPDF when
 
 - the application primarily generates new fixed-layout PDFs;
 - its fluent layout system, tutorials, and component model fit the report design;
 - the organization qualifies for or purchases the appropriate license;
-- reading, repairing, signing, or transforming arbitrary existing PDFs is outside scope.
+- its documented page operations cover the transformations you need.
 
 ## Choose OfficeIMO.Pdf when
 
@@ -42,5 +42,7 @@ QuestPDF's current Community License is not an OSI-approved open-source license.
 ## Test the output, not only the API
 
 PDF layout depends on fonts, shaping, images, pagination, and viewer behavior. Keep visual baselines for representative output, inspect structural requirements, and test accessibility or compliance claims with the actual delivery profile. For input transformations, retain the source and write a new artifact until readback succeeds.
+
+Compare the committed [PDF generation and page-operation benchmarks](/benchmarks/) for an equivalent workload and environment. There is no universal performance ranking across all PDF tasks.
 
 Continue with the [OfficeIMO.Pdf documentation](/docs/pdf/), [PDF product page](/products/pdf/), or [conversion routes](/docs/pdf/conversion/).

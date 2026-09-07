@@ -2,7 +2,7 @@
   "studio": {
     "eyebrow": "Desktop document workspace",
     "headline": "Your documents. A clearer workspace.",
-    "summary": "Read a PDF, review comments, organize pages, and check the result before saving. Studio puts OfficeIMO's document tools in a visual workspace.",
+    "summary": "Edit supported PDF text and images, review comments, fill forms, and organize pages. Convert and assemble documents, then inspect the result before saving.",
     "primaryLabel": "Explore the workspace",
     "primaryUrl": "#application-guide",
     "secondaryLabel": "Source and build guide",
@@ -10,7 +10,7 @@
     "availability": "Desktop source build · Public installers are not available yet",
     "image": "/images/studio/workspace-light.png",
     "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
-    "caption": "Actual Studio window with an OfficeIMO sample PDF. Captured from the desktop source build.",
+    "caption": "Actual Studio window with an OfficeIMO sample PDF. Desktop source build. Select the image to open it at full size.",
     "facts": ["Windows · macOS · Linux development", "Local document workflows", "MIT licensed"],
     "channels": [
       { "name": "Direct downloads", "detail": "Installers and portable archives", "state": "In preparation" },

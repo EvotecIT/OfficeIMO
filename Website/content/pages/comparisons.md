@@ -1,8 +1,8 @@
 ---
-title: "Compare OfficeIMO with .NET Document Libraries"
-description: "Compare OfficeIMO with commercial suites, Office Interop, LibreOffice, focused .NET libraries, and ingestion tools using dated first-party sources."
+title: "Compare OfficeIMO document libraries and PDF tools"
+description: "Compare OfficeIMO libraries and Studio with commercial suites, desktop PDF tools, focused .NET libraries, and ingestion tools using dated sources."
 layout: comparison-hub
-meta.eyebrow: ".NET library comparisons"
+meta.eyebrow: "Document workflow comparisons"
 meta.outcome: "Choose from workload evidence instead of brand claims"
 meta.primary_label: "Check OfficeIMO compatibility"
 meta.primary_url: "/compatibility/"
@@ -17,6 +17,17 @@ meta.primary_url: "/compatibility/"
 </section>
 
 <p>Evaluate a concrete document before choosing a library: <a href="/showcase/">download generated Office documents</a>, inspect the <a href="/showcase/?format=html">HTML rendering examples</a>, or <a href="/convert/">try the browser tools</a>.</p>
+
+<section class="imo-comparison-family" aria-labelledby="comparison-desktop-title">
+  <div class="imo-comparison-family__heading"><p class="imo-comparison-eyebrow">Desktop applications</p><h2 id="comparison-desktop-title">Choose a PDF workspace</h2></div>
+  <div class="imo-comparison-grid">
+    <article class="imo-comparison-card">
+      <h3><a href="/comparisons/pdf-desktop-tools/">Studio, Acrobat, Foxit, and free PDF tools</a></h3>
+      <p>Compare editing, OCR, printing, automation, and installation availability by edition. Studio currently requires a source build.</p>
+      <a class="imo-comparison-card__link" href="/comparisons/pdf-desktop-tools/">Compare desktop workflows <span aria-hidden="true">→</span></a>
+    </article>
+  </div>
+</section>
 
 <section id="commercial-suites" class="imo-comparison-group" aria-labelledby="commercial-suites-title">
   <div class="imo-comparison-group__heading">

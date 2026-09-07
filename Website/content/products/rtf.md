@@ -2,6 +2,7 @@
 title: "OfficeIMO.Rtf"
 description: "Read, create, edit, preserve, and convert Rich Text Format documents with bounded parsing and explicit fidelity reports."
 layout: product
+meta.showcase_id: "change-approval-memo"
 meta.seo_title: "RTF editing and conversion for .NET"
 product_color: "#0f766e"
 product_label: "Rich Text Format engine"

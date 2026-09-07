@@ -1,7 +1,8 @@
 .imo-platform-hero { padding-top: 4rem; padding-bottom: 2.5rem; text-align: center; }
 .imo-platform-hero h1 { font-size: clamp(3rem, 7vw, 5.4rem); line-height: 1.04; letter-spacing: -.045em; font-weight: 650; margin: 1rem 0 1.5rem; }
 .imo-platform-hero h1 span { color: var(--imo-accent); }
-.imo-platform-hero > p:last-child { color: var(--imo-text-secondary); font-size: 1.15rem; line-height: 1.7; }
+.imo-platform-hero > p:not(.imo-application-eyebrow) { color: var(--imo-text-secondary); font-size: 1.15rem; line-height: 1.7; }
+.imo-platform-hero .imo-application-actions { margin-top: 1.5rem; }
 .imo-body--downloads .imo-platform-hero h1 { font-size: clamp(2.4rem, 4vw, 3.4rem); }
 .imo-entry-points { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; padding-bottom: 3.5rem; }
 .imo-entry-point { display: flex; flex-direction: column; border: 1px solid var(--imo-border); border-radius: 10px; padding: 1.6rem; color: var(--imo-text); background: var(--imo-surface); }

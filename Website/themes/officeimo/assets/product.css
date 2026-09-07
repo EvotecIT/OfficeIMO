@@ -1547,3 +1547,12 @@
   .imo-comparison-map__node--runtime { left: 0; }
   .imo-comparison-map__node--ingestion { right: 0; }
 }
+
+.imo-product-example { margin: 0; overflow: hidden; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
+.imo-product-example img { display: block; width: 100%; height: auto; max-height: 420px; object-fit: contain; background: #fff; }
+.imo-product-example figcaption, .imo-product-example--guide { padding: 1.25rem; line-height: 1.6; }
+.imo-product-example figcaption p { color: var(--imo-text-secondary); font-size: .9rem; margin: .5rem 0; }
+.imo-product-example a { color: var(--imo-accent); }
+.imo-product-proof .imo-product-proof__code { position: static; inset: auto; width: 100%; max-width: none; margin-top: 1rem; transform: none; }
+.imo-benchmark-evidence-notes { margin: 2rem 0; border-block: 1px solid var(--imo-border); }
+.imo-benchmark-evidence-notes > summary { padding: 1.2rem 0; cursor: pointer; font-weight: 650; }

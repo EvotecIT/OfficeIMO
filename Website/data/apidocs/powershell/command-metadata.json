@@ -161,8 +161,8 @@
         "ExcelReportCallout"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 138,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L138"
+      "sourceLine": 140,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L140"
     },
     {
       "name": "Add-OfficeExcelReportKpiRow",
@@ -171,8 +171,8 @@
         "ExcelReportKpiRow"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 177,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L177"
+      "sourceLine": 179,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L179"
     },
     {
       "name": "Add-OfficeExcelReportLegend",
@@ -181,8 +181,8 @@
         "ExcelReportLegend"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 216,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L216"
+      "sourceLine": 218,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L218"
     },
     {
       "name": "Add-OfficeExcelReportParagraph",
@@ -191,8 +191,8 @@
         "ExcelReportParagraph"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 84,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L84"
+      "sourceLine": 86,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L86"
     },
     {
       "name": "Add-OfficeExcelReportSection",
@@ -201,8 +201,8 @@
         "ExcelReportSection"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 57,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L57"
+      "sourceLine": 59,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L59"
     },
     {
       "name": "Add-OfficeExcelReportSheet",
@@ -221,8 +221,8 @@
         "ExcelReportSpacer"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 112,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L112"
+      "sourceLine": 114,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L114"
     },
     {
       "name": "Add-OfficeExcelReportTable",
@@ -231,8 +231,8 @@
         "ExcelReportTable"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 273,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L273"
+      "sourceLine": 275,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L275"
     },
     {
       "name": "Add-OfficeExcelReportTitle",
@@ -241,8 +241,8 @@
         "ExcelReportTitle"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs",
-      "sourceLine": 26,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L26"
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/OfficeExcelReportBlockCommands.cs#L28"
     },
     {
       "name": "Add-OfficeExcelSheet",
@@ -292,8 +292,8 @@
         "ExcelTable"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableCommand.cs#L22"
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableCommand.cs#L23"
     },
     {
       "name": "Add-OfficeExcelTableOfContents",
@@ -402,6 +402,16 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelValidationWholeNumberCommand.cs",
       "sourceLine": 18,
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelValidationWholeNumberCommand.cs#L18"
+    },
+    {
+      "name": "Add-OfficeExcelVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "ExcelVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelVisualCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelVisualCommand.cs#L13"
     },
     {
       "name": "Add-OfficeMarkdownCallout",
@@ -521,8 +531,8 @@
         "MarkdownTable"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownTableCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownTableCommand.cs#L29"
+      "sourceLine": 30,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownTableCommand.cs#L30"
     },
     {
       "name": "Add-OfficeMarkdownTableOfContents",
@@ -714,8 +724,8 @@
         "PdfTable"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs",
-      "sourceLine": 30,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs#L30"
+      "sourceLine": 31,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs#L31"
     },
     {
       "name": "Add-OfficePdfText",
@@ -726,6 +736,16 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTextCommand.cs",
       "sourceLine": 37,
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTextCommand.cs#L37"
+    },
+    {
+      "name": "Add-OfficePdfVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "PdfVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfVisualCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfVisualCommand.cs#L13"
     },
     {
       "name": "Add-OfficePdfWatermark",
@@ -902,6 +922,16 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointTextBoxCommand.cs",
       "sourceLine": 22,
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointTextBoxCommand.cs#L22"
+    },
+    {
+      "name": "Add-OfficePowerPointVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "PptVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointVisualCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointVisualCommand.cs#L13"
     },
     {
       "name": "Add-OfficeVisioConnector",
@@ -1316,6 +1346,16 @@
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextBoxCommand.cs#L19"
     },
     {
+      "name": "Add-OfficeWordVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "WordVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordVisualCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordVisualCommand.cs#L19"
+    },
+    {
       "name": "Add-OfficeWordWatermark",
       "kind": "Cmdlet",
       "aliases": [
@@ -1593,8 +1633,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownCommand.cs",
-      "sourceLine": 33,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownCommand.cs#L33"
+      "sourceLine": 32,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownCommand.cs#L32"
     },
     {
       "name": "ConvertTo-OfficeMarkdownHtml",
@@ -1723,6 +1763,16 @@
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioSvgCommand.cs#L22"
     },
     {
+      "name": "ConvertTo-OfficeVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "OfficeVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visuals/ConvertToOfficeVisualCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Visuals/ConvertToOfficeVisualCommand.cs#L17"
+    },
+    {
       "name": "ConvertTo-OfficeWordDocument",
       "kind": "Cmdlet",
       "aliases": [],
@@ -1817,6 +1867,14 @@
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.cs#L30"
     },
     {
+      "name": "Export-OfficeExcelChartImage",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelChartImageCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelChartImageCommand.cs#L16"
+    },
+    {
       "name": "Export-OfficeExcelGoogleSpreadsheet",
       "kind": "Cmdlet",
       "aliases": [],
@@ -1831,6 +1889,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs",
       "sourceLine": 19,
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs#L19"
+    },
+    {
+      "name": "Export-OfficeExcelRangeImage",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelRangeImageCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelRangeImageCommand.cs#L16"
     },
     {
       "name": "Export-OfficeHtmlImage",
@@ -4022,8 +4088,8 @@
         "PdfCompliance"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfComplianceCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfComplianceCommand.cs#L21"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfComplianceCommand.cs#L22"
     },
     {
       "name": "Set-OfficePdfElectronicInvoice",

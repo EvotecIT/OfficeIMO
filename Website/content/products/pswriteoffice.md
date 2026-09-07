@@ -2,6 +2,7 @@
 title: "PSWriteOffice"
 description: "Automate Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, and LaTeX workflows from PowerShell."
 layout: product
+meta.showcase_id: "customer-delivery-summary"
 product_color: "#d97706"
 product_label: "PowerShell document automation"
 runtime_label: "PowerShell 5.1 and 7+"

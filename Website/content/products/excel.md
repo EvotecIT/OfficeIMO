@@ -2,6 +2,7 @@
 title: "OfficeIMO.Excel"
 description: "Create and edit XLSX, work with documented XLS and XLSB subsets, and inspect compatibility limits from .NET without Microsoft Excel."
 layout: product
+meta.showcase_id: "operational-excel-report"
 product_color: "#059669"
 install: "dotnet add package OfficeIMO.Excel"
 nuget: "OfficeIMO.Excel"
