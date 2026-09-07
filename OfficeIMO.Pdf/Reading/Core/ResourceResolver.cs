@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -269,7 +270,7 @@ internal static partial class ResourceResolver {
         return result;
     }
 
-    internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false, PdfReadLimits? limits = null, PdfOutputIntentColorTransform? outputIntentColorTransform = null, Func<int, long, bool>? colorFunctionEvaluationBudget = null, PdfColorFunctionResolutionContext? functionResolutionContext = null) {
+    internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false, PdfReadLimits? limits = null, PdfOutputIntentColorTransform? outputIntentColorTransform = null, Func<int, long, bool>? colorFunctionEvaluationBudget = null, PdfColorFunctionResolutionContext? functionResolutionContext = null, CancellationToken cancellationToken = default) {
         var result = new List<PdfExtractedImage>();
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey = null;
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity = null;
@@ -290,11 +291,11 @@ internal static partial class ResourceResolver {
 
         PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
         int traversedObjects = 0;
-        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects);
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects, CancellationToken cancellationToken) {
         if (depth > limits.MaxContentNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth);
         }
@@ -304,6 +305,7 @@ internal static partial class ResourceResolver {
         if (xo is null) return;
 
         foreach (var kv in xo.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             traversedObjects++;
             if (traversedObjects > limits.MaxContentOperands) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperands, limits.MaxContentOperands, traversedObjects);
@@ -376,7 +378,7 @@ internal static partial class ResourceResolver {
                             outputIntentColorTransform: outputIntentColorTransform,
                             colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                             functionResolutionContext: functionResolutionContext,
-                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent));
+                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
                     }
                 } else {
                     if (matchingPlacements is null) {
@@ -384,7 +386,7 @@ internal static partial class ResourceResolver {
                             continue;
                         }
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext));
+                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken));
                     } else {
                         List<EffectiveImageIntent> effectiveIntents = GetDistinctImageIntents(
                             matchingPlacements,
@@ -410,7 +412,7 @@ internal static partial class ResourceResolver {
                                 outputIntentColorTransform: outputIntentColorTransform,
                                 colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                                 functionResolutionContext: functionResolutionContext,
-                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent));
+                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
                         }
                     }
                 }
@@ -432,7 +434,7 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects);
+            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects, cancellationToken);
         }
     }
 
@@ -1210,7 +1212,7 @@ internal static partial class ResourceResolver {
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<int, long, bool>? colorFunctionEvaluationBudget = null,
         PdfColorFunctionResolutionContext? functionResolutionContext = null,
-        bool inheritedHasAuthoredRenderingIntent = false) {
+        bool inheritedHasAuthoredRenderingIntent = false, CancellationToken cancellationToken = default) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -1260,7 +1262,7 @@ internal static partial class ResourceResolver {
                 objects,
                 colorizeImageMask ? imageMaskColor : null,
                 maxDecodedStreamBytes,
-                out var imageMaskPngBytes)) {
+                out var imageMaskPngBytes, cancellationToken)) {
             bytes = imageMaskPngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -1268,7 +1270,7 @@ internal static partial class ResourceResolver {
         } else if (!hasMalformedFilterDeclaration &&
                    IsDctFilterChain(stream.Dictionary, objects) &&
                    (RequiresDctColorNormalization(stream.Dictionary, colorSpace, transparencyMaskKind, objects) || hasSupportedOutputIntent)) {
-            if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var colorManagedJpegPngBytes)) {
+            if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var colorManagedJpegPngBytes, cancellationToken)) {
                 bytes = colorManagedJpegPngBytes;
                 extension = "png";
                 mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -1297,7 +1299,7 @@ internal static partial class ResourceResolver {
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg);
             isImageFile = true;
         } else if (!hasMalformedFilterDeclaration &&
-                   TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var pngBytes)) {
+                   TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var pngBytes, cancellationToken)) {
             bytes = pngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -1485,7 +1487,8 @@ internal static partial class ResourceResolver {
         PdfOutputIntentColorTransform? outputIntentColorTransform,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         PdfColorFunctionResolutionContext? functionResolutionContext,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         pngBytes = Array.Empty<byte>();
         if (width <= 0 || height <= 0) {
             return false;
@@ -1496,10 +1499,10 @@ internal static partial class ResourceResolver {
         }
 
         if (IsPackedGray(colorSpace, bitsPerComponent)) {
-            if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded)) return false;
+            if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded, cancellationToken)) return false;
             return TryBuildPngFile(expanded, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
                 objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
-                colorFunctionEvaluationBudget, functionResolutionContext, out pngBytes);
+                colorFunctionEvaluationBudget, functionResolutionContext, out pngBytes, cancellationToken);
         }
 
         if (IsDctFilterChain(stream.Dictionary, objects) &&
@@ -1595,7 +1598,7 @@ internal static partial class ResourceResolver {
                     objects,
                     maxDecodedStreamBytes,
                     dctPixels,
-                    out pngBytes);
+                    out pngBytes, cancellationToken);
             }
 
             return colorKeyMask is not null
@@ -1608,7 +1611,7 @@ internal static partial class ResourceResolver {
                     colorKeyMask,
                     dctPixels,
                     maxDecodedStreamBytes,
-                    out pngBytes)
+                    out pngBytes, cancellationToken)
                 : TryBuildPngFileFromDecodedPixels(
                     width,
                     height,
@@ -1617,7 +1620,7 @@ internal static partial class ResourceResolver {
                     colorDecodeTransform,
                     dctPixels,
                     maxDecodedStreamBytes,
-                    out pngBytes);
+                    out pngBytes, cancellationToken);
         }
 
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
@@ -1644,11 +1647,11 @@ internal static partial class ResourceResolver {
                 objects,
                 maxDecodedStreamBytes,
                 decodedBasePixels: null,
-                out pngBytes);
+                out pngBytes, cancellationToken);
         }
 
         if (colorKeyMask is not null) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes, cancellationToken)) {
                 return false;
             }
             return TryBuildPngFileFromDecodedPixelsWithColorKeyMask(
@@ -1660,15 +1663,15 @@ internal static partial class ResourceResolver {
                 colorKeyMask,
                 pixels,
                 maxDecodedStreamBytes,
-                out pngBytes);
+                out pngBytes, cancellationToken);
         }
 
         if (string.IsNullOrEmpty(filter)) {
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, stream.Data, maxDecodedStreamBytes, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, stream.Data, maxDecodedStreamBytes, out pngBytes, cancellationToken);
         }
 
         if (!string.Equals(filter, "FlateDecode", System.StringComparison.Ordinal)) {
-            return TryBuildPngFileFromSupportedDecodedStream(stream, width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, objects, maxDecodedStreamBytes, out pngBytes);
+            return TryBuildPngFileFromSupportedDecodedStream(stream, width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, objects, maxDecodedStreamBytes, out pngBytes, cancellationToken);
         }
 
         PdfDictionary? decodeParms = null;
@@ -1678,10 +1681,10 @@ internal static partial class ResourceResolver {
 
         int predictor = (int)(decodeParms?.Get<PdfNumber>("Predictor")?.Value ?? 1);
         if (predictor <= 1 || predictor == 2) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes, cancellationToken)) {
                 return false;
             }
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes, cancellationToken);
         }
 
         if (predictor < 10 || predictor > 15) {
@@ -1692,13 +1695,13 @@ internal static partial class ResourceResolver {
             colorNormalization.RequiresColorConversion ||
             colorDecodeTransform is not null ||
             !CanWrapPngPredictorScanlines(decodeParms, width, bitsPerComponent, colorNormalization.SourceColorCount)) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes, cancellationToken)) {
                 return false;
             }
-            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes, cancellationToken);
         }
 
-        if (!TryDecodeImageStream(stream, objects, out _, maxDecodedStreamBytes)) {
+        if (!TryDecodeImageStream(stream, objects, out _, maxDecodedStreamBytes, cancellationToken)) {
             return false;
         }
 
@@ -1728,12 +1731,12 @@ internal static partial class ResourceResolver {
         PdfImageDecodeTransform? decodeTransform,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
         pngBytes = Array.Empty<byte>();
-        if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes, cancellationToken)) {
             return false;
         }
-        return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, decodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
+        return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, decodeTransform, pixels, maxDecodedStreamBytes, out pngBytes, cancellationToken);
     }
 
     private static bool TryBuildPngFileFromDecodedPixels(
@@ -1744,7 +1747,7 @@ internal static partial class ResourceResolver {
         PdfImageDecodeTransform? decodeTransform,
         byte[] pixels,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
         pngBytes = Array.Empty<byte>();
         int sourceColorCount = colorNormalization.SourceColorCount;
         int pngColorType = colorNormalization.ProducesTransparency
@@ -1791,6 +1794,7 @@ internal static partial class ResourceResolver {
             ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;
             scanlines[outputRow] = 0;
@@ -1832,7 +1836,7 @@ internal static partial class ResourceResolver {
         PdfImageColorKeyMask colorKeyMask,
         byte[] pixels,
         int maxDecodedStreamBytes,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
         pngBytes = Array.Empty<byte>();
         int sourceColorCount = colorNormalization.SourceColorCount;
         int pngColorType = colorNormalization.RequiresColorConversion ? 2 : colorNormalization.PngColorType;
@@ -1878,6 +1882,7 @@ internal static partial class ResourceResolver {
             ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;
             scanlines[outputRow] = 0;
@@ -1972,7 +1977,7 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         byte[]? decodedBasePixels,
-        out byte[] pngBytes) {
+        out byte[] pngBytes, CancellationToken cancellationToken = default) {
         pngBytes = Array.Empty<byte>();
         int sourceColorCount = colorNormalization.SourceColorCount;
         int pngColorType = colorNormalization.PngColorType;
@@ -2028,11 +2033,11 @@ internal static partial class ResourceResolver {
 
         byte[] basePixels;
         if (decodedBasePixels is null) {
-            if (!TryDecodeImageStream(stream, objects, out basePixels, maxDecodedStreamBytes)) return false;
+            if (!TryDecodeImageStream(stream, objects, out basePixels, maxDecodedStreamBytes, cancellationToken)) return false;
         } else {
             basePixels = decodedBasePixels;
         }
-        if (!TryDecodeImageStream(softMask, objects, out byte[] alphaPixels, maxDecodedStreamBytes)) {
+        if (!TryDecodeImageStream(softMask, objects, out byte[] alphaPixels, maxDecodedStreamBytes, cancellationToken)) {
             return false;
         }
         long baseRowLengthLong = (long)width * sourceColorCount;
@@ -2068,6 +2073,7 @@ internal static partial class ResourceResolver {
             ? colorNormalization.CreateConversionBuffer()
             : null;
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int outputRow = row * (1 + outputRowLength);
             int baseRow = row * baseRowLength;
             int alphaRow = row * alphaRowLength;

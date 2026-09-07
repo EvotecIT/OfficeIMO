@@ -1,3 +1,4 @@
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
@@ -7,16 +8,19 @@ internal static partial class ResourceResolver {
     // Expand packed samples before the existing decode, color management, and mask pipeline.
     // Each supported bit depth maps exactly to an 8-bit sample, including color-key endpoints.
     private static bool TryExpandPackedGray(PdfStream stream, int width, int height, int bitsPerComponent,
-        Dictionary<int, PdfIndirectObject> objects, int maximumBytes, out PdfStream expanded) {
+        Dictionary<int, PdfIndirectObject> objects, int maximumBytes, out PdfStream expanded, CancellationToken cancellationToken = default) {
         expanded = stream;
+        cancellationToken.ThrowIfCancellationRequested();
         if (!PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 1, maximumBytes, out _, out _) ||
-            !PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] packed, maximumBytes)) return false;
+            !PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] packed, maximumBytes, cancellationToken)) return false;
         int stride = checked((int)(((long)width * bitsPerComponent + 7) / 8));
         if ((long)stride * height != packed.LongLength) return false;
         int maximumSample = (1 << bitsPerComponent) - 1;
         var samples = new byte[checked(width * height)];
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int column = 0; column < width; column++) {
+                if ((column & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 long bit = (long)column * bitsPerComponent;
                 int sample = (packed[row * stride + (int)(bit / 8)] >> (8 - bitsPerComponent - (int)(bit & 7))) & maximumSample;
                 samples[row * width + column] = (byte)(sample * 255 / maximumSample);

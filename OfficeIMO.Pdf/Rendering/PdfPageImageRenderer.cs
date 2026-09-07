@@ -108,7 +108,7 @@ internal static partial class PdfPageImageRenderer {
         IOfficeTextShapingProvider? textShapingProvider = null,
         string? textShapingLanguage = null,
         CancellationToken cancellationToken = default) {
-        EnsureRasterImagesCanRender(drawing, imageCodec, cancellationToken);
+        EnsureRasterImagesCanRender(drawing, imageCodec, maximumRasterPixels, cancellationToken);
         return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             Background = background ?? OfficeColor.White,
@@ -123,9 +123,12 @@ internal static partial class PdfPageImageRenderer {
     private static void EnsureRasterImagesCanRender(
         OfficeDrawing drawing,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         CancellationToken cancellationToken = default) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (element is OfficeDrawingImage candidate) ValidateScanRasterSize(candidate.Bytes, candidate.ContentType, maximumRasterPixels);
+            if (element is OfficeDrawingImagePattern patternCandidate) ValidateScanRasterSize(patternCandidate.Bytes, patternCandidate.ContentType, maximumRasterPixels);
             if (element is OfficeDrawingImage image &&
                 !OfficeRasterImageDecoder.TryDecode(image.Bytes, out _) &&
                 (imageCodec is null || !imageCodec.TryDecode(image.Bytes, image.ContentType, out OfficeRasterImage? decoded) || decoded is null)) {
@@ -140,10 +143,18 @@ internal static partial class PdfPageImageRenderer {
             }
 
             if (element is OfficeDrawingGroup group) {
-                EnsureRasterImagesCanRender(group.Drawing, imageCodec, cancellationToken);
+                EnsureRasterImagesCanRender(group.Drawing, imageCodec, maximumRasterPixels, cancellationToken);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                EnsureRasterImagesCanRender(effectGroup.Drawing, imageCodec, cancellationToken);
+                EnsureRasterImagesCanRender(effectGroup.Drawing, imageCodec, maximumRasterPixels, cancellationToken);
             }
+        }
+    }
+
+    private static void ValidateScanRasterSize(byte[] bytes, string? contentType, long maximumRasterPixels) {
+        if (contentType == "image/jp2" &&
+            (!OfficeJpeg2000Header.TryGetOpaqueDimensions(bytes, out _, out int width, out int height) ||
+             (long)width * height > maximumRasterPixels)) {
+            throw new NotSupportedException("The JPEG 2000 image dimensions exceed the supported raster limit or have an unsupported header.");
         }
     }
 }

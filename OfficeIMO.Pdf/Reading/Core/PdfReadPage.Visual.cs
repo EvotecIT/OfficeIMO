@@ -124,7 +124,7 @@ public sealed partial class PdfReadPage {
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget();
         var patternTextClippingBudget = new PdfTextClippingBudget();
@@ -223,7 +223,7 @@ public sealed partial class PdfReadPage {
 
         IReadOnlyList<PdfImagePlacement> placements = GetVisualImagePlacements(pageHeight, pageTransform, pageContentBudget);
         if (placements.Count > 0) {
-            IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements, colorizeImageMasks: true, pageContentBudget);
+            IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements, colorizeImageMasks: true, pageContentBudget, cancellationToken);
             for (int i = 0; i < placements.Count; i++) {
                 PdfImagePlacement placement = placements[i];
                 PdfExtractedImage? image = FindImage(images, placement);
@@ -2348,7 +2348,7 @@ public sealed partial class PdfReadPage {
                     0,
                     imagePlacements,
                     colorizeImageMasks: true,
-                    pageContentBudget);
+                    pageContentBudget, cancellationToken);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfImagePlacement placement = imagePlacements[imageIndex];
@@ -2661,10 +2661,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image) {
-        if (!image.IsImageFile && (image.Filter.Contains("CCITTFaxDecode") || image.Filter.Contains("CCF") || image.Filter.Contains("JPXDecode"))) {
-            throw new NotSupportedException("The scanned image could not be decoded or projected: " + image.Filter + ".");
-        }
-        if (!image.IsImageFile || placement.Width <= 0D || placement.Height <= 0D) {
+        if (placement.Width <= 0D || placement.Height <= 0D || placement.ImageOpacity <= 0D) {
             return;
         }
 
@@ -2675,6 +2672,13 @@ public sealed partial class PdfReadPage {
                 drawing.Height,
                 out OfficeImageProjection projection,
                 allowAxisAlignedFallback: !placement.RequireExactProjection)) {
+            return;
+        }
+
+        if (!image.IsImageFile) {
+            if (image.Filter.Split(',').Any(filter => filter.Trim() is "CCITTFaxDecode" or "CCF" or "JPXDecode")) {
+                throw new NotSupportedException("The scanned image could not be decoded or projected: " + image.Filter + ".");
+            }
             return;
         }
 
@@ -2965,10 +2969,10 @@ public sealed partial class PdfReadPage {
         PdfDictionary? fallbackResources,
         PdfImagePlacement placement,
         bool colorizeImageMasks,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
         PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         return FindImage(
-            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks, pageContentBudget),
+            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks, pageContentBudget, cancellationToken),
             placement);
     }
 
