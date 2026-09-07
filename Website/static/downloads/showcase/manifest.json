@@ -1849,6 +1849,654 @@
       "sha256": "621a1a0dc37746c44aeb95f6a988ce2987cbcb446cf98669ec7c3c87ad1ab876",
       "generator": "Poppler pdftocairo page 2 render of the generated PDF",
       "evidence": "Second page of the generated API handover guide."
+    },
+    {
+      "id": "word-research-brief-example.docx",
+      "path": "/downloads/showcase/workflows/word-research-brief/example.docx",
+      "bytes": 21119,
+      "sha256": "4633981b582e2d3f5c077032fa5a008330e0decaab3337fb0e95bc0911ac35fc",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-research-brief",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-research-brief-preview.png",
+      "path": "/downloads/showcase/workflows/word-research-brief/preview.png",
+      "bytes": 103151,
+      "sha256": "0be167195025f634291b17fb876a45c19256f1855ab02074c1388a6c99eb9e80",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-research-brief-preview.pdf",
+      "path": "/downloads/showcase/workflows/word-research-brief/preview.pdf",
+      "bytes": 3020,
+      "sha256": "6287965c00e6ba6a45f2c67953ff5a4d33add557cf9eb26a65eadd582083fa84",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-research-brief",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-research-brief-source",
+      "path": "/downloads/showcase/workflows/word-research-brief/ResearchBrief.cs.txt",
+      "bytes": 2556,
+      "sha256": "26ca03c36664088c36a634bc348b2890b5c2d71d7220671a8a2873119ef9cc69",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-service-intake-example.docx",
+      "path": "/downloads/showcase/workflows/word-service-intake/example.docx",
+      "bytes": 18865,
+      "sha256": "9dc9f33e80db3c99eed08dfb3a198a30d92fd4e3eb111a1ca7387ecf74fabaa6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-service-intake",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-service-intake-preview.png",
+      "path": "/downloads/showcase/workflows/word-service-intake/preview.png",
+      "bytes": 57861,
+      "sha256": "c9264440b5d324aff98d7ded2dddadc57a324f8d1febe20ead0f71dff749423f",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-service-intake-preview.pdf",
+      "path": "/downloads/showcase/workflows/word-service-intake/preview.pdf",
+      "bytes": 2115,
+      "sha256": "7889d88e8a379925f88b84403a4815241da21e4576e4cc8bb6ce6001cdc3838a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-service-intake",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-service-intake-template.docx",
+      "path": "/downloads/showcase/workflows/word-service-intake/template.docx",
+      "bytes": 18777,
+      "sha256": "de67318fd72e7750c8c67b2e82f3ef44f3411622a2c81e0cdaa218af55dc1fa4",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-service-intake",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-service-intake-source",
+      "path": "/downloads/showcase/workflows/word-service-intake/ServiceIntake.cs.txt",
+      "bytes": 2590,
+      "sha256": "430d74b6b8db9654c0fa2fc862695c008d5a73260122f9009a7588eb9b49b786",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "word-mixed-orientation-report-example.docx",
+      "path": "/downloads/showcase/workflows/word-mixed-orientation-report/example.docx",
+      "bytes": 20520,
+      "sha256": "62d52fede7a5642bc1c6e2868af029e864c5c3432a9944e813bd8cc3d6cfb242",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-mixed-orientation-report",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-mixed-orientation-report-preview.png",
+      "path": "/downloads/showcase/workflows/word-mixed-orientation-report/preview.png",
+      "bytes": 67198,
+      "sha256": "a22c70cf9a4dc75fa5ac42b60095712029b70afa654010c23a1b854f34a597e1",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-mixed-orientation-report-page-2.png",
+      "path": "/downloads/showcase/workflows/word-mixed-orientation-report/page-2.png",
+      "bytes": 66921,
+      "sha256": "74d4268608531540f72858e9756e3082809b1a1611f85c57e2ff8f3ce1708677",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-mixed-orientation-report-preview.pdf",
+      "path": "/downloads/showcase/workflows/word-mixed-orientation-report/preview.pdf",
+      "bytes": 4275,
+      "sha256": "7989ebbbbec10cc7eb1c11569ad5f34a80450ff144e8ccdb2b9ccc30f0de34d6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-mixed-orientation-report",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and renders every PDF page for review."
+    },
+    {
+      "id": "word-mixed-orientation-report-source",
+      "path": "/downloads/showcase/workflows/word-mixed-orientation-report/MixedOrientationReport.cs.txt",
+      "bytes": 3464,
+      "sha256": "25fd711ef303de2e7dbe1448c0e6c7be5dd08d19af03dc1c015484e4f7f61c7f",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-inventory-reorder-example.xlsx",
+      "path": "/downloads/showcase/workflows/excel-inventory-reorder/example.xlsx",
+      "bytes": 5638,
+      "sha256": "3a763009d14cc4733a3b6a8d035340affb9b5cb27d4f66df85483db81c36ee4c",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-inventory-reorder",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-inventory-reorder-preview.png",
+      "path": "/downloads/showcase/workflows/excel-inventory-reorder/preview.png",
+      "bytes": 18030,
+      "sha256": "14dfc8d0a797248f71d85e34fdaaf7448f4941b5ac14d703d9fede2e04df0d08",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-inventory-reorder",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-inventory-reorder-source",
+      "path": "/downloads/showcase/workflows/excel-inventory-reorder/InventoryReorder.cs.txt",
+      "bytes": 2633,
+      "sha256": "de089a9b1e780ed2da8af38c01a7cf63a3f45ed1e8e443a270799c8e50c250bb",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-training-matrix-example.xlsx",
+      "path": "/downloads/showcase/workflows/excel-training-matrix/example.xlsx",
+      "bytes": 5383,
+      "sha256": "22b5e5e648a9d7457a7eec6d4d99477860c4d027b385a6369cea7f210dfd71f6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-training-matrix",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-training-matrix-preview.png",
+      "path": "/downloads/showcase/workflows/excel-training-matrix/preview.png",
+      "bytes": 16831,
+      "sha256": "5a65a7c2053362070ad4e5013d48228401b1526792b75868eb74a3593a13d2cb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-training-matrix",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-training-matrix-source",
+      "path": "/downloads/showcase/workflows/excel-training-matrix/TrainingMatrix.cs.txt",
+      "bytes": 2363,
+      "sha256": "b5d84693c47f950a9ac4ac157098a7d0556569cdfe0da15aaeb6c9a845930188",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "excel-operational-trends-example.xlsx",
+      "path": "/downloads/showcase/workflows/excel-operational-trends/example.xlsx",
+      "bytes": 9620,
+      "sha256": "30b65dcff28fd8833e70656c441d71188f3fa4a5645e97b0bf276090f7640a64",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-operational-trends",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-operational-trends-preview.png",
+      "path": "/downloads/showcase/workflows/excel-operational-trends/preview.png",
+      "bytes": 25221,
+      "sha256": "2ec6896573f3ba4a1b682f8eb16d5553f294799804be9872b4254d9e587a0fe8",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-operational-trends",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX and checks supported formulas, cached results and dependencies. The PNG is a native worksheet-range export."
+    },
+    {
+      "id": "excel-operational-trends-source",
+      "path": "/downloads/showcase/workflows/excel-operational-trends/OperationalTrends.cs.txt",
+      "bytes": 1831,
+      "sha256": "ead1e2e0bddff047ea2e50882b3cab53753d007a700e08efaab2d3199bea6450",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-equipment-inspection-example.pdf",
+      "path": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf",
+      "bytes": 9269,
+      "sha256": "19d65721e5584e043cb1bb5434a3a06b68fe1d207e11678cacca54bc53a0deaa",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-equipment-inspection",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-equipment-inspection-preview.png",
+      "path": "/downloads/showcase/workflows/pdf-equipment-inspection/preview.png",
+      "bytes": 59190,
+      "sha256": "265eb740e58eabae440ead0817c34ed1f822028eba0b2f4df96fd09a073df883",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-equipment-inspection-source",
+      "path": "/downloads/showcase/workflows/pdf-equipment-inspection/EquipmentInspection.cs.txt",
+      "bytes": 2049,
+      "sha256": "23ee8a948c7cf4d4c7266791c660084bef925925f100134d4847fc01f8778f13",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-linked-resource-guide-example.pdf",
+      "path": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf",
+      "bytes": 9783,
+      "sha256": "8921d0fde58521d4147cc9f6af1fd68081777e6f198b4583a26ea3ffa97d07cb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-linked-resource-guide",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-linked-resource-guide-preview.png",
+      "path": "/downloads/showcase/workflows/pdf-linked-resource-guide/preview.png",
+      "bytes": 102709,
+      "sha256": "adce3c54c617dfd5a6f4fb00d7bce0cfc7dcbc0be7a158da84f6debeb72b1e6b",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-linked-resource-guide-source",
+      "path": "/downloads/showcase/workflows/pdf-linked-resource-guide/LinkedResourceGuide.cs.txt",
+      "bytes": 2598,
+      "sha256": "dfeeff917a310c77d79a952f3c7f662afef0e02ae1ba368a52f5e56a0e097d01",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pdf-navigable-handbook-example.pdf",
+      "path": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf",
+      "bytes": 15434,
+      "sha256": "6a97ec7e8e0fb1cb5b8371d72a608ce4c398f16dcffd7b2c9bdf0fa4294778fe",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-navigable-handbook",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-navigable-handbook-preview.png",
+      "path": "/downloads/showcase/workflows/pdf-navigable-handbook/preview.png",
+      "bytes": 93132,
+      "sha256": "18b6ececa8a716a9818586e2b249960df20bcae44f76b0820a496ece9d22f84c",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-navigable-handbook-page-2.png",
+      "path": "/downloads/showcase/workflows/pdf-navigable-handbook/page-2.png",
+      "bytes": 62131,
+      "sha256": "f868e91cb838ce39327dd407c09e6ac049485ef03fa64743eb436b6e6aed0ad4",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
+    },
+    {
+      "id": "pdf-navigable-handbook-source",
+      "path": "/downloads/showcase/workflows/pdf-navigable-handbook/NavigableHandbook.cs.txt",
+      "bytes": 2750,
+      "sha256": "88c3bc6a729053e19ad817494b3ca014f13b5fb429d13e84d0f3fe621cb35d17",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "powerpoint-results-briefing-example.pptx",
+      "path": "/downloads/showcase/workflows/powerpoint-results-briefing/example.pptx",
+      "bytes": 33073,
+      "sha256": "11a8dfffc2bf412ffc206200811d4294facc25c90e97d9bcf900d537a304a5db",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-results-briefing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-results-briefing-preview.png",
+      "path": "/downloads/showcase/workflows/powerpoint-results-briefing/preview.png",
+      "bytes": 14735,
+      "sha256": "906593e22750fbe6422718bde5ca5e670555bb8b327587f0b4b45cbf1e41daa1",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-results-briefing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-results-briefing-slide-2.png",
+      "path": "/downloads/showcase/workflows/powerpoint-results-briefing/slide-2.png",
+      "bytes": 23320,
+      "sha256": "5935603200b75a1c7dc277d213596547b92944ae054ce1c2959329cb1e6bd5ae",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-results-briefing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-results-briefing-preview.pdf",
+      "path": "/downloads/showcase/workflows/powerpoint-results-briefing/preview.pdf",
+      "bytes": 65090,
+      "sha256": "b256f6ccd87182d57ea58aef77bae422fa59a125a3d28050d0632d06e1669520",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-results-briefing",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-results-briefing-source",
+      "path": "/downloads/showcase/workflows/powerpoint-results-briefing/ResultsBriefing.cs.txt",
+      "bytes": 2570,
+      "sha256": "18ef75277dce621a3e47ec7188e71e08b71c9f0b0382fdf8240c939b378fdf9b",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "powerpoint-branching-playbook-example.pptx",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/example.pptx",
+      "bytes": 28343,
+      "sha256": "a37844073cd736445077dba877908411e432331dc8af3664e372fa267c49761b",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-branching-playbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-branching-playbook-preview.png",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/preview.png",
+      "bytes": 18924,
+      "sha256": "e86213b4e618fb8a9a4f5cea53d56945362e8c72aa2fc3f4d8f7571c628df4ac",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-branching-playbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-branching-playbook-slide-2.png",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/slide-2.png",
+      "bytes": 17430,
+      "sha256": "f5f0e0803661594f8b12366c1f8dcbc2c9c0440da68301a1636fa9263b316ceb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-branching-playbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-branching-playbook-slide-3.png",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/slide-3.png",
+      "bytes": 17504,
+      "sha256": "e7a1efed94280bb47ee24b634423c48c7457483eee5158e862d58cc555e080f7",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-branching-playbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-branching-playbook-preview.pdf",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/preview.pdf",
+      "bytes": 2551,
+      "sha256": "068a0399131d51015c7833ecb7b1ff17ecc3cbe5617bf7d816b2ce20ec0e3b0f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example powerpoint-branching-playbook",
+      "evidence": "The linked C# example generates this file. The runner reopens and validates the PPTX, then exports each slide and a PDF review copy."
+    },
+    {
+      "id": "powerpoint-branching-playbook-source",
+      "path": "/downloads/showcase/workflows/powerpoint-branching-playbook/BranchingPlaybook.cs.txt",
+      "bytes": 2431,
+      "sha256": "6b540e33b9992530422d92d1c95446c47b494b1401aeefa9f11fe32dc1b024bc",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-migration-guide-example.md",
+      "path": "/downloads/showcase/workflows/markdown-migration-guide/example.md",
+      "bytes": 1007,
+      "sha256": "68c7d62e3d08e5a5cdacb2ea0a5d7a9154cc698341c6b08aa141a29da5a0669c",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-migration-guide",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-migration-guide-preview.png",
+      "path": "/downloads/showcase/workflows/markdown-migration-guide/preview.png",
+      "bytes": 103804,
+      "sha256": "26bb0dc9c4ab17a7f81bb4672442495efe5e322917994ae2cfa6dc333c5c20aa",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-migration-guide-preview.pdf",
+      "path": "/downloads/showcase/workflows/markdown-migration-guide/preview.pdf",
+      "bytes": 4539,
+      "sha256": "d655bbfd32b7370d101562605921e2a4ec24408cebc42caa4138d0750051b515",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-migration-guide",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-migration-guide-source",
+      "path": "/downloads/showcase/workflows/markdown-migration-guide/MigrationGuide.cs.txt",
+      "bytes": 1775,
+      "sha256": "11522c7f7c111b4cc52d90455269f257bcbe05c4d17bb5e5ec25ac80646db1c5",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "markdown-data-dictionary-example.md",
+      "path": "/downloads/showcase/workflows/markdown-data-dictionary/example.md",
+      "bytes": 1145,
+      "sha256": "f382d8522daec00c7c58b85694d3b9e7b75c4e542e8b4dd5899096da9f2bc9e6",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-data-dictionary",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-data-dictionary-preview.png",
+      "path": "/downloads/showcase/workflows/markdown-data-dictionary/preview.png",
+      "bytes": 114460,
+      "sha256": "ad0da7dc7b25f54410180025e552a37d71eef7538674c770c8bf0d01a9da9cca",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-data-dictionary-preview.pdf",
+      "path": "/downloads/showcase/workflows/markdown-data-dictionary/preview.pdf",
+      "bytes": 4836,
+      "sha256": "f4a1a0a70d908daee7b70c6654b8bc636e845a8fa787c6b164b648352a1a3dea",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example markdown-data-dictionary",
+      "evidence": "The linked C# example generates this file. The Markdown source is reloaded and exported to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "markdown-data-dictionary-source",
+      "path": "/downloads/showcase/workflows/markdown-data-dictionary/DataDictionary.cs.txt",
+      "bytes": 2205,
+      "sha256": "bdb51fd116b7587996b44ffea7bde6e3472f098b8709c6f0f607c3b952ff5fab",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "html-course-certificate-example.html",
+      "path": "/downloads/showcase/workflows/html-course-certificate/example.html",
+      "bytes": 1298,
+      "sha256": "dbedd19d8fdd6825808ec82c623a814d27f6166d311ed951a629ecb6000c861f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example html-course-certificate",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-course-certificate-preview.png",
+      "path": "/downloads/showcase/workflows/html-course-certificate/preview.png",
+      "bytes": 53567,
+      "sha256": "5b3ca1696f297b97db716e815a9a9da553c3f68e370a2933f4d426d4794a2690",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-course-certificate-preview.pdf",
+      "path": "/downloads/showcase/workflows/html-course-certificate/preview.pdf",
+      "bytes": 6350,
+      "sha256": "9a4f4a92a8c6fb8e27175b65ec47cf5030afb948c0f6a95cd1a8aa29a946d199",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example html-course-certificate",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-course-certificate-source",
+      "path": "/downloads/showcase/workflows/html-course-certificate/CourseCertificate.cs.txt",
+      "bytes": 2321,
+      "sha256": "b70852af05a69ac7addbfceedb6edb9f5b2171b67d1d404c8e0840f427bad424",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "html-service-level-report-example.html",
+      "path": "/downloads/showcase/workflows/html-service-level-report/example.html",
+      "bytes": 2226,
+      "sha256": "889ba37cbcf13b486a9f122e11e2d68d030f55e617cbddb4a0e0b8d93977cc3e",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example html-service-level-report",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-service-level-report-preview.png",
+      "path": "/downloads/showcase/workflows/html-service-level-report/preview.png",
+      "bytes": 99128,
+      "sha256": "8c8b83e998c9e6c166c48e39b785aa288f47f69354bb1add5180e6b7e7c5a8d6",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-service-level-report-preview.pdf",
+      "path": "/downloads/showcase/workflows/html-service-level-report/preview.pdf",
+      "bytes": 13827,
+      "sha256": "ee86e11a2869669c5b5324a659b6c791e5f8b2b6537fc41c18e18d118c3dccb2",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example html-service-level-report",
+      "evidence": "The linked C# example generates this file. The HTML document is exported through OfficeIMO.Html to PDF with a required successful save. Each PDF page is rendered for review."
+    },
+    {
+      "id": "html-service-level-report-source",
+      "path": "/downloads/showcase/workflows/html-service-level-report/ServiceLevelReport.cs.txt",
+      "bytes": 3802,
+      "sha256": "3d730a2084ee6d78fbdbd85689e24109078b175a97a44dc4d55766d9f2061ac2",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "opendocument-service-proposal-example.odt",
+      "path": "/downloads/showcase/workflows/opendocument-service-proposal/example.odt",
+      "bytes": 3028,
+      "sha256": "1df365349c0f346c1c74f6973dbfe1bf7b508b8aea6ea3fd0e28f4ed4ea74b6d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-service-proposal",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-service-proposal-preview.png",
+      "path": "/downloads/showcase/workflows/opendocument-service-proposal/preview.png",
+      "bytes": 90050,
+      "sha256": "b33a9cbeba1ad4ee88ba400723a128e7bb0120324849ac0572a195db03dbd266",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-service-proposal-preview.pdf",
+      "path": "/downloads/showcase/workflows/opendocument-service-proposal/preview.pdf",
+      "bytes": 3108,
+      "sha256": "8be0efbf6f5daf9a30d1ce0b06706924f2ee13291060356d3cc6e9fc8d99ef9a",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-service-proposal",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-service-proposal-source",
+      "path": "/downloads/showcase/workflows/opendocument-service-proposal/OpenProposal.cs.txt",
+      "bytes": 2681,
+      "sha256": "42bb067d1630f59715a9e73fa5a5c3afe4c34c04152dd5b8862d95354cc74a30",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "opendocument-workshop-agenda-example.odt",
+      "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/example.odt",
+      "bytes": 3061,
+      "sha256": "5717f93416b509fc9e5176bfc4d35f23679e6fadcfb99517d3474d15385439bc",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-workshop-agenda",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-workshop-agenda-preview.png",
+      "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/preview.png",
+      "bytes": 95391,
+      "sha256": "958889cd19ea13bbb5f3039c79dd5758c9195bd9fb50231fd7357ea9088955a2",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-workshop-agenda-preview.pdf",
+      "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/preview.pdf",
+      "bytes": 3051,
+      "sha256": "04c2a803807fa95505ec33a2ebb0437d6424cef6526397eb2426f0c30cf28afb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-workshop-agenda",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-workshop-agenda-example.fodt",
+      "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/example.fodt",
+      "bytes": 8393,
+      "sha256": "9ae1ffe6ef3678cea5de3468ea81239b59dd292195a2e2a5611a2c1f90aa5841",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-workshop-agenda",
+      "evidence": "The linked C# example generates this file. The runner reopens the ODT and exports a PDF review copy. Each PDF page is rendered for review."
+    },
+    {
+      "id": "opendocument-workshop-agenda-source",
+      "path": "/downloads/showcase/workflows/opendocument-workshop-agenda/OpenWorkshopAgenda.cs.txt",
+      "bytes": 2774,
+      "sha256": "046f33d764ae8195024d26f6b5faff4f26ba41f2559c9b98317a03f1f59b62c6",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "rtf-support-bulletin-example.rtf",
+      "path": "/downloads/showcase/workflows/rtf-support-bulletin/example.rtf",
+      "bytes": 2107,
+      "sha256": "c82ee0ec767eb47ea394326e0276c3e27752674c2838612b682e13b3b88c75b7",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example rtf-support-bulletin",
+      "evidence": "The linked C# example generates this file. The runner reloads the saved RTF and exports it to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "rtf-support-bulletin-preview.png",
+      "path": "/downloads/showcase/workflows/rtf-support-bulletin/preview.png",
+      "bytes": 93534,
+      "sha256": "1491191683ff68349d2161c44372c8d521ec4a5fcfe4048c9d307c54650ef910",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "The linked C# example generates this file. The runner reloads the saved RTF and exports it to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "rtf-support-bulletin-preview.pdf",
+      "path": "/downloads/showcase/workflows/rtf-support-bulletin/preview.pdf",
+      "bytes": 2160,
+      "sha256": "95309e57ded3e31c4b215e1144178623d5962a57403d650955787b6ec533488f",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example rtf-support-bulletin",
+      "evidence": "The linked C# example generates this file. The runner reloads the saved RTF and exports it to PDF. Each PDF page is rendered for review."
+    },
+    {
+      "id": "rtf-support-bulletin-source",
+      "path": "/downloads/showcase/workflows/rtf-support-bulletin/SupportBulletin.cs.txt",
+      "bytes": 2680,
+      "sha256": "6cb8e7043bcc0d5d4a702f150d5c87e05ea403aa8b6a5442c05d514387496664",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "visio-approval-swimlane-example.vsdx",
+      "path": "/downloads/showcase/workflows/visio-approval-swimlane/example.vsdx",
+      "bytes": 70038,
+      "sha256": "2c7c1cd418c8c10413c1b1f66d1b04b23ba76843722b7ed64f9a10f957ec7e28",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-approval-swimlane",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-approval-swimlane-preview.png",
+      "path": "/downloads/showcase/workflows/visio-approval-swimlane/preview.png",
+      "bytes": 33699,
+      "sha256": "65b56697e6fa59e19b03161738d854c952ebad7a19af79a32213f1c4da4c79b0",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-approval-swimlane",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-approval-swimlane-preview.svg",
+      "path": "/downloads/showcase/workflows/visio-approval-swimlane/preview.svg",
+      "bytes": 11652,
+      "sha256": "4a429366daf8553ff56c2305c2a204cf41344b0a995a7e12cf5d446b65414c31",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-approval-swimlane",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-approval-swimlane-source",
+      "path": "/downloads/showcase/workflows/visio-approval-swimlane/ApprovalSwimlane.cs.txt",
+      "bytes": 1467,
+      "sha256": "c7dd69d92ee24092db1870bdf99388173219f9dd513e2ccac8733abe975b9eb0",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "visio-team-organisation-example.vsdx",
+      "path": "/downloads/showcase/workflows/visio-team-organisation/example.vsdx",
+      "bytes": 33742,
+      "sha256": "e411c83f8e9c8a8156d8138f7b884db2957084bc572bbb75223c4e7ddf1a381e",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-team-organisation",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-team-organisation-preview.png",
+      "path": "/downloads/showcase/workflows/visio-team-organisation/preview.png",
+      "bytes": 25777,
+      "sha256": "d08908419bf1412fc56b6a800d91acedc6153b35cabe677d30397919c8338bec",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-team-organisation",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-team-organisation-preview.svg",
+      "path": "/downloads/showcase/workflows/visio-team-organisation/preview.svg",
+      "bytes": 8431,
+      "sha256": "bd6e9c844ce2b07b2b17ffb03ea17bbd368bf78f7a7c51db623d0f54bf8b44e5",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example visio-team-organisation",
+      "evidence": "The linked C# example generates this file. The runner reloads the VSDX, checks the authoring model and renders the saved diagram to PNG and SVG."
+    },
+    {
+      "id": "visio-team-organisation-source",
+      "path": "/downloads/showcase/workflows/visio-team-organisation/TeamOrganisation.cs.txt",
+      "bytes": 1602,
+      "sha256": "2b853f98f23acc20a633e9fcc153d3510e2dbaa6e34db6b38e612e084419e076",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
     }
   ]
 }

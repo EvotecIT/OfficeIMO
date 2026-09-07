@@ -1,0 +1,106 @@
+<svg width="1344" height="816" viewBox="0 0 1344 816" role="img" aria-label="Service team" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1344" height="816" fill="#FFFFFF" />
+  <g data-officeimo-visio-page="Service team">
+    <g data-visio-shape-id="org-band-delivery-team" data-visio-nameu="Rectangle">
+      <path d="M 24 634.56 L 288 634.56 L 288 469.44 L 24 469.44 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
+      <text x="156" y="481.387" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+        <tspan x="156" dy="0">Delivery</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="org-band-operations-team" data-visio-nameu="Rectangle">
+      <path d="M 513.6 634.56 L 1022.4 634.56 L 1022.4 469.44 L 513.6 469.44 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
+      <text x="768" y="481.387" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+        <tspan x="768" dy="0">Operations</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="director" data-visio-nameu="Process">
+      <path d="M 434.4 222.72 L 612 222.72 L 612 144 L 434.4 144 Z" data-officeimo-preserved-geometry="true" fill="#585858" stroke="#404040" stroke-width="1.728" />
+      <text x="523.2" y="174.027" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="523.2" dy="0">Maya Ellis</tspan>
+        <tspan x="523.2" dy="16">Service Director</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="coordinator" data-visio-nameu="Rectangle">
+      <path d="M 645.6 214.061 L 808.992 214.061 L 808.992 152.659 L 645.6 152.659 Z" data-officeimo-preserved-geometry="true" fill="#1477D3" stroke="#1060AA" stroke-width="1.728" />
+      <text x="727.296" y="174.027" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="727.296" dy="0">Leon Brooks</tspan>
+        <tspan x="727.296" dy="16">Team Coordinator</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="delivery" data-visio-nameu="Process">
+      <path d="M 189.6 407.04 L 367.2 407.04 L 367.2 328.32 L 189.6 328.32 Z" data-officeimo-preserved-geometry="true" fill="#2D91E1" stroke="#1A6FBC" stroke-width="1.728" />
+      <text x="278.4" y="358.347" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="278.4" dy="0">Sofia Chen</tspan>
+        <tspan x="278.4" dy="16">Delivery Lead</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="operations" data-visio-nameu="Process">
+      <path d="M 679.2 407.04 L 856.8 407.04 L 856.8 328.32 L 679.2 328.32 Z" data-officeimo-preserved-geometry="true" fill="#2D91E1" stroke="#1A6FBC" stroke-width="1.728" />
+      <text x="768" y="358.347" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="768" dy="0">Amir Patel</tspan>
+        <tspan x="768" dy="16">Operations Lead</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="analyst" data-visio-nameu="Process">
+      <path d="M 67.2 591.36 L 244.8 591.36 L 244.8 512.64 L 67.2 512.64 Z" data-officeimo-preserved-geometry="true" fill="#7ACA5E" stroke="#5DA644" stroke-width="1.728" />
+      <text x="156" y="542.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="156" dy="0">Eva Morgan</tspan>
+        <tspan x="156" dy="16">Service Analyst</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="engineer" data-visio-nameu="Process">
+      <path d="M 556.8 591.36 L 734.4 591.36 L 734.4 512.64 L 556.8 512.64 Z" data-officeimo-preserved-geometry="true" fill="#7ACA5E" stroke="#5DA644" stroke-width="1.728" />
+      <text x="645.6" y="542.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="645.6" dy="0">Noah Reed</tspan>
+        <tspan x="645.6" dy="16">Platform Engineer</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="support" data-visio-nameu="Rectangle">
+      <path d="M 801.6 591.36 L 979.2 591.36 L 979.2 512.64 L 801.6 512.64 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
+      <text x="890.4" y="524.587" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+        <tspan x="890.4" dy="0">Support Specialist</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="adviser" data-visio-nameu="Rectangle">
+      <path d="M 312 591.36 L 489.6 591.36 L 489.6 512.64 L 312 512.64 Z" data-officeimo-preserved-geometry="true" fill="#78C759" stroke="#5DA644" stroke-width="1.728" />
+      <text x="400.8" y="542.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="400.8" dy="0">Jordan Lee</tspan>
+        <tspan x="400.8" dy="16">Service Adviser</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="title" data-visio-nameu="Text Box">
+      <path d="M 67.2 110.4 L 1276.8 110.4 L 1276.8 67.2 L 67.2 67.2 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+      <text x="672" y="85.867" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+        <tspan x="672" dy="0">Service team</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="1">
+      <path d="M 612 183.36 L 628.8 183.36 L 628.8 183.36 L 645.6 183.36" fill="none" stroke="#0092CB" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6.912 3.456" />
+      <path data-officeimo-connector-arrow="end" d="M 645.6 183.36 L 638.392 186.831 L 638.392 179.889 Z" fill="#0092CB" stroke="none" />
+    </g>
+    <g data-visio-connector-id="2">
+      <path d="M 523.2 222.72 L 523.2 271.68 L 278.4 271.68 L 278.4 328.32" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 278.4 328.32 L 274.929 321.112 L 281.871 321.112 Z" fill="#2D91E1" stroke="none" />
+    </g>
+    <g data-visio-connector-id="3">
+      <path d="M 523.2 222.72 L 523.2 267.84 L 768 267.84 L 768 328.32" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 768 328.32 L 764.529 321.112 L 771.471 321.112 Z" fill="#2D91E1" stroke="none" />
+    </g>
+    <g data-visio-connector-id="4">
+      <path d="M 278.4 407.04 L 278.4 459.84 L 156 459.84 L 156 512.64" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 156 512.64 L 152.529 505.432 L 159.471 505.432 Z" fill="#2D91E1" stroke="none" />
+    </g>
+    <g data-visio-connector-id="5">
+      <path d="M 768 407.04 L 768 456 L 645.6 456 L 645.6 512.64" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 645.6 512.64 L 642.129 505.432 L 649.071 505.432 Z" fill="#2D91E1" stroke="none" />
+    </g>
+    <g data-visio-connector-id="6">
+      <path d="M 768 407.04 L 768 452.16 L 890.4 452.16 L 890.4 512.64" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 890.4 512.64 L 886.929 505.432 L 893.871 505.432 Z" fill="#2D91E1" stroke="none" />
+    </g>
+    <g data-visio-connector-id="7">
+      <path d="M 278.4 407.04 L 278.4 459.84 L 400.8 459.84 L 400.8 512.64" fill="none" stroke="#2D91E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 400.8 512.64 L 397.329 505.432 L 404.271 505.432 Z" fill="#2D91E1" stroke="none" />
+    </g>
+  </g>
+</svg>

@@ -455,6 +455,16 @@ if ($powerShellExample.Count -ne 1) {
 
     $commandMetadataPath = Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json'
     $commandMetadata = Get-Content -LiteralPath $commandMetadataPath -Raw | ConvertFrom-Json
+    $sourcePrefix = "https://github.com/EvotecIT/PSWriteOffice/blob/v$psWriteOfficeVersion/"
+    foreach ($command in @($commandMetadata.commands | Where-Object sourcePath)) {
+        $relativeSourcePath = (($command.sourcePath -replace '\\', '/') -split '/' |
+            ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
+        $expectedSourceUrl = $sourcePrefix + $relativeSourcePath
+        if ([int] $command.sourceLine -gt 0) { $expectedSourceUrl += "#L$($command.sourceLine)" }
+        if ($command.sourceUrl -cne $expectedSourceUrl) {
+            Add-Failure "PowerShell command '$($command.name)' must link to its source path and line in the imported release."
+        }
+    }
     $commandByName = @{}
     foreach ($command in @($commandMetadata.commands)) {
         $commandByName[[string] $command.name] = [string] $command.name

@@ -6,6 +6,11 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Odt.Pdf;
+using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Showcase.Workflows;
 
@@ -33,7 +38,27 @@ internal static class WorkflowShowcase {
         ["powerpoint-service-overview"] = new("powerpoint", ServiceOverview.Create),
         ["markdown-incident-runbook"] = new("markdown", IncidentRunbook.Create),
         ["markdown-decision-record"] = new("markdown", MarkdownDecisionRecord.Create),
-        ["markdown-api-handover"] = new("markdown", ApiHandover.Create)
+        ["markdown-api-handover"] = new("markdown", ApiHandover.Create),
+        ["word-research-brief"] = new("word", ResearchBrief.Create),
+        ["word-service-intake"] = new("word", ServiceIntake.Create),
+        ["word-mixed-orientation-report"] = new("word", MixedOrientationReport.Create),
+        ["excel-inventory-reorder"] = new("excel", InventoryReorder.Create),
+        ["excel-training-matrix"] = new("excel", TrainingMatrix.Create),
+        ["excel-operational-trends"] = new("excel", OperationalTrends.Create),
+        ["pdf-equipment-inspection"] = new("pdf", EquipmentInspection.Create),
+        ["pdf-linked-resource-guide"] = new("pdf", LinkedResourceGuide.Create),
+        ["pdf-navigable-handbook"] = new("pdf", NavigableHandbook.Create),
+        ["powerpoint-results-briefing"] = new("powerpoint", ResultsBriefing.Create),
+        ["powerpoint-branching-playbook"] = new("powerpoint", BranchingPlaybook.Create),
+        ["markdown-migration-guide"] = new("markdown", MigrationGuide.Create),
+        ["markdown-data-dictionary"] = new("markdown", DataDictionary.Create),
+        ["html-course-certificate"] = new("html", CourseCertificate.Create),
+        ["html-service-level-report"] = new("html", ServiceLevelReport.Create),
+        ["opendocument-service-proposal"] = new("opendocument", OpenProposal.Create),
+        ["opendocument-workshop-agenda"] = new("opendocument", OpenWorkshopAgenda.Create),
+        ["rtf-support-bulletin"] = new("rtf", SupportBulletin.Create),
+        ["visio-approval-swimlane"] = new("visio", ApprovalSwimlane.Create),
+        ["visio-team-organisation"] = new("visio", TeamOrganisation.Create)
     };
 
     internal static void Run(string documentsRoot, string? exampleId = null) {
@@ -83,6 +108,21 @@ internal static class WorkflowShowcase {
                 MarkdownDoc.Load(Path.Combine(folder, "example.md")).SaveAsPdf(preview, new MarkdownToPdfOptions {
                     Theme = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue)
                 });
+                break;
+            case "opendocument":
+                OdtDocument.Load(Path.Combine(folder, "example.odt")).ToPdfDocumentResult().Save(preview);
+                break;
+            case "rtf":
+                RtfDocument.Load(Path.Combine(folder, "example.rtf")).ToPdfDocumentResult().Save(preview);
+                break;
+            case "visio":
+                var diagram = VisioDocument.Load(Path.Combine(folder, "example.vsdx"));
+                var issues = diagram.Validate();
+                if (issues.Count > 0) throw new InvalidOperationException(issues[0]);
+                diagram.ExportImage(OfficeImageExportFormat.Png)
+                    .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
+                diagram.ExportImage(OfficeImageExportFormat.Svg)
+                    .Save(Path.Combine(folder, "preview.svg"), OfficeImageExportFileConflictPolicy.Replace);
                 break;
         }
     }
