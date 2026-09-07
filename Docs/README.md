@@ -65,6 +65,10 @@ The package README is the primary usage guide for its public API. These reposito
 - [Image export capability matrix](officeimo.image-export-capability-matrix.md)
 - [Browser-local conversion performance and limits](officeimo.blazor-wasm-conversion-proof.md)
 
+## Proposed architecture
+
+- [Document assistant design](officeimo.document-assistant-design.md) — proposed Studio assistant, shared OfficeIMO AI operations, IntelligenceX integration, evidence contracts, and delivery gates. Implementation status lives in the [roadmap](ROADMAP.md#document-assistant).
+
 ## Generated evidence
 
 These reports are generated from repository catalogs, manifests, and test suites:
