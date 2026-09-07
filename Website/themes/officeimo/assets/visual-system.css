@@ -2188,7 +2188,7 @@ body.pf-api-docs {
   .imo-api-catalog-grid,
   .imo-api-catalog-grid--wide { grid-template-columns: 1fr; }
   .imo-product-hero { padding: 2.7rem 0 2.5rem; }
-  .imo-product-hero__title { font-size: 2.7rem; }
+  .imo-product-hero__title { font-size: clamp(2rem, 10vw, 2.7rem); }
   .imo-product-proof { min-height: 375px; }
   .imo-product-proof__canvas { grid-template-columns: 1fr; }
   .imo-product-proof__status { display: none; }
