@@ -54,18 +54,21 @@ internal sealed class OfficeOpenTypeKerning {
     private readonly int _gpos;
     private readonly bool _includeExtendedGpos;
     private readonly Func<int, int, int>? _variationDelta;
+    private readonly bool _requireVariationDelta;
 
     internal OfficeOpenTypeKerning(
         byte[] data,
         int kern,
         int gpos,
         bool includeExtendedGpos = true,
-        Func<int, int, int>? variationDelta = null) {
+        Func<int, int, int>? variationDelta = null,
+        bool requireVariationDelta = false) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _kern = kern;
         _gpos = gpos;
         _includeExtendedGpos = includeExtendedGpos;
         _variationDelta = variationDelta;
+        _requireVariationDelta = requireVariationDelta;
     }
 
     internal static OfficeOpenTypeKerning FromReader(
@@ -80,7 +83,8 @@ internal sealed class OfficeOpenTypeKerning {
             reader.TryGetTable("kern", out int kern, out _) ? kern : -1,
             reader.TryGetTable("GPOS", out int gpos, out _) ? gpos : -1,
             includeExtendedGpos: true,
-            variationDelta);
+            variationDelta,
+            requireVariationDelta: variations?.IsVariable == true);
     }
 
     private static Func<int, int, int>? TryCreateGdefVariationEvaluator(
@@ -576,7 +580,10 @@ internal sealed class OfficeOpenTypeKerning {
         }
         if (ReadUInt16(variationIndex + 4) != 0x8000) return 0;
         if (_variationDelta == null) {
-            throw new InvalidDataException("A GPOS VariationIndex requires a GDEF ItemVariationStore.");
+            if (_requireVariationDelta) {
+                throw new InvalidDataException("A GPOS VariationIndex requires a GDEF ItemVariationStore.");
+            }
+            return 0;
         }
         return _variationDelta(ReadUInt16(variationIndex), ReadUInt16(variationIndex + 2));
     }

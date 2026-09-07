@@ -157,6 +157,41 @@ public sealed class DrawingOpenTypeKerningTests {
     }
 
     [Fact]
+    public void GposPairPositioningTreatsVariationIndexesAsNeutralForTheDefaultFontInstance() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WritePairVariationPositioningSubtable(data, subtable: 254, rightGlyph: 2);
+        var kerning = new OfficeOpenTypeKerning(data, kern: 0, gpos: 64);
+
+        OfficeOpenTypePairPositioning positioning = kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT");
+
+        Assert.Equal(-10, positioning.FirstGlyphXPlacement);
+        Assert.Equal(-20, positioning.FirstGlyphXAdvance);
+    }
+
+    [Fact]
+    public void GposPairPositioningRequiresAVariationStoreForASelectedVariableInstance() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WritePairVariationPositioningSubtable(data, subtable: 254, rightGlyph: 2);
+        var kerning = new OfficeOpenTypeKerning(
+            data,
+            kern: 0,
+            gpos: 64,
+            variationDelta: null,
+            requireVariationDelta: true);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT"));
+
+        Assert.Contains("GDEF ItemVariationStore", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GposRunSkipsTheSecondGlyphWhenValueRecord2IsPresent() {
         byte[] data = CreateKerningTables(
             legacyAdjustment: 0,
