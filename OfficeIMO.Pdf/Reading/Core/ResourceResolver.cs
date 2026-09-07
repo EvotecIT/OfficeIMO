@@ -1244,7 +1244,13 @@ internal static partial class ResourceResolver {
         string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
         bool transparencyMaskResolved = false;
 
-        if (!hasMalformedFilterDeclaration &&
+        if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
+            TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload)) {
+            bytes = jpxPayload;
+            extension = "jp2";
+            mimeType = "image/jp2";
+            isImageFile = true;
+        } else if (!hasMalformedFilterDeclaration &&
             isImageMask &&
             TryBuildExtractedImageMaskPng(
                 stream,
@@ -1487,6 +1493,13 @@ internal static partial class ResourceResolver {
 
         if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(stream.Dictionary, objects)) {
             return false;
+        }
+
+        if (IsPackedGray(colorSpace, bitsPerComponent)) {
+            if (!TryExpandPackedGray(stream, width, height, bitsPerComponent, objects, maxDecodedStreamBytes, out PdfStream expanded)) return false;
+            return TryBuildPngFile(expanded, width, height, 8, colorSpaceObj, colorSpace, string.Empty,
+                objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
+                colorFunctionEvaluationBudget, functionResolutionContext, out pngBytes);
         }
 
         if (IsDctFilterChain(stream.Dictionary, objects) &&

@@ -381,6 +381,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
+Scanned-page images support managed CCITT Group 3/4 decoding and packed 1-, 2-, and 4-bit DeviceGray samples. JPEG 2000 Gray/RGB images require a caller-supplied `IOfficeRasterImageCodec`; unsupported masks or color normalization remain diagnosed limitations. Missing scan decoders and malformed scan data fail raster rendering instead of producing a blank successful page. See the [OCR integration](../OfficeIMO.Pdf.Ocr/README.md#scan-rendering-and-execution-limits) for the decoder limits and scan-to-searchable-PDF workflow.
+
 Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
 
 ```csharp

@@ -30,6 +30,7 @@ PdfOcrMergeResult result = await pdf.ReadWithOcrAsync(
     new PdfOcrMergeOptions {
         Language = "eng+pol",
         Dpi = 180,
+        MaxConcurrentPages = 2,
         MinimumConfidence = 0.75,
         ReadOptions = new PdfReadOptions {
             LayoutOptions = new PdfTextLayoutOptions {
@@ -94,6 +95,29 @@ await reviewed.Document.SaveAsync("reviewed-searchable.pdf");
 Selections may exclude eligible words but cannot inject words from another review or override a rejection. To change the confidence or overlap policy, prepare a new review with new options. Low-confidence words are rejected before overlap evaluation; invalid geometry remains a diagnostic rather than a selectable word. An empty selection produces an unchanged source copy. `AddedWordCount` and `WrittenWords` describe the actual layer after review exclusions.
 
 `PdfOcrMergeOptions` bounds provider-call duration, rendered pixels, selected pages, inspected spans, accepted OCR words and characters, aggregate raw hierarchy identifiers, provider metadata and diagnostics, native-overlap comparisons, and merged text. Calls use one shared `OcrEngineExecution` per document, so identity and capabilities are stable across pages and the same non-concurrent engine instance cannot overlap across PDF, Reader, or a future integration. Language is provider configuration only; it is never used to infer captions, lists, paragraphs, tables, or continuations.
+
+Use `ApplyCorrections` to correct recognized text after reviewing the page. Include only the eligible words to write, paired with their final text:
+
+```csharp
+var corrections = review.Ocr.Pages.SelectMany(page => page.Words)
+    .ToDictionary(word => word, word => word.Text);
+PdfRecognizedWord selectedWord = review.Ocr.Pages[0].Words[0];
+corrections[selectedWord] = "Corrected text";
+PdfSearchableOcrResult corrected = review.ApplyCorrections(corrections);
+await corrected.Document.SaveAsync("corrected-searchable.pdf");
+```
+
+Corrections preserve the selected word's geometry and reading order. `WrittenWords` contains the replacement text, `CorrectedWordCount` counts changed words, and `Ocr` retains the original provider text and confidence. Replacement text must be nonempty and fit the per-page OCR character budget.
+
+## Scan rendering and execution limits
+
+CCITT Group 3 and Group 4 scans use the managed decoder. Packed 1-, 2-, and 4-bit DeviceGray samples pass through the existing decode-array, color, and mask handling. Fax decoding requires a declared row count or image height; uncompressed fax extension mode and damaged-row recovery are outside the supported contract.
+
+JPEG 2000 Gray/RGB images can use `PdfOcrMergeOptions.ImageCodec`, the shared `IOfficeRasterImageCodec` interface. The same codec is used by review previews. A missing decoder or an unprojectable scan causes rendering to fail before that page is sent to OCR. JPEG 2000 masks, alternate color spaces, and output-intent normalization remain unsupported. No JPEG 2000 runtime is bundled.
+
+`Pages[i].Diagnostics` includes render warnings as well as provider and normalization diagnostics. Inspect these before treating a result as complete: font substitution and unsupported drawing features can affect recognition even when a page renders.
+
+`MaxConcurrentPages` defaults to one. Raise it to overlap page requests for providers that declare concurrent-request support. Non-concurrent providers remain serialized, and result pages retain the requested order. Parsing and rendering use one producer; only a bounded number of provider requests are retained. `MaxRenderedBytesPerPage` defaults to 64 MiB and limits each encoded PNG. Rendered pages are released as requests complete rather than accumulated for the whole document.
 
 ## Targets and dependency footprint
 

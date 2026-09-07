@@ -111,9 +111,8 @@ internal static partial class ResourceResolver {
                       out _))
                 : CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent, maxDecodedStreamBytes);
         }
-        if (bitsPerComponent != 8) return false;
-
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+        if (bitsPerComponent != 8 && !IsPackedGray(colorSpaceName, bitsPerComponent)) return false;
         if (!PdfImageColorSpaceNormalization.TryResolve(
                 effectiveColorSpace,
                 colorSpaceName,

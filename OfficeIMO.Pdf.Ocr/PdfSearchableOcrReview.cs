@@ -37,7 +37,8 @@ public sealed class PdfSearchableOcrReview {
         return PdfPageImageRenderer.RenderPages(_source.GetBytesForOperation(cancellationToken),
             PdfPageSelection.From(pageNumber), new PdfPageRenderOptions {
                 Format = PdfPageRenderFormat.Png, Dpi = _options.Dpi, MaxPages = 1,
-                MaxPixelsPerPage = _options.MaxPixelsPerPage, ContinueOnError = false
+                MaxPixelsPerPage = _options.MaxPixelsPerPage, ContinueOnError = false,
+                ImageCodec = _options.ImageCodec, MaxOutputBytesPerPage = _options.MaxRenderedBytesPerPage
             }, _source.ReadOptions, cancellationToken).Single();
     }
 
@@ -49,6 +50,29 @@ public sealed class PdfSearchableOcrReview {
     /// <remarks>Foreign, rejected, null, and duplicate words are rejected before mutation. An empty selection
     /// produces an unchanged source copy. This method creates an in-memory artifact; it does not publish a file.</remarks>
     public PdfSearchableOcrResult Apply(IEnumerable<PdfRecognizedWord> selectedWords, CancellationToken cancellationToken = default) {
+        return ApplyCore(selectedWords, null, cancellationToken);
+    }
+
+    /// <summary>Creates a searchable artifact from eligible words and their reviewed replacement text.</summary>
+    /// <remarks>Only dictionary entries are included. Keys must be eligible words from this review. Geometry,
+    /// ordering, and original provider evidence are retained; replacements do not bypass confidence or overlap policy.</remarks>
+    public PdfSearchableOcrResult ApplyCorrections(IReadOnlyDictionary<PdfRecognizedWord, string> selectedWords,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(selectedWords, nameof(selectedWords));
+        var corrections = new Dictionary<PdfRecognizedWord, string>();
+        foreach (var pair in selectedWords) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (pair.Key == null || !_eligible.ContainsKey(pair.Key) || string.IsNullOrWhiteSpace(pair.Value))
+                throw new ArgumentException("Choose eligible words and nonempty replacement text.", nameof(selectedWords));
+            if (pair.Value.Length > _options.MaxOcrTextCharactersPerPage)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, pair.Value.Length);
+            corrections.Add(pair.Key, pair.Value.Trim());
+        }
+        return ApplyCore(corrections.Keys, corrections, cancellationToken);
+    }
+
+    private PdfSearchableOcrResult ApplyCore(IEnumerable<PdfRecognizedWord> selectedWords,
+        IReadOnlyDictionary<PdfRecognizedWord, string>? corrections, CancellationToken cancellationToken) {
         Guard.NotNull(selectedWords, nameof(selectedWords));
         var selected = new HashSet<PdfRecognizedWord>();
         foreach (var word in selectedWords) {
@@ -61,7 +85,24 @@ public sealed class PdfSearchableOcrReview {
         var wordsByPage = Ocr.Pages.Select(page => new {
             page.PageNumber, Words = (IReadOnlyList<PdfRecognizedWord>)Array.AsReadOnly(page.Words.Where(selected.Contains).ToArray())
         }).Where(page => page.Words.Count > 0).ToDictionary(page => page.PageNumber, page => page.Words);
-        var writtenWords = new ReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>>(wordsByPage);
+        int correctedCount = 0;
+        var replacementWords = new Dictionary<PdfRecognizedWord, PdfRecognizedWord>();
+        foreach (var page in wordsByPage) {
+            long characters = 0;
+            foreach (PdfRecognizedWord word in page.Value) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string text = corrections != null ? corrections[word] : word.Text;
+                characters += text.Length;
+                if (characters > _options.MaxOcrTextCharactersPerPage)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, characters);
+                bool changed = !string.Equals(text, word.Text, StringComparison.Ordinal);
+                if (changed) correctedCount++;
+                replacementWords.Add(word, changed ? new PdfRecognizedWord(text, word.X, word.Y, word.Width, word.Height,
+                    word.Confidence, word.ProviderSequence, word.BlockId, word.ParagraphId, word.LineId) : word);
+            }
+        }
+        var writtenWords = new ReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>>(wordsByPage.ToDictionary(
+            page => page.Key, page => (IReadOnlyList<PdfRecognizedWord>)Array.AsReadOnly(page.Value.Select(word => replacementWords[word]).ToArray())));
         int[] modifiedPages = wordsByPage.Keys.ToArray();
         if (modifiedPages.Length == 0) {
             return new PdfSearchableOcrResult(PdfDocument.Load(_source.GetBytesForOperation(cancellationToken), _source.ReadOptions),
@@ -75,9 +116,9 @@ public sealed class PdfSearchableOcrReview {
                 canonicalPage, _options.ReadOptions.LayoutOptions.ReadingDirection, cancellationToken);
             foreach (var word in logicalWords) {
                 cancellationToken.ThrowIfCancellationRequested();
-                canvas.SearchableText(word.Text, word.X, word.Y, word.Width, word.Height);
+                canvas.SearchableText(replacementWords[word].Text, word.X, word.Y, word.Width, word.Height);
             }
         }, new PdfCanvasStampOptions().UseTargetPages(pageSelector), _source.ReadOptions);
-        return new PdfSearchableOcrResult(searchable, Ocr, Array.AsReadOnly(modifiedPages), writtenWords);
+        return new PdfSearchableOcrResult(searchable, Ocr, Array.AsReadOnly(modifiedPages), writtenWords, correctedCount);
     }
 }

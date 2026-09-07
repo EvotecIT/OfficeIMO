@@ -2661,6 +2661,9 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image) {
+        if (!image.IsImageFile && (image.Filter.Contains("CCITTFaxDecode") || image.Filter.Contains("CCF") || image.Filter.Contains("JPXDecode"))) {
+            throw new NotSupportedException("The scanned image could not be decoded or projected: " + image.Filter + ".");
+        }
         if (!image.IsImageFile || placement.Width <= 0D || placement.Height <= 0D) {
             return;
         }

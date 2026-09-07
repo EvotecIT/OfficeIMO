@@ -24,6 +24,8 @@ public sealed class PdfOcrMergeOptions {
         new Dictionary<string, string>(StringComparer.Ordinal);
     /// <summary>OCR render DPI.</summary>
     public double Dpi { get; set; } = 150D;
+    /// <summary>Optional shared raster decoder for source encodings such as JPEG 2000.</summary>
+    public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
     /// <summary>Minimum accepted provider confidence from 0 through 1.</summary>
     public double MinimumConfidence { get; set; } = 0.5D;
     /// <summary>Overlap ratio at which OCR words duplicating native text are removed.</summary>
@@ -34,6 +36,10 @@ public sealed class PdfOcrMergeOptions {
     public TimeSpan ProviderTimeout { get; set; } = TimeSpan.FromMinutes(2);
     /// <summary>Maximum pixels rendered per page.</summary>
     public long MaxPixelsPerPage { get; set; } = 100_000_000L;
+    /// <summary>Maximum page requests in flight. Providers without concurrent-request support always run one at a time.</summary>
+    public int MaxConcurrentPages { get; set; } = 1;
+    /// <summary>Maximum encoded PNG bytes for one OCR request.</summary>
+    public long MaxRenderedBytesPerPage { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum detailed spans inspected from the provider for one page.</summary>
     public int MaxOcrSpansPerPage { get; set; } = 100_000;
     /// <summary>Maximum OCR words accepted from the provider for one page.</summary>
@@ -68,11 +74,14 @@ public sealed class PdfOcrMergeOptions {
                 ? new Dictionary<string, string>(StringComparer.Ordinal)
                 : ProviderOptions.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
             Dpi = Dpi,
+            ImageCodec = ImageCodec,
             MinimumConfidence = MinimumConfidence,
             NativeTextOverlapThreshold = NativeTextOverlapThreshold,
             MaxPages = MaxPages,
             ProviderTimeout = ProviderTimeout,
             MaxPixelsPerPage = MaxPixelsPerPage,
+            MaxConcurrentPages = MaxConcurrentPages,
+            MaxRenderedBytesPerPage = MaxRenderedBytesPerPage,
             MaxOcrSpansPerPage = MaxOcrSpansPerPage,
             MaxOcrWordsPerPage = MaxOcrWordsPerPage,
             MaxOcrTextCharactersPerPage = MaxOcrTextCharactersPerPage,
@@ -96,6 +105,8 @@ public sealed class PdfOcrMergeOptions {
         Guard.PositiveInteger(MaxPages, nameof(MaxPages));
         if (ProviderTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(ProviderTimeout));
         if (MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerPage));
+        Guard.PositiveInteger(MaxConcurrentPages, nameof(MaxConcurrentPages));
+        if (MaxRenderedBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRenderedBytesPerPage));
         Guard.PositiveInteger(MaxOcrSpansPerPage, nameof(MaxOcrSpansPerPage));
         Guard.PositiveInteger(MaxOcrWordsPerPage, nameof(MaxOcrWordsPerPage));
         Guard.PositiveInteger(MaxOcrTextCharactersPerPage, nameof(MaxOcrTextCharactersPerPage));

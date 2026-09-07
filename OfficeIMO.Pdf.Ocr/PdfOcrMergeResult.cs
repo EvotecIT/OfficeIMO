@@ -45,7 +45,7 @@ public sealed class PdfOcrPageMergeResult {
     public int RejectedLowConfidenceCount { get; }
     /// <summary>Words rejected because native PDF text already covers the region.</summary>
     public int RejectedNativeOverlapCount { get; }
-    /// <summary>Provider and normalization diagnostics.</summary>
+    /// <summary>Rendering, provider, and normalization diagnostics.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Native and accepted OCR text in approximate visual order.</summary>
     public string Text { get; }

@@ -6,7 +6,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Pdf.Ocr;
 
 /// <summary>PDF-specific rendering and native-text merge orchestration over an engine-neutral OCR provider.</summary>
-internal static class PdfOcr {
+internal static partial class PdfOcr {
     internal static async Task<PdfOcrMergeResult> RecognizeAndMergeAsync(
         byte[] pdf,
         IOcrEngine engine,
@@ -16,7 +16,6 @@ internal static class PdfOcr {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(engine, nameof(engine));
         OcrEngineExecution engineExecution = OcrEngineRunner.CreateExecution(engine);
-        string engineId = engineExecution.Id;
         EnsurePngSupport(engineExecution.Capabilities);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
@@ -39,55 +38,9 @@ internal static class PdfOcr {
             semanticOptions,
             out IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
             cancellationToken);
-        var renderOptions = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
-            Dpi = effectiveOptions.Dpi,
-            MaxPages = effectiveOptions.MaxPages,
-            MaxPixelsPerPage = effectiveOptions.MaxPixelsPerPage,
-            ContinueOnError = false
-        };
-        IReadOnlyList<PdfPageRenderResult> rendered = PdfPageImageRenderer.RenderPages(
-            pdf,
-            semanticOptions.PageSelection,
-            renderOptions,
-            readOptions,
-            cancellationToken);
-        var pages = new List<PdfOcrPageMergeResult>(rendered.Count);
-        for (int index = 0; index < rendered.Count; index++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfPageRenderResult render = rendered[index];
-            PdfLogicalPage nativePage = logical.Pages.First(page => page.PageNumber == render.PageNumber);
-            PdfReadPage readPage = readDocument.Pages[render.PageNumber - 1];
-            PdfReadPage overlapReadPage = overlapReadDocument.Pages[render.PageNumber - 1];
-            IReadOnlyList<PdfSelectionQuad> nativeTextBounds = PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(overlapReadPage);
-            (double visualWidth, double visualHeight) = readPage.GetInteractionPageSize();
-            byte[] payload = (byte[])render.Bytes!.Clone();
-            string candidateId = "pdf-page-" + render.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var request = new OcrRequest {
-                Payload = payload,
-                MediaType = "image/png",
-                FileName = candidateId + ".png",
-                SourceId = effectiveOptions.SourceId,
-                SourceName = effectiveOptions.SourceName,
-                CandidateId = candidateId,
-                CandidateKind = "page",
-                PageNumber = render.PageNumber,
-                PixelWidth = render.Width,
-                PixelHeight = render.Height,
-                Region = new OcrRegion { X = 0D, Y = 0D, Width = visualWidth, Height = visualHeight },
-                RegionCoordinateUnit = OcrCoordinateUnit.Points,
-                Language = effectiveOptions.Language,
-                ProviderOptions = effectiveOptions.ProviderOptions
-            };
-            OcrResult result = await engineExecution.RecognizeAsync(
-                request,
-                effectiveOptions.ProviderTimeout,
-                cancellationToken).ConfigureAwait(false);
-            ProjectedOcrResult projected = ProjectResult(result, request, engineId, effectiveOptions, cancellationToken);
-            pages.Add(MergePage(nativePage, nativeTextBounds, projected, effectiveOptions, cancellationToken));
-        }
-
-        var mergedPages = pages.AsReadOnly();
+        IReadOnlyList<PdfOcrPageMergeResult> mergedPages = await RecognizePagesAsync(
+            readDocument, overlapReadDocument, logical, selectedPages,
+            engineExecution, effectiveOptions, cancellationToken).ConfigureAwait(false);
         PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
             readDocument,
             logical,
@@ -230,6 +183,8 @@ internal static class PdfOcr {
         }
 
         EnsureCharacters(words.Select(static word => word.Text), options.MaxOcrTextCharactersPerPage);
+        if (diagnostics.Count > options.MaxDiagnosticsPerPage)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, diagnostics.Count);
         EnsureCharacters(diagnostics, options.MaxDiagnosticCharactersPerPage);
         string providerValue = NormalizeProviderMetadata(result.Provider, options.MaxProviderMetadataCharactersPerPage)
             ?? engineId;
