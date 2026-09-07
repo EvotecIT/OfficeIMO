@@ -36,7 +36,10 @@ internal static class ScanQualityCorpus {
                     $"WER {item.Before.ProviderAccuracy.WordErrorRate:P2} -> {item.After.ProviderAccuracy.WordErrorRate:P2}; preserved={item.After.OriginalAppearancePreserved}");
             }
         }
-        var report = new { Provider = engine.Id, Language = "eng", Dpi = 300, MinimumOrientationConfidence = 0.75,
+        var report = new { Provider = engine.Id, ProviderVersion = await engine.GetVersionAsync(deadline.Token),
+            Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            OperatingSystem = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
+            Language = "eng", Dpi = 300, MinimumOrientationConfidence = 0.75,
             Metric = "NFC text with collapsed whitespace; case and punctuation retained; Levenshtein code-point CER and token WER. Rates can exceed 1.",
             Limit = "Two upstream labelled scans with deterministic degradations; English model only, including multilingual eurotext. Buffer accounting excludes provider process and PDF encoding.",
             Cases = cases };
