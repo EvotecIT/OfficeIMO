@@ -1,6 +1,8 @@
 {
   "version": 1,
-  "generatedAtUtc": "2026-03-25T07:59:36.2376717+00:00",
-  "warningCount": 0,
-  "warningKeys": []
+  "generatedAtUtc": "2026-09-07T12:30:21.8778331+00:00",
+  "warningCount": 1,
+  "warningKeys": [
+    "Navigation main menu does not contain \u0027/\u0027. Add a Home link to keep global navigation consistent."
+  ]
 }

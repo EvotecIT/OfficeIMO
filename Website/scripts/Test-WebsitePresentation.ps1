@@ -46,6 +46,10 @@ $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $sourceRootPath = (Resolve-Path -LiteralPath $SourceRoot).Path
 foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
+    # The logo supplies Home; the main-menu-only verifier warning is baselined.
+    if ($routeHtml -notmatch '<a\b[^>]*class="[^"]*\bimo-header__logo\b[^"]*"[^>]*href="/"') {
+        throw "Route '/$route/' must expose Home through the linked site logo."
+    }
     $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\bid="main-navigation"').Count
     if ($navigationCount -ne 1) {
         throw "Route '/$route/' must render one global navigation menu; found $navigationCount."
