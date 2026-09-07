@@ -1,5 +1,5 @@
 ---
-title: "Compare OfficeIMO document libraries and PDF tools"
+title: "Compare document libraries and PDF tools"
 description: "Compare OfficeIMO libraries and Studio with commercial suites, desktop PDF tools, focused .NET libraries, and ingestion tools using dated sources."
 layout: comparison-hub
 meta.eyebrow: "Document workflow comparisons"

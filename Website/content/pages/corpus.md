@@ -1,6 +1,6 @@
 ---
 title: "PDF corpus: inspect the files behind the results"
-description: "Explore a measured OfficeIMO PDF corpus with source hashes, licenses, rendering results, extraction checks, mutation decisions, failures, and reproduction commands."
+description: "Inspect OfficeIMO PDF corpus results with source hashes, licenses, rendering, extraction checks, mutation decisions, failures, and reproduction commands."
 layout: page
 meta.seo_title: "OfficeIMO PDF corpus and reproducible quality evidence"
 ---

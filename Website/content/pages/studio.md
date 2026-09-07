@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO Studio"
-description: "Edit supported PDF text and images, review comments, fill forms, organize pages, and convert documents in OfficeIMO Studio. See real screenshots and availability."
+description: "Edit supported PDF text and images, review comments, fill forms, organize pages, and convert documents in OfficeIMO Studio. See screenshots and availability."
 meta.seo_title: "OfficeIMO Studio: desktop document tools and conversion"
 layout: application
 meta.application: "studio"

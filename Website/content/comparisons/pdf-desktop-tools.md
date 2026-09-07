@@ -1,5 +1,6 @@
 ---
 title: "OfficeIMO Studio, Acrobat, Foxit, and free PDF desktop tools"
+meta.seo_title: "OfficeIMO Studio and desktop PDF tools compared"
 description: "Compare OfficeIMO Studio, Acrobat Standard and Pro, Foxit PDF Editor, and KillerPDF by editing, OCR, deployment, automation, and evidence boundaries."
 meta.eyebrow: "Desktop PDF workflow comparison"
 meta.outcome: "Choose the application that can complete your document task"
