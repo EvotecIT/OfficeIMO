@@ -45,6 +45,13 @@ internal static partial class PdfWriter {
 
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             double tableHeight = GetTableRowsHeight(rowHeights, 0, rows, rowGap);
+            double tableCornerRadius = ResolveTableCornerRadius(
+                style.CornerRadius,
+                tableWidth,
+                rowHeights[0],
+                rowHeights[rowHeights.Length - 1],
+                columnWidths[0],
+                columnWidths[columnWidths.Length - 1]);
             double xOrigin = item.X;
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
@@ -74,7 +81,13 @@ internal static partial class PdfWriter {
                         bool rowIsHeader = rowIndex < headerRowCount;
                         bool rowIsFooter = rowIndex >= footerStart;
                         bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(table, rowIndex, columns);
+                        bool roundTop = tableCornerRadius > 0D && rowIndex == 0;
+                        bool roundBottom = tableCornerRadius > 0D && rowIndex == rows - 1;
+                        if (roundTop || roundBottom) {
+                            BeginRoundedClip(sb, xOrigin, rowBottom, tableWidth, rowHeights[rowIndex], tableCornerRadius, roundTop, roundTop, roundBottom, roundBottom);
+                        }
                         DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
+                        if (roundTop || roundBottom) { EndRoundedClip(sb); }
 
                         var cells = cellLayoutsByRow[rowIndex];
                         for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
@@ -83,8 +96,21 @@ internal static partial class PdfWriter {
                             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                             double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
                             double cellBottom = rowTop - cellHeight;
-
+                            bool cellTouchesTop = rowIndex == 0;
+                            bool cellTouchesBottom = rowIndex + cell.RowSpan >= rows;
+                            bool cellTouchesLeft = cell.Column == 0;
+                            bool cellTouchesRight = cell.Column + cell.ColumnSpan >= columns;
+                            bool clipCellBackground = tableCornerRadius > 0D &&
+                                (cellTouchesTop || cellTouchesBottom) && (cellTouchesLeft || cellTouchesRight);
+                            if (clipCellBackground) {
+                                BeginRoundedClip(sb, cellX, cellBottom, cellWidth, cellHeight, tableCornerRadius,
+                                    cellTouchesTop && cellTouchesLeft,
+                                    cellTouchesTop && cellTouchesRight,
+                                    cellTouchesBottom && cellTouchesRight,
+                                    cellTouchesBottom && cellTouchesLeft);
+                            }
                             DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
+                            if (clipCellBackground) { EndRoundedClip(sb); }
                         }
 
                         DrawTableCellDataBars(
@@ -130,9 +156,25 @@ internal static partial class PdfWriter {
                             double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
                             double cellBottom = rowTop - cellHeight;
                             bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
+                            bool cellTouchesTop = rowIndex == 0;
+                            bool cellTouchesBottom = rowIndex + cell.RowSpan >= rows;
+                            bool cellTouchesLeft = cell.Column == 0;
+                            bool cellTouchesRight = cell.Column + cell.ColumnSpan >= columns;
 
                             RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
-                            DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
+                            DrawCanvasTableCellBorder(
+                                style,
+                                rowIndex,
+                                cell.Column,
+                                cellX,
+                                cellBottom,
+                                cellWidth,
+                                cellHeight,
+                                tableCornerRadius,
+                                cellTouchesTop && cellTouchesLeft,
+                                cellTouchesTop && cellTouchesRight,
+                                cellTouchesBottom && cellTouchesRight,
+                                cellTouchesBottom && cellTouchesLeft);
                         }
                     } finally {
                         _canvasStructureParentElement = tableParent;
@@ -143,7 +185,7 @@ internal static partial class PdfWriter {
             }
 
             if (style.BorderColor is not null && style.BorderWidth > 0D) {
-                DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, columnWidths, rowHeights, columnGap, rowGap, cellLayoutsByRow);
+                DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, tableCornerRadius, columnWidths, rowHeights, columnGap, rowGap, cellLayoutsByRow);
             }
 
             if (rotated) {
@@ -410,19 +452,24 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height) {
+        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft) {
             if (style.CellBorders != null &&
                 style.CellBorders.TryGetValue((rowIndex, columnIndex), out PdfCellBorder? border) &&
                 HasRenderableCellBorder(border)) {
-                DrawCellBorder(sb, border, x, y, width, height, true);
+                if (cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
+                    double outerBorderWidth = style.BorderColor is not null && style.BorderWidth > 0D ? style.BorderWidth : 0D;
+                    DrawRoundedCellBorder(sb, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true);
+                } else {
+                    DrawCellBorder(sb, border, x, y, width, height, true);
+                }
             }
         }
 
-        private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap, System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow) {
+        private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double cornerRadius, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap, System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow) {
             PdfColor color = style.BorderColor!.Value;
             double width = style.BorderWidth;
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
-            DrawRowRect(sb, color, width, x, topY - height, tableWidth, height, true);
+            DrawRoundedRowRect(sb, color, width, x, topY - height, tableWidth, height, cornerRadius, true, true, true, true, true);
             bool[][] verticalBoundarySkips = GetCanvasTableVerticalBoundarySkips(cellLayoutsByRow, rows, columns);
 
             double lineX = x;
