@@ -1,6 +1,6 @@
 {{ report = data.pdf_corpus_report }}
 {{ publication = data.pdf_corpus_publication }}
-<section aria-labelledby="corpus-run-title">
+<section class="imo-pdf-corpus" aria-labelledby="corpus-run-title">
   <h2 id="corpus-run-title">Measured PDF quality run</h2>
   <p><strong>{{ report.uniqueFiles }} unique files</strong> · {{ report.totals.passed }} of {{ report.totals.cases }} cases met expectations · {{ report.totals.failed }} failures · {{ report.totals.timedOut }} timeouts.</p>
   <p>{{ report.totals.operationalChecksPassed }} of {{ report.totals.operationalChecks }} operational checks completed; {{ report.totals.expectationsPassed }} of {{ report.totals.expectations }} pinned expectations passed.</p>

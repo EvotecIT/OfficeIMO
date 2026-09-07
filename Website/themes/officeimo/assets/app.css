@@ -594,3 +594,5 @@ pre code{background:none;padding:0;color:inherit}
 .imo-document-tasks__boundary { color: var(--imo-text-secondary); border-top: 1px solid var(--imo-border); padding-top: .8rem; }
 .imo-intent-content .imo-document-tasks__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 760px) { .imo-document-tasks__grid, .imo-intent-content .imo-document-tasks__grid { grid-template-columns: minmax(0, 1fr); } }
+.imo-pdf-corpus p code, .imo-pdf-corpus dd code { white-space: normal; overflow-wrap: anywhere; }
+.imo-pdf-corpus table { display: block; max-width: 100%; overflow-x: auto; }
