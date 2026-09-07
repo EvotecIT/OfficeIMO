@@ -7,6 +7,32 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFaxDecodeTests {
     [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(0, true, false)]
+    [InlineData(2, false, false)]
+    [InlineData(2, true, false)]
+    [InlineData(0, true, true)]
+    [InlineData(2, true, true)]
+    public void Fax_AcceptsLongFillBeforeRowsAndReturnToControl(int k, bool aligned, bool endOfBlock) {
+        var bits = new StringBuilder();
+        void Marker() {
+            bits.Append('0', 40);
+            if (aligned) while ((bits.Length + 12 + (k > 0 ? 1 : 0)) % 8 != 0) bits.Append('0');
+            bits.Append("000000000001");
+            if (k > 0) bits.Append('1');
+        }
+        Marker(); bits.Append("10011");
+        Marker(); bits.Append("00110101000101");
+        if (endOfBlock) for (int index = 0; index < 6; index++) Marker();
+        PdfDictionary dictionary = FaxDictionary(8, 2, k, true);
+        var parameters = (PdfDictionary)dictionary.Items["DecodeParms"];
+        parameters.Items["EndOfLine"] = new PdfBoolean(true);
+        parameters.Items["EncodedByteAlign"] = new PdfBoolean(aligned);
+        parameters.Items["EndOfBlock"] = new PdfBoolean(endOfBlock);
+        Assert.Equal(new byte[] { 0, 255 }, StreamDecoder.DecodeRequired(dictionary, Pack(bits.ToString())));
+    }
+
+    [Theory]
     [InlineData("group3", 0, false)]
     [InlineData("group4", -1, false)]
     [InlineData("group3-options1", 2, false)]

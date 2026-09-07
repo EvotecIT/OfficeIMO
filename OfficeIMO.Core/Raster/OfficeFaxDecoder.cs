@@ -15,7 +15,7 @@ internal static partial class OfficeFaxDecoder {
         if (length > maximumBytes) throw new InvalidDataException("Fax image exceeds the decoded byte limit.");
         int stride = (int)strideLong;
         var output = new byte[(int)length];
-        var bits = new FaxBits(encoded);
+        var bits = new FaxBits(encoded, cancellationToken);
         for (int row = 0; row < rows; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             bool foundEndOfLine = bits.TryReadEndOfLine();
@@ -148,8 +148,9 @@ internal static partial class OfficeFaxDecoder {
 
     private sealed class FaxBits {
         private readonly byte[] _bytes;
+        private readonly CancellationToken _token;
         private long _position;
-        internal FaxBits(byte[] bytes) { _bytes = bytes; }
+        internal FaxBits(byte[] bytes, CancellationToken token) { _bytes = bytes; _token = token; }
         internal int Read() {
             if (_position >= (long)_bytes.Length * 8) throw new InvalidDataException("Truncated fax image.");
             int value = (_bytes[(int)(_position / 8)] >> (7 - (int)(_position & 7))) & 1;
@@ -159,12 +160,15 @@ internal static partial class OfficeFaxDecoder {
         internal bool TryReadEndOfLine() {
             long saved = _position;
             int zeros = 0;
-            while (_position < (long)_bytes.Length * 8 && zeros <= 31) {
+            while (_position < (long)_bytes.Length * 8) {
+                if ((_position & 4095) == 0) _token.ThrowIfCancellationRequested();
                 if (Read() != 0) {
                     if (zeros >= 11) return true;
                     break;
                 }
-                zeros++;
+                // T.4 fill has variable length. Saturate the marker threshold so a long
+                // bounded payload cannot overflow the counter, while cancellation stays responsive.
+                if (zeros < 11) zeros++;
             }
             _position = saved;
             return false;
