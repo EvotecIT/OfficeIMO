@@ -69,10 +69,16 @@ try {
     $openOutput = & $npx.Source --yes --package $playwrightPackage playwright-cli "-s=$session" open $BaseUrl --browser $browserEngine 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Playwright could not open the converter.`n$($openOutput -join [Environment]::NewLine)" }
     $rawResult = & $npx.Source --yes --package $playwrightPackage playwright-cli "-s=$session" run-code --filename $runnerPath
-    if ($LASTEXITCODE -ne 0) { throw 'Playwright browser performance run failed.' }
+    $runExitCode = $LASTEXITCODE
     $rawText = $rawResult -join [Environment]::NewLine
     $resultMatch = [regex]::Match($rawText, '(?ms)^### Result\r?\n(?<json>.+?)\r?\n### (?:Ran|Page|Error)')
-    if (-not $resultMatch.Success) { throw "Playwright did not emit a parseable result block.`n$rawText" }
+    if ($runExitCode -ne 0 -or -not $resultMatch.Success) {
+        $failurePath = "$ReportPath.playwright.txt"
+        $failureDirectory = Split-Path -Parent $failurePath
+        if ($failureDirectory) { New-Item -ItemType Directory -Path $failureDirectory -Force | Out-Null }
+        $rawText | Set-Content -LiteralPath $failurePath -Encoding utf8
+        throw "Playwright browser performance run failed; details saved to '$failurePath'.`n$rawText"
+    }
     $result = $resultMatch.Groups['json'].Value.Trim() | ConvertFrom-Json
     if ($result -is [string]) { $result = $result | ConvertFrom-Json }
 

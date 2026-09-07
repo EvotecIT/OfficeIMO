@@ -75,14 +75,14 @@
               <summary>Explore example<span class="imo-visually-hidden">: {{ card.title }}</span></summary>
               <div class="imo-example__detail-content">
                 <nav class="imo-example__downloads" aria-label="{{ card.title | html.escape }} downloads">
-                  {{ for download in card.downloads }}<a href="{{ download.url }}" target="_blank" rel="noopener">{{ download.label }}</a>{{ end }}
+                  {{ for download in card.downloads }}<a href="{{ download.url }}" aria-label="{{ download.label | html.escape }}: {{ card.title | html.escape }}" target="_blank" rel="noopener">{{ download.label }}</a>{{ end }}
                 </nav>
                 <dl><div><dt>Input</dt><dd>{{ card.input }}</dd></div><div><dt>Output</dt><dd>{{ card.output }}</dd></div></dl>
                 <h4>What to check</h4><p>{{ card.proof }}</p>
                 <h4>Scope</h4><p>{{ card.limit }}</p>
                 <nav class="imo-example__references" aria-label="{{ card.title | html.escape }} implementation">
-                  <a href="{{ card.source_url }}" target="_blank" rel="noopener">View C# source</a>
-                  <a href="{{ card.guide_url }}">Read guide</a><a href="{{ card.api_url }}">API reference</a>
+                  <a href="{{ card.source_url }}" aria-label="View C# source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View C# source</a>
+                  <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
                 <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ card.run_command | html.escape }}</code></pre></details>
               </div>

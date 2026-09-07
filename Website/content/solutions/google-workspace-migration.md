@@ -33,4 +33,4 @@ Treat the fidelity report as part of the migration result. High-value content ma
 
 Authentication and token storage belong at the application boundary. Use the optional auth adapter when it fits, or provide your own credentials and storage through the shared abstractions. Never embed tokens in documents, logs, or migration manifests.
 
-Start with the [Google Workspace product page](/products/google-workspace/) and [documentation](/docs/google-workspace/), then select focused packages from the [download catalog](/downloads/).
+Start with the [Google Workspace product page](/products/google-workspace/) and [Google Workspace documentation](/docs/google-workspace/), then select focused packages from the [download catalog](/downloads/).

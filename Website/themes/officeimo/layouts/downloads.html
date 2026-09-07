@@ -79,19 +79,19 @@
 
                 <div class="imo-download-card__links">
                   {{ if package.product_url }}
-                  <a class="imo-action-link" href="{{ package.product_url }}">
+                  <a class="imo-action-link" href="{{ package.product_url }}" aria-label="Overview: {{ package.title | html.escape }}">
                     <span>Overview</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>
                   {{ end }}
                   {{ if package.docs_url }}
-                  <a class="imo-action-link" href="{{ package.docs_url }}">
+                  <a class="imo-action-link" href="{{ package.docs_url }}" aria-label="Guides: {{ package.title | html.escape }}">
                     <span>Guides</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>
                   {{ end }}
                   {{ if package.api_url }}
-                  <a class="imo-action-link" href="{{ package.api_url }}">
+                  <a class="imo-action-link" href="{{ package.api_url }}" aria-label="API reference: {{ package.title | html.escape }}">
                     <span>API reference</span>
                     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
                   </a>

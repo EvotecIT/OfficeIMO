@@ -334,8 +334,7 @@
         "Name": "global",
         "Css": [
           "/css/app.css",
-          "/css/prism-theme.css",
-          "/css/source-viewer.css"
+          "/css/prism-theme.css"
         ],
         "Js": [
           "/js/site.js",
@@ -557,6 +556,10 @@
       {
         "Name": "officeimo",
         "Path": "themes/officeimo/critical.css"
+      },
+      {
+        "Name": "source-viewer",
+        "Path": "static/css/source-viewer.css"
       }
     ]
   },
@@ -774,7 +777,7 @@
           "Url": "/docs/"
         },
         {
-          "Title": "API reference",
+          "Title": "All API references",
           "Url": "/api/"
         },
         {
