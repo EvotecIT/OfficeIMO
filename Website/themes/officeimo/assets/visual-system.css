@@ -529,7 +529,7 @@ p { text-wrap: pretty; }
   margin-bottom: 1rem;
   font-size: clamp(2.75rem, 4vw, 4.15rem);
   line-height: 1;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
   text-wrap: balance;
 }
