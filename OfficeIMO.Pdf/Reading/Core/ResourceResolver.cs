@@ -1247,7 +1247,7 @@ internal static partial class ResourceResolver {
         bool transparencyMaskResolved = false;
 
         if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
-            TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload)) {
+            TryGetJpxPayload(stream, objects, colorSpace, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
             bytes = jpxPayload;
             extension = "jp2";
             mimeType = "image/jp2";
@@ -1337,7 +1337,16 @@ internal static partial class ResourceResolver {
             hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
-            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent);
+            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
+            requiresScanDecode: HasScanFilter(filterObj, objects));
+    }
+
+    private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, filters);
+        if (resolved is PdfName name) return IsScanFilter(name);
+        return resolved is PdfArray array && array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfName entry && IsScanFilter(entry));
+
+        static bool IsScanFilter(PdfName name) => name.Name is "CCITTFaxDecode" or "CCF" or "JPXDecode";
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
@@ -1532,13 +1541,13 @@ internal static partial class ResourceResolver {
                 colorFunctionEvaluationBudget,
                 indexedDctPixels,
                 functionResolutionContext,
-                out pngBytes);
+                out pngBytes, cancellationToken);
         }
 
         if (PdfIndexedImageNormalizer.TryBuildPngFile(
                 colorSpaceObj, width, height, bitsPerComponent, stream, objects,
                 maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
-                colorFunctionEvaluationBudget, decodedPixels: null, functionResolutionContext, out pngBytes)) {
+                colorFunctionEvaluationBudget, decodedPixels: null, functionResolutionContext, out pngBytes, cancellationToken)) {
             return true;
         }
 

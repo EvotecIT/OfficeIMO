@@ -2676,7 +2676,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (!image.IsImageFile) {
-            if (image.Filter.Split(',').Any(filter => filter.Trim() is "CCITTFaxDecode" or "CCF" or "JPXDecode")) {
+            if (image.RequiresScanDecode && !IsInvisibleImagePlacement(placement, pageHeight, drawing.Width, drawing.Height)) {
                 throw new NotSupportedException("The scanned image could not be decoded or projected: " + image.Filter + ".");
             }
             return;
