@@ -14,19 +14,19 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>
     public PdfDocument Extract(params int[] pageNumbers) {
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, _document.ReadOptions, pageNumbers));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory()));
     }
 
     /// <summary>Extracts pages with a byte budget enforced during the first canonical serialization.</summary>
     internal PdfDocument Extract(int[] pageNumbers, long maximumOutputBytes) {
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory()));
     }
 
     /// <summary>
     /// Creates a new PDF containing one inclusive one-based page range.
     /// </summary>
     public PdfDocument Extract(PdfPageRange pageRange) {
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions));
+        return Extract(pageRange.ToPageNumbers());
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Extract(PdfPageSelection selection, PdfLoadOptions? options) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options, _document.GetOpenedReadDocumentFactory(options)));
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument[] Split(PdfLoadOptions? options) {
         byte[] input = _document.GetBytesForOperation();
-        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(input, options);
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(input, options, _document.GetOpenedReadDocumentFactory(options));
         return AdoptSplitOutputs(input, outputs, Enumerable.Repeat(1, outputs.Count).ToArray(), options);
     }
 
@@ -125,9 +125,10 @@ public sealed partial class PdfDocumentPages {
         byte[] input = _document.GetBytesForOperation();
         var outputs = new byte[selections.Length][];
         var outputPageCounts = new int[selections.Length];
+        var source = new PdfPageExtractor.ExtractionSession(input, options, _document.GetOpenedReadDocumentFactory(options));
         for (int i = 0; i < selections.Length; i++) {
             Guard.NotNull(selections[i], nameof(selections));
-            outputs[i] = PdfPageExtractor.ExtractPageRanges(input, selections[i].ToRanges(), options);
+            outputs[i] = source.Extract(selections[i].ToRanges());
             outputPageCounts[i] = selections[i].PageCount;
         }
 
@@ -157,7 +158,7 @@ public sealed partial class PdfDocumentPages {
         byte[] input = _document.GetBytesForOperation();
         return AdoptSplitOutputs(
             input,
-            PdfPageExtractor.SplitPageRanges(input, ranges, options),
+            PdfPageExtractor.SplitPageRanges(input, ranges, options, _document.GetOpenedReadDocumentFactory(options)),
             ranges.Select(static range => range.PageCount).ToArray(),
             options);
     }
@@ -165,7 +166,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>Creates one split part within the remaining output budget, retaining split preservation semantics.</summary>
     internal PdfDocument Split(PdfPageRange pageRange, long maximumOutputBytes) {
         byte[] input = _document.GetBytesForOperation();
-        byte[] output = PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions, maximumOutputBytes);
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory());
         return AdoptSplitOutputs(input, new[] { output }, new[] { pageRange.PageCount }, _document.ReadOptions)[0];
     }
 
