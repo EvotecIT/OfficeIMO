@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf.Ocr;
 /// only OCR evidence normalization; table, region, reading-order, and semantic decisions remain
 /// owned by the shared understanding stages.
 /// </summary>
-internal static class PdfOcrLogicalDocumentBuilder {
+internal static partial class PdfOcrLogicalDocumentBuilder {
     private const double MinimumVisualRunGapPoints = 18D;
 
     internal static IReadOnlyList<IReadOnlyList<PdfRecognizedWord>> BuildWordLines(
@@ -111,6 +111,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
             if (mergePage.Words.Count == 0) continue;
             PdfReadPage sourcePage = sourceDocument.Pages[nativePage.PageNumber - 1];
             OcrArtifacts ocr = BuildArtifacts(nativePage, mergePage.Words, layoutOptions.ReadingDirection, cancellationToken);
+            long orderingWork = ApplyRecognitionFrameOrder(pipeline, sourcePage, nativePage, mergePage, ocr, cancellationToken);
             PdfUnderstandingPageResult nativeAnalysis = nativePageAnalyses[pageIndex];
             PdfUnderstandingWord[] combinedWords = nativeAnalysis.Words.Concat(ocr.Words).ToArray();
             PdfUnderstandingLine[] combinedLines = nativeAnalysis.Lines.Concat(ocr.Lines).ToArray();
@@ -121,7 +122,8 @@ internal static class PdfOcrLogicalDocumentBuilder {
                 combinedWords,
                 combinedLines,
                 typeof(PdfOcrLogicalDocumentBuilder),
-                cancellationToken);
+                cancellationToken,
+                orderingWork);
         }
 
         int[] pageNumbers = nativeDocument.Pages.Select(static page => page.PageNumber).ToArray();
@@ -167,17 +169,17 @@ internal static class PdfOcrLogicalDocumentBuilder {
             cancellationToken.ThrowIfCancellationRequested();
             OcrLine source = sourceLines[lineIndex];
             if (source.LineId is not null) {
-                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection, understandingLines.Count));
+                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection));
                 continue;
             }
 
             IReadOnlyList<OcrVisualRun> visualRuns = SplitVisualRuns(source.Words);
             if (visualRuns.Count == 1) {
-                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection, understandingLines.Count));
+                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection));
                 continue;
             }
             for (int runIndex = 0; runIndex < visualRuns.Count; runIndex++) {
-                understandingLines.Add(CreateUnderstandingLine(source, visualRuns[runIndex].Words, projectedBySource, readingDirection, understandingLines.Count));
+                understandingLines.Add(CreateUnderstandingLine(source, visualRuns[runIndex].Words, projectedBySource, readingDirection));
             }
         }
         return new OcrArtifacts(
@@ -189,8 +191,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
         OcrLine source,
         IReadOnlyList<PdfRecognizedWord> words,
         Dictionary<PdfRecognizedWord, PdfUnderstandingWord> projectedBySource,
-        PdfReadingDirection readingDirection,
-        int readingSequence) {
+        PdfReadingDirection readingDirection) {
         PdfRecognizedWord[] orderedWords = OrderWords(words, readingDirection, source.LineId != null);
         PdfUnderstandingWord[] projectedWords = orderedWords.Select(word => projectedBySource[word]).ToArray();
         double left = orderedWords.Min(static word => word.X);
@@ -209,8 +210,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
                     : "OCR words share a provider-supplied block, paragraph, and line hierarchy.",
                 source.LineId is null ? 0.65D : 0.95D) },
             PdfLogicalContentSourceKind.Ocr,
-            orderedWords.Any(static word => word.RecognitionBounds != null) ? readingSequence :
-                source.LineId is null ? null : orderedWords.Min(static word => word.ProviderSequence),
+            source.LineId is null ? null : orderedWords.Min(static word => word.ProviderSequence),
             source.BlockId,
             source.ParagraphId,
             source.LineId,
@@ -440,7 +440,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
         }
 
         internal IReadOnlyList<PdfUnderstandingWord> Words { get; }
-        internal IReadOnlyList<PdfUnderstandingLine> Lines { get; }
+        internal IReadOnlyList<PdfUnderstandingLine> Lines { get; set; }
     }
 
     private static PdfRecognizedWord[] OrderWords(IReadOnlyList<PdfRecognizedWord> words,

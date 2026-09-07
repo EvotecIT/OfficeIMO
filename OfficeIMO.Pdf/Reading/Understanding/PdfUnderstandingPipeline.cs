@@ -155,7 +155,8 @@ internal sealed class PdfUnderstandingPipeline {
         IReadOnlyList<PdfUnderstandingWord> words,
         IReadOnlyList<PdfUnderstandingLine> lines,
         Type sourceProviderType,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long priorWorkUnits = 0) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(words, nameof(words));
@@ -165,6 +166,7 @@ internal sealed class PdfUnderstandingPipeline {
         if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
 #pragma warning restore CA1512
         var context = CreateContext(page, pageNumber, cancellationToken);
+        if (priorWorkUnits > 0) context.ConsumeWork(priorWorkUnits);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
         EnsureCount(words.Count, _limits.MaxWordsPerPage);
@@ -179,6 +181,36 @@ internal sealed class PdfUnderstandingPipeline {
             _tableDetection.DetectTables(context, lines),
             nameof(IPdfTableDetectionStage));
         return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+    }
+
+    // A positioned provider can establish order in a corrected image frame before projecting its
+    // geometry back to the source page. Reuse the canonical table, segmentation, and XY-cut owners.
+    // Custom stages still run exactly once, on the actual source-page geometry in RunPositionedPage.
+    internal IReadOnlyList<PdfUnderstandingLine> InferPositionedReadingOrder(
+        PdfReadPage page, int pageNumber, IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines, double visualWidth, double visualHeight,
+        CancellationToken token, out long workUnits) {
+        EnsureCount(words.Count, _limits.MaxWordsPerPage);
+        EnsureCount(lines.Count, _limits.MaxLinesPerPage);
+        EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
+        var context = new PdfUnderstandingPageContext(page, pageNumber, _layout,
+            _limits.MaxTextCharactersPerPage, _limits.MaxWordsPerPage, _limits.MaxWorkUnitsPerPage, token) {
+            MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage
+        };
+        try {
+            IReadOnlyList<PdfUnderstandingTableCandidate> tables = PdfAdvancedUnderstandingStages.TableDetection.DetectTables(context, lines);
+            EnsureCount(tables.Count, _limits.MaxTableCandidatesPerPage);
+            EnsureTableCandidateArtifacts(context, tables, _limits.MaxLinesPerPage, _limits.MaxWordsPerPage, _limits.MaxTextCharactersPerPage);
+            context.TableCandidates = tables;
+            IReadOnlyList<PdfUnderstandingRegion> regions = PdfAdvancedUnderstandingStages.PageSegmentation.Segment(context, lines);
+            EnsureCount(regions.Count, _limits.MaxRegionsPerPage);
+            IReadOnlyList<PdfUnderstandingRegion> ordered = PdfRecursiveXyCutReadingOrderStage
+                .OrderInVisualFrame(context, regions, visualWidth, visualHeight);
+            workUnits = context.WorkUnitsConsumed;
+            return ordered.SelectMany(static region => region.Lines).ToArray();
+        } finally {
+            context.CompleteOperation();
+        }
     }
 
     private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {

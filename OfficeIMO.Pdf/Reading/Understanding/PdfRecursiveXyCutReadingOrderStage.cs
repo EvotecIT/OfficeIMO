@@ -11,6 +11,16 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         PdfUnderstandingPageContext context,
         IReadOnlyList<PdfUnderstandingRegion> regions) {
         Guard.NotNull(context, nameof(context));
+        (double width, double height) = context.Page.GetVisualPageSize();
+        return OrderInVisualFrame(context, regions, width, height);
+    }
+
+    internal static IReadOnlyList<PdfUnderstandingRegion> OrderInVisualFrame(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfUnderstandingRegion> regions,
+        double visualPageWidth,
+        double visualPageHeight) {
+        Guard.NotNull(context, nameof(context));
         Guard.NotNull(regions, nameof(regions));
         if (regions.Count <= 1) {
             context.ThrowIfCancellationRequested();
@@ -24,7 +34,6 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
                 .ToArray();
         }
 
-        (double visualPageWidth, double visualPageHeight) = context.Page.GetVisualPageSize();
         var boxes = new RegionBox[regions.Count];
         for (int index = 0; index < regions.Count; index++) {
             context.ConsumeWork();

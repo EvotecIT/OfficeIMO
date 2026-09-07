@@ -11,6 +11,36 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfOcrScanProcessingTests {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task TransformedHierarchyFreeParagraphsRetainColumnOrder(int turns) {
+        OcrTextSpan Word(string text, double x, double y) => new OcrTextSpan {
+            Text = text, Level = OcrTextSpanLevel.Word, Confidence = 1,
+            CoordinateUnit = OcrCoordinateUnit.Normalized,
+            Region = new OcrRegion { X = x, Y = y, Width = 0.08, Height = 0.015 }
+        };
+        var words = new List<OcrTextSpan>();
+        foreach (double y in new[] { 0.1, 0.25 }) {
+            foreach (double x in new[] { 0.1, 0.6 }) {
+                string name = x < 0.5 ? (y < 0.2 ? "Alpha" : "Beta") : (y < 0.2 ? "Gamma" : "Delta");
+                words.Add(Word(name, x, y)); words.Add(Word("project", x + 0.09, y)); words.Add(Word("overview", x + 0.18, y));
+            }
+        }
+        var engine = new DelegateOcrEngine("columns", (_, _) => Task.FromResult(new OcrResult { Spans = words }));
+        var result = await PdfDocument.Load(Source()).ReadWithOcrAsync(engine, new PdfOcrMergeOptions {
+            Dpi = 72, ScanProcessing = new OfficeScanProcessingOptions {
+                ClockwiseQuarterTurns = turns, Deskew = false, NormalizeBackground = false,
+                ColorMode = OfficeScanColorMode.PreserveColor
+            }
+        });
+        Assert.Empty(result.Document.Tables);
+        Assert.Equal("Alpha project overview Beta project overview Gamma project overview Delta project overview",
+            System.Text.RegularExpressions.Regex.Replace(result.Text, @"\s+", " ").Trim());
+    }
+
+    [Theory]
     [InlineData(0, true)]
     [InlineData(1, true)]
     [InlineData(2, true)]
