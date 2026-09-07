@@ -70,6 +70,20 @@ public sealed class PdfOcrRedactionSearchTests {
         Assert.Empty(result.Candidates);
     }
 
+    [Fact]
+    public async Task MissingLineIdsDoNotEraseProviderBlockBoundaries() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("page")).ToBytes();
+        OcrTextSpan first = Word("Account", 20, 30, 45, 12, 0.96);
+        OcrTextSpan second = Word("Secret", 70, 30, 38, 12, 0.91);
+        first.BlockId = "first"; second.BlockId = "second";
+        var engine = new DelegateOcrEngine("fixture-ocr", (_, _) => Task.FromResult(new OcrResult {
+            Spans = new[] { first, second }
+        }));
+        var result = await PdfDocument.Load(source).SearchRedactionCandidatesWithOcrAsync(engine,
+            new PdfRedactionSearchOptions().AddLiteral("Account Secret"));
+        Assert.Empty(result.Candidates);
+    }
+
     private static OcrTextSpan Word(string text, double x, double y, double width, double height, double confidence, string? lineId = null) => new() {
         Level = OcrTextSpanLevel.Word,
         Text = text,

@@ -13,6 +13,18 @@ namespace OfficeIMO.Pdf.Ocr;
 internal static class PdfOcrLogicalDocumentBuilder {
     private const double MinimumVisualRunGapPoints = 18D;
 
+    internal static IReadOnlyList<IReadOnlyList<PdfRecognizedWord>> BuildWordLines(
+        IReadOnlyList<PdfRecognizedWord> words, PdfReadingDirection direction, CancellationToken token) {
+        var result = new List<IReadOnlyList<PdfRecognizedWord>>();
+        foreach (OcrLine line in BuildLines(words, direction, token)) {
+            token.ThrowIfCancellationRequested();
+            if (line.LineId != null) result.Add(line.OrderedWords.ToArray());
+            else foreach (OcrVisualRun run in SplitVisualRuns(line.Words))
+                result.Add(OrderWords(run.Words, direction, preserveProviderOrder: false));
+        }
+        return result;
+    }
+
     internal static IReadOnlyList<PdfRecognizedWord> OrderWordsForLogicalReading(
         IReadOnlyList<PdfRecognizedWord> words,
         PdfLogicalPage canonicalPage,
@@ -150,30 +162,22 @@ internal static class PdfOcrLogicalDocumentBuilder {
             understandingWords.Add(projected);
             projectedBySource.Add(sourceWord, projected);
         }
-        var baselineLines = new List<PdfUnderstandingLine>(sourceLines.Count);
+        var understandingLines = new List<PdfUnderstandingLine>(sourceLines.Count);
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OcrLine source = sourceLines[lineIndex];
-            baselineLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection));
-        }
-
-        var understandingLines = new List<PdfUnderstandingLine>(baselineLines.Count);
-        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OcrLine source = sourceLines[lineIndex];
-            PdfUnderstandingLine baselineLine = baselineLines[lineIndex];
             if (source.LineId is not null) {
-                understandingLines.Add(baselineLine);
+                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection, understandingLines.Count));
                 continue;
             }
 
             IReadOnlyList<OcrVisualRun> visualRuns = SplitVisualRuns(source.Words);
             if (visualRuns.Count == 1) {
-                understandingLines.Add(baselineLine);
+                understandingLines.Add(CreateUnderstandingLine(source, source.Words, projectedBySource, readingDirection, understandingLines.Count));
                 continue;
             }
             for (int runIndex = 0; runIndex < visualRuns.Count; runIndex++) {
-                understandingLines.Add(CreateUnderstandingLine(source, visualRuns[runIndex].Words, projectedBySource, readingDirection));
+                understandingLines.Add(CreateUnderstandingLine(source, visualRuns[runIndex].Words, projectedBySource, readingDirection, understandingLines.Count));
             }
         }
         return new OcrArtifacts(
@@ -185,16 +189,9 @@ internal static class PdfOcrLogicalDocumentBuilder {
         OcrLine source,
         IReadOnlyList<PdfRecognizedWord> words,
         Dictionary<PdfRecognizedWord, PdfUnderstandingWord> projectedBySource,
-        PdfReadingDirection readingDirection) {
-        PdfRecognizedWord[] providerOrder = words.OrderBy(static word => word.ProviderSequence).ToArray();
-        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-            readingDirection,
-            providerOrder.Select(static word => word.Text));
-        PdfRecognizedWord[] orderedWords = source.LineId is not null
-            ? providerOrder
-            : direction == PdfReadingDirection.RightToLeft
-                ? words.OrderByDescending(static word => word.X).ThenBy(static word => word.ProviderSequence).ToArray()
-                : words.OrderBy(static word => word.X).ThenBy(static word => word.ProviderSequence).ToArray();
+        PdfReadingDirection readingDirection,
+        int readingSequence) {
+        PdfRecognizedWord[] orderedWords = OrderWords(words, readingDirection, source.LineId != null);
         PdfUnderstandingWord[] projectedWords = orderedWords.Select(word => projectedBySource[word]).ToArray();
         double left = orderedWords.Min(static word => word.X);
         double top = orderedWords.Min(static word => word.Y);
@@ -212,7 +209,8 @@ internal static class PdfOcrLogicalDocumentBuilder {
                     : "OCR words share a provider-supplied block, paragraph, and line hierarchy.",
                 source.LineId is null ? 0.65D : 0.95D) },
             PdfLogicalContentSourceKind.Ocr,
-            source.LineId is null ? null : orderedWords.Min(static word => word.ProviderSequence),
+            orderedWords.Any(static word => word.RecognitionBounds != null) ? readingSequence :
+                source.LineId is null ? null : orderedWords.Min(static word => word.ProviderSequence),
             source.BlockId,
             source.ParagraphId,
             source.LineId,
@@ -278,14 +276,14 @@ internal static class PdfOcrLogicalDocumentBuilder {
         var buckets = new Dictionary<long, List<OcrLine>>();
         PdfRecognizedWord[] orderedWords = words
             .Where(static word => word.LineId is null)
-            .OrderBy(static word => word.Y)
-            .ThenBy(static word => word.X)
+            .OrderBy(static word => word.ReadingBounds.Top)
+            .ThenBy(static word => word.ReadingBounds.Left)
             .ToArray();
         for (int wordIndex = 0; wordIndex < orderedWords.Length; wordIndex++) {
             if ((wordIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             PdfRecognizedWord word = orderedWords[wordIndex];
-            double center = word.Y + (word.Height / 2D);
-            double maximumCenterDistance = Math.Max(2D, word.Height * 0.6D);
+            double center = word.ReadingBounds.Top + (word.ReadingBounds.Height / 2D);
+            double maximumCenterDistance = Math.Max(2D, word.ReadingBounds.Height * 0.6D);
             long firstBucket = GetCenterBucket(center - maximumCenterDistance, centerBucketSize);
             long lastBucket = GetCenterBucket(center + maximumCenterDistance, centerBucketSize);
             OcrLine? line = null;
@@ -293,14 +291,16 @@ internal static class PdfOcrLogicalDocumentBuilder {
                 if (!buckets.TryGetValue(bucket, out List<OcrLine>? candidates)) continue;
                 for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
                     OcrLine candidate = candidates[candidateIndex];
-                    if (Math.Abs(candidate.CenterY - center) <= Math.Max(2D, Math.Min(candidate.Height, word.Height) * 0.6D) &&
+                    if (!string.Equals(candidate.BlockId, word.BlockId, StringComparison.Ordinal) ||
+                        !string.Equals(candidate.ParagraphId, word.ParagraphId, StringComparison.Ordinal)) continue;
+                    if (Math.Abs(candidate.CenterY - center) <= Math.Max(2D, Math.Min(candidate.Height, word.ReadingBounds.Height) * 0.6D) &&
                         (line is null || candidate.Sequence > line.Sequence)) {
                         line = candidate;
                     }
                 }
             }
             if (line is null) {
-                line = new OcrLine(nextLineSequence++, readingDirection);
+                line = new OcrLine(nextLineSequence++, readingDirection, word.BlockId, word.ParagraphId);
                 line.Add(word);
                 lines.Add(line);
                 AddToBucket(line, buckets, centerBucketSize);
@@ -348,7 +348,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
 
     private static IReadOnlyList<OcrVisualRun> SplitVisualRuns(List<PdfRecognizedWord> words) {
         if (words.Count == 0) return Array.Empty<OcrVisualRun>();
-        PdfRecognizedWord[] positioned = words.OrderBy(static word => word.X).ToArray();
+        PdfRecognizedWord[] positioned = words.OrderBy(static word => word.ReadingBounds.Left).ToArray();
         var runs = new List<OcrVisualRun>();
         var current = new List<PdfRecognizedWord> { positioned[0] };
         for (int index = 1; index < positioned.Length; index++) {
@@ -356,8 +356,8 @@ internal static class PdfOcrLogicalDocumentBuilder {
             PdfRecognizedWord word = positioned[index];
             double minimumGap = Math.Max(
                 MinimumVisualRunGapPoints,
-                Math.Min(previous.Height, word.Height) * 1.25D);
-            if (word.X - (previous.X + previous.Width) >= minimumGap) {
+                Math.Min(previous.ReadingBounds.Height, word.ReadingBounds.Height) * 1.25D);
+            if (word.ReadingBounds.Left - previous.ReadingBounds.Right >= minimumGap) {
                 runs.Add(OcrVisualRun.From(current));
                 current.Clear();
             }
@@ -398,13 +398,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
         internal double Confidence => Words.Count == 0 ? 0D : _confidenceTotal / Words.Count;
         internal IEnumerable<PdfRecognizedWord> OrderedWords {
             get {
-                if (LineId is not null) return Words.OrderBy(static word => word.ProviderSequence);
-                PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-                    _readingDirection,
-                    Words.OrderBy(static word => word.ProviderSequence).Select(static word => word.Text));
-                return direction == PdfReadingDirection.RightToLeft
-                    ? Words.OrderByDescending(static word => word.X).ThenBy(static word => word.ProviderSequence)
-                    : Words.OrderBy(static word => word.X).ThenBy(static word => word.ProviderSequence);
+                return OrderWords(Words, _readingDirection, LineId != null);
             }
         }
         internal string Text => JoinWords(OrderedWords);
@@ -412,15 +406,15 @@ internal static class PdfOcrLogicalDocumentBuilder {
         internal void Add(PdfRecognizedWord word) {
             Sequence = Math.Min(Sequence, word.ProviderSequence);
             if (Words.Count == 0) {
-                Left = word.X;
-                Top = word.Y;
-                Right = word.X + word.Width;
-                Bottom = word.Y + word.Height;
+                Left = word.ReadingBounds.Left;
+                Top = word.ReadingBounds.Top;
+                Right = word.ReadingBounds.Right;
+                Bottom = word.ReadingBounds.Bottom;
             } else {
-                Left = Math.Min(Left, word.X);
-                Top = Math.Min(Top, word.Y);
-                Right = Math.Max(Right, word.X + word.Width);
-                Bottom = Math.Max(Bottom, word.Y + word.Height);
+                Left = Math.Min(Left, word.ReadingBounds.Left);
+                Top = Math.Min(Top, word.ReadingBounds.Top);
+                Right = Math.Max(Right, word.ReadingBounds.Right);
+                Bottom = Math.Max(Bottom, word.ReadingBounds.Bottom);
             }
             Words.Add(word);
             _confidenceTotal += word.Confidence;
@@ -447,6 +441,16 @@ internal static class PdfOcrLogicalDocumentBuilder {
 
         internal IReadOnlyList<PdfUnderstandingWord> Words { get; }
         internal IReadOnlyList<PdfUnderstandingLine> Lines { get; }
+    }
+
+    private static PdfRecognizedWord[] OrderWords(IReadOnlyList<PdfRecognizedWord> words,
+        PdfReadingDirection direction, bool preserveProviderOrder) {
+        PdfRecognizedWord[] providerOrder = words.OrderBy(static word => word.ProviderSequence).ToArray();
+        if (preserveProviderOrder) return providerOrder;
+        direction = PdfTextDirectionAnalysis.Resolve(direction, providerOrder.Select(static word => word.Text));
+        return direction == PdfReadingDirection.RightToLeft
+            ? words.OrderByDescending(static word => word.ReadingBounds.Left).ThenBy(static word => word.ProviderSequence).ToArray()
+            : words.OrderBy(static word => word.ReadingBounds.Left).ThenBy(static word => word.ProviderSequence).ToArray();
     }
 
     private static string JoinWords(IEnumerable<PdfRecognizedWord> source) {

@@ -98,7 +98,7 @@ public sealed class PdfSearchableOcrReview {
                 bool changed = !string.Equals(text, word.Text, StringComparison.Ordinal);
                 if (changed) correctedCount++;
                 replacementWords.Add(word, changed ? new PdfRecognizedWord(text, word.X, word.Y, word.Width, word.Height,
-                    word.Confidence, word.ProviderSequence, word.BlockId, word.ParagraphId, word.LineId, word.Geometry) : word);
+                    word.Confidence, word.ProviderSequence, word.BlockId, word.ParagraphId, word.LineId, word.Geometry, word.RecognitionBounds) : word);
             }
         }
         var writtenWords = new ReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>>(wordsByPage.ToDictionary(

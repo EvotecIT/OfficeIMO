@@ -71,6 +71,8 @@ internal static class ScanQualityCorpus {
         await File.WriteAllBytesAsync(Path.Combine(output, id + ".pdf"), searchable, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-extracted.txt"), review.Ocr.Text, token);
+        string roundTrip = PdfDocument.Load(searchable).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Text;
+        await File.WriteAllTextAsync(Path.Combine(output, id + "-roundtrip.txt"), roundTrip, token);
         byte[] Render(byte[] bytes) => PdfDocument.Load(bytes).Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
             new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
             ?? throw new InvalidOperationException("The preserved page did not render.");
@@ -79,6 +81,7 @@ internal static class ScanQualityCorpus {
         return new ScanRun {
             ProviderAccuracy = ScanTextAccuracy.Measure(truth, providerText),
             ReconstructedAccuracy = ScanTextAccuracy.Measure(truth, review.Ocr.Text),
+            RoundTripAccuracy = ScanTextAccuracy.Measure(truth, roundTrip),
             OriginalAppearancePreserved = sourceRaster.AsSpan().SequenceEqual(writtenRaster) && input.AsSpan().SequenceEqual(document.ToBytes()),
             Orientation = orientation, Processing = review.Ocr.Pages[0].ScanProcessing,
             Diagnostics = review.Ocr.Pages[0].Diagnostics.ToArray(), Words = review.Ocr.AcceptedWordCount
@@ -95,6 +98,7 @@ internal static class ScanQualityCorpus {
     private sealed class ScanRun {
         public ScanTextAccuracy ProviderAccuracy { get; init; } = new();
         public ScanTextAccuracy ReconstructedAccuracy { get; init; } = new();
+        public ScanTextAccuracy RoundTripAccuracy { get; init; } = new();
         public bool OriginalAppearancePreserved { get; init; }
         public int Words { get; init; }
         public OcrOrientationResult? Orientation { get; init; }

@@ -91,11 +91,14 @@ public sealed class PdfRecognizedWord {
         string? blockId = null,
         string? paragraphId = null,
         string? lineId = null,
-        PdfSelectionQuad? geometry = null) {
+        PdfSelectionQuad? geometry = null,
+        PdfLogicalVisualBounds? recognitionBounds = null) {
         Text = text; X = x; Y = y; Width = width; Height = height; Confidence = confidence; ProviderSequence = providerSequence;
         BlockId = blockId; ParagraphId = paragraphId; LineId = lineId;
         Geometry = geometry ?? new PdfSelectionQuad(new PdfSelectionPoint(x, y), new PdfSelectionPoint(x + width, y),
             new PdfSelectionPoint(x + width, y + height), new PdfSelectionPoint(x, y + height));
+        RecognitionBounds = recognitionBounds;
+        ReadingBounds = recognitionBounds ?? new PdfLogicalVisualBounds(x, y, x + width, y + height);
     }
     /// <summary>Recognized text.</summary>
     public string Text { get; }
@@ -119,4 +122,7 @@ public sealed class PdfRecognizedWord {
     public string? LineId { get; }
     /// <summary>Original logical position in the provider response.</summary>
     internal int ProviderSequence { get; }
+    // Recognition geometry stays in the provider's upright coordinate frame for line inference.
+    internal PdfLogicalVisualBounds? RecognitionBounds { get; }
+    internal PdfLogicalVisualBounds ReadingBounds { get; }
 }

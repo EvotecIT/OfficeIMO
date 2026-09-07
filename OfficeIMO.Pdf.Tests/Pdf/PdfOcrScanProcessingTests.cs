@@ -11,22 +11,55 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfOcrScanProcessingTests {
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public async Task RotatedWordGeometryPreservesLogicalWordSpacing(int turns) {
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(3, true)]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(3, false)]
+    public async Task RotatedWordGeometryPreservesLogicalWordSpacing(int turns, bool hierarchy) {
         OcrTextSpan Word(string text, double x) => new OcrTextSpan { Text = text, Level = OcrTextSpanLevel.Word,
-            Confidence = 1, LineId = "line", CoordinateUnit = OcrCoordinateUnit.Normalized,
+            Confidence = 1, LineId = hierarchy ? "line" : null, CoordinateUnit = OcrCoordinateUnit.Normalized,
             Region = new OcrRegion { X = x, Y = 0.1, Width = 0.15, Height = 0.05 } };
         var engine = new DelegateOcrEngine("rotated-spacing", (_, _) => Task.FromResult(new OcrResult {
-            Spans = new[] { Word("Hello", 0.1), Word("world", 0.35) }
+            Spans = new[] { Word("Hello", 0.1), Word("world", 0.3) }
         }));
         var review = await PdfDocument.Load(Source()).PrepareSearchableOcrAsync(engine, new PdfOcrMergeOptions {
             Dpi = 72, ScanProcessing = new OfficeScanProcessingOptions { ClockwiseQuarterTurns = turns,
                 Deskew = false, NormalizeBackground = false, ColorMode = OfficeScanColorMode.PreserveColor }
         });
         Assert.Equal("Hello world", review.Ocr.Text.Trim());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task TransformedHierarchyFreeLinesRetainReadingOrderAndPhraseSearch(int turns) {
+        OcrTextSpan Word(string text, double x, double y) => new OcrTextSpan { Text = text, Level = OcrTextSpanLevel.Word,
+            Confidence = 1, CoordinateUnit = OcrCoordinateUnit.Normalized,
+            Region = new OcrRegion { X = x, Y = y, Width = 0.15, Height = 0.05 } };
+        // A provider may return unsorted geometry without hierarchy. Infer rows in its recognized coordinate frame.
+        var engine = new DelegateOcrEngine("rotated-lines", (_, _) => Task.FromResult(new OcrResult {
+            Spans = new[] { Word("line", 0.3, 0.3), Word("world", 0.3, 0.1), Word("Next", 0.1, 0.3), Word("Hello", 0.1, 0.1) }
+        }));
+        var options = new PdfOcrMergeOptions { Dpi = 72, ScanProcessing = new OfficeScanProcessingOptions {
+            ClockwiseQuarterTurns = turns, Deskew = false, NormalizeBackground = false, ColorMode = OfficeScanColorMode.PreserveColor }
+        };
+        PdfDocument document = PdfDocument.Load(Source());
+        var review = await document.PrepareSearchableOcrAsync(engine, options);
+        Assert.Equal("Hello world Next line", System.Text.RegularExpressions.Regex.Replace(review.Ocr.Text, @"\s+", " ").Trim());
+        var search = await document.SearchRedactionCandidatesWithOcrAsync(engine,
+            new PdfRedactionSearchOptions().AddLiteral("Hello world").AddLiteral("world Next"), options);
+        PdfOcrRedactionCandidate candidate = Assert.Single(search.Candidates);
+        Assert.Equal("literal:0", candidate.Criterion);
+        Assert.True(candidate.Area.Width > 0); Assert.True(candidate.Area.Height > 0);
+        var written = review.ApplyCorrections(review.Ocr.Pages[0].Words.ToDictionary(word => word,
+            word => word.Text == "Hello" ? "Correct" : word.Text));
+        Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(Source()), PdfPageImageRenderer.RenderPageAsPng(written.Document.ToBytes()));
     }
 
     [Fact]

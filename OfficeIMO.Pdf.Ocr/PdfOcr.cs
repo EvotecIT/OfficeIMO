@@ -142,6 +142,8 @@ internal static partial class PdfOcr {
                 diagnostics.Add("ocr-span-geometry: A recognized span did not contain valid page geometry.");
                 continue;
             }
+            PdfLogicalVisualBounds? recognitionBounds = prepared?.Report != null
+                ? new PdfLogicalVisualBounds(x, y, x + width, y + height) : null;
             PdfSelectionQuad geometry = MapWordGeometry(x, y, width, height, prepared);
             if (prepared != null && (geometry.Left < -0.01D || geometry.Top < -0.01D ||
                     geometry.Right > prepared.SourceWidth + 0.01D || geometry.Bottom > prepared.SourceHeight + 0.01D)) {
@@ -177,7 +179,7 @@ internal static partial class PdfOcr {
                     span.LineId,
                     ref inspectedHierarchyCharacters,
                     options.MaxOcrHierarchyCharactersPerPage,
-                    ref discardedHierarchyId), geometry));
+                    ref discardedHierarchyId), geometry, recognitionBounds));
         }
 
         if (words.Count == 0 && !string.IsNullOrWhiteSpace(returnedText)) {
@@ -238,7 +240,7 @@ internal static partial class PdfOcr {
                 word.Sequence,
                 word.BlockId,
                 word.ParagraphId,
-                word.LineId, word.Geometry);
+                word.LineId, word.Geometry, word.RecognitionBounds);
             if (word.Confidence < options.MinimumConfidence) {
                 lowConfidence++;
                 evidence.Add(new PdfOcrWordEvidence(normalized, PdfOcrWordDisposition.LowConfidence));
@@ -406,7 +408,7 @@ internal static partial class PdfOcr {
     }
 
     private sealed class ProjectedOcrWord {
-        internal ProjectedOcrWord(string text, double x, double y, double width, double height, double confidence, int sequence, string? blockId, string? paragraphId, string? lineId, PdfSelectionQuad geometry) {
+        internal ProjectedOcrWord(string text, double x, double y, double width, double height, double confidence, int sequence, string? blockId, string? paragraphId, string? lineId, PdfSelectionQuad geometry, PdfLogicalVisualBounds? recognitionBounds) {
             Text = text;
             X = x;
             Y = y;
@@ -418,6 +420,7 @@ internal static partial class PdfOcr {
             ParagraphId = paragraphId;
             LineId = lineId;
             Geometry = geometry;
+            RecognitionBounds = recognitionBounds;
         }
         internal string Text { get; }
         internal double X { get; }
@@ -430,6 +433,7 @@ internal static partial class PdfOcr {
         internal string? ParagraphId { get; }
         internal string? LineId { get; }
         internal PdfSelectionQuad Geometry { get; }
+        internal PdfLogicalVisualBounds? RecognitionBounds { get; }
     }
 
 }
