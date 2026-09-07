@@ -1,0 +1,78 @@
+# OfficeIMO.AI
+
+`OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
+
+Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
+
+## Extract named fields
+
+This method reads a plain-text invoice. Register the relevant Reader adapter for other formats.
+
+```csharp
+using OfficeIMO.AI;
+using OfficeIMO.Reader;
+
+static async Task<OfficeAiResult> ExtractAsync(
+    IOfficeAiExecutor executor, Stream source, bool allowRemote,
+    CancellationToken cancellationToken = default) {
+    using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    deadline.CancelAfter(TimeSpan.FromMinutes(3));
+    var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
+    var document = await OfficeAiDocument.ReadAsync(reader, source, "invoice.txt",
+        cancellationToken: deadline.Token);
+    return await new OfficeAiEngine(executor).RunAsync(document, new OfficeAiRequest {
+        Operation = OfficeAiOperation.ExtractFields,
+        Instruction = "Extract the invoice total and due date.",
+        Culture = "en-US",
+        AllowRemoteProcessing = allowRemote,
+        Fields = new[] {
+            new OfficeAiFieldDefinition("total", OfficeAiFieldType.Decimal),
+            new OfficeAiFieldDefinition("dueDate", OfficeAiFieldType.Date, "yyyy-MM-dd")
+        }
+    }, cancellationToken: deadline.Token);
+}
+```
+
+`AllowRemoteProcessing` defaults to `false`. The host must obtain a deliberate choice before sending evidence to a profile with `IsLocal = false`. Reusing that choice within the authorized scope does not require another prompt per batch.
+
+## Operations and evidence
+
+| Operation | Output |
+| --- | --- |
+| `Ask` | Claims answering the question, each with source references |
+| `Explain` | Source-linked explanations within the selected scope |
+| `Summarize` | Source-linked claims for each processed batch |
+| `ExtractFields` | Exactly the requested field names, with raw values, invariant normalized values, status, and references |
+| `Parse` | Proposed Reader blocks and rectangular tables, with references |
+
+Select one-based `Pages`, `EvidenceIds`, or both. Unknown identifiers and selections outside the page/image scope are rejected before execution. Empty selections mean all captured evidence. `IncludeImages` must be explicit, and the selected execution profile must support vision.
+
+Each snapshot retains the SHA-256 of the original bytes, Reader page provenance, source block identifiers, and available source geometry. `FromReadResult` is a trusted-adapter entry point: its caller must enforce source permissions and ensure the supplied Reader result and images describe those exact bytes. `OfficeAiImage` takes verified dimensions from the rendering/image owner and copies its payload. It does not decode or certify an image itself.
+
+Text references must contain an exact contiguous source quote. Unknown references and altered quotes invalidate the response. Image references have no text-match claim. A matching quote proves where text occurs; it does **not** establish that the model's interpretation follows from it. Every result has `RequiresReview = true`.
+
+## Result states
+
+`Completed` means all selected evidence reached requests whose responses satisfied the structural contract. It does not mean every claim is correct or every visible detail was recognized. `Partial` identifies omissions, source warnings, pages without evidence, or invalid scalar normalization. `InsufficientEvidence` identifies a valid abstention. `InvalidResponse` means no batch produced a validated result after provider or response-validation failures; diagnostic codes distinguish those failures without exposing raw errors.
+
+Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Invalid`, and `NotEvaluated`. A field is `Missing` only when the processed evidence did not provide it; incomplete source coverage uses `NotEvaluated` for otherwise missing fields. Conflicting values are not collapsed into one normalized value. Decimal normalization uses the explicit culture and validates grouping. Dates require an exact format. Integer and Boolean normalization accept their ordinary signed-integer and `true`/`false` forms.
+
+## Budgets and cancellation
+
+`OfficeAiLimits` bounds captured bytes, retained observations, pages, request text, image payloads/pixels, response text, result sizes, request count, and duration. Format readers and renderers also need their own allocation and decoding limits. Snapshot limits do not replace those owners' parser limits.
+
+The engine includes the executor's prompt-wrapper measurement when batching. Oversized evidence records and request-count overflow are reported as omitted; they are not silently truncated. A summary is a collection of batch-level claims, without an additional whole-document synthesis pass. Blocks are not split mid-record.
+
+Use one linked cancellation token for read, render/OCR, inference, and artifact writing when the host needs one end-to-end deadline. Cancellation stops waiting and discards late results. An executor that ignores cancellation retains its execution gate until its actual work settles, preventing overlapping calls through that executor. Callers remain responsible for the lifetime of a supplied stream or provider that continues working after cancellation. The engine makes no automatic repair request.
+
+## Review artifacts
+
+`OfficeAiArtifacts.SerializeReport(document, result)` writes a versioned JSON report with source evidence, image descriptors, coverage, references, and result status. It omits encoded images and connection credentials. Saving the report may still save private source text; choose the output location accordingly.
+
+For `Parse`, `CreateProposedReadResult` produces Reader's canonical transport model with an explicit AI-proposal warning. The example exports tables through `OfficeIMO.CSV` and `OfficeIMO.Excel`, preserving values as text and using CSV formula-injection protection. It reopens generated Reader JSON and Excel output. No engine operation modifies the source file or applies a proposed edit.
+
+## Executor contract
+
+Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The provider boundary must not give document content access to tools, files, or arbitrary network actions.
+
+Profile capability declarations require independent qualification. The engine applies the same local response checks to schema-enforced and prompted-JSON output; the latter reports its weaker generation guarantee. See the [architecture and support matrix](../Docs/officeimo.document-assistant-design.md) for current coverage and limits.

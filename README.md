@@ -50,6 +50,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
+| Optional document AI | [OfficeIMO.AI](OfficeIMO.AI/README.md) and [IntelligenceX adapter](OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
 | Optional OCR providers | A caller-supplied executable or an installed Tesseract CLI | Neutral request/result/geometry contracts, bounded provider execution, and opt-in Reader/PDF integrations |
 | Google Workspace packages | `System.Text.Json` and platform HTTP/cryptography | Credentials abstraction, request/retry logic, Drive placement, translation plans, and reports; no Google client SDK |
 | Converter packages not listed above | Only the OfficeIMO format packages they connect | Feature mapping, limits, loss reports, and destination APIs |

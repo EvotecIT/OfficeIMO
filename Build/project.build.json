@@ -4,6 +4,8 @@
   "ExpectedVersion": "3.4.X",
   "ExpectedVersionMap": {
     "OfficeIMO.Adf": "3.4.X",
+    "OfficeIMO.AI": "0.1.X",
+    "OfficeIMO.AI.IntelligenceX": "0.1.X",
     "OfficeIMO.AsciiDoc": "3.4.X",
     "OfficeIMO.AsciiDoc.Markdown": "3.4.X",
     "OfficeIMO.AsciiDoc.Pdf": "3.4.X",

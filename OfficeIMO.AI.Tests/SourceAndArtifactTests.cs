@@ -1,0 +1,82 @@
+using System.Text;
+using System.Text.Json;
+using OfficeIMO.AI;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using Xunit;
+
+namespace OfficeIMO.AI.Tests;
+
+public sealed class SourceAndArtifactTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PasswordProtectedPdfCannotBecomeTextOrVisionEvidence(bool images) {
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Protected source")),
+            new PdfOptions().SetEncryption("open", "owner")).ToBytes();
+        await Assert.ThrowsAnyAsync<Exception>(() => DocumentInputs.ReadAsync(bytes, "protected.pdf", images,
+            Array.Empty<int>(), new OfficeAiLimits(), CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DeniedCopyAndPrintCannotBeBypassedWithVision(bool images) {
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Restricted source")),
+            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+                OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
+            })).ToBytes();
+        var options = new PdfLoadOptions { Password = "open", PermissionPolicy = PdfPermissionPolicy.Enforce };
+        if (images) Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(bytes, options).ExportImages(OfficeImageExportFormat.Png));
+        else Assert.Throws<PdfPermissionDeniedException>(() => PdfReadDocument.Open(bytes, options).ExtractText());
+    }
+
+    [Fact]
+    public async Task MalformedPdfCannotBePromotedToEvidence() {
+        await Assert.ThrowsAnyAsync<Exception>(() => DocumentInputs.ReadAsync(Encoding.ASCII.GetBytes("%PDF-1.7 broken"),
+            "broken.pdf", true, Array.Empty<int>(), new OfficeAiLimits(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RenderedImagesKeepCallerSelectedPageIdentity() {
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("FIRST").PageBreak().Text("SECOND"))).ToBytes();
+        var document = await DocumentInputs.ReadAsync(bytes, "pages.pdf", true, new[] { 2, 1 }, new OfficeAiLimits(), CancellationToken.None);
+        var direct = PdfDocument.Load(bytes).ExportImages(OfficeImageExportFormat.Png,
+            new PdfImageExportOptions { TargetDpi = 120 });
+        Assert.Equal(new[] { 2, 1 }, document.Images.Select(image => image.Page));
+        Assert.Equal(direct[1].Bytes, document.Images[0].CopyBytes());
+        Assert.Equal(direct[0].Bytes, document.Images[1].CopyBytes());
+    }
+
+    [Fact]
+    public async Task ExtractedFormulaLikeTextRemainsLiteralInExcelAndEscapedInCsv() {
+        const string raw = "=2+3";
+        var document = OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(raw), new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = raw } }
+        });
+        var result = await new OfficeAiEngine(new LiteralExecutor()).RunAsync(document, new OfficeAiRequest {
+            Operation = OfficeAiOperation.ExtractFields, Instruction = "Extract the literal value.", Fields = new[] { new OfficeAiFieldDefinition("value") }
+        });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-artifact-" + Guid.NewGuid().ToString("N"));
+        try {
+            ArtifactWriter.Save(output, document, result);
+            using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
+            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            Assert.Contains("'=2+3", File.ReadAllText(Path.Combine(output, "Fields.csv")));
+            using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "report.json")));
+            Assert.Contains(document.SourceHash, report.RootElement.GetRawText());
+            Assert.Throws<IOException>(() => ArtifactWriter.Save(output, document, result));
+        } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
+    }
+
+    private sealed class LiteralExecutor : IOfficeAiExecutor {
+        public OfficeAiExecutionProfile Profile { get; } = new() { Id = "artifact", Provider = "fixture", Model = "fixture", IsLocal = true };
+        public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new OfficeAiExecutionResponse("""
+                {"status":"ok","claims":[],"fields":[{"name":"value","status":"present","rawValue":"=2+3","evidence":[{"id":"e1","quote":"=2+3"}]}],"blocks":[],"tables":[]}
+                """));
+    }
+}
