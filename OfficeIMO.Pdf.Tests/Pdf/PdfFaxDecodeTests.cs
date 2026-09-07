@@ -70,6 +70,23 @@ public class PdfFaxDecodeTests {
         Assert.Equal(new byte[] { 0, 255 }, StreamDecoder.DecodeRequired(dictionary, hex));
     }
 
+    [Theory]
+    [InlineData(-1, "1 1", 2)]
+    [InlineData(0, "10011 10011", 6)]
+    [InlineData(2, "1 10011 1 10011", 6)]
+    public void Fax_EndOfBlockOverridesConflictingRowHintWithinImageHeight(int k, string rows, int markers) {
+        PdfDictionary dictionary = FaxDictionary(8, 1, k, true);
+        dictionary.Items["Height"] = new PdfNumber(2);
+        ((PdfDictionary)dictionary.Items["DecodeParms"]).Items["EndOfBlock"] = new PdfBoolean(true);
+        string end = string.Concat(Enumerable.Repeat("000000000001" + (k > 0 ? "1" : ""), markers));
+        byte[] encoded = Pack(rows + end);
+        Assert.Equal(new byte[] { 0, 0 }, StreamDecoder.DecodeRequired(dictionary, encoded));
+        ((PdfDictionary)dictionary.Items["DecodeParms"]).Items["Rows"] = new PdfNumber(3);
+        Assert.Equal(new byte[] { 0, 0 }, StreamDecoder.DecodeRequired(dictionary, encoded));
+        dictionary.Items["Height"] = new PdfNumber(1);
+        Assert.Throws<InvalidDataException>(() => StreamDecoder.DecodeRequired(dictionary, encoded));
+    }
+
     private static PdfDictionary FaxDictionary(int columns, int rows, int k, bool blackIsOne) {
         var parameters = new PdfDictionary();
         parameters.Items["Columns"] = new PdfNumber(columns);

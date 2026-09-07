@@ -12,7 +12,10 @@ internal static partial class StreamDecoder {
         int width = ReadIntegerParameter(dictionary, "Width", columns, objects);
         if (width != columns) throw new InvalidDataException("CCITT columns do not match the image width.");
         int rows = ReadIntegerParameter(parameters, "Rows", 0, objects);
-        if (rows == 0) rows = ReadIntegerParameter(dictionary, "Height", 0, objects);
+        bool endOfBlock = ReadFaxBoolean(parameters, "EndOfBlock", true, objects);
+        int height = ReadIntegerParameter(dictionary, "Height", 0, objects);
+        // End markers override the filter's Rows hint. Image Height remains the output bound.
+        if (endOfBlock && height > 0 || rows == 0) rows = height;
         if (rows <= 0) throw new InvalidDataException("CCITT image decoding requires a row count or image height.");
         long length = (((long)columns + 7) / 8) * rows;
         ThrowIfDecodedLimitExceeded(length, maximumBytes);
@@ -21,7 +24,7 @@ internal static partial class StreamDecoder {
             ReadFaxBoolean(parameters, "EndOfLine", false, objects),
             ReadFaxBoolean(parameters, "EncodedByteAlign", false, objects),
             ReadFaxBoolean(parameters, "BlackIs1", false, objects),
-            ReadFaxBoolean(parameters, "EndOfBlock", true, objects),
+            endOfBlock,
             maximumBytes, cancellationToken);
     }
 

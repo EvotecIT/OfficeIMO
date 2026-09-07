@@ -9,6 +9,8 @@ internal static partial class ResourceResolver {
         if (colorSpace is not ("" or "DeviceGray" or "G" or "DeviceRGB" or "RGB") ||
             GetTransparencyMaskKind(stream.Dictionary, objects) != null ||
             PdfImageMaskNormalizer.IsImageMask(stream, objects)) return false;
+        if (stream.Dictionary.Items.TryGetValue("SMaskInData", out PdfObject? embeddedMask) &&
+            PdfObjectLookup.ResolveChain(objects, embeddedMask) is not (PdfNull or PdfNumber { Value: 0 })) return false;
         PdfObject? filter = stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? value) ? value : null;
         PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, filter);
         var filters = new List<PdfObject>();
@@ -32,7 +34,10 @@ internal static partial class ResourceResolver {
         }
         try {
             payload = Filters.StreamDecoder.DecodeRequired(prefix, stream.Data, objects, maximumBytes);
-            return true;
+            // SMaskInData=0 (including absence) requires ignoring encoded alpha. Until sample-level
+            // normalization is available, only prove opaque Gray/RGB headers safe for pass-through.
+            if (!OfficeIMO.Drawing.OfficeJpeg2000Header.TryGetOpaqueComponents(payload, out int components)) return false;
+            return colorSpace == "" || (components == 1 ? colorSpace is "DeviceGray" or "G" : colorSpace is "DeviceRGB" or "RGB");
         } catch (InvalidDataException) {
             return false;
         }

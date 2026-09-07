@@ -113,7 +113,7 @@ Corrections preserve the selected word's geometry and reading order. `WrittenWor
 
 CCITT Group 3 and Group 4 scans use the managed decoder. Packed 1-, 2-, and 4-bit DeviceGray samples pass through the existing decode-array, color, and mask handling. Fax decoding requires a declared row count or image height; uncompressed fax extension mode and damaged-row recovery are outside the supported contract.
 
-JPEG 2000 Gray/RGB images can use `PdfOcrMergeOptions.ImageCodec`, the shared `IOfficeRasterImageCodec` interface. The same codec is used by review previews. A missing decoder or an unprojectable scan causes rendering to fail before that page is sent to OCR. JPEG 2000 masks, alternate color spaces, and output-intent normalization remain unsupported. No JPEG 2000 runtime is bundled.
+Opaque JPEG 2000 images with baseline Gray/sRGB headers or one/three-component codestreams can use `PdfOcrMergeOptions.ImageCodec`, the shared `IOfficeRasterImageCodec` interface. The same codec is used by review previews. A missing decoder or an unprojectable scan causes rendering to fail before that page is sent to OCR. JPEG 2000 embedded or external masks, palette/channel remapping, alternate color spaces, and output-intent normalization remain unsupported. Embedded alpha is rejected even when `SMaskInData` is absent or zero, because those PDF cases require discarding that alpha before rendering. No JPEG 2000 runtime is bundled.
 
 `Pages[i].Diagnostics` includes render warnings as well as provider and normalization diagnostics. Inspect these before treating a result as complete: font substitution and unsupported drawing features can affect recognition even when a page renders.
 

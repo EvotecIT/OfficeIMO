@@ -25,3 +25,7 @@ for compression in ("group3", "group4"):
     assert len(offsets) == 1
     payload = buffer.getvalue()[offsets[0]:offsets[0] + lengths[0]]
     (root / ("fax-pattern." + compression)).write_bytes(payload)
+
+# Independent JPEG 2000 samples exercise the PDF boundary with and without opacity.
+for mode, color in (("RGB", (255, 0, 0)), ("RGBA", (255, 0, 0, 0))):
+    Image.new(mode, (1, 1), color).save(root / ("red-" + mode.lower() + ".jp2"), format="JPEG2000")

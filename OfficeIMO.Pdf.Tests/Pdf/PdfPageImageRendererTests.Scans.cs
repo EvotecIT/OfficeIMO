@@ -62,7 +62,7 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public async Task Ocr_UsesJpeg2000CodecAndDoesNotSendBlankPageWhenCodecIsMissing() {
-        byte[] payload = new byte[] { 0, 0, 0, 12, 106, 80, 32, 32, 13, 10, 135, 10 };
+        byte[] payload = ReadScanJpx("rgb");
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(payload,
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter /JPXDecode");
         var codec = new ScanJpxCodec(payload);
@@ -81,6 +81,53 @@ public partial class PdfPageImageRendererTests {
         Assert.True(codec.Calls > 0);
         Assert.Contains(result.Pages.Single().Diagnostics, diagnostic => diagnostic.StartsWith(PdfRenderCapabilities.OptionalImageCodecId));
     }
+
+    [Theory]
+    [InlineData("rgba", "")]
+    [InlineData("rgba", " /SMaskInData 0")]
+    [InlineData("rgba", " /SMaskInData 1")]
+    [InlineData("rgba", " /SMaskInData 2")]
+    [InlineData("rgb", " /SMaskInData 1")]
+    [InlineData("rgb", " /SMaskInData 2")]
+    public async Task Ocr_RejectsJpeg2000OpacityBeforeRenderingOrCallingProvider(string mode, string mask) {
+        byte[] payload = ReadScanJpx(mode);
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(payload,
+            colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter /JPXDecode",
+            extraImageEntries: mask);
+        var codec = new ScanJpxCodec(payload);
+        Assert.False(Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
+            options: new PdfPageRenderOptions { ImageCodec = codec })).Succeeded);
+        int calls = 0;
+        var engine = new DelegateOcrEngine("alpha-proof", (request, token) => {
+            calls++;
+            return Task.FromResult(new OcrResult());
+        });
+        await Assert.ThrowsAsync<NotSupportedException>(() => PdfDocument.Load(pdf).ReadWithOcrAsync(engine,
+            new PdfOcrMergeOptions { ImageCodec = codec }));
+        Assert.Equal(0, calls);
+        Assert.Equal(0, codec.Calls);
+    }
+
+    [Fact]
+    public void Jpeg2000Header_RejectsTruncatedAndOversizedBoxesAndRecognizesOpaqueCodestream() {
+        byte[] payload = ReadScanJpx("rgb");
+        Assert.True(OfficeJpeg2000Header.TryGetOpaqueComponents(payload, out int components));
+        Assert.Equal(3, components);
+        for (int length = 0; length < payload.Length; length++) {
+            Assert.False(OfficeJpeg2000Header.TryGetOpaqueComponents(payload.Take(length).ToArray(), out _));
+        }
+        byte[] oversized = (byte[])payload.Clone();
+        for (int i = 12; i < 16; i++) oversized[i] = 255;
+        Assert.False(OfficeJpeg2000Header.TryGetOpaqueComponents(oversized, out _));
+        int marker = Enumerable.Range(0, payload.Length - 3).Single(index =>
+            payload[index] == 255 && payload[index + 1] == 79 && payload[index + 2] == 255 && payload[index + 3] == 81);
+        Assert.True(OfficeJpeg2000Header.TryGetOpaqueComponents(payload.Skip(marker).ToArray(), out components));
+        Assert.Equal(3, components);
+        Assert.False(OfficeJpeg2000Header.TryGetOpaqueComponents(ReadScanJpx("rgba"), out _));
+    }
+
+    private static byte[] ReadScanJpx(string mode) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
+        "Pdf", "Fixtures", "Interoperability", "Scans", "red-" + mode + ".jp2"));
 
     private sealed class ScanJpxCodec : IOfficeRasterImageCodec {
         private readonly byte[] _expected;
