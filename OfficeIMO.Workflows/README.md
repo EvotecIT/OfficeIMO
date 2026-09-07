@@ -56,7 +56,154 @@ known limits, browser and agent availability, and `CanExecute`.
 
 Every request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
+Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
+
+## Save protected or unencrypted PDF copies
+
+```csharp
+OfficeWorkflowResult protectedCopy = await OfficeWorkflow.ProtectPdf("report.pdf",
+    new OfficeIMO.Pdf.PdfStandardEncryptionOptions(documentPassword) {
+        OwnerPassword = ownerPassword,
+        AllowedPermissions = OfficeIMO.Pdf.PdfStandardPermissions.Print
+    })
+    .To("protected.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+
+OfficeWorkflowResult unencryptedCopy = await OfficeWorkflow
+    .RemovePdfProtection("protected.pdf", ownerPassword)
+    .To("unencrypted.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Typed requests use `ProtectPdf` with `OutputEncryption`, or `RemovePdfProtection`, and `PdfOwnerPassword` for existing protection. The owner password takes precedence over `PdfPassword` for these operations. To replace existing protection, use `ProtectPdf(...).WithPdfOwnerPassword(currentOwnerPassword)`. Settings are copied before execution; passwords are not included in results or reports.
+
+These operations create separate copies, preserve their sources, and use the PDF engine's authorization and rewrite-preservation policy. Existing signatures or other protected document structures may prevent a rewrite. AES-256 is the default; AES-128 and explicitly selected legacy RC4 follow the canonical encryption options. Output verification checks the document-open password, page count, encryption state, permissions, metadata protection, and preservation report before publication. A null PDF metadata-encryption flag means the standard default of encrypted metadata.
+
+Only the `Faithful` profile applies. Input snapshots, byte limits during generation, output conflicts, provider confirmation contracts, recovery, and final publication guards follow the same runner behavior as other single-output operations. Cancellation is forwarded through security preflight, graph rewriting, preservation inspection, and publication.
+
+## Extract selected PDF pages
+
+```csharp
+OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5, 1, 2, 5)
+    .To("selected-pages.pdf")
+    .OnConflict(OfficeWorkflowConflictPolicy.Rename)
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPages` and `PageNumbers = [5, 1, 2, 5]`. Page numbers are one-based; order and intentional repeats are preserved, up to 100,000 selected pages. Extraction uses the PDF engine's page-preservation policy and supports only the `Faithful` profile. It creates a separate PDF and does not permit replacing the source.
+
+The runner snapshots local and provider inputs, checks for source changes before publication, bounds output serialization, and reopens the generated PDF before publishing. `InputStream`, `OutputStream`, `PublicationGuard`, and the result's publication and recovery states follow the same contracts as other single-output workflows. Cancellation is observed before and after synchronous page extraction and during serialization; it cannot interrupt the PDF engine while that synchronous step is running.
+
+## Save a certificate-signed PDF copy
+
+Supply a caller-owned `IPdfExternalSigner` and `IPdfSignatureCryptographyProvider`. The PDF engine owns signature creation and inspection; the workflow captures the settings and publishes a separate output only after checking page count, signature structure, signature math, and document digests.
+
+```csharp
+OfficeWorkflowResult signedCopy = await OfficeWorkflow.SignPdf("report.pdf", signer,
+    new OfficeIMO.Pdf.PdfExternalSignatureOptions {
+        FieldName = "Approval",
+        Reason = "Reviewed",
+        VisibleAppearance = new() { PageNumber = 1, X = 36, Y = 36, Width = 180, Height = 48 }
+    }, verifier)
+    .To("signed-report.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Keep the signer and verifier alive until the task completes. A host using `OfficeIMO.Security` can provide `PdfCmsExternalSigner` and `PdfCmsSignatureCryptographyProvider` adapters. The engine enforces the source document's permissions and certification policy; its current signing plan rejects documents that already contain a signature. Rejected requests leave the source and existing output unchanged.
+
+`SignatureReport` reports certificate-chain, revocation, and timestamp evidence separately. Successful publication does not by itself establish certificate trust. A visible appearance identifies the signature on the page; it is not a substitute for cryptographic verification. On unconfirmed provider publication, the report describes the retained prepared artifact, not the destination's contents. Signing callbacks and cryptographic validation may be synchronous; cancellation is observed around those calls and prevents later publication.
+
+## Split a PDF into consecutive parts
+
+```csharp
+PdfSplitWorkflowResult result = await runner.SplitPdfAsync(new PdfSplitWorkflowRequest {
+    InputPath = "report.pdf",
+    OutputDirectory = "report-parts",
+    PagesPerDocument = 10,
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+}, cancellationToken: cancellationToken);
+
+foreach (PdfSplitFile file in result.Files) {
+    Console.WriteLine($"{file.Path}: {file.PageCount} pages starting at source page {file.FirstSourcePage}");
+}
+```
+
+The runner produces `part-001.pdf`, `part-002.pdf`, and subsequent parts in source order. Hosts can call `PdfSplitPlan.Create(pageCount, pagesPerDocument)` to preview the same filenames and ranges that execution uses. The runner generates and reopens one part at a time, checks the aggregate output budget before continuing, and publishes a local folder as a unit. `MaximumParts` limits the output count. Cancellation is checked between parts and during file operations; the PDF engine's synchronous generation of one part must finish before cancellation can stop it.
+
+For provider folders, supply `DirectoryOutput` and explicitly choose `Replace`. Each part is written and verified individually. Inspect `Status`, `Files`, and `OutputRecoveries`: verified parts remain available if a later write fails. Local directory recovery locations appear in diagnostic details when an interrupted replacement needs attention. `InputStream` and `PublicationGuard` use the same source verification and live ownership contracts as other workflows.
+
+## Read provider-backed inputs
+
+Set `InputStream` on an `OfficeWorkflowRequest` when a file picker or storage provider supplies stream access. Keep `InputPath` as the original location or absolute URI, and supply the display filename for format routing:
+
+```csharp
+var request = new OfficeWorkflowRequest {
+    Operation = OfficeWorkflowOperation.Convert,
+    ConversionRouteId = "docx-pdf",
+    InputPath = selectedLocation,
+    InputStream = new OfficeWorkflowStreamInput(selectedName, openSelectedReadStream),
+    OutputPath = outputPdfPath
+};
+OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: cancellationToken);
+```
+
+`openSelectedReadStream` is a `Func<CancellationToken, Task<Stream>>`. It must return a fresh readable stream with the provider's permission scope each time. The runner closes every returned stream, stages a bounded private input for the document engine, and verifies the provider's SHA-256 again after host authorization and before publication. An optional `expectedSha256` constructor argument binds execution to contents captured when the user selected the input. Revoked access, changed contents, cancellation, and exceeded limits prevent publication. This is a point-in-time content check; providers do not offer a shared filesystem lock or atomic compare-and-replace contract.
+
+For provider selections with a local path, the runner captures file identity while the read stream's access scope is active. It reopens that access for source/output checks and host authorization, then rejects physical source replacement even when the new file has identical contents. Local provider destinations also receive a read-scope check before writing; a new file may report `FileNotFoundException`, while other access failures prevent publication.
+
+Comparison accepts `ComparisonStream`. Assembly accepts `SourceStreams`, keyed by the exact original entries in `Sources`, and preserves input order and display names. Its provider staging shares the total input byte budget. A provider HTML stream can use embedded resources; selecting it alone does not grant access to neighboring images or stylesheets. A selected ZIP can carry relative resources through the existing bounded archive intake.
+
+For a selected provider folder, set `PdfAssemblyRequest.SourceDirectories` with an `OfficeWorkflowDirectoryInput` keyed by its original `Sources` entry. Its enumeration factory returns `OfficeWorkflowDirectoryEntry` values with a relative path, original location, and reopenable file input; a null input denotes a directory. Enumerate parents before children, obey the supplied recursion and traversal limits, and never follow links. Keep item references available until the runner returns. The runner preserves the relative tree for HTML resources, enforces aggregate entry and byte limits, rejects unsafe or colliding portable names, and rechecks both membership and file contents before publication. Each re-enumeration must reflect current provider state, including newly returned file objects at an existing location.
+
+Page-image export accepts `PdfPageImageExportRequest.InputStream` and applies the same bounded staging and provider-content check before publishing its filesystem output folder. For print preview, use `PdfPrintPlanner.Create(document, request)` with an already opened `PdfDocument` to plan and render from the same snapshot. That overload uses the document's existing authentication and printing permissions; it does not reopen the request's input location.
+
+Provider operations require an explicit output destination when they produce a file. Input staging is removed before publication or on failure; cleanup failures are reported. Report-only inspection and comparison may omit a destination.
+
+## Write provider folders
+
+Set `DirectoryOutput` on `PdfPageImageExportRequest` to write into a selected provider folder. Its `OfficeWorkflowDirectoryOutput` resolver receives each image filename and returns an `OfficeWorkflowDirectoryOutputFile` without modifying the provider. Existing children use their actual location. For new children whose location is assigned during creation, use the selected parent as the initial location and supply `OfficeWorkflowStreamOutput.PrepareDestination`; this callback creates the child after recovery is durable and returns its actual location. The runner authorizes that location before opening the write stream. Read factories must reopen the current child, not a cached copy of its bytes.
+
+Provider folders require `Replace` and explicit consent. Each file is verified separately; cancellation or failure stops further writes without rolling back earlier ones. `Files` and `OutputBytes` describe verified outputs even when the batch does not complete. `OutputRecoveries` contains every retained recovery copy. Use these fields with `Status` rather than treating the folder as an atomic result. A recovery record for a newly created child identifies the selected parent and requested filename; successfully published files report their actual provider locations.
+
+## Write provider-backed outputs
+
+Set `OutputStream` on an `OfficeWorkflowRequest` or `PdfAssemblyRequest` to publish through a selected provider. Supply an `OfficeWorkflowStreamOutput` with the display filename, fresh read and write stream factories, and an `OfficeWorkflowOutputRecoveryStore` rooted in a private local directory. Set `OutputPath` to the original provider reference and `ConflictPolicy` to `Replace`. The host must obtain explicit consent for a direct write and for the required local recovery copy.
+
+The runner validates the complete artifact and retains a verified local copy before preparing a new provider child or opening the write stream. It closes the write stream and reads the destination back to verify its SHA-256. A verified write returns `Completed` with the provider reference in `OutputPath`. A failure after the write starts returns `Unconfirmed`, leaves `OutputPath` unset, and exposes the retained copy through `Recovery`. Cancellation after the write starts also returns `Unconfirmed`; it does not prove that the destination is unchanged. Do not automatically retry these results.
+
+The store defaults to a 1 GiB aggregate admission limit and at most 100 records. `GetRecoveries()` restores available records after restart, `VerifyAsync()` checks a copy before use, and `Discard()` removes a copy after explicit user action. Active publications are excluded from discovery. Successful or safely rejected writes remove their copies; cleanup failures are reported and can leave a recovery record. Before admitting another output, the store removes recognized incomplete records left before metadata publication, while preserving active leases and unfamiliar contents. Retained recovery copies do not expire automatically. Keep them outside normal output locations and require Save As when opening them for editing. Provider writes cannot guarantee atomic replacement, rollback, or exclusion of concurrent writers.
+
 ## Review and apply PDF redactions
+
+Searchable PDF generation uses `OfficeWorkflowRunner.MakePdfSearchableAsync` with a `PdfSearchableWorkflowRequest` and a caller-owned `IOcrEngine`:
+
+```csharp
+var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
+    InputPath = "scan.pdf",
+    OutputPath = "searchable.pdf",
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    Ocr = new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "en", Dpi = 150 }
+}, engine, cancellationToken);
+```
+
+The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. The engine remains owned by the caller.
+
+Set `ReviewAsync` to pause before creating the text layer. The callback receives a `PdfSearchableOcrReview` and returns eligible word instances selected from that review. The shared PDF owner rejects foreign, duplicate, and policy-rejected selections. The destination remains untouched while review is pending, cancellation prevents publication, and source identity is checked again after the decision. Without a callback, the runner uses all eligible words.
+
+Use `RecognizeImageAsync` for standalone images. It reads the image through `OfficeIMO.Reader.Image`, executes the selected engine through `OfficeIMO.Reader.Ocr`, and saves UTF-8 text. Its optional review callback receives the original image, recognition evidence, and recognized text, and returns the text to save:
+
+```csharp
+var result = await runner.RecognizeImageAsync(new ImageOcrWorkflowRequest {
+    InputPath = "invoice.png",
+    OutputPath = "invoice.txt",
+    Ocr = new OfficeIMO.Reader.OfficeDocumentOcrExecutionOptions { Language = "eng" },
+    ReviewAsync = (review, token) => Task.FromResult(review.Text)
+}, engine, cancellationToken);
+```
+
+The callback can present a preview and accept corrections. Until it returns, the destination is untouched. Empty recognition remains visible in diagnostics; failed or skipped recognition does not publish a partial text file. Corrected text is bounded by `Limits.MaximumOutputBytes`, reopened before publication, and protected by the same source identity, conflict, provider consent, and recovery contracts as PDF output.
+
+`RunOcrSessionAsync` accepts an ordered collection of `OfficeOcrSessionRequest` items containing either request type. It snapshots request settings, uses one caller-owned engine sequentially, and protects every selected source from every output. Each item has a unique caller id and a distinct output destination. Progress and terminal result callbacks let a host show completed outputs while later items await review. Cancellation retains completed outputs and returns cancelled outcomes for unstarted items. A retry should contain only the explicitly selected failed or cancelled items; an `Unconfirmed` result stops the remaining items and requires checking the destination and recovery copy first. Pass previously completed output locations through `protectedOutputPaths` when retrying a subset, including when a provider resolves a different destination during publication. Also pass every retained session source as an `OfficeWorkflowProtectedSource` through `protectedInputs`, including its provider stream access. This preserves original inputs of completed items while retrying or adding work.
 
 Redaction uses a separate versioned plan/review/apply contract. Planning produces privacy-safe candidate identifiers and geometry. Application re-plans the exact source and recipe, requires every current candidate to be explicitly approved or rejected, applies only approved candidates, and publishes only after native and configured OCR verification succeeds.
 

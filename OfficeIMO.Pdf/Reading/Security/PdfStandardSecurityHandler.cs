@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Security;
@@ -104,7 +105,8 @@ internal sealed partial class PdfStandardSecurityHandler {
         throw new PdfInvalidPasswordException("The supplied PDF password is invalid.");
     }
 
-    public PdfObject DecryptObject(int objectNumber, int generation, PdfObject value) {
+    public PdfObject DecryptObject(int objectNumber, int generation, PdfObject value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStringObj text) {
             return DecryptString(objectNumber, generation, text);
         }
@@ -112,18 +114,19 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (value is PdfArray array) {
             var decrypted = new PdfArray();
             for (int i = 0; i < array.Items.Count; i++) {
-                decrypted.Items.Add(DecryptObject(objectNumber, generation, array.Items[i]));
+                decrypted.Items.Add(DecryptObject(objectNumber, generation, array.Items[i], cancellationToken));
             }
 
             return decrypted;
         }
 
         if (value is PdfDictionary dictionary) {
-            return DecryptDictionary(objectNumber, generation, dictionary);
+            return DecryptDictionary(objectNumber, generation, dictionary, cancellationToken);
         }
 
         if (value is PdfStream stream) {
-            PdfDictionary streamDictionary = (PdfDictionary)DecryptDictionary(objectNumber, generation, stream.Dictionary);
+            PdfDictionary streamDictionary = (PdfDictionary)DecryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] data = ShouldSkipStreamData(streamDictionary)
                 ? stream.Data
                 : DecryptData(objectNumber, generation, stream.Data, _streamMethod);
@@ -141,10 +144,10 @@ internal sealed partial class PdfStandardSecurityHandler {
             text.EncodedTokenLength);
     }
 
-    private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary) {
+    private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary, CancellationToken cancellationToken) {
         var decrypted = new PdfDictionary();
         foreach (var item in dictionary.Items) {
-            decrypted.Items[item.Key] = DecryptObject(objectNumber, generation, item.Value);
+            decrypted.Items[item.Key] = DecryptObject(objectNumber, generation, item.Value, cancellationToken);
         }
 
         return decrypted;

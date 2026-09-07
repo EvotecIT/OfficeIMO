@@ -30,14 +30,17 @@ public sealed class PdfOcrMergeResult {
 
 /// <summary>Accepted OCR words and evidence for one page.</summary>
 public sealed class PdfOcrPageMergeResult {
-    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null) {
+    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null) {
         PageNumber = pageNumber; Words = words; RejectedLowConfidenceCount = rejectedLowConfidenceCount; RejectedNativeOverlapCount = rejectedNativeOverlapCount; Diagnostics = diagnostics; Text = text;
         Provider = provider; Model = model; Language = language;
+        WordEvidence = wordEvidence ?? Array.AsReadOnly(words.Select(word => new PdfOcrWordEvidence(word, PdfOcrWordDisposition.Accepted)).ToArray());
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
     /// <summary>Accepted normalized OCR words.</summary>
     public IReadOnlyList<PdfRecognizedWord> Words { get; }
+    /// <summary>Accepted and rejected words with valid geometry, in provider order, for review before publication.</summary>
+    public IReadOnlyList<PdfOcrWordEvidence> WordEvidence { get; }
     /// <summary>Words rejected below confidence threshold.</summary>
     public int RejectedLowConfidenceCount { get; }
     /// <summary>Words rejected because native PDF text already covers the region.</summary>
@@ -67,7 +70,8 @@ public sealed class PdfOcrPageMergeResult {
             text,
             Provider,
             Model,
-            Language);
+            Language,
+            WordEvidence);
     }
 }
 

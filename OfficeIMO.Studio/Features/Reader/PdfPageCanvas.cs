@@ -48,9 +48,13 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     static PdfPageCanvas() {
         AffectsRender<PdfPageCanvas>(
             SceneProperty,
+            SearchHighlightsProperty,
+            ActiveSearchHighlightProperty,
             FallbackImageProperty,
             EditorToolProperty,
             SelectedObjectProperty,
+            CommentAnchorObjectNumberProperty,
+            FormAnchorFieldNameProperty,
             SelectionModeProperty,
             PendingRedactionAreaProperty);
     }
@@ -95,7 +99,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             if (Scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return string.Empty;
             Point start = ToPagePoint(_selectionStart.Value);
             Point end = ToPagePoint(_selectionEnd.Value);
-            return Scene.Interactions.GetSelectedText(start.X, start.Y, end.X, end.Y);
+            return Scene.Interactions?.GetSelectedText(start.X, start.Y, end.X, end.Y) ?? string.Empty;
         }
     }
 
@@ -120,9 +124,12 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             _renderer.Render(context, scene.Drawing);
         }
 
+        DrawSearchHighlights(context);
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
+        DrawCommentAnchor(context);
+        DrawFormAnchor(context);
         DrawPendingRedaction(context);
         DrawEditorPreview(context);
     }
@@ -138,6 +145,9 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
+        if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
+        if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
+        if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
         if (change.Property == EditorToolProperty) {
             Cursor = EditorTool == PdfEditorTool.Select ? _textCursor : _crossCursor;
             ResetPointerState();
@@ -288,7 +298,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         _automationPeer ??= new PdfPageCanvasAutomationPeer(this);
 
     private IReadOnlyList<PdfPageInteractionRegion> GetKeyboardInteractions() =>
-        Scene?.Interactions.Regions.Where(static region => region.Kind != PdfInteractionKind.Text).ToArray()
+        Scene?.Interactions?.Regions.Where(region => SelectionMode == PdfEditorSelectionMode.Forms
+            ? region.Kind == PdfInteractionKind.FormWidget : region.Kind != PdfInteractionKind.Text).ToArray()
         ?? Array.Empty<PdfPageInteractionRegion>();
 
     private void MoveKeyboardInteraction(int offset) {
@@ -324,7 +335,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     }
 
     private void SelectAllText() {
-        IReadOnlyList<PdfPageInteractionRegion>? regions = Scene?.Interactions.TextRegions;
+        IReadOnlyList<PdfPageInteractionRegion>? regions = Scene?.Interactions?.TextRegions;
         if (regions is null || regions.Count == 0) return;
         double left = regions.Min(static region => region.Quad.Left);
         double top = regions.Min(static region => region.Quad.Top);
@@ -346,7 +357,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private void ActivateLink(Point controlPoint) {
         PdfPageScene? scene = Scene;
-        if (scene is null) return;
+        if (scene?.Interactions is null) return;
         Point point = ToPagePoint(controlPoint);
         PdfPageInteractionRegion? link = scene.Interactions
             .HitTest(point.X, point.Y, tolerance: 1D)
@@ -356,7 +367,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private PdfPageInteractionRegion? HitTestInteractive(Point controlPoint) {
         PdfPageScene? scene = Scene;
-        if (scene is null) return null;
+        if (scene?.Interactions is null) return null;
         Point point = ToPagePoint(controlPoint);
         return scene.Interactions.HitTest(point.X, point.Y, tolerance: 1D)
             .FirstOrDefault(static region => region.Kind != PdfInteractionKind.Text);
@@ -364,10 +375,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private bool SelectObjectAt(Point controlPoint) {
         PdfPageScene? scene = Scene;
-        if (scene is null) return false;
+        if (scene?.Interactions is null) return false;
         Point point = ToPagePoint(controlPoint);
         IReadOnlyList<PdfPageInteractionRegion> matches = scene.Interactions.HitTest(point.X, point.Y, tolerance: 2D);
         PdfPageInteractionRegion? selected = SelectionMode switch {
+            PdfEditorSelectionMode.Forms => matches.FirstOrDefault(static region => region.Kind == PdfInteractionKind.FormWidget),
             PdfEditorSelectionMode.Annotations => matches.FirstOrDefault(static region =>
                 region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue),
             PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region =>
@@ -387,7 +399,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private void SelectTextObject() {
         PdfPageScene? scene = Scene;
-        if (scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
+        if (scene?.Interactions is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
         Point start = ToPagePoint(_selectionStart.Value);
         Point end = ToPagePoint(_selectionEnd.Value);
         IReadOnlyList<PdfPageInteractionRegion> regions = scene.Interactions.SelectText(start.X, start.Y, end.X, end.Y);
@@ -411,6 +423,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         region.Kind switch {
             PdfInteractionKind.Image => PdfEditorSelectionKind.Image,
             PdfInteractionKind.Annotation => PdfEditorSelectionKind.Annotation,
+            PdfInteractionKind.FormWidget => PdfEditorSelectionKind.FormField,
             _ => PdfEditorSelectionKind.Text
         },
         pageNumber,
@@ -418,7 +431,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         Text: region.Text,
         ObjectNumber: region.ObjectNumber,
         Subtype: region.Subtype,
-        ImagePlacement: region.ImagePlacement);
+        ImagePlacement: region.ImagePlacement,
+        FieldName: region.FieldName);
 
     private async Task CopySelectionAsync() {
         IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
@@ -426,7 +440,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     }
 
     private void DrawSelection(DrawingContext context, PdfPageScene scene) {
-        if (!_selectionStart.HasValue || !_selectionEnd.HasValue) return;
+        if (scene.Interactions is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
         Point start = ToPagePoint(_selectionStart.Value);
         Point end = ToPagePoint(_selectionEnd.Value);
         var brush = new SolidColorBrush(Color.FromArgb(72, 53, 106, 230));

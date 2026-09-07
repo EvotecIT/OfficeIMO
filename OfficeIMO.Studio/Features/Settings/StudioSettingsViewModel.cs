@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Features.Settings;
 
@@ -9,19 +10,29 @@ internal sealed record StudioCultureChoice(string Name, string Label);
 
 internal sealed record StudioThemeChoice(StudioThemePreference Value, string Label, string Description);
 
+internal sealed record StudioDensityChoice(StudioDensityPreference Value, string Label);
+
 /// <summary>Presents application-wide preferences and privacy-bounded support information.</summary>
 internal sealed partial class StudioSettingsViewModel : ObservableObject, IDisposable {
     private readonly StudioPreferencesService _preferences;
     private readonly IStudioLocalizer _localizer;
+    private readonly IStudioDiagnostics _diagnostics;
+    private readonly PdfWorkspaceRecoveryStore _recovery;
+    private readonly StudioDocumentHistory _history;
     private bool _synchronizing;
 
     internal StudioSettingsViewModel(
         StudioPreferencesService preferences,
         IStudioLocalizer localizer,
-        IStudioDiagnostics diagnostics) {
+        IStudioDiagnostics diagnostics,
+        PdfWorkspaceRecoveryStore recovery,
+        StudioDocumentHistory history) {
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
         ArgumentNullException.ThrowIfNull(diagnostics);
+        _diagnostics = diagnostics;
+        _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        _history = history ?? throw new ArgumentNullException(nameof(history));
 
         Cultures = StudioCultureCatalog.Available
             .Select(culture => new StudioCultureChoice(
@@ -35,6 +46,10 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             new(StudioThemePreference.Light, _localizer.Get("Settings.ThemeLight"), _localizer.Get("Settings.ThemeLightDescription")),
             new(StudioThemePreference.Dark, _localizer.Get("Settings.ThemeDark"), _localizer.Get("Settings.ThemeDarkDescription")),
             new(StudioThemePreference.HighContrast, _localizer.Get("Settings.ThemeHighContrast"), _localizer.Get("Settings.ThemeHighContrastDescription"))
+        ];
+        Densities = [
+            new(StudioDensityPreference.Comfortable, _localizer.Get("Settings.DensityComfortable")),
+            new(StudioDensityPreference.Compact, _localizer.Get("Settings.DensityCompact"))
         ];
 
         StudioSupportSnapshot support = diagnostics.CreateSupportSnapshot();
@@ -50,6 +65,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     internal IReadOnlyList<StudioCultureChoice> Cultures { get; }
 
     internal IReadOnlyList<StudioThemeChoice> Themes { get; }
+
+    internal IReadOnlyList<StudioDensityChoice> Densities { get; }
 
     internal string ProductVersion { get; }
 
@@ -68,6 +85,24 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     [ObservableProperty]
     private StudioThemeChoice _selectedTheme = null!;
 
+    [ObservableProperty]
+    private StudioDensityChoice _selectedDensity = null!;
+
+    [ObservableProperty] private bool _rememberSession;
+
+    partial void OnRememberSessionChanged(bool value) {
+        if (_synchronizing) return;
+        try {
+            _history.SetRememberSession(value);
+            HistoryStatus = null;
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "SessionPrivacyChangeFailed", error);
+            HistoryStatus = _localizer.Get(_preferences.Current.RememberSession == value && !value
+                ? "Settings.SessionCleanupFailed" : "Settings.HistoryPreferenceFailed");
+            SynchronizeFromPreferences();
+        }
+    }
+
     internal bool RestartRequired =>
         !string.Equals(SelectedCulture.Name, _localizer.Culture.Name, StringComparison.OrdinalIgnoreCase);
 
@@ -82,6 +117,11 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
         _preferences.Update(current => current with { Theme = value.Value });
     }
 
+    partial void OnSelectedDensityChanged(StudioDensityChoice value) {
+        if (_synchronizing || value is null) return;
+        _preferences.Update(current => current with { Density = value.Value });
+    }
+
     public void Dispose() => _preferences.Changed -= OnPreferencesChanged;
 
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) => SynchronizeFromPreferences();
@@ -92,6 +132,12 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             SelectedCulture = Cultures.FirstOrDefault(choice =>
                 string.Equals(choice.Name, _preferences.Current.UiCulture, StringComparison.OrdinalIgnoreCase)) ?? Cultures[0];
             SelectedTheme = Themes.First(choice => choice.Value == _preferences.Current.Theme);
+            SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
+            RememberSession = _preferences.Current.RememberSession;
+            OnPropertyChanged(nameof(RememberDocumentHistory));
+            OnPropertyChanged(nameof(HistoryPersistenceAction));
+            OnPropertyChanged(nameof(CreateRecoverySnapshots));
+            OnPropertyChanged(nameof(RecoveryPersistenceAction));
         } finally {
             _synchronizing = false;
         }

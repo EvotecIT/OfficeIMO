@@ -163,8 +163,9 @@ public readonly struct PdfPageRange : System.IEquatable<PdfPageRange> {
                 throw new System.ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
             }
 
-            for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
+            for (int pageNumber = pageRanges[i].FirstPage; ; pageNumber++) {
                 pages.Add(pageNumber);
+                if (pageNumber == pageRanges[i].LastPage) break;
             }
         }
 

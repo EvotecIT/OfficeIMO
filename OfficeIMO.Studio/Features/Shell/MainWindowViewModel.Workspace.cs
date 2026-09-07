@@ -9,6 +9,10 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
+    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+        if (!_disposed) OnPropertyChanged(nameof(HasRecovery));
+    });
+
     private readonly HashSet<int> _organizerSelection = new();
     private CancellationTokenSource? _operationCancellation;
     private bool _disposeWhenIdle;
@@ -16,6 +20,13 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartDocumentTransition))]
     [NotifyPropertyChangedFor(nameof(CanCancelOperation))]
+    [NotifyPropertyChangedFor(nameof(CanReviewComment))]
+    [NotifyPropertyChangedFor(nameof(CanReplyToComment))]
+    [NotifyPropertyChangedFor(nameof(CanResolveComment))]
+    [NotifyPropertyChangedFor(nameof(CanReopenComment))]
+    [NotifyCanExecuteChangedFor(nameof(ReplyToCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResolveCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ReopenCommentCommand))]
     private bool _isWorkspaceBusy;
 
     [ObservableProperty]
@@ -26,12 +37,6 @@ public sealed partial class MainWindowViewModel {
     private double _operationProgressFraction;
 
     [ObservableProperty]
-    private string _searchQuery = string.Empty;
-
-    [ObservableProperty]
-    private PdfSearchHit? _selectedSearchResult;
-
-    [ObservableProperty]
     private PdfBookmarkViewModel? _selectedBookmark;
 
     [ObservableProperty]
@@ -39,8 +44,6 @@ public sealed partial class MainWindowViewModel {
 
     [ObservableProperty]
     private int _splitPagesPerDocument = 1;
-
-    public ObservableCollection<PdfSearchHit> SearchResults { get; } = new();
 
     public ObservableCollection<PdfBookmarkViewModel> Bookmarks { get; } = new();
 
@@ -57,10 +60,6 @@ public sealed partial class MainWindowViewModel {
     public string OrganizerSelectionLabel => _organizerSelection.Count == 0
         ? UiText("Workspace.SelectPages")
         : UiFormat("Workspace.SelectedPageCount", _organizerSelection.Count, OrganizerPages.Count);
-
-    partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
-        if (value is not null) NavigateToPage(value.PageNumber);
-    }
 
     partial void OnSelectedBookmarkChanged(PdfBookmarkViewModel? value) {
         if (value?.PageNumber is int pageNumber) NavigateToPage(pageNumber);
@@ -105,17 +104,10 @@ public sealed partial class MainWindowViewModel {
             ? GetSelectedPages()
             : [draggedPageNumber];
         if (moved.Contains(targetPageNumber)) return;
-        var remaining = Enumerable.Range(1, _workspace.Pages.Count)
-            .Where(page => !moved.Contains(page))
-            .ToList();
-        int targetIndex = remaining.IndexOf(targetPageNumber);
-        if (targetIndex < 0) targetIndex = remaining.Count;
-        remaining.InsertRange(targetIndex, moved);
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(remaining, moved);
-        await RunMutationAsync(
-            token => _workspace.ReorderAsync(remaining, token, CreateProgress()),
-            CancellationToken.None,
-            selectionAfter).ConfigureAwait(true);
+        if (draggedPageNumber < 1 || draggedPageNumber > _workspace.Pages.Count ||
+            targetPageNumber < 1 || targetPageNumber > _workspace.Pages.Count) return;
+        var plan = PdfPageReorderPlan.Move(_workspace.Pages.Count, targetPageNumber, moved);
+        await ApplyPageReorderAsync(plan, moved, CancellationToken.None).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -129,7 +121,7 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null) return;
         string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
-        string fullPath = Path.GetFullPath(path);
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         if (!_canSaveAsPath(fullPath)) {
             OperationStatus = UiText("Workspace.SaveAsAlreadyOpen");
             return;
@@ -158,10 +150,10 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private void DiscardRecovery() {
-        _workspace?.DiscardRecovery();
-        OperationStatus = UiText("Workspace.RecoveryDiscarded");
-        NotifyWorkspaceStateChanged();
+    private async Task DiscardRecoveryAsync(CancellationToken cancellationToken) {
+        if (_workspace is null) return;
+        bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), cancellationToken).ConfigureAwait(true);
+        if (succeeded) OperationStatus = UiText("Workspace.RecoveryDiscarded");
     }
 
     [RelayCommand]
@@ -206,18 +198,16 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task MoveSelectedUpAsync(CancellationToken cancellationToken) {
-        int[] order = BuildMovedOrder(moveUp: true);
-        if (_workspace is null || order.Length == 0) return;
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
+        if (_workspace is null || !CanMutateSelection) return;
+        int[] selected = GetSelectedPages();
+        await ApplyPageReorderAsync(PdfPageReorderPlan.Shift(_workspace.Pages.Count, true, selected), selected, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task MoveSelectedDownAsync(CancellationToken cancellationToken) {
-        int[] order = BuildMovedOrder(moveUp: false);
-        if (_workspace is null || order.Length == 0) return;
-        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
+        if (_workspace is null || !CanMutateSelection) return;
+        int[] selected = GetSelectedPages();
+        await ApplyPageReorderAsync(PdfPageReorderPlan.Shift(_workspace.Pages.Count, false, selected), selected, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -243,94 +233,56 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private async Task ImportPagesAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !CanImportPages) return;
-        IReadOnlyList<string> paths = await _pickImportPdfs(cancellationToken).ConfigureAwait(true);
-        if (paths.Count == 0) return;
-        int insertBefore = _organizerSelection.Count == 0
-            ? _workspace.Pages.Count + 1
-            : _organizerSelection.Min();
-        int importedPageCount = 0;
-        bool succeeded = await RunStandaloneAsync(
-            async token => importedPageCount = await _workspace
-                .ImportAsync(paths, insertBefore, token, CreateProgress())
-                .ConfigureAwait(true),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            RefreshWorkspacePresentation(Enumerable.Range(insertBefore, importedPageCount).ToArray());
-            OperationStatus = importedPageCount == 1
-                ? UiText("Workspace.ImportedOnePage")
-                : UiFormat("Workspace.ImportedPages", importedPageCount, paths.Count);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
-        int[] pages = GetSelectedPages();
-        if (_workspace is null || !CanExtractPages || pages.Length == 0) return;
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        await RunStandaloneAsync(
-            token => _workspace.ExtractAsync(pages, path, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-    }
-
-    [RelayCommand]
-    private async Task SplitAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !CanExtractPages) return;
-        string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(folder)) return;
-        IReadOnlyList<string> outputs = Array.Empty<string>();
-        bool succeeded = await RunStandaloneAsync(
-            async token => outputs = await _workspace
-                .SplitAsync(folder, SplitPagesPerDocument, token, CreateProgress())
-                .ConfigureAwait(true),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            OperationStatus = outputs.Count == 1
-                ? UiText("Workspace.CreatedOneSplitPdf")
-                : UiFormat("Workspace.CreatedSplitPdfs", outputs.Count);
-        }
-    }
-
-    [RelayCommand]
     private void SelectAllPages() => SetOrganizerSelection(OrganizerPages);
+
+    private bool IsPageWorkflowCurrent(PdfWorkspace workspace, long revision) {
+        if (!_disposed && ReferenceEquals(workspace, _workspace) && workspace.Revision == revision) return true;
+        if (!_disposed) ErrorMessage = UiText("Organizer.StalePreview");
+        return false;
+    }
+
+    private bool IsReviewedCopyCurrent(PdfWorkspace workspace, long revision) {
+        if (!IsPageWorkflowCurrent(workspace, revision)) return false;
+        if (!HasFormDrafts) return true;
+        ErrorMessage = UiText("Workspace.CopyHasFormDrafts");
+        return false;
+    }
 
     [RelayCommand]
     private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
 
     [RelayCommand]
-    private async Task SearchAsync(CancellationToken cancellationToken) {
-        if (_session is null || string.IsNullOrWhiteSpace(SearchQuery)) {
-            SearchResults.Clear();
-            return;
-        }
-
-        OperationStatus = UiText("Workspace.SearchingDocument");
-        await RunStandaloneAsync(async token => {
-            var progress = new Progress<double>(fraction =>
-                OperationProgressFraction = Math.Clamp(fraction, 0D, 1D));
-            IReadOnlyList<PdfSearchHit> results = await _session
-                .SearchAsync(SearchQuery, token, progress)
-                .ConfigureAwait(true);
-            SearchResults.Clear();
-            foreach (PdfSearchHit result in results) SearchResults.Add(result.WithLocalizer(_localizer));
-            OperationProgressFraction = 1D;
-            OperationStatus = results.Count == 0
-                ? UiText("Workspace.NoMatches")
-                : UiFormat("Workspace.MatchingPages", results.Count);
-        }, cancellationToken).ConfigureAwait(true);
-    }
-
-    [RelayCommand]
     private void CancelOperation() => CancelCurrentOperation();
 
-    private async Task RunSaveAsync(string? path, CancellationToken cancellationToken) {
-        if (_workspace is null) return;
+    private async Task<bool> RunSaveAsync(string? path, CancellationToken cancellationToken) {
+        if (_workspace is null) return false;
+        PdfWorkspace workspace = _workspace;
+        if (path is null && _services.Storage.IsRecoveryLocation(workspace.Path)) {
+            path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            if (!_canSaveAsPath(path)) { OperationStatus = UiText("Workspace.SaveAsAlreadyOpen"); return false; }
+        }
+        if (path is null && workspace.UsesProviderPublication() && !await _confirmProviderWrite(workspace.Path)) return false;
+        if (!ReferenceEquals(workspace, _workspace) || _disposed) return false;
+        var formValues = CaptureFormDrafts();
+        if (formValues is null) return false;
+        bool formValuesApplied = false;
         bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveAsync(path, token, CreateProgress()),
+            async token => {
+                if (formValues.Count > 0) {
+                    await ApplyCapturedFormValuesAsync(formValues,
+                        () => workspace.FillFormFieldsAsync(formValues, token, CreateProgress())).ConfigureAwait(true);
+                    formValuesApplied = true;
+                }
+                await workspace.SaveAsync(path, token, CreateProgress()).ConfigureAwait(true);
+            },
             cancellationToken).ConfigureAwait(true);
+        if (formValuesApplied && ReferenceEquals(workspace, _workspace) && !_disposed) {
+            ClearSignatureValidation();
+            RefreshWorkspacePresentation();
+        }
         if (succeeded) NotifyWorkspaceStateChanged();
+        return succeeded;
     }
 
     private async Task<bool> RunMutationAsync(
@@ -355,6 +307,7 @@ public sealed partial class MainWindowViewModel {
         try {
             await operation(currentCancellation.Token).ConfigureAwait(true);
             OperationProgressFraction = 1D;
+            OperationStatus = UiText("Workspace.OperationCompleted");
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
@@ -375,11 +328,14 @@ public sealed partial class MainWindowViewModel {
         }
     }
 
-    private IProgress<PdfWorkspaceProgress> CreateProgress() =>
-        new Progress<PdfWorkspaceProgress>(progress => {
+    private IProgress<PdfWorkspaceProgress> CreateProgress() {
+        CancellationTokenSource? attempt = _operationCancellation;
+        return new Progress<PdfWorkspaceProgress>(progress => {
+            if (!IsWorkspaceBusy || !ReferenceEquals(attempt, _operationCancellation)) return;
             OperationStatus = progress.Stage;
             OperationProgressFraction = Math.Clamp(progress.Fraction, 0D, 1D);
         });
+    }
 
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();
@@ -389,38 +345,11 @@ public sealed partial class MainWindowViewModel {
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (OcrWorkbench.CanCancel) OcrWorkbench.CancelCommand.Execute(null);
+        if (OcrSession.IsBusy) OcrSession.CancelCommand.Execute(null);
         if (CanCancelOperation) OperationStatus = UiText("Workspace.CancellingOperation");
     }
 
     private int[] GetSelectedPages() => _organizerSelection.OrderBy(static page => page).ToArray();
-
-    private int[] BuildMovedOrder(bool moveUp) {
-        if (_workspace is null || _organizerSelection.Count == 0) return Array.Empty<int>();
-        int[] order = Enumerable.Range(1, _workspace.Pages.Count).ToArray();
-        if (moveUp) {
-            for (int index = 1; index < order.Length; index++) {
-                if (_organizerSelection.Contains(order[index]) && !_organizerSelection.Contains(order[index - 1])) {
-                    (order[index - 1], order[index]) = (order[index], order[index - 1]);
-                }
-            }
-        } else {
-            for (int index = order.Length - 2; index >= 0; index--) {
-                if (_organizerSelection.Contains(order[index]) && !_organizerSelection.Contains(order[index + 1])) {
-                    (order[index], order[index + 1]) = (order[index + 1], order[index]);
-                }
-            }
-        }
-        return order;
-    }
-
-    private static int[] MapSelectedPagesToReorderedPositions(IReadOnlyList<int> order, IReadOnlyCollection<int> selectedPages) {
-        var selected = new HashSet<int>(selectedPages);
-        return order
-            .Select((originalPageNumber, index) => new { originalPageNumber, position = index + 1 })
-            .Where(item => selected.Contains(item.originalPageNumber))
-            .Select(static item => item.position)
-            .ToArray();
-    }
 
     private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;
@@ -453,6 +382,10 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        OnPropertyChanged(nameof(CanSearchDocument));
+        OnPropertyChanged(nameof(ReaderHint));
+        SearchCommand.NotifyCanExecuteChanged();
+        NotifyCommentActions();
         OnPropertyChanged(nameof(IsDirty));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
@@ -494,7 +427,7 @@ public sealed partial class MainWindowViewModel {
     private void RebuildBookmarks() {
         Bookmarks.Clear();
         if (_workspace is null) return;
-        foreach (PdfOutlineItem item in _workspace.DocumentInfo.Outlines) AddBookmark(item);
+        foreach (PdfOutlineItem item in (_workspace.DocumentInfo?.Outlines ?? [])) AddBookmark(item);
     }
 
     private void AddBookmark(PdfOutlineItem item) {
@@ -513,12 +446,12 @@ public sealed partial class MainWindowViewModel {
         await ActivateComparisonPageLinkAsync(target).ConfigureAwait(true);
 
     internal Task ActivatePageLinkAsync(string target) =>
-        ActivatePageLinkAsync(target, _session?.DocumentInfo.NamedDestinations ?? [], Pages, NavigateToPage);
+        ActivatePageLinkAsync(target, _session?.DocumentInfo?.NamedDestinations ?? [], Pages, NavigateToPage);
 
     internal Task ActivateComparisonPageLinkAsync(string target) =>
         ActivatePageLinkAsync(
             target,
-            _comparisonSession?.DocumentInfo.NamedDestinations ?? [],
+            _comparisonSession?.DocumentInfo?.NamedDestinations ?? [],
             ComparisonPages,
             NavigateToComparisonPage);
 

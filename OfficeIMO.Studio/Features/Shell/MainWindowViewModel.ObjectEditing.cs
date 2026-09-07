@@ -91,9 +91,19 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null || SelectedObject is not { Kind: PdfEditorSelectionKind.Image } selection) return;
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;
-        string? path = await _pickImage(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        byte[] bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(true);
+        byte[]? bytes;
+        ErrorMessage = null;
+        try {
+            bytes = await _pickImage(cancellationToken).ConfigureAwait(true);
+        } catch (OperationCanceledException) {
+            OperationStatus = UiText("Workspace.OperationCancelled");
+            return;
+        } catch (Exception ex) {
+            ErrorMessage = ex.Message;
+            OperationStatus = UiText("Workspace.OperationFailed");
+            return;
+        }
+        if (bytes is null) return;
         if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
             OperationStatus = "The document changed while the replacement image was being selected. Select the image again.";
             return;

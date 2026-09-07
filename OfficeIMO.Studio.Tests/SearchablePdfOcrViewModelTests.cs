@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
@@ -126,6 +127,58 @@ public sealed class SearchablePdfOcrViewModelTests {
         viewModel.CancelCurrentOperation();
         await run.WaitAsync(TimeSpan.FromSeconds(5));
     }
+
+    [Theory]
+    [InlineData("hard-link")]
+    [InlineData("file-link")]
+    [InlineData("directory-link")]
+    public async Task RunRejectsSourceAliasesBeforeStartingRecognition(string kind) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-ocr-alias-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string sourceDirectory = Directory.CreateDirectory(Path.Combine(root, "source")).FullName;
+            string input = Path.Combine(sourceDirectory, "scan.pdf");
+            OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(420D, 620D))).Save(input);
+            byte[] original = File.ReadAllBytes(input);
+            string alias = Path.Combine(root, "alias.pdf");
+            if (kind == "hard-link") {
+                bool created = OperatingSystem.IsWindows()
+                    ? CreateHardLink(alias, input, IntPtr.Zero)
+                    : Link(input, alias) == 0;
+                Assert.True(created, $"Hard link creation failed: {Marshal.GetLastPInvokeError()}");
+            } else if (kind == "file-link") {
+                File.CreateSymbolicLink(alias, input);
+            } else {
+                string directoryAlias = Path.Combine(root, "alias-directory");
+                Directory.CreateSymbolicLink(directoryAlias, sourceDirectory);
+                alias = Path.Combine(directoryAlias, "scan.pdf");
+            }
+            var service = new RecordingOcrService(new SearchablePdfOcrOutcome(1, [1], "fixture-ocr"));
+            using var viewModel = new SearchablePdfOcrViewModel(
+                _ => Task.FromResult<string?>(input),
+                _ => Task.FromResult<string?>(root), service: service);
+            viewModel.UseDocument(input);
+            viewModel.OutputPath = alias;
+            viewModel.ReplaceExistingOutput = true;
+
+            await viewModel.RunCommand.ExecuteAsync(null);
+
+            Assert.Equal(0, service.CallCount);
+            Assert.False(viewModel.HasOutput);
+            Assert.Equal("Choose an OCR output PDF that is different from the source PDF.", viewModel.ErrorMessage);
+            Assert.Equal(original, File.ReadAllBytes(input));
+            Assert.Equal(original, File.ReadAllBytes(alias));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreateHardLink(string newFile, string existingFile, IntPtr securityAttributes);
+
+    [DllImport("libc", EntryPoint = "link", SetLastError = true)]
+    private static extern int Link(string existingFile, string newFile);
 
     private sealed class RecordingOcrService : ISearchablePdfOcrService {
         private readonly SearchablePdfOcrOutcome? _result;

@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Shell.StudioSessionView" x:DataType="shell:StudioSessionController"
+             IsVisible="{Binding HasPending}">
+  <Border Classes="card">
+    <StackPanel Spacing="10" IsEnabled="{Binding !IsBusy}">
+      <TextBlock Text="{loc:Loc Session.Title}" Classes="sectionTitle" />
+      <TextBlock Text="{loc:Loc Session.Description}" TextWrapping="Wrap" />
+      <Button Classes="primary" Content="{loc:Loc Session.Restore}" Command="{Binding RestoreCommand}" />
+      <TextBlock Text="{Binding Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap"
+                 Foreground="{DynamicResource StudioErrorBrush}" />
+      <ItemsControl ItemsSource="{Binding Pending}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="shell:StudioSessionItem">
+            <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="0,10" Margin="0,4,0,0">
+              <StackPanel Spacing="5">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding SourcePath}" Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                <WrapPanel>
+                  <Button Classes="tool" Content="{loc:Loc Session.OpenCurrent}" Margin="0,4,8,0"
+                          IsEnabled="{Binding SourceExists}" CommandParameter="{Binding}"
+                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).OpenCurrentCommand}" />
+                  <Button Classes="tool" Content="{loc:Loc Session.RecoverCopy}" Margin="0,4,8,0"
+                          IsEnabled="{Binding HasRecovery}" CommandParameter="{Binding}"
+                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).RecoverCopyCommand}" />
+                  <Button Classes="ghost" Content="{loc:Loc Session.Forget}" Margin="0,4,8,0" CommandParameter="{Binding}"
+                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).ForgetCommand}" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Text="{loc:Loc Session.Retention}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</UserControl>

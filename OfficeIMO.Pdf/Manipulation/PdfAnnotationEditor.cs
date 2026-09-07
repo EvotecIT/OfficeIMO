@@ -123,8 +123,8 @@ internal static partial class PdfAnnotationEditor {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
-        return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true, readOptions: readOptions);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out var numberMap);
+        return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true, readOptions: readOptions, objectNumberMap: numberMap);
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -182,7 +182,7 @@ internal static partial class PdfAnnotationEditor {
             new[] { objectNumber }.Concat(changedObjects));
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth);
         ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
-        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap);
     }
 
     private static PdfMutationPlan RequireAnnotationMutation(

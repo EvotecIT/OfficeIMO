@@ -75,7 +75,23 @@ Console.WriteLine($"Modified pages: {string.Join(", ", searchable.ModifiedPages)
 Console.WriteLine($"Added words: {searchable.AddedWordCount}");
 ```
 
-Only pages with accepted OCR words are rewritten. The invisible text layer follows the canonical semantic order, while the returned OCR result records exactly what was added. Signed or otherwise rewrite-sensitive documents remain subject to the base PDF mutation and preservation rules.
+Only pages with accepted OCR words are rewritten. The invisible text layer follows the canonical semantic order. `WrittenWords` records what entered the layer, while `Ocr` retains recognition evidence. Signed or otherwise rewrite-sensitive documents remain subject to the base PDF mutation and preservation rules.
+
+## Review before creating the layer
+
+`PrepareSearchableOcrAsync` captures the source and recognizes its selected pages without changing or saving the PDF. A review interface can display `Ocr.Pages`, including `WordEvidence` for accepted words, low-confidence words, and native-text overlaps. `RenderPage` previews the same source snapshot; `GetPageSize` and word geometry use cropped, rotated visual PDF points.
+
+```csharp
+PdfSearchableOcrReview review = await pdf.PrepareSearchableOcrAsync(engine);
+
+// Replace this confidence selection with the eligible word instances chosen in a review interface.
+var selected = review.Ocr.Pages.SelectMany(page => page.Words)
+    .Where(word => word.Confidence >= 0.90).ToArray();
+PdfSearchableOcrResult reviewed = review.Apply(selected);
+await reviewed.Document.SaveAsync("reviewed-searchable.pdf");
+```
+
+Selections may exclude eligible words but cannot inject words from another review or override a rejection. To change the confidence or overlap policy, prepare a new review with new options. Low-confidence words are rejected before overlap evaluation; invalid geometry remains a diagnostic rather than a selectable word. An empty selection produces an unchanged source copy. `AddedWordCount` and `WrittenWords` describe the actual layer after review exclusions.
 
 `PdfOcrMergeOptions` bounds provider-call duration, rendered pixels, selected pages, inspected spans, accepted OCR words and characters, aggregate raw hierarchy identifiers, provider metadata and diagnostics, native-overlap comparisons, and merged text. Calls use one shared `OcrEngineExecution` per document, so identity and capabilities are stable across pages and the same non-concurrent engine instance cannot overlap across PDF, Reader, or a future integration. Language is provider configuration only; it is never used to infer captions, lists, paragraphs, tables, or continuations.
 

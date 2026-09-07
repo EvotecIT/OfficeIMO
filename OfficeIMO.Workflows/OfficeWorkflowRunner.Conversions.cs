@@ -81,7 +81,7 @@ public sealed partial class OfficeWorkflowRunner {
                 HtmlToPdfOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(
                     request.InputPath,
                     remainingInputBytes,
-                    htmlResourceSnapshots);
+                    htmlResourceSnapshots ?? (request.InputStream is null ? null : new Dictionary<string, byte[]>()));
                 if (!emitHtmlTaggedStructure) {
                     options.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
                 }

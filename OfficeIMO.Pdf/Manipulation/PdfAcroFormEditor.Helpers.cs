@@ -453,7 +453,8 @@ internal static partial class PdfAcroFormEditor {
             throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(options));
         }
         if (options.Kind == PdfFormFieldCreationKind.Text && options.Style?.MaxLength is int maximumLength &&
-            ((options.Value?.Length ?? 0) > maximumLength || (options.DefaultValue?.Length ?? 0) > maximumLength)) {
+            (PdfUnicodeScalarAnalysis.CountScalars(options.Value ?? string.Empty) > maximumLength ||
+             PdfUnicodeScalarAnalysis.CountScalars(options.DefaultValue ?? string.Empty) > maximumLength)) {
             throw new ArgumentException("Text field values and default values cannot exceed MaxLength.", nameof(options));
         }
     }

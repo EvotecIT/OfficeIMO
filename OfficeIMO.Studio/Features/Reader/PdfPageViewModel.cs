@@ -59,6 +59,12 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorSelection? _selectedObject;
 
     [ObservableProperty]
+    private int? _commentAnchorObjectNumber;
+
+    [ObservableProperty]
+    private string? _formAnchorFieldName;
+
+    [ObservableProperty]
     private PdfEditorSelectionMode _selectionMode;
 
     [ObservableProperty]
@@ -66,6 +72,12 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     [ObservableProperty]
     private bool _isNightMode;
+
+    [ObservableProperty]
+    private IReadOnlyList<Rect> _searchHighlights = Array.Empty<Rect>();
+
+    [ObservableProperty]
+    private Rect? _activeSearchHighlight;
 
     private double _zoom;
 

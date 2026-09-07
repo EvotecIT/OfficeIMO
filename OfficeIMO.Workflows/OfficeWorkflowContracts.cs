@@ -17,7 +17,15 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a verified normalized artifact from explicitly recovered PDF defects.</summary>
     Repair,
     /// <summary>Remove forbidden active content and embedded payloads from a PDF.</summary>
-    Sanitize
+    Sanitize,
+    /// <summary>Extract an ordered selection of PDF pages into a separate PDF.</summary>
+    ExtractPages,
+    /// <summary>Create a separate PDF with new or replacement password protection.</summary>
+    ProtectPdf,
+    /// <summary>Create a separate unencrypted PDF after owner authorization.</summary>
+    RemovePdfProtection,
+    /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
+    SignPdf
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -49,7 +57,9 @@ public enum OfficeWorkflowStatus {
     /// <summary>The request was cancelled cooperatively and no staged artifact was published.</summary>
     Cancelled,
     /// <summary>The request failed and no staged artifact was published.</summary>
-    Failed
+    Failed,
+    /// <summary>A provider write began but its final contents could not be verified. Check the destination before retrying.</summary>
+    Unconfirmed
 }
 
 /// <summary>Stable category describing why a workflow did not complete.</summary>
@@ -161,8 +171,17 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Primary input file.</summary>
     public required string InputPath { get; set; }
 
+    /// <summary>Optional provider access for <see cref="InputPath"/>. The path remains the original location or absolute URI.</summary>
+    public OfficeWorkflowStreamInput? InputStream { get; set; }
+
+    /// <summary>Ordered one-based pages for ExtractPages, including intentional repeats. Limited to 100,000 entries.</summary>
+    public int[]? PageNumbers { get; set; }
+
     /// <summary>Comparison input used by <see cref="OfficeWorkflowOperation.Compare"/>.</summary>
     public string? ComparisonPath { get; set; }
+
+    /// <summary>Optional provider access for <see cref="ComparisonPath"/>.</summary>
+    public OfficeWorkflowStreamInput? ComparisonStream { get; set; }
 
     /// <summary>Conversion route identifier from <see cref="OfficeWorkflowCatalog"/>.</summary>
     public string? ConversionRouteId { get; set; }
@@ -170,8 +189,14 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }
 
+    /// <summary>Optional verified direct-write access for the original <see cref="OutputPath"/> provider location.</summary>
+    public OfficeWorkflowStreamOutput? OutputStream { get; set; }
+
     /// <summary>Conflict behavior used when publishing an artifact.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Cross-format output intent.</summary>
     public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
@@ -184,6 +209,21 @@ public sealed class OfficeWorkflowRequest {
     /// It is used only while executing and is never copied to results or reports.
     /// </summary>
     public string? ComparisonPdfPassword { get; set; }
+
+    /// <summary>New password protection for ProtectPdf. Cloned before execution; credentials remain request-only.</summary>
+    public OfficeIMO.Pdf.PdfStandardEncryptionOptions? OutputEncryption { get; set; }
+
+    /// <summary>Current owner password for replacing or removing protection. Falls back to PdfPassword when omitted.</summary>
+    public string? PdfOwnerPassword { get; set; }
+
+    /// <summary>Runtime signer for SignPdf. The caller retains ownership and must keep it alive until execution completes.</summary>
+    public OfficeIMO.Pdf.IPdfExternalSigner? OutputSigner { get; set; }
+
+    /// <summary>Signature and appearance settings for SignPdf, copied before asynchronous execution.</summary>
+    public OfficeIMO.Pdf.PdfExternalSignatureOptions? OutputSignatureOptions { get; set; }
+
+    /// <summary>Required runtime cryptographic verifier for SignPdf. Chain trust is reported independently from signature math.</summary>
+    public OfficeIMO.Pdf.IPdfSignatureCryptographyProvider? OutputSignatureValidator { get; set; }
 
     /// <summary>Shared request resource limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();

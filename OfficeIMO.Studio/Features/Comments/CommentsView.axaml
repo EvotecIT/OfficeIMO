@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:comments="using:OfficeIMO.Studio.Features.Comments"
+             x:Class="OfficeIMO.Studio.Features.Comments.CommentsView" x:DataType="shell:MainWindowViewModel">
+  <StackPanel Spacing="8">
+    <TextBlock Text="{loc:Loc Comments.Title}" FontSize="15" FontWeight="SemiBold" />
+    <TextBox Text="{Binding CommentAuthorFilter}" PlaceholderText="{loc:Loc Comments.AuthorFilter}" AutomationProperties.Name="{loc:Loc Comments.AuthorFilter}" />
+    <ComboBox ItemsSource="{Binding CommentStatuses}" SelectedItem="{Binding SelectedCommentStatus, Mode=TwoWay}"
+              PlaceholderText="{loc:Loc Comments.All}" AutomationProperties.Name="{loc:Loc Comments.StatusFilter}" HorizontalAlignment="Stretch">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="comments:CommentStatusChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <Button Classes="tool" Content="{loc:Loc Comments.NextUnresolved}" Command="{Binding NextUnresolvedCommentCommand}" />
+    <TextBlock IsVisible="{Binding HasCommentCatalogError}" Text="{Binding CommentCatalogError}" TextWrapping="Wrap" />
+    <TextBlock IsVisible="{Binding HasNoCommentThreads}" Text="{loc:Loc Comments.Empty}" TextWrapping="Wrap" Classes="muted" />
+    <ComboBox x:Name="ThreadPicker" ItemsSource="{Binding CommentThreads}" SelectedItem="{Binding SelectedCommentThread, Mode=TwoWay}"
+              PlaceholderText="{loc:Loc Comments.Choose}" AutomationProperties.Name="{loc:Loc Comments.Choose}" HorizontalAlignment="Stretch">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="comments:CommentThreadViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" MaxWidth="230" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <StackPanel IsVisible="{Binding HasCommentThread}" Spacing="8">
+      <TextBlock Text="{Binding SelectedCommentThread.State}" FontWeight="SemiBold" />
+      <TextBlock IsVisible="{Binding SelectedCommentThread.IsOrphaned}" Text="{loc:Loc Comments.Orphan}" TextWrapping="Wrap" />
+      <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding SelectedCommentThread.Entries}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="comments:CommentEntryViewModel">
+              <StackPanel Spacing="3" Margin="0,0,0,10">
+                <TextBlock Text="{Binding Author}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock IsVisible="{Binding IsReply}" Text="{Binding DepthLabel}" Classes="muted" FontSize="11" />
+                <TextBlock Text="{Binding Contents}" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <TextBox Text="{Binding EditorAuthor}" PlaceholderText="{loc:Loc DocumentWorkspace.Author}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Author}" />
+      <TextBox x:Name="ReplyEditor" Text="{Binding CommentReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="55" MaxHeight="120" TextWrapping="Wrap" />
+      <WrapPanel ItemSpacing="5" LineSpacing="5">
+        <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.AddReply}" Command="{Binding ReplyToCommentCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Comments.Resolve}" Command="{Binding ResolveCommentCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Comments.Reopen}" Command="{Binding ReopenCommentCommand}" />
+      </WrapPanel>
+    </StackPanel>
+    <Separator />
+    <StackPanel IsVisible="{Binding HasUnassignedCommentDrafts}" Spacing="6">
+      <TextBlock Text="{loc:Loc Comments.UnassignedDrafts}" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Comments.UnassignedExplanation}" TextWrapping="Wrap" Classes="muted" />
+      <ComboBox ItemsSource="{Binding UnassignedCommentDrafts}" SelectedItem="{Binding SelectedUnassignedCommentDraft, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Comments.UnassignedDrafts}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="comments:CommentDraftViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" MaxWidth="230" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBox Text="{Binding SelectedUnassignedCommentDraft.Text, Mode=OneWay}" AutomationProperties.Name="{loc:Loc Comments.UnassignedDrafts}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="100" />
+      <Button Classes="tool" Content="{loc:Loc Comments.RestoreDraft}" Command="{Binding RestoreCommentDraftCommand}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

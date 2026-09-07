@@ -8,7 +8,11 @@ public sealed record PdfSearchHit(int PageNumber, string Snippet) {
 
     internal IStudioLocalizer Localizer { get; init; } = DefaultLocalizer;
 
-    public string Label => Localizer.Format("Search.ResultLabel", PageNumber, Snippet);
+    public Avalonia.Rect Bounds { get; init; }
+
+    public int OccurrenceNumber { get; init; }
+
+    public string Label => Localizer.Format("Search.ResultLabel", PageNumber, Snippet, OccurrenceNumber);
 
     internal PdfSearchHit WithLocalizer(IStudioLocalizer localizer) =>
         this with { Localizer = localizer ?? throw new ArgumentNullException(nameof(localizer)) };

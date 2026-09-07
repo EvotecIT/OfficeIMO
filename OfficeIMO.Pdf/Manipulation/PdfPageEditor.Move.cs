@@ -20,44 +20,11 @@ internal static partial class PdfPageEditor {
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         var document = PdfReadDocument.Open(pdf, readOptions);
-        ValidateMoveInsertBeforePageNumber(insertBeforePageNumber, document.Pages.Count);
-        ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
-
-        var selected = new HashSet<int>(pageNumbers);
-        if (insertBeforePageNumber <= document.Pages.Count && selected.Contains(insertBeforePageNumber)) {
-            throw new ArgumentException("Insert-before page cannot be one of the moved pages.", nameof(insertBeforePageNumber));
-        }
-
-        var moving = new List<int>(selected.Count);
-        var remaining = new List<(int PageNumber, int PageObjectNumber)>(document.Pages.Count - selected.Count);
-
-        for (int i = 0; i < document.Pages.Count; i++) {
-            int pageNumber = i + 1;
-            int pageObjectNumber = document.Pages[i].ObjectNumber;
-            if (selected.Contains(pageNumber)) {
-                moving.Add(pageObjectNumber);
-            } else {
-                remaining.Add((pageNumber, pageObjectNumber));
-            }
-        }
-
-        int insertionIndex = insertBeforePageNumber == document.Pages.Count + 1
-            ? remaining.Count
-            : remaining.TakeWhile(page => page.PageNumber < insertBeforePageNumber).Count();
-
-        var ordered = new List<int>(document.Pages.Count);
-        for (int i = 0; i < insertionIndex; i++) {
-            ordered.Add(remaining[i].PageObjectNumber);
-        }
-
-        ordered.AddRange(moving);
-
-        for (int i = insertionIndex; i < remaining.Count; i++) {
-            ordered.Add(remaining[i].PageObjectNumber);
-        }
+        var plan = PdfPageReorderPlan.Move(document.Pages.Count, insertBeforePageNumber, pageNumbers);
+        int[] ordered = plan.SourcePageNumbers.Select(page => document.Pages[page - 1].ObjectNumber).ToArray();
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>

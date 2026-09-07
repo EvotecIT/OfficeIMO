@@ -3,6 +3,47 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
+    internal Task MoveFormWidgetAsync(string name, int page, double x, double y, double width, double height,
+        CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Moved form field " + name, [page],
+            bytes => LoadDocument(bytes).Forms.Edit(edit => edit.Move(name, page, x, y, width, height)).ToBytes(), token, progress);
+
+    internal Task RemoveFormDefinitionAsync(string name, CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Removed form field " + name, [],
+            bytes => LoadDocument(bytes).Forms.Edit(edit => edit.Remove(name)).ToBytes(), token, progress);
+
+    internal Task SetFormDefaultAsync(string name, string? value, CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Updated form default " + name, [],
+            bytes => LoadDocument(bytes).Forms.Edit(edit => edit.SetDefaultValue(name, value)).ToBytes(), token, progress);
+
+    internal Task UpdateFormDefinitionAsync(string name, string newName, bool required, bool readOnly,
+        CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Updated form field " + name, [], bytes => {
+            var document = LoadDocument(bytes);
+            var field = document.Inspect().FormFields.Single(field => field.Name == name);
+            int flags = ((field.Flags ?? 0) & ~3) | (readOnly ? 1 : 0) | (required ? 2 : 0);
+            return document.Forms.Edit(edit => {
+                edit.SetFlags(name, flags);
+                if (!string.Equals(name, newName, StringComparison.Ordinal)) edit.Rename(name, newName);
+            }).ToBytes();
+        }, token, progress);
+
+    internal Task SetFormTabOrderAsync(int pageNumber, PdfPageTabOrder order,
+        CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(PdfWorkspaceOperationKind.FormAuthor, "Updated form tab order", [pageNumber],
+            bytes => LoadDocument(bytes).Forms.Edit(edit => edit.SetTabOrder(pageNumber, order)).ToBytes(), token, progress);
+
+    internal Task FillFormFieldsAsync(IReadOnlyDictionary<string, PdfFormFieldValue> values,
+        CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
+        var snapshot = values.ToDictionary(pair => pair.Key, pair => PdfFormFieldValue.FromValues(pair.Value.Values), StringComparer.Ordinal);
+        return MutateBytesAsync(PdfWorkspaceOperationKind.FormFill, "Applied form field edits", [], bytes => {
+            var document = LoadDocument(bytes);
+            var plan = document.PlanMutation(PdfMutationOperation.FillFormFields, snapshot.Keys);
+            return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
+                ? document.Forms.AppendRevision(snapshot) : document.Forms.Fill(snapshot)).ToBytes();
+        }, cancellationToken, progress);
+    }
+
     internal Task FillFormFieldAsync(
         string fieldName,
         string value,

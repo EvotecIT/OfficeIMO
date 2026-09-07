@@ -26,7 +26,13 @@ internal static partial class PdfAnnotationFlattener {
         byte[] pdf,
         PdfAnnotationFlattenOptions? options,
         PdfLoadOptions? readOptions,
-        out PdfGeneratedOutputGrowth generatedGrowth) {
+        out PdfGeneratedOutputGrowth generatedGrowth) =>
+        FlattenVisualAnnotations(pdf, options, readOptions, out generatedGrowth, out _, out _);
+
+    internal static byte[] FlattenVisualAnnotations(
+        byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions,
+        out PdfGeneratedOutputGrowth generatedGrowth, out IReadOnlyDictionary<int, int> objectNumberMap,
+        out int flattenedCount) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenOptions(options);
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
@@ -41,7 +47,7 @@ internal static partial class PdfAnnotationFlattener {
         PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions);
         var pageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
-        int flattenedCount = FlattenPageVisualAnnotations(
+        flattenedCount = FlattenPageVisualAnnotations(
             objects,
             ref nextObjectNumber,
             options,
@@ -49,10 +55,11 @@ internal static partial class PdfAnnotationFlattener {
             out generatedGrowth);
         if (flattenedCount == 0) {
             generatedGrowth = default;
+            objectNumberMap = objects.Keys.ToDictionary(number => number, number => number);
             return pdf.ToArray();
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata, out objectNumberMap);
     }
 
     private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {

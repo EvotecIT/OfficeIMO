@@ -9,10 +9,12 @@ public sealed partial class OfficeWorkflowRunner {
         string requestedDirectory,
         OfficeWorkflowConflictPolicy policy,
         ICollection<OfficeWorkflowDiagnostic> diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        IOfficeWorkflowPublicationGuard? guard = null) {
         cancellationToken.ThrowIfCancellationRequested();
         switch (policy) {
             case OfficeWorkflowConflictPolicy.Fail:
+                await EnsurePublicationAllowedAsync(guard, requestedDirectory, true, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 Directory.Move(stagingDirectory, requestedDirectory);
                 return requestedDirectory;
@@ -20,6 +22,7 @@ public sealed partial class OfficeWorkflowRunner {
                 for (int suffix = 0; suffix < 10_000; suffix++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     string candidate = suffix == 0 ? requestedDirectory : AddDirectorySuffix(requestedDirectory, suffix);
+                    if (!await CanPublishAsync(guard, candidate, true, cancellationToken).ConfigureAwait(false)) continue;
                     try {
                         Directory.Move(stagingDirectory, candidate);
                         return candidate;
@@ -29,7 +32,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 throw new IOException("No available numbered output directory could be reserved.");
             case OfficeWorkflowConflictPolicy.Replace:
-                return await ReplaceDirectoryAsync(stagingDirectory, requestedDirectory, diagnostics, cancellationToken).ConfigureAwait(false);
+                return await ReplaceDirectoryAsync(stagingDirectory, requestedDirectory, diagnostics, cancellationToken, guard).ConfigureAwait(false);
             default:
                 throw new ArgumentOutOfRangeException(nameof(policy));
         }
@@ -39,10 +42,12 @@ public sealed partial class OfficeWorkflowRunner {
         string stagingDirectory,
         string requestedDirectory,
         ICollection<OfficeWorkflowDiagnostic> diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        IOfficeWorkflowPublicationGuard? guard) {
         await using FileStream publicationLock = await AcquireDirectoryPublicationLockAsync(requestedDirectory, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
+        await EnsurePublicationAllowedAsync(guard, requestedDirectory, true, cancellationToken).ConfigureAwait(false);
         RecoverInterruptedDirectoryReplacement(requestedDirectory, diagnostics);
 
         if (File.Exists(requestedDirectory)) {

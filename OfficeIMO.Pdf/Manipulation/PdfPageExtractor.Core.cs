@@ -11,7 +11,8 @@ internal static partial class PdfPageExtractor {
         IEnumerable<AdditionalObject>? additionalObjects = null,
         CatalogRewriteState? catalogState = null,
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
-        long? maximumOutputBytes = null) {
+        long? maximumOutputBytes = null,
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null) {
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
@@ -159,9 +160,11 @@ internal static partial class PdfPageExtractor {
         AddBoundedObject(objects, catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)), objectBytesLimit, ref serializedObjectBytes);
         AddBoundedObject(objects, infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)), objectBytesLimit, ref serializedObjectBytes);
     
-        return maximumOutputBytes.HasValue
+        byte[] result = maximumOutputBytes.HasValue
             ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value)
             : Assemble(objects, catalogId, infoId, fileVersion);
+        captureObjectNumbers?.Invoke(numberMap);
+        return result;
     }
 
     private static void AddBoundedObject(

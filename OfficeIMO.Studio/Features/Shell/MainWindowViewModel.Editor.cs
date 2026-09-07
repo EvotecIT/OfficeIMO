@@ -15,6 +15,7 @@ public sealed partial class MainWindowViewModel {
     private PdfWorkspace? _pendingRedactionWorkspace;
     private long _pendingRedactionRevision;
     private long _redactionPlanGeneration;
+    private PdfWorkspace? _formWorkspace;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveEditorTool))]
@@ -161,7 +162,7 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanRedact => _workspace?.CanRedact == true;
 
-    public bool CanFillForms => _workspace?.CanFillForms == true && SelectedFormField?.CanFill == true;
+    public bool CanFillForms => _workspace?.CanFillForms == true && SelectedFormField?.CanApplyValue == true;
 
     public bool CanFlattenForms => _workspace?.CanFlattenForms == true;
 
@@ -186,10 +187,20 @@ public sealed partial class MainWindowViewModel {
         if (value.Tool != PdfEditorTool.Redact) CancelPendingRedaction();
     }
 
-    partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? value) {
+    partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? oldValue, PdfFormFieldViewModel? newValue) {
+        if (!_refreshingFormFields) ResetFormDefinition();
+        if (!_refreshingFormFields && IsFormsDocumentMode) ShowSelectedFormField();
+        UpdateFormAnchor();
+        NotifyFormValueActions();
+    }
+
+    private void OnFormValueChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) => NotifyFormValueActions();
+    private void NotifyFormValueActions() {
+        ClearFormPreview();
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
         OnPropertyChanged(nameof(CanFlattenSelectedFormField));
+        NotifyFormDraftState();
     }
 
     [RelayCommand]
@@ -287,9 +298,8 @@ public sealed partial class MainWindowViewModel {
         try {
             byte[]? imageBytes = null;
             if (tool == PdfEditorTool.AddImage) {
-                string? path = await _pickImage(CancellationToken.None).ConfigureAwait(true);
-                if (string.IsNullOrWhiteSpace(path)) return;
-                imageBytes = await File.ReadAllBytesAsync(path).ConfigureAwait(true);
+                imageBytes = await _pickImage(CancellationToken.None).ConfigureAwait(true);
+                if (imageBytes is null) return;
                 if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
                     OperationStatus = UiText("Editor.ImageSelectionStale");
                     return;
@@ -311,8 +321,13 @@ public sealed partial class MainWindowViewModel {
             return;
         }
 
+        if (selection.Kind == PdfEditorSelectionKind.FormField) {
+            SelectFormWidget(selection);
+            return;
+        }
+
         if (selection.Kind == PdfEditorSelectionKind.Annotation) {
-            PdfAnnotation? annotation = _workspace.DocumentInfo.Annotations.FirstOrDefault(candidate =>
+            PdfAnnotation? annotation = _workspace.DocumentInfo?.Annotations.FirstOrDefault(candidate =>
                 candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
             if (annotation is null) {
                 ClearObjectSelection();
@@ -409,17 +424,25 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task FillFormFieldAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || SelectedFormField is null) return;
+        if (_workspace is null || SelectedFormField is null || !CanFillForms) return;
+        var workspace = _workspace;
+        string name = SelectedFormField.Name;
+        var value = SelectedFormField.CreateValue();
         await RunMutationAsync(
-            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, SelectedFormField.CreateValue(), flatten: false, token, CreateProgress()),
+            token => ApplyCapturedFormValuesAsync(new Dictionary<string, PdfFormFieldValue> { [name] = value },
+                () => workspace.FillFormFieldAsync(name, value, flatten: false, token, CreateProgress())),
             cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task FillAndFlattenFormFieldAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || SelectedFormField is null) return;
+        if (_workspace is null || SelectedFormField is null || !CanFillAndFlattenForms) return;
+        var workspace = _workspace;
+        var field = SelectedFormField;
+        var value = field.CreateValue();
         await RunMutationAsync(
-            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, SelectedFormField.CreateValue(), flatten: true, token, CreateProgress()),
+            token => ApplyCapturedFormValuesAsync(new Dictionary<string, PdfFormFieldValue> { [field.Name] = value },
+                () => workspace.FillFormFieldAsync(field.Name, value, flatten: true, token, CreateProgress())),
             cancellationToken).ConfigureAwait(true);
     }
 
@@ -442,34 +465,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task CreateFormFieldAsync(CancellationToken cancellationToken) {
         if (_workspace is null) return;
-        string[] options = ParseFormFieldOptions(NewFormFieldOptions);
-        PdfFormFieldCreationKind kind = SelectedFormFieldCreationChoice.Kind;
-        bool allowsMultipleSelection = kind == PdfFormFieldCreationKind.Choice && NewFormFieldAllowsMultipleSelection;
-        bool isComboBox = kind == PdfFormFieldCreationKind.Choice && NewFormFieldIsComboBox && !allowsMultipleSelection;
-        double height = kind == PdfFormFieldCreationKind.RadioButtonGroup
-            ? Math.Max(NewFormFieldHeight, GetRequiredRadioGroupHeight(options.Length))
-            : NewFormFieldHeight;
-        var createOptions = new PdfFormFieldCreateOptions {
-            Name = NewFormFieldName?.Trim() ?? string.Empty,
-            Kind = kind,
-            PageNumber = NewFormFieldPageNumber,
-            X = NewFormFieldX,
-            Y = NewFormFieldY,
-            Width = NewFormFieldWidth,
-            Height = height,
-            Value = kind == PdfFormFieldCreationKind.CheckBox
-                ? NewFormFieldIsChecked ? "Yes" : "Off"
-                : NewFormFieldValue ?? string.Empty,
-            ChoiceOptions = options,
-            IsComboBox = isComboBox,
-            Caption = string.IsNullOrWhiteSpace(NewFormFieldCaption) ? "Button" : NewFormFieldCaption.Trim(),
-            FieldFlags = allowsMultipleSelection ? 2097152 : 0,
-            Style = new PdfFormFieldStyle {
-                IsMultiline = kind == PdfFormFieldCreationKind.Text && NewFormFieldIsMultiline,
-                IsPassword = kind == PdfFormFieldCreationKind.Text && NewFormFieldIsPassword,
-                IsEditableChoice = isComboBox && NewFormFieldAllowsCustomValue
-            }
-        };
+        var createOptions = CaptureNewFormFieldOptions();
         bool succeeded = await RunMutationAsync(
             token => _workspace.CreateFormFieldAsync(createOptions, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
@@ -514,10 +510,10 @@ public sealed partial class MainWindowViewModel {
         string reply = AnnotationReplyText;
         PdfColor color = ParseColor(EditorColorHex);
         ClearObjectSelection();
-        await RunMutationAsync(
+        bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
-        AnnotationReplyText = string.Empty;
+        if (succeeded && AnnotationReplyText == reply) AnnotationReplyText = string.Empty;
     }
 
     [RelayCommand]
@@ -555,13 +551,26 @@ public sealed partial class MainWindowViewModel {
         EditorLinkUri ?? string.Empty,
         Math.Clamp(EditorFontSize, 4D, 144D));
 
-    private void RebuildFormFields() {
+    private void RebuildFormFieldModels() {
         string? selectedName = SelectedFormField?.Name;
+        bool sameDocument = ReferenceEquals(_formWorkspace, _workspace);
+        var previous = sameDocument ? FormFields.Concat(UnassignedFormDrafts).ToArray() : [];
+        foreach (var field in FormFields) field.PropertyChanged -= OnFormValueChanged;
+        UnassignedFormDrafts.Clear();
+        _formWorkspace = _workspace;
         FormFields.Clear();
         if (_workspace is not null) {
-            foreach (PdfFormField field in _workspace.DocumentInfo.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
-                FormFields.Add(new PdfFormFieldViewModel(field, _localizer));
+            foreach (PdfFormField field in (_workspace.DocumentInfo?.FormFields ?? []).Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
+                var model = new PdfFormFieldViewModel(field, _localizer);
+                var matches = previous.Where(candidate => candidate.Name == model.Name).ToArray();
+                var old = matches.Length == 1 && matches[0].Kind == model.Kind ? matches[0] : null;
+                if (old is not null) model.PreserveDraft(old);
+                model.PropertyChanged += OnFormValueChanged;
+                FormFields.Add(model);
             }
+        }
+        foreach (var old in previous.Where(field => field.HasDraft)) {
+            if (!FormFields.Any(field => field.Name == old.Name && field.Kind == old.Kind)) UnassignedFormDrafts.Add(old);
         }
         SelectedFormField = FormFields.FirstOrDefault(field => string.Equals(field.Name, selectedName, StringComparison.Ordinal))
             ?? FormFields.FirstOrDefault();
@@ -571,6 +580,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
         OnPropertyChanged(nameof(CanFlattenSelectedFormField));
         OnPropertyChanged(nameof(CanAuthorForms));
+        NotifyFormDraftState();
     }
 
     private static string[] ParseFormFieldOptions(string? value) => (value ?? string.Empty)

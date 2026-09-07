@@ -9,13 +9,13 @@ namespace OfficeIMO.Studio.Features.Reader;
 public sealed record PdfPageScene(
     int PageNumber,
     OfficeDrawing Drawing,
-    PdfPageInteractionMap Interactions,
+    PdfPageInteractionMap? Interactions,
     IReadOnlyList<string> Diagnostics,
     bool RequiresRasterFallback) {
     internal int ElementCount { get; } = CountElements(Drawing);
 
     internal long EstimatedBytes { get; } = EstimateDrawingBytes(Drawing) +
-        (long)Interactions.Regions.Count * 192L +
+        (long)(Interactions?.Regions.Count ?? 0) * 192L +
         Diagnostics.Sum(static diagnostic => (long)diagnostic.Length * sizeof(char));
 
     private static int CountElements(OfficeDrawing drawing) {

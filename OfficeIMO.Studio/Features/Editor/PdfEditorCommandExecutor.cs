@@ -7,6 +7,16 @@ internal static class PdfEditorCommandExecutor {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(command);
         return command.Tool switch {
+            PdfEditorTool.AddText => AddText(pdf, command),
+            PdfEditorTool.AddImage => AddImage(pdf, command),
+            _ => ApplyAnnotation(pdf, command).Bytes
+        };
+    }
+
+    internal static PdfAnnotationEditResult ApplyAnnotation(byte[] pdf, PdfEditorCommand command) {
+        ArgumentNullException.ThrowIfNull(pdf);
+        ArgumentNullException.ThrowIfNull(command);
+        return command.Tool switch {
             PdfEditorTool.Note => AddAnnotation(pdf, command, "Text", iconName: "Comment", createPopup: true),
             PdfEditorTool.FreeText => AddAnnotation(pdf, command, "FreeText"),
             PdfEditorTool.Highlight => AddMarkup(pdf, command, "Highlight"),
@@ -17,8 +27,6 @@ internal static class PdfEditorCommandExecutor {
             PdfEditorTool.Line => AddLine(pdf, command),
             PdfEditorTool.Ink => AddInk(pdf, command),
             PdfEditorTool.Stamp => AddAnnotation(pdf, command, "Stamp", iconName: command.Properties.StampName),
-            PdfEditorTool.AddText => AddText(pdf, command),
-            PdfEditorTool.AddImage => AddImage(pdf, command),
             PdfEditorTool.Link => AddLink(pdf, command),
             PdfEditorTool.SignatureAppearance => AddAnnotation(pdf, command, "FreeText"),
             PdfEditorTool.Redact => throw new InvalidOperationException("Redaction requires the verified redaction workflow."),
@@ -73,7 +81,7 @@ internal static class PdfEditorCommandExecutor {
         return PdfDocument.Load(pdf).Redactions.Plan(new[] { area });
     }
 
-    private static byte[] AddAnnotation(
+    private static PdfAnnotationEditResult AddAnnotation(
         byte[] pdf,
         PdfEditorCommand command,
         string subtype,
@@ -92,10 +100,10 @@ internal static class PdfEditorCommandExecutor {
             PopupOpen = false,
             GenerateAppearance = true
         });
-        return result.Bytes;
+        return result;
     }
 
-    private static byte[] AddMarkup(byte[] pdf, PdfEditorCommand command, string subtype) {
+    private static PdfAnnotationEditResult AddMarkup(byte[] pdf, PdfEditorCommand command, string subtype) {
         PdfPageRectangle bounds = command.Bounds;
         PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
@@ -112,10 +120,10 @@ internal static class PdfEditorCommandExecutor {
             Color = Color(command.Properties.Color),
             GenerateAppearance = true
         });
-        return result.Bytes;
+        return result;
     }
 
-    private static byte[] AddLine(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddLine(byte[] pdf, PdfEditorCommand command) {
         PdfPagePoint start = command.Path.Count > 0
             ? command.Path[0]
             : new PdfPagePoint(command.Bounds.Left, command.Bounds.Bottom);
@@ -132,10 +140,10 @@ internal static class PdfEditorCommandExecutor {
             Color = Color(command.Properties.Color),
             GenerateAppearance = true
         });
-        return result.Bytes;
+        return result;
     }
 
-    private static byte[] AddInk(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddInk(byte[] pdf, PdfEditorCommand command) {
         if (command.Path.Count < 2) throw new InvalidOperationException("Ink requires a pointer path with at least two points.");
         PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
@@ -147,7 +155,7 @@ internal static class PdfEditorCommandExecutor {
             Color = Color(command.Properties.Color),
             GenerateAppearance = true
         });
-        return result.Bytes;
+        return result;
     }
 
     private static byte[] AddText(byte[] pdf, PdfEditorCommand command) {
@@ -174,7 +182,7 @@ internal static class PdfEditorCommandExecutor {
         }).ToBytes();
     }
 
-    private static byte[] AddLink(byte[] pdf, PdfEditorCommand command) {
+    private static PdfAnnotationEditResult AddLink(byte[] pdf, PdfEditorCommand command) {
         PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Link",
@@ -183,7 +191,7 @@ internal static class PdfEditorCommandExecutor {
             LinkUri = command.Properties.LinkUri,
             GenerateAppearance = false
         });
-        return result.Bytes;
+        return result;
     }
 
     private static double[] Rectangle(PdfPageRectangle bounds) =>

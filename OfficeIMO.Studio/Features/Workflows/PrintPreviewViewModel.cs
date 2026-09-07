@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
@@ -71,13 +72,15 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     internal const int MaximumPreviewPages = 100;
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly IStudioLocalizer _localizer;
+    private readonly StudioStorageAccess _storage;
     private CancellationTokenSource? _cancellation;
 
     public PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf) : this(pickPdf, null) { }
 
-    internal PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf, IStudioLocalizer? localizer) {
+    internal PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf, IStudioLocalizer? localizer, StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
         _localizer = localizer ?? StudioLocalization.Current;
+        _storage = storage ?? new StudioStorageAccess();
         PaperChoices = [
             new("A4", PageSizes.A4),
             new(T("Paper.Letter", "Letter"), PageSizes.Letter),
@@ -119,6 +122,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BuildPreviewCommand))]
+    [NotifyPropertyChangedFor(nameof(InputName))]
     private string _inputPath = string.Empty;
 
     [ObservableProperty]
@@ -151,10 +155,12 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private string _summary = string.Empty;
 
     public bool HasPreview => Sheets.Count > 0;
+    public string InputName => string.IsNullOrWhiteSpace(InputPath) ? string.Empty : _storage.Describe(InputPath).Name;
     public bool CanCancel => IsBusy;
     private bool CanBuildPreview => !IsBusy && !string.IsNullOrWhiteSpace(InputPath);
 
     internal void UseDocument(string? path) {
+        if (IsBusy) return;
         if (!string.IsNullOrWhiteSpace(path)) InputPath = path;
     }
 
@@ -183,7 +189,9 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 PagesPerSheet = SelectedPagesPerSheet.Value,
                 ScaleMode = SelectedScale.Value
             };
-            PdfPrintPlan plan = await Task.Run(() => PdfPrintPlanner.Create(request), operation.Token).ConfigureAwait(true);
+            StudioStorageSnapshot snapshot = await _storage.ReadSnapshotAsync(request.InputPath, operation.Token).ConfigureAwait(true);
+            PdfDocument document = await Task.Run(() => PdfDocument.Load(snapshot.Bytes), operation.Token).ConfigureAwait(true);
+            PdfPrintPlan plan = await Task.Run(() => PdfPrintPlanner.Create(document, request, operation.Token), operation.Token).ConfigureAwait(true);
             if (plan.SelectedPages.Count > MaximumPreviewPages) {
                 throw new InvalidOperationException(
                     _localizer.FormatOrDefault("PrintPreview.Error.PageLimit", "Print preview is limited to {0:N0} pages. Enter a smaller page selection.", MaximumPreviewPages));
@@ -194,7 +202,6 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 ThumbnailMaxDimension = 350,
                 MaximumOutputCount = MaximumPreviewPages
             };
-            PdfDocument document = PdfDocument.Load(InputPath);
             IReadOnlyList<OfficeImageExportResult> rendered = await document
                 .ToImages(options)
                 .Pages(PdfPageSelection.From(plan.SelectedPages.ToArray()))

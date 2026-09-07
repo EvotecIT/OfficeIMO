@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class PdfWorkspaceTests {
+public sealed partial class PdfWorkspaceTests {
     [Fact]
     public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
@@ -277,17 +277,23 @@ public sealed class PdfWorkspaceTests {
             Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
 
             using X509Certificate2 certificate = CreateSigningCertificate();
-            await workspace.SignAsync(certificate, new PdfExternalSignatureOptions {
+            using var signer = new PdfCmsExternalSigner(OfficeIMO.Security.OfficeSecurityProvider.Default, certificate);
+            var verifier = new PdfCmsSignatureCryptographyProvider(OfficeIMO.Security.OfficeSecurityProvider.Default);
+            byte[] edited = workspace.CopyBytes();
+            string signedPath = Path.Combine(root, "signed.pdf");
+            var signed = await workspace.SaveSignedCopyAsync(signedPath, signer, new PdfExternalSignatureOptions {
                 FieldName = "Approval",
                 Name = "Studio test signer",
                 Reason = "Verified workflow"
-            }, CancellationToken.None);
-            PdfSignatureValidationReport report = await workspace.ValidateSignaturesAsync(CancellationToken.None);
+            }, verifier, CancellationToken.None);
+            Assert.True(signed.Succeeded, signed.Summary);
+            PdfSignatureValidationReport report = PdfDocument.Load(signedPath).Security.ValidateSignatures(verifier);
             Assert.Single(report.Signatures);
             Assert.True(report.IsStructurallyValid);
             Assert.True(report.MathematicalSignaturesVerified);
             Assert.True(report.DigestVerified);
-            Assert.Equal(PdfWorkspaceOperationKind.Signature, workspace.Journal[^1].Kind);
+            Assert.Equal(edited, workspace.CopyBytes());
+            Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -543,9 +549,11 @@ public sealed class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            IReadOnlyList<string> outputs = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            var result = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            Assert.True(result.Succeeded, result.Summary);
+            string[] outputs = result.Files.Select(file => file.Path).ToArray();
 
-            Assert.Equal(2, outputs.Count);
+            Assert.Equal(2, outputs.Length);
             Assert.Equal(2, PdfDocument.Load(outputs[0]).Inspect().PageCount);
             Assert.Single(PdfDocument.Load(outputs[1]).Inspect().Pages);
             Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
@@ -569,10 +577,10 @@ public sealed class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            IOException exception = await Assert.ThrowsAsync<IOException>(
-                () => workspace.SplitAsync(output, 2, CancellationToken.None));
-
-            Assert.Contains("already", exception.Message, StringComparison.OrdinalIgnoreCase);
+            var result = await workspace.SplitAsync(output, 2, CancellationToken.None);
+            Assert.True(result.Succeeded, result.Summary);
+            Assert.Equal(2, result.Files.Count);
+            Assert.All(result.Files, file => Assert.NotEqual(output, Path.GetDirectoryName(file.Path)));
             Assert.Equal(existing, await File.ReadAllBytesAsync(collision));
             Assert.False(File.Exists(Path.Combine(output, "source-part-002.pdf")));
             Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
@@ -596,8 +604,8 @@ public sealed class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                () => workspace.SplitAsync(output, 1, cancellation.Token, progress));
+            var result = await workspace.SplitAsync(output, 1, cancellation.Token, progress);
+            Assert.Equal(OfficeIMO.Workflows.OfficeWorkflowStatus.Cancelled, result.Status);
 
             Assert.False(Directory.Exists(output));
         } finally {
@@ -627,7 +635,7 @@ public sealed class PdfWorkspaceTests {
 
             Assert.Equal(2, reopened.Pages.Count);
             Assert.True(reopened.IsDirty);
-            reopened.DiscardRecovery();
+            await reopened.DiscardRecoveryAsync();
             Assert.False(reopened.HasRecovery);
         } finally {
             Directory.Delete(root, recursive: true);

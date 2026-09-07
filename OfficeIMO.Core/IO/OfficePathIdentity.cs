@@ -58,6 +58,18 @@ namespace OfficeIMO.Internal {
             return string.Equals(Normalize(leftPath), Normalize(rightPath), StringComparison.Ordinal);
         }
 
+        /// <summary>Builds a physical identity key, including the normalized missing tail for a prospective path.</summary>
+        /// <remarks>Use within one inspection pass; filesystem changes can invalidate a previously obtained key.</remarks>
+        internal static string GetPathIdentityKey(string path) {
+            string physicalPath = ResolvePhysicalPath(path);
+            if (TryGetPathAnchor(physicalPath, out OfficePhysicalFileIdentity anchor,
+                    out string tail, out string existingPath)) {
+                return "identity:" + anchor.ToStableKey() + "|" +
+                    NormalizeMissingTail(tail, IsPotentiallyCaseInsensitiveFileSystem(existingPath));
+            }
+            return "path:" + Normalize(physicalPath);
+        }
+
         internal static string Normalize(string path, bool caseInsensitive) {
             string identity = Path.GetFullPath(path);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) identity = identity.Normalize(NormalizationForm.FormC);

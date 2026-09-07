@@ -9,6 +9,17 @@ internal static partial class PdfPageEditor {
     }
 
     internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+        return ReorderPagesCore(pdf, readOptions, pageNumbers, null);
+    }
+
+    internal static (byte[] Bytes, IReadOnlyDictionary<int, int> Map) ReorderPagesWithMapping(byte[] pdf, PdfLoadOptions? readOptions, int[] pageNumbers) {
+        IReadOnlyDictionary<int, int>? mapping = null;
+        byte[] bytes = ReorderPagesCore(pdf, readOptions, pageNumbers, value => mapping = value);
+        return (bytes, mapping!);
+    }
+
+    private static byte[] ReorderPagesCore(byte[] pdf, PdfLoadOptions? readOptions, int[] pageNumbers,
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
@@ -23,7 +34,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion, captureObjectNumbers: captureObjectNumbers);
     }
 
     /// <summary>

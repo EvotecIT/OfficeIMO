@@ -6,6 +6,29 @@ namespace OfficeIMO.Shared.Tests;
 
 public class PathIdentityContracts {
     [Fact]
+    public void LongWindowsPathsRetainPhysicalIdentityAndRegularFileAccess() {
+#if NET8_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) return;
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-long-identity-" + Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(directory, new string('a', 160));
+        Directory.CreateDirectory(root);
+        try {
+            string path = Path.Combine(root, "document.txt");
+            File.WriteAllText(path, "long path contents");
+            Assert.True(path.Length > 260);
+            using var directoryHandle = OfficePathIdentity.OpenDirectoryForIdentity(root, out string physicalRoot);
+            OfficePathIdentity.EnsurePathMatchesOpenedDirectory(root, directoryHandle);
+            using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(path, physicalRoot, 4096);
+            using var reader = new StreamReader(stream);
+            Assert.Equal("long path contents", reader.ReadToEnd());
+            Assert.Equal(OfficePathIdentity.GetMetadata(path).Identity,
+                OfficePathIdentity.GetMetadata(path, stream.SafeFileHandle).Identity);
+            Assert.True(OfficePathIdentity.AreEquivalent(path, @"\\?\" + path));
+        } finally { Directory.Delete(directory, recursive: true); }
+#endif
+    }
+
+    [Fact]
     public void Open_handle_identity_fallback_enforces_the_physical_root_without_procfs() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-open-identity-" + Guid.NewGuid().ToString("N"));
         string root = Path.Combine(directory, "root");

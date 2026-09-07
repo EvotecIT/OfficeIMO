@@ -13,6 +13,13 @@ public sealed class PdfDocumentRenderer {
         _document = document;
     }
 
+    /// <summary>
+    /// Renders one authenticated page to bounded PNG pixels for on-screen viewing, including when content copying is restricted.
+    /// The result contains no editable drawing objects, embedded source images, fonts, or text model. Extraction and printing remain separate permission-checked operations.
+    /// </summary>
+    public PdfPageRenderResult DisplayPage(int pageNumber, PdfPageDisplayOptions? options = null, CancellationToken cancellationToken = default) =>
+        PdfPageImageRenderer.RenderDisplayPage(_document.GetBytesForOperation, pageNumber, options, _document.ReadOptions, cancellationToken);
+
     /// <summary>Projects a one-based PDF page into the shared editable drawing scene.</summary>
     public OfficeDrawing Drawing(int pageNumber) => _document.Reader.Drawing(pageNumber);
 

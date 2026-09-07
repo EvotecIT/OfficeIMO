@@ -44,7 +44,11 @@ internal static partial class PdfTextEditor {
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
                     bool usesTextRenderingMode3 = segments.Any(static segment => segment.Span.TextRenderingMode == 3);
-                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees, usesTextRenderingMode3);
+                    PdfVisualBounds visual = page.TransformBoundsToVisual(matchBounds.X, matchBounds.Y, matchBounds.X + matchBounds.Width, matchBounds.Y + matchBounds.Height);
+                    var visualBounds = new PdfSelectionQuad(
+                        new PdfSelectionPoint(visual.Left, visual.Top), new PdfSelectionPoint(visual.Right, visual.Top),
+                        new PdfSelectionPoint(visual.Right, visual.Bottom), new PdfSelectionPoint(visual.Left, visual.Bottom));
+                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees, visualBounds, usesTextRenderingMode3);
                     hits.Add(new TextSearchHit(pageNumber, segments, lineSpans, match));
                 }
             }

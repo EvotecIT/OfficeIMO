@@ -438,18 +438,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         OfficePathIdentity.GetComparison(left));
 
     private static string CreatePrivateDirectory() {
-        string tempPath = Path.GetTempPath();
-        for (int attempt = 0; attempt < 16; attempt++) {
-            string path = Path.Combine(tempPath, "officeimo-provenance-" + Guid.NewGuid().ToString("N"));
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                Directory.CreateDirectory(path);
-                return path;
-            }
-            if (UnixMkdir(path, UnixOwnerDirectoryMode) == 0) return path;
-            int error = Marshal.GetLastWin32Error();
-            if (error != 17) throw new IOException($"Unable to create a private provenance snapshot directory (errno {error}).");
-        }
-        throw new IOException("Unable to allocate a unique private provenance snapshot directory.");
+        return OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provenance-");
     }
 
     private static void MakeReadOnly(string path) {
@@ -734,9 +723,6 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             }
         }
     }
-
-    [DllImport("libc", SetLastError = true, EntryPoint = "mkdir")]
-    private static extern int UnixMkdir(string path, uint mode);
 
     [DllImport("libc", SetLastError = true, EntryPoint = "chmod")]
     private static extern int UnixChmod(string path, uint mode);

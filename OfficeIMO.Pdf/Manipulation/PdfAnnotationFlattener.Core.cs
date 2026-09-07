@@ -47,7 +47,7 @@ internal static partial class PdfAnnotationFlattener {
                     appearanceReference = CreateSyntheticAppearanceReference(objects, annotation, subtype, x, y, width, height, ref nextObjectNumber);
                 }
 
-                AppearancePlacement placement = ReadAppearancePlacement(objects, appearanceReference!, x, y, width, height);
+                Matrix2D placement = ReadAppearancePlacement(objects, appearanceReference!, x, y, width, height);
                 pageAnnotations.Add(new FlattenVisualAnnotationState(placement, appearanceReference!.ObjectNumber));
                 if (annotObject is PdfReference annotationReference) {
                     flattenedAnnotationObjectNumbers.Add(annotationReference.ObjectNumber);
@@ -141,17 +141,17 @@ internal static partial class PdfAnnotationFlattener {
             string xObjectName = CreateUniqueXObjectName(xObjects);
             xObjects.Items[xObjectName] = new PdfReference(annotation.AppearanceObjectNumber, 0);
             builder.Append("q\n");
-            builder.Append(FormatNumber(annotation.Placement.A))
+            builder.Append(PdfSyntaxEscaper.Number(annotation.Placement.A))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.B))
+                .Append(PdfSyntaxEscaper.Number(annotation.Placement.B))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.C))
+                .Append(PdfSyntaxEscaper.Number(annotation.Placement.C))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.D))
+                .Append(PdfSyntaxEscaper.Number(annotation.Placement.D))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.E))
+                .Append(PdfSyntaxEscaper.Number(annotation.Placement.E))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.F))
+                .Append(PdfSyntaxEscaper.Number(annotation.Placement.F))
                 .Append(" cm\n");
             builder.Append('/').Append(xObjectName).Append(" Do\n");
             builder.Append("Q\n");
@@ -187,30 +187,13 @@ internal static partial class PdfAnnotationFlattener {
     }
 
     private sealed class FlattenVisualAnnotationState {
-        public FlattenVisualAnnotationState(AppearancePlacement placement, int appearanceObjectNumber) {
+        public FlattenVisualAnnotationState(Matrix2D placement, int appearanceObjectNumber) {
             Placement = placement;
             AppearanceObjectNumber = appearanceObjectNumber;
         }
 
-        public AppearancePlacement Placement { get; }
+        public Matrix2D Placement { get; }
         public int AppearanceObjectNumber { get; }
     }
 
-    private sealed class AppearancePlacement {
-        public AppearancePlacement(double a, double b, double c, double d, double e, double f) {
-            A = a;
-            B = b;
-            C = c;
-            D = d;
-            E = e;
-            F = f;
-        }
-
-        public double A { get; }
-        public double B { get; }
-        public double C { get; }
-        public double D { get; }
-        public double E { get; }
-        public double F { get; }
-    }
 }

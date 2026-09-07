@@ -13,11 +13,11 @@ internal static partial class PdfPageImageRenderer {
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        return RenderPages(() => pdf, selection, options, readOptions, cancellationToken);
+        return RenderPages(_ => pdf, selection, options, readOptions, cancellationToken);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfPageRenderResult> RenderPagesCore(
-        Func<byte[]> getPdf,
+        Func<CancellationToken, byte[]> getPdf,
         Func<int, int[]> resolvePages,
         PdfPageRenderOptions? options,
         PdfLoadOptions? readOptions,
@@ -29,7 +29,7 @@ internal static partial class PdfPageImageRenderer {
             cancellationToken);
         try {
             execution.Token.ThrowIfCancellationRequested();
-            byte[] pdf = getPdf();
+            byte[] pdf = getPdf(execution.Token);
             Guard.NotNull(pdf, nameof(pdf));
             execution.Token.ThrowIfCancellationRequested();
             PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, execution.Token);
@@ -67,7 +67,7 @@ internal static partial class PdfPageImageRenderer {
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        return RenderPages(() => pdf, pageRanges, options, readOptions, cancellationToken);
+        return RenderPages(_ => pdf, pageRanges, options, readOptions, cancellationToken);
     }
 
     /// <summary>Renders pages resolved by a document-relative selector.</summary>
@@ -78,11 +78,11 @@ internal static partial class PdfPageImageRenderer {
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        return RenderPages(() => pdf, selector, options, readOptions, cancellationToken);
+        return RenderPages(_ => pdf, selector, options, readOptions, cancellationToken);
     }
 
     internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
-        Func<byte[]> getPdf,
+        Func<CancellationToken, byte[]> getPdf,
         PdfPageSelection? selection,
         PdfPageRenderOptions? options,
         PdfLoadOptions? readOptions,
@@ -97,7 +97,7 @@ internal static partial class PdfPageImageRenderer {
     }
 
     internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
-        Func<byte[]> getPdf,
+        Func<CancellationToken, byte[]> getPdf,
         string pageRanges,
         PdfPageRenderOptions? options,
         PdfLoadOptions? readOptions,
@@ -113,7 +113,7 @@ internal static partial class PdfPageImageRenderer {
     }
 
     internal static IReadOnlyList<PdfPageRenderResult> RenderPages(
-        Func<byte[]> getPdf,
+        Func<CancellationToken, byte[]> getPdf,
         PdfPageSelector selector,
         PdfPageRenderOptions? options,
         PdfLoadOptions? readOptions,
@@ -128,13 +128,14 @@ internal static partial class PdfPageImageRenderer {
             cancellationToken);
     }
 
-    private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken) {
+    private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
         var timer = Stopwatch.StartNew();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
             capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
-            OfficeDrawing drawing = RenderPage(document, pageNumber, cancellationToken);
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken)
+                : RenderPage(document, pageNumber, cancellationToken);
             drawing.Fonts.AddRangePreservingExisting(options.Fonts);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));

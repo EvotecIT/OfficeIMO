@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -26,11 +27,17 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickAssemblyFiles,
         Func<CancellationToken, Task<string?>> pickAssemblyFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null,
+        OfficeIMO.Studio.Infrastructure.StudioStorageAccess? storage = null,
+        OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
+        Func<string, Task<bool>>? confirmProviderWrite = null) {
         localizer ??= StudioLocalization.Current;
-        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer);
-        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer);
-        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer);
+        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage);
+        PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage, recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
+        Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage,
+            recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
         PrintPreview.PropertyChanged += OnChildPropertyChanged;
         PageExport.PropertyChanged += OnChildPropertyChanged;
         Assembly.PropertyChanged += OnChildPropertyChanged;

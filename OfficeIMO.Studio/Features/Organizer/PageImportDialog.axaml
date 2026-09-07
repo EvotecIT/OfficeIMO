@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:OfficeIMO.Studio.Features.Organizer" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Organizer.PageImportDialog" x:DataType="local:PageImportPreviewViewModel"
+        Title="{loc:Loc Organizer.ImportTitle}" Width="600" Height="590" MinWidth="380" MinHeight="440"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.ImportTitle}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Organizer.ImportHint}" TextWrapping="Wrap" />
+    </StackPanel>
+    <StackPanel Grid.Row="1" Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.ImportBeforePage}" />
+      <TextBox x:Name="InsertionInput" Text="{Binding InsertBeforePage, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
+               AutomationProperties.Name="{loc:Loc Organizer.ImportBeforePage}" />
+      <TextBlock Text="{Binding EndHint}" TextWrapping="Wrap" />
+    </StackPanel>
+    <ListBox Grid.Row="2" x:Name="SourcesList" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+             AutomationProperties.Name="{loc:Loc Organizer.ImportSources}">
+      <ListBox.ItemTemplate><DataTemplate x:DataType="local:PageImportSourceViewModel">
+        <StackPanel Spacing="4">
+          <CheckBox IsChecked="{Binding IsIncluded}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding Name}">
+            <TextBlock Text="{Binding Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+          </CheckBox>
+          <StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Text="{loc:Loc Organizer.SplitCount}" /><TextBlock Text="{Binding PageCount}" /></StackPanel>
+          <TextBox Text="{Binding PageRange, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsIncluded}" MaxLength="5000"
+                   AutomationProperties.Name="{Binding RangeLabel}" Watermark="{loc:Loc Organizer.PageRange}" />
+          <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+        </StackPanel>
+      </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel Grid.Row="3" Spacing="4">
+      <WrapPanel><Button Content="{loc:Loc Organizer.ImportEarlier}" Command="{Binding MoveSourceUpCommand}" Margin="0,0,6,0" />
+        <Button Content="{loc:Loc Organizer.ImportLater}" Command="{Binding MoveSourceDownCommand}" /></WrapPanel>
+      <StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Text="{loc:Loc Organizer.ImportSelectedCount}" /><TextBlock Text="{Binding ImportedPageCount}" /></StackPanel>
+      <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" MaxHeight="60" />
+    </StackPanel>
+    <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
+      <Button Content="{loc:Loc Common.Cancel}" IsCancel="True" Click="OnCancel" Margin="4" />
+      <Button Content="{loc:Loc Organizer.ImportApply}" IsEnabled="{Binding CanApply}" Click="OnApply" Margin="4" />
+    </WrapPanel>
+  </Grid>
+</Window>

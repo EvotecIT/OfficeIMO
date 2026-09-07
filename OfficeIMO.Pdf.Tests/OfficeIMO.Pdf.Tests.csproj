@@ -62,6 +62,7 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingCorpus.cs" Link="Shared\HtmlRenderingCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
   </ItemGroup>

@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:OfficeIMO.Studio.Features.Organizer"
+        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Organizer.PageExtractionDialog"
+        x:DataType="local:PageExtractionPreviewViewModel"
+        Title="{loc:Loc Organizer.ExtractTitle}" Width="580" Height="560" MinWidth="380" MinHeight="460"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Destination}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" IsVisible="{Binding IsPreview}" />
+      <TextBlock Text="{Binding DestinationHint}" TextWrapping="Wrap" IsVisible="{Binding IsPreview}" />
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />
+      <TextBlock Text="{Binding OutputPath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OutputPath}" IsVisible="{Binding CanOpenOutput}" />
+      <TextBlock Text="{loc:Loc Organizer.ExtractRecovery}" TextWrapping="Wrap" IsVisible="{Binding HasRecovery}" />
+    </StackPanel>
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsPreview}" Spacing="4">
+      <TextBlock Text="{loc:Loc Organizer.ExtractRange}" />
+      <TextBox x:Name="PageRangeInput" Text="{Binding PageRange, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000000"
+               AutomationProperties.Name="{loc:Loc Organizer.ExtractRange}" />
+      <TextBlock Text="{Binding PageCountLabel}" />
+    </StackPanel>
+    <ScrollViewer Grid.Row="2" MaxHeight="90" HorizontalScrollBarVisibility="Disabled">
+      <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+    </ScrollViewer>
+    <ListBox x:Name="PageOrder" Grid.Row="3" ItemsSource="{Binding Pages}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+             AutomationProperties.Name="{loc:Loc Organizer.ExtractOrder}">
+      <ListBox.ItemTemplate><DataTemplate x:DataType="local:PageExtractionRow">
+        <WrapPanel>
+          <TextBlock Text="{loc:Loc Organizer.ExtractOutputPage}" Margin="0,0,5,0" /><TextBlock Text="{Binding OutputPage}" Margin="0,0,12,0" />
+          <TextBlock Text="{loc:Loc Organizer.ExtractSourcePage}" Margin="0,0,5,0" /><TextBlock Text="{Binding SourcePage}" />
+        </WrapPanel>
+      </DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
+      <Button Content="{loc:Loc Organizer.ExtractOpen}" IsVisible="{Binding CanOpenOutput}" Command="{Binding OpenOutputCommand}" Margin="4" />
+      <Button Content="{loc:Loc Organizer.ExtractReveal}" IsVisible="{Binding CanRevealOutput}" Command="{Binding RevealOutputCommand}" Margin="4" />
+      <Button Content="{loc:Loc Common.Cancel}" IsVisible="{Binding IsPreview}" IsCancel="True" Click="OnCancel" Margin="4" />
+      <Button Content="{loc:Loc Organizer.ExtractCreate}" IsVisible="{Binding IsPreview}" IsEnabled="{Binding CanApply}" Click="OnApply" Margin="4" />
+      <Button Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
+    </WrapPanel>
+  </Grid>
+</Window>

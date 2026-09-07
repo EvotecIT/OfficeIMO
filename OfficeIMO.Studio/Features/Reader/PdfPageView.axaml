@@ -17,8 +17,12 @@
                               AutomationProperties.Name="{Binding PageLabel}"
                               AutomationProperties.HelpText="{loc:Loc PdfPage.KeyboardHelp}"
                               Scene="{Binding Scene}"
+                              SearchHighlights="{Binding SearchHighlights}"
+                              ActiveSearchHighlight="{Binding ActiveSearchHighlight}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
+                              CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
+                              FormAnchorFieldName="{Binding FormAnchorFieldName}"
                               SelectionMode="{Binding SelectionMode}"
                               PendingRedactionArea="{Binding PendingRedactionArea}"
                               FallbackImage="{Binding PageImage}"
@@ -35,12 +39,12 @@
                     Spacing="10">
           <ProgressBar Width="120" IsIndeterminate="True" />
           <TextBlock Text="{loc:Loc PdfPage.RenderingPage}"
-                     Foreground="#667085"
+                     Foreground="{DynamicResource StudioMutedTextBrush}"
                      HorizontalAlignment="Center" />
         </StackPanel>
 
         <Border IsVisible="{Binding HasRenderError}"
-                Background="#FFF4F2"
+                Background="{DynamicResource StudioErrorSoftBrush}"
                 Padding="24"
                 Margin="24"
                 CornerRadius="8"
@@ -49,11 +53,11 @@
                 MaxWidth="480">
           <StackPanel Spacing="8">
             <TextBlock Text="{loc:Loc PdfPage.ThisPageCouldNotBeRendered}"
-                       Foreground="#B42318"
+                       Foreground="{DynamicResource StudioErrorBrush}"
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center" />
             <TextBlock Text="{Binding RenderError}"
-                       Foreground="#7A271A"
+                       Foreground="{DynamicResource StudioErrorBrush}"
                        TextWrapping="Wrap"
                        TextAlignment="Center" />
           </StackPanel>
@@ -66,20 +70,18 @@
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"
                  FontSize="12" />
-      <Border Grid.Column="2"
-              IsVisible="{Binding HasDiagnostics}"
-              Background="{DynamicResource StudioAccentSoftBrush}"
-              CornerRadius="10"
-              Padding="8,2"
-              Margin="8,0,0,0"
-              HorizontalAlignment="Left">
-        <TextBlock Text="{Binding DiagnosticsSummary}"
-                   ToolTip.Tip="{Binding DiagnosticsDetails}"
-                   Foreground="{DynamicResource StudioAccentBrush}"
-                   MaxWidth="420"
-                   TextTrimming="CharacterEllipsis"
-                   FontSize="11" />
-      </Border>
+      <Button Grid.Column="2" Classes="ghost" IsVisible="{Binding HasDiagnostics}"
+              Background="{DynamicResource StudioAccentSoftBrush}" Foreground="{DynamicResource StudioAccentBrush}"
+              CornerRadius="6" Padding="8,2" Margin="8,0,0,0" HorizontalAlignment="Left"
+              Content="{loc:Loc PdfPage.RenderingNotes}" AutomationProperties.Name="{loc:Loc PdfPage.RenderingNotes}">
+        <Button.Flyout>
+          <Flyout>
+            <ScrollViewer MaxHeight="280" MaxWidth="420" VerticalScrollBarVisibility="Auto">
+              <TextBlock Text="{Binding DiagnosticsDetails}" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
     </Grid>
   </StackPanel>
 </UserControl>

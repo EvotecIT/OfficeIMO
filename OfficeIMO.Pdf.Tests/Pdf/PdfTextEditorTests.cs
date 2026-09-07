@@ -5,6 +5,34 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfTextEditorTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void SearchVisualBoundsAccountForCropRotationAndUserUnit(int rotation) {
+        const string content = "BT /F1 12 Tf 50 700 Td (Needle needle) Tj ET\n";
+        var baseline = PdfDocument.Load(BuildRawTextPdf(content)).Text.Find("needle");
+        var matches = PdfDocument.Load(BuildRawTextPdf(content,
+            pageEntries: $"/CropBox [20 30 580 780] /Rotate {rotation} /UserUnit 2")).Text.Find("needle");
+        Assert.Equal(2, matches.Count);
+        for (int i = 0; i < matches.Count; i++) {
+            var original = baseline[i]; var match = matches[i];
+            double x = original.X - 20, y = original.Y - 30, w = original.Width, h = original.Height;
+            var expected = rotation switch {
+                270 => (Left: y, Top: x, Width: h, Height: w),
+                180 => (Left: 560 - x - w, Top: y, Width: w, Height: h),
+                90 => (Left: 750 - y - h, Top: 560 - x - w, Width: h, Height: w),
+                _ => (Left: x, Top: 750 - y - h, Width: w, Height: h)
+            };
+            Assert.Equal(expected.Left * 2, match.VisualBounds.Left, 5);
+            Assert.Equal(expected.Top * 2, match.VisualBounds.Top, 5);
+            Assert.Equal(expected.Width * 2, match.VisualBounds.Width, 5);
+            Assert.Equal(expected.Height * 2, match.VisualBounds.Height, 5);
+            Assert.Equal(x, match.X, 5); Assert.Equal(y, match.Y, 5);
+        }
+    }
+
     [Fact]
     public void InspectAndFindExposeBoundedTextGeometryAndStyle() {
         byte[] pdf = PdfDocument.Create()

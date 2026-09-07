@@ -16,7 +16,8 @@ public enum StudioWorkspaceMode {
     Convert,
     Output,
     DocumentHealth,
-    Settings
+    Settings,
+    Jobs
 }
 
 public enum StudioDocumentMode {
@@ -38,6 +39,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsOutputMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
     [NotifyPropertyChangedFor(nameof(IsSettingsMode))]
+    [NotifyPropertyChangedFor(nameof(IsJobsMode))]
     [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private StudioWorkspaceMode _workspaceMode;
 
@@ -57,6 +59,9 @@ public sealed partial class MainWindowViewModel {
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
     public SearchablePdfOcrViewModel OcrWorkbench { get; private set; } = null!;
+    public OcrSessionViewModel OcrSession { get; private set; } = null!;
+
+    public StudioJobsViewModel Jobs { get; private set; } = null!;
 
     public bool IsHomeMode => WorkspaceMode == StudioWorkspaceMode.Home;
     public bool IsPdfWorkspaceMode => WorkspaceMode == StudioWorkspaceMode.PdfWorkspace;
@@ -67,7 +72,7 @@ public sealed partial class MainWindowViewModel {
     public bool IsOutputMode => WorkspaceMode == StudioWorkspaceMode.Output;
     public bool IsDocumentHealthMode => WorkspaceMode == StudioWorkspaceMode.DocumentHealth;
     public bool IsSettingsMode => WorkspaceMode == StudioWorkspaceMode.Settings;
-    public bool IsJobsMode => IsConversionMode;
+    public bool IsJobsMode => WorkspaceMode == StudioWorkspaceMode.Jobs;
     public bool IsViewDocumentMode => DocumentMode == StudioDocumentMode.View;
     public bool IsAnnotateDocumentMode => DocumentMode == StudioDocumentMode.Annotate;
     public bool IsEditDocumentMode => DocumentMode == StudioDocumentMode.Edit;
@@ -76,11 +81,13 @@ public sealed partial class MainWindowViewModel {
     public bool IsProtectDocumentMode => DocumentMode == StudioDocumentMode.Protect;
 
     partial void OnDocumentModeChanged(StudioDocumentMode value) {
+        OnPropertyChanged(nameof(SelectedDocumentModeCommand));
         if (value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit &&
             SelectedEditorToolChoice.Tool != PdfEditorTool.Select) {
             SelectedEditorToolChoice = EditorTools[0];
         }
         foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
+        UpdateFormAnchor();
         if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||
             value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit) {
             ClearObjectSelection();
@@ -97,6 +104,7 @@ public sealed partial class MainWindowViewModel {
     private PdfEditorSelectionMode GetEditorSelectionMode() => DocumentMode switch {
         StudioDocumentMode.Annotate => PdfEditorSelectionMode.Annotations,
         StudioDocumentMode.Edit => PdfEditorSelectionMode.PageContent,
+        StudioDocumentMode.Forms => PdfEditorSelectionMode.Forms,
         _ => PdfEditorSelectionMode.None
     };
 
@@ -116,7 +124,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
-    private void ShowJobs() => WorkspaceMode = StudioWorkspaceMode.Convert;
+    private void ShowJobs() => WorkspaceMode = StudioWorkspaceMode.Jobs;
 
     [RelayCommand]
     private void ShowSettings() => WorkspaceMode = StudioWorkspaceMode.Settings;

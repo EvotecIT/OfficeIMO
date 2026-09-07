@@ -26,8 +26,14 @@ public sealed class PdfPageImageExportRequest {
     /// <summary>Source PDF file.</summary>
     public required string InputPath { get; set; }
 
-    /// <summary>Requested output folder. The complete folder is staged and then published.</summary>
+    /// <summary>Optional provider stream access for the original input reference.</summary>
+    public OfficeWorkflowStreamInput? InputStream { get; set; }
+
+    /// <summary>Requested output folder. Local folders publish as a unit; provider folders publish verified files individually.</summary>
     public required string OutputDirectory { get; set; }
+
+    /// <summary>Optional provider folder access. Requires Replace; verified files survive a later failure.</summary>
+    public OfficeWorkflowDirectoryOutput? DirectoryOutput { get; set; }
 
     /// <summary>Document-relative selection such as <c>1-3,last</c>; all pages when omitted.</summary>
     public string? Pages { get; set; }
@@ -49,6 +55,9 @@ public sealed class PdfPageImageExportRequest {
 
     /// <summary>How an existing output folder is handled.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Shared input and aggregate output limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();
@@ -97,7 +106,8 @@ public sealed class PdfPageImageExportResult {
         TimeSpan duration,
         string summary,
         IReadOnlyList<PdfPageImageFile> files,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
+        IReadOnlyList<OfficeWorkflowOutputRecovery>? outputRecoveries = null) {
         RequestId = requestId;
         Status = status;
         FailureKind = failureKind;
@@ -108,6 +118,7 @@ public sealed class PdfPageImageExportResult {
         Summary = summary;
         Files = files.ToArray();
         Diagnostics = diagnostics.ToArray();
+        OutputRecoveries = outputRecoveries?.ToArray() ?? Array.Empty<OfficeWorkflowOutputRecovery>();
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -126,8 +137,10 @@ public sealed class PdfPageImageExportResult {
     public TimeSpan Duration { get; }
     /// <summary>User-facing outcome.</summary>
     public string Summary { get; }
-    /// <summary>Published page images.</summary>
+    /// <summary>Verified published page images, including completed files when a provider batch stops early.</summary>
     public IReadOnlyList<PdfPageImageFile> Files { get; }
+    /// <summary>Local copies retained after unconfirmed provider writes or recovery cleanup failures.</summary>
+    public IReadOnlyList<OfficeWorkflowOutputRecovery> OutputRecoveries { get; }
     /// <summary>Structured diagnostics.</summary>
     public IReadOnlyList<OfficeWorkflowDiagnostic> Diagnostics { get; }
     /// <summary>Whether export completed successfully.</summary>
@@ -202,11 +215,23 @@ public sealed class PdfAssemblyRequest {
     /// <summary>Ordered files, folders, or ZIP archives.</summary>
     public required IReadOnlyList<string> Sources { get; set; }
 
+    /// <summary>Optional provider streams keyed by their original entries in <see cref="Sources"/>.</summary>
+    public IReadOnlyDictionary<string, OfficeWorkflowStreamInput> SourceStreams { get; set; } = new Dictionary<string, OfficeWorkflowStreamInput>();
+
+    /// <summary>Optional provider folders keyed by their original entries in <see cref="Sources"/>. Relative resources are staged together and verified before publication.</summary>
+    public IReadOnlyDictionary<string, OfficeWorkflowDirectoryInput> SourceDirectories { get; set; } = new Dictionary<string, OfficeWorkflowDirectoryInput>();
+
     /// <summary>Requested output PDF.</summary>
     public required string OutputPath { get; set; }
 
+    /// <summary>Optional verified direct-write access for the selected PDF provider destination.</summary>
+    public OfficeWorkflowStreamOutput? OutputStream { get; set; }
+
     /// <summary>How an existing output path is handled.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+
+    /// <summary>Optional live application ownership check for final publication candidates.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Output intent used while normalizing Office inputs.</summary>
     public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
@@ -234,7 +259,8 @@ public sealed class PdfAssemblyResult {
         long outputBytes,
         TimeSpan duration,
         string summary,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
+        OfficeWorkflowOutputRecovery? recovery = null) {
         RequestId = requestId;
         Status = status;
         FailureKind = failureKind;
@@ -246,6 +272,8 @@ public sealed class PdfAssemblyResult {
         Duration = duration;
         Summary = summary;
         Diagnostics = diagnostics.ToArray();
+
+        Recovery = recovery;
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -256,6 +284,8 @@ public sealed class PdfAssemblyResult {
     public OfficeWorkflowFailureKind FailureKind { get; }
     /// <summary>Published PDF path.</summary>
     public string? OutputPath { get; }
+    /// <summary>Gets a retained local artifact when provider publication or recovery cleanup needs attention.</summary>
+    public OfficeWorkflowOutputRecovery? Recovery { get; }
     /// <summary>Normalized source count.</summary>
     public int SourceCount { get; }
     /// <summary>Output page count.</summary>

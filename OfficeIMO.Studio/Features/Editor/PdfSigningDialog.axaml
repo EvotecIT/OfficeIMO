@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:OfficeIMO.Studio.Features.Editor" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Editor.PdfSigningDialog" x:DataType="local:PdfSigningPreviewViewModel"
+        Title="{Binding Title}" Width="620" Height="700" MinWidth="380" MinHeight="440"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+  <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+    <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <ScrollViewer x:Name="ReviewContent" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
+      <StackPanel Spacing="10">
+        <TextBlock Text="{Binding Destination}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip.Tip="{Binding Destination}" />
+        <StackPanel IsVisible="{Binding IsPreview}" Spacing="10">
+          <Image Source="{Binding PreviewImage}" IsVisible="{Binding HasPreviewImage}" MaxHeight="340" Stretch="Uniform" AutomationProperties.Name="{loc:Loc Signing.PreviewImage}" />
+          <ItemsControl ItemsSource="{Binding Details}"><ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,6" /></DataTemplate>
+          </ItemsControl.ItemTemplate></ItemsControl>
+        </StackPanel>
+        <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />
+        <TextBlock Text="{Binding Verification}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />
+        <ItemsControl ItemsSource="{Binding Findings}" IsVisible="{Binding HasResult}"><ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,6" /></DataTemplate>
+        </ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="{loc:Loc Organizer.ExtractRecovery}" TextWrapping="Wrap" IsVisible="{Binding HasRecovery}" />
+        <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Right">
+      <Button Content="{loc:Loc Organizer.ExtractOpen}" IsVisible="{Binding CanOpenOutput}" Command="{Binding OpenOutputCommand}" Margin="4" />
+      <Button Content="{loc:Loc Organizer.ExtractReveal}" IsVisible="{Binding CanRevealOutput}" Command="{Binding RevealOutputCommand}" Margin="4" />
+      <Button Content="{loc:Loc Common.Cancel}" IsVisible="{Binding IsPreview}" IsCancel="True" Click="OnCancel" Margin="4" />
+      <Button Content="{loc:Loc Signing.Create}" IsVisible="{Binding IsPreview}" Click="OnApply" Margin="4" />
+      <Button Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
+    </WrapPanel>
+  </Grid>
+</Window>

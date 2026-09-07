@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using OfficeIMO.Drawing;
+using OfficeIMO.Internal;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -17,10 +18,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         long inputBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedImageExportRequest? validated = null;
+        var inputs = new WorkflowInputSnapshots();
 
         try {
             validated = ValidateImageExportRequest(request);
             failureStage = WorkflowFailureStage.Input;
+            validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
             Report(progress, validated.Id, "validate", "Validating PDF and page selection", 0.05D);
@@ -36,10 +39,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                     $"The selection contains {pageNumbers.Length:N0} pages, above the configured {validated.MaximumPages:N0}-page limit.");
             }
 
-            string parent = Path.GetDirectoryName(validated.OutputDirectory)!;
+            string parent = validated.DirectoryOutput is null ? Path.GetDirectoryName(validated.OutputDirectory)! : Path.GetTempPath();
             failureStage = WorkflowFailureStage.Output;
             Directory.CreateDirectory(parent);
-            stagingDirectory = Path.Combine(parent, "." + Path.GetFileName(validated.OutputDirectory) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            stagingDirectory = validated.DirectoryOutput is null
+                ? Path.Combine(parent, ".officeimo-images." + Guid.NewGuid().ToString("N") + ".tmp")
+                : OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-images-");
             failureStage = WorkflowFailureStage.Operation;
 
             var options = new PdfImageExportOptions {
@@ -97,13 +102,19 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 }));
             failureStage = WorkflowFailureStage.Output;
             Report(progress, validated.Id, "publish", "Publishing the validated image folder", 0.9D);
+            inputs.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
+            if (validated.DirectoryOutput is not null) {
+                return await PublishProviderImagesAsync(validated, saved, pageNumbers, inputBytes, stopwatch,
+                    diagnostics, cancellationToken).ConfigureAwait(false);
+            }
             string publishedDirectory = await PublishDirectoryAsync(
                     stagingDirectory,
                     validated.OutputDirectory,
                     validated.ConflictPolicy,
                     diagnostics,
-                    cancellationToken)
+                    cancellationToken,
+                    validated.PublicationGuard)
                 .ConfigureAwait(false);
             stagingDirectory = null;
 
@@ -148,6 +159,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 Array.Empty<PdfPageImageFile>(),
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
+            ReportInputStagingCleanupFailure(ex, diagnostics);
             IReadOnlyDictionary<string, string> details = CreateFailureDetails(ex);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PageImageExportFailed",
@@ -167,6 +179,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 Array.Empty<PdfPageImageFile>(),
                 diagnostics);
         } finally {
+            inputs.Cleanup(diagnostics);
             if (stagingDirectory is not null) TryDeleteDirectory(stagingDirectory);
         }
     }
@@ -175,14 +188,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         if (string.IsNullOrWhiteSpace(request.OutputDirectory)) throw new ArgumentException("Output directory cannot be empty.", nameof(request));
-        string inputPath = Path.GetFullPath(request.InputPath);
-        if (!File.Exists(inputPath)) throw new FileNotFoundException("The source PDF does not exist.", inputPath);
-        EnsurePdfExtension(inputPath);
-        string outputDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.OutputDirectory));
-        if (string.IsNullOrEmpty(Path.GetDirectoryName(outputDirectory))) {
+        string inputPath = ValidateInputLocation(request.InputPath, request.InputStream);
+        EnsurePdfExtension(request.InputStream?.Name ?? inputPath);
+        string outputDirectory = request.DirectoryOutput is null
+            ? Path.TrimEndingDirectorySeparator(ValidateLocalOutput(request.OutputDirectory))
+            : OfficeStorageIdentity.Normalize(request.OutputDirectory);
+        if (request.DirectoryOutput is not null && request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace)
+            throw new ArgumentException("Provider folder publication requires explicit Replace semantics.", nameof(request));
+        if (request.DirectoryOutput is null && string.IsNullOrEmpty(Path.GetDirectoryName(outputDirectory))) {
             throw new ArgumentException("Output directory cannot be a filesystem root.", nameof(request));
         }
-        if (OfficeWorkflowPathIdentity.IsSameOrDescendant(inputPath, outputDirectory)) {
+        if (request.DirectoryOutput is null && request.InputStream is null && OfficeStorageIdentity.GetLocalPath(inputPath) is { } localInput && OfficeWorkflowPathIdentity.IsSameOrDescendant(localInput, outputDirectory)) {
             throw new ArgumentException("Output directory cannot be the source PDF path or one of its physical ancestors.", nameof(request));
         }
         if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
@@ -207,7 +223,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.MaximumPages,
             request.ConflictPolicy,
             limits,
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes));
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
+            request.PublicationGuard, request.InputStream, request.DirectoryOutput);
     }
 
     private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount) {
@@ -251,5 +268,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         int MaximumPages,
         OfficeWorkflowConflictPolicy ConflictPolicy,
         OfficeWorkflowLimits Limits,
-        PdfLoadOptions LoadOptions);
+        PdfLoadOptions LoadOptions,
+        IOfficeWorkflowPublicationGuard? PublicationGuard = null,
+        OfficeWorkflowStreamInput? InputStream = null,
+        OfficeWorkflowDirectoryOutput? DirectoryOutput = null);
 }

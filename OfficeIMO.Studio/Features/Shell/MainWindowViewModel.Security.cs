@@ -115,7 +115,7 @@ public sealed partial class MainWindowViewModel {
 
     public bool IsDocumentEncrypted => _workspace?.IsEncrypted == true;
 
-    public bool HasDocumentSignatures => _workspace?.DocumentInfo.Security.HasSignatures == true;
+    public bool HasDocumentSignatures => _workspace?.HasSignatures == true;
 
     public bool CanChangeProtection => _workspace?.CanChangeEncryption(CurrentOwnerPassword) == true;
 
@@ -127,50 +127,6 @@ public sealed partial class MainWindowViewModel {
 
     partial void OnSelectedSigningCertificateChanged(PdfSigningCertificateViewModel? value) =>
         OnPropertyChanged(nameof(CanApplyCertificateSignature));
-
-    [RelayCommand]
-    private async Task SaveProtectedCopyAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
-        if (string.IsNullOrWhiteSpace(ProtectUserPassword)) {
-            ErrorMessage = "Enter a document-open password.";
-            return;
-        }
-        if (!string.Equals(ProtectUserPassword, ProtectConfirmPassword, StringComparison.Ordinal)) {
-            ErrorMessage = "The document-open passwords do not match.";
-            return;
-        }
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        var encryption = new PdfStandardEncryptionOptions(ProtectUserPassword) {
-            OwnerPassword = string.IsNullOrWhiteSpace(ProtectOwnerPassword) ? null : ProtectOwnerPassword,
-            EncryptMetadata = ProtectEncryptMetadata,
-            AllowedPermissions = BuildProtectionPermissions()
-        };
-        bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveProtectedCopyAsync(path, encryption, CurrentOwnerPassword, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            ProtectUserPassword = string.Empty;
-            ProtectConfirmPassword = string.Empty;
-            ProtectOwnerPassword = string.Empty;
-            CurrentOwnerPassword = string.Empty;
-            OperationStatus = "Protected copy saved";
-        }
-    }
-
-    [RelayCommand]
-    private async Task SaveDecryptedCopyAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || !IsDocumentEncrypted) return;
-        string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
-        bool succeeded = await RunStandaloneAsync(
-            token => _workspace.SaveDecryptedCopyAsync(path, CurrentOwnerPassword, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) {
-            CurrentOwnerPassword = string.Empty;
-            OperationStatus = "Decrypted copy saved";
-        }
-    }
 
     [RelayCommand]
     private void RefreshSigningCertificates() {
@@ -201,31 +157,6 @@ public sealed partial class MainWindowViewModel {
         } catch (Exception ex) {
             ErrorMessage = "The certificate store could not be read: " + ex.Message;
         }
-    }
-
-    [RelayCommand]
-    private async Task ApplyCertificateSignatureAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || SelectedSigningCertificate is null) return;
-        using X509Certificate2 certificate = LoadSigningCertificate(SelectedSigningCertificate.Thumbprint);
-        string signerName = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
-        var options = new PdfExternalSignatureOptions {
-            FieldName = SignatureFieldName,
-            Name = string.IsNullOrWhiteSpace(signerName) ? null : signerName,
-            Reason = string.IsNullOrWhiteSpace(SignatureReason) ? null : SignatureReason.Trim(),
-            Location = string.IsNullOrWhiteSpace(SignatureLocation) ? null : SignatureLocation.Trim(),
-            VisibleAppearance = SignatureIsVisible ? new PdfVisibleSignatureAppearanceOptions {
-                PageNumber = SignaturePageNumber,
-                X = SignatureX,
-                Y = SignatureY,
-                Width = SignatureWidth,
-                Height = SignatureHeight,
-                Text = string.IsNullOrWhiteSpace(signerName) ? "Digitally signed" : "Digitally signed by " + signerName
-            } : null
-        };
-        bool succeeded = await RunMutationAsync(
-            token => _workspace.SignAsync(certificate, options, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) await ValidateSignaturesAsync(cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]

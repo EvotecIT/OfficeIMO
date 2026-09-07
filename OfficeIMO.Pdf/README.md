@@ -785,6 +785,16 @@ PdfDocument.Load("packet.pdf")
     .Save("packet-clean.pdf");
 ```
 
+Use `PdfPageReorderPlan.Move(pageCount, insertBeforePageNumber, selectedPages)` to
+preview a move without rewriting the document. `SourcePageNumbers` gives the full
+proposed order, `GetOutputPageNumber(sourcePageNumber)` locates a page after the
+move, and `HasChanges` identifies a no-op. `Shift(pageCount, towardStart, selectedPages)`
+moves each selected run one position. Apply the proposed order with
+`document.Pages.Reorder(plan.SourcePageNumbers.ToArray())`; the document's normal
+mutation policy still applies. Plans describe page positions, so regenerate them
+when the source document changes. `PdfPageSelection.Parse("2-4,7").Resolve(pageCount)`
+resolves ranges with bounds checking and preserves caller order and repeated pages.
+
 Encrypted merge inputs keep independent authentication settings. Owner
 authorization is honored automatically. A user password follows the PDF
 permission bits unless the caller explicitly opts into ignoring those
@@ -813,6 +823,33 @@ Console.WriteLine(merged.Report.Sources[1].PermissionRestrictionsIgnored); // Tr
 recovery. The document must still decrypt with the supplied password; an
 unknown or incorrect password remains an error. Full rewrites of signed PDFs
 remain blocked because they would invalidate existing signatures.
+
+### Viewing protected PDFs
+
+A user password can allow viewing while restricting extraction. Use the viewing
+contract to obtain page geometry and render a page for display:
+
+```csharp
+PdfDocument protectedDocument = PdfDocument.Load("protected.pdf", new PdfLoadOptions {
+    Password = "document-open-password"
+});
+PdfDocumentViewInfo view = protectedDocument.InspectForViewing();
+PdfPageRenderResult page = protectedDocument.Render.DisplayPage(1, new PdfPageDisplayOptions {
+    Scale = 1.5,
+    MaximumPixels = 4_000_000,
+    MaximumOutputBytes = 16 * 1024 * 1024
+});
+// Pass page.Bytes (PNG) to the host's image control.
+```
+
+`LogicalContent` is null when content extraction is restricted. The display path
+returns flattened pixels and rendering diagnostics without exposing editable
+drawing objects, source images, fonts, or a logical text model. It still requires
+a valid password and observes parsing, pixel, output-size, timeout, and
+cancellation limits. `Inspect`, `Read`, drawing/image export, page extraction,
+printing, and mutation retain their respective permission checks. Display pixels
+are not a DRM boundary: hosts must keep their copy, export, and print actions tied
+to the authenticated permissions.
 
 ### Production document workflows
 
@@ -930,6 +967,14 @@ metadata alongside the typed standard state. Certified documents use an
 append-only revision only when the signature permission model allows the
 annotation change. Thread construction has explicit relationship and nesting
 limits so hostile reply chains fail closed.
+
+Full annotation rewrites expose `PdfAnnotationEditResult.AnnotationObjectNumberMap` when
+the writer can report original-to-output object numbers. Use that map to retain
+an annotation selection after changing its text or geometry; `/NM` names are
+optional and are not guaranteed to be unique. A null map means no mapping was
+reported. Append-only edits retain existing object numbers. For page reordering,
+`document.Pages.ReorderWithMapping(2, 1)` returns a `PdfPageRewriteResult` with the
+same mapping contract and a `ToDocument()` method for the rewritten PDF.
 
 ### Password protection on browser or restricted hosts
 
@@ -1241,6 +1286,14 @@ PdfDocument.Load("application-form.pdf")
     })
     .Save("application-form-filled.pdf");
 ```
+
+For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
+the proposed value against declared field metadata before applying it. It reports
+read-only fields, scalar/multiple-value conflicts, text length, radio clearing,
+and non-editable choices. Empty required fields produce warnings so an unfinished
+form can still be saved. Text limits count Unicode scalar values. Assessment does
+not run JavaScript or replace document permissions, appearance generation, or
+validation of the saved result; Unicode appearances still need suitable fonts.
 
 To make both readable form fields and supported visual annotations static in one
 artifact, use the combined operation and retain its separate affected counts:

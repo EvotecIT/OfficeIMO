@@ -19,12 +19,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
-    private readonly Func<CancellationToken, Task<string?>> _pickImage;
+    private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
+    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
     private readonly Func<string, bool, CancellationToken, Task<string?>> _promptPdfPassword;
     private readonly Func<string, bool> _canSaveAsPath;
+    private readonly OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? _publicationGuard;
     private readonly Func<string, CancellationToken, Task>? _openDocumentInTab;
     private readonly IRecentDocumentStore? _recentDocumentStore;
     private PdfWorkspace? _workspace;
@@ -39,6 +41,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private bool _discardOnNextTransition;
     private readonly StudioApplicationServices _services;
     private readonly IStudioLocalizer _localizer;
+    private StudioCommandCatalog? _commands;
+    private readonly bool _persistDocumentViews;
+
+    /// <summary>The shared command surface used by discovery, tool cards, and keyboard actions.</summary>
+    public StudioCommandCatalog Commands => _commands ??= new StudioCommandCatalog(this, _localizer);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -47,6 +54,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(CanReviewComment))]
+    [NotifyPropertyChangedFor(nameof(CanReplyToComment))]
+    [NotifyPropertyChangedFor(nameof(CanResolveComment))]
+    [NotifyPropertyChangedFor(nameof(CanReopenComment))]
+    [NotifyCanExecuteChangedFor(nameof(ReplyToCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResolveCommentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ReopenCommentCommand))]
     private bool _isOpening;
 
     [ObservableProperty]
@@ -76,7 +90,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickOutputFolder = null,
         Func<Uri, Task>? openUri = null,
         Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
-        Func<CancellationToken, Task<string?>>? pickImage = null,
+        Func<CancellationToken, Task<byte[]?>>? pickImage = null,
         Func<int, Task<bool>>? confirmPageDeletion = null,
         Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null,
         IRecentDocumentStore? recentDocumentStore = null,
@@ -85,8 +99,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<string, CancellationToken, Task>? openDocumentInTab = null,
         Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null,
         ISearchablePdfOcrService? ocrService = null,
-        StudioApplicationServices? services = null) {
-        _services = services ?? StudioApplicationServices.CreateDefault();
+        StudioApplicationServices? services = null,
+        Func<string, bool>? canPublishPath = null,
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        Func<string, Task<bool>>? confirmProviderWrite = null,
+        Func<string, Task<bool>>? confirmWorkflowProviderWrite = null,
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickOcrFiles = null,
+        Func<PageMovePreviewViewModel, Task<bool>>? reviewPageMove = null,
+        Func<PageSplitPreviewViewModel, Task<bool>>? reviewPageSplit = null,
+        Func<PageSplitPreviewViewModel, Task>? showPageSplitResult = null,
+        Func<PageImportPreviewViewModel, Task<bool>>? reviewPageImport = null,
+        Func<PageExtractionPreviewViewModel, Task<bool>>? reviewPageExtraction = null,
+        Func<PageExtractionPreviewViewModel, Task>? showPageExtractionResult = null,
+        Func<PdfProtectionPreviewViewModel, Task<bool>>? reviewProtection = null,
+        Func<PdfProtectionPreviewViewModel, Task>? showProtectionResult = null,
+        Func<PdfSigningPreviewViewModel, Task<bool>>? reviewSigning = null,
+        Func<PdfSigningPreviewViewModel, Task>? showSigningResult = null,
+        Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null) {
+        _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
         DocumentName = _localizer.Get("App.Name");
         DocumentDescription = _localizer.Get("Document.EmptyDescription");
@@ -96,39 +127,72 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
-        _pickImage = pickImage ?? (_ => Task.FromResult<string?>(null));
+        _pickImage = pickImage ?? (_ => Task.FromResult<byte[]?>(null));
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
+        _reviewPageMove = reviewPageMove ?? (_ => Task.FromResult(false));
+        _reviewPageSplit = reviewPageSplit ?? (_ => Task.FromResult(false));
+        _showPageSplitResult = showPageSplitResult ?? (_ => Task.CompletedTask);
+        _reviewPageImport = reviewPageImport ?? (_ => Task.FromResult(false));
+        _reviewProtection = reviewProtection ?? (_ => Task.FromResult(false));
+        _showProtectionResult = showProtectionResult ?? (_ => Task.CompletedTask);
+        _reviewSigning = reviewSigning ?? (_ => Task.FromResult(false));
+        _showSigningResult = showSigningResult ?? (_ => Task.CompletedTask);
+        _loadSigningCertificate = loadSigningCertificate ?? LoadSigningCertificate;
+        _reviewPageExtraction = reviewPageExtraction ?? (_ => Task.FromResult(false));
+        _showPageExtractionResult = showPageExtractionResult ?? (_ => Task.CompletedTask);
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _canSaveAsPath = canSaveAsPath ?? (_ => true);
+        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
+        publicationGuard = new StudioProtectedPublicationGuard(_services.Storage, publicationGuard);
+        _publicationGuard = publicationGuard;
         _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
+        Func<string, CancellationToken, Task> openWorkflowOutput = (path, token) =>
+            string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
+                ? _openDocumentInTab(path, token)
+                : _openUri(new Uri(path));
+        Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication);
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
             runner: null,
-            localizer: _localizer);
+            localizer: _localizer,
+            publicationGuard: publicationGuard,
+            jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             pickAssemblyFolder ?? _pickOutputFolder,
             _pickSavePdf,
-            localizer: _localizer);
-        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer);
+            localizer: _localizer,
+            publicationGuard: publicationGuard,
+            jobHistory: _services.Jobs, storage: _services.Storage,
+            recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
+            publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(
             _pickPdf,
             _pickOutputFolder,
             openDocumentInTab,
             ocrService,
-            _canSaveAsPath,
-            _localizer);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics);
+            path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
+            _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
+            pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
+        OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
+            _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
+            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
+        _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
+        _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
 
@@ -160,7 +224,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanGoNext => SelectedPage is not null && SelectedPage.PageNumber < Pages.Count;
 
-    public bool IsDirty => _workspace?.IsDirty == true;
+    public bool IsDirty => _workspace?.IsDirty == true || HasFormDrafts;
 
     public bool CanUndo => _workspace?.CanUndo == true;
 
@@ -174,11 +238,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
 
+    public bool CanSearchDocument => _session?.CanSearch == true;
+    public string ReaderHint => _session is { ViewInfo.CanExtractContent: false }
+        ? _localizer.Get(CanSearchDocument ? "Capability.RestrictedReaderSearchHint" : "Capability.RestrictedReaderHint")
+        : _localizer.Get("DocumentWorkspace.SelectTextFollowLinksSearchAndNavigateBookmarks");
+
     public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
 
     public string? SecurityWarning {
         get {
-            if (!IsPdfWorkspaceMode || _workspace is null || DocumentMode == StudioDocumentMode.View) return null;
+            if (!IsPdfWorkspaceMode || _workspace is null) return null;
+            if (!_workspace.ViewInfo.CanExtractContent) return _localizer.Get(CanSearchDocument ? "Capability.RestrictedViewingSearch" : "Capability.RestrictedViewing");
+            if (DocumentMode == StudioDocumentMode.View) return null;
             if (_workspace.HasSignatures) return _localizer.Get("Capability.SignedDocument");
             if (_workspace.HasEncryption) return _localizer.Get("Capability.EncryptedDocument");
             if (_workspace.HasCertifiedRestrictions) return _localizer.Get("Capability.RestrictedDocument");
@@ -196,7 +267,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || OcrWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -206,6 +277,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
+        UpdateFormAnchor();
         RefreshReaderPages();
         OnPropertyChanged(nameof(SelectedReaderGridRow));
         SynchronizeComparisonToPrimary(value);
@@ -277,6 +349,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
 
+            if (!await CommitPreparedDiscardAsync().ConfigureAwait(true)) return;
+            if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
             ReplaceDocument(
                 candidateWorkspace,
                 session,
@@ -284,6 +358,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 candidateRenderCoordinator,
                 candidatePages,
                 candidateOrganizerPages);
+            RestoreDocumentViewState();
             RecordRecentDocument(path);
             WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
             installed = true;
@@ -321,7 +396,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         bool invalidPassword = false;
         while (true) {
             try {
-                return await PdfWorkspace.OpenAsync(path, cancellationToken, password: password).ConfigureAwait(true);
+                return await PdfWorkspace.OpenAsync(path, cancellationToken,
+                    recoveryStore: _services.Recovery, password: password, storage: _services.Storage,
+                    canPublishOutput: _publicationGuard is null ? null : (destination, token) => _publicationGuard.CanPublishAsync(destination, false, token)).ConfigureAwait(true);
             } catch (PdfPasswordRequiredException) {
                 invalidPassword = false;
             } catch (PdfInvalidPasswordException) {
@@ -329,7 +406,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             }
 
             password = await _promptPdfPassword(
-                System.IO.Path.GetFileName(path),
+                _services.Storage.Describe(path).Name,
                 invalidPassword,
                 cancellationToken).ConfigureAwait(true);
             if (password is null) return null;
@@ -337,11 +414,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     internal async Task<bool> RequestCloseDocumentAsync() {
-        if (!await PrepareDocumentTransitionAsync().ConfigureAwait(true)) return false;
+        if (!await PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+        if (!await CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
+        CompletePreparedClose();
+        return true;
+    }
+
+    internal Task<bool> PrepareCloseDocumentAsync() => PrepareDocumentTransitionAsync();
+
+    internal void CancelPreparedClose() => _discardOnNextTransition = false;
+
+    internal async Task<bool> CommitPreparedDiscardAsync() {
+        if (!_discardOnNextTransition || _workspace is null) return true;
+        bool succeeded = await RunStandaloneAsync(token => _workspace.DiscardRecoveryAsync(token), CancellationToken.None).ConfigureAwait(true);
+        if (succeeded) _discardOnNextTransition = false;
+        return succeeded;
+    }
+
+    internal void CompletePreparedClose() {
         _openCancellation?.Cancel();
         ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
         ErrorMessage = null;
-        return true;
     }
 
     [RelayCommand]
@@ -352,7 +445,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     [RelayCommand]
     private async Task OpenRecentAsync(RecentDocumentViewModel? document, CancellationToken cancellationToken) {
         if (document is null) return;
-        if (!File.Exists(document.Path)) {
+        if (document.StorageReference is { } reference) _services.Storage.Remember(reference);
+        if (document.StorageReference?.Bookmark is null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(document.Path) is not null && !File.Exists(document.Path)) {
             RecentDocuments.Remove(document);
             _recentDocumentStore?.Save(RecentDocuments);
             OnPropertyChanged(nameof(HasRecentDocuments));
@@ -364,9 +458,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [RelayCommand]
     private void ClearRecentDocuments() {
-        RecentDocuments.Clear();
-        _recentDocumentStore?.Save(RecentDocuments);
-        OnPropertyChanged(nameof(HasRecentDocuments));
+        try {
+            _recentDocumentStore?.Clear();
+            RecentDocuments.Clear();
+            OnPropertyChanged(nameof(HasRecentDocuments));
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            ErrorMessage = _localizer.Get("Settings.HistoryClearFailed");
+        }
     }
 
     [RelayCommand]
@@ -423,16 +521,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        ClearFormPreview();
+        _commands?.Dispose();
         if (_disposed) return;
+        SaveDocumentViewState();
         _disposed = true;
+        _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
+        _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
+        Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
         OcrWorkbench.Dispose();
+        OcrSession.Dispose();
         Settings.Dispose();
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {
@@ -454,8 +560,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         UnsavedChangesDecision decision = await _confirmUnsavedChanges().ConfigureAwait(true);
         if (decision == UnsavedChangesDecision.Save) {
-            await RunSaveAsync(path: null, CancellationToken.None).ConfigureAwait(true);
-            return !IsDirty;
+            bool saved = await RunSaveAsync(path: null, CancellationToken.None).ConfigureAwait(true);
+            return saved && !IsDirty;
         }
         if (decision == UnsavedChangesDecision.Discard) {
             _discardOnNextTransition = true;
@@ -473,6 +579,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
         IReadOnlyCollection<int>? organizerSelection = null) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        ClearFormPreview();
+        if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();
         ClearObjectSelection();
         foreach (PdfPageViewModel page in Pages) page.Dispose();
@@ -483,22 +591,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _sceneCoordinator?.Dispose();
         _renderCoordinator?.Dispose();
         if (!ReferenceEquals(_workspace, workspace)) {
-            if (_discardOnNextTransition) _workspace?.DiscardRecovery();
             _workspace?.Dispose();
             _discardOnNextTransition = false;
         }
 
         _workspace = workspace;
         _session = session;
+        ClearSearchResults();
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
 
         if (isDocumentTransition) {
+            OrganizerPageRange = string.Empty;
+            IsOrganizerRangeExpanded = false;
+            OrganizerRangeError = null;
             CloseComparisonSession(restoreLayout: true);
             ResetDocumentSecurityState();
             SearchQuery = string.Empty;
-            SearchResults.Clear();
-            SelectedSearchResult = null;
             SelectedBookmark = null;
             OperationStatus = null;
             OperationProgressFraction = 0D;
@@ -533,6 +642,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 _localizer.Get(session.Pages.Count == 1 ? "Document.Page" : "Document.Pages"),
                 FormatByteSize(session.FileSize));
         SelectedPage = Pages.FirstOrDefault();
+        RefreshCommentThreads(isDocumentTransition);
         OnPropertyChanged(nameof(SelectedPagePosition));
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
@@ -543,7 +653,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private void ApplyFitZoom() {
-        if (Pages.Count == 0) return;
+        if (Pages.Count == 0 || _zoomMode == ViewerZoomMode.Custom) return;
         PdfPageViewModel page = SelectedPage ?? Pages[0];
         double unscaledWidth = page.DisplayWidth / Math.Max(Zoom, 0.01D);
         double unscaledHeight = page.DisplayHeight / Math.Max(Zoom, 0.01D);
@@ -597,11 +707,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private void RecordRecentDocument(string path) {
-        string fullPath = Path.GetFullPath(path);
+        if (!_services.DocumentHistory.RememberHistory) return;
+        string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
-            string.Equals(document.Path, fullPath, RecentDocumentPathComparison));
+            OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
         if (existing is not null) RecentDocuments.Remove(existing);
-        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow));
+        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) { StorageReference = _services.Storage.Describe(fullPath) });
         while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
         _recentDocumentStore?.Save(RecentDocuments);
         OnPropertyChanged(nameof(HasRecentDocuments));
@@ -614,10 +725,4 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private enum ViewerZoomMode {
-        Custom,
-        FitWidth,
-        FitPage,
-        Grid
-    }
 }

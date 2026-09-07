@@ -27,7 +27,7 @@ public sealed class MainWindowSmokeTests {
                 window.ApplyResponsiveLayout(1050);
                 Assert.True(window.ViewModel.IsPdfWorkspaceMode);
                 Assert.True(window.IsCompactLayout);
-                Assert.False(window.AreFitShortcutsVisible);
+                Assert.True(window.AreFitShortcutsVisible);
 
                 window.ViewModel.ShowConversionWorkbenchCommand.Execute(null);
                 window.Measure(new Avalonia.Size(1050, 560));

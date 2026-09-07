@@ -11,16 +11,19 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
         : this(path, openedAt, StudioLocalization.Current) { }
 
     internal RecentDocumentViewModel(string path, DateTimeOffset openedAt, IStudioLocalizer localizer) {
-        Path = System.IO.Path.GetFullPath(path);
+        Path = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         OpenedAt = openedAt;
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
     }
 
     public string Path { get; }
 
-    public string FileName => System.IO.Path.GetFileName(Path);
+    internal Infrastructure.StudioStorageReference? StorageReference { get; init; }
 
-    public string DirectoryName => System.IO.Path.GetDirectoryName(Path) ?? string.Empty;
+    public string FileName => StorageReference?.Name ?? OfficeIMO.Internal.OfficeStorageIdentity.GetFileName(Path);
+
+    public string DirectoryName => OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(Path) is { } local
+        ? System.IO.Path.GetDirectoryName(local) ?? string.Empty : new Uri(Path).GetLeftPart(UriPartial.Authority);
 
     public DateTimeOffset OpenedAt { get; }
 
@@ -36,6 +39,7 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
 
     public string FileSizeLabel {
         get {
+            if (OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(Path) is null) return _localizer.Get("Common.Unavailable");
             try {
                 long bytes = new FileInfo(Path).Length;
                 string[] units = ["B", "KB", "MB", "GB"];

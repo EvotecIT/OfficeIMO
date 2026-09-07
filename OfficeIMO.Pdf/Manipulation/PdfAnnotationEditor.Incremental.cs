@@ -198,7 +198,8 @@ internal static partial class PdfAnnotationEditor {
         bool annotationsChanged,
         PdfLoadOptions? readOptions,
         PdfGeneratedOutputGrowth generatedGrowth = default,
-        PdfLoadOptions? rewrittenReadOptions = null) {
+        PdfLoadOptions? rewrittenReadOptions = null,
+        IReadOnlyDictionary<int, int>? objectNumberMap = null) {
         rewrittenReadOptions ??= PdfLoadOptions.ForGeneratedOutput(readOptions, source, rewritten, generatedGrowth);
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
@@ -208,6 +209,14 @@ internal static partial class PdfAnnotationEditor {
             PreserveRevisionStructure = false
         };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(source, rewritten, preservationOptions);
-        return new PdfAnnotationEditResult(rewritten, affectedAnnotationCount, mutationPlan, rewritePreservationReport: preservation, readOptions: rewrittenReadOptions);
+        IReadOnlyDictionary<int, int>? annotationMap = null;
+        if (objectNumberMap is not null) {
+            var retained = new HashSet<int>(preservation.Rewritten.Annotations.Where(annotation => annotation.ObjectNumber.HasValue).Select(annotation => annotation.ObjectNumber!.Value));
+            annotationMap = preservation.Original.Annotations.Where(annotation => annotation.ObjectNumber.HasValue)
+                .Select(annotation => annotation.ObjectNumber!.Value).Distinct()
+                .Where(number => objectNumberMap.TryGetValue(number, out int outputNumber) && retained.Contains(outputNumber))
+                .ToDictionary(number => number, number => objectNumberMap[number]);
+        }
+        return new PdfAnnotationEditResult(rewritten, affectedAnnotationCount, mutationPlan, rewritePreservationReport: preservation, readOptions: rewrittenReadOptions, annotationObjectNumberMap: annotationMap);
     }
 }

@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Adds, removes, or replaces Standard password security on supported existing PDFs.</summary>
@@ -7,29 +8,33 @@ internal static class PdfSecurityEditor {
     public static PdfSecurityMutationResult Encrypt(
         byte[] pdf,
         PdfStandardEncryptionOptions encryption,
-        PdfLoadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null,
+        long? maximumOutputBytes = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(encryption, nameof(encryption));
-        PdfDocumentSecurityInfo sourceSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, sourceReadOptions);
+        PdfDocumentSecurityInfo sourceSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, sourceReadOptions, cancellationToken: cancellationToken);
         if (sourceSecurity.HasEncryption) {
             throw new InvalidOperationException("The source PDF is already encrypted. Use Reencrypt with the owner password to replace its security settings.");
         }
 
-        return Rewrite(pdf, sourceReadOptions, encryption, PdfSecurityMutationKind.Encrypt);
+        return Rewrite(pdf, sourceReadOptions, encryption, PdfSecurityMutationKind.Encrypt, maximumOutputBytes, cancellationToken);
     }
 
     /// <summary>Removes Standard password security after authenticating the supplied owner password.</summary>
     public static PdfSecurityMutationResult Decrypt(
         byte[] pdf,
         string ownerPassword,
-        PdfLoadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null,
+        long? maximumOutputBytes = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
         return Rewrite(
             pdf,
             PdfLoadOptions.WithPassword(sourceReadOptions, ownerPassword),
             outputEncryption: null,
-            PdfSecurityMutationKind.Decrypt);
+            PdfSecurityMutationKind.Decrypt, maximumOutputBytes, cancellationToken);
     }
 
     /// <summary>Replaces Standard password security after authenticating the supplied current owner password.</summary>
@@ -37,7 +42,9 @@ internal static class PdfSecurityEditor {
         byte[] pdf,
         string currentOwnerPassword,
         PdfStandardEncryptionOptions newEncryption,
-        PdfLoadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null,
+        long? maximumOutputBytes = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));
         Guard.NotNull(newEncryption, nameof(newEncryption));
@@ -45,7 +52,7 @@ internal static class PdfSecurityEditor {
             pdf,
             PdfLoadOptions.WithPassword(sourceReadOptions, currentOwnerPassword),
             newEncryption,
-            PdfSecurityMutationKind.Reencrypt);
+            PdfSecurityMutationKind.Reencrypt, maximumOutputBytes, cancellationToken);
     }
 
     /// <summary>Encrypts an unencrypted PDF file and writes the proven rewrite to a new path.</summary>
@@ -73,15 +80,21 @@ internal static class PdfSecurityEditor {
         byte[] sourcePdf,
         PdfLoadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
-        PdfSecurityMutationKind kind) {
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(
+        PdfSecurityMutationKind kind,
+        long? maximumOutputBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (maximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+        var (plan, sourceDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             sourcePdf,
             PdfMutationOperation.ChangeEncryption,
-            sourceReadOptions);
+            sourceReadOptions, cancellationToken: cancellationToken);
 
         PdfDocumentSecurityInfo sourceSecurity = plan.Preflight.Probe.Security;
         ValidateSourceSecurity(kind, sourceSecurity);
-        byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceReadOptions, outputEncryption);
+        byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceDocument, sourceReadOptions, outputEncryption,
+            maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             PdfLoadOptions.WithAesCryptographyProvider(
                 PdfLoadOptions.WithPassword(
@@ -97,10 +110,12 @@ internal static class PdfSecurityEditor {
             PreserveRevisionStructure = false,
             PreserveSecurityState = false
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(sourcePdf, rewrittenPdf, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(sourcePdf, rewrittenPdf, preservationOptions,
+            originalReadOptions: null, rewrittenReadOptions: null, cancellationToken);
         preservation.ThrowIfFailed();
+        cancellationToken.ThrowIfCancellationRequested();
 
-        PdfDocumentSecurityInfo outputSecurity = PdfSyntax.ReadDocumentSecurityInfo(rewrittenPdf, outputReadOptions);
+        PdfDocumentSecurityInfo outputSecurity = PdfSyntax.ReadDocumentSecurityInfo(rewrittenPdf, outputReadOptions, cancellationToken: cancellationToken);
         ValidateOutputSecurity(kind, outputSecurity, outputEncryption);
         return new PdfSecurityMutationResult(
             kind,

@@ -3,6 +3,30 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfSyntaxEscaper {
+    /// <summary>Writes a finite real without precision truncation or PDF-invalid exponent notation.</summary>
+    internal static string Number(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+            throw new ArgumentOutOfRangeException(nameof(value), "PDF numbers must be finite.");
+        if (value == 0D) return "0";
+        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        int exponentIndex = text.IndexOf('E');
+        if (exponentIndex < 0) return text;
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        int exponent = int.Parse(text.Substring(exponentIndex + 1), CultureInfo.InvariantCulture);
+#else
+        int exponent = int.Parse(text.AsSpan(exponentIndex + 1), CultureInfo.InvariantCulture);
+#endif
+        string mantissa = text.Substring(0, exponentIndex);
+        string sign = mantissa[0] == '-' ? "-" : string.Empty;
+        if (sign.Length > 0) mantissa = mantissa.Substring(1);
+        int point = mantissa.IndexOf('.');
+        int decimalPosition = (point < 0 ? mantissa.Length : point) + exponent;
+        string digits = mantissa.Replace(".", string.Empty);
+        if (decimalPosition <= 0) return sign + "0." + new string('0', -decimalPosition) + digits;
+        if (decimalPosition >= digits.Length) return sign + digits + new string('0', decimalPosition - digits.Length);
+        return sign + digits.Insert(decimalPosition, ".");
+    }
+
     internal static string IndirectReference(int objectNumber, int generation = 0) {
         if (objectNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");

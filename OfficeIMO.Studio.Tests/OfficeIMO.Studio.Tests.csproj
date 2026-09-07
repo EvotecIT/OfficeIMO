@@ -3,6 +3,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <GenerateProgramFile>false</GenerateProgramFile>
+    <StartupObject>OfficeIMO.Studio.Tests.StudioProcessProbe</StartupObject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>Latest</LangVersion>
@@ -21,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Studio\OfficeIMO.Studio.csproj" />
+    <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -9,74 +9,31 @@
     <Border Grid.Row="0" Padding="24,17" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
       <StackPanel Spacing="4">
-        <TextBlock Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
-        <TextBlock Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
+        <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
+        <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="360,*">
-      <Border Grid.Column="0" Background="{DynamicResource StudioPanelBrush}"
+    <ScrollViewer Grid.Row="1" IsVisible="{Binding !OcrWorkbench.HasReview}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid x:Name="OcrColumns" ColumnDefinitions="400,*" RowDefinitions="Auto,Auto">
+      <Border x:Name="SourcePanel" Grid.Column="0" VerticalAlignment="Top" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer VerticalScrollBarVisibility="Disabled">
           <StackPanel Margin="22" Spacing="13">
-            <TextBlock Text="{loc:Loc SearchablePdfOcr.SOURCE}" Classes="eyebrow" />
-            <TextBlock Text="{loc:Loc SearchablePdfOcr.ScannedPDF}" FontWeight="SemiBold" />
+            <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SOURCE}" Classes="eyebrow" />
+            <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.ScannedPDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OcrWorkbench.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.ChooseAPDF}" />
+            <TextBlock Text="{Binding OcrWorkbench.InputName}" TextWrapping="Wrap" Classes="muted" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ChoosePDF}" Content="{loc:Loc SearchablePdfOcr.ChoosePDF}" HorizontalAlignment="Left"
                     Command="{Binding OcrWorkbench.ChooseInputCommand}" />
 
-            <TextBlock Text="{loc:Loc SearchablePdfOcr.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
             <TextBox Text="{Binding OcrWorkbench.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.AllPagesOr135}" />
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,5,0,0">
-              <StackPanel Spacing="5">
-                <TextBlock Text="{loc:Loc SearchablePdfOcr.RenderDPI}" FontWeight="SemiBold" />
-                <NumericUpDown Minimum="72" Maximum="600" Increment="25"
-                               Value="{Binding OcrWorkbench.RenderDpi, Mode=TwoWay}" />
-              </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="5">
-                <TextBlock Text="{loc:Loc SearchablePdfOcr.MinConfidence}" FontWeight="SemiBold" />
-                <NumericUpDown Minimum="0" Maximum="100" Increment="5"
-                               Value="{Binding OcrWorkbench.MinimumConfidencePercent, Mode=TwoWay}" />
-              </StackPanel>
-            </Grid>
-
-            <TextBlock Text="{loc:Loc SearchablePdfOcr.OUTPUT}" Classes="eyebrow" Margin="0,8,0,0" />
-            <TextBlock Text="{loc:Loc SearchablePdfOcr.SearchablePDF}" FontWeight="SemiBold" />
-            <TextBox Text="{Binding OcrWorkbench.OutputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.ScanSearchablePdf}" />
-            <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" HorizontalAlignment="Left"
-                    Command="{Binding OcrWorkbench.ChooseOutputFolderCommand}" />
-            <CheckBox Content="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}"
-                      IsChecked="{Binding OcrWorkbench.ReplaceExistingOutput, Mode=TwoWay}" />
-            <Button Classes="primary" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}" Content="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}"
-                    Command="{Binding OcrWorkbench.RunCommand}" Margin="0,7,0,0" />
-            <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}" HorizontalAlignment="Left"
-                    IsVisible="{Binding OcrWorkbench.CanCancel}" Command="{Binding OcrWorkbench.CancelCommand}" />
-          </StackPanel>
-        </ScrollViewer>
-      </Border>
-
-      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="30,26" Spacing="22" MaxWidth="820" HorizontalAlignment="Stretch">
-          <Border Classes="card" Padding="20">
-            <Grid ColumnDefinitions="48,*" ColumnSpacing="14">
-              <Border Width="44" Height="44" CornerRadius="10" Background="{DynamicResource StudioAccentSoftBrush}">
-                <PathIcon Data="{StaticResource IconOcr}" Width="24" Height="24"
-                          Foreground="{DynamicResource StudioAccentBrush}" />
-              </Border>
-              <StackPanel Grid.Column="1" Spacing="5">
-                <TextBlock Text="{loc:Loc SearchablePdfOcr.SearchableTextWithoutChangingTheVisiblePage}" FontSize="17" FontWeight="SemiBold" />
-                <TextBlock Text="{loc:Loc SearchablePdfOcr.OfficeIMORendersEachSelectedPageRecognizesWordGeometryRemovesOverlap}"
-                           Classes="muted" TextWrapping="Wrap" />
-              </StackPanel>
-            </Grid>
-          </Border>
-
-          <StackPanel Spacing="9">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{loc:Loc SearchablePdfOcr.RecognitionLanguages}" Classes="sectionTitle" />
-              <TextBlock Grid.Column="1" Text="{Binding OcrWorkbench.LanguageSummary}" Classes="muted" VerticalAlignment="Center" />
-            </Grid>
+          <StackPanel Spacing="9" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
+              <TextBlock TextWrapping="Wrap" Text="{Binding OcrWorkbench.LanguageSummary}" Classes="muted" VerticalAlignment="Center" />
+            <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">
+            <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
             <Border Classes="card" Padding="15">
               <ItemsControl ItemsSource="{Binding OcrWorkbench.Languages}">
                 <ItemsControl.ItemsPanel>
@@ -90,24 +47,76 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </Border>
-            <CheckBox Content="{loc:Loc SearchablePdfOcr.DownloadChecksumVerifiedLanguageDataWhenTheInstalledRuntimeIs}"
-                      IsChecked="{Binding OcrWorkbench.ProvisionMissingLanguageData, Mode=TwoWay}" />
+            </ScrollViewer>
+            </Expander>
+            <CheckBox
+                      IsChecked="{Binding OcrWorkbench.ProvisionMissingLanguageData, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.DownloadChecksumVerifiedLanguageDataWhenTheInstalledRuntimeIs}" TextWrapping="Wrap" /></CheckBox>
           </StackPanel>
+
+            <Expander Header="{loc:Loc Ocr.Review.Advanced}" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,5,0,0">
+              <StackPanel Spacing="5">
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RenderDPI}" FontWeight="SemiBold" />
+                <NumericUpDown Minimum="72" Maximum="600" Increment="25"
+                               Value="{Binding OcrWorkbench.RenderDpi, Mode=TwoWay}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="5">
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.MinConfidence}" FontWeight="SemiBold" />
+                <NumericUpDown Minimum="0" Maximum="100" Increment="5"
+                               Value="{Binding OcrWorkbench.MinimumConfidencePercent, Mode=TwoWay}" />
+              </StackPanel>
+            </Grid>
+            </Expander>
+
+            <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OUTPUT}" Classes="eyebrow" Margin="0,8,0,0" />
+            <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchablePDF}" FontWeight="SemiBold" />
+            <TextBox Text="{Binding OcrWorkbench.OutputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.ScanSearchablePdf}" />
+            <TextBlock Text="{Binding OcrWorkbench.OutputName}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" Content="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" HorizontalAlignment="Left"
+                    Command="{Binding OcrWorkbench.ChooseOutputCommand}" />
+            <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" HorizontalAlignment="Left"
+                    Command="{Binding OcrWorkbench.ChooseOutputFolderCommand}" />
+            <CheckBox
+                      IsVisible="{Binding !OcrWorkbench.IsProviderOutput}"
+                      IsChecked="{Binding OcrWorkbench.ReplaceExistingOutput, Mode=TwoWay}" ><TextBlock Text="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}" TextWrapping="Wrap" /></CheckBox>
+            <Button Classes="primary" AutomationProperties.Name="{loc:Loc Ocr.Review.Recognize}" Content="{loc:Loc Ocr.Review.Recognize}"
+                    Command="{Binding OcrWorkbench.RunCommand}" Margin="0,7,0,0" />
+            <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}" HorizontalAlignment="Left"
+                    IsVisible="{Binding OcrWorkbench.CanCancel}" Command="{Binding OcrWorkbench.CancelCommand}" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+
+      <ScrollViewer x:Name="InformationPanel" Grid.Column="1" VerticalAlignment="Top" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Margin="30,26" Spacing="22" MaxWidth="820" HorizontalAlignment="Stretch">
+          <Border Classes="card" Padding="20">
+            <Grid ColumnDefinitions="48,*" ColumnSpacing="14">
+              <Border Width="44" Height="44" CornerRadius="10" Background="{DynamicResource StudioAccentSoftBrush}">
+                <PathIcon Data="{StaticResource IconOcr}" Width="24" Height="24"
+                          Foreground="{DynamicResource StudioAccentBrush}" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="5">
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchableTextWithoutChangingTheVisiblePage}" FontSize="17" FontWeight="SemiBold" />
+                <TextBlock Text="{loc:Loc SearchablePdfOcr.OfficeIMORendersEachSelectedPageRecognizesWordGeometryRemovesOverlap}"
+                           Classes="muted" TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
 
           <Border Background="{DynamicResource StudioPanelMutedBrush}"
                   BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
                   CornerRadius="8" Padding="16">
             <StackPanel Spacing="5">
-              <TextBlock Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
+              <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
               <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}"
-                         Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
 
           <Border Classes="card" Padding="20">
             <StackPanel Spacing="9">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{loc:Loc SearchablePdfOcr.Result}" Classes="sectionTitle" />
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.Result}" Classes="sectionTitle" />
                 <Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.OpenResult}" Content="{loc:Loc SearchablePdfOcr.OpenResult}"
                         IsVisible="{Binding OcrWorkbench.HasOutput}" Command="{Binding OcrWorkbench.OpenOutputCommand}" />
               </Grid>
@@ -116,12 +125,17 @@
               <TextBlock Text="{Binding OcrWorkbench.Summary}" Classes="muted" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.ErrorMessage}" IsVisible="{Binding OcrWorkbench.HasError}"
                          Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OcrWorkbench.HasRecovery}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.PublishedPath}" IsVisible="{Binding OcrWorkbench.HasOutput}"
-                         FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" />
+                         FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </StackPanel>
       </ScrollViewer>
     </Grid>
+    </ScrollViewer>
+    <Border Grid.Row="1" IsVisible="{Binding OcrWorkbench.HasReview}">
+      <workflow:OcrReviewView DataContext="{Binding OcrWorkbench.Review}" />
+    </Border>
   </Grid>
 </UserControl>

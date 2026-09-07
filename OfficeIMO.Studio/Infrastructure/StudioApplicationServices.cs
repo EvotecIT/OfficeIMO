@@ -2,6 +2,8 @@ using System.Globalization;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Features.Workflows;
 
 namespace OfficeIMO.Studio.Infrastructure;
 
@@ -14,10 +16,15 @@ internal sealed class StudioApplicationServices {
         IStudioLocalizer localizer,
         IStudioDiagnostics diagnostics) {
         Paths = paths;
+        Storage = new StudioStorageAccess(paths.WorkflowRecoveryRoot);
         Preferences = preferences;
         Cultures = cultures;
         Localizer = localizer;
         Diagnostics = diagnostics;
+        DocumentHistory = new StudioDocumentHistory(paths, preferences);
+        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
+        WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
+        Jobs = new StudioJobHistory(localizer, WorkflowRecovery);
     }
 
     internal StudioDataPaths Paths { get; }
@@ -29,6 +36,18 @@ internal sealed class StudioApplicationServices {
     internal IStudioLocalizer Localizer { get; }
 
     internal IStudioDiagnostics Diagnostics { get; }
+
+    internal StudioDocumentHistory DocumentHistory { get; }
+
+    internal StudioDocumentViewStore DocumentViews => DocumentHistory.ReadingPositions;
+
+    internal PdfWorkspaceRecoveryStore Recovery { get; }
+
+    internal StudioJobHistory Jobs { get; }
+
+    internal OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore WorkflowRecovery { get; }
+
+    internal StudioStorageAccess Storage { get; }
 
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 

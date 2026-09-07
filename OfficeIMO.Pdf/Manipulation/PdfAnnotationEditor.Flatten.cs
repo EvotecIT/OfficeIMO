@@ -9,25 +9,15 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
-        int before = CountSelectedAnnotations(GetAnnotationMutationDocumentInfo(plan), options);
         byte[] output = PdfAnnotationFlattener.FlattenVisualAnnotations(
             pdf,
             options,
             readOptions,
-            out PdfGeneratedOutputGrowth generatedGrowth);
+            out PdfGeneratedOutputGrowth generatedGrowth,
+            out IReadOnlyDictionary<int, int> objectNumberMap,
+            out int affected);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
-        int after = CountSelectedAnnotations(
-            ReadAnnotationMetadata(output, outputReadOptions),
-            options);
-        int affected = Math.Max(0, before - after);
-        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions);
+        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions, objectNumberMap: objectNumberMap);
     }
 
-    private static int CountSelectedAnnotations(PdfDocumentInfo info, PdfAnnotationFlattenOptions? options) {
-        IEnumerable<PdfAnnotation> values = info.Annotations;
-        if (options?.ObjectNumber != null) values = values.Where(annotation => annotation.ObjectNumber == options.ObjectNumber);
-        if (options?.PageNumber != null) values = values.Where(annotation => annotation.PageNumber == options.PageNumber);
-        if (options?.Subtype != null) values = values.Where(annotation => string.Equals(annotation.Subtype, options.Subtype, StringComparison.OrdinalIgnoreCase));
-        return values.Count();
-    }
 }

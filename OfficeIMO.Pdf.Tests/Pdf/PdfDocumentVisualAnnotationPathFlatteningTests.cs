@@ -55,7 +55,7 @@ public partial class PdfDocumentVisualQualityTests {
         string pdf = Encoding.ASCII.GetString(flattened);
 
         Assert.Equal(0, PdfInspector.Inspect(flattened).AnnotationCount);
-        Assert.Contains("1 0 0 1 3 7 cm", pdf, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 6 14 cm", pdf, StringComparison.Ordinal);
         Assert.DoesNotContain("1 0 0 1 10 20 cm", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot", pdf, StringComparison.Ordinal);
     }

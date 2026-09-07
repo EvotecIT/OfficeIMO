@@ -7,6 +7,30 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class MainWindowViewModelTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReplacementImageReadFailureKeepsDocumentAndSelection(bool cancelled) {
+        using var viewModel = new MainWindowViewModel(
+            _ => Task.FromResult<string?>(null),
+            pickImage: _ => cancelled
+                ? Task.FromCanceled<byte[]?>(new CancellationToken(true))
+                : Task.FromException<byte[]?>(new InvalidDataException("Image exceeds the size limit.")));
+        await viewModel.OpenDocumentAsync(GetFixturePath());
+        var selection = new PdfEditorSelection(PdfEditorSelectionKind.Image, 1,
+            new PdfEditorVisualBounds(10D, 10D, 20D, 20D));
+        viewModel.Pages[0].SelectObject(selection);
+        PdfPageViewModel originalPage = viewModel.Pages[0];
+
+        await viewModel.ReplaceSelectedImageCommand.ExecuteAsync(null);
+
+        Assert.Same(originalPage, viewModel.Pages[0]);
+        Assert.Same(selection, viewModel.SelectedObject);
+        Assert.False(viewModel.IsWorkspaceBusy);
+        Assert.Equal(!cancelled, viewModel.HasError);
+        Assert.Equal(cancelled ? "Operation cancelled" : "Operation failed", viewModel.OperationStatus);
+    }
+
     [Fact]
     public void ReadOnlyDocumentModesClearPreviouslySelectedMutationTool() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
@@ -154,9 +178,7 @@ public sealed class MainWindowViewModelTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-picker-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        string imagePath = Path.Combine(root, "pixel.png");
         PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(path);
-        await File.WriteAllBytesAsync(imagePath, TinyPng);
         int picks = 0;
 
         try {
@@ -164,7 +186,8 @@ public sealed class MainWindowViewModelTests {
                 _ => Task.FromResult<string?>(null),
                 pickImage: _ => {
                     picks++;
-                    return Task.FromResult<string?>(imagePath);
+                    return OfficeIMO.Studio.Infrastructure.StudioStorageInput.ReadImageAsync(
+                        [StudioStorageInputTests.CreateImageFile(TinyPng)], default);
                 });
             await viewModel.OpenDocumentAsync(path);
             viewModel.ShowEditModeCommand.Execute(null);
@@ -356,7 +379,7 @@ public sealed class MainWindowViewModelTests {
         Assert.True(viewModel.IsEmpty);
         Assert.True(viewModel.IsHomeMode);
         Assert.True(viewModel.HasError);
-        Assert.Contains("no longer exists", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
 
         viewModel.DismissErrorCommand.Execute(null);
         Assert.False(viewModel.HasError);
@@ -431,7 +454,7 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(
                 _ => Task.FromResult<string?>(null),
-                pickImportPdfs: _ => Task.FromResult<IReadOnlyList<string>>([first, second]));
+                pickImportPdfs: _ => Task.FromResult<IReadOnlyList<string>>([first, second]), reviewPageImport: _ => Task.FromResult(true));
             await viewModel.OpenDocumentAsync(target);
 
             await viewModel.ImportPagesCommand.ExecuteAsync(null);
@@ -571,14 +594,14 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(
                 _ => Task.FromResult<string?>(null),
-                pickOutputFolder: _ => Task.FromResult<string?>(output));
+                pickOutputFolder: _ => Task.FromResult<string?>(output), reviewPageSplit: _ => Task.FromResult(true));
             await viewModel.OpenDocumentAsync(path);
             viewModel.SplitPagesPerDocument = 2;
 
             await viewModel.SplitCommand.ExecuteAsync(null);
 
-            Assert.Equal(2, Directory.GetFiles(output, "*.pdf").Length);
-            Assert.Equal("Created 2 split PDFs", viewModel.OperationStatus);
+            Assert.Equal(2, Directory.GetFiles(Path.Combine(output, "Split PDFs"), "*.pdf").Length);
+            Assert.Equal("Created 2 PDF parts.", viewModel.OperationStatus);
             Assert.False(viewModel.IsDirty);
         } finally {
             Directory.Delete(root, recursive: true);

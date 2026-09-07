@@ -92,6 +92,12 @@ public sealed class PdfPageSelection : IEquatable<PdfPageSelection> {
         return (PdfPageRange[])_ranges.Clone();
     }
 
+    /// <summary>Resolves this selection against a document page count, preserving caller order and repeated pages.</summary>
+    public IReadOnlyList<int> Resolve(int pageCount) {
+        Guard.PositiveInteger(pageCount, nameof(pageCount));
+        return Array.AsReadOnly(ToPageNumbers(pageCount, nameof(pageCount)));
+    }
+
     internal int[] ToPageNumbers(int pageCount, string paramName) {
         return PdfPageRange.ExpandMany(_ranges, pageCount, paramName);
     }

@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Workflows;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -11,15 +13,19 @@ public sealed partial class PdfAssemblySourceViewModel : ObservableObject {
 
     public PdfAssemblySourceViewModel(string path) : this(path, null) { }
 
-    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer) {
-        Path = System.IO.Path.GetFullPath(path);
+    internal PdfAssemblySourceViewModel(string path, IStudioLocalizer? localizer, string? name = null, bool isFolder = false) {
+        Path = OfficeStorageIdentity.Normalize(path);
+        _name = name;
+        _isFolder = isFolder;
         _localizer = localizer ?? StudioLocalization.Current;
     }
     public string Path { get; }
-    public string Name => Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path);
-    public string Kind => Directory.Exists(Path)
+    private readonly string? _name;
+    private readonly bool _isFolder;
+    public string Name => _name ?? (Directory.Exists(Path) ? new DirectoryInfo(Path).Name : System.IO.Path.GetFileName(Path));
+    public string Kind => _isFolder || Directory.Exists(Path)
         ? _localizer.GetOrDefault("Assembly.Source.Folder", "Folder")
-        : System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
+        : System.IO.Path.GetExtension(Name).TrimStart('.').ToUpperInvariant();
 }
 
 public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable {
@@ -28,6 +34,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly Func<CancellationToken, Task<string?>> _pickOutputPdf;
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobHistory;
+    private readonly StudioStorageAccess? _storage;
+    private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
+    private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
 
     public PdfAssemblyViewModel(
@@ -41,11 +52,21 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         Func<CancellationToken, Task<string?>> pickFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IOfficeOutputWorkflowRunner? runner,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        StudioJobHistory? jobHistory = null,
+        StudioStorageAccess? storage = null,
+        OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
+        Func<string, Task<bool>>? confirmProviderWrite = null) {
         _pickFiles = pickFiles;
         _pickFolder = pickFolder;
         _pickOutputPdf = pickOutputPdf;
         _runner = runner ?? new OfficeWorkflowRunner();
+        _publicationGuard = publicationGuard;
+        _jobHistory = jobHistory;
+        _storage = storage;
+        _recoveryStore = recoveryStore;
+        _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _localizer = localizer ?? StudioLocalization.Current;
         Status = T("Status.Ready", "Add documents, images, folders, or ZIPs in the order you want.");
         Summary = T("Summary.Empty", "No assembly run yet");
@@ -80,6 +101,9 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string? _publishedPath;
 
+    [ObservableProperty]
+    private bool _hasRecovery;
+
     public bool HasSources => Sources.Count > 0;
     public bool CanCancel => IsBusy;
     public bool HasOutput => !string.IsNullOrWhiteSpace(PublishedPath);
@@ -100,8 +124,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private async Task AddFolderAsync(CancellationToken cancellationToken) {
-        string? path = await _pickFolder(cancellationToken).ConfigureAwait(true);
-        if (!string.IsNullOrWhiteSpace(path)) AddSources([path]);
+        try {
+            string? path = await _pickFolder(cancellationToken).ConfigureAwait(true);
+            if (!string.IsNullOrWhiteSpace(path)) AddSources([path]);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception error) when (IsIdentityFailure(error)) { Status = error.Message; }
     }
 
     [RelayCommand]
@@ -141,29 +168,71 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         IsBusy = true;
         ProgressFraction = 0D;
         PublishedPath = null;
+        HasRecovery = false;
         OnPropertyChanged(nameof(HasOutput));
 
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
+        StudioStorageAccess.DirectoryInputSession? directoryInputs = null;
+
         try {
+            directoryInputs = _storage?.CreateDirectoryInputs(Sources.Select(source => source.Path));
+            string destination = OutputPath;
+            OfficeWorkflowStreamOutput? outputStream = null;
+            if (_storage?.UsesProviderPublication(destination) == true) {
+                if (!await _confirmProviderWrite(destination).ConfigureAwait(true)) {
+                    Status = T("Status.Cancelled", "Assembly cancelled");
+                    return;
+                }
+                operation.Token.ThrowIfCancellationRequested();
+                outputStream = _storage.CreateWorkflowOutput(destination, _recoveryStore
+                    ?? throw new IOException("Workflow recovery storage is unavailable."));
+            }
+            var request = new PdfAssemblyRequest {
+                Sources = Sources.Select(static source => source.Path).ToArray(),
+                SourceDirectories = directoryInputs?.Inputs ?? new Dictionary<string, OfficeWorkflowDirectoryInput>(),
+                SourceStreams = Sources.Where(source => _storage?.IsFolder(source.Path) != true)
+                    .Select(source => (source.Path, Access: _storage?.CreateWorkflowInput(source.Path)))
+                    .Where(source => source.Access is not null).ToDictionary(source => source.Path, source => source.Access!, StringComparer.Ordinal),
+                OutputPath = destination,
+                OutputStream = outputStream,
+                PublicationGuard = _publicationGuard,
+                ConflictPolicy = outputStream is null ? OfficeWorkflowConflictPolicy.Rename : OfficeWorkflowConflictPolicy.Replace,
+                Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
+            };
+            job = _jobHistory?.Start(T("Job.Title", "PDF assembly"), string.Join(Environment.NewLine, request.Sources), request.OutputPath, operation.Cancel);
+            using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
             var progress = new Progress<OfficeWorkflowProgress>(update => {
+                if (!IsBusy || !ReferenceEquals(_cancellation, operation)) return;
                 ProgressFraction = update.Fraction;
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
+                job?.Report(update);
             });
-            PdfAssemblyResult result = await _runner.AssemblePdfAsync(new PdfAssemblyRequest {
-                Sources = Sources.Select(static source => source.Path).ToArray(),
-                OutputPath = OutputPath,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
-                Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
-            }, progress, operation.Token).ConfigureAwait(true);
+            ownerStarted = true;
+            PdfAssemblyResult result = await _runner.AssemblePdfAsync(request, progress, operation.Token).ConfigureAwait(true);
+            job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
+            HasRecovery = result.Recovery is not null;
             Summary = result.Summary;
             Status = result.Status switch {
                 OfficeWorkflowStatus.Completed => T("Status.Completed", "Assembled PDF ready"),
                 OfficeWorkflowStatus.Cancelled => T("Status.Cancelled", "Assembly cancelled"),
+                OfficeWorkflowStatus.Unconfirmed => _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output"),
                 _ => _localizer.GetOrDefault("Assembly.Status.Failed", result.Summary)
             };
             PublishedPath = result.OutputPath;
             ProgressFraction = result.Status == OfficeWorkflowStatus.Completed ? 1D : ProgressFraction;
             OnPropertyChanged(nameof(HasOutput));
+        } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
+            Status = ownerStarted ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+                : _localizer.GetOrDefault("Workflow.Status.Cancelled", "Cancelled");
+            if (ownerStarted) job?.Unconfirmed(Status);
+            else job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
+        } catch (Exception exception) {
+            Status = exception.Message;
+            job?.Unconfirmed(exception.Message);
         } finally {
+            try { directoryInputs?.Dispose(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status += " " + error.Message; }
             IsBusy = false;
             if (ReferenceEquals(_cancellation, operation)) _cancellation = null;
         }
@@ -173,15 +242,24 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private void Cancel() => _cancellation?.Cancel();
 
     private void AddSources(IEnumerable<string> paths) {
-        var existing = Sources.Select(static source => source.Path).ToList();
+        if (IsBusy) return;
+        var existing = new HashSet<string>(StringComparer.Ordinal);
+        try {
+            foreach (var source in Sources) existing.Add(InputIdentity(source.Path));
+        } catch (Exception exception) when (IsIdentityFailure(exception)) {
+            Status = T("Sources.Unavailable", "An assembly source could not be inspected. Restore or remove it before adding more sources.");
+            return;
+        }
+        int skipped = 0;
         foreach (string path in paths.Where(static path => !string.IsNullOrWhiteSpace(path))) {
-            string fullPath = System.IO.Path.GetFullPath(path);
-            if (existing.Any(candidate => AreEquivalentPaths(candidate, fullPath))) continue;
-            existing.Add(fullPath);
-            Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer));
+            try {
+                string fullPath = OfficeStorageIdentity.Normalize(path);
+                if (!existing.Add(InputIdentity(fullPath))) continue;
+                Sources.Add(new PdfAssemblySourceViewModel(fullPath, _localizer, _storage?.Describe(fullPath).Name, _storage?.IsFolder(fullPath) == true));
+            } catch (Exception exception) when (IsIdentityFailure(exception)) { skipped++; }
         }
         SelectedSource ??= Sources.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0) {
+        if (string.IsNullOrWhiteSpace(OutputPath) && Sources.Count > 0 && _storage?.UsesProviderPublication(Sources[0].Path) != true) {
             string first = Sources[0].Path;
             string directory = Directory.Exists(first)
                 ? Directory.GetParent(first)?.FullName ?? first
@@ -189,16 +267,14 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             OutputPath = System.IO.Path.Combine(directory, "assembled.pdf");
         }
         NotifySourcesChanged();
+        if (skipped > 0) Status = _localizer.FormatOrDefault("Assembly.Sources.Skipped", "Skipped {0:N0} source(s) that could not be inspected.", skipped);
     }
 
-    private static bool AreEquivalentPaths(string left, string right) {
-        string normalizedLeft = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(left));
-        string normalizedRight = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(right));
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        return string.Equals(normalizedLeft, normalizedRight, comparison);
-    }
+    private static bool IsIdentityFailure(Exception exception) =>
+        exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException;
+
+    private string InputIdentity(string location) => _storage?.UsesProviderPublication(location) == true
+        ? OfficeStorageIdentity.Normalize(location) : OfficePathIdentity.GetPathIdentityKey(location);
 
     private void MoveSelected(int offset) {
         if (IsBusy || SelectedSource is null) return;

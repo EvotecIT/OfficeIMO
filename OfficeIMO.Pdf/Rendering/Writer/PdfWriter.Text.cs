@@ -69,8 +69,8 @@ internal static partial class PdfWriter {
         return new PdfTextShowCommand(EncodeWinAnsiHex(text));
     }
 
-    private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options) {
-        PdfTextShowCommand command = EncodeTextShowCommand(" ", font, options);
+    private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
+        PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
         return command.ActualText == null
             ? command
             : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs);

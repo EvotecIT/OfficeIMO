@@ -5,10 +5,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Studio.Infrastructure.Diagnostics;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -25,13 +27,20 @@ public sealed partial class MainWindow : Window {
     private bool _organizerDragStarted;
     private bool _changingActiveDocument;
     private readonly StudioApplicationServices _services;
+    private bool _commandPaletteOpen;
+    private readonly StudioSessionController _session;
+    private bool _windowClosed;
 
-    public MainWindow() : this(StudioApplicationServices.CreateDefault()) { }
+    public MainWindow() : this((Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault()) { }
 
     internal MainWindow(StudioApplicationServices services) {
         _services = services ?? throw new ArgumentNullException(nameof(services));
-        TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument);
+        _services.Storage.Attach(() => StorageProvider);
+        TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
+            document => ConfirmActiveCloseAsync([document]));
         ViewModel = TabHost.ActiveDocument;
+        _session = new StudioSessionController(TabHost, _services, token => PickFileSafelyAsync(PickSavePdfAsync, token));
+        ViewModel.Session = _session;
         InitializeComponent();
         DocumentTabs.DataContext = TabHost;
         OpenDocumentTabButton.DataContext = TabHost;
@@ -59,7 +68,7 @@ public sealed partial class MainWindow : Window {
                 eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
                 eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
         };
-        OrganizerList.KeyDown += OnOrganizerKeyDown;
+        OrganizerList.AddHandler(KeyDownEvent, OnOrganizerKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         OrganizerList.AddHandler(PointerPressedEvent, OnOrganizerPointerPressed, handledEventsToo: true);
         OrganizerList.AddHandler(PointerMovedEvent, OnOrganizerPointerMoved, handledEventsToo: true);
         OrganizerList.AddHandler(PointerReleasedEvent, OnOrganizerPointerReleased, handledEventsToo: true);
@@ -67,33 +76,55 @@ public sealed partial class MainWindow : Window {
         OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => TabHost.Dispose();
+        Closed += (_, _) => { _windowClosed = true; _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
     }
 
     public StudioDocumentTabHost TabHost { get; }
 
     internal MainWindowViewModel ViewModel { get; private set; }
 
-    private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) =>
-        new(
-            pickPdf: PickPdfAsync,
-            pickSavePdf: PickSavePdfAsync,
-            pickImportPdfs: PickPdfsAsync,
+    private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) {
+        MainWindowViewModel? document = null;
+        document = new(
+            pickPdf: token => PickFileSafelyAsync(PickPdfAsync, token),
+            pickSavePdf: token => PickFileSafelyAsync(PickSavePdfAsync, token),
+            pickImportPdfs: token => PickFilesSafelyAsync(PickPdfsAsync, token),
             pickOutputFolder: PickOutputFolderAsync,
             openUri: OpenUriAsync,
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
+            confirmProviderWrite: ConfirmProviderWriteAsync,
+            confirmWorkflowProviderWrite: location => new ProviderSaveDialog(_services.Storage.Describe(location).Name,
+                _services.Localizer, workflowOutput: true, folderOutput: _services.Storage.IsFolder(location)).ShowDialog<bool>(this),
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
-            pickWorkflowFiles: PickWorkflowFilesAsync,
-            recentDocumentStore: new JsonRecentDocumentStore(_services.Paths.RecentDocumentsPath),
+            reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
+            reviewPageSplit: preview => new PageSplitDialog(preview).ShowDialog<bool>(this),
+            showPageSplitResult: result => new PageSplitDialog(result).ShowDialog(this),
+            reviewProtection: preview => new PdfProtectionDialog(preview).ShowDialog<bool>(this),
+            showProtectionResult: result => new PdfProtectionDialog(result).ShowDialog(this),
+            reviewSigning: preview => new PdfSigningDialog(preview).ShowDialog<bool>(this),
+            showSigningResult: result => new PdfSigningDialog(result).ShowDialog(this),
+            reviewPageExtraction: preview => new PageExtractionDialog(preview).ShowDialog<bool>(this),
+            showPageExtractionResult: result => new PageExtractionDialog(result).ShowDialog(this),
+            reviewPageImport: preview => new PageImportDialog(preview).ShowDialog<bool>(this),
+            pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
+            pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
+            recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
-            canSaveAsPath: path => TabHost.CanActiveDocumentOwnPath(path),
+            canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
             openDocumentInTab: openDocumentInTab,
             pickAssemblyFolder: PickAssemblyFolderAsync,
-            services: _services);
+            services: _services,
+            canPublishPath: path => TabHost.CanPublishPath(path),
+            publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
+                isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)));
+        document.Session = _session;
+        return document;
+    }
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;
+        ViewModel.SaveDocumentViewState();
         _changingActiveDocument = true;
         try {
             ViewModel = document;
@@ -131,11 +162,32 @@ public sealed partial class MainWindow : Window {
 
     internal void ApplyResponsiveLayout(double width) {
         IsCompactLayout = width < 1180D;
-        FitWidthButton.IsVisible = !IsCompactLayout;
-        FitPageButton.IsVisible = !IsCompactLayout;
         double workspaceWidth = Math.Max(0D, width - 116D);
+        DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
+    }
+
+    private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => FocusDocumentSearch();
+
+    private void FocusDocumentSearch() {
+        if (!ViewModel.HasDocument) return;
+        ViewModel.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
+        DocumentWorkspace.FocusSearch();
+    }
+
+    private async void OnCommandsClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ShowCommandPaletteAsync();
+
+    internal async Task ShowCommandPaletteAsync() {
+        if (_commandPaletteOpen) return;
+        _commandPaletteOpen = true;
+        try {
+            var palette = new StudioCommandPalette(ViewModel.Commands);
+            StudioCommandItem? command = await palette.ShowDialog<StudioCommandItem?>(this);
+            if (command is not null) await command.ExecuteAsync();
+        } finally {
+            _commandPaletteOpen = false;
+        }
     }
 
     private void OnToggleThemeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
@@ -150,10 +202,24 @@ public sealed partial class MainWindow : Window {
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
-        bool primaryModifier = e.KeyModifiers.HasFlag(KeyModifiers.Control) ||
-                               e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        if (e.Key == Key.F9) {
+            await ViewModel.Commands["FocusReading"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Escape && ViewModel.IsFocusReading) {
+            ViewModel.IsFocusReading = false;
+            e.Handled = true;
+            return;
+        }
+        bool primaryModifier = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
+        if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P) {
+            await ShowCommandPaletteAsync();
+            e.Handled = true;
+            return;
+        }
         if (primaryModifier && e.Key == Key.F) {
-            DocumentWorkspace.FocusSearch();
+            FocusDocumentSearch();
             e.Handled = true;
             return;
         }
@@ -169,38 +235,56 @@ public sealed partial class MainWindow : Window {
             return;
         }
         if (primaryModifier && e.Key == Key.O) {
-            await TabHost.OpenNewTabCommand.ExecuteAsync(null);
+            await ViewModel.Commands["Open"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (primaryModifier && e.Key == Key.S) {
+            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "SaveAs" : "Save"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (primaryModifier && e.Key == Key.P) {
+            await ViewModel.Commands["Print"].ExecuteAsync();
             e.Handled = true;
             return;
         }
 
         if (IsTextEntryFocused()) return;
 
+        if (primaryModifier && e.Key == Key.Z) {
+            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "Redo" : "Undo"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (primaryModifier) {
             switch (e.Key) {
                 case Key.D0:
                 case Key.NumPad0:
-                    ViewModel.FitPageCommand.Execute(null);
+                    ViewModel.Commands["FitPage"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.D1:
                 case Key.NumPad1:
-                    ViewModel.ActualSizeCommand.Execute(null);
+                    ViewModel.Commands["ActualSize"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.D2:
                 case Key.NumPad2:
-                    ViewModel.FitWidthCommand.Execute(null);
+                    ViewModel.Commands["FitWidth"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.OemPlus:
                 case Key.Add:
-                    ViewModel.ZoomInCommand.Execute(null);
+                    ViewModel.Commands["ZoomIn"].Execute(null);
                     e.Handled = true;
                     return;
                 case Key.OemMinus:
                 case Key.Subtract:
-                    ViewModel.ZoomOutCommand.Execute(null);
+                    ViewModel.Commands["ZoomOut"].Execute(null);
                     e.Handled = true;
                     return;
             }
@@ -248,9 +332,36 @@ public sealed partial class MainWindow : Window {
 
     private async void OnOpened(object? sender, EventArgs e) {
         ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
+        try {
+            var cleanup = await _services.Recovery.CleanupExpiredAsync();
+            if (cleanup.FailedFiles > 0) _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupIncomplete");
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupFailed", error);
+        }
+        if (_windowClosed) return;
+        await _session.InspectAsync();
+        if (_windowClosed) return;
         if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;
         _initialDocumentOpened = true;
         await TabHost.OpenDocumentAsync(_initialDocumentPath);
+    }
+
+    private async Task<string?> PickFileSafelyAsync(Func<CancellationToken, Task<string?>> picker, CancellationToken token) {
+        try { return await picker(token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return null; }
+        catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            return null;
+        }
+    }
+    private async Task<IReadOnlyList<string>> PickFilesSafelyAsync(
+        Func<CancellationToken, Task<IReadOnlyList<string>>> picker, CancellationToken token) {
+        try { return await picker(token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return Array.Empty<string>(); }
+        catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            return Array.Empty<string>();
+        }
     }
 
     private async Task<string?> PickPdfAsync(CancellationToken cancellationToken) {
@@ -268,8 +379,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterSingleAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<IReadOnlyList<string>> PickPdfsAsync(CancellationToken cancellationToken) {
@@ -287,8 +397,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.Select(static file => file.Path.LocalPath).ToArray();
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<IReadOnlyList<string>> PickWorkflowFilesAsync(CancellationToken cancellationToken) {
@@ -308,8 +417,19 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
+    }
+
+    private async Task<IReadOnlyList<string>> PickOcrFilesAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        return files.Select(static file => file.Path.LocalPath).ToArray();
+        if (!StorageProvider.CanOpen) return [];
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+            Title = _services.Localizer.Get("OcrSession.Add"), AllowMultiple = true,
+            FileTypeFilter = [new FilePickerFileType(_services.Localizer.Get("OcrSession.Files")) {
+                Patterns = ["*.pdf", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tif", "*.tiff", "*.gif", "*.webp"]
+            }]
+        });
+        return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task<string?> PickAssemblyFolderAsync(CancellationToken cancellationToken) {
@@ -319,22 +439,18 @@ public sealed partial class MainWindow : Window {
             Title = _services.Localizer.Get("Picker.AddSourceFolder"),
             AllowMultiple = false
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return folders.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {
         if (_allowClose) return;
-        if (TabHost.HasBusyDocuments) {
-            e.Cancel = true;
-            TabHost.CancelAllOperations();
-            return;
-        }
-        if (!TabHost.HasDirtyDocuments) return;
+        if (!TabHost.HasBusyDocuments && !_session.IsBusy && !TabHost.HasDirtyDocuments && !_closePromptOpen) { _session.CaptureForShutdown(); return; }
         e.Cancel = true;
         if (_closePromptOpen) return;
         _closePromptOpen = true;
         try {
+            if ((TabHost.HasBusyDocuments || _session.IsBusy) && !await ConfirmActiveCloseAsync(TabHost.OperationDocuments, wholeWindow: true)) return;
+            if (TabHost.HasBusyDocuments || _session.IsBusy) return;
             if (!await TabHost.RequestCloseAllAsync()) return;
             _allowClose = true;
             Close();
@@ -342,6 +458,9 @@ public sealed partial class MainWindow : Window {
             _closePromptOpen = false;
         }
     }
+
+    private Task<bool> ConfirmActiveCloseAsync(IEnumerable<MainWindowViewModel> documents, bool wholeWindow = false) =>
+        new ActiveOperationsDialog(documents, _services.Localizer, wholeWindow ? TabHost : null, wholeWindow ? _session : null).ShowDialog<bool>(this);
 
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
         var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'), _services.Localizer);
@@ -379,22 +498,24 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return file?.Path.LocalPath;
+        string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
+        return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
     }
 
+    private Task<bool> ConfirmProviderWriteAsync(string location) =>
+        !_services.Storage.UsesProviderPublication(location) ? Task.FromResult(true)
+            : new ProviderSaveDialog(_services.Storage.Describe(location).Name, _services.Localizer).ShowDialog<bool>(this);
     private async Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return null;
+        if (!StorageProvider.CanPickFolder) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
             Title = _services.Localizer.Get("Picker.ChooseOutputFolder"),
             AllowMultiple = false
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return folders.FirstOrDefault()?.Path.LocalPath;
+        return await _services.Storage.RegisterFolderAsync(folders, cancellationToken).ConfigureAwait(true);
     }
 
-    private async Task<string?> PickImageAsync(CancellationToken cancellationToken) {
+    private async Task<byte[]?> PickImageAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!StorageProvider.CanOpen) return null;
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
@@ -408,8 +529,7 @@ public sealed partial class MainWindow : Window {
                 }
             ]
         });
-        cancellationToken.ThrowIfCancellationRequested();
-        return files.FirstOrDefault()?.Path.LocalPath;
+        return await StudioStorageInput.ReadImageAsync(files, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task OpenUriAsync(Uri uri) {
@@ -445,7 +565,15 @@ public sealed partial class MainWindow : Window {
 
     private void OnOrganizerPointerReleased(object? sender, PointerReleasedEventArgs e) => ClearOrganizerDrag();
 
-    private void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
+    private async void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
+        if (ViewModel.IsPagesDocumentMode && e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Up or Key.Down) {
+            e.Handled = true;
+            if (!ViewModel.CanMutateSelection) return;
+            await (e.Key == Key.Up ? ViewModel.MoveSelectedUpCommand : ViewModel.MoveSelectedDownCommand).ExecuteAsync(null);
+            if (ViewModel.OrganizerPages.FirstOrDefault(page => page.IsSelected) is { } selected) OrganizerList.ScrollIntoView(selected);
+            OrganizerList.Focus();
+            return;
+        }
         if (e.Key is not (Key.Enter or Key.Space)) return;
         PdfOrganizerPageViewModel? page = FindOrganizerPage(e.Source)
             ?? OrganizerList.SelectedItem as PdfOrganizerPageViewModel;
@@ -495,7 +623,7 @@ public sealed partial class MainWindow : Window {
     }
 
     private void OnDragOver(object? sender, DragEventArgs e) {
-        e.DragEffects = ViewModel.CanStartDocumentTransition && TryGetPdfPath(e, out _)
+        e.DragEffects = ViewModel.CanStartDocumentTransition && GetDroppedPdf(e) is not null
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -503,17 +631,17 @@ public sealed partial class MainWindow : Window {
 
     private async void OnDrop(object? sender, DragEventArgs e) {
         e.Handled = true;
-        if (TryGetPdfPath(e, out string? path) && path is not null) {
-            await TabHost.OpenDocumentAsync(path);
+        if (GetDroppedPdf(e) is not { } file) return;
+        try {
+            string location = await _services.Storage.RegisterAsync(file, CancellationToken.None);
+            if (!_windowClosed) await TabHost.OpenDocumentAsync(location);
+        } catch (Exception error) when (error is not OutOfMemoryException) {
+            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
         }
     }
 
-    private static bool TryGetPdfPath(DragEventArgs e, out string? path) {
-        IEnumerable<string?>? candidates = e.DataTransfer
-            .TryGetFiles()?
-            .Select(static item => item.Path.LocalPath);
-        return TryGetPdfPath(candidates, out path);
-    }
+    private static IStorageFile? GetDroppedPdf(DragEventArgs e) => e.DataTransfer.TryGetFiles()?
+        .OfType<IStorageFile>().FirstOrDefault(file => string.Equals(System.IO.Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase));
 
     internal static bool TryGetPdfPath(IEnumerable<string?>? candidates, out string? path) {
         path = candidates?.FirstOrDefault(static candidate =>

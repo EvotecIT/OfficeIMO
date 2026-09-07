@@ -16,6 +16,13 @@
         <Border Classes="card">
           <StackPanel Spacing="12">
             <TextBlock Text="{loc:Loc Settings.AppearanceAndLanguage}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.Density}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding Densities}" SelectedItem="{Binding SelectedDensity, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Density}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:StudioDensityChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
             <TextBlock Text="{loc:Loc Settings.InterfaceLanguage}" FontWeight="SemiBold" />
             <ComboBox ItemsSource="{Binding Cultures}" SelectedItem="{Binding SelectedCulture, Mode=TwoWay}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
@@ -37,24 +44,22 @@
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.Appearance}">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="settings:StudioThemeChoice">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding Label}" />
-                    <TextBlock Text="{Binding Description}" Classes="muted" FontSize="11" />
-                  </StackPanel>
+                  <TextBlock Text="{Binding Label}" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
+            <TextBlock Text="{Binding SelectedTheme.Description}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 
         <Border Grid.Column="1" Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Text="{loc:Loc Settings.LocalizationReadiness}" Classes="sectionTitle" />
-            <TextBlock Text="{loc:Loc Settings.LocalizationReadinessDescription}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.ReadingWorkspace}" Classes="sectionTitle" />
+            <TextBlock Text="{loc:Loc Settings.ReadingWorkspaceDescription}" TextWrapping="Wrap" />
             <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
-              <TextBlock Text="{loc:Loc Settings.LocalizationCoverage}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc Settings.FocusReadingHelp}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
             </Border>
-            <TextBlock Text="{loc:Loc Settings.LocalizationContract}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.DocumentAppearanceHelp}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
       </Grid>
@@ -64,6 +69,47 @@
           <StackPanel Spacing="10">
             <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />
             <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.PrivateDocumentsHelp}" TextWrapping="Wrap" Classes="muted" />
+            <CheckBox IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}" />
+            <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc Settings.DocumentHistory}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.HistoryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{Binding HistoryPersistenceAction}" Command="{Binding ToggleDocumentHistoryCommand}"
+                    HorizontalAlignment="Left" />
+            <TextBlock Text="{loc:Loc Settings.HistoryDisabled}" IsVisible="{Binding !RememberDocumentHistory}" TextWrapping="Wrap" />
+            <Button Classes="tool" Content="{loc:Loc Settings.ClearHistory}" Command="{Binding RequestHistoryClearCommand}"
+                    IsVisible="{Binding !ConfirmHistoryClear}" HorizontalAlignment="Left" />
+            <Border IsVisible="{Binding ConfirmHistoryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
+                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Loc Settings.HistoryClearWarning}" TextWrapping="Wrap" />
+                <WrapPanel>
+                  <Button Classes="tool" Content="{loc:Loc Settings.DeleteHistory}" Command="{Binding ClearHistoryCommand}" Margin="0,0,8,6" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelHistoryClearCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{Binding HistoryStatus}" IsVisible="{Binding HasHistoryStatus}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"
+                    IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryDisabled}" IsVisible="{Binding !CreateRecoverySnapshots}" TextWrapping="Wrap" />
+            <TextBlock Text="{loc:Loc Settings.RecoveryRetention}" TextWrapping="Wrap" Classes="muted" />
+            <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
+                    IsVisible="{Binding !ConfirmRecoveryClear}" IsEnabled="{Binding !IsRecoveryBusy}" HorizontalAlignment="Left" />
+            <Border IsVisible="{Binding ConfirmRecoveryClear}" Background="{DynamicResource StudioWarningSoftBrush}"
+                    BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Loc Settings.RecoveryClearWarning}" TextWrapping="Wrap" />
+                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}">
+                  <Button Classes="tool" Foreground="{DynamicResource StudioErrorBrush}" Content="{loc:Loc Settings.DeleteRecovery}" Command="{Binding ClearRecoveryCommand}" Margin="0,0,8,6" />
+                  <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelRecoveryClearCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{loc:Loc Settings.RecoveryClearing}" IsVisible="{Binding IsRecoveryBusy}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding RecoveryStatus}" IsVisible="{Binding HasRecoveryStatus}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.DiagnosticsLocation}" FontWeight="SemiBold" Margin="0,4,0,0" />
             <TextBlock Text="{Binding DiagnosticsDirectory}" Classes="muted" TextWrapping="Wrap" />
           </StackPanel>

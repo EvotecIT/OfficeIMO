@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows" xmlns:coreworkflow="clr-namespace:OfficeIMO.Workflows;assembly=OfficeIMO.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.StudioJobsView"
+             x:DataType="workflow:StudioJobsViewModel">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="20,16">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,12">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="pageTitle" Text="{loc:Loc Jobs.Title}" />
+        <TextBlock Classes="muted" Text="{Binding History.Summary}" TextWrapping="Wrap" />
+        <TextBlock Classes="muted" Text="{loc:Loc Jobs.SessionNote}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding History.RecoveryError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.ClearFinished}"
+              Command="{Binding ClearFinishedCommand}" VerticalAlignment="Top" />
+    </Grid>
+    <TextBlock Grid.Row="1" Text="{Binding ActionError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
+    <Grid Grid.Row="2">
+      <TextBlock IsVisible="{Binding !History.HasEntries}" Text="{loc:Loc Jobs.Empty}"
+                 TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" />
+      <ListBox ItemsSource="{Binding History.Entries}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}"
+               IsVisible="{Binding History.HasEntries}" Background="Transparent" BorderThickness="0"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemContainerTheme>
+          <ControlTheme TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+          </ControlTheme>
+        </ListBox.ItemContainerTheme>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="workflow:StudioJobRecord">
+            <Border Classes="card" Padding="16" Margin="0,0,0,10">
+              <StackPanel Spacing="7">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="1" Text="{Binding StartedLabel}" Classes="muted" />
+                </Grid>
+                <TextBlock Text="{Binding InputLabel}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Classes="muted" />
+                <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+                <StackPanel IsVisible="{Binding HasRecovery}" Spacing="8">
+                  <TextBlock Text="{loc:Loc Jobs.RecoveryNote}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Recovery.Name}" TextWrapping="Wrap" />
+                  <ComboBox ItemsSource="{Binding Recoveries}" SelectedItem="{Binding Recovery, Mode=TwoWay}"
+                            IsVisible="{Binding HasMultipleRecoveries}" AutomationProperties.Name="{loc:Loc Jobs.RecoveryCopies}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="coreworkflow:OfficeWorkflowOutputRecovery"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Text="{Binding Destination}" TextTrimming="CharacterEllipsis" />
+                  <WrapPanel>
+                    <Button Classes="tool" Content="{loc:Loc Jobs.OpenRecovery}" Margin="0,0,8,8"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.OpenRecoveryCommand}" CommandParameter="{Binding}" />
+                    <Button Classes="tool" Content="{loc:Loc Jobs.DiscardRecovery}" IsVisible="{Binding !RecoveryDiscardRequested}" Margin="0,0,0,8"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.RequestDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                  </WrapPanel>
+                  <StackPanel IsVisible="{Binding RecoveryDiscardRequested}" Spacing="8">
+                    <TextBlock Text="{loc:Loc Jobs.DiscardRecoveryNote}" TextWrapping="Wrap" />
+                    <WrapPanel>
+                      <Button Classes="tool" Content="{loc:Loc Jobs.ConfirmDiscardRecovery}" Margin="0,0,8,8"
+                              Command="{ReflectionBinding $parent[UserControl].DataContext.ConfirmDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="tool" Content="{loc:Loc Jobs.KeepRecovery}" Margin="0,0,0,8"
+                              Command="{ReflectionBinding $parent[UserControl].DataContext.CancelDiscardRecoveryCommand}" CommandParameter="{Binding}" />
+                    </WrapPanel>
+                  </StackPanel>
+                </StackPanel>
+                <TextBlock Text="{Binding OutputPath}" IsVisible="{Binding HasOutput}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                  <StackPanel Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" MinWidth="0" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="tool" IsVisible="{Binding IsActive}" Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
+                    <Button Classes="primary" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.OpenOutput}"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.OpenOutputCommand}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Grid>
+</UserControl>

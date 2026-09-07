@@ -34,12 +34,25 @@ public static class PdfOcrExtensions {
         IOcrEngine engine,
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
+        var review = await document.PrepareSearchableOcrAsync(engine, options, cancellationToken).ConfigureAwait(false);
+        var result = review.ApplyAll(cancellationToken);
+        return result.WasModified ? result : new PdfSearchableOcrResult(document, result.Ocr, result.ModifiedPages, result.WrittenWords);
+    }
+
+    /// <summary>Recognizes a private source snapshot and returns review evidence without modifying or publishing a PDF.</summary>
+    public static async Task<PdfSearchableOcrReview> PrepareSearchableOcrAsync(
+        this PdfDocument document,
+        IOcrEngine engine,
+        PdfOcrMergeOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (engine == null) throw new ArgumentNullException(nameof(engine));
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocument snapshot = PdfDocument.Load(document.GetBytesForOperation(cancellationToken), document.ReadOptions);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         PdfPageSelection? selection = effectiveOptions.ReadOptions.PageSelection;
         if (selection != null) {
-            int pageCount = document.Inspect(document.ReadOptions, cancellationToken).PageCount;
+            int pageCount = snapshot.Inspect(snapshot.ReadOptions, cancellationToken).PageCount;
             int[] uniquePages = selection
                 .ToPageNumbers(pageCount, nameof(options))
                 .Distinct()
@@ -49,38 +62,7 @@ public static class PdfOcrExtensions {
                 PdfPageSelection.From(uniquePages));
         }
 
-        PdfOcrMergeResult ocr = await document.ReadWithOcrAsync(engine, effectiveOptions, cancellationToken).ConfigureAwait(false);
-        int[] modifiedPages = ocr.Pages
-            .Where(static page => page.Words.Count > 0)
-            .Select(static page => page.PageNumber)
-            .Distinct()
-            .ToArray();
-        if (modifiedPages.Length == 0) {
-            return new PdfSearchableOcrResult(document, ocr, Array.Empty<int>());
-        }
-
-        var wordsByPage = ocr.Pages
-            .Where(static page => page.Words.Count > 0)
-            .GroupBy(static page => page.PageNumber)
-            .ToDictionary(static pages => pages.Key, static pages => pages.First().Words);
-        string pageSelector = string.Join(",", modifiedPages.Select(static page => page.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        PdfDocument searchable = document.Stamp.Content(
-            (canvas, context) => {
-                cancellationToken.ThrowIfCancellationRequested();
-                IReadOnlyList<PdfRecognizedWord> words = wordsByPage[context.PageNumber];
-                PdfLogicalPage canonicalPage = ocr.Document.Pages.First(page => page.PageNumber == context.PageNumber);
-                IReadOnlyList<PdfRecognizedWord> logicalWords = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(
-                    words,
-                    canonicalPage,
-                    effectiveOptions.ReadOptions.LayoutOptions.ReadingDirection,
-                    cancellationToken);
-                for (int index = 0; index < logicalWords.Count; index++) {
-                    PdfRecognizedWord word = logicalWords[index];
-                    canvas.SearchableText(word.Text, word.X, word.Y, word.Width, word.Height);
-                }
-            },
-            new PdfCanvasStampOptions().UseTargetPages(pageSelector),
-            document.ReadOptions);
-        return new PdfSearchableOcrResult(searchable, ocr, Array.AsReadOnly(modifiedPages));
+        PdfOcrMergeResult ocr = await snapshot.ReadWithOcrAsync(engine, effectiveOptions, cancellationToken).ConfigureAwait(false);
+        return new PdfSearchableOcrReview(snapshot, effectiveOptions, ocr);
     }
 }

@@ -257,16 +257,13 @@ internal static class PdfOcr {
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxNativeTextBlocksPerPage, nativePage.TextBlocks.Count);
         }
         var accepted = new List<PdfRecognizedWord>(result.Words.Count);
+        var evidence = new List<PdfOcrWordEvidence>(result.Words.Count);
         int lowConfidence = 0;
         int nativeOverlap = 0;
         long overlapComparisons = 0;
         for (int index = 0; index < result.Words.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             ProjectedOcrWord word = result.Words[index];
-            if (word.Confidence < options.MinimumConfidence) {
-                lowConfidence++;
-                continue;
-            }
             var normalized = new PdfRecognizedWord(
                 word.Text,
                 word.X,
@@ -278,6 +275,11 @@ internal static class PdfOcr {
                 word.BlockId,
                 word.ParagraphId,
                 word.LineId);
+            if (word.Confidence < options.MinimumConfidence) {
+                lowConfidence++;
+                evidence.Add(new PdfOcrWordEvidence(normalized, PdfOcrWordDisposition.LowConfidence));
+                continue;
+            }
             if (OverlapsNativeText(
                     normalized,
                     nativeTextBounds,
@@ -286,9 +288,11 @@ internal static class PdfOcr {
                     ref overlapComparisons,
                     cancellationToken)) {
                 nativeOverlap++;
+                evidence.Add(new PdfOcrWordEvidence(normalized, PdfOcrWordDisposition.NativeTextOverlap));
                 continue;
             }
             accepted.Add(normalized);
+            evidence.Add(new PdfOcrWordEvidence(normalized, PdfOcrWordDisposition.Accepted));
         }
 
         accepted.Sort(static (left, right) => {
@@ -304,7 +308,8 @@ internal static class PdfOcr {
             string.Empty,
             result.Provider,
             result.Model,
-            result.Language);
+            result.Language,
+            evidence.AsReadOnly());
     }
 
     private static bool TryConvertRegion(

@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
+using OfficeIMO.Internal;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -30,6 +31,7 @@ public sealed partial class OfficeWorkflowRunner {
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         string? stagingPath = null;
+        string? providerStagingDirectory = null;
         string? extractionRoot = null;
         int sourceCount = 0;
         int pageCount = 0;
@@ -37,6 +39,7 @@ public sealed partial class OfficeWorkflowRunner {
         long normalizedBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedAssemblyRequest? validated = null;
+        var inputs = new WorkflowInputSnapshots();
 
         try {
             validated = ValidateAssemblyRequest(request);
@@ -44,8 +47,9 @@ public sealed partial class OfficeWorkflowRunner {
             Report(progress, validated.Id, "discover", "Discovering supported input documents", 0.04D);
             cancellationToken.ThrowIfCancellationRequested();
 
-            extractionRoot = Path.Combine(Path.GetTempPath(), "officeimo-assembly-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(extractionRoot);
+            validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
+
+            extractionRoot = OfficeTemporaryDirectory.Create("officeimo-assembly-");
             IReadOnlyList<AssemblySource> sources = ExpandAssemblySources(
                 validated,
                 extractionRoot,
@@ -88,12 +92,13 @@ public sealed partial class OfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             PdfDocument merged = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents, cancellationToken);
 
-            string outputDirectory = Path.GetDirectoryName(validated.OutputPath)!;
+            string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath)!
+                : providerStagingDirectory = OfficeTemporaryDirectory.Create("officeimo-provider-output-");
             failureStage = WorkflowFailureStage.Output;
             Directory.CreateDirectory(outputDirectory);
             stagingPath = Path.Combine(
                 outputDirectory,
-                "." + Path.GetFileName(validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
             await using (var outputStream = new FileStream(
                 stagingPath,
                 FileMode.CreateNew,
@@ -129,8 +134,25 @@ public sealed partial class OfficeWorkflowRunner {
                 }));
 
             Report(progress, validated.Id, "publish", "Publishing the validated PDF", 0.93D);
+            inputs.Dispose();
+            Directory.Delete(extractionRoot, recursive: true);
+            extractionRoot = null;
             cancellationToken.ThrowIfCancellationRequested();
-            string publishedPath = Publish(stagingPath, validated.OutputPath, validated.ConflictPolicy, cancellationToken);
+            if (validated.OutputStream is { } provider) {
+                ProviderPublicationOutcome outcome = await PublishProviderArtifactAsync(stagingPath, validated.OutputPath, provider,
+                    validated.Limits.MaximumOutputBytes, validated.PublicationGuard, () => {
+                        File.Delete(stagingPath);
+                        stagingPath = null;
+                        Directory.Delete(providerStagingDirectory!, recursive: false);
+                        providerStagingDirectory = null;
+                    }, diagnostics, cancellationToken).ConfigureAwait(false);
+                return new PdfAssemblyResult(validated.Id, outcome.Status,
+                    outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
+                    outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
+                    sourceCount, pageCount, inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, outcome.Recovery);
+            }
+            string publishedPath = await PublishAsync(stagingPath, validated.OutputPath, validated.ConflictPolicy,
+                validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
             long outputBytes = new FileInfo(publishedPath).Length;
             Report(progress, validated.Id, "complete", "Assembled PDF is ready", 1D);
@@ -146,7 +168,10 @@ public sealed partial class OfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 $"Assembled {sourceCount:N0} {(sourceCount == 1 ? "input" : "inputs")} into {pageCount:N0} PDF {(pageCount == 1 ? "page" : "pages")}.",
                 diagnostics);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            ReportInputStagingCleanupFailure(error, diagnostics);
+            inputs.Cleanup(diagnostics);
+            CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "Cancelled",
                 "PDF assembly was cancelled before publication.",
@@ -165,6 +190,9 @@ public sealed partial class OfficeWorkflowRunner {
                 "Cancelled",
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
+            ReportInputStagingCleanupFailure(ex, diagnostics);
+            inputs.Cleanup(diagnostics);
+            CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",
                 ex.Message,
@@ -184,8 +212,23 @@ public sealed partial class OfficeWorkflowRunner {
                 "PDF assembly failed: " + ex.Message,
                 diagnostics);
         } finally {
+            inputs.Cleanup(diagnostics);
             if (stagingPath is not null) TryDelete(stagingPath);
-            if (extractionRoot is not null) TryDeleteDirectory(extractionRoot);
+            if (providerStagingDirectory is not null) TryDeleteDirectory(providerStagingDirectory);
+            CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
+        }
+    }
+
+    private static void CleanupAssemblyExtraction(ref string? path, List<OfficeWorkflowDiagnostic> diagnostics) {
+        if (path is null) return;
+        string ownedPath = path;
+        path = null;
+        try { Directory.Delete(ownedPath, recursive: true); }
+        catch (DirectoryNotFoundException) when (!File.Exists(ownedPath)) { }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            diagnostics.Add(new OfficeWorkflowDiagnostic("InputStagingCleanupFailed",
+                "Private assembly inputs could not be removed: " + error.Message,
+                OfficeWorkflowDiagnosticSeverity.Warning, "cleanup"));
         }
     }
 
@@ -200,14 +243,33 @@ public sealed partial class OfficeWorkflowRunner {
                 $"Source count exceeds the configured {options.MaximumSourceCount:N0}-item limit.",
                 nameof(request));
         }
-        string outputPath = Path.GetFullPath(request.OutputPath);
-        EnsurePdfExtension(outputPath);
-        string[] sources = request.Sources.Select(Path.GetFullPath).ToArray();
-        if (sources.Any(path => OfficeWorkflowPathIdentity.AreEquivalent(path, outputPath))) {
+        string outputPath = request.OutputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeIMO.Internal.OfficeStorageIdentity.Normalize(request.OutputPath);
+        EnsurePdfExtension(request.OutputStream?.Name ?? outputPath);
+        if (request.OutputStream is not null && request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace) {
+            throw new ArgumentException("A provider output requires the Replace policy after direct-write confirmation.", nameof(request));
+        }
+        var sourceStreams = new Dictionary<string, OfficeWorkflowStreamInput>(StringComparer.Ordinal);
+        foreach (var item in request.SourceStreams ?? throw new ArgumentException("Source streams cannot be null.", nameof(request))) {
+            if (!request.Sources.Contains(item.Key, StringComparer.Ordinal) || item.Value is null) {
+                throw new ArgumentException("Each provider stream must identify a selected source.", nameof(request));
+            }
+            sourceStreams.Add(OfficeIMO.Internal.OfficeStorageIdentity.Normalize(item.Key), item.Value);
+        }
+        string[] sources = request.Sources.Select(OfficeIMO.Internal.OfficeStorageIdentity.Normalize).ToArray();
+        var sourceDirectories = new Dictionary<string, OfficeWorkflowDirectoryInput>(StringComparer.Ordinal);
+        foreach (var item in request.SourceDirectories ?? throw new ArgumentException("Source directories cannot be null.", nameof(request))) {
+            string location = OfficeStorageIdentity.Normalize(item.Key);
+            if (!request.Sources.Contains(item.Key, StringComparer.Ordinal) || item.Value is null || sourceStreams.ContainsKey(location))
+                throw new ArgumentException("Each provider folder must identify a selected source without a file stream.", nameof(request));
+            sourceDirectories.Add(location, item.Value);
+        }
+        if (sources.Any(path => sourceStreams.ContainsKey(path) || sourceDirectories.ContainsKey(path) || request.OutputStream is not null
+                ? string.Equals(path, outputPath, StringComparison.Ordinal)
+                : OfficeStorageIdentity.AreEquivalent(path, outputPath))) {
             throw new ArgumentException("The output PDF cannot also be an explicit input.", nameof(request));
         }
         foreach (string path in sources) {
-            if (!File.Exists(path) && !Directory.Exists(path)) {
+            if (!sourceStreams.ContainsKey(path) && !sourceDirectories.ContainsKey(path) && !File.Exists(path) && !Directory.Exists(path)) {
                 throw new FileNotFoundException("An assembly source does not exist.", path);
             }
         }
@@ -223,7 +285,9 @@ public sealed partial class OfficeWorkflowRunner {
             options,
             limits,
             CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
-            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes));
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes),
+            request.PublicationGuard,
+            sourceStreams, OutputStream: request.OutputStream, SourceDirectories: sourceDirectories);
     }
 
     private static IReadOnlyList<AssemblySource> ExpandAssemblySources(
@@ -290,7 +354,8 @@ public sealed partial class OfficeWorkflowRunner {
                     AddInputBytes(dependencyDiscovery.TotalBytes);
                     dependencySnapshots = dependencyDiscovery.Snapshots;
                 }
-                AddDiscoveredSource(input, input, discovered: false, physicalRoot, dependencySnapshots);
+                string origin = request.SourceLocations?.GetValueOrDefault(input) ?? input;
+                AddDiscoveredSource(input, origin, discovered: false, physicalRoot, dependencySnapshots);
             }
         }
         if (sources.Count == 0) throw new InvalidOperationException("No supported documents were found in the requested sources.");
@@ -314,7 +379,8 @@ public sealed partial class OfficeWorkflowRunner {
                 if (discovered && request.Options.IgnoreDiscoveredUnsupportedFiles) return;
                 throw new NotSupportedException("No PDF assembly intake route is available for '" + path + "'.");
             }
-            Add(CaptureSource(path, origin, Path.GetFileName(path), kind, route, physicalRoot, dependencySnapshots));
+            string name = request.SourceStreams.TryGetValue(path, out OfficeWorkflowStreamInput? stream) ? stream.Name : Path.GetFileName(path);
+            Add(CaptureSource(path, origin, name, kind, route, physicalRoot, dependencySnapshots));
         }
 
         void ExpandArchive(string archivePath, string origin, int index, string physicalRoot) {
@@ -626,6 +692,9 @@ public sealed partial class OfficeWorkflowRunner {
         string path,
         string requestedOutputPath,
         OfficeWorkflowConflictPolicy conflictPolicy) {
+        string? localOutputPath = OfficeStorageIdentity.GetLocalPath(requestedOutputPath);
+        if (localOutputPath is null) return false;
+        requestedOutputPath = localOutputPath;
         if (OfficeWorkflowPathIdentity.AreEquivalent(path, requestedOutputPath)) return true;
         if (conflictPolicy != OfficeWorkflowConflictPolicy.Rename) return false;
 
@@ -823,5 +892,10 @@ public sealed partial class OfficeWorkflowRunner {
         PdfAssemblyOptions Options,
         OfficeWorkflowLimits Limits,
         PdfLoadOptions PdfLoadOptions,
-        PdfLoadOptions OutputPdfLoadOptions);
+        PdfLoadOptions OutputPdfLoadOptions,
+        IOfficeWorkflowPublicationGuard? PublicationGuard,
+        IReadOnlyDictionary<string, OfficeWorkflowStreamInput> SourceStreams,
+        IReadOnlyDictionary<string, string>? SourceLocations = null,
+        OfficeWorkflowStreamOutput? OutputStream = null,
+        IReadOnlyDictionary<string, OfficeWorkflowDirectoryInput>? SourceDirectories = null);
 }

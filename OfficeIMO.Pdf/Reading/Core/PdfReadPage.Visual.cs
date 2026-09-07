@@ -114,6 +114,12 @@ public sealed partial class PdfReadPage {
     internal OfficeDrawing ToDrawing(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
+        return ToDisplayDrawing(cancellationToken);
+    }
+
+    // Used only by the raster display path; never return this drawing through a public viewing API.
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
@@ -2448,43 +2454,9 @@ public sealed partial class PdfReadPage {
     }
 
     private Matrix2D CreateAnnotationAppearanceTransform((double X1, double Y1, double X2, double Y2) rectangle, PdfDictionary appearanceDictionary) {
-        double bboxX1 = 0D;
-        double bboxY1 = 0D;
-        double bboxWidth = rectangle.X2 - rectangle.X1;
-        double bboxHeight = rectangle.Y2 - rectangle.Y1;
-        if (TryReadBox(appearanceDictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox)) {
-            bboxX1 = bbox.X1;
-            bboxY1 = bbox.Y1;
-            bboxWidth = bbox.X2 - bbox.X1;
-            bboxHeight = bbox.Y2 - bbox.Y1;
-        }
-
-        double scaleX = bboxWidth > 0D ? (rectangle.X2 - rectangle.X1) / bboxWidth : 1D;
-        double scaleY = bboxHeight > 0D ? (rectangle.Y2 - rectangle.Y1) / bboxHeight : 1D;
-        var rectangleTransform = new Matrix2D(
-            scaleX,
-            0D,
-            0D,
-            scaleY,
-            rectangle.X1 - (bboxX1 * scaleX),
-            rectangle.Y1 - (bboxY1 * scaleY));
-        return Matrix2D.Multiply(rectangleTransform, ReadAppearanceMatrix(appearanceDictionary));
-    }
-
-    private Matrix2D ReadAppearanceMatrix(PdfDictionary appearanceDictionary) {
-        if (!appearanceDictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject) ||
-            ResolveObject(matrixObject) is not PdfArray matrix ||
-            matrix.Items.Count < 6) {
-            return Matrix2D.Identity;
-        }
-
-        return new Matrix2D(
-            ReadMatrixNumber(matrix, 0, 1D),
-            ReadMatrixNumber(matrix, 1, 0D),
-            ReadMatrixNumber(matrix, 2, 0D),
-            ReadMatrixNumber(matrix, 3, 1D),
-            ReadMatrixNumber(matrix, 4, 0D),
-            ReadMatrixNumber(matrix, 5, 0D));
+        Matrix2D placement = PdfAppearancePlacement.Read(appearanceDictionary, value => ResolveObject(value),
+            rectangle.X1, rectangle.Y1, rectangle.X2 - rectangle.X1, rectangle.Y2 - rectangle.Y1, out Matrix2D matrix);
+        return Matrix2D.Multiply(placement, matrix);
     }
 
     private double ReadMatrixNumber(PdfArray matrix, int index, double fallback) =>
@@ -2562,158 +2534,6 @@ public sealed partial class PdfReadPage {
 
     private TextContentParser.TextOutputBudget CreateTextOutputBudget() =>
         new(_limits.MaxActualTextCharacters, _limits.MaxDecodedTextCharacters);
-
-    private static void AddTextSpan(OfficeDrawing drawing, double pageHeight, PdfTextSpan span) {
-        if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) {
-            return;
-        }
-
-        double height = Math.Max(1D, span.FontSize * 1.25D);
-        double width = Math.Max(span.Advance, span.Text.Length * span.FontSize * 0.55D);
-        double rawX = span.X;
-        double rawY = pageHeight - span.Y - span.FontSize;
-        if (!HasVisibleOverlap(rawX, rawY, width, height, drawing.Width, drawing.Height)) {
-            return;
-        }
-
-        double x = rawX;
-        double y = rawY;
-        double clippedRight = Math.Min(rawX + width, drawing.Width);
-        double clippedBottom = Math.Min(rawY + height, drawing.Height);
-        double baselineY = pageHeight - span.Y;
-        if (!span.ClipPath.HasValue &&
-            (rawX < 0D || rawY < 0D || rawX + width > drawing.Width || rawY + height > drawing.Height)) {
-            PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height);
-            if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY, pageClip)) {
-                return;
-            }
-        }
-
-        x = Clamp(rawX, 0D, drawing.Width);
-        y = Clamp(rawY, 0D, drawing.Height);
-        baselineY = Clamp(baselineY, 0D, drawing.Height);
-        width = Math.Max(1D, clippedRight - x);
-        height = Math.Max(1D, clippedBottom - y);
-        if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY)) {
-            return;
-        }
-
-        if (IsEffectivelyUnrotated(span.RotationDegrees) && TryGetSafePositionedAdvance(span, out double textAdvance)) {
-            drawing.AddPositionedText(
-                span.Text,
-                x,
-                y,
-                width,
-                height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
-                span.Color ?? OfficeColor.Black,
-                textAdvanceWidth: textAdvance);
-        } else {
-            drawing.AddText(
-                span.Text,
-                x,
-                y,
-                width,
-                height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
-                span.Color ?? OfficeColor.Black,
-                rotationDegrees: -span.RotationDegrees,
-                rotationCenterX: x,
-                rotationCenterY: baselineY,
-                wrapText: false);
-        }
-    }
-
-    private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null) {
-        PdfPageClipPath? activeClipPath = overrideClipPath ?? span.ClipPath;
-        if (!activeClipPath.HasValue) {
-            return false;
-        }
-
-        PdfPageClipPath clip = activeClipPath.Value;
-        if (clip.Width <= 0D || clip.Height <= 0D) {
-            return true;
-        }
-
-        OfficeClipPath? officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
-        if (officeClipPath == null) {
-            return false;
-        }
-
-        double clipRight = clip.X + clip.Width;
-        double clipBottom = clip.Y + clip.Height;
-        if (clip.IsRectangle && x >= clip.X && y >= clip.Y && x + width <= clipRight && y + height <= clipBottom) {
-            return false;
-        }
-
-        if (x + width <= clip.X || y + height <= clip.Y || x >= clipRight || y >= clipBottom) {
-            return true;
-        }
-
-        double localX = x - clip.X;
-        double localY = y - clip.Y;
-        if (clip.X < 0D ||
-            clip.Y < 0D ||
-            clipRight > drawing.Width ||
-            clipBottom > drawing.Height) {
-            if (!TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out PdfPageClipPath drawingClip)) {
-                return true;
-            }
-
-            clip = drawingClip;
-            officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
-            if (officeClipPath == null) {
-                return false;
-            }
-
-            localX = x - clip.X;
-            localY = y - clip.Y;
-        }
-
-        double textWidth = Math.Max(1D, width);
-        double textHeight = Math.Max(1D, height);
-        if (IsEffectivelyUnrotated(span.RotationDegrees) && TryGetSafePositionedAdvance(span, out double textAdvance)) {
-            drawing.AddClippedPositionedText(
-                span.Text,
-                x,
-                y,
-                textWidth,
-                textHeight,
-                clip.X,
-                clip.Y,
-                officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
-                span.Color ?? OfficeColor.Black,
-                textAdvanceWidth: textAdvance);
-        } else {
-            drawing.AddClippedText(
-                span.Text,
-                x,
-                y,
-                textWidth,
-                textHeight,
-                clip.X,
-                clip.Y,
-                officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
-                span.Color ?? OfficeColor.Black,
-                rotationDegrees: -span.RotationDegrees,
-                rotationCenterX: x,
-                rotationCenterY: baselineY,
-                wrapText: false);
-        }
-        return true;
-    }
-
-    private static bool IsEffectivelyUnrotated(double rotationDegrees) {
-        double normalized = rotationDegrees % 360D;
-        return Math.Abs(normalized) <= 0.0001D || Math.Abs(Math.Abs(normalized) - 360D) <= 0.0001D;
-    }
-
-    private static bool TryGetSafePositionedAdvance(PdfTextSpan span, out double advance) {
-        advance = span.Advance;
-        return span.CanScaleAggregateAdvance && advance > 0D && !double.IsNaN(advance) && !double.IsInfinity(advance);
-    }
 
     private static OfficeFontInfo ToOfficeFontInfo(
         string? baseFont,

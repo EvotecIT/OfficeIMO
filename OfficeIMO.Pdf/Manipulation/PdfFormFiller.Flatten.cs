@@ -149,8 +149,13 @@ internal static partial class PdfFormFiller {
             string xObjectName = CreateUniqueXObjectName(xObjects);
             xObjects.Items[xObjectName] = new PdfReference(widget.AppearanceObjectNumber, 0);
             builder.Append("q\n");
-            builder.Append(FormatNumber(widget.Width)).Append(" 0 0 ").Append(FormatNumber(widget.Height)).Append(' ')
-                .Append(FormatNumber(widget.X)).Append(' ').Append(FormatNumber(widget.Y)).Append(" cm\n");
+            if (!objects.TryGetValue(widget.AppearanceObjectNumber, out var appearanceObject) ||
+                appearanceObject.Value is not PdfStream appearanceStream)
+                throw new InvalidOperationException("The form appearance stream is missing.");
+            Matrix2D placement = PdfAppearancePlacement.Read(appearanceStream.Dictionary,
+                value => ResolveObject(objects, value), widget.X, widget.Y, widget.Width, widget.Height, out _);
+            builder.Append(PdfSyntaxEscaper.Number(placement.A)).Append(" 0 0 ").Append(PdfSyntaxEscaper.Number(placement.D)).Append(' ')
+                .Append(PdfSyntaxEscaper.Number(placement.E)).Append(' ').Append(PdfSyntaxEscaper.Number(placement.F)).Append(" cm\n");
             builder.Append('/').Append(xObjectName).Append(" Do\n");
             builder.Append("Q\n");
         }
