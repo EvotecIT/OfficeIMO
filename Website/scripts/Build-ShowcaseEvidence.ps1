@@ -32,7 +32,18 @@ if (-not $SkipGeneration -and -not $ManifestOnly) {
     Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
     $examplesAssembly = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/OfficeIMO.Examples.dll"
     foreach ($exampleSwitch in ($selectedCards.generator_switch | Select-Object -Unique)) {
-        Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch)
+        $generatorCards = @($selectedCards | Where-Object generator_switch -CEQ $exampleSwitch)
+        if ($ExampleId.Count -gt 0 -and $exampleSwitch -ceq '--showcase-workflows') {
+            foreach ($card in $generatorCards) {
+                Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch, '--showcase-example', $card.id)
+            }
+        } elseif ($ExampleId.Count -gt 0 -and $exampleSwitch -ceq '--showcase-features') {
+            foreach ($format in ($generatorCards.format_id | Select-Object -Unique)) {
+                Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch, '--showcase-group', $format)
+            }
+        } else {
+            Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch)
+        }
     }
 }
 

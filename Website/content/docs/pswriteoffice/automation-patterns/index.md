@@ -32,4 +32,4 @@ For Reader and conversion batches, limit concurrency based on document size and 
 
 ## Use the generated surface
 
-The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.
+The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.

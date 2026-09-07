@@ -38,4 +38,4 @@ Update commands are intentionally specific: change text, styles, images, shapes,
 - **Forms:** check boxes, combo boxes, date pickers, drop-down lists, picture controls, repeating sections, and general content controls.
 - **Delivery:** merge documents, protect output, update fields and tables of contents, and convert to HTML or Markdown.
 
-For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Word) for complete copyable scripts.
+For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Word) for complete copyable scripts.

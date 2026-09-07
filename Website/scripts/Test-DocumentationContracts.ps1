@@ -99,6 +99,9 @@ foreach ($publicContentFile in $publicContentFiles) {
     if ($publicContent -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main(?:/|")') {
         Add-Failure "'$([System.IO.Path]::GetRelativePath($SiteRoot, $publicContentFile.FullName))' uses the nonexistent OfficeIMO 'main' branch in a public link."
     }
+    if ($publicContent -match 'https://(?:github\.com/EvotecIT/PSWriteOffice/(?:tree|blob)/|raw\.githubusercontent\.com/EvotecIT/PSWriteOffice/)(?:main|master)(?=[/?#\s"''<>)]|$)') {
+        Add-Failure "'$([IO.Path]::GetRelativePath($SiteRoot, $publicContentFile.FullName))' contains a floating PSWriteOffice repository reference."
+    }
 }
 
 $excelProductPath = Join-Path $SiteRoot 'content\products\excel.md'
@@ -427,6 +430,23 @@ if (@($aotMatrix.components).Count -ne $catalog.repository.productionComponentCo
 
 $powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'
 $powerShellCatalog = Get-Content -LiteralPath $powerShellCatalogPath -Raw | ConvertFrom-Json
+if ($powerShellCatalog.module.version -cne $psWriteOfficeVersion) {
+    Add-Failure 'The PSWriteOffice catalog version must match the imported module manifest.'
+}
+$examplesPrefix = "https://github.com/EvotecIT/PSWriteOffice/tree/v$psWriteOfficeVersion/Examples"
+foreach ($family in @($powerShellCatalog.families)) {
+    $examplesUrl = [string] $family.examplesUrl
+    if ($examplesUrl -cne $examplesPrefix -and
+        -not $examplesUrl.StartsWith($examplesPrefix + '/', [StringComparison]::Ordinal)) {
+        Add-Failure "PowerShell family '$($family.id)' must link to examples from the imported release."
+        continue
+    }
+    $relativeExamplesPath = [Uri]::UnescapeDataString($examplesUrl.Substring($examplesPrefix.Length).TrimStart('/'))
+    $localExamplesPath = Join-Path (Join-Path $SiteRoot 'data/apidocs/powershell/examples') $relativeExamplesPath
+    if (-not (Test-Path -LiteralPath $localExamplesPath)) {
+        Add-Failure "PowerShell family '$($family.id)' links to examples missing from the imported snapshot."
+    }
+}
 if ($powerShellCatalog.module.commandCount -le 0) {
     Add-Failure 'The PSWriteOffice snapshot must contain at least one exported command.'
 }

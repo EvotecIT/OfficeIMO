@@ -54,7 +54,7 @@ $table | Write-DbaXTableData `
     -BatchSize 5000
 ```
 
-The repository includes a complete [Excel round-trip example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1) that creates source data, exports a workbook, imports a `DataTable`, writes it to a destination table, verifies row counts, and removes its test artifacts.
+The repository includes a complete {{< pswriteoffice-source kind="blob" path="Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1" label="Excel round-trip example" >}} that creates source data, exports a workbook, imports a `DataTable`, writes it to a destination table, verifies row counts, and removes its test artifacts.
 
 ## CSV for large or interoperable handoffs
 
@@ -65,7 +65,7 @@ $rows | Export-OfficeCsv -Path '.\Monthly-Revenue.csv'
 $table = Import-OfficeCsv -Path '.\Monthly-Revenue.csv' -AsDataTable -InferSchema
 ```
 
-The [CSV round-trip example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1) verifies the same database-to-file-to-database flow. For a streaming database handoff, use `Import-OfficeCsv -AsDataReader` and pipe the reader to `Write-DbaXTableData`; dispose reader and database resources when the transfer completes.
+The {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="CSV round-trip example" >}} verifies the same database-to-file-to-database flow. For a streaming database handoff, use `Import-OfficeCsv -AsDataReader` and pipe the reader to `Write-DbaXTableData`; dispose reader and database resources when the transfer completes.
 
 ## Production checklist
 

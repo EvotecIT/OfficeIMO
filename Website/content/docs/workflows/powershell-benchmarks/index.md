@@ -47,4 +47,4 @@ These rows are examples from the current committed PSWriteOffice benchmark repor
 
 Do not choose a package from one row. Run the scenario matching your row count, schema, compression, formatting, and validation needs on infrastructure close to production.
 
-Open the [complete benchmark source and generated tables](https://github.com/EvotecIT/PSWriteOffice/tree/main/Benchmarks) or return to the [OfficeIMO benchmark hub](/benchmarks/).
+Open the {{< pswriteoffice-source kind="tree" path="Benchmarks" label="complete benchmark source and generated tables" >}} or return to the [OfficeIMO benchmark hub](/benchmarks/).

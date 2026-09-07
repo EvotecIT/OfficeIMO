@@ -36,4 +36,4 @@ This enables a safer pipeline:
 
 PDF features vary by document structure and preservation requirement. Use `Test-OfficePdfRewrite`, diagnostics, and preflight evidence for complex inputs instead of assuming every rewrite is lossless.
 
-See the [PDF examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.
+See the [PDF examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.

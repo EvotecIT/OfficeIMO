@@ -319,6 +319,55 @@ function Set-PSWriteOfficeSourceLinks {
     return $changed
 }
 
+function Set-PSWriteOfficeDocumentationLinks {
+    param(
+        [Parameter(Mandatory)][string] $SiteRootPath,
+        [Parameter(Mandatory)] $Source
+    )
+
+    $repository = [regex]::Escape($Source.Repo)
+    $sourceRef = [Uri]::EscapeDataString($Source.Ref)
+    # Only floating repository refs change. Explicit historical tags, other
+    # repositories, URL suffixes and branches such as main-next retain their meaning.
+    $pattern = '(?<prefix>https://(?:github\.com/' + $repository +
+        '/(?:blob|tree)/|raw\.githubusercontent\.com/' + $repository +
+        '/))(?:main|master)(?=[/?#\s"''<>)]|$)'
+    $replacement = [System.Text.RegularExpressions.MatchEvaluator] {
+        param($match)
+        $match.Groups['prefix'].Value + $sourceRef
+    }
+
+    $catalogPath = Join-Path $SiteRootPath 'data/pswriteoffice_command_catalog.json'
+    $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -Depth 20
+    # A family's examples belong to this module version even if its catalog was
+    # previously pinned. Historical links in guide prose are handled separately.
+    $examplesPattern = '^(?<prefix>https://github\.com/' + $repository +
+        '/tree/)[^/]+(?=/Examples(?:[/#?]|$))'
+    $catalogChanged = $false
+    foreach ($family in @($catalog.families)) {
+        $examplesUrl = [regex]::Replace([string] $family.examplesUrl, $examplesPattern, $replacement)
+        if ($examplesUrl -cne $family.examplesUrl) {
+            $family.examplesUrl = $examplesUrl
+            $catalogChanged = $true
+        }
+    }
+    if ($catalogChanged) {
+        [IO.File]::WriteAllText($catalogPath, ($catalog | ConvertTo-Json -Depth 20 -Compress) + [Environment]::NewLine)
+    }
+
+    $pagesChanged = $false
+    $documentationRoot = Join-Path $SiteRootPath 'content/docs/pswriteoffice'
+    foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
+        $content = [IO.File]::ReadAllText($page.FullName)
+        $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
+        if ($content -cne $pinnedContent) {
+            [IO.File]::WriteAllText($page.FullName, $pinnedContent, [Text.UTF8Encoding]::new($false))
+            $pagesChanged = $true
+        }
+    }
+    [PSCustomObject]@{ CatalogUpdated = $catalogChanged; DocumentationUpdated = $pagesChanged }
+}
+
 $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
 $siteConfiguration = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'site.json') -Raw | ConvertFrom-Json
 $powerShellSource = @($siteConfiguration.Sources | Where-Object Slug -CEQ 'pswriteoffice')
@@ -387,6 +436,11 @@ $summary = [ordered]@{
 
 if (-not $resolvedRepoRoot) {
     $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
+    if (-not $SkipDocumentation) {
+        $linkUpdates = Set-PSWriteOfficeDocumentationLinks -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+        $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
+        $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
+    }
     Write-Host 'No matching PSWriteOffice release checkout found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
     [PSCustomObject] $summary
     return
@@ -494,6 +548,9 @@ if (-not $SkipDocumentation) {
     } else {
         throw "No complete PSWriteOffice documentation/catalog pair is available in source or the checked-in site snapshot."
     }
+    $linkUpdates = Set-PSWriteOfficeDocumentationLinks -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+    $summary.documentationCatalogUpdated = $summary.documentationCatalogUpdated -or $linkUpdates.CatalogUpdated
+    $summary.documentationUpdated = $summary.documentationUpdated -or $linkUpdates.DocumentationUpdated
 }
 
 [PSCustomObject] $summary
