@@ -8,7 +8,7 @@ internal static partial class OfficeDocumentModelTraversal {
     internal static IReadOnlyList<OfficeDocumentContentItem> Content(OfficeDocumentReadResult document) {
         var items = new List<OfficeDocumentContentItem>();
         var hints = new Dictionary<OfficeDocumentContentItem, long>();
-        var anchors = new Dictionary<string, (ReaderLocation Location, long Order)?>(StringComparer.Ordinal);
+        var anchors = new Dictionary<string, List<(ReaderLocation Location, long Order)>>(StringComparer.Ordinal);
         void Add(OfficeDocumentContentItem item, long? order = null) {
             hints.Add(item, order ?? (long)items.Count * 2);
             items.Add(item);
@@ -18,9 +18,8 @@ internal static partial class OfficeDocumentModelTraversal {
             Add(new(block, null, null, block.Location));
             string? anchor = block.Location?.BlockAnchor;
             if (!string.IsNullOrWhiteSpace(anchor)) {
-                // An ambiguous anchor cannot supply a reliable position for a table.
-                if (anchors.ContainsKey(anchor!)) anchors[anchor!] = null;
-                else anchors.Add(anchor!, (block.Location!, order));
+                if (!anchors.TryGetValue(anchor!, out var positions)) anchors.Add(anchor!, positions = new());
+                positions.Add((block.Location!, order));
             }
         }
         if (!items.Any(item => !string.IsNullOrWhiteSpace(item.Block?.Text))) {
@@ -38,10 +37,14 @@ internal static partial class OfficeDocumentModelTraversal {
             long? order = null;
             if (chunkLocations.TryGetValue(table, out ReaderLocation? chunkLocation))
                 location = MergeLocation(location, chunkLocation, location?.TableIndex);
-            if (!string.IsNullOrWhiteSpace(location?.BlockAnchor) && anchors.TryGetValue(location!.BlockAnchor!, out var anchor)
-                && anchor.HasValue && SameContainerWhenKnown(location, anchor.Value.Location)) {
-                location = MergeLocation(location, anchor.Value.Location, location?.TableIndex);
-                order = anchor.Value.Order + 1;
+            if (!string.IsNullOrWhiteSpace(location?.BlockAnchor) && anchors.TryGetValue(location!.BlockAnchor!, out var positions)) {
+                // Readers can reuse a local anchor on different pages, slides, sheets or paths.
+                // Only ambiguity among compatible containers prevents a reliable position.
+                var matches = positions.Where(position => SameContainerWhenKnown(location, position.Location)).Take(2).ToArray();
+                if (matches.Length == 1) {
+                    location = MergeLocation(location, matches[0].Location, location?.TableIndex);
+                    order = matches[0].Order + 1;
+                }
             }
             Add(new(null, table, null, location), order);
         }

@@ -21,11 +21,14 @@ public sealed partial class OfficeAiEngine {
             if (status is not ("ok" or "insufficient")) throw Invalid();
             int maximum = Math.Min(200, request.Limits.MaxResultItems);
             JsonElement[] claimItems = Items(root.GetProperty("claims"), maximum);
-            JsonElement[] fieldItems = Items(root.GetProperty("fields"), maximum);
+            JsonElement fieldItems = root.GetProperty("fields");
+            if (request.Operation == OfficeAiOperation.ExtractFields)
+                CheckObject(fieldItems, request.Fields.Select((_, index) => FieldKey(index)).ToArray());
+            else if (Items(fieldItems, maximum).Length != 0) throw Invalid();
             JsonElement[] blockItems = Items(root.GetProperty("blocks"), maximum);
             JsonElement[] tableItems = Items(root.GetProperty("tables"), maximum);
             bool reasoning = request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain or OfficeAiOperation.Summarize;
-            if ((!reasoning && claimItems.Length != 0) || (request.Operation != OfficeAiOperation.ExtractFields && fieldItems.Length != 0)
+            if ((!reasoning && claimItems.Length != 0)
                 || (request.Operation != OfficeAiOperation.Parse && (blockItems.Length != 0 || tableItems.Length != 0))) throw Invalid();
             if (status == "insufficient" && (claimItems.Length + blockItems.Length + tableItems.Length > 0)) throw Invalid();
             var claims = new List<OfficeAiClaim>();
@@ -34,11 +37,11 @@ public sealed partial class OfficeAiEngine {
                 claims.Add(new(Text(item.GetProperty("text")), Citations(item.GetProperty("evidence"), batch, required: true)));
             }
             var fields = new List<OfficeAiField>();
-            var definitions = request.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal);
-            foreach (JsonElement item in fieldItems) {
-                CheckObject(item, "name", "status", "rawValue", "evidence");
-                string name = Text(item.GetProperty("name"));
-                if (!definitions.Remove(name, out OfficeAiFieldDefinition? definition)) throw Invalid();
+            for (int fieldIndex = 0; fieldIndex < request.Fields.Count; fieldIndex++) {
+                OfficeAiFieldDefinition definition = request.Fields[fieldIndex];
+                string name = definition.Name;
+                JsonElement item = fieldItems.GetProperty(FieldKey(fieldIndex));
+                CheckObject(item, "status", "rawValue", "evidence");
                 OfficeAiFieldStatus fieldStatus = Text(item.GetProperty("status")) switch {
                     "present" => OfficeAiFieldStatus.Present, "missing" => OfficeAiFieldStatus.Missing,
                     "ambiguous" => OfficeAiFieldStatus.Ambiguous, "conflicting" => OfficeAiFieldStatus.Conflicting, _ => throw Invalid()
@@ -62,7 +65,6 @@ public sealed partial class OfficeAiEngine {
                 }
                 fields.Add(new(name, definition.Type, fieldStatus, raw, normalized, citations));
             }
-            if (definitions.Count != 0) throw Invalid();
             var blocks = new List<OfficeAiBlock>();
             foreach (JsonElement item in blockItems) {
                 CheckObject(item, "kind", "text", "evidence");

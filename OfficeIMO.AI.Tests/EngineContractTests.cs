@@ -31,8 +31,9 @@ public sealed class EngineContractTests {
         });
         using var schema = JsonDocument.Parse(Assert.Single(executor.Requests).OutputSchema);
         var properties = schema.RootElement.GetProperty("properties");
-        var requiredText = properties.GetProperty(operation == OfficeAiOperation.ExtractFields ? "fields" : operation == OfficeAiOperation.Parse ? "blocks" : "claims")
-            .GetProperty("items").GetProperty("properties");
+        var requiredText = operation == OfficeAiOperation.ExtractFields
+            ? schema.RootElement.GetProperty("$defs").GetProperty("fieldValue").GetProperty("anyOf")[0].GetProperty("properties")
+            : properties.GetProperty(operation == OfficeAiOperation.Parse ? "blocks" : "claims").GetProperty("items").GetProperty("properties");
         var stringSchemas = new[] { requiredText.GetProperty(operation == OfficeAiOperation.ExtractFields ? "rawValue" : "text"),
             requiredText.GetProperty("evidence").GetProperty("items").GetProperty("properties").GetProperty("id"),
             requiredText.GetProperty("evidence").GetProperty("items").GetProperty("properties").GetProperty("quote") };
@@ -68,7 +69,7 @@ public sealed class EngineContractTests {
     [Fact]
     public async Task NumericCitationSelectsTheCompleteOccurrenceAndRecordsItsOffset() {
         const string source = "1234 ... 234";
-        var result = await new OfficeAiEngine(new Executor(Field("amount", "234", "e1"))).RunAsync(Document(source), Request() with {
+        var result = await new OfficeAiEngine(new Executor(Field("234", "e1"))).RunAsync(Document(source), Request() with {
             Operation = OfficeAiOperation.ExtractFields,
             Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Integer) }
         });
@@ -159,6 +160,13 @@ public sealed class EngineContractTests {
         string[] enabled = enabledNames.Split(',');
         foreach (string name in new[] { "claims", "fields", "blocks", "tables" }) {
             JsonElement array = schema.RootElement.GetProperty("properties").GetProperty(name);
+            if (name == "fields" && operation == OfficeAiOperation.ExtractFields) {
+                Assert.Equal("object", array.GetProperty("type").GetString());
+                Assert.False(array.GetProperty("additionalProperties").GetBoolean());
+                Assert.Equal("field1", Assert.Single(array.GetProperty("required").EnumerateArray()).GetString());
+                Assert.Equal("field1", Assert.Single(array.GetProperty("properties").EnumerateObject()).Name);
+                continue;
+            }
             Assert.Equal("array", array.GetProperty("type").GetString());
             Assert.Equal(enabled.Contains(name) ? 2 : 0, array.GetProperty("maxItems").GetInt32());
         }
@@ -207,7 +215,7 @@ public sealed class EngineContractTests {
     [InlineData("1,234.50", "en-US", "1234.50")]
     [InlineData("12,34,567.89", "hi-IN", "1234567.89")]
     public async Task FieldNormalizationUsesExplicitCulture(string raw, string culture, string expected) {
-        var executor = new Executor(Field("amount", raw, "e1"));
+        var executor = new Executor(Field(raw, "e1"));
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document(raw), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,
             Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Decimal) }
@@ -282,6 +290,10 @@ public sealed class EngineContractTests {
     [InlineData("Total: .50 USD.", "50", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Total: 42- USD.", "42", "en-US", OfficeAiFieldType.Integer)]
     [InlineData("Total: 42e3 USD.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42E\u22123 USD.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42e\u22123 USD.", "42", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Total: 42E\u061c-3.", "42", "ar-EG", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42E\u061c+3.", "42", "ar-EG", OfficeAiFieldType.Integer)]
     [InlineData("Total: 42e3 USD.", "3", "en-US", OfficeAiFieldType.Integer)]
     [InlineData("Total: 42e-3 USD.", "-3", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Refund: -$42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
@@ -301,7 +313,7 @@ public sealed class EngineContractTests {
         foreach (string quote in new[] { raw, source }) {
             string response = JsonSerializer.Serialize(new {
                 status = "ok", claims = Array.Empty<object>(),
-                fields = new[] { new { name = "amount", status = "present", rawValue = raw, evidence = new[] { new { id = "e1", quote } } } },
+                fields = new { field1 = new { status = "present", rawValue = raw, evidence = new[] { new { id = "e1", quote } } } },
                 blocks = Array.Empty<object>(), tables = Array.Empty<object>()
             });
             var result = await new OfficeAiEngine(new Executor(response)).RunAsync(Document(source), Request() with {
@@ -328,7 +340,7 @@ public sealed class EngineContractTests {
     [InlineData("Quantity: 42\u202f2025 model", "42", "en-US", "42")]
     [InlineData("Quantity: 2025 42 units", "42", "en-US", "42")]
     public async Task CompleteNumericEvidencePreservesSignsUnitsAndSentencePunctuation(string source, string raw, string culture, string expected) {
-        var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(source), Request() with {
+        var result = await new OfficeAiEngine(new Executor(Field(raw, "e1"))).RunAsync(Document(source), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,
             Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Decimal) }
         });
@@ -348,7 +360,7 @@ public sealed class EngineContractTests {
     [InlineData("1,234.0", "en-US", null)]
     [InlineData("9,223,372,036,854,775,808", "en-US", null)]
     public async Task IntegerFieldsValidateLocaleGroupingAndIntegralRange(string raw, string culture, string? expected) {
-        var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(raw), Request() with {
+        var result = await new OfficeAiEngine(new Executor(Field(raw, "e1"))).RunAsync(Document(raw), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,
             Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Integer) }
         });
@@ -360,7 +372,7 @@ public sealed class EngineContractTests {
     [InlineData("1,23")]
     [InlineData("1,,234")]
     public async Task MalformedLocaleGroupingDoesNotSilentlyChangeTheAmount(string raw) {
-        OfficeAiResult result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(raw), Request() with {
+        OfficeAiResult result = await new OfficeAiEngine(new Executor(Field(raw, "e1"))).RunAsync(Document(raw), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = "en-US", Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Decimal) }
         });
         OfficeAiField field = Assert.Single(result.Fields);
@@ -378,7 +390,7 @@ public sealed class EngineContractTests {
         var executor = new Executor((input, _) => {
             using var json = JsonDocument.Parse(input.InputJson);
             string id = json.RootElement.GetProperty("evidence")[0].GetProperty("id").GetString()!;
-            return Task.FromResult(new OfficeAiExecutionResponse(Field("total", id == "e1" ? "42" : "45", id)));
+            return Task.FromResult(new OfficeAiExecutionResponse(Field(id == "e1" ? "42" : "45", id)));
         });
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(document, Request() with {
             Operation = OfficeAiOperation.ExtractFields, Fields = new[] { new OfficeAiFieldDefinition("total", OfficeAiFieldType.Decimal) }
@@ -515,7 +527,7 @@ public sealed class EngineContractTests {
         var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source);
         Assert.True(document.HasSourceDiagnostics);
         const string missing = """
-            {"status":"insufficient","claims":[],"fields":[{"name":"value","status":"missing","rawValue":null,"evidence":[]}],"blocks":[],"tables":[]}
+            {"status":"insufficient","claims":[],"fields":{"field1":{"status":"missing","rawValue":null,"evidence":[]}},"blocks":[],"tables":[]}
             """;
         var result = await new OfficeAiEngine(new Executor(missing)).RunAsync(document, Request() with {
             Operation = OfficeAiOperation.ExtractFields, Fields = new[] { new OfficeAiFieldDefinition("value") }
@@ -541,7 +553,7 @@ public sealed class EngineContractTests {
     [InlineData("en-US", "MM/dd/yyyy", "04/03/2030")]
     [InlineData("pl-PL", "dd MMMM yyyy", "03 kwietnia 2030")]
     public async Task ValidCultureSpecificDateFormatStillNormalizes(string culture, string format, string raw) {
-        var result = await new OfficeAiEngine(new Executor(Field("date", raw, "e1"))).RunAsync(Document(raw), Request() with {
+        var result = await new OfficeAiEngine(new Executor(Field(raw, "e1"))).RunAsync(Document(raw), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,
             Fields = new[] { new OfficeAiFieldDefinition("date", OfficeAiFieldType.Date, format) }
         });
@@ -595,8 +607,8 @@ public sealed class EngineContractTests {
         status = "ok", claims = new[] { new { text = "The total is 42.", evidence = new[] { new { id, quote } } } },
         fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>()
     });
-    private static string Field(string name, string rawValue, string id) => JsonSerializer.Serialize(new {
-        status = "ok", claims = Array.Empty<object>(), fields = new[] { new { name, status = "present", rawValue, evidence = new[] { new { id, quote = rawValue } } } },
+    private static string Field(string rawValue, string id) => JsonSerializer.Serialize(new {
+        status = "ok", claims = Array.Empty<object>(), fields = new Dictionary<string, object> { ["field1"] = new { status = "present", rawValue, evidence = new[] { new { id, quote = rawValue } } } },
         blocks = Array.Empty<object>(), tables = Array.Empty<object>()
     });
     private sealed class Executor : IOfficeAiExecutor {

@@ -69,6 +69,8 @@ Each case saves its source, hash-bound report, provider response, and applicable
 
 XLSX cells support at most 32,767 UTF-16 code units. Supplementary Unicode characters use two units each, so an otherwise valid AI result can exceed that export limit. The example checks every cell before writing report, CSV, or workbook artifacts and rejects an oversized export without truncating its values. Applications that need longer text can serialize the result with `OfficeAiArtifacts.SerializeReport`.
 
+Cancellation and the operation deadline also apply to artifact export. Row writing and readback check the token, and CSV, workbook and file saves receive it. Cancellation stops the remaining export work; artifacts completed before cancellation can remain in the output directory.
+
 Use `--split development` while refining behavior and `--split heldout` for separately declared challenge values and layouts. Once a held-out failure guides a change, treat that case as regression evidence and use fresh reserve cases for the next independent check. Expected values are declared in the corpus before inference, not inferred from model output.
 
 Every case has typed gold values declared before inference. Reports include exact field matches, position-sensitive table-cell precision/recall, fact-marker recall, request attempts, maximum measured request size, synthesis state, and text coverage. Extra returned fields or tables fail the corresponding exact-match check. Memory samples describe the evaluation process only; they exclude model-server and GPU memory. A case failure does not discard earlier results, and reports are checkpointed after each completed case. `--request-characters` sets a profile-specific request bound for smaller contexts.

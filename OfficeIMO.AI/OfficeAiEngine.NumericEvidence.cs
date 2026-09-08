@@ -52,15 +52,25 @@ public sealed partial class OfficeAiEngine {
         int end = start + length;
         if (start > 0 && char.IsDigit(source[start - 1])) return false;
         if (start > 1 && source[start - 1] is 'e' or 'E' && char.IsDigit(source[start - 2])) return false;
-        if (end < source.Length && (char.IsDigit(source[end]) || source[end] is '-' or '+' or '\u2212')) return false;
+        if (end < source.Length && (char.IsDigit(source[end]) || HasNumberSign(source, end, backwards: false, format))) return false;
         if (end < source.Length && source[end] is 'e' or 'E' && end + 1 < source.Length
-            && (char.IsDigit(source[end + 1]) || source[end + 1] is '-' or '+')) return false;
+            && (char.IsDigit(source[end + 1]) || HasNumberSign(source, end + 1, backwards: false, format))) return false;
         int before = SkipCurrencyContext(source, start - 1, -1);
-        if (before >= 0 && (source[before] is '-' or '+' or '\u2212' or '(')) return false;
+        if (before >= 0 && (source[before] == '(' || HasNumberSign(source, before, backwards: true, format))) return false;
         int after = SkipCurrencyContext(source, end, 1);
-        if (after < source.Length && source[after] is '-' or '+' or '\u2212') return false;
+        if (after < source.Length && HasNumberSign(source, after, backwards: false, format)) return false;
         return !HasNumericContinuation(source, start, backwards: true, format)
             && !HasNumericContinuation(source, end, backwards: false, format);
+    }
+
+    private static bool HasNumberSign(string source, int index, bool backwards, NumberFormatInfo format) {
+        if (source[index] is '-' or '+' or '\u2212') return true;
+        foreach (string sign in new[] { format.NegativeSign, format.PositiveSign }) {
+            int start = backwards ? index - sign.Length + 1 : index;
+            if (sign.Length > 0 && start >= 0 && start + sign.Length <= source.Length
+                && source.AsSpan(start, sign.Length).SequenceEqual(sign.AsSpan())) return true;
+        }
+        return false;
     }
 
     private static int SkipCurrencyContext(string source, int index, int direction) {

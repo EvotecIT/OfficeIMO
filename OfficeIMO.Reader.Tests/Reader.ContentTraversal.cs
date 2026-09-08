@@ -5,6 +5,37 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderContentTraversalTests {
     [Theory]
+    [InlineData("page", false)]
+    [InlineData("page", true)]
+    [InlineData("slide", false)]
+    [InlineData("slide", true)]
+    [InlineData("sheet", false)]
+    [InlineData("sheet", true)]
+    [InlineData("path", false)]
+    [InlineData("path", true)]
+    public void ReusedAnchorsRetainTablePositionsWithinTheirOwnContainers(string kind, bool roundTrip) {
+        ReaderLocation Location(int container, string? anchor = null) => new() {
+            Page = kind == "page" ? container : null, Slide = kind == "slide" ? container : null,
+            Sheet = kind == "sheet" ? "Sheet" + container : null, Path = kind == "path" ? "source" + container : null,
+            BlockAnchor = anchor
+        };
+        var source = new OfficeDocumentReadResult {
+            Blocks = Enumerable.Range(1, 2).SelectMany(container => new[] {
+                new OfficeDocumentBlock { Id = "before" + container, Text = "before" + container, Location = Location(container) },
+                new OfficeDocumentBlock { Id = "placeholder" + container, Text = "placeholder" + container, Location = Location(container, "table-1") },
+                new OfficeDocumentBlock { Id = "after" + container, Text = "after" + container, Location = Location(container) }
+            }).ToArray(),
+            Tables = Enumerable.Range(1, 2).Select(container => new ReaderTable {
+                Columns = new[] { "Count" }, Rows = new[] { new[] { container.ToString() } }, Location = Location(container, "table-1")
+            }).ToArray()
+        };
+        var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        Assert.Equal(new[] { "before1", "placeholder1", "table", "after1", "before2", "placeholder2", "table", "after2" },
+            document.EnumerateContent().Select(item => item.Block?.Text ?? "table"));
+        Assert.All(source.Tables, table => Assert.Null(table.Location!.SourceBlockIndex));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void StableAnchorsKeepTablesWithTheirPlaceholdersWithoutInventingPositions(bool roundTrip) {

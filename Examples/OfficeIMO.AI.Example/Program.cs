@@ -23,8 +23,10 @@ try {
     using var executor = await ExampleExecution.ConnectAsync(options, options.Images, lifetime.Token);
     var progress = new Progress<OfficeAiProgress>(value => Console.Error.WriteLine($"{value.Stage}: {value.CompletedBatches}/{value.TotalBatches}"));
     OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(document, request, progress, lifetime.Token);
+    lifetime.Token.ThrowIfCancellationRequested();
     Console.WriteLine(OfficeAiArtifacts.SerializeReport(document, result));
-    if (options.OutputPath is not null) ArtifactWriter.Save(options.OutputPath, document, result);
+    if (options.OutputPath is not null) await ArtifactWriter.SaveAsync(options.OutputPath, document, result, lifetime.Token);
+    lifetime.Token.ThrowIfCancellationRequested();
     return result.Status == OfficeAiResultStatus.Completed ? 0 : 1;
 } catch (OperationCanceledException) {
     Console.Error.WriteLine("Operation cancelled or its time budget expired."); return 3;

@@ -27,11 +27,11 @@ public sealed class SourceAndArtifactTests {
         string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-unicode-" + Guid.NewGuid().ToString("N"));
         try {
             if (exportable) {
-                ArtifactWriter.Save(output, document, result);
+                await ArtifactWriter.SaveAsync(output, document, result);
                 using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
                 Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
             } else {
-                Assert.Throws<NotSupportedException>(() => ArtifactWriter.Save(output, document, result));
+                await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
                 Assert.False(Directory.Exists(output));
             }
         } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
@@ -116,13 +116,13 @@ public sealed class SourceAndArtifactTests {
         Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
         string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-artifact-" + Guid.NewGuid().ToString("N"));
         try {
-            ArtifactWriter.Save(output, document, result);
+            await ArtifactWriter.SaveAsync(output, document, result);
             using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
             Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
             Assert.Contains("'=2+3", File.ReadAllText(Path.Combine(output, "Fields.csv")));
             using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "report.json")));
             Assert.Contains(document.SourceHash, report.RootElement.GetRawText());
-            Assert.Throws<IOException>(() => ArtifactWriter.Save(output, document, result));
+            await Assert.ThrowsAsync<IOException>(() => ArtifactWriter.SaveAsync(output, document, result));
         } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
     }
 
@@ -130,7 +130,7 @@ public sealed class SourceAndArtifactTests {
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "artifact", Provider = "fixture", Model = "fixture", IsLocal = true, MaxRequestCharacters = 1_000_000 };
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) =>
             Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new {
-                status = "ok", claims = Array.Empty<object>(), fields = new[] { new { name = "value", status = "present",
+                status = "ok", claims = Array.Empty<object>(), fields = new { field1 = new { status = "present",
                     rawValue = raw, evidence = new[] { new { id = "e1", quote = raw } } } }, blocks = Array.Empty<object>(), tables = Array.Empty<object>()
             })));
     }

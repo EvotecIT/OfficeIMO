@@ -3,8 +3,7 @@ using System.Text.Json.Nodes;
 namespace OfficeIMO.AI;
 
 public sealed partial class OfficeAiEngine {
-    // The shared response envelope remains stable, but generation must obey the same
-    // operation-specific empty-array contract that the local validator enforces.
+    // Generation and local validation share the operation's output shape.
     private static string CreateOutputSchema(OfficeAiRequest request) {
         string[] enabled = request.Operation switch {
             OfficeAiOperation.Ask or OfficeAiOperation.Explain or OfficeAiOperation.Summarize => new[] { "claims" },
@@ -16,10 +15,45 @@ public sealed partial class OfficeAiEngine {
         JsonNode properties = schema["properties"]!;
         foreach (string name in new[] { "claims", "fields", "blocks", "tables" })
             properties[name]!["maxItems"] = enabled.Contains(name, StringComparer.Ordinal) ? request.Limits.MaxResultItems : 0;
+        if (request.Operation == OfficeAiOperation.ExtractFields) AddRequestedFields(schema, request.Fields);
         if (request.Operation == OfficeAiOperation.Parse) AddRectangularTableShapes(schema, request.Limits);
         BoundStrings(schema);
         return schema.ToJsonString();
     }
+
+    private static void AddRequestedFields(JsonNode schema, IReadOnlyList<OfficeAiFieldDefinition> fields) {
+        JsonNode value = schema["properties"]!["fields"]!["items"]!.DeepClone();
+        value["properties"]!.AsObject().Remove("name");
+        value["required"] = new JsonArray("status", "rawValue", "evidence");
+        var states = new JsonArray();
+        foreach (string state in new[] { "present", "missing", "uncertain" }) {
+            JsonNode shape = value.DeepClone();
+            JsonNode properties = shape["properties"]!;
+            properties["status"]!["enum"] = state == "uncertain" ? new JsonArray("ambiguous", "conflicting") : new JsonArray(state);
+            if (state == "missing") {
+                properties["rawValue"] = new JsonObject { ["type"] = "null" };
+                properties["evidence"]!["maxItems"] = 0;
+            } else {
+                if (state == "present") properties["rawValue"]!["type"] = "string";
+                properties["evidence"]!["minItems"] = 1;
+            }
+            states.Add(shape);
+        }
+        schema["$defs"] = new JsonObject { ["fieldValue"] = new JsonObject { ["anyOf"] = states } };
+        var fieldProperties = new JsonObject();
+        var required = new JsonArray();
+        for (int index = 0; index < fields.Count; index++) {
+            string key = FieldKey(index);
+            fieldProperties[key] = new JsonObject { ["$ref"] = "#/$defs/fieldValue" };
+            required.Add(key);
+        }
+        // Stable keys enforce one value per requested field without restricting caller names to
+        // the string literals accepted by strict-output providers (which can reject quoted keys).
+        schema["properties"]!["fields"] = new JsonObject { ["type"] = "object", ["additionalProperties"] = false,
+            ["properties"] = fieldProperties, ["required"] = required };
+    }
+
+    private static string FieldKey(int index) => "field" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static void AddRectangularTableShapes(JsonNode schema, OfficeAiLimits limits) {
         JsonNode tables = schema["properties"]!["tables"]!;

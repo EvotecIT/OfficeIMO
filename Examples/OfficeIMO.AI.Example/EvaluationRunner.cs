@@ -42,7 +42,7 @@ internal static class EvaluationRunner {
                 try {
                     OfficeAiDocument document = await DocumentInputs.ReadAsync(item.Source, sourcePath, item.Images, request.Pages, request.Limits, operation.Token);
                     result = await new OfficeAiEngine(recorded).RunAsync(document, request, cancellationToken: operation.Token);
-                    ArtifactWriter.Save(directory, document, result);
+                    await ArtifactWriter.SaveAsync(directory, document, result, operation.Token);
                     score = item.Gold.Score(result);
                     accepted = result.Status != OfficeAiResultStatus.InvalidResponse && score.Passed;
                 } catch (OperationCanceledException) when (!deadline.IsCancellationRequested) { failure = "case-timeout"; }
