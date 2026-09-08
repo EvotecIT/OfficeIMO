@@ -104,7 +104,9 @@ internal static partial class OfficeDocumentModelTraversal {
                         ReaderTable proposed = WithLocationFallback(projected, candidate.Location ?? new ReaderLocation(), candidate.Location?.TableIndex);
                         // Missing table ordinals inherit from the matched canonical table. A global chunk
                         // index is not comparable with a page-local ordinal after JSON separates references.
-                        if (BuildTableIdentity(proposed) == BuildTableIdentity(candidate)) {
+                        ReaderTable comparable = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
+                        // Additional coordinates on either projection are compatible; explicit disagreements are not.
+                        if (BuildTableIdentity(proposed) == BuildTableIdentity(comparable)) {
                             matched = true;
                             break;
                         }

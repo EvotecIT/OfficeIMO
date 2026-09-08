@@ -315,7 +315,7 @@ public sealed class SnapshotCoverageTests {
             Tables = aggregate ? tables : Array.Empty<ReaderTable>(),
             Pages = Enumerable.Range(1, 2).Select(page => new OfficeDocumentPage { Number = page,
                 Tables = tables.Skip((page - 1) * 2).Take(2).ToArray() }).ToArray(),
-            Chunks = Enumerable.Range(1, 2).Select(page => new ReaderChunk { Location = new() { Page = page },
+            Chunks = Enumerable.Range(1, 2).Select(page => new ReaderChunk { Location = new() { Page = page, SourceBlockIndex = page * 2 },
                 Tables = tables.Skip((page - 1) * 2).Take(2).ToArray() }).ToArray()
         };
         string? snapshot = null;

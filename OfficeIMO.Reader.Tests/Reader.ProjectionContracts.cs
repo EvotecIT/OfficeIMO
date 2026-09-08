@@ -5,6 +5,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderProjectionContractTests {
     [Theory]
+    [InlineData("SourceBlockIndex")]
+    [InlineData("BlockIndex")]
+    [InlineData("StartLine")]
+    [InlineData("Path")]
+    [InlineData("BlockAnchor")]
+    [InlineData("HeadingPath")]
+    [InlineData("HierarchyHeadingPath")]
+    public void ChunkCoordinatesFillMissingProjectionInformationButDoNotOverrideConflicts(string field) {
+        var property = typeof(ReaderLocation).GetProperty(field)!;
+        foreach (bool conflicting in new[] { false, true }) {
+            var location = new ReaderLocation { Page = 1 };
+            if (conflicting) property.SetValue(location, property.PropertyType == typeof(string) ? "first" : 4);
+            var pageTable = new ReaderTable { Location = location, Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } } };
+            var chunkLocation = new ReaderLocation { Page = 1 };
+            property.SetValue(chunkLocation, property.PropertyType == typeof(string) ? "second" : 5);
+            var chunkTable = conflicting ? new ReaderTable { Location = null, Columns = pageTable.Columns, Rows = pageTable.Rows } : pageTable;
+            var source = new OfficeDocumentReadResult {
+                Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { pageTable } } },
+                Chunks = new[] { new ReaderChunk { Location = chunkLocation, Tables = new[] { chunkTable } } }
+            };
+            foreach (bool roundTrip in new[] { false, true }) {
+                var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+                Assert.Equal(conflicting ? 2 : 1, document.EnumerateTables().Count());
+            }
+        }
+    }
+
+    [Theory]
     [InlineData("sheet", false)]
     [InlineData("sheet", true)]
     [InlineData("named-sheet", false)]
