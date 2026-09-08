@@ -81,7 +81,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
         IReadOnlyList<PdfOcrPageMergeResult> mergePages,
         PdfTextLayoutOptions layoutOptions,
         PdfUnderstandingPipelineOptions pipelineOptions,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool reconstructLayout = false) {
         if (mergePages.All(static page => page.Words.Count == 0)) return nativeDocument;
         if (nativePageAnalyses.Count != nativeDocument.Pages.Count) {
             throw new ArgumentException(
@@ -111,7 +111,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
             if (mergePage.Words.Count == 0) continue;
             PdfReadPage sourcePage = sourceDocument.Pages[nativePage.PageNumber - 1];
             OcrArtifacts ocr = BuildArtifacts(nativePage, mergePage.Words, layoutOptions.ReadingDirection, cancellationToken);
-            long orderingWork = ApplyRecognitionFrameOrder(pipeline, sourcePage, nativePage, mergePage, ocr, cancellationToken);
+            long orderingWork = reconstructLayout ? 0 : ApplyRecognitionFrameOrder(pipeline, sourcePage, nativePage, mergePage, ocr, cancellationToken);
             PdfUnderstandingPageResult nativeAnalysis = nativePageAnalyses[pageIndex];
             PdfUnderstandingWord[] combinedWords = nativeAnalysis.Words.Concat(ocr.Words).ToArray();
             PdfUnderstandingLine[] combinedLines = nativeAnalysis.Lines.Concat(ocr.Lines).ToArray();
@@ -123,7 +123,8 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
                 combinedLines,
                 typeof(PdfOcrLogicalDocumentBuilder),
                 cancellationToken,
-                orderingWork);
+                orderingWork,
+                reconstructLayout);
         }
 
         int[] pageNumbers = nativeDocument.Pages.Select(static page => page.PageNumber).ToArray();
@@ -240,7 +241,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
                 word.Confidence - 0.5D) },
             advance,
             new PdfLogicalVisualBounds(word.X, word.Y, word.X + word.Width, word.Y + word.Height),
-            word.ProviderSequence);
+            word.ProviderSequence) { IsSelectionBox = true };
     }
 
     private static double Distance(PdfPagePoint left, PdfPagePoint right) {

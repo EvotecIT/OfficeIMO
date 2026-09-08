@@ -11,7 +11,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         PdfUnderstandingPageContext context,
         IReadOnlyList<PdfUnderstandingRegion> regions) {
         Guard.NotNull(context, nameof(context));
-        (double width, double height) = context.Page.GetVisualPageSize();
+        (double width, double height) = context.GetVisualSize();
         return OrderInVisualFrame(context, regions, width, height);
     }
 
@@ -37,7 +37,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         var boxes = new RegionBox[regions.Count];
         for (int index = 0; index < regions.Count; index++) {
             context.ConsumeWork();
-            boxes[index] = RegionBox.From(context.Page, regions[index], visualPageHeight);
+            boxes[index] = RegionBox.From(context, regions[index], visualPageHeight);
         }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
@@ -372,7 +372,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         internal double FontSize { get; }
 
         internal static RegionBox From(
-            PdfReadPage page,
+            PdfUnderstandingPageContext context,
             PdfUnderstandingRegion region,
             double visualPageHeight) {
             PdfLogicalVisualBounds[] directBounds = region.Lines
@@ -394,7 +394,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
                     Math.Max(1D, region.Lines.Max(static line => line.FontSize)));
             }
             (double left, double right, double bottom, double top, double fontSize) = GetSourceBounds(region);
-            PdfVisualBounds visual = page.TransformBoundsToVisual(left, bottom, right, top);
+            PdfVisualBounds visual = context.ToVisualBounds(left, bottom, right, top);
             return new RegionBox(
                 region,
                 visual.Left,

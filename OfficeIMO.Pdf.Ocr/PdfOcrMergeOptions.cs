@@ -9,6 +9,12 @@ public sealed class PdfOcrMergeOptions {
     /// and understanding budgets. OCR evidence is processed by this same read pipeline.
     /// </summary>
     public PdfReadOptions ReadOptions { get; set; } = PdfReadOptions.Default;
+    /// <summary>
+    /// Rebuilds OCR lines, columns, tables, and reading order from accepted word geometry using the
+    /// canonical understanding stages. False preserves provider line hierarchy and order.
+    /// Use true when a provider joins separate columns into one line. Original word geometry is retained.
+    /// </summary>
+    public bool ReconstructLayout { get; set; }
     /// <summary>Requested language tag or provider-specific expression forwarded to the OCR engine.</summary>
     public string? Language { get; set; }
     /// <summary>Optional source path or logical name attached to OCR requests.</summary>
@@ -71,6 +77,7 @@ public sealed class PdfOcrMergeOptions {
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         return new PdfOcrMergeOptions {
             ReadOptions = ReadOptions.Clone(),
+            ReconstructLayout = ReconstructLayout,
             Language = Language,
             SourceName = SourceName,
             SourceId = SourceId,

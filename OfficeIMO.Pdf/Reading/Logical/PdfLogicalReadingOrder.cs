@@ -250,9 +250,7 @@ public static class PdfLogicalReadingOrderAnalysis {
     private static IReadOnlyList<PdfLogicalReadingOrderItem> ApplyCanonicalOrder(
         PdfLogicalPage page,
         PdfLogicalReadingOrderItem[] items) {
-        if (page.RotationDegrees != 0 ||
-            page.Analysis.ReadingOrder.Count == 0 ||
-            items.Any(static item => item.SpansColumns && item.Kind is PdfLogicalReadingOrderKind.Table or PdfLogicalReadingOrderKind.Image) ||
+        if (page.Analysis.ReadingOrder.Count == 0 ||
             items.Length < 2) return items;
 
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
@@ -290,8 +288,17 @@ public static class PdfLogicalReadingOrderAnalysis {
             ranked[index] = ranked[index].WithPosition(position);
         }
 
+        var imageBands = new int[items.Length];
+        int imageBand = 0;
+        for (int index = 0; index < items.Length; index++) {
+            bool divider = items[index].SpansColumns && items[index].Kind == PdfLogicalReadingOrderKind.Image;
+            if (divider) imageBand++;
+            imageBands[index] = imageBand;
+            if (divider) imageBand++;
+        }
         CanonicalRank[] ordered = ranked
-            .OrderBy(static value => value.Position)
+            .OrderBy(value => imageBands[value.OriginalIndex])
+            .ThenBy(static value => value.Position)
             .ThenBy(static value => value.OriginalIndex)
             .ToArray();
         var result = new PdfLogicalReadingOrderItem[ordered.Length];
@@ -338,11 +345,12 @@ public static class PdfLogicalReadingOrderAnalysis {
             PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
             _ => null
         };
-        if (lines is null || lines.Count == 0) return false;
+        IEnumerable<(string Text, double BaselineY, double XStart)> positions = item.Kind == PdfLogicalReadingOrderKind.Table
+            ? page.Tables[item.SourceIndex].SourceLines.Select(static line => (line.Text, line.BaselineY, line.XStart))
+            : (lines ?? Array.Empty<PdfLogicalTextBlock>()).Select(static line => (line.Text, line.BaselineY, line.XStart));
 
         long best = long.MaxValue;
-        for (int logicalLineIndex = 0; logicalLineIndex < lines.Count; logicalLineIndex++) {
-            PdfLogicalTextBlock block = lines[logicalLineIndex];
+        foreach (var block in positions) {
             string text = PdfTextSimilarity.NormalizeSignature(block.Text);
             long baselineBucket = GetCanonicalBucket(block.BaselineY, 0.25D);
             long xBucket = GetCanonicalBucket(block.XStart, 0.5D);

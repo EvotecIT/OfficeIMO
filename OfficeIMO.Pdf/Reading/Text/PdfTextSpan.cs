@@ -222,6 +222,22 @@ public sealed class PdfTextSpan {
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
         ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags);
 
+    // Layout and rendering measure the transformed glyph height. Raw extraction still exposes
+    // the authored Tf operand, which can be 1 when a producer puts scaling in Tm or cm.
+    internal PdfTextSpan WithPageFontSize() =>
+        RestampFontSize > 0D && !double.IsNaN(RestampFontSize) && !double.IsInfinity(RestampFontSize) &&
+        Math.Abs(RestampFontSize - FontSize) > 0.000001D
+            ? WithVisualFontSize(RestampFontSize)
+            : this;
+
+    internal PdfTextSpan WithLayoutGeometry(double x, double y, double angle) => new PdfTextSpan(
+        Text, FontResource, FontSize, x, y, Advance, Color, IsVisible, angle, BaseFont, null,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, false, RestampFontSize, RestampText, CanScaleAggregateAdvance,
+        MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity, GlyphCharacterLengths,
+        GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font,
+        GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags);
+
     internal bool CanProjectCompleteText(double? pageHeight) {
         if (!IsVisible || string.IsNullOrEmpty(Text)) return false;
         if (!ClipPath.HasValue) return true;

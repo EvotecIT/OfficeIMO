@@ -117,7 +117,7 @@ internal sealed class PdfImageRegionDetectionStage : IPdfImageRegionDetectionSta
         alignment = 0D;
         if (!IsEligibleCaptionRegion(region) || !TryGetVisualBounds(context, region, out PdfVisualBounds captionBounds)) return false;
         if (!HasUsableGeometry(placement) ||
-            !PdfPageInteractionMap.TryGetVisibleImageBounds(context.Page, placement, out PdfVisualBounds imageBounds)) return false;
+            !context.TryGetImageBounds(placement, out PdfVisualBounds imageBounds)) return false;
         double imageWidth = imageBounds.Right - imageBounds.Left;
         double imageHeight = imageBounds.Bottom - imageBounds.Top;
         double captionWidth = captionBounds.Right - captionBounds.Left;
@@ -179,7 +179,7 @@ internal sealed class PdfImageRegionDetectionStage : IPdfImageRegionDetectionSta
         double largestFontSize = Math.Max(1D, region.Lines.Max(static line => line.FontSize));
         double bottom = region.YBottom - largestFontSize * 0.25D;
         double top = region.YTop + largestFontSize;
-        bounds = context.Page.TransformBoundsToVisual(region.XStart, bottom, region.XEnd, top);
+        bounds = context.ToVisualBounds(region.XStart, bottom, region.XEnd, top);
         return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
     }
 

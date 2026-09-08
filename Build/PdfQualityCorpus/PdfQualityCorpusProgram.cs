@@ -9,6 +9,9 @@ internal static class PdfQualityCorpusProgram {
             if (string.Equals(args[0], "scan", StringComparison.Ordinal)) {
                 return await ScanQualityCorpus.RunAsync(args).ConfigureAwait(false);
             }
+            if (string.Equals(args[0], "layout", StringComparison.Ordinal)) {
+                return await MultilingualLayoutCorpus.RunAsync(args).ConfigureAwait(false);
+            }
             if (string.Equals(args[0], "verify-markdown-contract", StringComparison.Ordinal)) {
                 VerifyMarkdownContract();
                 Console.WriteLine("PDF quality corpus Markdown contract passed.");

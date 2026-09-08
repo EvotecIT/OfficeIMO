@@ -48,7 +48,8 @@ internal static partial class PdfOcr {
             mergedPages,
             layoutOptions,
             pipelineOptions,
-            cancellationToken);
+            cancellationToken,
+            effectiveOptions.ReconstructLayout);
         var canonicalTextByPage = new Dictionary<int, Queue<string>>();
         for (int pageIndex = 0; pageIndex < enriched.Pages.Count; pageIndex++) {
             PdfLogicalPage page = enriched.Pages[pageIndex];

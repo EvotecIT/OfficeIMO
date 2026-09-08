@@ -30,7 +30,7 @@ public sealed class OfficeBidiTextRun {
 /// <summary>
 /// Resolves bounded directional runs, including Unicode embeddings, overrides, and isolates, without external shaping dependencies.
 /// </summary>
-public static class OfficeBidiTextResolver {
+public static partial class OfficeBidiTextResolver {
     private const int MaximumEmbeddingDepth = 125;
 
     /// <summary>Resolves logical directional runs and removes non-painting bidi controls.</summary>

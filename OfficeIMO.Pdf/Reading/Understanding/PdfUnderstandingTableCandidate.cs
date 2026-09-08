@@ -143,6 +143,13 @@ public sealed class PdfUnderstandingTableCandidate {
     internal PdfLogicalVisualBounds? VisualBounds => _visualBounds;
     internal IReadOnlyList<PdfTextSpan> NativeSourceRuns { get; }
 
+    internal PdfUnderstandingTableCandidate WithSourceGeometry(PdfLogicalVisualBounds visualBounds,
+        IReadOnlyList<PdfUnderstandingTableColumn> columns, IReadOnlyList<PdfUnderstandingLine> sourceLines,
+        IReadOnlyList<PdfTextSpan> nativeRuns, Action<long> consumeWork, Action cancellationCheck) =>
+        new PdfUnderstandingTableCandidate(DetectionKind, visualBounds.Top, visualBounds.Bottom,
+            columns, Rows, sourceLines, SourceKind, PdfTableCoordinateSpace.VisualTopLeft, visualBounds,
+            Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns);
+
     internal static PdfUnderstandingTableCandidate FromStructured(
         StructuredTable table,
         IReadOnlyList<PdfUnderstandingLine> sourceLines,
@@ -227,14 +234,16 @@ public sealed class PdfUnderstandingTableCandidate {
             columns,
             rows,
             sourceLines ?? Array.Empty<PdfUnderstandingLine>(),
-            PdfLogicalContentSourceKind.Ocr,
+            sourceLines is { Count: > 0 } && sourceLines.All(static line => line.SourceKind == PdfLogicalContentSourceKind.Native)
+                ? PdfLogicalContentSourceKind.Native : PdfLogicalContentSourceKind.Ocr,
             PdfTableCoordinateSpace.VisualTopLeft,
             visualBounds,
             confidence,
             evidence,
             null,
             null,
-            Array.Empty<PdfTextSpan>());
+            sourceLines?.SelectMany(static line => line.Words).SelectMany(static word => word.SourceRuns).Distinct().ToArray()
+                ?? Array.Empty<PdfTextSpan>());
     }
 
     internal StructuredTable ToStructuredTable(Action<long>? consumeWork = null, Action? cancellationCheck = null) {

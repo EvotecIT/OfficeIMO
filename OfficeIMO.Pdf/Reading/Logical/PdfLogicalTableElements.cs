@@ -39,7 +39,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         PdfTableCoordinateSpace coordinateSpace = PdfTableCoordinateSpace.PdfUserSpace,
         PdfLogicalVisualBounds? visualBounds = null,
         double? confidence = null,
-        IReadOnlyList<PdfInferenceEvidence>? evidence = null) {
+        IReadOnlyList<PdfInferenceEvidence>? evidence = null,
+        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
         PageNumber = pageNumber;
         DetectionKind = kind;
         YTop = yTop;
@@ -50,6 +51,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         SourceKind = sourceKind;
         CoordinateSpace = coordinateSpace;
         VisualBounds = visualBounds;
+        SourceLines = sourceLines ?? Array.Empty<PdfUnderstandingLine>();
         int expectedCells = rows.Count * columns.Count;
         int filledCells = rows.Sum(static row => row.Count(static cell => !string.IsNullOrWhiteSpace(cell)));
         double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
@@ -94,6 +96,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     public double Confidence { get; }
     /// <summary>Evidence supporting the table detection.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
 
     internal static PdfLogicalTable From(int pageNumber, StructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);
@@ -152,7 +155,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.CoordinateSpace,
             table.VisualBounds,
             table.Confidence,
-            table.Evidence);
+            table.Evidence,
+            table.SourceLines);
     }
 
 }

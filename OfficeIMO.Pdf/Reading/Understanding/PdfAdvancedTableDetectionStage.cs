@@ -75,6 +75,14 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             if (sourceLines.Length == 0 ||
                 (sourceLines.Length < 2 && !string.Equals(table.Kind, "leaders", StringComparison.Ordinal))) continue;
 
+            PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(context.LayoutOptions.ReadingDirection,
+                sourceLines.Select(static line => line.Text));
+            if (direction == PdfReadingDirection.RightToLeft && !string.Equals(table.Kind, "leaders", StringComparison.Ordinal)) {
+                context.ConsumeWork(table.Columns.Count + table.Rows.Sum(static row => (long)row.Length));
+                table.Columns.Reverse();
+                foreach (string[] row in table.Rows) Array.Reverse(row);
+            }
+
             double confidence = PdfInference.Clamp(sourceLines.Average(static line => line.Confidence));
             var evidence = new List<PdfInferenceEvidence> {
                 new PdfInferenceEvidence(
@@ -108,11 +116,9 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
 
         IReadOnlyList<PdfUnderstandingTableCandidate> reconciled =
             PdfUnderstandingTableCandidateReconciler.Reconcile(
-                context.Page,
+                context,
                 result,
-                ocrCandidates,
-                context.ConsumeWork,
-                context.ThrowIfCancellationRequested);
+                ocrCandidates);
         if (reconciled.Count > context.MaxTableCandidatesPerPage) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.UnderstandingArtifacts,
