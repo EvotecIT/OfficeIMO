@@ -7,6 +7,25 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class EngineContractTests {
     [Theory]
+    [InlineData(32000, false, true)]
+    [InlineData(32001, false, false)]
+    [InlineData(32000, true, true)]
+    public async Task GeneratedStringLimitMatchesLocalUnicodeValidation(int length, bool supplementary, bool valid) {
+        string text = supplementary ? string.Concat(Enumerable.Repeat("😀", length)) : new string('x', length);
+        string response = JsonSerializer.Serialize(new {
+            status = "ok", claims = new[] { new { text, evidence = new[] { new { id = "e1", quote = "source" } } } },
+            fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>()
+        });
+        var executor = new Executor(response);
+        var result = await new OfficeAiEngine(executor).RunAsync(Document("source"), Request() with { Limits = new() { MaxResponseCharacters = 500000 } });
+        using var schema = JsonDocument.Parse(Assert.Single(executor.Requests).OutputSchema);
+        var textSchema = schema.RootElement.GetProperty("properties").GetProperty("claims").GetProperty("items").GetProperty("properties").GetProperty("text");
+        int maximum = textSchema.GetProperty("maxLength").GetInt32();
+        Assert.Equal(valid, text.EnumerateRunes().Count() <= maximum);
+        Assert.Equal(valid ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InvalidResponse, result.Status);
+    }
+
+    [Theory]
     [InlineData("Running")]
     [InlineData("Validating")]
     [InlineData("Completed")]
@@ -155,6 +174,54 @@ public sealed class EngineContractTests {
         Assert.Equal(OfficeAiResultStatus.InvalidResponse, result.Status);
         Assert.DoesNotContain("secret-token", JsonSerializer.Serialize(result));
         Assert.Contains("provider-execution-failed", result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("Refund: -1 234,50 PLN.", "1 234,50", "pl-PL", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: - 42 PLN.", "42", "pl-PL", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 142.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42.50 USD.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 1,234.50 USD.", "234.50", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Total: 1 234,50 PLN.", "234,50", "pl-PL", OfficeAiFieldType.Decimal)]
+    [InlineData("Total: .50 USD.", "50", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Total: 42- USD.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42e3 USD.", "42", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42e3 USD.", "3", "en-US", OfficeAiFieldType.Integer)]
+    [InlineData("Total: 42e-3 USD.", "-3", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -$42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: 42.00 $-", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: ($42.00)", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Total: ,50 PLN.", "50", "pl-PL", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -PLN 42,00", "42,00", "pl-PL", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: 42,00 zł-", "42,00", "pl-PL", OfficeAiFieldType.Decimal)]
+    public async Task NumericSubstringCannotBecomeAnAcceptedAmount(string source, string raw, string culture, OfficeAiFieldType type) {
+        foreach (string quote in new[] { raw, source }) {
+            string response = JsonSerializer.Serialize(new {
+                status = "ok", claims = Array.Empty<object>(),
+                fields = new[] { new { name = "amount", status = "present", rawValue = raw, evidence = new[] { new { id = "e1", quote } } } },
+                blocks = Array.Empty<object>(), tables = Array.Empty<object>()
+            });
+            var result = await new OfficeAiEngine(new Executor(response)).RunAsync(Document(source), Request() with {
+                Operation = OfficeAiOperation.ExtractFields, Culture = culture,
+                Fields = new[] { new OfficeAiFieldDefinition("amount", type) }
+            });
+            Assert.Equal(OfficeAiFieldStatus.Invalid, Assert.Single(result.Fields).Status);
+            Assert.Null(Assert.Single(result.Fields).NormalizedValue);
+        }
+    }
+
+    [Theory]
+    [InlineData("Refund: -1 234,50 PLN.", "-1 234,50", "pl-PL", "-1234.50")]
+    [InlineData("Total: 42.50USD.", "42.50", "en-US", "42.50")]
+    [InlineData("Total: 42. Next item.", "42", "en-US", "42")]
+    [InlineData("Total: .50 USD.", ".50", "en-US", "0.50")]
+    public async Task CompleteNumericEvidencePreservesSignsUnitsAndSentencePunctuation(string source, string raw, string culture, string expected) {
+        var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(source), Request() with {
+            Operation = OfficeAiOperation.ExtractFields, Culture = culture,
+            Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Decimal) }
+        });
+        Assert.Equal(OfficeAiFieldStatus.Present, Assert.Single(result.Fields).Status);
+        Assert.Equal(expected, Assert.Single(result.Fields).NormalizedValue);
     }
 
     private static OfficeAiRequest Request() => new() { Instruction = "What is the total?" };

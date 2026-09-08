@@ -7,6 +7,16 @@ using System.Text;
 namespace OfficeIMO.Reader;
 
 internal static class OfficeDocumentModelTraversal {
+    // Mutation needs every distinct source instance, including separate aggregate/page copies of the same ID.
+    internal static IEnumerable<OfficeDocumentBlock> BlockInstances(OfficeDocumentReadResult document) {
+        var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+            if (block != null && seen.Add(block)) yield return block;
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>())
+            foreach (OfficeDocumentBlock block in page?.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+                if (block != null && seen.Add(block)) yield return block;
+    }
+
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
         var locations = new Dictionary<OfficeDocumentBlock, ReaderLocation>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var identityLocations = new Dictionary<string, ReaderLocation>(StringComparer.Ordinal);

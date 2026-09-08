@@ -6,8 +6,8 @@ public enum OfficeAiIntelligenceXTransport {
     ChatGpt,
     /// <summary>Explicit OpenAI-compatible HTTP endpoint, hosted or loopback-local.</summary>
     CompatibleHttp,
-    /// <summary>Fresh restricted Copilot CLI process for inline text and prompted JSON.</summary>
-    CopilotCli
+    /// <summary>Native Copilot HTTP requests through the shared IntelligenceX client.</summary>
+    CopilotNative
 }
 
 /// <summary>Connection-only settings; document operations do not depend on these transport details.</summary>
@@ -18,8 +18,8 @@ public sealed class OfficeAiIntelligenceXOptions {
     public Uri? Endpoint { get; init; }
     /// <summary>Caller-supplied API credential; never included in results or diagnostics.</summary>
     public string? ApiKey { get; init; }
-    /// <summary>Optional installed Copilot CLI executable path; the SDK does not install it for document operations.</summary>
-    public string? CopilotCliPath { get; init; }
+    /// <summary>Optional host-owned Copilot credential and connection settings. The SDK owns authentication and HTTP behavior.</summary>
+    public global::IntelligenceX.Copilot.Native.CopilotNativeOptions? CopilotOptions { get; init; }
     /// <summary>Whether the compatible endpoint supports SSE. Non-streaming retains the same result contract.</summary>
     public bool Streaming { get; init; }
     /// <summary>Explicitly prefer the current local Codex login over IX's saved ChatGPT credential.</summary>

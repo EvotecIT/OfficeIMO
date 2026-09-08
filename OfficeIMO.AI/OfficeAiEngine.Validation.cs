@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using OfficeIMO.Reader;
 
@@ -8,7 +9,7 @@ public sealed partial class OfficeAiEngine {
     private sealed record ParsedBatch(IReadOnlyList<OfficeAiClaim> Claims, IReadOnlyList<OfficeAiField> Fields,
         IReadOnlyList<OfficeAiBlock> Blocks, IReadOnlyList<OfficeAiTable> Tables);
 
-    private static ParsedBatch Parse(OfficeAiExecutionResponse response, Batch batch, OfficeAiRequest request) {
+    private static ParsedBatch Parse(OfficeAiExecutionResponse response, Batch batch, OfficeAiRequest request, OfficeAiDocument document) {
         if (response is null || !response.IsComplete || string.IsNullOrWhiteSpace(response.Json)
             || response.Json.Length > request.Limits.MaxResponseCharacters)
             throw Invalid();
@@ -54,6 +55,12 @@ public sealed partial class OfficeAiEngine {
                 string? normalized = null;
                 if (fieldStatus == OfficeAiFieldStatus.Present && !TryNormalize(raw!, definition, request.Culture, out normalized))
                     fieldStatus = OfficeAiFieldStatus.Invalid;
+                if (fieldStatus == OfficeAiFieldStatus.Present && definition.Type is OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer
+                    && !citations.Any(citation => batch.Images.ContainsKey(citation.EvidenceId)
+                        || SupportsCompleteNumber(raw!, citation, document, request.Culture))) {
+                    fieldStatus = OfficeAiFieldStatus.Invalid;
+                    normalized = null;
+                }
                 fields.Add(new(name, definition.Type, fieldStatus, raw, normalized, citations));
             }
             if (definitions.Count != 0) throw Invalid();
@@ -137,7 +144,7 @@ public sealed partial class OfficeAiEngine {
     private static string Text(JsonElement element, bool allowEmpty = false) {
         if (element.ValueKind != JsonValueKind.String) throw Invalid();
         string value = element.GetString()!;
-        if ((!allowEmpty && string.IsNullOrWhiteSpace(value)) || value.Length > 32_000 || value.Contains('\0')) throw Invalid();
+        if ((!allowEmpty && string.IsNullOrWhiteSpace(value)) || value.EnumerateRunes().Count() > MaxOutputStringLength || value.Contains('\0')) throw Invalid();
         return value;
     }
 

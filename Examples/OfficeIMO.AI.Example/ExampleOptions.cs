@@ -24,7 +24,7 @@ internal sealed class ExampleOptions {
         --model NAME          Explicit model; default gpt-5.5
         --codex-session       Prefer the existing Codex login over IX's saved ChatGPT credential
         --endpoint URL        Use an OpenAI-compatible endpoint; optional key from OFFICEIMO_AI_API_KEY
-        --copilot             Use a fresh restricted Copilot CLI process; requires --model and text-only evidence
+        --copilot             Use native Copilot HTTP with a GitHub credential; requires --model
         --text-only           Evaluate native text cases and exclude image-required cases explicitly
         --local               Require an explicit loopback endpoint, with no redirects or system proxy
         --prompted-json       Provider does not enforce schemas; local validation still applies
@@ -84,7 +84,8 @@ internal sealed class ExampleOptions {
                 default: throw new ArgumentException("Unknown option.");
             }
         }
-        if (options.Copilot && (options.Local || options.Endpoint is not null || options.Images || options.CodexSession)) throw new ArgumentException("Copilot requires its own hosted text route.");
+        if (options.Copilot && !seen.Contains("--model")) throw new ArgumentException("Copilot requires an explicit --model from its available model catalog.");
+        if (options.Copilot && (options.Local || options.Endpoint is not null || options.CodexSession)) throw new ArgumentException("Copilot requires its own hosted route and GitHub credential.");
         if (options.Split is not ("all" or "development" or "heldout") || options.Repeat is < 1 or > 3
             || options.RequestCharacters is < 4096 or > 2000000) throw new ArgumentException("Invalid evaluation or request bounds.");
         return options;

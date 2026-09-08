@@ -46,6 +46,7 @@ public sealed partial class OfficeAiEngine {
         var processed = new List<string>();
         var ranges = new List<OfficeAiEvidenceRange>();
         int requestCount = 0;
+        int claimBatches = 0;
         var omitted = new List<string>(plan.Omitted);
         var diagnostics = new HashSet<string>(StringComparer.Ordinal) { "semantic-support-not-assessed" };
         if (!profile.EnforcesJsonSchema) diagnostics.Add("prompted-json-local-validation");
@@ -67,7 +68,8 @@ public sealed partial class OfficeAiEngine {
                 inputTokens = SumUsage(inputTokens, response.InputTokens);
                 outputTokens = SumUsage(outputTokens, response.OutputTokens);
                 ReportProgress(progress, new("Validating", index, plan.Batches.Count));
-                ParsedBatch parsed = Parse(response, batch, request);
+                ParsedBatch parsed = Parse(response, batch, request, document);
+                if (parsed.Claims.Count > 0) claimBatches++;
                 claims.AddRange(parsed.Claims); fields.AddRange(parsed.Fields);
                 blocks.AddRange(parsed.Blocks); tables.AddRange(parsed.Tables);
                 processed.AddRange(batch.Ids);
@@ -95,7 +97,7 @@ public sealed partial class OfficeAiEngine {
         omitted = omitted.Distinct(StringComparer.Ordinal).ToList();
         processed = processed.Distinct(StringComparer.Ordinal).Except(omitted, StringComparer.Ordinal).ToList();
         OfficeAiSynthesisStatus synthesisStatus = OfficeAiSynthesisStatus.NotRequired;
-        if (request.Operation == OfficeAiOperation.Summarize && plan.Batches.Count > 1 && claims.Count > 0) {
+        if (request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
             ReportProgress(progress, new("Synthesizing", requestCount, request.Limits.MaxRequests));
             Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
             claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;

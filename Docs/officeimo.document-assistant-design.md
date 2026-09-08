@@ -57,7 +57,7 @@ Cancellation stops waiting and suppresses late results. A provider that ignores 
 | Long documents | Measured text windows, original citation offsets, partial text ranges and bounded summary synthesis | No retrieval index; incomplete reduction retains drafts and reports Partial |
 | ChatGPT | Native IX transport, text and inline images, enforced schema | Opt-in live synthetic corpus; model quality varies between calls |
 | Compatible hosted/local | Same operations, inline image mapping, enforced-schema or prompted-JSON profiles | Qualify the actual model, context and deployment; a protocol fixture alone does not establish accuracy |
-| Copilot | Restricted headless text treatment with an explicit account-available model | No image inputs or server-enforced schema; prompted responses can fail strict local validation |
+| Copilot | Native HTTPS treatment with an explicit account-available model; shared image and JSON Schema contracts | Qualify vision, schema enforcement and context limits for the selected model; no CLI or workspace tools |
 | Other clients | Caller-supplied `IOfficeAiExecutor` | Capabilities and deployment locality are declared by the caller and need independent qualification |
 | Exports | Versioned evidence report, proposed Reader JSON, CSV and Excel review tables | Files are created without overwrite; a multi-file export is not an atomic publication transaction |
 | Runtime | .NET 10 | Other target frameworks, AOT/trimming and GUI integration are not claimed |

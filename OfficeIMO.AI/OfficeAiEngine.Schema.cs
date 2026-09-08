@@ -35,12 +35,28 @@ public sealed partial class OfficeAiEngine {
             }
             rows["anyOf"] = shapes;
         }
+        BoundStrings(schema);
         return schema.ToJsonString();
     }
 
     private static string CreateSynthesisSchema(OfficeAiLimits limits) {
         JsonNode schema = JsonNode.Parse(SynthesisSchema)!;
         schema["properties"]!["claims"]!["maxItems"] = limits.MaxResultItems;
+        BoundStrings(schema);
         return schema.ToJsonString();
+    }
+
+    private const int MaxOutputStringLength = 32_000;
+
+    private static void BoundStrings(JsonNode node) {
+        if (node is JsonObject obj) {
+            if (obj["type"] is JsonValue scalar && scalar.TryGetValue<string>(out var type) && type == "string"
+                || obj["type"] is JsonArray types && types.Any(value => value?.ToString() == "string"))
+                obj["maxLength"] = MaxOutputStringLength;
+            foreach (var property in obj)
+                if (property.Value is not null) BoundStrings(property.Value);
+        } else if (node is JsonArray array) {
+            foreach (JsonNode? child in array) if (child is not null) BoundStrings(child);
+        }
     }
 }

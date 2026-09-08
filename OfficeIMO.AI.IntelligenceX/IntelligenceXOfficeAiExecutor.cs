@@ -17,10 +17,6 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         _client = client; _provider = new OpenAIChatTreatmentProvider(client); Profile = profile;
     }
 
-    private IntelligenceXOfficeAiExecutor(ITreatmentProvider provider, OfficeAiExecutionProfile profile) {
-        _provider = provider; Profile = profile;
-    }
-
     /// <inheritdoc />
     public OfficeAiExecutionProfile Profile { get; }
 
@@ -30,13 +26,16 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         ArgumentNullException.ThrowIfNull(profile);
         connection ??= new();
         profile.Validate();
-        if (connection.Transport == OfficeAiIntelligenceXTransport.CopilotCli) {
-            if (profile.IsLocal || profile.SupportsImages || profile.EnforcesJsonSchema || connection.Endpoint is not null)
-                throw new ArgumentException("Copilot treatment supports hosted inline text with prompted JSON only.", nameof(profile));
-            return new IntelligenceXOfficeAiExecutor(new CopilotTreatmentProvider(connection.CopilotCliPath, connection.ApiKey), profile with { });
-        }
         var options = new IntelligenceXClientOptions { DefaultModel = profile.Model, EnableUsageTelemetry = false };
         switch (connection.Transport) {
+            case OfficeAiIntelligenceXTransport.CopilotNative:
+                if (profile.IsLocal || connection.Endpoint is not null || connection.PreferCurrentCodexSession)
+                    throw new ArgumentException("Copilot uses its hosted inference service and GitHub credentials.", nameof(connection));
+                if (connection.CopilotOptions is not null && connection.ApiKey is not null)
+                    throw new ArgumentException("Configure the GitHub credential in CopilotOptions when those options are supplied.", nameof(connection));
+                options.TransportKind = OpenAITransportKind.CopilotNative;
+                options.CopilotOptions = connection.CopilotOptions ?? new() { GitHubToken = connection.ApiKey, Streaming = connection.Streaming };
+                break;
             case OfficeAiIntelligenceXTransport.ChatGpt:
                 if (profile.IsLocal || connection.Endpoint is not null || connection.ApiKey is not null)
                     throw new ArgumentException("ChatGPT uses the IX auth store and cannot be labelled local or redirected.", nameof(connection));

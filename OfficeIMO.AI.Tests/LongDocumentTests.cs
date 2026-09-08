@@ -117,6 +117,21 @@ public sealed class LongDocumentTests {
         Assert.Null(result.InputTokens);
     }
 
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    public async Task SingleClaimProducingBatchNeedsNoSynthesisEvenWhenOtherBatchesAreEmpty(int budget) {
+        var executor = new Executor { EmptyAfterFirstBatch = true };
+        var result = await new OfficeAiEngine(executor).RunAsync(Document(new string('a', 30000), new string('b', 30000)),
+            Request() with { Operation = OfficeAiOperation.Summarize, Limits = new() { MaxRequests = budget } });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal(OfficeAiSynthesisStatus.NotRequired, result.SynthesisStatus);
+        Assert.Equal(2, result.RequestCount);
+        Assert.Single(result.Claims);
+        Assert.Equal(new[] { "e1", "e2" }, result.ProcessedEvidenceIds);
+        Assert.Empty(result.OmittedEvidenceIds);
+    }
+
     private static OfficeAiRequest Request() => new() { Instruction = "Report all totals." };
     private static OfficeAiDocument Document(params string[] texts) => OfficeAiDocument.FromReadResult(
         Encoding.UTF8.GetBytes(string.Join("\n", texts)), new OfficeDocumentReadResult {
@@ -127,6 +142,7 @@ public sealed class LongDocumentTests {
         public string SynthesisMode { get; init; } = "valid";
         public bool LargeDrafts { get; init; }
         public bool EmptyClaims { get; init; }
+        public bool EmptyAfterFirstBatch { get; init; }
         public int FailCall { get; init; }
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "bounded", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
@@ -142,7 +158,7 @@ public sealed class LongDocumentTests {
                 if (SynthesisMode == "missing-source") ids = ids.Take(1).ToArray();
                 output = JsonSerializer.Serialize(new { claims = new[] { new { text = "Combined regional totals.", sourceClaimIds = ids } } });
             } else {
-                var claims = json.RootElement.GetProperty("evidence").EnumerateArray().Where(_ => !EmptyClaims).Select(item => {
+                var claims = json.RootElement.GetProperty("evidence").EnumerateArray().Where(_ => !EmptyClaims && !(EmptyAfterFirstBatch && Requests.Count > 1)).Select(item => {
                     string text = item.GetProperty("text").GetString()!;
                     string quote = text[..Math.Min(12, text.Length)];
                     return new { text = quote + (LargeDrafts ? new string('z', 6000) : ""), evidence = new[] { new { id = item.GetProperty("id").GetString(), quote } } };

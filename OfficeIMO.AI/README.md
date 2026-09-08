@@ -2,7 +2,7 @@
 
 `OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
 
-Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, restricted Copilot text processing, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
+Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
 ## Add to a .NET 10 application
 
