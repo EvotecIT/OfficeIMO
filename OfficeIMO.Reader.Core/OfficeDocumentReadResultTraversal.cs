@@ -5,7 +5,8 @@ namespace OfficeIMO.Reader;
 
 public static partial class OfficeDocumentReadResultExtensions {
     /// <summary>
-    /// Enumerates document-level and page-level blocks in canonical source order, retaining each object instance once.
+    /// Enumerates document-level and page-level blocks in canonical source order, retaining each stable ID or anchor once.
+    /// Blocks without either identity are deduplicated only by object reference, preserving unlabelled repeated text.
     /// The returned blocks are the source model objects, not immutable copies.
     /// </summary>
     public static IEnumerable<OfficeDocumentBlock> EnumerateBlocks(this OfficeDocumentReadResult document) {

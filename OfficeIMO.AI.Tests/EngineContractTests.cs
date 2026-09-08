@@ -6,6 +6,25 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class EngineContractTests {
+    [Theory]
+    [InlineData("Running")]
+    [InlineData("Validating")]
+    [InlineData("Completed")]
+    public async Task ThrowingProgressObserversCannotReplaceAValidOperation(string failingStage) {
+        var executor = new Executor(Claim("e1", "Total 42"));
+        var result = await new OfficeAiEngine(executor).RunAsync(Document("Total 42"), Request(), new ThrowingProgress(failingStage));
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Single(result.Claims);
+        Assert.DoesNotContain("provider-execution-failed", result.Diagnostics);
+        Assert.Single(executor.Requests);
+    }
+
+    private sealed class ThrowingProgress(string stage) : IProgress<OfficeAiProgress> {
+        public void Report(OfficeAiProgress value) {
+            if (value.Stage == stage) throw new InvalidOperationException("Observer failed");
+        }
+    }
+
     private const string Empty = "{\"status\":\"insufficient\",\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}";
 
     [Theory]

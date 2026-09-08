@@ -6,6 +6,31 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class SnapshotCoverageTests {
     [Fact]
+    public void AnonymousRepeatedBlocksRemainSeparateWhileStableAnchorsAreDeduplicated() {
+        var first = new OfficeDocumentBlock { Text = "Repeat", Location = new() { Page = 1 } };
+        var second = new OfficeDocumentBlock { Text = "Repeat", Location = new() { Page = 1 } };
+        var anchored = new OfficeDocumentBlock { Text = "Anchored", Location = new() { Page = 1, BlockAnchor = "a" } };
+        var anchoredCopy = new OfficeDocumentBlock { Text = "Anchored", Location = new() { Page = 1, BlockAnchor = "a" } };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { first, second, anchored },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Blocks = new[] { first, anchoredCopy } } } };
+        Assert.Equal(new[] { first, second, anchored }, source.EnumerateBlocks());
+        Assert.Equal(3, OfficeAiDocument.FromReadResult(new byte[] { 1 }, source).Evidence.Count);
+    }
+
+    [Fact]
+    public void JsonRoundTripKeepsOneObservationPerLogicalBlockAndRetainsPageOnlyContent() {
+        var shared = new OfficeDocumentBlock { Id = "shared", Text = "Shared", Location = new() { Page = 1 } };
+        var pageOnly = new OfficeDocumentBlock { Id = "page-only", Text = "Page only", Location = new() { Page = 1 } };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { shared }, Pages = new[] {
+            new OfficeDocumentPage { Number = 1, Blocks = new[] { shared, pageOnly } }
+        } };
+        var restored = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        var captured = OfficeAiDocument.FromReadResult(new byte[] { 1 }, restored, limits: new() { MaxDocumentBlocks = 2 });
+        Assert.Equal(new[] { "shared", "page-only" }, captured.Evidence.Select(item => item.SourceBlockId));
+        Assert.Equal(2, restored.EnumerateBlocks().Count());
+    }
+
+    [Fact]
     public void WorksheetsKeepSourceContainerOrderAndSortPositionsWithinEachSheet() {
         OfficeDocumentBlock Block(string sheet, int index) => new() { Id = sheet + index, Text = sheet + index,
             Location = new() { Sheet = sheet, SourceBlockIndex = index } };

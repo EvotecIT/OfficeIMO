@@ -74,8 +74,6 @@ Deterministic tests cover schema rejection, scope, source identity, bounded plan
 
 The finite synthetic cases cover selected diagrams and regional columns; they do not establish general diagram comprehension, reading-order accuracy or geometry alignment. Specialist recognition comparison, independently produced real documents, diverse scripts and equivalent-work performance benchmarks remain separate qualification work. Deployment and model-quality evidence must identify the exact model, route and resource profile; missing usage counters remain unknown.
 
-## Later integration boundary
+## Integration boundary
 
-Studio integration consumes accepted engine contracts last. It must capture current unsaved content through the existing workspace owner, retain revision/hash identity, isolate document lifetimes, show evidence and review states, reject stale actions, and prove actual accessible compact/wide interaction on each claimed platform. Source hashes alone do not establish that an open workspace is unchanged.
-
-Edit proposals and document collections are separate engine extensions. They must reuse existing mutation/publication owners with concrete before/after data, explicit approval, stale-source checks and artifact readback. Persistent history or indexing requires an explicit storage/retention decision. No current AI operation authorizes filesystem actions, shell commands, web research, external publication or autonomous edits.
+The current API processes immutable snapshots through a caller-owned executor. It has no Studio workspace integration, edit-proposal application, document collections, persistent history or index. No AI operation authorizes filesystem actions, shell commands, web research, external publication or autonomous edits. The [document assistant roadmap](ROADMAP.md#document-assistant) owns planned integrations and their acceptance requirements.

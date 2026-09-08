@@ -34,11 +34,15 @@ internal static class OfficeDocumentModelTraversal {
         Func<OfficeDocumentBlock, ReaderLocation?> locationSelector) {
         if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        var identities = new HashSet<string>(StringComparer.Ordinal);
         var ordered = new List<OrderedBlock>();
         var sheetOrder = new Dictionary<string, int>(StringComparer.Ordinal);
         int insertionIndex = 0;
         foreach (OfficeDocumentBlock block in candidates) {
             if (block != null && seen.Add(block)) {
+                // IDs and anchors survive transport round-trips; unlabelled repeated text is not a duplicate.
+                if ((!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(block.Location?.BlockAnchor))
+                    && !identities.Add(BuildBlockIdentity(block))) continue;
                 ReaderLocation? location = locationSelector(block);
                 if (!string.IsNullOrWhiteSpace(location?.Sheet) && !sheetOrder.ContainsKey(location!.Sheet!))
                     sheetOrder.Add(location.Sheet!, sheetOrder.Count);

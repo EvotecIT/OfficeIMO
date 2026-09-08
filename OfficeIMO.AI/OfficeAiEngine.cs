@@ -58,7 +58,7 @@ public sealed partial class OfficeAiEngine {
         for (int index = 0; index < plan.Batches.Count; index++) {
             token.ThrowIfCancellationRequested();
             Batch batch = plan.Batches[index];
-            progress?.Report(new("Running", index, plan.Batches.Count));
+            ReportProgress(progress, new("Running", index, plan.Batches.Count));
             try {
                 requestCount++;
                 OfficeAiExecutionResponse response = await ExecuteBoundedAsync(batch.Request, token).ConfigureAwait(false);
@@ -66,7 +66,7 @@ public sealed partial class OfficeAiEngine {
                 if (response.InputTokens < 0 || response.OutputTokens < 0) throw new InvalidDataException("Invalid usage counters.");
                 inputTokens = SumUsage(inputTokens, response.InputTokens);
                 outputTokens = SumUsage(outputTokens, response.OutputTokens);
-                progress?.Report(new("Validating", index, plan.Batches.Count));
+                ReportProgress(progress, new("Validating", index, plan.Batches.Count));
                 ParsedBatch parsed = Parse(response, batch, request);
                 claims.AddRange(parsed.Claims); fields.AddRange(parsed.Fields);
                 blocks.AddRange(parsed.Blocks); tables.AddRange(parsed.Tables);
@@ -96,7 +96,7 @@ public sealed partial class OfficeAiEngine {
         processed = processed.Distinct(StringComparer.Ordinal).Except(omitted, StringComparer.Ordinal).ToList();
         OfficeAiSynthesisStatus synthesisStatus = OfficeAiSynthesisStatus.NotRequired;
         if (request.Operation == OfficeAiOperation.Summarize && plan.Batches.Count > 1 && claims.Count > 0) {
-            progress?.Report(new("Synthesizing", requestCount, request.Limits.MaxRequests));
+            ReportProgress(progress, new("Synthesizing", requestCount, request.Limits.MaxRequests));
             Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
             claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;
             inputTokens = SumUsage(inputTokens, synthesis.InputTokens); outputTokens = SumUsage(outputTokens, synthesis.OutputTokens);
@@ -116,7 +116,7 @@ public sealed partial class OfficeAiEngine {
         OfficeAiResultStatus status = incomplete || normalizationFailed
             ? (processed.Count == 0 && ranges.Count == 0 && failed ? OfficeAiResultStatus.InvalidResponse : OfficeAiResultStatus.Partial)
             : useful ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InsufficientEvidence;
-        progress?.Report(new(status.ToString(), plan.Batches.Count, plan.Batches.Count));
+        ReportProgress(progress, new(status.ToString(), plan.Batches.Count, plan.Batches.Count));
         return new OfficeAiResult {
             RequestId = requestId, SourceHash = document.SourceHash, SnapshotHash = document.SnapshotHash, Operation = request.Operation, Profile = profile,
             Status = status, Claims = claims.AsReadOnly(), Fields = mergedFields, Blocks = blocks.AsReadOnly(), Tables = tables.AsReadOnly(),
@@ -125,6 +125,11 @@ public sealed partial class OfficeAiEngine {
             InputTokens = inputTokens, OutputTokens = outputTokens, RequestCount = requestCount,
             ProcessedTextRanges = ranges.AsReadOnly(), SynthesisStatus = synthesisStatus
         };
+    }
+
+    private static void ReportProgress(IProgress<OfficeAiProgress>? progress, OfficeAiProgress value) {
+        try { progress?.Report(value); }
+        catch (Exception) { /* Observational callbacks cannot replace the document operation's outcome. */ }
     }
 
     private async Task<OfficeAiExecutionResponse> ExecuteBoundedAsync(OfficeAiExecutionRequest request, CancellationToken token) {
