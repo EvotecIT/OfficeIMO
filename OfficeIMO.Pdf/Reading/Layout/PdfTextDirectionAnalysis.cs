@@ -3,6 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfTextDirectionAnalysis {
+    internal static T[] RestoreLogicalFragmentOrder<T>(IReadOnlyList<T> visualFragments,
+        Func<T, string> getText, PdfReadingDirection direction, System.Threading.CancellationToken token = default) =>
+        OfficeBidiTextResolver.RestoreLogicalFragmentOrder(visualFragments, getText,
+            direction == PdfReadingDirection.RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight, token);
+
     internal static PdfReadingDirection Resolve(
         PdfReadingDirection requested,
         IEnumerable<string> textInSourceOrder) {

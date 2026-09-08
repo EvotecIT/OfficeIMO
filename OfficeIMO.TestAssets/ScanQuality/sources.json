@@ -1,0 +1,30 @@
+{
+  "sourceRepository": "https://github.com/tesseract-ocr/test",
+  "revision": "232ff181c66516116ec0e84c4963f70de15050fd",
+  "licenseFile": "LICENSE.tesseract-test",
+  "fixtures": [
+    {
+      "image": "phototest.tif",
+      "imageSha256": "d2241a1eb6d6cd2eb6544b8e228c2862c852b7467d16ed636caa32179b780692",
+      "truth": "phototest.gold.txt",
+      "truthSha256": "76ef157baeb6ab275b7d90f310477a8060d5822aea2b2e05d480f459b016a6ed",
+      "source": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
+      "license": "Apache-2.0"
+    },
+    {
+      "image": "eurotext.tif",
+      "imageSha256": "7b9bd14aba7d5e30df686fbb6f71782a97f48f81b32dc201a1b75afe6de747d6",
+      "truth": "eurotext.txt",
+      "truthSha256": "26a43b5107b51054910b89f6fea67a03125b5737c0200e588121d4d132c7f3cb",
+      "source": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/eurotext.tif",
+      "license": "Apache-2.0"
+    }
+  ],
+  "variants": {
+    "png": "TIFF decoded to RGB with Pillow",
+    "shadow-skew": "Horizontal paper brightness gradient 0.30 to 0.95 followed by clockwise 3 degree rotation",
+    "upside-down": "180 degree transpose",
+    "clockwise90": "Clockwise 90 degree transpose",
+    "skew": "Clockwise 3 degree bicubic rotation with expanded canvas"
+  }
+}

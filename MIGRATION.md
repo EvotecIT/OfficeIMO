@@ -13,6 +13,13 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ### Rendering loss and gallery evidence
 
+Scanned PDF rendering no longer returns a blank successful page when a CCITT or
+JPEG 2000 image cannot be projected. Check `PdfPageRenderResult.Succeeded` and
+`Diagnostics`, or handle the rendering exception when using fail-fast rendering
+or OCR. Supply `PdfPageRenderOptions.ImageCodec` or `PdfOcrMergeOptions.ImageCodec`
+for supported JPEG 2000 images. OCR page diagnostics now retain rendering warnings;
+applications that present or count diagnostics should include that additional evidence.
+
 PDF warnings now retain the existing `OfficeConversionLossKind` classification
 used by upstream converters. Read `PdfConversionWarning.LossKind` for fidelity
 impact and `Severity` for diagnostic severity. The existing `HasLoss`,

@@ -27,6 +27,9 @@ public sealed class OcrEngineCapabilities {
     /// <summary>Whether the same engine instance accepts concurrent recognition requests.</summary>
     public bool SupportsConcurrentRequests { get; set; }
 
+    /// <summary>Whether the engine accepts explicit orientation-detection requests.</summary>
+    public bool SupportsOrientationDetection { get; set; }
+
     /// <summary>Creates an independent capability snapshot.</summary>
     public OcrEngineCapabilities Clone() => new OcrEngineCapabilities {
         SupportedMediaTypes = (SupportedMediaTypes ?? Array.Empty<string>()).ToArray(),
@@ -35,7 +38,8 @@ public sealed class OcrEngineCapabilities {
         SupportsWordSpans = SupportsWordSpans,
         SupportsCharacterSpans = SupportsCharacterSpans,
         SupportsConfidence = SupportsConfidence,
-        SupportsConcurrentRequests = SupportsConcurrentRequests
+        SupportsConcurrentRequests = SupportsConcurrentRequests,
+        SupportsOrientationDetection = SupportsOrientationDetection
     };
 }
 
@@ -44,6 +48,8 @@ public sealed class OcrEngineCapabilities {
 /// making OCR providers depend on Reader, PDF, Word, Excel, PowerPoint, or another format package.
 /// </summary>
 public sealed class OcrRequest {
+    /// <summary>Requested operation. Existing callers and providers default to text recognition.</summary>
+    public OcrOperation Operation { get; set; }
     /// <summary>Validated raster payload supplied to the engine.</summary>
     public byte[] Payload { get; set; } = Array.Empty<byte>();
 
@@ -90,6 +96,8 @@ public sealed class OcrRequest {
 
 /// <summary>Recognition output returned by an OCR engine.</summary>
 public sealed class OcrResult {
+    /// <summary>Optional orientation evidence returned by an orientation-detection operation.</summary>
+    public OcrOrientationResult? Orientation { get; set; }
     /// <summary>Recognized plain text in source reading order.</summary>
     public string Text { get; set; } = string.Empty;
 

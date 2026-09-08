@@ -673,6 +673,7 @@ public sealed partial class PdfLogicalPage {
         for (int tableIndex = 0; tableIndex < nativeTableCandidates.Count; tableIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             StructuredTable table = nativeTableCandidates[tableIndex].ToStructuredTable(
+                page,
                 analysis.ConsumeWork,
                 analysis.CancellationCheck);
             ContentStructureExtractor.NormalizeDetectedTable(table);

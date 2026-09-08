@@ -1,9 +1,11 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics() {
+    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
@@ -23,7 +25,7 @@ public sealed partial class PdfReadPage {
             }
         }
         var activeForms = new HashSet<PdfStream>();
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var textClippingBudget = new PdfTextClippingBudget();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));

@@ -1115,7 +1115,7 @@ public sealed partial class PdfReadPage {
                 0,
                 placements,
                 colorizeImageMasks: true,
-                pageContentBudget);
+                pageContentBudget, cancellationToken);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));

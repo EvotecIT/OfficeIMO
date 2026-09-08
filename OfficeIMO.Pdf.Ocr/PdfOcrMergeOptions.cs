@@ -9,6 +9,12 @@ public sealed class PdfOcrMergeOptions {
     /// and understanding budgets. OCR evidence is processed by this same read pipeline.
     /// </summary>
     public PdfReadOptions ReadOptions { get; set; } = PdfReadOptions.Default;
+    /// <summary>
+    /// Rebuilds OCR lines, columns, tables, and reading order from accepted word geometry using the
+    /// canonical understanding stages. False preserves provider line hierarchy and order.
+    /// Use true when a provider joins separate columns into one line. Original word geometry is retained.
+    /// </summary>
+    public bool ReconstructLayout { get; set; }
     /// <summary>Requested language tag or provider-specific expression forwarded to the OCR engine.</summary>
     public string? Language { get; set; }
     /// <summary>Optional source path or logical name attached to OCR requests.</summary>
@@ -24,6 +30,14 @@ public sealed class PdfOcrMergeOptions {
         new Dictionary<string, string>(StringComparer.Ordinal);
     /// <summary>OCR render DPI.</summary>
     public double Dpi { get; set; } = 150D;
+    /// <summary>Optional shared raster decoder for source encodings such as JPEG 2000.</summary>
+    public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Optional shared scan-cleanup settings. Null preserves the rendered samples.</summary>
+    public OfficeIMO.Drawing.OfficeScanProcessingOptions? ScanProcessing { get; set; }
+    /// <summary>Requests provider orientation evidence before cleanup. Unsupported or inconclusive detection retains the source orientation.</summary>
+    public bool DetectOrientation { get; set; }
+    /// <summary>Minimum normalized provider orientation confidence required to rotate the OCR image.</summary>
+    public double MinimumOrientationConfidence { get; set; } = 0.75D;
     /// <summary>Minimum accepted provider confidence from 0 through 1.</summary>
     public double MinimumConfidence { get; set; } = 0.5D;
     /// <summary>Overlap ratio at which OCR words duplicating native text are removed.</summary>
@@ -34,6 +48,10 @@ public sealed class PdfOcrMergeOptions {
     public TimeSpan ProviderTimeout { get; set; } = TimeSpan.FromMinutes(2);
     /// <summary>Maximum pixels rendered per page.</summary>
     public long MaxPixelsPerPage { get; set; } = 100_000_000L;
+    /// <summary>Maximum page requests in flight. Providers without concurrent-request support always run one at a time.</summary>
+    public int MaxConcurrentPages { get; set; } = 1;
+    /// <summary>Maximum encoded PNG bytes for one OCR request.</summary>
+    public long MaxRenderedBytesPerPage { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum detailed spans inspected from the provider for one page.</summary>
     public int MaxOcrSpansPerPage { get; set; } = 100_000;
     /// <summary>Maximum OCR words accepted from the provider for one page.</summary>
@@ -59,6 +77,7 @@ public sealed class PdfOcrMergeOptions {
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         return new PdfOcrMergeOptions {
             ReadOptions = ReadOptions.Clone(),
+            ReconstructLayout = ReconstructLayout,
             Language = Language,
             SourceName = SourceName,
             SourceId = SourceId,
@@ -68,11 +87,17 @@ public sealed class PdfOcrMergeOptions {
                 ? new Dictionary<string, string>(StringComparer.Ordinal)
                 : ProviderOptions.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
             Dpi = Dpi,
+            ImageCodec = ImageCodec,
+            ScanProcessing = ScanProcessing?.Clone(),
+            DetectOrientation = DetectOrientation,
+            MinimumOrientationConfidence = MinimumOrientationConfidence,
             MinimumConfidence = MinimumConfidence,
             NativeTextOverlapThreshold = NativeTextOverlapThreshold,
             MaxPages = MaxPages,
             ProviderTimeout = ProviderTimeout,
             MaxPixelsPerPage = MaxPixelsPerPage,
+            MaxConcurrentPages = MaxConcurrentPages,
+            MaxRenderedBytesPerPage = MaxRenderedBytesPerPage,
             MaxOcrSpansPerPage = MaxOcrSpansPerPage,
             MaxOcrWordsPerPage = MaxOcrWordsPerPage,
             MaxOcrTextCharactersPerPage = MaxOcrTextCharactersPerPage,
@@ -87,15 +112,19 @@ public sealed class PdfOcrMergeOptions {
     }
 
     internal void Validate() {
+        ScanProcessing?.Validate();
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         PdfReadOptions.Resolve(ReadOptions);
         Guard.Positive(Dpi, nameof(Dpi));
         ValidateRatio(MinimumConfidence, nameof(MinimumConfidence));
+        ValidateRatio(MinimumOrientationConfidence, nameof(MinimumOrientationConfidence));
         ValidateRatio(ConfidenceWhenUnavailable, nameof(ConfidenceWhenUnavailable));
         ValidateRatio(NativeTextOverlapThreshold, nameof(NativeTextOverlapThreshold));
         Guard.PositiveInteger(MaxPages, nameof(MaxPages));
         if (ProviderTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(ProviderTimeout));
         if (MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerPage));
+        Guard.PositiveInteger(MaxConcurrentPages, nameof(MaxConcurrentPages));
+        if (MaxRenderedBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRenderedBytesPerPage));
         Guard.PositiveInteger(MaxOcrSpansPerPage, nameof(MaxOcrSpansPerPage));
         Guard.PositiveInteger(MaxOcrWordsPerPage, nameof(MaxOcrWordsPerPage));
         Guard.PositiveInteger(MaxOcrTextCharactersPerPage, nameof(MaxOcrTextCharactersPerPage));

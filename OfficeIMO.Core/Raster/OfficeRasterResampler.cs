@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -37,13 +38,20 @@ public static partial class OfficeRasterResampler {
         OfficeRasterResamplingColorSpace colorSpace) =>
         Resize(source, width, height, mode, colorSpace, retainedManagedBytes: 0L);
 
+    /// <summary>Resizes an image while observing cancellation during contribution planning and pixel filtering.</summary>
+    public static OfficeRasterImage Resize(OfficeRasterImage source, int width, int height,
+        OfficeRasterResamplingMode mode, OfficeRasterResamplingColorSpace colorSpace, CancellationToken cancellationToken) =>
+        Resize(source, width, height, mode, colorSpace, retainedManagedBytes: 0L, cancellationToken);
+
     internal static OfficeRasterImage Resize(
         OfficeRasterImage source,
         int width,
         int height,
         OfficeRasterResamplingMode mode,
         OfficeRasterResamplingColorSpace colorSpace,
-        long retainedManagedBytes) {
+        long retainedManagedBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
@@ -66,7 +74,7 @@ public static partial class OfficeRasterResampler {
         }
 
         if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
-            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes);
+            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes, cancellationToken);
         }
 
         EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);
@@ -76,8 +84,10 @@ public static partial class OfficeRasterResampler {
         double scaleX = source.Width / (double)width;
         double scaleY = source.Height / (double)height;
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             double sourceY = ((y + 0.5D) * scaleY) - 0.5D;
             for (int x = 0; x < width; x++) {
+                if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 double sourceX = ((x + 0.5D) * scaleX) - 0.5D;
                 int target = ((y * width) + x) * 4;
                 if (mode == OfficeRasterResamplingMode.NearestNeighbor) {

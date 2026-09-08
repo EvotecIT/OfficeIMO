@@ -19,6 +19,15 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
+    internal PdfPageCanvas SearchableText(string text, PdfSelectionQuad geometry) {
+        Guard.NotNullOrWhiteSpace(text, nameof(text));
+        Guard.NotNull(geometry, nameof(geometry));
+        Guard.Positive(geometry.Width, nameof(geometry));
+        Guard.Positive(geometry.Height, nameof(geometry));
+        _items.Add(new PdfCanvasSearchableTextItem(text, geometry));
+        return this;
+    }
+
     /// <summary>Adds an interactive text field at fixed top-left page coordinates.</summary>
     public PdfPageCanvas TextField(string name, string? value, double x, double y, double width, double height, double fontSize = 10D, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
@@ -190,6 +199,10 @@ public sealed partial class PdfPageCanvas {
 }
 
 internal sealed class PdfCanvasSearchableTextItem : PdfCanvasItem {
+    internal PdfCanvasSearchableTextItem(string text, PdfSelectionQuad geometry)
+        : this(text, geometry.Left, geometry.Top, geometry.Width, geometry.Height, usesBounds: true) {
+        Geometry = geometry;
+    }
     internal PdfCanvasSearchableTextItem(string text, double x, double y)
         : this(text, x, y, 1D, 1D, usesBounds: false) {
     }
@@ -210,6 +223,7 @@ internal sealed class PdfCanvasSearchableTextItem : PdfCanvasItem {
     internal double Width { get; }
     internal double Height { get; }
     internal bool UsesBounds { get; }
+    internal PdfSelectionQuad? Geometry { get; }
 }
 
 internal enum PdfCanvasFormFieldKind {

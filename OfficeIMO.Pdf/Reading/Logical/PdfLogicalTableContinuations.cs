@@ -276,8 +276,9 @@ public static class PdfLogicalTableContinuations {
         PdfLogicalPage currentPage,
         double tolerance,
         CancellationToken cancellationToken) {
-        IReadOnlyList<VisualColumn> previous = GetVisualColumns(previousTable, previousPage, cancellationToken);
-        IReadOnlyList<VisualColumn> current = GetVisualColumns(currentTable, currentPage, cancellationToken);
+        IReadOnlyList<VisualColumn> previous = GetVisualColumns(previousTable, previousPage, cancellationToken, out bool previousHorizontal);
+        IReadOnlyList<VisualColumn> current = GetVisualColumns(currentTable, currentPage, cancellationToken, out bool currentHorizontal);
+        if (previousHorizontal != currentHorizontal) return false;
         if (previous.Count == 0 || previous.Count != current.Count) return false;
         bool comparableRightEdges = string.Equals(previousTable.DetectionKind, currentTable.DetectionKind, StringComparison.Ordinal) &&
             !UsesContentExtentColumns(previousTable.DetectionKind);
@@ -300,18 +301,25 @@ public static class PdfLogicalTableContinuations {
     private static VisualColumn[] GetVisualColumns(
         PdfLogicalTable table,
         PdfLogicalPage page,
-        CancellationToken cancellationToken) {
-        if (table.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft) {
+        CancellationToken cancellationToken,
+        out bool horizontalAxis) {
+        bool directVisual = table.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft ||
+            table.Columns.All(static column => column.VisualBounds is not null);
+        horizontalAxis = directVisual
+            ? PdfTableColumnGeometry.HasHorizontalProgression(table.Columns, static column => column.VisualBounds, true, cancellationToken)
+            : page.RotationDegrees is 0 or 180;
+        if (directVisual) {
             var visualColumns = new VisualColumn[table.Columns.Count];
             for (int index = 0; index < table.Columns.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PdfLogicalTableColumn column = table.Columns[index];
-                visualColumns[index] = new VisualColumn(column.From, column.To);
+                PdfLogicalVisualBounds? bounds = column.VisualBounds;
+                visualColumns[index] = bounds is null ? new VisualColumn(column.From, column.To)
+                    : horizontalAxis ? new VisualColumn(bounds.Left, bounds.Right) : new VisualColumn(bounds.Top, bounds.Bottom);
             }
             return visualColumns.OrderBy(static column => column.From).ToArray();
         }
 
-        bool horizontalAxis = page.RotationDegrees is 0 or 180;
         double bottom = Math.Min(table.YBottom, table.YTop);
         double top = Math.Max(table.YBottom, table.YTop);
         var columns = new List<VisualColumn>(table.Columns.Count);

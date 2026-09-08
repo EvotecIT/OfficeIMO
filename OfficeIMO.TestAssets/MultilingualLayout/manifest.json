@@ -1,0 +1,376 @@
+{
+  "producer": "Pango/Cairo",
+  "cairo": "1.18.0",
+  "pango": "1.52.1",
+  "dpi": 300,
+  "cases": [
+    {
+      "id": "latin-0",
+      "languages": "eng+pol+deu",
+      "clockwiseDegrees": 0,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Raport jakości dokumentu",
+        "Pierwsza kolumna zawiera opis.",
+        "Zażółć gęślą jaźń.",
+        "Prüfung der Qualität folgt.",
+        "Die nächste Zeile bleibt links.",
+        "Second column starts here.",
+        "Version Office IMO 12.5 is ready.",
+        "Dane końcowe są poprawne.",
+        "Last paragraph closes the report.",
+        "Produkt Liczba",
+        "Alfa 24",
+        "Beta 12",
+        "Gamma 36",
+        "Rysunek 1: wynik pomiaru"
+      ],
+      "table": [
+        [
+          "Produkt",
+          "Liczba"
+        ],
+        [
+          "Alfa",
+          "24"
+        ],
+        [
+          "Beta",
+          "12"
+        ],
+        [
+          "Gamma",
+          "36"
+        ]
+      ],
+      "caption": "Rysunek 1: wynik pomiaru",
+      "files": {
+        "native.pdf": "6621fd2441471f7d62ed0919f0ea657cd46e1f4fbd10a9f931ad455bfd272633",
+        "scan.pdf": "da425bddac0471abdf66aa17085d7ca0888ade28bf87dba87758d494c032c1b4",
+        "scan.png": "eacf9a46cb19cd1d3a6bb0fe598cbec80f40d496515bc1b31878ce8d60f180d7"
+      }
+    },
+    {
+      "id": "latin-90",
+      "languages": "eng+pol+deu",
+      "clockwiseDegrees": 90,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Raport jakości dokumentu",
+        "Pierwsza kolumna zawiera opis.",
+        "Zażółć gęślą jaźń.",
+        "Prüfung der Qualität folgt.",
+        "Die nächste Zeile bleibt links.",
+        "Second column starts here.",
+        "Version Office IMO 12.5 is ready.",
+        "Dane końcowe są poprawne.",
+        "Last paragraph closes the report.",
+        "Produkt Liczba",
+        "Alfa 24",
+        "Beta 12",
+        "Gamma 36",
+        "Rysunek 1: wynik pomiaru"
+      ],
+      "table": [
+        [
+          "Produkt",
+          "Liczba"
+        ],
+        [
+          "Alfa",
+          "24"
+        ],
+        [
+          "Beta",
+          "12"
+        ],
+        [
+          "Gamma",
+          "36"
+        ]
+      ],
+      "caption": "Rysunek 1: wynik pomiaru",
+      "files": {
+        "native.pdf": "12ef6ff727c0fd69c88e34832fa70fb7c791c7ce9dfd61433df026462af32bd9",
+        "scan.pdf": "3998b979f0c1cfdf8a4d5a3a4012f4d96d97ad36234e6539f216e3c8c989f200",
+        "scan.png": "282adea5b4a8369761d7349f3c80c592bc116e9517103f15390b4b65f62ca3b3"
+      }
+    },
+    {
+      "id": "latin-180",
+      "languages": "eng+pol+deu",
+      "clockwiseDegrees": 180,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Raport jakości dokumentu",
+        "Pierwsza kolumna zawiera opis.",
+        "Zażółć gęślą jaźń.",
+        "Prüfung der Qualität folgt.",
+        "Die nächste Zeile bleibt links.",
+        "Second column starts here.",
+        "Version Office IMO 12.5 is ready.",
+        "Dane końcowe są poprawne.",
+        "Last paragraph closes the report.",
+        "Produkt Liczba",
+        "Alfa 24",
+        "Beta 12",
+        "Gamma 36",
+        "Rysunek 1: wynik pomiaru"
+      ],
+      "table": [
+        [
+          "Produkt",
+          "Liczba"
+        ],
+        [
+          "Alfa",
+          "24"
+        ],
+        [
+          "Beta",
+          "12"
+        ],
+        [
+          "Gamma",
+          "36"
+        ]
+      ],
+      "caption": "Rysunek 1: wynik pomiaru",
+      "files": {
+        "native.pdf": "909688f993f9bfd1470327550ef3c40bd58a1fa7a9abac5d6602fdcbd675d724",
+        "scan.pdf": "2a8a93d6873a592861fc5e02a5a7acc9e071cb341209b2e3b8c6b119f07511bc",
+        "scan.png": "db08b05850a6e0eb9d19aa50d3f4aa44252e89363bc57826cefdc56aaa20d843"
+      }
+    },
+    {
+      "id": "latin-270",
+      "languages": "eng+pol+deu",
+      "clockwiseDegrees": 270,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Raport jakości dokumentu",
+        "Pierwsza kolumna zawiera opis.",
+        "Zażółć gęślą jaźń.",
+        "Prüfung der Qualität folgt.",
+        "Die nächste Zeile bleibt links.",
+        "Second column starts here.",
+        "Version Office IMO 12.5 is ready.",
+        "Dane końcowe są poprawne.",
+        "Last paragraph closes the report.",
+        "Produkt Liczba",
+        "Alfa 24",
+        "Beta 12",
+        "Gamma 36",
+        "Rysunek 1: wynik pomiaru"
+      ],
+      "table": [
+        [
+          "Produkt",
+          "Liczba"
+        ],
+        [
+          "Alfa",
+          "24"
+        ],
+        [
+          "Beta",
+          "12"
+        ],
+        [
+          "Gamma",
+          "36"
+        ]
+      ],
+      "caption": "Rysunek 1: wynik pomiaru",
+      "files": {
+        "native.pdf": "c5fac475a3dd801dd4d3a7f5e6609bb60c8702a03e82a86820c13ead418924ea",
+        "scan.pdf": "2dfcb69bf97ce5c4e910ebd514f8a9eced91d02ad5ec10528343386f66d69bd5",
+        "scan.png": "da137034cc0c815653a670c0f846374bfef1c63fc2d4c02656f9ab50400af766"
+      }
+    },
+    {
+      "id": "rtl-0",
+      "languages": "heb+ara+eng",
+      "clockwiseDegrees": 0,
+      "rightToLeft": true,
+      "readingOrder": [
+        "דוח בדיקת מסמכים",
+        "העמודה הראשונה מתחילה כאן.",
+        "גרסה Office IMO 12.5 מוכנה.",
+        "תוצאת הבדיקה נשמרת במסמך.",
+        "השורה האחרונה נשארת מימין.",
+        "تقرير المراجعة يبدأ هنا.",
+        "الإصدار Office IMO 12.5 جاهز.",
+        "نتيجة الاختبار محفوظة.",
+        "الفقرة الأخيرة تغلق التقرير.",
+        "פריט כמות",
+        "אלפא 24",
+        "בטא 12",
+        "גמא 36",
+        "איור 1: תוצאת המדידה"
+      ],
+      "table": [
+        [
+          "פריט",
+          "כמות"
+        ],
+        [
+          "אלפא",
+          "24"
+        ],
+        [
+          "בטא",
+          "12"
+        ],
+        [
+          "גמא",
+          "36"
+        ]
+      ],
+      "caption": "איור 1: תוצאת המדידה",
+      "files": {
+        "native.pdf": "fb119d8bd57545f610caea49788befcb538260e998edd9c1b5a4c9fb46c9a6f7",
+        "scan.pdf": "16b02d97591c4ccf1bfb058f9fc7ba3813efcfbbf1aaf6685a80fa17022a7db1",
+        "scan.png": "b9985b6f9e8fc27f4c5f77116572fd3b3d4d6836bf7a530a325ad2cea6d04437"
+      }
+    },
+    {
+      "id": "rtl-90",
+      "languages": "heb+ara+eng",
+      "clockwiseDegrees": 90,
+      "rightToLeft": true,
+      "readingOrder": [
+        "דוח בדיקת מסמכים",
+        "העמודה הראשונה מתחילה כאן.",
+        "גרסה Office IMO 12.5 מוכנה.",
+        "תוצאת הבדיקה נשמרת במסמך.",
+        "השורה האחרונה נשארת מימין.",
+        "تقرير المراجعة يبدأ هنا.",
+        "الإصدار Office IMO 12.5 جاهز.",
+        "نتيجة الاختبار محفوظة.",
+        "الفقرة الأخيرة تغلق التقرير.",
+        "פריט כמות",
+        "אלפא 24",
+        "בטא 12",
+        "גמא 36",
+        "איור 1: תוצאת המדידה"
+      ],
+      "table": [
+        [
+          "פריט",
+          "כמות"
+        ],
+        [
+          "אלפא",
+          "24"
+        ],
+        [
+          "בטא",
+          "12"
+        ],
+        [
+          "גמא",
+          "36"
+        ]
+      ],
+      "caption": "איור 1: תוצאת המדידה",
+      "files": {
+        "native.pdf": "47e643d2b48186fb6c4409a10477061b03d072e5fc9cc6810ea456060dc63401",
+        "scan.pdf": "603eaa71d0f747333eaa1d98c8779deeb0b6aac018aec391f7ef069d048d7a10",
+        "scan.png": "83a9bd9e333068f47ab598fe488c6ef4ef67e9292ef6112b7338f9d06177af4d"
+      }
+    },
+    {
+      "id": "rtl-180",
+      "languages": "heb+ara+eng",
+      "clockwiseDegrees": 180,
+      "rightToLeft": true,
+      "readingOrder": [
+        "דוח בדיקת מסמכים",
+        "העמודה הראשונה מתחילה כאן.",
+        "גרסה Office IMO 12.5 מוכנה.",
+        "תוצאת הבדיקה נשמרת במסמך.",
+        "השורה האחרונה נשארת מימין.",
+        "تقرير المراجعة يبدأ هنا.",
+        "الإصدار Office IMO 12.5 جاهز.",
+        "نتيجة الاختبار محفوظة.",
+        "الفقرة الأخيرة تغلق التقرير.",
+        "פריט כמות",
+        "אלפא 24",
+        "בטא 12",
+        "גמא 36",
+        "איור 1: תוצאת המדידה"
+      ],
+      "table": [
+        [
+          "פריט",
+          "כמות"
+        ],
+        [
+          "אלפא",
+          "24"
+        ],
+        [
+          "בטא",
+          "12"
+        ],
+        [
+          "גמא",
+          "36"
+        ]
+      ],
+      "caption": "איור 1: תוצאת המדידה",
+      "files": {
+        "native.pdf": "ffaf0ab8ff9fdafa5df183a692314d548272edcbf2b51bc38aaa1a64e7e983dd",
+        "scan.pdf": "52998ee05a4729c0b5705a1f2fe2bdb03783ef1841c73500a97c1c2dd14569fa",
+        "scan.png": "d815d982db0237a3205c837966289508c3617aa12cf70cc704e37bbbc1497637"
+      }
+    },
+    {
+      "id": "rtl-270",
+      "languages": "heb+ara+eng",
+      "clockwiseDegrees": 270,
+      "rightToLeft": true,
+      "readingOrder": [
+        "דוח בדיקת מסמכים",
+        "העמודה הראשונה מתחילה כאן.",
+        "גרסה Office IMO 12.5 מוכנה.",
+        "תוצאת הבדיקה נשמרת במסמך.",
+        "השורה האחרונה נשארת מימין.",
+        "تقرير المراجعة يبدأ هنا.",
+        "الإصدار Office IMO 12.5 جاهز.",
+        "نتيجة الاختبار محفوظة.",
+        "الفقرة الأخيرة تغلق التقرير.",
+        "פריט כמות",
+        "אלפא 24",
+        "בטא 12",
+        "גמא 36",
+        "איור 1: תוצאת המדידה"
+      ],
+      "table": [
+        [
+          "פריט",
+          "כמות"
+        ],
+        [
+          "אלפא",
+          "24"
+        ],
+        [
+          "בטא",
+          "12"
+        ],
+        [
+          "גמא",
+          "36"
+        ]
+      ],
+      "caption": "איור 1: תוצאת המדידה",
+      "files": {
+        "native.pdf": "3643a3e6d622abda138dea3de178e5aca6eb41a158e2c5adb7d198486740663c",
+        "scan.pdf": "133ab8573d573e2032046cacf306fc5693570e86fe03d17016322c99d51ad224",
+        "scan.png": "90a7f65e621952c0095c801f45ad9da6c5cdfd27a047138aa03f088789a935b5"
+      }
+    }
+  ]
+}

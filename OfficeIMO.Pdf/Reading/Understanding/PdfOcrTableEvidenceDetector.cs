@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Recovers table evidence from normalized OCR geometry inside the canonical table-detection stage.
+/// Recovers table evidence from OCR and searchable-text selection geometry inside the canonical table-detection stage.
 /// It does not interpret natural-language cell values.
 /// </summary>
 internal static class PdfOcrTableEvidenceDetector {
@@ -68,6 +68,13 @@ internal static class PdfOcrTableEvidenceDetector {
                 .SelectMany(static row => row.Lines)
                 .Distinct()
                 .ToArray();
+            PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(context.LayoutOptions.ReadingDirection,
+                sourceLines.Select(static line => line.Text));
+            if (direction == PdfReadingDirection.RightToLeft) {
+                context.ConsumeWork(columnBounds.Length + tableRows.Sum(static row => (long)row.Count));
+                Array.Reverse(columnBounds);
+                tableRows = tableRows.Select(static row => (IReadOnlyList<string>)row.Reverse().ToArray()).ToArray();
+            }
             double confidence = PdfInference.Clamp(sourceLines.Average(static line => line.Confidence));
             result.Add(PdfUnderstandingTableCandidate.FromOcr(
                 "ocr-aligned-geometry",
@@ -90,7 +97,8 @@ internal static class PdfOcrTableEvidenceDetector {
         PdfUnderstandingPageContext context,
         IReadOnlyList<PdfUnderstandingLine> lines) {
         PdfUnderstandingLine[] candidates = lines
-            .Where(static line => line.SourceKind == PdfLogicalContentSourceKind.Ocr && line.VisualBounds is not null)
+            .Where(static line => line.VisualBounds is not null && (line.SourceKind == PdfLogicalContentSourceKind.Ocr ||
+                line.Words.All(static word => word.IsSelectionBox)))
             .OrderBy(static line => line.VisualBounds!.Top)
             .ThenBy(static line => line.VisualBounds!.Left)
             .ToArray();
@@ -198,7 +206,11 @@ internal static class PdfOcrTableEvidenceDetector {
             double tolerance = Math.Max(
                 MinimumColumnTolerancePoints,
                 Math.Min(expected[columnIndex].Height, actual[columnIndex].Height) * 0.75D);
-            if (Math.Abs(expected[columnIndex].Left - actual[columnIndex].Left) > tolerance) return false;
+            double leftDistance = Math.Abs(expected[columnIndex].Left - actual[columnIndex].Left);
+            double rightDistance = Math.Abs(expected[columnIndex].Right - actual[columnIndex].Right);
+            double centerDistance = Math.Abs((expected[columnIndex].Left + expected[columnIndex].Right -
+                actual[columnIndex].Left - actual[columnIndex].Right) * 0.5D);
+            if (Math.Min(leftDistance, Math.Min(rightDistance, centerDistance)) > tolerance) return false;
         }
         return true;
     }

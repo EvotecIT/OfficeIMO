@@ -42,9 +42,11 @@ internal static class TextLayoutEngine {
         public string Text { get; }
         public IReadOnlyList<PdfTextSpan> Spans { get; }
         public int LogicalLineBreaksBefore { get; }
-        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans) {
+        internal PdfReadingDirection ReadingDirection { get; }
+        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
             LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
+            ReadingDirection = readingDirection;
         }
     }
 
@@ -321,7 +323,7 @@ internal static class TextLayoutEngine {
         return runs;
     }
 
-    private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
+    internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
         List<PdfTextSpan> sourceOrder = spans
             .OrderBy(static span => span.ContentOrderKey)
             .ThenBy(static span => span.PaintOrder)
@@ -332,9 +334,9 @@ internal static class TextLayoutEngine {
         // Keep stored geometry left-to-right for table/cell detection while emitting line text
         // in the resolved writing direction.
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
-        List<PdfTextSpan> textSpans = direction == PdfReadingDirection.RightToLeft
-            ? spans.AsEnumerable().Reverse().ToList()
-            : spans;
+        IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
+            ? spans
+            : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(spans, static span => span.Text, direction);
         bool hasExplicitWhitespace = spans.Any(span =>
             ContainsWhitespace(span.Text) ||
             span.LogicalLeadingSpace ||
@@ -358,9 +360,8 @@ internal static class TextLayoutEngine {
 
                 // Add a space heuristically if large X gap between spans
                 var prev = previous;
-                double gap = direction == PdfReadingDirection.RightToLeft
-                    ? prev.X - (s.X + Math.Max(0D, s.Advance))
-                    : s.X - (prev.X + Math.Max(0D, prev.Advance));
+                double gap = Math.Max(prev.X - (s.X + Math.Max(0D, s.Advance)),
+                    s.X - (prev.X + Math.Max(0D, prev.Advance)));
                 // dynamic threshold based on previous span's average glyph advance
                 double prevAvg = SafeAvgAdvance(prev);
                 double glyphFactor = options?.GapGlyphFactor ?? 0.6;
@@ -413,7 +414,7 @@ internal static class TextLayoutEngine {
                 ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
                 : NormalizeLineText(outText);
         }
-        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans));
+        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans), options?.ReadingDirection ?? PdfReadingDirection.Auto);
     }
 
     private static bool ContainsWhitespace(string value) {

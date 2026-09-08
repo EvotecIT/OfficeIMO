@@ -48,9 +48,9 @@ public sealed class PdfUnderstandingPageContext {
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
     /// <summary>Page width in PDF points.</summary>
-    public double Width { get; }
+    public double Width { get; private set; }
     /// <summary>Page height in PDF points.</summary>
-    public double Height { get; }
+    public double Height { get; private set; }
     /// <summary>Layout options supplied to the pipeline.</summary>
     public PdfTextLayoutOptions LayoutOptions { get; }
     /// <summary>Maximum decoded text characters accepted for this page.</summary>
@@ -72,6 +72,21 @@ public sealed class PdfUnderstandingPageContext {
     /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
     public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
     internal void CompleteOperation() => _workBudget.CompleteOperation();
+    internal PdfUnderstandingReadingFrame? ReadingFrame { get; private set; }
+    internal void SetReadingFrame(PdfUnderstandingReadingFrame frame) {
+        ReadingFrame = frame;
+        Width = frame.Width;
+        Height = frame.Height;
+    }
+    internal (double Width, double Height) GetVisualSize() => ReadingFrame is null ? Page.GetVisualPageSize() : (Width, Height);
+    internal PdfVisualBounds ToVisualBounds(double left, double bottom, double right, double top) => ReadingFrame is null
+        ? Page.TransformBoundsToVisual(left, bottom, right, top)
+        : new PdfVisualBounds(left, Height - top, right, Height - bottom);
+    internal bool TryGetImageBounds(PdfImagePlacement placement, out PdfVisualBounds bounds) {
+        if (!PdfPageInteractionMap.TryGetVisibleImageBounds(Page, placement, out bounds)) return false;
+        if (ReadingFrame is not null) bounds = ReadingFrame.ImageBounds(bounds);
+        return true;
+    }
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
     /// <summary>Table candidates available to page segmentation and later stages.</summary>
     public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; internal set; } = Array.Empty<PdfUnderstandingTableCandidate>();
@@ -81,6 +96,8 @@ public sealed class PdfUnderstandingPageContext {
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>
 public sealed class PdfUnderstandingWord {
+    // Positioned OCR geometry describes selection boxes, rather than typographic baselines.
+    internal bool IsSelectionBox { get; set; }
     /// <summary>Creates a positioned word artifact for a custom grouping stage.</summary>
     public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null, double? advance = null, PdfLogicalVisualBounds? visualBounds = null, int? sourceSequence = null) {
         Guard.NotNull(text, nameof(text)); Guard.NotNull(sourceRuns, nameof(sourceRuns));

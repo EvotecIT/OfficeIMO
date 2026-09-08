@@ -6,6 +6,12 @@ internal static class PdfQualityCorpusProgram {
     internal static async Task<int> RunAsync(string[] args) {
         try {
             if (args.Length == 0) throw new ArgumentException(Usage);
+            if (string.Equals(args[0], "scan", StringComparison.Ordinal)) {
+                return await ScanQualityCorpus.RunAsync(args).ConfigureAwait(false);
+            }
+            if (string.Equals(args[0], "layout", StringComparison.Ordinal)) {
+                return await MultilingualLayoutCorpus.RunAsync(args).ConfigureAwait(false);
+            }
             if (string.Equals(args[0], "verify-markdown-contract", StringComparison.Ordinal)) {
                 VerifyMarkdownContract();
                 Console.WriteLine("PDF quality corpus Markdown contract passed.");
@@ -54,6 +60,7 @@ internal static class PdfQualityCorpusProgram {
     }
 
     private static void VerifyRunnerContracts() {
+        MultilingualLayoutCorpus.VerifyScoringContract();
         Expect<ArgumentException>(() => PdfQualityCorpusCommandLine.ParseRun(new[] { "run", "--unexpected", "value" }));
         var traversal = new QualityCase { Id = "traversal", File = Path.Combine("..", "escape.pdf") };
         Expect<InvalidDataException>(() => PdfQualityCorpusManifest.ResolveCasePath(Path.GetTempPath(), traversal));

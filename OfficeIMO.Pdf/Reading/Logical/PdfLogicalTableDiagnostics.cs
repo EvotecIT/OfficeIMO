@@ -78,7 +78,7 @@ public sealed class PdfLogicalTableDiagnostics {
     public double Width => Math.Max(0D, XEnd - XStart);
 
     /// <summary>Detected table height in PDF points.</summary>
-    public double Height => Math.Max(0D, YTop - YBottom);
+    public double Height => Math.Abs(YTop - YBottom);
 
     /// <summary>True when table and column coordinates were available.</summary>
     public bool HasGeometry { get; }
@@ -151,7 +151,9 @@ public sealed class PdfLogicalTableDiagnostics {
 
         double countScore = Clamp01((double)comparableColumns / columnCount);
         double widthScore = Clamp01((double)positiveWidthColumns / columnCount);
-        double verticalScore = table.YTop > table.YBottom ? 1D : 0.5D;
+        bool positiveHeight = table.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft
+            ? table.YBottom > table.YTop : table.YTop > table.YBottom;
+        double verticalScore = positiveHeight ? 1D : 0.5D;
         return Clamp01((countScore + widthScore + verticalScore) / 3D);
     }
 

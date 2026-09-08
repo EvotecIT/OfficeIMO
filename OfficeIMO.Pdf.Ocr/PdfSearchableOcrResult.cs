@@ -5,11 +5,12 @@ namespace OfficeIMO.Pdf.Ocr;
 /// <summary>Searchable PDF artifact together with the OCR evidence used to create its invisible text layer.</summary>
 public sealed class PdfSearchableOcrResult {
     internal PdfSearchableOcrResult(PdfDocument document, PdfOcrMergeResult ocr, IReadOnlyList<int> modifiedPages,
-        IReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>> writtenWords) {
+        IReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>> writtenWords, int correctedWordCount = 0) {
         Document = document;
         Ocr = ocr;
         ModifiedPages = modifiedPages;
         WrittenWords = writtenWords;
+        CorrectedWordCount = correctedWordCount;
     }
 
     /// <summary>The original or rewritten PDF document containing accepted OCR text.</summary>
@@ -26,6 +27,8 @@ public sealed class PdfSearchableOcrResult {
 
     /// <summary>Number of accepted OCR words written to the searchable text layer.</summary>
     public int AddedWordCount => WrittenWords.Values.Sum(words => words.Count);
+    /// <summary>Number of written words whose text was changed by review. Original provider evidence remains in <see cref="Ocr"/>.</summary>
+    public int CorrectedWordCount { get; }
 
     /// <summary>Words actually written, grouped by one-based page number after review exclusions.</summary>
     public IReadOnlyDictionary<int, IReadOnlyList<PdfRecognizedWord>> WrittenWords { get; }

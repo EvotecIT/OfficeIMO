@@ -447,7 +447,7 @@ internal readonly partial struct PdfPageClipPath {
         }
     }
 
-    private static List<OfficePoint> ClipPolygonToConvexPolygon(
+    internal static List<OfficePoint> ClipPolygonToConvexPolygon(
         IReadOnlyList<OfficePoint> subject,
         List<OfficePoint> clip,
         PdfTextClippingBudget? textClippingBudget) {

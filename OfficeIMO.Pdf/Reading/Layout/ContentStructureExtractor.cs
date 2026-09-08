@@ -87,6 +87,7 @@ public sealed class StructuredTable {
     internal IReadOnlyList<PdfTextSpan> SourceRuns { get; set; } = Array.Empty<PdfTextSpan>();
     internal IReadOnlyList<TextLayoutEngine.TextLine> SourceLines { get; set; } =
         Array.Empty<TextLayoutEngine.TextLine>();
+    internal PdfLogicalVisualBounds? VisualBounds { get; set; }
 }
 
 /// <summary>Column geometry for a detected table.</summary>
@@ -95,6 +96,7 @@ public sealed class StructuredTableColumn {
     public double From { get; set; }
     /// <summary>Right X coordinate (points).</summary>
     public double To { get; set; }
+    internal PdfLogicalVisualBounds? VisualBounds { get; set; }
 }
 
 /// <summary>Detected tables for a single document page.</summary>
