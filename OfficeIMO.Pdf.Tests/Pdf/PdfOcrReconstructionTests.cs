@@ -74,6 +74,14 @@ public sealed class PdfOcrReconstructionTests {
             .Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Tables);
         Assert.Equal(PdfLogicalContentSourceKind.Native, readback.SourceKind);
         for (int index = 0; index < expected.Length; index++) Assert.Equal(expected[index], readback.Rows[index]);
+        foreach (PdfLogicalTable detected in new[] { table, readback }) {
+            PdfLogicalVisualBounds first = Assert.IsType<PdfLogicalVisualBounds>(detected.Columns[0].VisualBounds);
+            PdfLogicalVisualBounds second = Assert.IsType<PdfLogicalVisualBounds>(detected.Columns[1].VisualBounds);
+            Assert.True(turns % 2 == 0
+                ? first.Right <= second.Left || second.Right <= first.Left
+                : first.Bottom <= second.Top || second.Bottom <= first.Top);
+            Assert.True(PdfLogicalTableAnalysis.Extract(detected).Diagnostics.Height > 0D);
+        }
     }
 
     private static PdfOcrMergeOptions Options(int turns) => new PdfOcrMergeOptions {

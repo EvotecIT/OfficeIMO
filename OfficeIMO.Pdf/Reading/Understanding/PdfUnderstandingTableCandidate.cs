@@ -18,6 +18,9 @@ public sealed class PdfUnderstandingTableColumn {
         To = Math.Max(from, to);
     }
 
+    internal PdfUnderstandingTableColumn(PdfLogicalVisualBounds visualBounds)
+        : this(visualBounds.Left, visualBounds.Right) => VisualBounds = visualBounds;
+
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     /// <summary>Left X coordinate in the owning candidate's coordinate space.</summary>
@@ -25,6 +28,12 @@ public sealed class PdfUnderstandingTableColumn {
 
     /// <summary>Right X coordinate in the owning candidate's coordinate space.</summary>
     public double To { get; }
+
+    /// <summary>
+    /// Complete column strip in top-left visual page coordinates when available. Quarter-turn
+    /// columns can share an X projection; use this rectangle to retain their distinct Y extents.
+    /// </summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
 }
 
 /// <summary>
@@ -225,7 +234,8 @@ public sealed class PdfUnderstandingTableCandidate {
         IEnumerable<PdfInferenceEvidence> evidence,
         IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
         var columns = visualColumnBounds
-            .Select(static column => new PdfUnderstandingTableColumn(column.From, column.To))
+            .Select(column => new PdfUnderstandingTableColumn(new PdfLogicalVisualBounds(
+                Math.Min(column.From, column.To), visualBounds.Top, Math.Max(column.From, column.To), visualBounds.Bottom)))
             .ToArray();
         return new PdfUnderstandingTableCandidate(
             detectionKind,
@@ -246,19 +256,33 @@ public sealed class PdfUnderstandingTableCandidate {
                 ?? Array.Empty<PdfTextSpan>());
     }
 
-    internal StructuredTable ToStructuredTable(Action<long>? consumeWork = null, Action? cancellationCheck = null) {
+    internal StructuredTable ToStructuredTable(PdfReadPage page, Action<long>? consumeWork = null, Action? cancellationCheck = null) {
         cancellationCheck?.Invoke();
         consumeWork?.Invoke(1);
         var table = new StructuredTable {
             Kind = DetectionKind,
             YTop = YTop,
-            YBottom = YBottom
+            YBottom = YBottom,
+            VisualBounds = _visualBounds
         };
+        if (_visualBounds is not null) {
+            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(
+                _visualBounds.Left, _visualBounds.Top, _visualBounds.Right, _visualBounds.Bottom);
+            table.YTop = Math.Max(userBounds.Top, userBounds.Bottom);
+            table.YBottom = Math.Min(userBounds.Top, userBounds.Bottom);
+        }
         for (int columnIndex = 0; columnIndex < Columns.Count; columnIndex++) {
             cancellationCheck?.Invoke();
             consumeWork?.Invoke(1);
             PdfUnderstandingTableColumn column = Columns[columnIndex];
-            table.Columns.Add(new StructuredTableColumn { From = column.From, To = column.To });
+            PdfLogicalVisualBounds? visual = column.VisualBounds;
+            PdfVisualBounds user = visual is null ? default : page.TransformVisualBoundsToUser(
+                visual.Left, visual.Top, visual.Right, visual.Bottom);
+            table.Columns.Add(new StructuredTableColumn {
+                From = visual is null ? column.From : user.Left,
+                To = visual is null ? column.To : user.Right,
+                VisualBounds = visual
+            });
         }
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             cancellationCheck?.Invoke();

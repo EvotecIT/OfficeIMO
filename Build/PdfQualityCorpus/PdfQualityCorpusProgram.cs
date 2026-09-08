@@ -60,6 +60,7 @@ internal static class PdfQualityCorpusProgram {
     }
 
     private static void VerifyRunnerContracts() {
+        MultilingualLayoutCorpus.VerifyScoringContract();
         Expect<ArgumentException>(() => PdfQualityCorpusCommandLine.ParseRun(new[] { "run", "--unexpected", "value" }));
         var traversal = new QualityCase { Id = "traversal", File = Path.Combine("..", "escape.pdf") };
         Expect<InvalidDataException>(() => PdfQualityCorpusManifest.ResolveCasePath(Path.GetTempPath(), traversal));

@@ -755,7 +755,10 @@ the parser does not invent translated or English column labels.
 The structured reader handles repeated column gutters, mixed Latin/Hebrew/Arabic
 fragments, and dominant quarter-turn text layouts while retaining source-page
 geometry. Invisible searchable-text boxes use their selection geometry for line
-and table recovery. For OCR providers that merge columns into one line, opt into
+and table recovery. Reconstructed columns expose full source-page rectangles in
+`PdfLogicalTableColumn.VisualBounds`; at 90 or 270 degrees, distinct columns can
+share the same X projection in `From` and `To`. Continuation matching uses their
+actual progression axis. For OCR providers that merge columns into one line, opt into
 [`ReconstructLayout`](../OfficeIMO.Pdf.Ocr/README.md#reconstruct-columns-and-mixed-direction-text).
 The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md)
 records exact fixture coverage and recognition limits.

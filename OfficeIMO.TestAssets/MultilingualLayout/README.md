@@ -21,7 +21,9 @@ The output directory contains per-mode text, searchable PDFs, provider text, and
 - Exact table rows and caption classification.
 - Provider-token multiset precision and recall, which ignore ordering and retain recognition mismatches.
 
-Missing segments cannot establish a correct reading-order pair. Exact-table scoring checks cell text and order, rather than merely finding a table. Provider errors, including text recognized inside the figure, remain in the results. Full-page scans lack separate figure objects, so caption text can be retained without caption classification. Native figure-caption geometry is tested separately.
+Missing segments cannot establish a correct reading-order pair. Exact-table scoring requires a single table with the expected row count and compares cells at their labelled row and column positions. Extra tables or rows, duplicated rows, and rows collected across several tables cannot receive a perfect score. Provider errors, including text recognized inside the figure, remain in the results. Full-page scans lack separate figure objects, so caption text can be retained without caption classification. Native figure-caption geometry is tested separately.
+
+Run the scoring and runner contracts with `dotnet run --project Build/PdfQualityCorpus -c Release -f net8.0 -- verify-runner-contracts`.
 
 ### Reproduce the historical baseline
 

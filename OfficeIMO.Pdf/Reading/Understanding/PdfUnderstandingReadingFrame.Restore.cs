@@ -90,7 +90,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             for (int index = 0; index < columns.Length; index++) {
                 _context.ConsumeWork();
                 PdfLogicalVisualBounds column = SourceVisualBounds(table.Columns[index].From, bottom, table.Columns[index].To, top);
-                columns[index] = new PdfUnderstandingTableColumn(column.Left, column.Right);
+                columns[index] = new PdfUnderstandingTableColumn(column);
             }
             return table.WithSourceGeometry(visual, columns, table.SourceLines.Select(RestoreLine).ToArray(),
                 table.NativeSourceRuns.Select(RestoreRun).ToArray(), _context.ConsumeWork, _context.ThrowIfCancellationRequested);

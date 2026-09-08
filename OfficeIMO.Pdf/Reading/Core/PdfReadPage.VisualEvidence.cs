@@ -64,9 +64,6 @@ public sealed partial class PdfReadPage {
         const double minimumHorizontalPadding = 8D;
         const double maximumHorizontalPadding = 48D;
         int rotationDegrees = GetRotationDegrees();
-        bool axesSwapped = rotationDegrees == 90 || rotationDegrees == 270;
-        double minimumVerticalPadding = axesSwapped ? 32D : 12D;
-        double maximumVerticalPadding = axesSwapped ? 48D : 24D;
         double primitiveLeft = primitive.X;
         double primitiveTop = primitive.Y;
         double primitiveRight = primitive.X + primitive.Width;
@@ -74,6 +71,10 @@ public sealed partial class PdfReadPage {
         for (int tableIndex = 0; tableIndex < detectedTables.Count; tableIndex++) {
             StructuredTable table = detectedTables[tableIndex];
             if (table.Columns.Count == 0 || table.YTop <= table.YBottom) continue;
+            bool axesSwapped = !PdfTableColumnGeometry.HasHorizontalProgression(table.Columns,
+                static column => column.VisualBounds, rotationDegrees is 0 or 180);
+            double minimumVerticalPadding = axesSwapped ? 32D : 12D;
+            double maximumVerticalPadding = axesSwapped ? 48D : 24D;
             GetVisualTableBoundaries(table, out double[] verticalBoundaries, out double[] horizontalBoundaries);
             if (verticalBoundaries.Length < 2 || horizontalBoundaries.Length < 2) continue;
             double tableLeft = verticalBoundaries[0];
@@ -128,6 +129,10 @@ public sealed partial class PdfReadPage {
         StructuredTable table,
         out double[] verticalBoundaries,
         out double[] horizontalBoundaries) {
+        if (table.VisualBounds is not null && table.Columns.All(static column => column.VisualBounds is not null)) {
+            GetRestoredVisualTableBoundaries(table, out verticalBoundaries, out horizontalBoundaries);
+            return;
+        }
         var vertical = new List<double>();
         var horizontal = new List<double>();
         double tableLeft = table.Columns[0].From;
@@ -150,6 +155,27 @@ public sealed partial class PdfReadPage {
         }
         verticalBoundaries = vertical.Distinct().OrderBy(static value => value).ToArray();
         horizontalBoundaries = horizontal.Distinct().OrderBy(static value => value).ToArray();
+    }
+
+    private static void GetRestoredVisualTableBoundaries(StructuredTable table,
+        out double[] verticalBoundaries, out double[] horizontalBoundaries) {
+        bool horizontalColumns = PdfTableColumnGeometry.HasHorizontalProgression(table.Columns,
+            static column => column.VisualBounds, true);
+        PdfLogicalVisualBounds bounds = table.VisualBounds!;
+        var columnBoundaries = new List<double>();
+        foreach (StructuredTableColumn column in table.Columns) {
+            PdfLogicalVisualBounds strip = column.VisualBounds!;
+            columnBoundaries.Add(horizontalColumns ? strip.Left : strip.Top);
+            columnBoundaries.Add(horizontalColumns ? strip.Right : strip.Bottom);
+        }
+        double from = horizontalColumns ? bounds.Top : bounds.Left;
+        double to = horizontalColumns ? bounds.Bottom : bounds.Right;
+        double rowHeight = (to - from) / Math.Max(1, table.Rows.Count - 1);
+        double[] rows = Enumerable.Range(0, Math.Max(1, table.Rows.Count) + 1)
+            .Select(index => from - rowHeight / 2D + index * rowHeight).ToArray();
+        double[] columns = columnBoundaries.Distinct().OrderBy(static value => value).ToArray();
+        verticalBoundaries = horizontalColumns ? columns : rows;
+        horizontalBoundaries = horizontalColumns ? rows : columns;
     }
 
     private void AddVisualBoundary(
