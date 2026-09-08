@@ -4,7 +4,7 @@ description: "Compose, inspect, update, theme, import, and render repeatable pre
 layout: docs
 ---
 
-The PowerPoint family exports 57 commands for slide creation and editing, sections, shapes, images, text, charts, tables, notes, themes, layouts, transitions, import, inspection, designer decks, and semantic deck plans.
+The PowerPoint family exports 58 commands for slide creation and editing, sections, shapes, images, text, charts, tables, notes, themes, layouts, transitions, import, inspection, designer decks, and semantic deck plans.
 
 ## Choose direct authoring or a deck plan
 

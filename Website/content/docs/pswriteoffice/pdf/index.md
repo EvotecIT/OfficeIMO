@@ -4,7 +4,7 @@ description: "Author, inspect, combine, annotate, sign, preflight, optimize, red
 layout: docs
 ---
 
-The PDF family exports 80 commands over the first-party OfficeIMO.Pdf engine. It includes document composition, metadata, pages, text, images, tables, lists, headings, panels, headers and footers, backgrounds, watermarks, forms, annotations, attachments, bookmarks, signatures, compliance, extraction, merge/split, redaction, optimization, and diagnostics.
+The PDF family exports 81 commands over the first-party OfficeIMO.Pdf engine. It includes document composition, metadata, pages, text, images, tables, lists, headings, panels, headers and footers, backgrounds, watermarks, forms, annotations, attachments, bookmarks, signatures, compliance, extraction, merge/split, redaction, optimization, and diagnostics.
 
 ## Compose a fixed-layout document
 

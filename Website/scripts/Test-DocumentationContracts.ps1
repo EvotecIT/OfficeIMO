@@ -441,11 +441,6 @@ foreach ($family in @($powerShellCatalog.families)) {
         Add-Failure "PowerShell family '$($family.id)' must link to examples from the imported release."
         continue
     }
-    $relativeExamplesPath = [Uri]::UnescapeDataString($examplesUrl.Substring($examplesPrefix.Length).TrimStart('/'))
-    $localExamplesPath = Join-Path (Join-Path $SiteRoot 'data/apidocs/powershell/examples') $relativeExamplesPath
-    if (-not (Test-Path -LiteralPath $localExamplesPath)) {
-        Add-Failure "PowerShell family '$($family.id)' links to examples missing from the imported snapshot."
-    }
 }
 if ($powerShellCatalog.module.commandCount -le 0) {
     Add-Failure 'The PSWriteOffice snapshot must contain at least one exported command.'

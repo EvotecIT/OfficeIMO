@@ -4,7 +4,7 @@ description: "Create, inspect, arrange, stencil, and export VSDX diagrams from P
 layout: docs
 ---
 
-The Visio family exports 20 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
+The Visio family exports 21 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
 
 ## Create with primitives or stencils
 

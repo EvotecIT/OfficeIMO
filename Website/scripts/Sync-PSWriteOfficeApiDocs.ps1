@@ -94,8 +94,7 @@ function Sync-DirectoryContents {
 function Sync-DocumentationPages {
     param(
         [Parameter(Mandatory)][string] $Source,
-        [Parameter(Mandatory)][string] $Destination,
-        [Parameter(Mandatory)][object[]] $CommandFamilies
+        [Parameter(Mandatory)][string] $Destination
     )
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -113,13 +112,6 @@ function Sync-DocumentationPages {
         }
 
         $content = [IO.File]::ReadAllText($sourceFile.FullName)
-        $family = @($CommandFamilies | Where-Object id -eq $slug)
-        if ($family.Count -eq 1) {
-            # Quantitative summaries follow the validated catalog from this same snapshot.
-            # The upstream human-authored guide may retain an older total.
-            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)')
-            $content = $summaryCount.Replace($content, [string] $family[0].commandCount, 1)
-        }
         [IO.File]::WriteAllText($targetPath, $content, [Text.UTF8Encoding]::new($false))
     }
 }
@@ -319,7 +311,7 @@ function Set-PSWriteOfficeSourceLinks {
     return $changed
 }
 
-function Set-PSWriteOfficeDocumentationLinks {
+function Set-PSWriteOfficeDocumentationSnapshot {
     param(
         [Parameter(Mandatory)][string] $SiteRootPath,
         [Parameter(Mandatory)] $Source
@@ -360,6 +352,12 @@ function Set-PSWriteOfficeDocumentationLinks {
     foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
         $content = [IO.File]::ReadAllText($page.FullName)
         $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
+        $family = @($catalog.families | Where-Object id -CEQ $page.Directory.Name)
+        if ($page.Name -ceq 'index.md' -and $family.Count -eq 1) {
+            # Imported and fallback summaries follow the same catalog totals.
+            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)|(?<=\bexports )\d+(?= commands\b)')
+            $pinnedContent = $summaryCount.Replace($pinnedContent, [string] $family[0].commandCount, 1)
+        }
         if ($content -cne $pinnedContent) {
             [IO.File]::WriteAllText($page.FullName, $pinnedContent, [Text.UTF8Encoding]::new($false))
             $pagesChanged = $true
@@ -437,7 +435,7 @@ $summary = [ordered]@{
 if (-not $resolvedRepoRoot) {
     $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
     if (-not $SkipDocumentation) {
-        $linkUpdates = Set-PSWriteOfficeDocumentationLinks -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+        $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
         $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
         $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
     }
@@ -530,7 +528,7 @@ if (-not $SkipDocumentation) {
     }
 
     if ($sourceDocumentationAvailable -and $sourceCatalogValid) {
-        Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath -CommandFamilies @($sourceCatalog.families)
+        Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath
         Sync-DocumentationToc `
             -Source $sourceDocumentationPath `
             -TocPath (Join-Path $resolvedSiteRoot 'content\docs\toc.json')
@@ -548,7 +546,7 @@ if (-not $SkipDocumentation) {
     } else {
         throw "No complete PSWriteOffice documentation/catalog pair is available in source or the checked-in site snapshot."
     }
-    $linkUpdates = Set-PSWriteOfficeDocumentationLinks -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+    $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
     $summary.documentationCatalogUpdated = $summary.documentationCatalogUpdated -or $linkUpdates.CatalogUpdated
     $summary.documentationUpdated = $summary.documentationUpdated -or $linkUpdates.DocumentationUpdated
 }
