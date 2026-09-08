@@ -22,7 +22,7 @@ public sealed class ReaderContentTraversalTests {
         var source = new OfficeDocumentReadResult {
             Blocks = Enumerable.Range(1, 2).SelectMany(container => new[] {
                 new OfficeDocumentBlock { Id = "before" + container, Text = "before" + container, Location = Location(container) },
-                new OfficeDocumentBlock { Id = "placeholder" + container, Text = "placeholder" + container, Location = Location(container, "table-1") },
+                new OfficeDocumentBlock { Text = "placeholder" + container, Location = Location(container, "table-1") },
                 new OfficeDocumentBlock { Id = "after" + container, Text = "after" + container, Location = Location(container) }
             }).ToArray(),
             Tables = Enumerable.Range(1, 2).Select(container => new ReaderTable {
@@ -33,6 +33,76 @@ public sealed class ReaderContentTraversalTests {
         Assert.Equal(new[] { "before1", "placeholder1", "table", "after1", "before2", "placeholder2", "table", "after2" },
             document.EnumerateContent().Select(item => item.Block?.Text ?? "table"));
         Assert.All(source.Tables, table => Assert.Null(table.Location!.SourceBlockIndex));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void AnchorProjectionsUsePageFallbackWithoutLosingOtherContainers(bool ambiguousAggregate, bool roundTrip) {
+        var aggregate = new OfficeDocumentBlock { Text = "aggregate", Location = new() {
+            Page = ambiguousAggregate ? null : 2, BlockAnchor = "paragraph-1" } };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { aggregate }, Pages = new[] {
+            new OfficeDocumentPage { Location = new() { Page = 1 }, Blocks = new[] {
+                new OfficeDocumentBlock { Text = "page-one", Location = new() { BlockAnchor = "paragraph-1" } } } },
+            new OfficeDocumentPage { Location = new() { Page = 2 }, Blocks = new[] {
+                new OfficeDocumentBlock { Text = "page-two", Location = new() { BlockAnchor = "paragraph-1" } } } }
+        } };
+        var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var blocks = document.EnumerateBlocks().ToArray();
+        Assert.Equal(ambiguousAggregate ? new[] { "page-one", "page-two", "aggregate" } : new[] { "page-one", "aggregate" },
+            blocks.Select(block => block.Text));
+        Assert.Equal(ambiguousAggregate ? (int?)null : 2, aggregate.Location!.Page);
+        Assert.All(source.Pages, page => Assert.Null(page.Blocks[0].Location!.Page));
+        var hierarchy = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions { MaxTokens = 100, OverlapTokens = 0, IncludeContextInText = false });
+        string text = string.Join("\n", hierarchy.Chunks.Select(chunk => chunk.Text));
+        Assert.Contains("page-one", text);
+        Assert.Contains("aggregate", text);
+        if (ambiguousAggregate) Assert.Contains("page-two", text);
+        else Assert.DoesNotContain("page-two", text);
+        Assert.Equal(ambiguousAggregate ? (int?)null : 2,
+            Assert.Single(hierarchy.Chunks, chunk => chunk.Text.Contains("aggregate")).Location.Page);
+    }
+
+    [Theory]
+    [InlineData("page", false)]
+    [InlineData("page", true)]
+    [InlineData("slide", false)]
+    [InlineData("slide", true)]
+    [InlineData("sheet", false)]
+    [InlineData("sheet", true)]
+    [InlineData("path", false)]
+    [InlineData("path", true)]
+    public void HierarchyPreservesAuthoritativeAnchorProjectionAtInputLimit(string kind, bool roundTrip) {
+        var aggregate = new OfficeDocumentBlock { Text = "authoritative aggregate", Location = new() { BlockAnchor = "paragraph-1" } };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { aggregate }, Pages = new[] {
+            new OfficeDocumentPage { Number = kind == "path" ? null : 7, Name = "Inventory",
+                Location = new() { SourceBlockKind = kind, Path = "source.dat" }, Blocks = new[] {
+                new OfficeDocumentBlock { Text = "page copy", Location = new() { BlockAnchor = "paragraph-1", SourceBlockIndex = 12 } }
+            } }
+        } };
+        var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var result = ReaderHierarchicalChunker.Chunk(document, new ReaderHierarchicalChunkingOptions {
+            MaxInputChunks = 1, MaxTokens = 100, OverlapTokens = 0, IncludeContextInText = false
+        });
+        var chunk = Assert.Single(result.Chunks);
+        Assert.Equal("authoritative aggregate", chunk.Text);
+        Assert.Equal(kind == "page" ? 7 : (int?)null, chunk.Location.Page);
+        Assert.Equal(kind == "slide" ? 7 : (int?)null, chunk.Location.Slide);
+        Assert.Equal(kind == "sheet" ? "Inventory" : null, chunk.Location.Sheet);
+        Assert.Equal("source.dat", chunk.Location.Path);
+        Assert.Equal(12, chunk.Location.SourceBlockIndex);
+        Assert.Equal("paragraph-1", chunk.Location.BlockAnchor);
+        Assert.Null(aggregate.Location!.Page);
+        Assert.Null(aggregate.Location.SourceBlockIndex);
+        var canonical = Assert.Single(document.EnumerateBlocks());
+        Assert.Equal(chunk.Text, canonical.Text);
+        Assert.Equal(chunk.Location.Page, canonical.Location!.Page);
+        Assert.Equal(chunk.Location.Slide, canonical.Location.Slide);
+        Assert.Equal(chunk.Location.Sheet, canonical.Location.Sheet);
+        Assert.Equal(chunk.Location.Path, canonical.Location.Path);
     }
 
     [Theory]

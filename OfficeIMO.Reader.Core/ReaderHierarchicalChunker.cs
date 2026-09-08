@@ -148,8 +148,7 @@ public static partial class ReaderHierarchicalChunker {
             OfficeDocumentBlock block = fallback.Block;
             string text = block.Text ?? string.Empty;
             bool isHeading = string.Equals(block.Kind?.Trim(), "heading", StringComparison.OrdinalIgnoreCase);
-            ReaderLocation location = CloneLocation(block.Location);
-            InheritPageLocation(location, fallback.Page);
+            ReaderLocation location = CloneLocation(fallback.Location);
             location.Path ??= document.Source?.Path;
             location.SourceBlockIndex ??= index;
             location.SourceBlockKind ??= block.Kind;
@@ -217,7 +216,7 @@ public static partial class ReaderHierarchicalChunker {
         int maximumPageIndexInspections = (int)Math.Min(
             int.MaxValue,
             (long)maximumInputChunks * PageIndexInspectionMultiplier);
-        PageBlockIndex pageIndex = CollectPageFallbackBlocks(
+        OfficeDocumentModelTraversal.BlockProjectionIndex pageIndex = CollectPageFallbackBlocks(
             pages,
             candidates,
             seen,
@@ -229,33 +228,14 @@ public static partial class ReaderHierarchicalChunker {
 
         IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(
             candidates,
-            block => {
-                OfficeDocumentPage? page = ResolveFallbackPage(block, pageIndex);
-                ReaderLocation location = CloneLocation(block.Location);
-                InheritPageLocation(location, page);
-                return location;
-            });
+            pageIndex.ResolveLocation);
         if (ordered.Count > maximumInputChunks) limitReached = true;
         int selectedCount = Math.Min(ordered.Count, maximumInputChunks);
         for (int blockIndex = 0; blockIndex < selectedCount; blockIndex++) {
             OfficeDocumentBlock block = ordered[blockIndex];
-            OfficeDocumentPage? page = ResolveFallbackPage(block, pageIndex);
-            yield return new FallbackBlock(block, page);
+            yield return new FallbackBlock(block, pageIndex.ResolveLocation(block));
         }
         if (limitReached) yield return FallbackBlock.LimitMarker;
-    }
-
-    private static OfficeDocumentPage? ResolveFallbackPage(
-        OfficeDocumentBlock block,
-        PageBlockIndex pageIndex) {
-        if (pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page)) {
-            return page;
-        }
-        if (!string.IsNullOrWhiteSpace(block.Id) &&
-            pageIndex.ById.TryGetValue(block.Id!, out page)) {
-            return page;
-        }
-        return null;
     }
 
     private static bool TryRegisterFallbackBlock(
@@ -266,7 +246,7 @@ public static partial class ReaderHierarchicalChunker {
         return string.IsNullOrWhiteSpace(block.Id) || seenIds.Add(block.Id!);
     }
 
-    private static PageBlockIndex CollectPageFallbackBlocks(
+    private static OfficeDocumentModelTraversal.BlockProjectionIndex CollectPageFallbackBlocks(
         IReadOnlyList<OfficeDocumentPage> pages,
         IList<OfficeDocumentBlock> candidates,
         ISet<OfficeDocumentBlock> seen,
@@ -274,16 +254,14 @@ public static partial class ReaderHierarchicalChunker {
         int maximumInspections,
         CancellationToken cancellationToken,
         out bool limitReached) {
-        var byReference = new Dictionary<OfficeDocumentBlock, OfficeDocumentPage>(
-            ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
-        var byId = new Dictionary<string, OfficeDocumentPage>(StringComparer.Ordinal);
+        var projections = new OfficeDocumentModelTraversal.BlockProjectionIndex();
         limitReached = false;
 
         int inspections = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             if (inspections >= maximumInspections) {
                 limitReached = true;
-                return new PageBlockIndex(byReference, byId);
+                return projections;
             }
             cancellationToken.ThrowIfCancellationRequested();
             inspections++;
@@ -298,36 +276,17 @@ public static partial class ReaderHierarchicalChunker {
                 OfficeDocumentBlock block = pageBlocks[blockIndex];
                 inspections++;
                 if (block == null) continue;
-                if (seen.Contains(block)) {
-                    byReference[block] = page;
-                }
-                if (!string.IsNullOrWhiteSpace(block.Id) && seenIds.Contains(block.Id!)) {
-                    byId[block.Id!] = page;
-                }
+                projections.Add(block, page);
                 if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
                 candidates.Add(block);
-                byReference[block] = page;
-                if (!string.IsNullOrWhiteSpace(block.Id)) byId[block.Id!] = page;
             }
             if (inspections >= maximumInspections) {
                 limitReached = pageIndex + 1 < pages.Count
                     || blockIndex < pageBlocks.Count;
-                return new PageBlockIndex(byReference, byId);
+                return projections;
             }
         }
-        return new PageBlockIndex(byReference, byId);
-    }
-
-    private sealed class PageBlockIndex {
-        internal PageBlockIndex(
-            Dictionary<OfficeDocumentBlock, OfficeDocumentPage> byReference,
-            Dictionary<string, OfficeDocumentPage> byId) {
-            ByReference = byReference;
-            ById = byId;
-        }
-
-        internal Dictionary<OfficeDocumentBlock, OfficeDocumentPage> ByReference { get; }
-        internal Dictionary<string, OfficeDocumentPage> ById { get; }
+        return projections;
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
@@ -363,35 +322,6 @@ public static partial class ReaderHierarchicalChunker {
             Diagnostics = chunk.Diagnostics,
             Warnings = chunk.Warnings
         };
-    }
-
-    private static void InheritPageLocation(ReaderLocation location, OfficeDocumentPage? page) {
-        if (page == null) return;
-        ReaderLocation container = page.Location ?? new ReaderLocation();
-        if (string.IsNullOrWhiteSpace(location.Path)) location.Path = container.Path;
-        if (string.IsNullOrWhiteSpace(location.Sheet)) location.Sheet = container.Sheet;
-        if (string.IsNullOrWhiteSpace(location.A1Range)) location.A1Range = container.A1Range;
-        location.Slide ??= container.Slide;
-        string? containerKind = container.SourceBlockKind?.Trim();
-        if (string.Equals(containerKind, "sheet", StringComparison.OrdinalIgnoreCase)) {
-            if (string.IsNullOrWhiteSpace(location.Sheet)) {
-                location.Sheet = !string.IsNullOrWhiteSpace(page.Name)
-                    ? page.Name
-                    : page.Number > 0
-                        ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture)
-                        : null;
-            }
-        }
-        if (!location.Page.HasValue &&
-            !location.Slide.HasValue &&
-            string.IsNullOrWhiteSpace(location.Sheet)) {
-            int? number = page.Number > 0 ? page.Number : container.Page;
-            if (string.Equals(containerKind, "slide", StringComparison.OrdinalIgnoreCase)) {
-                location.Slide = number;
-            } else {
-                location.Page = number;
-            }
-        }
     }
 
     private static void UpdateFallbackHeadings(
@@ -565,22 +495,22 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private readonly struct FallbackBlock {
-        internal FallbackBlock(OfficeDocumentBlock block, OfficeDocumentPage? page) {
+        internal FallbackBlock(OfficeDocumentBlock block, ReaderLocation? location) {
             Block = block;
-            Page = page;
+            Location = location;
             IsLimitMarker = false;
         }
 
         private FallbackBlock(bool isLimitMarker) {
             Block = null!;
-            Page = null;
+            Location = null;
             IsLimitMarker = isLimitMarker;
         }
 
         internal static FallbackBlock LimitMarker { get; } = new FallbackBlock(true);
 
         internal OfficeDocumentBlock Block { get; }
-        internal OfficeDocumentPage? Page { get; }
+        internal ReaderLocation? Location { get; }
         internal bool IsLimitMarker { get; }
     }
 
