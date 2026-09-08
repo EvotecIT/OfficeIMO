@@ -10,6 +10,8 @@ public sealed record OfficeAiLimits {
     public int MaxDocumentBlocks { get; init; } = 50_000;
     /// <summary>Maximum page count in a snapshot.</summary>
     public int MaxPages { get; init; } = 500;
+    /// <summary>Maximum image count in a snapshot, independent of how many images belong to each page.</summary>
+    public int MaxDocumentImages { get; init; } = 500;
     /// <summary>Maximum serialized evidence and user instructions per model request.</summary>
     public int MaxRequestCharacters { get; init; } = 48_000;
     /// <summary>Maximum model response characters per batch.</summary>
@@ -31,7 +33,7 @@ public sealed record OfficeAiLimits {
 
     internal void Validate() {
         if (MaxInputBytes is < 1 or > 268_435_456 || MaxDocumentCharacters is < 1 or > 20_000_000
-            || MaxDocumentBlocks is < 1 or > 200_000 || MaxPages is < 1 or > 10_000
+            || MaxDocumentBlocks is < 1 or > 200_000 || MaxPages is < 1 or > 10_000 || MaxDocumentImages is < 1 or > 10_000
             || MaxRequestCharacters is < 4096 or > 2_000_000 || MaxResponseCharacters is < 1024 or > 2_000_000
             || MaxSynthesisPasses is < 1 or > 8 || MaxRequests is < 1 or > 256 || MaxResultItems is < 1 or > 200
             || MaxTableCells is < 1 or > 100_000 || MaxImageBytes is < 1 or > 67_108_864

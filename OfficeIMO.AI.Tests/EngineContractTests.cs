@@ -18,6 +18,7 @@ public sealed class EngineContractTests {
         var executor = new Executor(Empty);
         await new OfficeAiEngine(executor).RunAsync(Document("Total 42"), Request() with {
             Operation = operation,
+            Limits = new() { MaxResultItems = 2 },
             Fields = operation == OfficeAiOperation.ExtractFields ? new[] { new OfficeAiFieldDefinition("total") } : Array.Empty<OfficeAiFieldDefinition>()
         });
         using JsonDocument schema = JsonDocument.Parse(Assert.Single(executor.Requests).OutputSchema);
@@ -25,7 +26,7 @@ public sealed class EngineContractTests {
         foreach (string name in new[] { "claims", "fields", "blocks", "tables" }) {
             JsonElement array = schema.RootElement.GetProperty("properties").GetProperty(name);
             Assert.Equal("array", array.GetProperty("type").GetString());
-            Assert.Equal(enabled.Contains(name) ? 200 : 0, array.GetProperty("maxItems").GetInt32());
+            Assert.Equal(enabled.Contains(name) ? 2 : 0, array.GetProperty("maxItems").GetInt32());
         }
     }
 
@@ -303,6 +304,58 @@ public sealed class EngineContractTests {
         });
         Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
         Assert.Equal(OfficeAiFieldStatus.NotEvaluated, Assert.Single(result.Fields).Status);
+    }
+
+    [Theory]
+    [InlineData("yyyy-MM-dd'")]
+    [InlineData("yyyy-MM-dd\\")]
+    [InlineData("q")]
+    public async Task InvalidDateFormatIsRejectedBeforeInference(string format) {
+        var executor = new Executor(Empty);
+        await Assert.ThrowsAsync<ArgumentException>(() => new OfficeAiEngine(executor).RunAsync(Document("2030-04-03"), Request() with {
+            Operation = OfficeAiOperation.ExtractFields,
+            Fields = new[] { new OfficeAiFieldDefinition("date", OfficeAiFieldType.Date, format) }
+        }));
+        Assert.Empty(executor.Requests);
+    }
+
+    [Theory]
+    [InlineData("en-US", "MM/dd/yyyy", "04/03/2030")]
+    [InlineData("pl-PL", "dd MMMM yyyy", "03 kwietnia 2030")]
+    public async Task ValidCultureSpecificDateFormatStillNormalizes(string culture, string format, string raw) {
+        var result = await new OfficeAiEngine(new Executor(Field("date", raw, "e1"))).RunAsync(Document(raw), Request() with {
+            Operation = OfficeAiOperation.ExtractFields, Culture = culture,
+            Fields = new[] { new OfficeAiFieldDefinition("date", OfficeAiFieldType.Date, format) }
+        });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal("2030-04-03", Assert.Single(result.Fields).NormalizedValue);
+    }
+
+    [Theory]
+    [InlineData(1, 3, true)]
+    [InlineData(3, 1, true)]
+    [InlineData(2, 2, false)]
+    [InlineData(4, 1, false)]
+    public async Task GeneratedTableShapesAndValidatorApplyTheSameEffectiveBounds(int rowCount, int columnCount, bool accepted) {
+        string[] columns = Enumerable.Range(0, columnCount).Select(index => "Column " + index).ToArray();
+        string[][] values = Enumerable.Range(0, rowCount).Select(_ => Enumerable.Repeat("value", columnCount).ToArray()).ToArray();
+        string response = JsonSerializer.Serialize(new { status = "ok", claims = Array.Empty<object>(), fields = Array.Empty<object>(),
+            blocks = Array.Empty<object>(), tables = new[] { new { title = "", columns, rows = values, evidence = new[] { new { id = "e1", quote = "table" } } } } });
+        var executor = new Executor(response);
+        var result = await new OfficeAiEngine(executor).RunAsync(Document("table"), Request() with {
+            Operation = OfficeAiOperation.Parse, Limits = new() { MaxResultItems = 3, MaxTableCells = 3 }
+        });
+        var sent = Assert.Single(executor.Requests);
+        using var schema = JsonDocument.Parse(sent.OutputSchema);
+        var properties = schema.RootElement.GetProperty("properties");
+        Assert.Equal(3, properties.GetProperty("tables").GetProperty("maxItems").GetInt32());
+        var rows = properties.GetProperty("tables").GetProperty("items").GetProperty("properties").GetProperty("rows");
+        bool schemaAcceptsShape = rows.GetProperty("anyOf").EnumerateArray().Any(shape => rowCount <= shape.GetProperty("maxItems").GetInt32()
+            && columnCount <= shape.GetProperty("items").GetProperty("maxItems").GetInt32());
+        Assert.Equal(accepted, schemaAcceptsShape);
+        Assert.Equal(accepted ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InvalidResponse, result.Status);
+        using var input = JsonDocument.Parse(sent.InputJson);
+        Assert.Equal(3, input.RootElement.GetProperty("resultLimits").GetProperty("maxTableCells").GetInt32());
     }
 
     private static OfficeAiDocument Document(string text) => OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(text),

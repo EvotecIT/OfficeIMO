@@ -25,7 +25,9 @@ public sealed partial class OfficeAiEngine {
         request = SnapshotRequest(request);
         if (document.SourceByteLength > request.Limits.MaxInputBytes || document.Evidence.Count > request.Limits.MaxDocumentBlocks
             || document.Evidence.Sum(item => (long)item.Text.Length) > request.Limits.MaxDocumentCharacters
-            || document.Pages.Any(page => page > request.Limits.MaxPages))
+            || document.Pages.Any(page => page > request.Limits.MaxPages)
+            || document.Images.Count > request.Limits.MaxDocumentImages
+            || document.Images.Sum(image => (long)image.ByteLength) > request.Limits.MaxInputBytes)
             throw new ArgumentException("Captured document exceeds this operation's source limits.", nameof(document));
         OfficeAiExecutionProfile profile = _executor.Profile with { };
         profile.Validate();
@@ -146,7 +148,8 @@ public sealed partial class OfficeAiEngine {
         if (!Enum.IsDefined(request.Operation) || string.IsNullOrWhiteSpace(request.Instruction) || request.Instruction.Length > 8000)
             throw new ArgumentException("A supported operation and 1-8000 character instruction are required.", nameof(request));
         ArgumentNullException.ThrowIfNull(request.Pages); ArgumentNullException.ThrowIfNull(request.EvidenceIds); ArgumentNullException.ThrowIfNull(request.Fields);
-        if (request.Pages.Count > request.Limits.MaxPages || request.EvidenceIds.Count > request.Limits.MaxDocumentBlocks || request.Fields.Count > 100)
+        if (request.Pages.Count > request.Limits.MaxPages || request.EvidenceIds.Count > request.Limits.MaxDocumentBlocks
+            || request.Fields.Count > Math.Min(100, request.Limits.MaxResultItems))
             throw new ArgumentException("Request selection exceeds configured bounds.", nameof(request));
         var snapshot = request with { Pages = Array.AsReadOnly(request.Pages.ToArray()), EvidenceIds = Array.AsReadOnly(request.EvidenceIds.ToArray()), Fields = Array.AsReadOnly(request.Fields.ToArray()) };
         _ = CultureInfo.GetCultureInfo(snapshot.Culture);
@@ -159,6 +162,10 @@ public sealed partial class OfficeAiEngine {
                 || !names.Add(field.Name) || !Enum.IsDefined(field.Type)
                 || field.DateFormat?.Length > 80 || (field.Type == OfficeAiFieldType.Date && string.IsNullOrWhiteSpace(field.DateFormat)))
                 throw new ArgumentException("Invalid field definitions; dates require an exact source format.", nameof(request));
+            if (field.Type == OfficeAiFieldType.Date) {
+                try { _ = new DateOnly(2000, 6, 15).ToString(field.DateFormat, CultureInfo.GetCultureInfo(snapshot.Culture)); }
+                catch (FormatException error) { throw new ArgumentException("A date field contains an invalid source format.", nameof(request), error); }
+            }
         }
         if ((snapshot.Operation == OfficeAiOperation.ExtractFields) != (snapshot.Fields.Count > 0))
             throw new ArgumentException("Only ExtractFields accepts field definitions, and requires at least one.", nameof(request));

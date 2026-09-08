@@ -2,6 +2,20 @@
 
 This optional .NET 10 adapter connects `OfficeIMO.AI` to IntelligenceX Treatment. It requires `IntelligenceX` 0.1.1 and keeps provider/authentication code out of the document engine.
 
+## Add the adapter from source
+
+With `OfficeIMO` and `IntelligenceX` source checkouts beside your application directory, pack the SDK into a local feed and reference the adapter project:
+
+```shell
+dotnet pack IntelligenceX/IntelligenceX/IntelligenceX.csproj --configuration Release --output local-feed
+dotnet new console --framework net10.0 --name DocumentAssistant
+dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj
+dotnet restore DocumentAssistant/DocumentAssistant.csproj --source local-feed --source https://api.nuget.org/v3/index.json
+dotnet build DocumentAssistant/DocumentAssistant.csproj --no-restore
+```
+
+The local feed must contain the required `IntelligenceX` 0.1.1 package built from the matching SDK source. The project reference brings in the AI engine and Reader Core; add format readers in your host as needed.
+
 ## ChatGPT
 
 ```csharp

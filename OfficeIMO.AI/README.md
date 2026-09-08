@@ -4,6 +4,18 @@
 
 Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, restricted Copilot text processing, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
+## Add to a .NET 10 application
+
+To build from a source checkout, create an application beside the `OfficeIMO` directory and reference the engine project:
+
+```shell
+dotnet new console --framework net10.0 --name DocumentAssistant
+dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI/OfficeIMO.AI.csproj
+dotnet build DocumentAssistant/DocumentAssistant.csproj
+```
+
+The engine reference brings in Reader Core. Supply your own `IOfficeAiExecutor`, or add the [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md#add-the-adapter-from-source).
+
 ## Extract named fields
 
 This method reads a plain-text invoice. Register the relevant Reader adapter for other formats.
@@ -61,7 +73,7 @@ Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Inva
 
 ## Budgets and cancellation
 
-`OfficeAiLimits` bounds captured bytes, retained observations, pages, request text, image payloads/pixels, response text, result sizes, request count, and duration. Format readers and renderers also need their own allocation and decoding limits. Snapshot limits do not replace those owners' parser limits.
+`OfficeAiLimits` bounds captured bytes, retained observations, pages, request text, image payloads/pixels, response text, result sizes, request count, and duration. `MaxDocumentImages` bounds image count independently of `MaxPages`, so several images can describe one page. Generation schemas use the same `MaxResultItems` and `MaxTableCells` bounds as local response validation. Format readers and renderers also need their own allocation and decoding limits. Snapshot limits do not replace those owners' parser limits.
 
 The engine includes the executor's prompt-wrapper measurement when batching. Oversized text records are split into contiguous windows at nearby natural boundaries without splitting a UTF-16 surrogate pair. The snapshot stays unchanged, and validated citations map back to its original identifiers and offsets. `ProcessedTextRanges` records successful windows. `ProcessedEvidenceIds` contains fully processed records; a record with any unprocessed text remains in `OmittedEvidenceIds`.
 

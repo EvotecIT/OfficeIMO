@@ -99,26 +99,27 @@ public sealed class OfficeAiDocument {
             });
         }
         foreach (OfficeDocumentPage page in document.Pages) {
-            if (page.Number is int number) {
+            if ((page.Number ?? page.Location?.Page) is int number) {
                 if (number < 1 || number > limits.MaxPages) throw new InvalidDataException("Source page is outside the configured bounds.");
                 pages.Add(number);
             }
         }
-        if (document.Blocks.Count > 0) {
-            foreach (OfficeDocumentBlock block in document.Blocks) Add(block.Kind, block.Text, block.Location?.Page, block.Id, block.Region);
-        } else {
-            foreach (OfficeDocumentPage page in document.Pages)
-                foreach (OfficeDocumentBlock block in page.Blocks) Add(block.Kind, block.Text, block.Location?.Page ?? page.Number, block.Id, block.Region);
+        var blockPages = new Dictionary<OfficeDocumentBlock, int?>(ReferenceEqualityComparer.Instance);
+        var tablePages = new Dictionary<ReaderTable, int?>(ReferenceEqualityComparer.Instance);
+        foreach (OfficeDocumentPage page in document.Pages) {
+            foreach (OfficeDocumentBlock block in page.Blocks) blockPages.TryAdd(block, page.Number ?? page.Location?.Page);
+            foreach (ReaderTable table in page.Tables) tablePages.TryAdd(table, page.Number ?? page.Location?.Page);
         }
+        foreach (ReaderChunk chunk in document.Chunks)
+            foreach (ReaderTable table in chunk.Tables ?? Array.Empty<ReaderTable>()) tablePages.TryAdd(table, chunk.Location?.Page);
+        foreach (OfficeDocumentBlock block in document.EnumerateBlocks())
+            Add(block.Kind, block.Text, block.Location?.Page ?? blockPages.GetValueOrDefault(block), block.Id, block.Region);
         if (evidence.Count == 0) {
             foreach (ReaderChunk chunk in document.Chunks) Add("chunk", chunk.Text, chunk.Location?.Page, chunk.Id);
         }
         // Keep each table row intact, with its column labels, so batching cannot separate labels from values.
-        var tables = document.Tables.Count > 0 ? document.Tables.Select(table => (Table: table, Page: table.Location?.Page))
-            : document.Pages.SelectMany(page => page.Tables.Select(table => (Table: table, Page: table.Location?.Page ?? page.Number)));
         int tableIndex = 0;
-        foreach (var locatedTable in tables) {
-            ReaderTable table = locatedTable.Table;
+        foreach (ReaderTable table in document.EnumerateTables()) {
             tableIndex++;
             if (table.Columns.Count > limits.MaxTableCells || table.Rows.Sum(row => (long)row.Count) > limits.MaxTableCells)
                 throw new InvalidDataException("Source table exceeds the configured cell limit.");
@@ -128,7 +129,7 @@ public sealed class OfficeAiDocument {
                 if (row.Count > limits.MaxTableCells) throw new InvalidDataException("Source table row exceeds the configured cell limit.");
                 string text = string.Join(" | ", row.Select((value, column) =>
                     (column < table.Columns.Count ? table.Columns[column] : "Column " + (column + 1)) + ": " + value));
-                Add("table-row", text, locatedTable.Page, $"table-{tableIndex}-row-{rowIndex}");
+                Add("table-row", text, table.Location?.Page ?? tablePages.GetValueOrDefault(table), $"table-{tableIndex}-row-{rowIndex}");
             }
         }
         var imageList = new List<OfficeAiImage>();
@@ -136,7 +137,7 @@ public sealed class OfficeAiDocument {
         long totalImageBytes = 0;
         foreach (OfficeAiImage image in images ?? Array.Empty<OfficeAiImage>()) {
             ArgumentNullException.ThrowIfNull(image);
-            if (imageList.Count >= limits.MaxPages || image.Page > limits.MaxPages || !imageIds.Add(image.Id)
+            if (imageList.Count >= limits.MaxDocumentImages || image.Page > limits.MaxPages || !imageIds.Add(image.Id)
                 || evidence.Any(item => item.Id == image.Id)) throw new ArgumentException("Image identities or page bounds are invalid.", nameof(images));
             totalImageBytes += image.ByteLength;
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");

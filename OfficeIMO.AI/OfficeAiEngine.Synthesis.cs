@@ -19,6 +19,7 @@ public sealed partial class OfficeAiEngine {
         int calls = 0;
         long? inputTokens = 0, outputTokens = 0;
         int maximum = Math.Min(profile.MaxRequestCharacters, request.Limits.MaxRequestCharacters);
+        string outputSchema = CreateSynthesisSchema(request.Limits);
         Synthesis Finish(bool completed) => new(current, completed, calls, inputTokens, outputTokens);
         for (int pass = 0; pass < request.Limits.MaxSynthesisPasses; pass++) {
             token.ThrowIfCancellationRequested();
@@ -27,10 +28,10 @@ public sealed partial class OfficeAiEngine {
             OfficeAiExecutionRequest Create(IReadOnlyList<OfficeAiClaim> items) => new(
                 requestId + "-summary-" + (calls + 1), SynthesisInstructions,
                 JsonSerializer.Serialize(new {
-                    schema = "officeimo.ai.summary.v1", instruction = request.Instruction,
+                    schema = "officeimo.ai.summary.v1", instruction = request.Instruction, maxResultItems = request.Limits.MaxResultItems,
                     drafts = items.Select((claim, index) => new { id = "c" + index, text = claim.Text,
                         sources = claim.Citations.Select(citation => new { citation.EvidenceId, citation.Page, citation.Quote, citation.QuoteMatched }) })
-                }), SynthesisSchema, Array.Empty<OfficeAiImage>(), request.Limits.MaxResponseCharacters);
+                }), outputSchema, Array.Empty<OfficeAiImage>(), request.Limits.MaxResponseCharacters);
             foreach (OfficeAiClaim claim in current) {
                 token.ThrowIfCancellationRequested();
                 group.Add(claim);

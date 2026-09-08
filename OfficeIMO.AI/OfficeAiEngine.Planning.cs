@@ -36,11 +36,12 @@ public sealed partial class OfficeAiEngine {
         string Serialize() => JsonSerializer.Serialize(new {
             schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, snapshotHash = document.SnapshotHash, pageProvenance = document.PageProvenance,
             operation = request.Operation.ToString(), instruction = request.Instruction,
+            resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells },
             fields = request.Fields.Select(field => new { name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
             evidence = currentText.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page }),
             images = currentImages.Select(item => new { id = item.Id, page = item.Page, width = item.Width, height = item.Height })
         });
-        string outputSchema = CreateOutputSchema(request.Operation);
+        string outputSchema = CreateOutputSchema(request);
         OfficeAiExecutionRequest CreateRequest() => new(requestId + "-" + (batches.Count + 1), Instructions, Serialize(), outputSchema,
             Array.AsReadOnly(currentImages.ToArray()), request.Limits.MaxResponseCharacters);
         bool Fits() => currentImages.Sum(image => (long)image.ByteLength) <= Math.Min(profile.MaxImageBytes, request.Limits.MaxImageBytes)

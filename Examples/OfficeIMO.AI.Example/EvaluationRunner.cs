@@ -13,7 +13,7 @@ internal static class EvaluationRunner {
         var excluded = options.TextOnly ? selected.Where(item => item.Images).Select(item => item.Id).ToArray() : Array.Empty<string>();
         IReadOnlyList<EvaluationCase> cases = selected.Where(item => !options.TextOnly || !item.Images).ToArray();
         if (options.CaseId is not null) cases = new[] { cases.Single(item => item.Id == options.CaseId) };
-        using var executor = await ExampleExecution.ConnectAsync(options, images: true, deadline.Token);
+        using var executor = await ExampleExecution.ConnectAsync(options, images: cases.Any(item => item.Images), deadline.Token);
         var rows = new List<object>();
         int passed = 0;
         foreach (EvaluationCase item in cases) {

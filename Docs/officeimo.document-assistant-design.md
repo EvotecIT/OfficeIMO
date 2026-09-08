@@ -68,7 +68,7 @@ The example's opt-in evaluation corpus generates English and Polish native PDFs,
 
 Field cases require exact normalized values. Table cases require the expected cell structure. Abstention, conflicts, and source-injection cases require the corresponding safe outcome. Citation/coverage validity is additionally checked by the engine. These checks are useful regression evidence; they are not a benchmark of semantic accuracy across arbitrary documents. Repeated live runs can disagree, and prompt changes require another evaluation.
 
-Deterministic tests cover schema rejection, scope, source identity, bounded planning, cancellation/lifetime, scalar fidelity, evidence projections, compatible transport behavior and response limits. Installed-package validation is separate from source builds. Public availability is separate again: publishing IntelligenceX's required version precedes publishing the adapter. No downstream compatibility shim should conceal an unpublished owner dependency.
+Deterministic tests cover schema rejection, scope, source identity, bounded planning, cancellation/lifetime, scalar fidelity, evidence projections, compatible transport behavior and response limits. Installed-package validation exercises the packaged dependency graph separately from source builds.
 
 The finite synthetic cases cover selected diagrams and regional columns; they do not establish general diagram comprehension, reading-order accuracy or geometry alignment. Specialist recognition comparison, independently produced real documents, diverse scripts and equivalent-work performance benchmarks remain separate qualification work. Deployment and model-quality evidence must identify the exact model, route and resource profile; missing usage counters remain unknown.
 
