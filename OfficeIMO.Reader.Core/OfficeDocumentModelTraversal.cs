@@ -8,12 +8,21 @@ namespace OfficeIMO.Reader;
 
 internal static class OfficeDocumentModelTraversal {
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
+        var locations = new Dictionary<OfficeDocumentBlock, ReaderLocation>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+            if (page == null) continue;
+            ReaderLocation fallback = BuildPageLocation(page);
+            foreach (OfficeDocumentBlock block in page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+                if (block != null && !locations.ContainsKey(block)) locations.Add(block, MergeLocation(block.Location, fallback, null));
+            }
+        }
         IEnumerable<OfficeDocumentBlock> candidates =
             (document.Blocks ?? System.Array.Empty<OfficeDocumentBlock>())
             .Concat((document.Pages ?? System.Array.Empty<OfficeDocumentPage>())
                 .Where(page => page?.Blocks != null)
                 .SelectMany(page => page.Blocks));
-        foreach (OfficeDocumentBlock block in OrderBlocks(candidates)) yield return block;
+        foreach (OfficeDocumentBlock block in OrderBlocks(candidates,
+            block => locations.TryGetValue(block, out ReaderLocation? location) ? location : block.Location)) yield return block;
     }
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
@@ -26,13 +35,17 @@ internal static class OfficeDocumentModelTraversal {
         if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var ordered = new List<OrderedBlock>();
+        var sheetOrder = new Dictionary<string, int>(StringComparer.Ordinal);
         int insertionIndex = 0;
         foreach (OfficeDocumentBlock block in candidates) {
             if (block != null && seen.Add(block)) {
-                ordered.Add(new OrderedBlock(block, locationSelector(block), insertionIndex++));
+                ReaderLocation? location = locationSelector(block);
+                if (!string.IsNullOrWhiteSpace(location?.Sheet) && !sheetOrder.ContainsKey(location!.Sheet!))
+                    sheetOrder.Add(location.Sheet!, sheetOrder.Count);
+                ordered.Add(new OrderedBlock(block, location, insertionIndex++));
             }
         }
-        ordered.Sort(CompareBlocks);
+        ordered.Sort((left, right) => CompareBlocks(left, right, sheetOrder));
         return ordered.Select(item => item.Block).ToArray();
     }
 
@@ -252,18 +265,18 @@ internal static class OfficeDocumentModelTraversal {
         };
     }
 
-    private static int CompareBlocks(OrderedBlock left, OrderedBlock right) {
-        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location), BuildContainerOrderKey(right.Location));
+    private static int CompareBlocks(OrderedBlock left, OrderedBlock right, IReadOnlyDictionary<string, int> sheetOrder) {
+        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location, sheetOrder), BuildContainerOrderKey(right.Location, sheetOrder));
         if (comparison != 0) return comparison;
         comparison = BuildBlockPosition(left.Location).CompareTo(BuildBlockPosition(right.Location));
         return comparison != 0 ? comparison : left.InsertionIndex.CompareTo(right.InsertionIndex);
     }
 
-    private static string BuildContainerOrderKey(ReaderLocation? location) {
+    private static string BuildContainerOrderKey(ReaderLocation? location, IReadOnlyDictionary<string, int> sheetOrder) {
         if (location == null) return "9|";
         if (location.Page.HasValue) return "0|" + location.Page.Value.ToString("D10", CultureInfo.InvariantCulture);
         if (location.Slide.HasValue) return "1|" + location.Slide.Value.ToString("D10", CultureInfo.InvariantCulture);
-        if (!string.IsNullOrWhiteSpace(location.Sheet)) return "2|" + location.Sheet;
+        if (!string.IsNullOrWhiteSpace(location.Sheet)) return "2|" + sheetOrder[location.Sheet!].ToString("D10", CultureInfo.InvariantCulture);
         return "9|";
     }
 
@@ -380,7 +393,7 @@ internal static class OfficeDocumentModelTraversal {
             Sheet = source.Sheet,
             A1Range = source.A1Range,
             Slide = source.Slide,
-            Page = source.Page ?? page.Number,
+            Page = page.Number ?? source.Page,
             TableIndex = source.TableIndex
         };
     }
@@ -390,7 +403,7 @@ internal static class OfficeDocumentModelTraversal {
             || (!location.Page.HasValue && !location.Slide.HasValue && string.IsNullOrWhiteSpace(location.Sheet));
     }
 
-    private static ReaderLocation MergeLocation(ReaderLocation? location, ReaderLocation fallback, int fallbackTableIndex) {
+    private static ReaderLocation MergeLocation(ReaderLocation? location, ReaderLocation fallback, int? fallbackTableIndex) {
         return new ReaderLocation {
             Path = Prefer(location?.Path, fallback.Path),
             BlockIndex = location?.BlockIndex ?? fallback.BlockIndex,

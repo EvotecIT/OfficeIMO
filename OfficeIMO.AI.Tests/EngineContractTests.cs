@@ -283,7 +283,8 @@ public sealed class EngineContractTests {
         };
         var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, new OfficeDocumentReadResult { Tables = new[] { table } });
         Assert.False(document.HasSourceDiagnostics);
-        Assert.Equal(2, document.Evidence.Count);
+        Assert.Single(document.Evidence, item => item.Kind == "table");
+        Assert.Equal(2, document.Evidence.Count(item => item.Kind == "table-row"));
     }
 
     [Theory]

@@ -38,7 +38,8 @@ public sealed partial class OfficeAiEngine {
             operation = request.Operation.ToString(), instruction = request.Instruction,
             resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells },
             fields = request.Fields.Select(field => new { name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
-            evidence = currentText.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page }),
+            evidence = currentText.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page,
+                sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor }),
             images = currentImages.Select(item => new { id = item.Id, page = item.Page, width = item.Width, height = item.Height })
         });
         string outputSchema = CreateOutputSchema(request);

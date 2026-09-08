@@ -4,6 +4,8 @@
 
 Public API examples belong in the [engine README](../OfficeIMO.AI/README.md) and [adapter README](../OfficeIMO.AI.IntelligenceX/README.md). [ROADMAP.md](ROADMAP.md#document-assistant) owns open work. This page records ownership, supported behavior, and qualification limits.
 
+Questions and explanations currently evaluate each input batch independently. Multi-batch `Ask` and `Explain` results are `Partial` with `cross-batch-reasoning-not-supported`, including when no individual batch can answer. Summary reduction is the supported operation that combines batch drafts.
+
 ## Ownership and dependencies
 
 | Owner | Responsibility |

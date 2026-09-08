@@ -11,6 +11,25 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class SourceAndArtifactTests {
     [Theory]
+    [InlineData("attachment", true)]
+    [InlineData("attachment.bin", true)]
+    [InlineData("attachment.bin", false)]
+    public async Task DetectedPdfRetainsNativeTextAndRendersPagesUnderAnyLogicalName(string name, bool images) {
+        byte[] page = PdfDocument.Create(builder => builder.Content(content => content.Text("SCANNED"))).ToBytes();
+        byte[] scan = PdfDocument.Load(page).ExportImages(OfficeImageExportFormat.Png).Single().Bytes;
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("NATIVE")
+            .PageBreak().Image(scan, 400, 566))).ToBytes();
+        var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
+        Assert.Contains(document.Evidence, item => item.Text.Contains("NATIVE"));
+        Assert.Equal(new[] { 1, 2 }, document.Pages);
+        if (images) {
+            Assert.Equal(new[] { 1, 2 }, document.Images.Select(image => image.Page));
+            var expected = PdfDocument.Load(source).ExportImages(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 120 });
+            Assert.Equal(expected[1].Bytes, document.Images[1].CopyBytes());
+        } else Assert.Empty(document.Images);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task PasswordProtectedPdfCannotBecomeTextOrVisionEvidence(bool images) {

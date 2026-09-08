@@ -6,12 +6,31 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class LongDocumentTests {
+    [Theory]
+    [InlineData(OfficeAiOperation.Ask, false)]
+    [InlineData(OfficeAiOperation.Ask, true)]
+    [InlineData(OfficeAiOperation.Explain, false)]
+    [InlineData(OfficeAiOperation.Explain, true)]
+    public async Task MultiBatchQuestionsReportTheCrossBatchReasoningLimit(OfficeAiOperation operation, bool empty) {
+        var executor = new Executor { EmptyClaims = empty };
+        var request = Request() with { Operation = operation };
+        var result = await new OfficeAiEngine(executor).RunAsync(Document(new string('a', 110000)), request);
+        Assert.True(result.RequestCount > 1);
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Contains("cross-batch-reasoning-not-supported", result.Diagnostics);
+        Assert.Empty(result.OmittedEvidenceIds);
+        var single = await new OfficeAiEngine(new Executor { EmptyClaims = empty }).RunAsync(Document("one batch"), request);
+        Assert.Equal(empty ? OfficeAiResultStatus.InsufficientEvidence : OfficeAiResultStatus.Completed, single.Status);
+        Assert.DoesNotContain("cross-batch-reasoning-not-supported", single.Diagnostics);
+    }
+
     [Fact]
     public async Task OversizedEscapedUnicodeEvidenceRetainsEveryCharacterAndOriginalQuoteOffsets() {
         string source = string.Concat(Enumerable.Repeat("Line \"quoted\" 😀 with tab\tand newline\n", 2000));
         var executor = new Executor();
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document(source), Request());
-        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Contains("cross-batch-reasoning-not-supported", result.Diagnostics);
         Assert.Equal(new[] { "e1" }, result.ProcessedEvidenceIds);
         Assert.Empty(result.OmittedEvidenceIds);
         Assert.True(result.RequestCount > 1);
@@ -107,6 +126,7 @@ public sealed class LongDocumentTests {
     private sealed class Executor : IOfficeAiExecutor {
         public string SynthesisMode { get; init; } = "valid";
         public bool LargeDrafts { get; init; }
+        public bool EmptyClaims { get; init; }
         public int FailCall { get; init; }
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "bounded", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
@@ -122,7 +142,7 @@ public sealed class LongDocumentTests {
                 if (SynthesisMode == "missing-source") ids = ids.Take(1).ToArray();
                 output = JsonSerializer.Serialize(new { claims = new[] { new { text = "Combined regional totals.", sourceClaimIds = ids } } });
             } else {
-                var claims = json.RootElement.GetProperty("evidence").EnumerateArray().Select(item => {
+                var claims = json.RootElement.GetProperty("evidence").EnumerateArray().Where(_ => !EmptyClaims).Select(item => {
                     string text = item.GetProperty("text").GetString()!;
                     string quote = text[..Math.Min(12, text.Length)];
                     return new { text = quote + (LargeDrafts ? new string('z', 6000) : ""), evidence = new[] { new { id = item.GetProperty("id").GetString(), quote } } };

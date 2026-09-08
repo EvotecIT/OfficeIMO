@@ -6,6 +6,8 @@ namespace OfficeIMO.AI;
 
 /// <summary>Immutable text observation projected from Reader; its identifier is scoped to the evidence snapshot hash.</summary>
 public sealed record OfficeAiEvidence(string Id, string Kind, string Text, int? Page, string? SourceBlockId) {
+    /// <summary>Gets the Reader anchor shared by source placeholders and their table observations, when available.</summary>
+    public string? SourceAnchor { get; init; }
     /// <summary>Original source geometry where the Reader supplied it, in source coordinate units.</summary>
     public OfficeAiRegion? Region { get; init; }
 }
@@ -85,7 +87,7 @@ public sealed class OfficeAiDocument {
         var evidence = new List<OfficeAiEvidence>();
         var pages = new SortedSet<int>();
         long characters = 0;
-        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null) {
+        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null) {
             if (page.HasValue) {
                 if (page < 1 || page > limits.MaxPages) throw new InvalidDataException("Source page is outside the configured bounds.");
                 pages.Add(page.Value);
@@ -95,6 +97,7 @@ public sealed class OfficeAiDocument {
             if (characters > limits.MaxDocumentCharacters || evidence.Count >= limits.MaxDocumentBlocks)
                 throw new InvalidDataException("Source observations exceed the configured document limits.");
             evidence.Add(new OfficeAiEvidence("e" + (evidence.Count + 1), kind, text, page, blockId) {
+                SourceAnchor = sourceAnchor,
                 Region = region is null ? null : new(region.X, region.Y, region.Width, region.Height)
             });
         }
@@ -113,23 +116,28 @@ public sealed class OfficeAiDocument {
         foreach (ReaderChunk chunk in document.Chunks)
             foreach (ReaderTable table in chunk.Tables ?? Array.Empty<ReaderTable>()) tablePages.TryAdd(table, chunk.Location?.Page);
         foreach (OfficeDocumentBlock block in document.EnumerateBlocks())
-            Add(block.Kind, block.Text, block.Location?.Page ?? blockPages.GetValueOrDefault(block), block.Id, block.Region);
+            Add(block.Kind, block.Text, block.Location?.Page ?? blockPages.GetValueOrDefault(block), block.Id, block.Region, block.Location?.BlockAnchor);
         if (evidence.Count == 0) {
-            foreach (ReaderChunk chunk in document.Chunks) Add("chunk", chunk.Text, chunk.Location?.Page, chunk.Id);
+            foreach (ReaderChunk chunk in document.Chunks) Add("chunk", chunk.Text, chunk.Location?.Page, chunk.Id, sourceAnchor: chunk.Location?.BlockAnchor);
         }
-        // Keep each table row intact, with its column labels, so batching cannot separate labels from values.
+        // Preserve table identity and empty headers; repeat titles and labels alongside row values.
         int tableIndex = 0;
         foreach (ReaderTable table in document.EnumerateTables()) {
             tableIndex++;
             if (table.Columns.Count > limits.MaxTableCells || table.Rows.Sum(row => (long)row.Count) > limits.MaxTableCells)
                 throw new InvalidDataException("Source table exceeds the configured cell limit.");
+            int? tablePage = table.Location?.Page ?? tablePages.GetValueOrDefault(table);
+            string? anchor = table.Location?.BlockAnchor;
+            string tableId = string.IsNullOrWhiteSpace(anchor) ? $"table-{tableIndex}" : anchor;
+            string title = string.IsNullOrWhiteSpace(table.Title) ? "" : table.Title + "\n";
+            Add("table", title + string.Join(" | ", table.Columns), tablePage, tableId, sourceAnchor: anchor);
             int rowIndex = 0;
             foreach (IReadOnlyList<string> row in table.Rows) {
                 rowIndex++;
                 if (row.Count > limits.MaxTableCells) throw new InvalidDataException("Source table row exceeds the configured cell limit.");
                 string text = string.Join(" | ", row.Select((value, column) =>
                     (column < table.Columns.Count ? table.Columns[column] : "Column " + (column + 1)) + ": " + value));
-                Add("table-row", text, table.Location?.Page ?? tablePages.GetValueOrDefault(table), $"table-{tableIndex}-row-{rowIndex}");
+                Add("table-row", title + text, tablePage, $"{tableId}-row-{rowIndex}", sourceAnchor: anchor);
             }
         }
         var imageList = new List<OfficeAiImage>();

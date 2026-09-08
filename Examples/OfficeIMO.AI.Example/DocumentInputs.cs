@@ -25,7 +25,7 @@ internal static class DocumentInputs {
         if (result.Diagnostics.Any(item => item.Severity == OfficeDocumentDiagnosticSeverity.Error))
             throw new InvalidDataException("The reader reported a blocking source diagnostic.");
         var images = new List<OfficeAiImage>();
-        bool pdf = string.Equals(Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase);
+        bool pdf = result.Kind == ReaderInputKind.Pdf;
         if (includeImages && pdf) {
             PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxInputBytes = limits.MaxInputBytes }, PermissionPolicy = PdfPermissionPolicy.Enforce
@@ -45,7 +45,9 @@ internal static class DocumentInputs {
                     new OfficeDocumentDiagnostic { Code = "render-diagnostics", Message = "Page rendering reported fidelity limitations.", Location = new() { Page = number } }
                 }).ToArray();
             }
-        } else if (!pdf && result.Assets.Any(asset => asset.PayloadBytes is not null && asset.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true)) {
+        } else if (result.Kind == ReaderInputKind.Unknown
+            && result.CapabilitiesUsed.Contains(OfficeDocumentReaderBuilderImageExtensions.HandlerId, StringComparer.Ordinal)
+            && result.Assets.Any(asset => asset.PayloadBytes is not null && asset.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true)) {
             // Standalone image metadata is not recognized page text.
             result.Blocks = Array.Empty<OfficeDocumentBlock>(); result.Chunks = Array.Empty<ReaderChunk>();
             if (includeImages) {

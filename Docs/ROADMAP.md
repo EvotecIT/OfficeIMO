@@ -163,6 +163,8 @@ Completion evidence: accepted physical-device journeys and explicit unsupported-
 
 ## Document assistant
 
+- [ ] Add operation-aware combination for questions and explanations that require facts from different input batches. Preserve contributing citations, distinguish missing source facts from an unsupported reasoning scope, and validate distant-page comparisons and joins against independently labelled answers within shared request budgets.
+
 Current APIs and qualification limits are documented in the [architecture and support matrix](officeimo.document-assistant-design.md) and package READMEs.
 
 - [ ] Expand the synthetic AI corpus into independently produced documents, complex diagrams, multi-column reading order and geometry alignment. Measure recognition error, semantic support, omission rates and peak memory by operation and document class; compare specialist recognition with general vision on equivalent labelled inputs.

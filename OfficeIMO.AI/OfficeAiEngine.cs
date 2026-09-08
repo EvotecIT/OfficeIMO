@@ -104,8 +104,10 @@ public sealed partial class OfficeAiEngine {
             if (!synthesis.Completed) diagnostics.Add("summary-synthesis-incomplete");
         }
         IReadOnlyList<OfficeAiField> mergedFields = MergeFields(fields, request.Fields);
+        bool crossBatchReasoningUnsupported = plan.Batches.Count > 1 && request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain;
+        if (crossBatchReasoningUnsupported) diagnostics.Add("cross-batch-reasoning-not-supported");
         bool incomplete = omitted.Count > 0 || plan.EmptyPages.Count > 0 || document.HasSourceDiagnostics
-            || synthesisStatus == OfficeAiSynthesisStatus.Incomplete;
+            || synthesisStatus == OfficeAiSynthesisStatus.Incomplete || crossBatchReasoningUnsupported;
         if (incomplete) mergedFields = Array.AsReadOnly(mergedFields.Select(field => field.Status == OfficeAiFieldStatus.Missing
             ? field with { Status = OfficeAiFieldStatus.NotEvaluated } : field).ToArray());
         bool normalizationFailed = mergedFields.Any(field => field.Status == OfficeAiFieldStatus.Invalid);
