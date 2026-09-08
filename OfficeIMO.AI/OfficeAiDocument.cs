@@ -102,7 +102,7 @@ public sealed class OfficeAiDocument {
             });
         }
         foreach (OfficeDocumentPage page in document.Pages) {
-            if ((page.Number ?? page.Location?.Page) is int number) {
+            if ((page.GetResolvedLocation().Page) is int number) {
                 if (number < 1 || number > limits.MaxPages) throw new InvalidDataException("Source page is outside the configured bounds.");
                 pages.Add(number);
             }

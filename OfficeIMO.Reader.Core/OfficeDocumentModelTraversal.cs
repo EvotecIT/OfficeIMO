@@ -459,9 +459,9 @@ internal static partial class OfficeDocumentModelTraversal {
         };
     }
 
-    private static ReaderLocation BuildPageLocation(OfficeDocumentPage page) {
+    internal static ReaderLocation BuildPageLocation(OfficeDocumentPage page) {
         ReaderLocation source = page.Location ?? new ReaderLocation();
-        return new ReaderLocation {
+        var fallback = new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
             SourceBlockIndex = source.SourceBlockIndex,
@@ -478,9 +478,25 @@ internal static partial class OfficeDocumentModelTraversal {
             Sheet = source.Sheet,
             A1Range = source.A1Range,
             Slide = source.Slide,
-            Page = page.Number ?? source.Page,
+            Page = source.Page,
             TableIndex = source.TableIndex
         };
+        // A sheet or slide number denotes that container, not a PDF-style page number.
+        fallback.Page = page.Location?.Page;
+        string? kind = page.Location?.SourceBlockKind?.Trim();
+        if (string.Equals(kind, "sheet", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(fallback.Sheet))
+            fallback.Sheet = !string.IsNullOrWhiteSpace(page.Name) ? page.Name
+                : page.Number > 0 ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture) : null;
+        if (!fallback.Slide.HasValue && string.IsNullOrWhiteSpace(fallback.Sheet)) {
+            int? number = page.Number > 0 ? page.Number : fallback.Page;
+            if (string.Equals(kind, "slide", StringComparison.OrdinalIgnoreCase)) {
+                fallback.Slide = number;
+                fallback.Page = null;
+            } else {
+                fallback.Page = number;
+            }
+        }
+        return fallback;
     }
 
     private static bool NeedsLocationFallback(ReaderLocation location) {

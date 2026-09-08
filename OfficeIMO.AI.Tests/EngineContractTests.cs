@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.AI.Tests;
 
-public sealed class EngineContractTests {
+public sealed partial class EngineContractTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

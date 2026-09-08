@@ -262,6 +262,49 @@ public sealed class SnapshotCoverageTests {
             new() { MaxPages = 1, MaxDocumentImages = 1 }));
     }
 
+    [Theory]
+    [InlineData("sheet", false)]
+    [InlineData("sheet", true)]
+    [InlineData("slide", false)]
+    [InlineData("slide", true)]
+    public async Task SheetAndSlideOrdinalsDoNotInventEmptyPdfPages(string kind, bool roundTrip) {
+        var source = new OfficeDocumentReadResult { Pages = new[] {
+            new OfficeDocumentPage { Number = 7, Name = "Inventory", Location = new() { SourceBlockKind = kind },
+                Blocks = new[] { new OfficeDocumentBlock { Text = "readable" } },
+                Tables = new[] { new ReaderTable { Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } } } } },
+            new OfficeDocumentPage { Number = 8, Location = new() { SourceBlockKind = kind } }
+        } };
+        var reader = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, reader, limits: new() { MaxPages = 1 });
+        Assert.Empty(document.Pages);
+        Assert.Equal(3, document.Evidence.Count);
+        Assert.All(document.Evidence, item => Assert.Null(item.Page));
+        var executor = new Capture();
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() { Instruction = "Read all observations" });
+        Assert.Empty(result.EmptyPages);
+        Assert.Equal(document.Evidence.Select(item => item.Id), result.ProcessedEvidenceIds);
+        await Assert.ThrowsAsync<ArgumentException>(() => new OfficeAiEngine(executor).RunAsync(document,
+            new() { Instruction = "Read page", Pages = new[] { 7 } }));
+        Assert.Single(executor.Requests);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FileLocalPositionsDoNotInterleaveAiEvidence(bool roundTrip) {
+        var source = new OfficeDocumentReadResult { Blocks = new[] { "z.txt", "a.txt" }.SelectMany(path =>
+            Enumerable.Range(1, 3).Select(position => new OfficeDocumentBlock { Id = path + position, Text = path + position,
+                Location = new() { Path = path, SourceBlockIndex = position } })).ToArray() };
+        var reader = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, reader);
+        string[] expected = { "z.txt1", "z.txt2", "z.txt3", "a.txt1", "a.txt2", "a.txt3" };
+        Assert.Equal(expected, document.Evidence.Select(item => item.Text));
+        var executor = new Capture();
+        await new OfficeAiEngine(executor).RunAsync(document, new() { Instruction = "Read in order" });
+        using var input = JsonDocument.Parse(Assert.Single(executor.Requests).InputJson);
+        Assert.Equal(expected, input.RootElement.GetProperty("evidence").EnumerateArray().Select(item => item.GetProperty("text").GetString()));
+    }
+
     private sealed class Capture : IOfficeAiExecutor {
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "fixture", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();

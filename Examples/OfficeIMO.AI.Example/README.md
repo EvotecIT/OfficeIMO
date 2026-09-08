@@ -17,7 +17,7 @@ The default input is a short synthetic invoice. This command sends it to ChatGPT
 dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --allow-remote --codex-session --output output/invoice
 ```
 
-`--allow-remote` authorizes the selected source evidence to leave the machine. `--images` additionally sends selected page images. Without `--codex-session`, the native route uses IX's default authentication selection. Existing output files are never overwritten.
+`--allow-remote` authorizes the selected source evidence to leave the machine. `--images` additionally sends selected page images and requires `--model-supports-images`, an explicit declaration that the chosen model accepts images. Without `--codex-session`, the native route uses IX's default authentication selection. Existing output files are never overwritten.
 
 ## Process a file
 
@@ -41,7 +41,7 @@ Save this request as `request.json`:
 dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --source invoice.pdf --request request.json --allow-remote --codex-session --output output/extraction
 ```
 
-Add `--images` for scanned pages or visual tables. Use `"operation": "Parse"` with an instruction and no fields to produce proposed blocks/tables and `proposed-reader.json`. `Ask`, `Explain`, and `Summarize` likewise take an instruction without field definitions.
+Add `--images --model-supports-images` for scanned pages or visual tables. Use `"operation": "Parse"` with an instruction and no fields to produce proposed blocks/tables and `proposed-reader.json`. `Ask`, `Explain`, and `Summarize` likewise take an instruction without field definitions.
 
 The reader enforces its normal source permissions. The example does not request passwords or bypass protected files. Raster input metadata is excluded from text evidence; it is not treated as recognized document text. Scans may retain a partial-result status because Reader reports OCR or rendering limitations, even when a proposed table matches an evaluation fixture.
 
@@ -53,16 +53,16 @@ The operation and request file stay the same:
 dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --source notes.txt --request request.json --endpoint http://127.0.0.1:11434/v1 --local --model your-installed-model --prompted-json --output output/local
 ```
 
-Use a request appropriate for the file: a plain-text source may have no native page 1. A hosted compatible endpoint requires HTTPS, `--allow-remote`, and, when needed, `OFFICEIMO_AI_API_KEY` in the process environment. Do not put credentials in the endpoint URL or request JSON. Configure a vision-capable model before adding `--images`.
+Use a request appropriate for the file: a plain-text source may have no native page 1. A hosted compatible endpoint requires HTTPS, `--allow-remote`, and, when needed, `OFFICEIMO_AI_API_KEY` in the process environment. Do not put credentials in the endpoint URL or request JSON. Configure a vision-capable model before adding `--images --model-supports-images`.
 
-For LM Studio, start its server on loopback and use the loaded model's API identifier with `--endpoint http://127.0.0.1:1234/v1 --local --model <identifier>`. Use `--request-characters 16000` to exercise a smaller request profile. Character limits do not predict token counts exactly; qualify the chosen model's context and output budget. Omit `--prompted-json` when the configured runtime enforces JSON Schema. A vision-capable local model uses the same `--images` option and image evidence checks as a hosted model.
+For LM Studio, start its server on loopback and use the loaded model's API identifier with `--endpoint http://127.0.0.1:1234/v1 --local --model <identifier>`. Use `--request-characters 16000` to exercise a smaller request profile. Character limits do not predict token counts exactly; qualify the chosen model's context and output budget. Omit `--prompted-json` when the configured runtime enforces JSON Schema. A vision-capable local model uses the same `--images --model-supports-images` options and image evidence checks as a hosted model.
 
 ## Evaluation corpus
 
 `--evaluate` generates the versioned synthetic corpus and runs each selected case once by default. `--repeat 2` or `--repeat 3` measures repeated-call stability. It checks English and Polish fields, exact table cells, images, scanned and rotated PDFs, mixed sources, abstention, conflicting values, source-instruction isolation, summaries, explanations, missing and ambiguous fields, refunds, regional columns, a directed-flow diagram and long-document synthesis. It has a one-hour run deadline and uses each operation's own request limits. It never reads arbitrary input documents in evaluation mode.
 
 ```powershell
-dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --evaluate --allow-remote --codex-session --output output/evaluation
+dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -c Release --no-build -- --evaluate --allow-remote --codex-session --model-supports-images --output output/evaluation
 ```
 
 Each case saves its source, hash-bound report, provider response, and applicable Reader/CSV/Excel artifacts. `evaluation.json` records the profile, corpus version, exact assertions, statuses, omissions, usage when available, and elapsed times. Fonts come from the host's embeddable system fonts; preserve the generated source files and hashes when comparing runs on different machines. `--case contradictory` selects one case for diagnosis and produces a report for that subset only.

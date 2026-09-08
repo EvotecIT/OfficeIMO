@@ -59,15 +59,28 @@ internal static partial class OfficeDocumentModelTraversal {
 
     private static IReadOnlyList<T> OrderSourceItems<T>(IEnumerable<T> candidates, Func<T, ReaderLocation?> locationSelector,
         IEnumerable<OfficeDocumentPage>? pages = null, Func<T, long>? encounterOrder = null) {
+        var pathOrder = new Dictionary<string, int>(StringComparer.Ordinal);
+        void RegisterPath(string? path) {
+            if (!string.IsNullOrWhiteSpace(path) && !pathOrder.ContainsKey(path!)) pathOrder.Add(path!, pathOrder.Count);
+        }
         var sheetOrder = new Dictionary<string, int>(StringComparer.Ordinal);
         void RegisterSheet(string? sheet) {
             if (!string.IsNullOrWhiteSpace(sheet) && !sheetOrder.ContainsKey(sheet!)) sheetOrder.Add(sheet!, sheetOrder.Count);
         }
-        foreach (OfficeDocumentPage page in pages ?? Array.Empty<OfficeDocumentPage>()) RegisterSheet(page?.Location?.Sheet);
+        foreach (OfficeDocumentPage page in pages ?? Array.Empty<OfficeDocumentPage>()) {
+            RegisterPath(page?.Location?.Path);
+            RegisterSheet(page?.Location?.Sheet);
+        }
         var ordered = candidates.Select((item, index) => (Item: item, Location: locationSelector(item), Index: index)).ToList();
-        foreach (var item in ordered) RegisterSheet(item.Location?.Sheet);
+        foreach (var item in ordered) {
+            RegisterPath(item.Location?.Path);
+            RegisterSheet(item.Location?.Sheet);
+        }
+        int PathIndex(ReaderLocation? location) => !string.IsNullOrWhiteSpace(location?.Path) ? pathOrder[location!.Path!] : int.MaxValue;
         ordered.Sort((left, right) => {
-            int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location, sheetOrder), BuildContainerOrderKey(right.Location, sheetOrder));
+            int comparison = PathIndex(left.Location).CompareTo(PathIndex(right.Location));
+            if (comparison != 0) return comparison;
+            comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location, sheetOrder), BuildContainerOrderKey(right.Location, sheetOrder));
             if (comparison != 0) return comparison;
             comparison = BuildBlockPosition(left.Location).CompareTo(BuildBlockPosition(right.Location));
             if (comparison != 0) return comparison;

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace OfficeIMO.Reader;
 
@@ -14,21 +13,6 @@ internal static partial class OfficeDocumentModelTraversal {
 
         internal void Add(OfficeDocumentBlock block, OfficeDocumentPage page) {
             ReaderLocation fallback = BuildPageLocation(page);
-            // A sheet or slide number denotes that container, not a PDF-style page number.
-            fallback.Page = page.Location?.Page;
-            string? kind = page.Location?.SourceBlockKind?.Trim();
-            if (string.Equals(kind, "sheet", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(fallback.Sheet))
-                fallback.Sheet = !string.IsNullOrWhiteSpace(page.Name) ? page.Name
-                    : page.Number > 0 ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture) : null;
-            if (!fallback.Slide.HasValue && string.IsNullOrWhiteSpace(fallback.Sheet)) {
-                int? number = page.Number > 0 ? page.Number : fallback.Page;
-                if (string.Equals(kind, "slide", StringComparison.OrdinalIgnoreCase)) {
-                    fallback.Slide = number;
-                    fallback.Page = null;
-                } else {
-                    fallback.Page = number;
-                }
-            }
             // Explicit block container coordinates remain authoritative.
             if (block.Location?.Slide.HasValue == true || !string.IsNullOrWhiteSpace(block.Location?.Sheet)) fallback.Page = null;
             ReaderLocation location = MergeLocation(block.Location, fallback, null);

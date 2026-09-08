@@ -5,6 +5,55 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderContentTraversalTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void PathContainersStayTogetherBeforeApplyingLocalPositions(bool numbered, bool roundTrip) {
+        ReaderLocation Location(string path, int position) => new() { Path = path, SourceBlockIndex = position,
+            Page = numbered ? 1 : null, BlockAnchor = "block-" + position };
+        var source = new OfficeDocumentReadResult {
+            Blocks = new[] { "z.txt", "a.txt" }.SelectMany(path => new[] {
+                new OfficeDocumentBlock { Id = path + "1", Text = path + "1", Location = Location(path, 1) },
+                new OfficeDocumentBlock { Id = path + "2", Text = path + "2", Location = Location(path, 2) },
+                new OfficeDocumentBlock { Id = path + "3", Text = path + "3", Location = Location(path, 3) }
+            }).ToArray(),
+            Tables = new[] { "z.txt", "a.txt" }.Select(path => new ReaderTable {
+                Columns = new[] { "value" }, Rows = new[] { new[] { path } }, Location = Location(path, 2)
+            }).ToArray()
+        };
+        var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        Assert.Equal(new[] { "z.txt1", "z.txt2", "z.txt3", "a.txt1", "a.txt2", "a.txt3" },
+            document.EnumerateBlocks().Select(block => block.Text));
+        Assert.Equal(new[] { "z.txt1", "z.txt2", "z.txt", "z.txt3", "a.txt1", "a.txt2", "a.txt", "a.txt3" },
+            document.EnumerateContent().Select(item => item.Block?.Text ?? item.Table!.Rows[0][0]));
+        var hierarchy = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions { MaxTokens = 100, OverlapTokens = 0, IncludeContextInText = false });
+        string text = string.Join("\n", hierarchy.Chunks.Select(chunk => chunk.Text));
+        Assert.True(text.IndexOf("z.txt3", StringComparison.Ordinal) < text.IndexOf("a.txt1", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("sheet")]
+    [InlineData("slide")]
+    public void PageResolverKeepsBlocksAndTablesInTheSameNonPageContainer(string kind) {
+        var page = new OfficeDocumentPage { Number = 7, Name = "Inventory", Location = new() { SourceBlockKind = kind },
+            Blocks = new[] { new OfficeDocumentBlock { Text = "block" } },
+            Tables = new[] { new ReaderTable { Columns = new[] { "value" }, Rows = new[] { new[] { "cell" } } } }
+        };
+        var document = new OfficeDocumentReadResult { Pages = new[] { page } };
+        var locations = document.EnumerateContent().Select(item => item.Location!).Append(page.GetResolvedLocation()).ToArray();
+        Assert.Equal(3, locations.Length);
+        Assert.All(locations, location => {
+            Assert.Null(location.Page);
+            Assert.Equal(kind == "slide" ? 7 : (int?)null, location.Slide);
+            Assert.Equal(kind == "sheet" ? "Inventory" : null, location.Sheet);
+        });
+        Assert.Null(page.Location.Slide);
+        Assert.Null(page.Location.Sheet);
+    }
+
+    [Theory]
     [InlineData("page", false)]
     [InlineData("page", true)]
     [InlineData("slide", false)]

@@ -17,5 +17,6 @@
     <Compile Include="../Examples/OfficeIMO.AI.Example/EvaluationGold.cs" Link="Example/EvaluationGold.cs" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/ArtifactWriter.cs" Link="Example/ArtifactWriter.cs" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/ExampleOptions.cs" Link="Example/ExampleOptions.cs" />
+    <Compile Include="../Examples/OfficeIMO.AI.Example/ExampleExecution.cs" Link="Example/ExampleExecution.cs" />
   </ItemGroup>
 </Project>

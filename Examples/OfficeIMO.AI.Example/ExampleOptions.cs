@@ -20,7 +20,8 @@ internal sealed class ExampleOptions {
         --request PATH        OfficeAiRequest JSON with operation, instruction, fields, pages and limits
         --output DIRECTORY    Write report.json plus proposed Reader JSON, CSV and XLSX where applicable; files must not exist
         --allow-remote        Authorize sending the selected source evidence to the configured hosted model
-        --images              Include page images for the selected vision-capable model
+        --images              Include page images; requires --model-supports-images
+        --model-supports-images  Declare that the selected model accepts images
         --model NAME          Explicit model; default gpt-5.5
         --codex-session       Prefer the existing Codex login over IX's saved ChatGPT credential
         --endpoint URL        Use an OpenAI-compatible endpoint; optional key from OFFICEIMO_AI_API_KEY
@@ -46,6 +47,7 @@ internal sealed class ExampleOptions {
     public string? CaseId { get; private set; }
     public bool AllowRemote { get; private set; }
     public bool Images { get; private set; }
+    public bool ModelSupportsImages { get; private set; }
     public bool CodexSession { get; private set; }
     public bool Local { get; private set; }
     public bool PromptedJson { get; private set; }
@@ -71,6 +73,7 @@ internal sealed class ExampleOptions {
                 case "--case": options.CaseId = Value(); break;
                 case "--allow-remote": options.AllowRemote = true; break;
                 case "--images": options.Images = true; break;
+                case "--model-supports-images": options.ModelSupportsImages = true; break;
                 case "--codex-session": options.CodexSession = true; break;
                 case "--copilot": options.Copilot = true; break;
                 case "--text-only": options.TextOnly = true; break;

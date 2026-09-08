@@ -58,8 +58,14 @@ public sealed partial class OfficeAiEngine {
                 string? normalized = null;
                 if (fieldStatus == OfficeAiFieldStatus.Present && !TryNormalize(raw!, definition, request.Culture, out normalized))
                     fieldStatus = OfficeAiFieldStatus.Invalid;
-                if (fieldStatus == OfficeAiFieldStatus.Present && definition.Type is OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer
-                    && !TryValidateNumericEvidence(raw!, citations, batch, document, request.Culture, out citations)) {
+                Func<string, int, int, bool>? isComplete = definition.Type switch {
+                    OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer => (source, start, length) =>
+                        IsCompleteNumberAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).NumberFormat),
+                    OfficeAiFieldType.Boolean => IsCompleteBooleanAt,
+                    _ => null
+                };
+                if (fieldStatus == OfficeAiFieldStatus.Present && isComplete is not null
+                    && !TryValidateValueEvidence(raw!, citations, batch, document, isComplete, out citations)) {
                     fieldStatus = OfficeAiFieldStatus.Invalid;
                     normalized = null;
                 }
