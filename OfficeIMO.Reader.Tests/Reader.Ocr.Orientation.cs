@@ -20,9 +20,24 @@ public sealed class ReaderOcrOrientationTests {
                 TemporaryDirectory = root, KeepTemporaryFiles = retain
             });
             byte[] payload = { 1, 2, 3 };
-            await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(() => engine.RecognizeAsync(new OcrRequest {
+            OcrResult? result = null;
+            Exception? failure = await Record.ExceptionAsync(async () => result = await engine.RecognizeAsync(new OcrRequest {
                 Operation = operation, Payload = payload, MediaType = "image/png", FileName = "source.png"
             }));
+            // Unix process-group launch can start setsid successfully and then report the missing
+            // executable as an exit status. Retention must hold for both launch-failure paths.
+            if (failure is not null) {
+                if (failure is System.ComponentModel.Win32Exception launchFailure) Assert.Equal(2, launchFailure.NativeErrorCode);
+                else {
+                    Assert.IsType<InvalidOperationException>(failure);
+                    Assert.Contains("missing-tesseract", failure.Message, StringComparison.Ordinal);
+                }
+            } else {
+                Assert.Equal(OcrOperation.DetectOrientation, operation);
+                Assert.NotNull(result);
+                Assert.Null(result!.Orientation);
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "tesseract-orientation-unavailable");
+            }
             string[] retained = Directory.GetFiles(root, "input.png", SearchOption.AllDirectories);
             if (retain) Assert.Equal(payload, File.ReadAllBytes(Assert.Single(retained)));
             else Assert.Empty(Directory.GetDirectories(root));
