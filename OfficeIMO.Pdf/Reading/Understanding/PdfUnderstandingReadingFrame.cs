@@ -79,7 +79,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             _context.ConsumeWork();
             PdfTextSpan run = source[index];
             (double x, double y) = ToFrame(run.X, run.Y);
-            PdfTextSpan projected = run.WithLayoutGeometry(x, y, PdfAdvancedUnderstandingStages.NormalizeAngle(run.RotationDegrees - Angle));
+            PdfTextSpan projected = run.WithLayoutGeometry(x, y, PdfAdvancedUnderstandingStages.NormalizeAngle(run.RotationDegrees - Angle), _context.Height);
             result[index] = projected;
             _originalRuns.Add(projected, run);
             _projectedRuns.Add(run, projected);

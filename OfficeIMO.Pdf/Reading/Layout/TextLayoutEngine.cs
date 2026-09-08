@@ -42,9 +42,11 @@ internal static class TextLayoutEngine {
         public string Text { get; }
         public IReadOnlyList<PdfTextSpan> Spans { get; }
         public int LogicalLineBreaksBefore { get; }
-        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans) {
+        internal PdfReadingDirection ReadingDirection { get; }
+        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
             LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
+            ReadingDirection = readingDirection;
         }
     }
 
@@ -412,7 +414,7 @@ internal static class TextLayoutEngine {
                 ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
                 : NormalizeLineText(outText);
         }
-        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans));
+        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans), options?.ReadingDirection ?? PdfReadingDirection.Auto);
     }
 
     private static bool ContainsWhitespace(string value) {

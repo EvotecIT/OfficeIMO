@@ -9,7 +9,7 @@ internal static partial class TableDetector {
             while (column < splits.Count && span.X >= splits[column]) column++;
             fragments[column].Add(span);
         }
-        return fragments.Select(ComposeCell).ToArray();
+        return fragments.Select(fragment => ComposeCell(fragment, line.ReadingDirection)).ToArray();
     }
 
     private static string[] SplitByGaps(TextLayoutEngine.TextLine line) {
@@ -20,19 +20,19 @@ internal static partial class TableDetector {
                 PdfTextSpan previous = current[current.Count - 1];
                 double gap = span.X - (previous.X + Math.Max(0D, previous.Advance));
                 if (gap > Math.Max(18D, Math.Max(previous.FontSize, span.FontSize) * 2D)) {
-                    cells.Add(ComposeCell(current));
+                    cells.Add(ComposeCell(current, line.ReadingDirection));
                     current = new List<PdfTextSpan>();
                 }
             }
             current.Add(span);
         }
-        if (current.Count > 0) cells.Add(ComposeCell(current));
+        if (current.Count > 0) cells.Add(ComposeCell(current, line.ReadingDirection));
         return cells.ToArray();
     }
 
-    private static string ComposeCell(List<PdfTextSpan> spans) => spans.Count == 0
+    private static string ComposeCell(List<PdfTextSpan> spans, PdfReadingDirection direction) => spans.Count == 0
         ? string.Empty
-        : TextLayoutEngine.BuildLine(spans, null).Text.Trim();
+        : TextLayoutEngine.BuildLine(spans, new TextLayoutEngine.Options { ReadingDirection = direction }).Text.Trim();
 
     private static bool HasExplicitBoundarySpace(PdfTextSpan previous, PdfTextSpan current) =>
         previous.LogicalTrailingSpace || current.LogicalLeadingSpace ||

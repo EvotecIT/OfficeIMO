@@ -60,7 +60,7 @@ internal static partial class TableDetector {
             }
 
             if (split) {
-                cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns), sourceRuns.ToArray()));
+                cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns, line.ReadingDirection), sourceRuns.ToArray()));
                 builder.Clear();
                 sourceRuns.Clear();
             } else if (gap > 1D && builder.Length > 0 && builder[builder.Length - 1] != ' ') {
@@ -75,7 +75,7 @@ internal static partial class TableDetector {
             if (cells.Count == MaximumPositionedRecoveryColumns) return null;
         }
 
-        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns), sourceRuns.ToArray()));
+        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, lastSpanStart, ComposeCell(sourceRuns, line.ReadingDirection), sourceRuns.ToArray()));
         return cells.Count is >= 2 and <= MaximumPositionedRecoveryColumns
             ? new PositionedRow(line.Y, cells)
             : null;

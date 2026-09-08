@@ -41,7 +41,10 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             restored = new PdfUnderstandingWord(word.Text, Math.Min(x, endX), Math.Max(x, endX), y, word.FontSize,
                 PdfAdvancedUnderstandingStages.NormalizeAngle(word.RotationDegrees + Angle),
                 word.SourceRuns.Select(RestoreRun).ToArray(), word.Confidence, word.Evidence, word.Advance,
-                SourceVisualBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top), word.SourceSequence);
+                word.VisualBounds is not null ? RestoreVisualBounds(word.VisualBounds)
+                    : SourceVisualBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top), word.SourceSequence) {
+                IsSelectionBox = word.IsSelectionBox
+            };
             words.Add(word, restored);
             return restored;
         }
@@ -54,7 +57,8 @@ internal sealed partial class PdfUnderstandingReadingFrame {
                 line.Evidence.Concat(new[] { new PdfInferenceEvidence("line.corrected-reading-frame",
                     "Layout was inferred along the dominant quarter-turn baseline and mapped back to the source page.", 0.8D) }),
                 line.SourceKind, line.SourceSequence, line.BlockId, line.ParagraphId, line.LineId,
-                SourceVisualBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top));
+                line.VisualBounds is not null ? RestoreVisualBounds(line.VisualBounds)
+                    : SourceVisualBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top));
             lines.Add(line, restored);
             return restored;
         }
@@ -92,4 +96,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
                 table.NativeSourceRuns.Select(RestoreRun).ToArray(), _context.ConsumeWork, _context.ThrowIfCancellationRequested);
         }
     }
+
+    private PdfLogicalVisualBounds RestoreVisualBounds(PdfLogicalVisualBounds bounds) =>
+        SourceVisualBounds(bounds.Left, Height - bounds.Bottom, bounds.Right, Height - bounds.Top);
 }
