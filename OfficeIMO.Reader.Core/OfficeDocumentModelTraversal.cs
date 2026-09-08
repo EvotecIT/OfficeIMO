@@ -345,8 +345,8 @@ internal static partial class OfficeDocumentModelTraversal {
 
     private static ReaderTable WithPageLocationFallback(ReaderTable table, OfficeDocumentPage page, int tableIndex) {
         ReaderLocation fallback = BuildPageLocation(page);
-        if (table.Location != null && !NeedsLocationFallback(table.Location)) return table;
-        return WithLocationFallback(table, fallback, tableIndex);
+        ReaderTable projected = WithLocationFallback(table, fallback, tableIndex);
+        return BuildTableIdentity(table) == BuildTableIdentity(projected) ? table : projected;
     }
 
     private static ReaderTable WithLocationFallback(ReaderTable table, ReaderLocation fallback, int? tableIndex) {

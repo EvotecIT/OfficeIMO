@@ -112,6 +112,7 @@ public sealed class CompatibleAdapterTests {
     private sealed class Server : IDisposable {
         private readonly HttpListener _listener = new();
         private readonly Task _pending;
+        private volatile bool _stopping;
         public Uri Endpoint { get; }
         public ConcurrentQueue<(string Path, string Body)> Requests { get; } = new();
         public Server(Func<HttpListenerContext, Task> respond) {
@@ -129,9 +130,9 @@ public sealed class CompatibleAdapterTests {
                     Requests.Enqueue((context.Request.Url!.AbsolutePath, await reader.ReadToEndAsync()));
                     await respond(context);
                 }
-            } catch (HttpListenerException) when (!_listener.IsListening) { }
+            } catch (HttpListenerException) when (_stopping) { }
               catch (ObjectDisposedException) { }
         }
-        public void Dispose() { _listener.Close(); _pending.GetAwaiter().GetResult(); }
+        public void Dispose() { _stopping = true; _listener.Close(); _pending.GetAwaiter().GetResult(); }
     }
 }

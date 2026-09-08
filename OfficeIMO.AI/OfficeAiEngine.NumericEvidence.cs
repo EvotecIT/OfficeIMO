@@ -8,17 +8,22 @@ public sealed partial class OfficeAiEngine {
     // Check the original observation, including context outside a quote or request slice.
     private static bool IsCompleteNumberAt(string source, int start, int length, NumberFormatInfo format) {
         int end = start + length;
-        if (start > 0 && char.IsDigit(source[start - 1])) return false;
-        if (start > 1 && source[start - 1] is 'e' or 'E' && char.IsDigit(source[start - 2])) return false;
-        if (end < source.Length && (char.IsDigit(source[end]) || HasNumberSign(source, end, backwards: false, format))) return false;
+        if (start > 0 && IsDecimalDigitAt(source, start - 1)) return false;
+        if (start > 1 && source[start - 1] is 'e' or 'E' && IsDecimalDigitAt(source, start - 2)) return false;
+        if (end < source.Length && (IsDecimalDigitAt(source, end) || HasNumberSign(source, end, backwards: false, format))) return false;
         if (end < source.Length && source[end] is 'e' or 'E' && end + 1 < source.Length
-            && (char.IsDigit(source[end + 1]) || HasNumberSign(source, end + 1, backwards: false, format))) return false;
+            && (IsDecimalDigitAt(source, end + 1) || HasNumberSign(source, end + 1, backwards: false, format))) return false;
         int before = SkipCurrencyContext(source, start - 1, -1);
         if (before >= 0 && (source[before] == '(' || HasNumberSign(source, before, backwards: true, format))) return false;
         int after = SkipCurrencyContext(source, end, 1);
         if (after < source.Length && HasNumberSign(source, after, backwards: false, format)) return false;
         return !HasNumericContinuation(source, start, backwards: true, format)
             && !HasNumericContinuation(source, end, backwards: false, format);
+    }
+
+    private static bool IsDecimalDigitAt(string source, int index) {
+        if (char.IsLowSurrogate(source[index]) && index > 0 && char.IsHighSurrogate(source[index - 1])) index--;
+        return CharUnicodeInfo.GetUnicodeCategory(source, index) == UnicodeCategory.DecimalDigitNumber;
     }
 
     private static bool HasNumberSign(string source, int index, bool backwards, NumberFormatInfo format) {
@@ -93,7 +98,7 @@ public sealed partial class OfficeAiEngine {
             if (backwards && separator == format.NumberDecimalSeparator && start >= 0
                 && source.AsSpan(start, separator.Length).SequenceEqual(separator.AsSpan())) return true;
             if (start >= 0 && start + separator.Length <= source.Length && digit >= 0 && digit < source.Length
-                && source.AsSpan(start, separator.Length).SequenceEqual(separator.AsSpan()) && char.IsDigit(source[digit])) return true;
+                && source.AsSpan(start, separator.Length).SequenceEqual(separator.AsSpan()) && IsDecimalDigitAt(source, digit)) return true;
         }
         return false;
     }

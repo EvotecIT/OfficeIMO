@@ -5,6 +5,46 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderProjectionContractTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AggregateAndPageTablesMergeComplementaryCoordinatesInEitherDirection(bool aggregateHasPosition) {
+        ReaderTable Table(ReaderLocation? location) => new() { Location = location,
+            Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } } };
+        var aggregate = Table(aggregateHasPosition ? new() { SourceBlockIndex = 5 } : null);
+        var pageTable = Table(aggregateHasPosition ? null : new() { SourceBlockIndex = 5 });
+        var source = new OfficeDocumentReadResult { Tables = new[] { aggregate },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { pageTable } } } };
+        foreach (bool roundTrip in new[] { false, true }) {
+            var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+            var table = Assert.Single(document.EnumerateTables());
+            Assert.Equal(1, table.Location!.Page);
+            Assert.Equal(5, table.Location.SourceBlockIndex);
+            Assert.Single(document.EnumerateContent(), item => item.Table != null);
+        }
+        Assert.Null(aggregate.Location?.Page);
+        Assert.Null(pageTable.Location?.Page);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LocatedPageTablesRetainEveryEqualOccurrence(bool aggregate) {
+        ReaderTable Table() => new() { Location = new() { Path = "doc", Page = 1 },
+            Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } } };
+        var tables = new[] { Table(), Table() };
+        var source = new OfficeDocumentReadResult { Tables = aggregate ? new[] { Table() } : Array.Empty<ReaderTable>(),
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = tables } } };
+        foreach (bool roundTrip in new[] { false, true }) {
+            var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+            var projected = document.EnumerateTables().ToArray();
+            Assert.Equal(2, projected.Length);
+            Assert.Equal(new int?[] { 0, 1 }, projected.Select(table => table.Location!.TableIndex));
+            Assert.Equal(2, document.EnumerateContent().Count(item => item.Table != null));
+        }
+        Assert.All(tables, table => Assert.Null(table.Location!.TableIndex));
+    }
+
+    [Theory]
     [InlineData("SourceBlockIndex")]
     [InlineData("BlockIndex")]
     [InlineData("StartLine")]

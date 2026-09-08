@@ -6,7 +6,6 @@ namespace OfficeIMO.Reader;
 internal static partial class OfficeDocumentModelTraversal {
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var canonical = new List<ReaderTable>();
         var canonicalMatches = new Dictionary<string, Queue<int>>(StringComparer.Ordinal);
         void RegisterCanonical(ReaderTable original, ReaderTable projected) {
@@ -25,11 +24,7 @@ internal static partial class OfficeDocumentModelTraversal {
                 ReaderTable table = page.Tables[index];
                 if (table == null) continue;
                 if (!pageReferences.ContainsKey(table)) pageReferences.Add(table, (page, index));
-                string rawIdentity = BuildTableIdentity(table);
-                string scopedIdentity = BuildTableIdentity(table, page, index);
-                AddMatch(rawIdentity, table, page, index);
-                if (rawIdentity != scopedIdentity) AddMatch(scopedIdentity, table, page, index);
-                AddMatch("unscoped:" + BuildTableIdentity(table, includeLocation: false), table, page, index);
+                AddMatch(BuildTableIdentity(table, includeLocation: false, includeAnchor: false), table, page, index);
             }
         }
         void AddMatch(string identity, ReaderTable table, OfficeDocumentPage page, int index) {
@@ -46,35 +41,28 @@ internal static partial class OfficeDocumentModelTraversal {
                 matchedPages.Add(table);
                 projected = WithPageLocationFallback(table, pageReference.Page, pageReference.Index);
             } else {
-                var keys = new List<string> { BuildTableIdentity(table) };
-                if (table.Location?.Page == null && table.Location?.Slide == null && string.IsNullOrWhiteSpace(table.Location?.Sheet))
-                    keys.Insert(0, "unscoped:" + BuildTableIdentity(table, includeLocation: false));
-                foreach (string key in keys) {
-                    if (!pageMatches.TryGetValue(key, out var matches)) continue;
+                string key = BuildTableIdentity(table, includeLocation: false, includeAnchor: false);
+                if (pageMatches.TryGetValue(key, out var matches)) {
                     int remaining = matches.Count;
-                    bool found = false;
                     while (remaining-- > 0) {
                         var match = matches.Dequeue();
                         if (matchedPages.Contains(match.Table) || aggregateReferences.Contains(match.Table)) continue;
                         ReaderTable candidate = WithPageLocationFallback(match.Table, match.Page, match.Index);
                         ReaderTable proposed = WithLocationFallback(table, candidate.Location!, candidate.Location!.TableIndex);
+                        ReaderTable comparable = WithLocationFallback(candidate, table.Location ?? new ReaderLocation(), table.Location?.TableIndex);
                         // Use the canonical located identity: checking only page/path would erase
                         // distinct source blocks, ranges or heading positions with identical cells.
-                        if (BuildTableIdentity(proposed) != BuildTableIdentity(candidate)) {
+                        if (BuildTableIdentity(proposed) != BuildTableIdentity(comparable)) {
                             matches.Enqueue(match);
                             continue;
                         }
                         matchedPages.Add(match.Table);
                         projected = proposed;
-                        found = true;
                         break;
                     }
-                    if (found) break;
                 }
             }
-            // Matching counts retain repeated equal tables while reconciling aggregate/page copies
-            // whose object references were separated by a Reader JSON round-trip.
-            IncrementIdentity(aggregateIdentityCounts, BuildTableIdentity(projected, null, null));
+            // Each matching page occurrence is consumed once, including after JSON separates references.
             RegisterCanonical(table, projected);
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
@@ -83,9 +71,6 @@ internal static partial class OfficeDocumentModelTraversal {
                 ReaderTable table = page.Tables[tableIndex];
                 if (table == null || matchedPages.Contains(table) || !seen.Add(table)) continue;
                 ReaderTable scopedTable = WithPageLocationFallback(table, page, tableIndex);
-                string identity = BuildTableIdentity(scopedTable, null, null);
-                if (aggregateIdentityCounts.ContainsKey(identity)) continue;
-                IncrementIdentity(aggregateIdentityCounts, identity);
                 RegisterCanonical(table, scopedTable);
             }
         }
