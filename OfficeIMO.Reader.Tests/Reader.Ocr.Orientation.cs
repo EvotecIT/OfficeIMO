@@ -1,10 +1,36 @@
 using OfficeIMO.Ocr;
 using OfficeIMO.Ocr.Tesseract;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrOrientationTests {
+    [Theory]
+    [InlineData(OcrOperation.DetectOrientation, true)]
+    [InlineData(OcrOperation.DetectOrientation, false)]
+    [InlineData(OcrOperation.RecognizeText, true)]
+    [InlineData(OcrOperation.RecognizeText, false)]
+    public async Task FailedProviderRequestsHonorTemporaryFileRetention(OcrOperation operation, bool retain) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-osd-retention-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
+                ExecutablePath = Path.Combine(root, "missing-tesseract.exe"),
+                TemporaryDirectory = root, KeepTemporaryFiles = retain
+            });
+            byte[] payload = { 1, 2, 3 };
+            await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(() => engine.RecognizeAsync(new OcrRequest {
+                Operation = operation, Payload = payload, MediaType = "image/png", FileName = "source.png"
+            }));
+            string[] retained = Directory.GetFiles(root, "input.png", SearchOption.AllDirectories);
+            if (retain) Assert.Equal(payload, File.ReadAllBytes(Assert.Single(retained)));
+            else Assert.Empty(Directory.GetDirectories(root));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(0, "15.0", 1D)]
     [InlineData(90, "7.5", 0.5D)]

@@ -36,7 +36,7 @@ public sealed partial class TesseractOcrEngine {
             });
             return new OcrResult { Provider = Id, Orientation = orientation, Diagnostics = diagnostics.AsReadOnly() };
         } finally {
-            TryDeleteDirectory(directory);
+            if (!_options.KeepTemporaryFiles) TryDeleteDirectory(directory);
         }
     }
 
