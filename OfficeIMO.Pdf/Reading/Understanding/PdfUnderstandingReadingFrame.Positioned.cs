@@ -13,12 +13,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             (double endX, _) = ToFrame(anchorX + Math.Cos(radians) * advance,
                 word.BaselineY + Math.Sin(radians) * advance);
             double angle = PdfAdvancedUnderstandingStages.NormalizeAngle(word.RotationDegrees - Angle);
-            PdfLogicalVisualBounds? visual = null;
-            if (word.VisualBounds is not null) {
-                PdfVisualBounds bounds = ImageBounds(new PdfVisualBounds(word.VisualBounds.Left, word.VisualBounds.Top,
-                    word.VisualBounds.Right, word.VisualBounds.Bottom));
-                visual = new PdfLogicalVisualBounds(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
-            }
+            PdfLogicalVisualBounds? visual = ProjectVisualBounds(word.VisualBounds);
             projected[index] = new PdfUnderstandingWord(word.Text, Math.Min(x, endX), Math.Max(x, endX),
                 y, word.FontSize, angle, word.SourceRuns.Select(run => _projectedRuns[run]).ToArray(),
                 word.Confidence, word.Evidence, advance, visual, sourceSequence: word.SourceSequence) {
@@ -37,8 +32,14 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             PdfUnderstandingLine line = lines[index];
             projected[index] = new PdfUnderstandingLine(line.Words.Select(word => _projectedWords[word]).ToArray(),
                 line.Text, line.Confidence, line.Evidence, line.SourceKind, line.SourceSequence,
-                line.BlockId, line.ParagraphId, line.LineId);
+                line.BlockId, line.ParagraphId, line.LineId, ProjectVisualBounds(line.VisualBounds));
         }
         return Array.AsReadOnly(projected);
+    }
+
+    private PdfLogicalVisualBounds? ProjectVisualBounds(PdfLogicalVisualBounds? source) {
+        if (source is null) return null;
+        PdfVisualBounds bounds = ImageBounds(new PdfVisualBounds(source.Left, source.Top, source.Right, source.Bottom));
+        return new PdfLogicalVisualBounds(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
     }
 }

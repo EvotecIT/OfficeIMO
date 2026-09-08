@@ -5,6 +5,62 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfReadingFrameRegressionTests {
+    [Fact]
+    public void ReconstructedPositionedInputHonorsCustomStageBudgetsAndCancellation() {
+        PdfReadPage page = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes()).Pages[0];
+        var word = new PdfUnderstandingWord("Rotated", 200D, 200D, 300D, 12D, 90D, Array.Empty<PdfTextSpan>(),
+            advance: 60D, visualBounds: new PdfLogicalVisualBounds(188D, 482D, 200D, 542D), sourceSequence: 0) { IsSelectionBox = true };
+        var line = new PdfUnderstandingLine(new[] { word }, "Rotated", 1D, null, PdfLogicalContentSourceKind.Ocr,
+            visualBounds: word.VisualBounds);
+        var stage = new InspectingLineStage();
+        var options = PdfUnderstandingPipelineOptions.Structured();
+        options.LineGrouping = stage;
+        var pipeline = new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options);
+        PdfUnderstandingPageResult result = Run(pipeline, default);
+        Assert.Equal(1, stage.Calls);
+        Assert.Equal(90D, stage.Angle);
+        Assert.Equal(page.GetPageSize().Width, stage.Width);
+        Assert.Equal(page.GetPageSize().Height, stage.Height);
+        Assert.Equal(90D, Assert.Single(result.Lines).RotationDegrees);
+
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => Run(pipeline, cancellation.Token));
+        options.MaxWorkUnitsPerPage = 1;
+        var limited = new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options);
+        Assert.Throws<PdfReadLimitException>(() => Run(limited, default));
+
+        PdfUnderstandingPageResult Run(PdfUnderstandingPipeline selected, System.Threading.CancellationToken token) =>
+            selected.RunPositionedPage(page, 1, Array.Empty<PdfTextSpan>(), new[] { word }, new[] { line },
+                typeof(PdfReadingFrameRegressionTests), token, reconstructOcrLayout: true);
+    }
+
+    [Theory]
+    [InlineData(0D)]
+    [InlineData(90D)]
+    [InlineData(180D)]
+    [InlineData(270D)]
+    public void ReconstructingMixedPagesRetainsNativeLineSelectionBounds(double angle) {
+        var run = new PdfTextSpan("Selection", "F1", 12D, 200D, 300D, 60D, null, false,
+            angle, null, null, textRenderingMode: 3, hasActualText: true);
+        PdfReadDocument source = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes());
+        var options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphs(new[] { run });
+        var pipeline = new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options);
+        PdfUnderstandingPageResult native = pipeline.RunPages(source, new[] { 1 })[0];
+        PdfLogicalVisualBounds expected = Assert.Single(native.Lines).VisualBounds!;
+        var word = new PdfUnderstandingWord("Extra", 400D, 420D, 200D, 10D, 0D,
+            Array.Empty<PdfTextSpan>(), advance: 20D, visualBounds: new PdfLogicalVisualBounds(400D, 632D, 420D, 642D),
+            sourceSequence: 0) { IsSelectionBox = true };
+        var line = new PdfUnderstandingLine(new[] { word }, "Extra", 1D, null, PdfLogicalContentSourceKind.Ocr,
+            visualBounds: word.VisualBounds);
+        PdfUnderstandingPageResult result = pipeline.RunPositionedPage(source.Pages[0], 1, native.DecodedRuns,
+            native.Words.Concat(new[] { word }).ToArray(), native.Lines.Concat(new[] { line }).ToArray(),
+            typeof(PdfReadingFrameRegressionTests), default, reconstructOcrLayout: true);
+        AssertBounds(new PdfVisualBounds(expected.Left, expected.Top, expected.Right, expected.Bottom),
+            result.Lines.Single(static item => item.Text == "Selection").VisualBounds);
+    }
+
     [Theory]
     [InlineData(90D)]
     [InlineData(180D)]
@@ -42,6 +98,9 @@ public sealed class PdfReadingFrameRegressionTests {
         PdfUnderstandingReadingFrame frame = Assert.IsType<PdfUnderstandingReadingFrame>(PdfUnderstandingReadingFrame.TryCreate(context, new[] { source }));
         PdfTextSpan projected = Assert.Single(frame.ProjectRuns(new[] { source }));
         Assert.False(projected.CanProjectCompleteText(frame.Height));
+        Assert.False(projected.WithOffset(1D, 1D).CanProjectCompleteText(frame.Height));
+        Assert.False(projected.WithVisualFontSize(11D).CanProjectCompleteText(frame.Height));
+        Assert.False(projected.WithCanRestamp(false).CanProjectCompleteText(frame.Height));
     }
 
     [Theory]
@@ -70,5 +129,19 @@ public sealed class PdfReadingFrameRegressionTests {
         private readonly PdfTextSpan[] _runs;
         internal FixedGlyphs(PdfTextSpan[] runs) => _runs = runs;
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) => _runs;
+    }
+
+    private sealed class InspectingLineStage : IPdfLineGroupingStage {
+        internal int Calls { get; private set; }
+        internal double Angle { get; private set; }
+        internal double Width { get; private set; }
+        internal double Height { get; private set; }
+        public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
+            Calls++;
+            Angle = words[0].RotationDegrees;
+            Width = context.Width;
+            Height = context.Height;
+            return PdfAdvancedUnderstandingStages.LineGrouping.GroupLines(context, words);
+        }
     }
 }
