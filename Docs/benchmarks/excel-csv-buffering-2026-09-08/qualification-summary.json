@@ -1,0 +1,218 @@
+[
+  {
+    "Group": "qualification-r1-4294901760",
+    "RunId": "20260907-213501-3cb26994",
+    "Scenario": "Csv25K",
+    "BeforeMs": 5.61570625,
+    "AfterMs": 5.59565625,
+    "MedianChangePercent": -0.35703434452255545,
+    "MeanChangePercent": 0.3370411858294009
+  },
+  {
+    "Group": "qualification-r1-4294901760",
+    "RunId": "20260907-213501-3cb26994",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 3.1221468750000003,
+    "AfterMs": 3.708084375,
+    "MedianChangePercent": 18.767134393701433,
+    "MeanChangePercent": 14.232207677033148
+  },
+  {
+    "Group": "qualification-r1-4294901760",
+    "RunId": "20260907-213501-3cb26994",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 3.8545687500000003,
+    "AfterMs": 3.798109375,
+    "MedianChangePercent": -1.4647390839766516,
+    "MeanChangePercent": -4.3204042700207275
+  },
+  {
+    "Group": "qualification-r1-4294901760",
+    "RunId": "20260907-213501-3cb26994",
+    "Scenario": "Excel25K",
+    "BeforeMs": 18.616821875,
+    "AfterMs": 17.783724999999997,
+    "MedianChangePercent": -4.474968287249636,
+    "MeanChangePercent": -2.3270688983279886
+  },
+  {
+    "Group": "qualification-r1-65535",
+    "RunId": "20260907-213408-5564cd2f",
+    "Scenario": "Csv25K",
+    "BeforeMs": 5.229534375,
+    "AfterMs": 5.463753125,
+    "MedianChangePercent": 4.478768724031967,
+    "MeanChangePercent": 4.154139357714248
+  },
+  {
+    "Group": "qualification-r1-65535",
+    "RunId": "20260907-213408-5564cd2f",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 3.134253125,
+    "AfterMs": 3.1240187500000003,
+    "MedianChangePercent": -0.32653313538610895,
+    "MeanChangePercent": 4.160660214319889
+  },
+  {
+    "Group": "qualification-r1-65535",
+    "RunId": "20260907-213408-5564cd2f",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 3.705025,
+    "AfterMs": 3.72485625,
+    "MedianChangePercent": 0.5352527985641231,
+    "MeanChangePercent": -1.3405508771034302
+  },
+  {
+    "Group": "qualification-r1-65535",
+    "RunId": "20260907-213408-5564cd2f",
+    "Scenario": "Excel25K",
+    "BeforeMs": 17.409640625,
+    "AfterMs": 17.219153125,
+    "MedianChangePercent": -1.094149523836041,
+    "MeanChangePercent": 0.25959119517149354
+  },
+  {
+    "Group": "qualification-r2-4294901760",
+    "RunId": "20260907-213648-ab1cd9c7",
+    "Scenario": "Csv25K",
+    "BeforeMs": 5.641215625,
+    "AfterMs": 5.738128125,
+    "MedianChangePercent": 1.7179364598388425,
+    "MeanChangePercent": 0.28011401302932004
+  },
+  {
+    "Group": "qualification-r2-4294901760",
+    "RunId": "20260907-213648-ab1cd9c7",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 2.918503125,
+    "AfterMs": 3.031784375,
+    "MedianChangePercent": 3.881484622360998,
+    "MeanChangePercent": 4.5449432499013565
+  },
+  {
+    "Group": "qualification-r2-4294901760",
+    "RunId": "20260907-213648-ab1cd9c7",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 4.737315625,
+    "AfterMs": 3.469496875,
+    "MedianChangePercent": -26.7623871905305,
+    "MeanChangePercent": -26.173209036130352
+  },
+  {
+    "Group": "qualification-r2-4294901760",
+    "RunId": "20260907-213648-ab1cd9c7",
+    "Scenario": "Excel25K",
+    "BeforeMs": 17.06759375,
+    "AfterMs": 17.83076875,
+    "MedianChangePercent": 4.471485618762161,
+    "MeanChangePercent": 2.4746277142617457
+  },
+  {
+    "Group": "qualification-r2-65535",
+    "RunId": "20260907-213554-16105852",
+    "Scenario": "Csv25K",
+    "BeforeMs": 5.466165625,
+    "AfterMs": 5.301246875,
+    "MedianChangePercent": -3.01708293004751,
+    "MeanChangePercent": -0.9745231526090081
+  },
+  {
+    "Group": "qualification-r2-65535",
+    "RunId": "20260907-213554-16105852",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 3.13085625,
+    "AfterMs": 2.9746625,
+    "MedianChangePercent": -4.988850893425722,
+    "MeanChangePercent": -0.8985484361988538
+  },
+  {
+    "Group": "qualification-r2-65535",
+    "RunId": "20260907-213554-16105852",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 4.89816875,
+    "AfterMs": 3.509771875,
+    "MedianChangePercent": -28.34522340619644,
+    "MeanChangePercent": -22.876152589292065
+  },
+  {
+    "Group": "qualification-r2-65535",
+    "RunId": "20260907-213554-16105852",
+    "Scenario": "Excel25K",
+    "BeforeMs": 17.934453124999997,
+    "AfterMs": 17.81198125,
+    "MedianChangePercent": -0.6828860302925954,
+    "MeanChangePercent": -1.8694970960219992
+  },
+  {
+    "Group": "qualification-r3-4294901760",
+    "RunId": "20260907-213844-06605d3f",
+    "Scenario": "Csv25K",
+    "BeforeMs": 5.404490624999999,
+    "AfterMs": 5.504049999999999,
+    "MedianChangePercent": 1.8421601943291455,
+    "MeanChangePercent": 2.7103815196054093
+  },
+  {
+    "Group": "qualification-r3-4294901760",
+    "RunId": "20260907-213844-06605d3f",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 3.0890125,
+    "AfterMs": 3.05811875,
+    "MedianChangePercent": -1.0001173514189277,
+    "MeanChangePercent": 0.05644583637516298
+  },
+  {
+    "Group": "qualification-r3-4294901760",
+    "RunId": "20260907-213844-06605d3f",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 3.8281437499999997,
+    "AfterMs": 3.566553125,
+    "MedianChangePercent": -6.833354285611659,
+    "MeanChangePercent": -6.354724411712153
+  },
+  {
+    "Group": "qualification-r3-4294901760",
+    "RunId": "20260907-213844-06605d3f",
+    "Scenario": "Excel25K",
+    "BeforeMs": 18.32581875,
+    "AfterMs": 17.753971874999998,
+    "MedianChangePercent": -3.120443800089434,
+    "MeanChangePercent": -1.5950593826007053
+  },
+  {
+    "Group": "qualification-r3-65535",
+    "RunId": "20260907-213742-742ae624",
+    "Scenario": "Csv25K",
+    "BeforeMs": 6.05305,
+    "AfterMs": 6.13989375,
+    "MedianChangePercent": 1.4347106004410914,
+    "MeanChangePercent": 2.798206121737201
+  },
+  {
+    "Group": "qualification-r3-65535",
+    "RunId": "20260907-213742-742ae624",
+    "Scenario": "CsvJsonAlways",
+    "BeforeMs": 3.5168375000000003,
+    "AfterMs": 3.766321875,
+    "MedianChangePercent": 7.093997803424235,
+    "MeanChangePercent": 4.40196368698742
+  },
+  {
+    "Group": "qualification-r3-65535",
+    "RunId": "20260907-213742-742ae624",
+    "Scenario": "CsvQuotesAlways",
+    "BeforeMs": 4.43754375,
+    "AfterMs": 4.182653125,
+    "MedianChangePercent": -5.743957453940595,
+    "MeanChangePercent": -3.009072212594799
+  },
+  {
+    "Group": "qualification-r3-65535",
+    "RunId": "20260907-213742-742ae624",
+    "Scenario": "Excel25K",
+    "BeforeMs": 19.868875,
+    "AfterMs": 19.710928125000002,
+    "MedianChangePercent": -0.7949462412944697,
+    "MeanChangePercent": 0.6861009994606926
+  }
+]

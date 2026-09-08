@@ -12,7 +12,8 @@ internal static class CsvBenchmarkOutputValidator
         IReadOnlyList<string> expectedHeaders,
         int expectedRowCount,
         string?[][]? expectedTextRows,
-        object?[][]? expectedObjectRows = null)
+        object?[][]? expectedObjectRows = null,
+        string delimiter = ",")
     {
         if (expectedTextRows != null && expectedObjectRows != null)
         {
@@ -76,7 +77,7 @@ internal static class CsvBenchmarkOutputValidator
             }
 
             rowIndex++;
-        });
+        }, new CsvLoadOptions { DelimiterText = delimiter });
 
         if (rowIndex != expectedRowCount)
         {

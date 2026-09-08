@@ -43,6 +43,8 @@ public class MarkPflug65KXlsxBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         if (ExcelPackage.License.LicenseType != EPPlusLicenseType.NonCommercialPersonal
             && ExcelPackage.License.LicenseType != EPPlusLicenseType.NonCommercialOrganization

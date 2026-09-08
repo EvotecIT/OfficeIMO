@@ -1,0 +1,14 @@
+[
+  {
+    "Assembly": "OfficeIMO.CSV",
+    "Records": 522,
+    "Equal": true,
+    "Scope": "Exported types, bases, interfaces, and declared public members"
+  },
+  {
+    "Assembly": "OfficeIMO.Excel",
+    "Records": 11931,
+    "Equal": true,
+    "Scope": "Exported types, bases, interfaces, and declared public members"
+  }
+]

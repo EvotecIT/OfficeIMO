@@ -1,0 +1,14 @@
+{
+  "fixture": "65K_Records_Data.csv",
+  "sha256": "ac959f43cf1077b71d310e6e49e3c168ba63a448f1855d45f44e734273eba490",
+  "rows": 65535,
+  "fields": 917490,
+  "utf16Characters": 7253195,
+  "nonemptyFields": 917490,
+  "utf16PayloadBytes": 14506390,
+  "freshStringAllocationEstimateBytes": 37441976,
+  "reusedSingleAsciiCharacterFields": 65593,
+  "reusedStringAllocationBytes": 1574232,
+  "actualFreshFieldStringAllocationEstimateBytes": 35867744,
+  "assumption": "One fresh x64 .NET string per nonempty field, 22-byte base including terminator, 8-byte alignment. Not a lower bound for implementations that reuse immutable values. Excludes headers and parser state."
+}

@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
             private readonly ExcelReadOptions _options;
             private int _firstColumn;
             private int _fieldCount;
-            private readonly Utf8StringCacheEntry[] _stringCache;
+            private Utf8StringCacheEntry[]? _stringCache;
             private byte[]? _buffer;
             private int[]? _rowIndexes;
             private int[]? _valueStarts;
@@ -59,7 +59,6 @@ namespace OfficeIMO.Excel {
                 _options = owner._opt;
                 _buffer = buffer;
                 _length = length;
-                _stringCache = new Utf8StringCacheEntry[StringCacheSize];
             }
 
             private ExcelUtf8RangeRowSource(
@@ -951,10 +950,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (length <= MaximumCachedStringBytes) {
+                    Utf8StringCacheEntry[] stringCache = _stringCache ??= new Utf8StringCacheEntry[StringCacheSize];
                     int hash = ComputeHash(_buffer!, start, length);
                     int slot = hash & (StringCacheSize - 1);
                     for (int probe = 0; probe < 8; probe++) {
-                        ref Utf8StringCacheEntry entry = ref _stringCache[(slot + probe) & (StringCacheSize - 1)];
+                        ref Utf8StringCacheEntry entry = ref stringCache[(slot + probe) & (StringCacheSize - 1)];
                         if (entry.Value == null) {
                             string decoded = DecodeXmlText(start, length);
                             entry = new Utf8StringCacheEntry(hash, start, length, decoded);

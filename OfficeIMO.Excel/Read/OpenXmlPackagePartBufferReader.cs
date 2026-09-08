@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.IO.Compression;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -183,21 +184,7 @@ namespace OfficeIMO.Excel {
             byte[] output = OpenXmlPartBufferPool.Rent(length);
             try {
                 using Stream input = entry.Open();
-                int offset = 0;
-                while (offset < length) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int read = input.Read(output, offset, length - offset);
-                    if (read == 0) {
-                        throw new EndOfStreamException(
-                            $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
-                    }
-                    offset += read;
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                if (input.ReadByte() >= 0) {
-                    throw new InvalidDataException(
-                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' exceeds its declared decompressed length of {length} bytes.");
-                }
+                ReadPartContents(input, output, length, normalizedPartName, cancellationToken);
                 return new PrefetchedPartBuffer(output, length);
             } catch {
                 OpenXmlPartBufferPool.Return(output);
@@ -213,13 +200,14 @@ namespace OfficeIMO.Excel {
             return _entries.ContainsKey(NormalizePartName(partName));
         }
 
-        internal Stream OpenPart(string partName, int maximumBytes) {
+        internal Stream OpenPart(string partName, int maximumBytes, CancellationToken cancellationToken = default) {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
             if (maximumBytes < 0) {
                 throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             string normalizedPartName = NormalizePartName(partName);
             if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
@@ -230,7 +218,44 @@ namespace OfficeIMO.Excel {
                     $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 
-            return entry.Open();
+            // XmlReader sizes its initial buffers to the length of a small seekable
+            // stream. ZIP entry streams do not expose that length, even for tiny
+            // workbook metadata. Retain streaming behavior for larger parts.
+            if (entry.Length > 4096) return entry.Open();
+
+            int length = checked((int)entry.Length);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+            try {
+                using Stream input = entry.Open();
+                ReadPartContents(input, buffer, length, normalizedPartName, cancellationToken);
+                return new OpenXmlPooledPartStream(buffer, length);
+            } catch {
+                ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                throw;
+            }
+        }
+
+        private static void ReadPartContents(
+            Stream input,
+            byte[] output,
+            int length,
+            string normalizedPartName,
+            CancellationToken cancellationToken) {
+            int offset = 0;
+            while (offset < length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = input.Read(output, offset, length - offset);
+                if (read == 0) {
+                    throw new EndOfStreamException(
+                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
+                }
+                offset += read;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (input.ReadByte() >= 0) {
+                throw new InvalidDataException(
+                    $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' exceeds its declared decompressed length of {length} bytes.");
+            }
         }
 
         private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(ZipArchive archive) {
@@ -261,6 +286,7 @@ namespace OfficeIMO.Excel {
             }
 
             string normalized = partName.TrimStart('/');
+            if (OpenXmlPartName.IsCanonicalPath(normalized)) return normalized;
             string[] encodedSegments = normalized.Split('/');
             var canonicalSegments = new string[encodedSegments.Length];
             for (int index = 0; index < encodedSegments.Length; index++) {
