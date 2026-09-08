@@ -8,14 +8,22 @@ internal static partial class OfficeDocumentModelTraversal {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var canonical = new List<ReaderTable>();
         var canonicalMatches = new TableMatchIndex<int>();
+        var canonicalReferences = new Dictionary<ReaderTable, int>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        var canonicalPayloads = new List<string>();
+        var chunkReferences = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>())
+            foreach (ReaderTable table in chunk?.Tables ?? Array.Empty<ReaderTable>())
+                if (table != null) chunkReferences.Add(table);
         var payloads = new Dictionary<ReaderTable, string>(ReferenceIdentityComparer<ReaderTable>.Instance);
         string Payload(ReaderTable table) {
             if (!payloads.TryGetValue(table, out var identity))
                 payloads.Add(table, identity = BuildTableIdentity(table, includeLocation: false, includeAnchor: false));
             return identity;
         }
-        void RegisterCanonical(ReaderTable original, ReaderTable projected) {
-            canonicalMatches.Add(Payload(original), projected.Location, canonical.Count);
+        void RegisterCanonical(ReaderTable original, ReaderTable projected, ReaderTable? pageAlias = null) {
+            canonicalReferences[original] = canonical.Count;
+            if (pageAlias != null) canonicalReferences[pageAlias] = canonical.Count;
+            canonicalPayloads.Add(Payload(original));
             canonical.Add(projected);
         }
         var pageMatches = new TableMatchIndex<ReaderTable>();
@@ -35,6 +43,7 @@ internal static partial class OfficeDocumentModelTraversal {
         foreach (ReaderTable table in document.Tables ?? System.Array.Empty<ReaderTable>()) {
             if (table == null || !seen.Add(table)) continue;
             ReaderTable projected = table;
+            ReaderTable? pageAlias = null;
             if (pageReferences.TryGetValue(table, out var pageReference)) {
                 matchedPages.Add(table);
                 projected = WithPageLocationFallback(table, pageReference.Page, pageReference.Index);
@@ -44,11 +53,12 @@ internal static partial class OfficeDocumentModelTraversal {
                     var scope = pageReferences[match];
                     ReaderTable candidate = WithPageLocationFallback(match, scope.Page, scope.Index);
                     projected = WithLocationFallback(table, candidate.Location!, candidate.Location!.TableIndex);
+                    pageAlias = match;
                     break;
                 }
             }
             // Each matching page occurrence is consumed once, including after JSON separates references.
-            RegisterCanonical(table, projected);
+            RegisterCanonical(table, projected, pageAlias);
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Tables == null) continue;
@@ -59,13 +69,25 @@ internal static partial class OfficeDocumentModelTraversal {
                 RegisterCanonical(table, scopedTable);
             }
         }
+        // Reserve all proven source references before a distinct equal chunk copy can consume them.
+        // This includes page aliases already reconciled with aggregate occurrences.
+        var reserved = new HashSet<int>();
+        foreach (ReaderTable reference in chunkReferences)
+            if (canonicalReferences.TryGetValue(reference, out int index)) reserved.Add(index);
+        for (int index = 0; index < canonical.Count; index++)
+            if (!reserved.Contains(index)) canonicalMatches.Add(canonicalPayloads[index], canonical[index].Location, index);
         var chunkSeen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        var matchedCanonical = new HashSet<int>();
         foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
             if (chunk?.Tables == null) continue;
             foreach (ReaderTable table in chunk.Tables) {
                 if (table == null || !chunkSeen.Add(table)) continue;
                 ReaderTable projected = WithLocationFallback(table, chunk.Location ?? new ReaderLocation(), null);
-                if (canonicalMatches.TryTake(Payload(table), projected.Location, out int candidateIndex)) {
+                if (canonicalReferences.TryGetValue(table, out int candidateIndex)
+                    || canonicalMatches.TryTake(Payload(table), projected.Location, out candidateIndex)) {
+                    // Two distinct aliases occurring in the chunk are two occurrences, even when
+                    // aggregate/page reconciliation represented them by one canonical projection.
+                    if (!matchedCanonical.Add(candidateIndex)) { canonical.Add(projected); continue; }
                     ReaderTable candidate = canonical[candidateIndex];
                     canonical[candidateIndex] = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
                     continue;

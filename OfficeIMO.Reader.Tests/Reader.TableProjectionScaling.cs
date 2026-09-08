@@ -5,6 +5,44 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderTableProjectionScalingTests {
+    [Fact]
+    public void DistinctReconciledAliasesInOneChunkStillCountAsTwoOccurrences() {
+        ReaderTable Table() => new() { Columns = new[] { "Value" }, Rows = new[] { new[] { "42" } },
+            Location = new() { Page = 1, TableIndex = 0 } };
+        ReaderTable aggregate = Table(), page = Table();
+        foreach (bool aggregateFirst in new[] { false, true }) {
+            var document = new OfficeDocumentReadResult {
+                Tables = new[] { aggregate },
+                Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { page } } },
+                Chunks = new[] { new ReaderChunk { Tables = aggregateFirst ? new[] { aggregate, page } : new[] { page, aggregate } } }
+            };
+            foreach (var source in new[] { document, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document)) })
+                Assert.Equal(2, source.EnumerateTables().Count());
+        }
+    }
+
+    [Theory]
+    [InlineData("aggregate", false)]
+    [InlineData("aggregate", true)]
+    [InlineData("page", false)]
+    [InlineData("page", true)]
+    [InlineData("both", false)]
+    [InlineData("both", true)]
+    public void SharedChunkReferencesCannotConsumeAnotherEqualOccurrence(string owner, bool sharedFirst) {
+        ReaderTable Table() => new() { Columns = new[] { "Value" }, Rows = new[] { new[] { "42" } },
+            Location = new() { Page = 1, TableIndex = 0 } };
+        ReaderTable shared = Table();
+        var document = new OfficeDocumentReadResult {
+            Tables = owner == "aggregate" ? new[] { shared } : owner == "both" ? new[] { Table() } : Array.Empty<ReaderTable>(),
+            Pages = owner == "aggregate" ? Array.Empty<OfficeDocumentPage>() : new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { shared } } },
+            Chunks = new[] { new ReaderChunk { Tables = sharedFirst ? new[] { shared, Table() } : new[] { Table(), shared } } }
+        };
+        foreach (var source in new[] { document, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document)) }) {
+            Assert.Equal(2, source.EnumerateTables().Count());
+            Assert.Equal(2, source.EnumerateContent().Count(item => item.Table != null));
+        }
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
