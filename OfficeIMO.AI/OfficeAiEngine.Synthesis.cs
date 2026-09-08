@@ -27,8 +27,8 @@ public sealed partial class OfficeAiEngine {
             long previousCharacters = current.Sum(claim => (long)claim.Text.Length);
             var groups = new List<List<OfficeAiClaim>>();
             var group = new List<OfficeAiClaim>();
-            OfficeAiExecutionRequest Create(IReadOnlyList<OfficeAiClaim> items) => new(
-                requestId + "-summary-" + (calls + 1), SynthesisInstructions,
+            OfficeAiExecutionRequest Create(IReadOnlyList<OfficeAiClaim> items, int requestNumber) => new(
+                requestId + "-summary-" + requestNumber, SynthesisInstructions,
                 JsonSerializer.Serialize(new {
                     schema = "officeimo.ai.summary.v1", instruction = request.Instruction, maxResultItems = request.Limits.MaxResultItems,
                     drafts = items.Select((claim, index) => new { id = "c" + index, text = claim.Text,
@@ -37,11 +37,11 @@ public sealed partial class OfficeAiEngine {
             foreach (OfficeAiClaim claim in current) {
                 token.ThrowIfCancellationRequested();
                 group.Add(claim);
-                if (group.Count <= 200 && _executor.MeasureRequestCharacters(Create(group)) <= maximum) continue;
+                if (group.Count <= 200 && _executor.MeasureRequestCharacters(Create(group, calls + groups.Count + 1)) <= maximum) continue;
                 group.RemoveAt(group.Count - 1);
                 if (group.Count > 0) groups.Add(group);
                 group = new() { claim };
-                if (_executor.MeasureRequestCharacters(Create(group)) > maximum) return Finish(false);
+                if (_executor.MeasureRequestCharacters(Create(group, calls + groups.Count + 1)) > maximum) return Finish(false);
             }
             if (group.Count > 0) groups.Add(group);
             if (groups.Count == 0) return Finish(false);
@@ -53,7 +53,7 @@ public sealed partial class OfficeAiEngine {
                 bool usageRecorded = false;
                 try {
                     calls++;
-                    OfficeAiExecutionRequest execution = Create(items) with { RequestId = requestId + "-summary-" + calls };
+                    OfficeAiExecutionRequest execution = Create(items, calls);
                     OfficeAiExecutionResponse response = await ExecuteBoundedAsync(execution, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
                     if (response.InputTokens < 0 || response.OutputTokens < 0) throw Invalid();

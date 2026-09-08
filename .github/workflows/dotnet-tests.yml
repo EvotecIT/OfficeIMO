@@ -1660,10 +1660,10 @@ jobs:
       - name: Run AOT/Trim analyzers (net8.0)
         shell: pwsh
         run: |
-          # The solution includes net10-only products such as Studio. Preserve
+          # Studio and the AI projects target net10 only. Preserve
           # the existing net8 analyzer lane for every compatible solution project.
           $projects = dotnet sln OfficeIMO.sln list | Where-Object {
-            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.Studio(\.Tests)?[\\/]'
+            $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?)[\\/]'
           } | ForEach-Object {
             (Resolve-Path -LiteralPath $_).Path
           }
@@ -1682,6 +1682,7 @@ jobs:
           # concurrent Avalonia generation through Studio and Studio.Tests.
           dotnet restore OfficeIMO.sln
           $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
+          dotnet sln $analyzerSolution add OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 

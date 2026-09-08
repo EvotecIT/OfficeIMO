@@ -37,5 +37,16 @@ internal static partial class OfficeDocumentModelTraversal {
             }
             return block.Location;
         }
+
+        // An unscoped aggregate spanning several source containers cannot supply a truthful
+        // page location or region. Its page fragments retain the observed text and geometry.
+        internal bool HasPageFragments(OfficeDocumentBlock block) {
+            // Local anchors may be reused by unrelated containers; only a stable source ID
+            // establishes that page blocks are fragments replacing this aggregate observation.
+            if (string.IsNullOrWhiteSpace(block.Id) || _locations.ContainsKey(block)
+                || !_identityLocations.TryGetValue(BuildBlockProjectionKey(block), out var matches)) return false;
+            return matches.Where(candidate => block.Location == null || SameContainerWhenKnown(block.Location, candidate))
+                .Select(candidate => BuildBlockIdentity(block, candidate)).Distinct(StringComparer.Ordinal).Take(2).Count() > 1;
+        }
     }
 }

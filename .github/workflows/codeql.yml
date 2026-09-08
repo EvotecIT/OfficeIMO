@@ -69,7 +69,7 @@ jobs:
         if: matrix.build-mode == 'manual'
         shell: pwsh
         run: |
-          $excludedProjects = '[\\\\/](output|bin|obj|OfficeIMO\.Examples|OfficeIMO\.Studio|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/]PackageSmoke|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
+          $excludedProjects = '[\\\\/](output|bin|obj|OfficeIMO\.Examples|OfficeIMO\.Studio|OfficeIMO\.AI(\.IntelligenceX|\.Example)?|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/]PackageSmoke|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
           $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object {
             $_.FullName -notmatch $excludedProjects
           } | Sort-Object FullName
@@ -83,10 +83,11 @@ jobs:
           dotnet restore $codeqlSolution -p:TargetFramework=net8.0
           dotnet build $codeqlSolution --configuration Release --framework net8.0 --no-restore
 
-          # Studio is intentionally net10-only. Build it separately so CodeQL
-          # analyzes the desktop product without forcing it into the net8 graph.
+          # Build net10-only production projects separately from the net8 graph.
           dotnet restore OfficeIMO.Studio/OfficeIMO.Studio.csproj
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration Release --framework net10.0 --no-restore
+          dotnet restore Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
+          dotnet build Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj --configuration Release --framework net10.0 --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

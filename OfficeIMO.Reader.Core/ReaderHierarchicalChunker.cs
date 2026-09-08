@@ -198,7 +198,6 @@ public static partial class ReaderHierarchicalChunker {
         int maximumInputChunks,
         CancellationToken cancellationToken) {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
-        var seenIds = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
         int maximumInspections = (int)Math.Min(int.MaxValue, (long)maximumInputChunks * 4L);
         IReadOnlyList<OfficeDocumentBlock> documentBlocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();
@@ -209,7 +208,7 @@ public static partial class ReaderHierarchicalChunker {
         for (int blockIndex = 0; blockIndex < documentInspectionCount; blockIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentBlock block = documentBlocks[blockIndex];
-            if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
+            if (!TryRegisterFallbackBlock(block, seen)) continue;
             candidates.Add(block);
         }
 
@@ -220,14 +219,13 @@ public static partial class ReaderHierarchicalChunker {
             pages,
             candidates,
             seen,
-            seenIds,
             maximumPageIndexInspections,
             cancellationToken,
             out bool pageInspectionLimitReached);
         limitReached |= pageInspectionLimitReached;
 
         IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(
-            candidates,
+            candidates.Where(block => !pageIndex.HasPageFragments(block)),
             pageIndex.ResolveLocation,
             pageIndex.InspectedPages);
         if (ordered.Count > maximumInputChunks) limitReached = true;
@@ -241,17 +239,15 @@ public static partial class ReaderHierarchicalChunker {
 
     private static bool TryRegisterFallbackBlock(
         OfficeDocumentBlock? block,
-        ISet<OfficeDocumentBlock> seen,
-        ISet<string> seenIds) {
+        ISet<OfficeDocumentBlock> seen) {
         if (block == null || !seen.Add(block)) return false;
-        return string.IsNullOrWhiteSpace(block.Id) || seenIds.Add(block.Id!);
+        return true;
     }
 
     private static OfficeDocumentModelTraversal.BlockProjectionIndex CollectPageFallbackBlocks(
         IReadOnlyList<OfficeDocumentPage> pages,
         IList<OfficeDocumentBlock> candidates,
         ISet<OfficeDocumentBlock> seen,
-        ISet<string> seenIds,
         int maximumInspections,
         CancellationToken cancellationToken,
         out bool limitReached) {
@@ -280,7 +276,7 @@ public static partial class ReaderHierarchicalChunker {
                 inspections++;
                 if (block == null) continue;
                 projections.Add(block, page);
-                if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
+                if (!TryRegisterFallbackBlock(block, seen)) continue;
                 candidates.Add(block);
             }
             if (inspections >= maximumInspections) {

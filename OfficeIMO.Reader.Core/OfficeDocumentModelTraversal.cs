@@ -30,7 +30,7 @@ internal static partial class OfficeDocumentModelTraversal {
                 .Where(page => page?.Blocks != null)
                 .SelectMany(page => page.Blocks));
         OfficeDocumentBlock[] materialized = candidates.Where(block => block != null).ToArray();
-        foreach (OfficeDocumentBlock block in OrderBlocks(materialized, projections.ResolveLocation, document.Pages)) {
+        foreach (OfficeDocumentBlock block in OrderBlocks(materialized.Where(block => !projections.HasPageFragments(block)), projections.ResolveLocation, document.Pages)) {
             ReaderLocation? location = projections.ResolveLocation(block);
             // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
             yield return location != null && !ReferenceEquals(location, block.Location)
@@ -265,11 +265,10 @@ internal static partial class OfficeDocumentModelTraversal {
     internal static string BuildBlockIdentity(OfficeDocumentBlock block) => BuildBlockIdentity(block, block.Location);
 
     private static string BuildBlockIdentity(OfficeDocumentBlock block, ReaderLocation? location) {
-        if (!string.IsNullOrWhiteSpace(block.Id)) return "id:" + block.Id;
         string? anchor = location?.BlockAnchor;
-        if (!string.IsNullOrWhiteSpace(anchor)) {
-            var builder = new StringBuilder("anchor:");
-            AppendIdentity(builder, anchor);
+        if (!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(anchor)) {
+            var builder = new StringBuilder(!string.IsNullOrWhiteSpace(block.Id) ? "id:" : "anchor:");
+            AppendIdentity(builder, !string.IsNullOrWhiteSpace(block.Id) ? block.Id : anchor);
             AppendIdentity(builder, location?.Path);
             AppendIdentity(builder, location?.Page?.ToString(CultureInfo.InvariantCulture));
             AppendIdentity(builder, location?.Slide?.ToString(CultureInfo.InvariantCulture));
