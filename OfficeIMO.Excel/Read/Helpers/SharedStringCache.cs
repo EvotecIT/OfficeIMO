@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
-        private readonly Utf8CacheEntry?[] _utf8Cache = new Utf8CacheEntry?[Utf8CacheSlotCount];
+        private Utf8CacheEntry?[]? _utf8Cache;
 
         private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel {
             long totalCharacters = 0;
 
             try {
-                using var reader = XmlReader.Create(stream, SharedStringXmlReaderSettings);
+                using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(SharedStringXmlReaderSettings));
                 int nodesRead = 0;
                 while (reader.Read()) {
                     CheckCancellation(nodesRead++);
@@ -313,8 +313,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            Utf8CacheEntry?[] utf8Cache = Volatile.Read(ref _utf8Cache) ?? InitializeUtf8Cache();
             int slot = index & (Utf8CacheSlotCount - 1);
-            Utf8CacheEntry? entry = Volatile.Read(ref _utf8Cache[slot]);
+            Utf8CacheEntry? entry = Volatile.Read(ref utf8Cache[slot]);
             if (entry != null && entry.Index == index) {
                 value = new ArraySegment<byte>(entry.Value);
                 return true;
@@ -322,16 +323,21 @@ namespace OfficeIMO.Excel {
 
             byte[] bytes = Encoding.UTF8.GetBytes(items[index]);
             if (bytes.Length <= MaximumCachedUtf8ItemBytes) {
-                entry = Volatile.Read(ref _utf8Cache[slot]);
+                entry = Volatile.Read(ref utf8Cache[slot]);
                 if (entry != null && entry.Index == index) {
                     bytes = entry.Value;
                 } else {
-                    Volatile.Write(ref _utf8Cache[slot], new Utf8CacheEntry(index, bytes));
+                    Volatile.Write(ref utf8Cache[slot], new Utf8CacheEntry(index, bytes));
                 }
             }
 
             value = new ArraySegment<byte>(bytes);
             return true;
+        }
+
+        private Utf8CacheEntry?[] InitializeUtf8Cache() {
+            var cache = new Utf8CacheEntry?[Utf8CacheSlotCount];
+            return Interlocked.CompareExchange(ref _utf8Cache, cache, null) ?? cache;
         }
 
         private sealed class Utf8CacheEntry {

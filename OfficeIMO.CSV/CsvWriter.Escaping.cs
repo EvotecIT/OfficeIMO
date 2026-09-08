@@ -118,12 +118,31 @@ internal static partial class CsvWriter
         buffer.Append('"');
     }
 
-    // Keep the dense loop separate from the bulk-copy path so its per-character
-    // StringBuilder appends can be optimized without that path's larger body.
+#if NET6_0_OR_GREATER
+    // Each caller supplies at most 256 source characters and reserves enough
+    // room to double every quote. The field's closing quote follows all chunks.
+    private static int EscapeQuotedChunk(ReadOnlySpan<char> text, Span<char> escaped)
+    {
+        int count = 0;
+        foreach (char character in text)
+        {
+            escaped[count++] = character;
+            if (character == '"') escaped[count++] = '"';
+        }
+        return count;
+    }
+#endif
+
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void AppendDenseQuotedText(StringBuilder buffer, string text, int start)
     {
 #if NET6_0_OR_GREATER
+        if (text.Length - start > 256)
+        {
+            AppendDenseQuotedSpan(buffer, text.AsSpan(start));
+            return;
+        }
+        if (TryAppendQuoteRun(buffer, text.AsSpan(start))) return;
         foreach (char character in text.AsSpan(start))
         {
             if (character == '"') buffer.Append("\"\"");
@@ -137,9 +156,45 @@ internal static partial class CsvWriter
             else buffer.Append(character);
         }
 #endif
-
         buffer.Append('"');
     }
+
+#if NET6_0_OR_GREATER
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void AppendDenseQuotedSpan(StringBuilder buffer, ReadOnlySpan<char> remaining)
+    {
+        if (TryAppendQuoteRun(buffer, remaining)) return;
+        AppendQuotedChunks(buffer, remaining);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static bool TryAppendQuoteRun(StringBuilder buffer, ReadOnlySpan<char> remaining)
+    {
+#if NET8_0_OR_GREATER
+        if (!remaining.IsEmpty && remaining[0] == '"' && remaining.IndexOfAnyExcept('"') < 0)
+        {
+            buffer.Append('"', checked(remaining.Length * 2));
+            buffer.Append('"');
+            return true;
+        }
+#endif
+        return false;
+    }
+
+    // Allocate once per field, in a separate call from the writer's row loop.
+    private static void AppendQuotedChunks(StringBuilder buffer, ReadOnlySpan<char> remaining)
+    {
+        Span<char> escaped = stackalloc char[512];
+        while (!remaining.IsEmpty)
+        {
+            int length = Math.Min(remaining.Length, 256);
+            int written = EscapeQuotedChunk(remaining.Slice(0, length), escaped);
+            buffer.Append(escaped.Slice(0, written));
+            remaining = remaining.Slice(length);
+        }
+        buffer.Append('"');
+    }
+#endif
 
     private static void WriteQuotedText(TextWriter writer, string text, int searchStart = 0)
     {
@@ -160,27 +215,36 @@ internal static partial class CsvWriter
             quote = text.IndexOf('"', start);
             if (quote >= 0 && quote - start < 16)
             {
-#if NET6_0_OR_GREATER
-                foreach (char character in text.AsSpan(start))
-                {
-                    if (character == '"') writer.Write("\"\"");
-                    else writer.Write(character);
-                }
-#else
-                for (int index = start; index < text.Length; index++)
-                {
-                    char character = text[index];
-                    if (character == '"') writer.Write("\"\"");
-                    else writer.Write(character);
-                }
-#endif
-
-                writer.Write('"');
+                WriteDenseQuotedText(writer, text, start);
                 return;
             }
         } while (quote >= 0);
 
         WriteTextSegment(writer, text, start, text.Length - start);
+        writer.Write('"');
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void WriteDenseQuotedText(TextWriter writer, string text, int start)
+    {
+#if NET6_0_OR_GREATER
+        ReadOnlySpan<char> remaining = text.AsSpan(start);
+        Span<char> escaped = stackalloc char[Math.Min(remaining.Length, 256) * 2];
+        while (!remaining.IsEmpty)
+        {
+            int length = Math.Min(remaining.Length, 256);
+            int written = EscapeQuotedChunk(remaining.Slice(0, length), escaped);
+            writer.Write(escaped.Slice(0, written));
+            remaining = remaining.Slice(length);
+        }
+#else
+        for (int index = start; index < text.Length; index++)
+        {
+            char character = text[index];
+            if (character == '"') writer.Write("\"\"");
+            else writer.Write(character);
+        }
+#endif
         writer.Write('"');
     }
 
@@ -275,12 +339,17 @@ internal static partial class CsvWriter
             quote = text.IndexOf('"');
             if (quote >= 0 && quote < 16)
             {
+                if (text.Length > 256)
+                {
+                    AppendDenseQuotedSpan(buffer, text);
+                    return;
+                }
+                if (TryAppendQuoteRun(buffer, text)) return;
                 foreach (char character in text)
                 {
                     if (character == '"') buffer.Append("\"\"");
                     else buffer.Append(character);
                 }
-
                 buffer.Append('"');
                 return;
             }

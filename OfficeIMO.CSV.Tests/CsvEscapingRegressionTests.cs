@@ -48,9 +48,11 @@ public class CsvEscapingRegressionTests {
         yield return string.Concat(Enumerable.Repeat("\"key\":\"value\",", 300));
         yield return "  =SUM(1;2), \"quoted\"";
         yield return "Łódź 😀,;||\r\n\t";
-        foreach (int length in new[] { 0, 15, 16, 31, 32, 63, 64, 4096, 32768 }) {
+        foreach (int length in new[] { 0, 15, 16, 31, 32, 63, 64, 255, 256, 257, 511, 512, 513, 4096, 32768 }) {
             yield return new string('a', length) + "\"";
             yield return "\"" + new string('b', length) + "\"\"suffix";
+            yield return string.Concat(Enumerable.Repeat("\"a", length / 2)) + "\"Łódź\ud83d\ude80";
+            yield return new string('"', length);
         }
     }
 
