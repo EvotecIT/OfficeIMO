@@ -59,7 +59,7 @@ public sealed partial class OfficeAiEngine {
                         IsCompleteNumberAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).NumberFormat),
                     OfficeAiFieldType.Boolean => IsCompleteWordValueAt,
                     OfficeAiFieldType.Date => (source, start, length) =>
-                        IsCompleteDateAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).DateTimeFormat),
+                        IsCompleteDateAt(source, start, length, raw!, CultureInfo.GetCultureInfo(request.Culture).DateTimeFormat),
                     _ => null
                 };
                 if (fieldStatus == OfficeAiFieldStatus.Present && isComplete is not null

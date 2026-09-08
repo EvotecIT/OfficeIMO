@@ -13,6 +13,19 @@ public sealed partial class EngineContractTests {
     [InlineData("Date: 2030-04-03.", "2030-04-03", "yyyy-MM-dd", "en-US", true)]
     [InlineData("Date: 03.04.2030.", "03.04.2030", "dd.MM.yyyy", "pl-PL", true)]
     [InlineData("12030-04-031 / 2030-04-03", "2030-04-03", "yyyy-MM-dd", "en-US", true)]
+    [InlineData("1|2030|04|03", "2030|04|03", "yyyy|MM|dd", "en-US", false)]
+    [InlineData("2030|04|03|1", "2030|04|03", "yyyy|MM|dd", "en-US", false)]
+    [InlineData("1::2030::04::03", "2030::04::03", "yyyy'::'MM'::'dd", "en-US", false)]
+    [InlineData("2030::04::03::1", "2030::04::03", "yyyy\"::\"MM\"::\"dd", "en-US", false)]
+    [InlineData("1|2030|04|03", "2030|04|03", @"yyyy\|MM\|dd", "en-US", false)]
+    [InlineData("2030|04|03|1", "2030|04|03", "yyyy'|'MM'|'%d", "en-US", false)]
+    [InlineData("Date: 2030|04|03.", "2030|04|03", "yyyy|MM|dd", "en-US", true)]
+    [InlineData("Date: 2030::04::03.", "2030::04::03", "yyyy'::'MM'::'dd", "en-US", true)]
+    [InlineData("Date: 2030|04|03.", "2030|04|03", "yyyy'|'MM'|'%d", "en-US", true)]
+    [InlineData("Date: 2030|04|03.", "2030|04|03", @"yyyy\|MM\|dd", "en-US", true)]
+    [InlineData("1※2030※04※03", "2030※04※03", "yyyy'※'MM'※'dd", "en-US", false)]
+    [InlineData("Date: 2030※04※03.", "2030※04※03", "yyyy'※'MM'※'dd", "en-US", true)]
+    [InlineData("1|2030|04|03 / 2030|04|03", "2030|04|03", "yyyy|MM|dd", "en-US", true)]
     public async Task DateFieldsRequireACompleteObservedValue(string source, string raw, string format, string culture, bool accepted) {
         var result = await new OfficeAiEngine(new Executor(Field(raw, "e1"))).RunAsync(Document(source), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,

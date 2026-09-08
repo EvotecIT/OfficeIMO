@@ -438,13 +438,12 @@ internal static class PdfInspector {
         string trailerRaw,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        string text = PdfEncoding.Latin1GetString(pdf);
-        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         bool Has(params string[] names) {
             cancellationToken.ThrowIfCancellationRequested();
-            bool found = PdfSyntax.ContainsAnyPdfName(text, names) ||
-                PdfSyntax.ContainsAnyParsedPdfName(objects, names);
+            // Parsed dictionaries are authoritative here. Stream bytes and string values
+            // can contain marker-shaped text, including random encrypted payload bytes.
+            bool found = PdfSyntax.ContainsAnyParsedPdfName(objects, names);
             cancellationToken.ThrowIfCancellationRequested();
             return found;
         }

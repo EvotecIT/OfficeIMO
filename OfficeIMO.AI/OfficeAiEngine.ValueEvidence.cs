@@ -48,11 +48,11 @@ public sealed partial class OfficeAiEngine {
         (start == 0 || !IsWordAt(source, start - 1))
         && (start + length == source.Length || !IsWordAt(source, start + length));
 
-    private static bool IsCompleteDateAt(string source, int start, int length, DateTimeFormatInfo format) {
+    private static bool IsCompleteDateAt(string source, int start, int length, string raw, DateTimeFormatInfo format) {
         if (!IsCompleteWordValueAt(source, start, length)) return false;
         // Separators joining another date component are part of the source value; ordinary
         // sentence punctuation and spaced delimiters remain valid citation boundaries.
-        foreach (string separator in new[] { "-", "/", ".", format.DateSeparator }) {
+        foreach (string separator in DateValueSeparators(raw, format)) {
             if (separator.Length == 0 || string.IsNullOrWhiteSpace(separator)) continue;
             int before = start - separator.Length;
             int after = start + length;
@@ -62,6 +62,22 @@ public sealed partial class OfficeAiEngine {
                 && IsWordAt(source, after + separator.Length)) return false;
         }
         return true;
+    }
+
+    private static IEnumerable<string> DateValueSeparators(string raw, DateTimeFormatInfo format) {
+        yield return "-";
+        yield return "/";
+        yield return ".";
+        yield return format.DateSeparator;
+        // TryParseExact has already accepted this value against the requested format. Its
+        // observed punctuation therefore includes custom, escaped and culture-specific
+        // literals without duplicating the runtime's date-format grammar.
+        for (int index = 0; index < raw.Length; index++) {
+            if (char.IsWhiteSpace(raw[index]) || IsWordAt(raw, index)) continue;
+            int start = index;
+            while (index + 1 < raw.Length && !char.IsWhiteSpace(raw[index + 1]) && !IsWordAt(raw, index + 1)) index++;
+            yield return raw.Substring(start, index - start + 1);
+        }
     }
 
     private static bool IsWordAt(string source, int index) {

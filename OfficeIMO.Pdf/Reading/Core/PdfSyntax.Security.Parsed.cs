@@ -15,8 +15,6 @@ internal static partial class PdfSyntax {
         Guard.NotNull(fallback, nameof(fallback));
         cancellationToken.ThrowIfCancellationRequested();
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
@@ -145,7 +143,8 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        bool hasByteRange = byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange", cancellationToken);
+        bool hasByteRange = byteRangeValueCount > 0 || ContainsAnyParsedPdfName(objects, "ByteRange");
+        bool hasSignatures = ContainsAnyParsedPdfName(objects, "ByteRange", "SigFlags", "Sig");
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
@@ -159,7 +158,7 @@ internal static partial class PdfSyntax {
             encryptionPermissions,
             encryptMetadata,
             passwordAuthenticationRole,
-            fallback.HasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
+            hasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),
             signatures.Count == 0 ? Array.Empty<PdfSignatureInfo>() : signatures.AsReadOnly(),

@@ -500,8 +500,19 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static bool ContainsAnyParsedPdfName(byte[] pdf, params string[] names) {
-        return ContainsAnyParsedPdfName(pdf, null, names);
+    private static bool ContainsParsedOrFallbackPdfName(byte[] pdf, params string[] names) =>
+        ContainsParsedOrFallbackPdfName(pdf, null, names);
+
+    private static bool ContainsParsedOrFallbackPdfName(byte[] pdf, PdfLoadOptions? options, params string[] names) {
+        try {
+            var (objects, trailer) = ParseObjects(pdf, options);
+            if (FindCatalog(objects, trailer) is null)
+                return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
+            return ContainsAnyParsedPdfName(objects, names);
+        } catch (Exception ex) when (ShouldSuppressParsedPdfNameException(ex, options)) {
+            // Malformed or unauthenticated input retains the conservative raw probe.
+            return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
+        }
     }
 
     private static bool ContainsAnyParsedPdfName(byte[] pdf, PdfLoadOptions? options, params string[] names) {
@@ -580,7 +591,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfLoadOptions? options) {
-        if (exception is OutOfMemoryException || exception is StackOverflowException) {
+        if (exception is OperationCanceledException || exception is OutOfMemoryException || exception is StackOverflowException) {
             return false;
         }
 
