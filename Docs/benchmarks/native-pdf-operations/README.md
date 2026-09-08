@@ -31,10 +31,35 @@ Several short builds overlapped the first run. The second used a different affin
 
 ## Reproduce
 
-Run the committed benchmark through the shared evidence runner:
+For a current-checkout measurement, run the committed benchmark through the shared evidence runner:
 
 ```powershell
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -RunMode full -Framework net8.0 -AffinityMask 65535
 ```
 
-The recorded comparison used the same committed benchmark class and validation helpers linked into a small BenchmarkDotNet host. Its baseline job referenced release-built Core/Pdf assemblies from the baseline commit; its current job used the current Pdf project reference. Both jobs used `Job.Default`, `MemoryDiagnoser`, and identical producer/scenario parameters. Run the same workload at each selected revision when comparing later changes; do not compare these dated results with different page counts, excluded serialization, or unvalidated output.
+To reconstruct both dated jobs, keep the benchmark source from this checkout and build the two product revisions separately. The [revision host](../../../Build/NativePdfRevisionBenchmarks/OfficeIMO.NativePdfRevisionBenchmarks.csproj) links the same benchmark class, producer generators, font, and validation helpers; neither historical product revision needs to contain the benchmark. It loads each revision's Core/Pdf assemblies in a separate BenchmarkDotNet process.
+
+Run from the repository root with PowerShell 7 and the .NET 8 SDK/runtime available:
+
+```powershell
+$comparisonRoot = Join-Path ([IO.Path]::GetTempPath()) ('officeimo-native-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $comparisonRoot | Out-Null
+git worktree add --detach (Join-Path $comparisonRoot 'baseline') d3aa130ac52beb39cf382cef7987cc5b29d5bd2e
+git worktree add --detach (Join-Path $comparisonRoot 'current') 9e4001e83179d39636edb3b976cd6befd381e40a
+foreach ($revision in 'baseline', 'current') {
+    dotnet build (Join-Path $comparisonRoot "$revision/OfficeIMO.Pdf/OfficeIMO.Pdf.csproj") -c Release -f net8.0
+    if ($LASTEXITCODE -ne 0) { throw "Product build failed: $revision" }
+}
+$env:NativePdfBaselineDirectory = Join-Path $comparisonRoot 'baseline/OfficeIMO.Pdf/bin/Release/net8.0'
+$env:NativePdfCurrentDirectory = Join-Path $comparisonRoot 'current/OfficeIMO.Pdf/bin/Release/net8.0'
+$env:PDF_BENCHMARK_RUN = 'full'
+foreach ($mask in '65535', '4294901760') {
+    $env:PDF_BENCHMARK_AFFINITY = $mask
+    dotnet run --project Build/NativePdfRevisionBenchmarks -c Release -- --filter '*' --artifacts (Join-Path $comparisonRoot "results-$mask")
+    if ($LASTEXITCODE -ne 0) { throw "Benchmark host failed: $mask" }
+}
+```
+
+These affinity masks describe the recorded Windows workstation. Choose valid masks for the host being measured and compare both revisions on the same mask. `PDF_BENCHMARK_RUN=dry` executes all 24 producer/operation/revision combinations with setup validation for a smoke check; it does not produce publishable timing evidence. Full runs use `Job.Default` and `MemoryDiagnoser`. Inspect the BenchmarkDotNet reports for failed cases as well as the process exit code.
+
+The original host referenced the current Pdf project directly. The committed revision host references its release-built assemblies instead, so the current checkout cannot silently replace the measured revision. Preserve the results and assembly hashes before removing the two clean detached worktrees with `git worktree remove`. Do not compare these dated results with different page counts, excluded serialization, or unvalidated output.
