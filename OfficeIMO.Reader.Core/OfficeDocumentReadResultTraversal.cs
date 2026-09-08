@@ -7,7 +7,8 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// <summary>
     /// Enumerates document-level and page-level blocks in canonical source order, retaining each stable ID or anchor once.
     /// Blocks without either identity are deduplicated only by object reference, preserving unlabelled repeated text.
-    /// The returned blocks are the source model objects, not immutable copies.
+    /// Missing locations inherit their page context by reference or stable identity without changing the source.
+    /// Results may refer to source objects or location projections; they are not immutable snapshots.
     /// </summary>
     public static IEnumerable<OfficeDocumentBlock> EnumerateBlocks(this OfficeDocumentReadResult document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

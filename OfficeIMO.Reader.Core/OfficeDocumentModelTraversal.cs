@@ -9,11 +9,18 @@ namespace OfficeIMO.Reader;
 internal static class OfficeDocumentModelTraversal {
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
         var locations = new Dictionary<OfficeDocumentBlock, ReaderLocation>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        var identityLocations = new Dictionary<string, ReaderLocation>(StringComparer.Ordinal);
         foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
             if (page == null) continue;
             ReaderLocation fallback = BuildPageLocation(page);
             foreach (OfficeDocumentBlock block in page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
-                if (block != null && !locations.ContainsKey(block)) locations.Add(block, MergeLocation(block.Location, fallback, null));
+                if (block == null) continue;
+                ReaderLocation location = MergeLocation(block.Location, fallback, null);
+                if (!locations.ContainsKey(block)) locations.Add(block, location);
+                if (!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(block.Location?.BlockAnchor)) {
+                    string identity = BuildBlockIdentity(block);
+                    if (!identityLocations.ContainsKey(identity)) identityLocations.Add(identity, location);
+                }
             }
         }
         IEnumerable<OfficeDocumentBlock> candidates =
@@ -21,8 +28,19 @@ internal static class OfficeDocumentModelTraversal {
             .Concat((document.Pages ?? System.Array.Empty<OfficeDocumentPage>())
                 .Where(page => page?.Blocks != null)
                 .SelectMany(page => page.Blocks));
-        foreach (OfficeDocumentBlock block in OrderBlocks(candidates,
-            block => locations.TryGetValue(block, out ReaderLocation? location) ? location : block.Location)) yield return block;
+        OfficeDocumentBlock[] materialized = candidates.Where(block => block != null).ToArray();
+        foreach (OfficeDocumentBlock block in materialized) {
+            if (!locations.ContainsKey(block) && identityLocations.TryGetValue(BuildBlockIdentity(block), out ReaderLocation? fallback))
+                locations.Add(block, MergeLocation(block.Location, fallback, null));
+        }
+        foreach (OfficeDocumentBlock block in OrderBlocks(materialized,
+            block => locations.TryGetValue(block, out ReaderLocation? location) ? location : block.Location)) {
+            // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
+            yield return locations.TryGetValue(block, out ReaderLocation? location)
+                ? new OfficeDocumentBlock { Id = block.Id, Kind = block.Kind, Text = block.Text, Level = block.Level,
+                    Marker = block.Marker, Region = block.Region, Location = location }
+                : block;
+        }
     }
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(

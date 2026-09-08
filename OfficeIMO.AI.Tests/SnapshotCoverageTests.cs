@@ -5,6 +5,29 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class SnapshotCoverageTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TransportedBlockIdentityRetainsPageFallbackAndSelection(bool useAnchor) {
+        var first = new OfficeDocumentBlock { Id = useAnchor ? "" : "first", Text = "First page",
+            Location = new() { BlockAnchor = useAnchor ? "first-anchor" : null } };
+        var second = new OfficeDocumentBlock { Id = "second", Text = "Second page", Location = new() { Page = 2 } };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { second, first }, Pages = new[] {
+            new OfficeDocumentPage { Number = 1, Blocks = new[] { first } }
+        } };
+        var restored = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        var captured = OfficeAiDocument.FromReadResult(new byte[] { 1 }, restored);
+        Assert.Equal(new[] { "First page", "Second page" }, captured.Evidence.Select(item => item.Text));
+        Assert.Equal(new int?[] { 1, 2 }, captured.Evidence.Select(item => item.Page));
+        var executor = new Capture();
+        await new OfficeAiEngine(executor).RunAsync(captured, new() { Instruction = "Read", Pages = new[] { 1 } });
+        string input = Assert.Single(executor.Requests).InputJson;
+        Assert.Contains("First page", input);
+        Assert.DoesNotContain("Second page", input);
+        Assert.Null(first.Location.Page);
+        Assert.Null(restored.Blocks.Single(item => item.Text == "First page").Location.Page);
+    }
+
     [Fact]
     public void AnonymousRepeatedBlocksRemainSeparateWhileStableAnchorsAreDeduplicated() {
         var first = new OfficeDocumentBlock { Text = "Repeat", Location = new() { Page = 1 } };
@@ -13,7 +36,7 @@ public sealed class SnapshotCoverageTests {
         var anchoredCopy = new OfficeDocumentBlock { Text = "Anchored", Location = new() { Page = 1, BlockAnchor = "a" } };
         var source = new OfficeDocumentReadResult { Blocks = new[] { first, second, anchored },
             Pages = new[] { new OfficeDocumentPage { Number = 1, Blocks = new[] { first, anchoredCopy } } } };
-        Assert.Equal(new[] { first, second, anchored }, source.EnumerateBlocks());
+        Assert.Equal(new[] { "Repeat", "Repeat", "Anchored" }, source.EnumerateBlocks().Select(block => block.Text));
         Assert.Equal(3, OfficeAiDocument.FromReadResult(new byte[] { 1 }, source).Evidence.Count);
     }
 
@@ -39,7 +62,7 @@ public sealed class SnapshotCoverageTests {
             new OfficeDocumentPage { Name = "Z", Location = new() { Sheet = "Z" }, Blocks = new[] { z2, z1 } },
             new OfficeDocumentPage { Name = "A", Location = new() { Sheet = "A" }, Blocks = new[] { a1 } }
         } };
-        Assert.Equal(new[] { z1, z2, a1 }, source.EnumerateBlocks());
+        Assert.Equal(new[] { "Z1", "Z2", "A1" }, source.EnumerateBlocks().Select(block => block.Id));
         Assert.Equal(new[] { "Z1", "Z2", "A1" }, OfficeAiDocument.FromReadResult(new byte[] { 1 }, source).Evidence.Select(item => item.Text));
     }
 
@@ -83,7 +106,7 @@ public sealed class SnapshotCoverageTests {
             new OfficeDocumentPage { Number = 1, Blocks = new[] { first } },
             new OfficeDocumentPage { Number = 2, Blocks = new[] { second } }
         } };
-        Assert.Equal(new[] { first, second }, source.EnumerateBlocks());
+        Assert.Equal(new[] { "first", "second" }, source.EnumerateBlocks().Select(block => block.Id));
         var captured = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source);
         Assert.Equal(new[] { "first", "second" }, captured.Evidence.Select(item => item.SourceBlockId));
         Assert.Equal(new int?[] { 1, 2 }, captured.Evidence.Select(item => item.Page));

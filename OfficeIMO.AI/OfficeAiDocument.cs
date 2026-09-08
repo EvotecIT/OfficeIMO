@@ -107,16 +107,14 @@ public sealed class OfficeAiDocument {
                 pages.Add(number);
             }
         }
-        var blockPages = new Dictionary<OfficeDocumentBlock, int?>(ReferenceEqualityComparer.Instance);
         var tablePages = new Dictionary<ReaderTable, int?>(ReferenceEqualityComparer.Instance);
         foreach (OfficeDocumentPage page in document.Pages) {
-            foreach (OfficeDocumentBlock block in page.Blocks) blockPages.TryAdd(block, page.Number ?? page.Location?.Page);
             foreach (ReaderTable table in page.Tables) tablePages.TryAdd(table, page.Number ?? page.Location?.Page);
         }
         foreach (ReaderChunk chunk in document.Chunks)
             foreach (ReaderTable table in chunk.Tables ?? Array.Empty<ReaderTable>()) tablePages.TryAdd(table, chunk.Location?.Page);
         foreach (OfficeDocumentBlock block in document.EnumerateBlocks())
-            Add(block.Kind, block.Text, block.Location?.Page ?? blockPages.GetValueOrDefault(block), block.Id, block.Region, block.Location?.BlockAnchor);
+            Add(block.Kind, block.Text, block.Location?.Page, block.Id, block.Region, block.Location?.BlockAnchor);
         if (evidence.Count == 0) {
             foreach (ReaderChunk chunk in document.Chunks) Add("chunk", chunk.Text, chunk.Location?.Page, chunk.Id, sourceAnchor: chunk.Location?.BlockAnchor);
         }
