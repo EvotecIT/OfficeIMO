@@ -27,7 +27,7 @@ Run the scoring and runner contracts with `dotnet run --project Build/PdfQuality
 
 ### Reproduce the historical baseline
 
-The [recorded comparison](../../Docs/quality/multilingual-layout/2026-09-08-linux-net8.json) uses product revisions `316af053340445f7d9933b8560c7f729ff98d8af` and `92d170ad46d187f311c02a896289d826e359fd27` with this same fixture manifest. Build the historical product in a separate checkout and run the committed baseline host from the current checkout:
+The [recorded comparison](../../Docs/quality/multilingual-layout/2026-09-08-linux-net8.json) uses product revisions `316af053340445f7d9933b8560c7f729ff98d8af` and `ea1c48d52dc6e1d718c0397567d599230f6e5f0f` with this same fixture manifest. Build the historical product in a separate checkout and run the committed baseline host from the current checkout:
 
 ```sh
 baseline_root="$(mktemp -d)/baseline"
@@ -40,7 +40,7 @@ dotnet Build/PdfLayoutBaseline/bin/Release/net8.0/OfficeIMO.PdfLayoutBaseline.dl
 
 Stop if any build or measurement fails. The baseline host links the same scoring source and uses the older product's default OCR layout behavior; its compile symbol omits the `ReconstructLayout` option, which did not exist in that revision. It has no product fallback logic. Both runs use the same provider settings and independently labelled input. Retain the report and source assembly hashes before removing the clean detached worktree with `git worktree remove "$baseline_root"`.
 
-For the measured current product, build a second detached checkout at `92d170ad46d187f311c02a896289d826e359fd27` with the same two product build commands. Rebuild this host with `-p:PdfLayoutBaselineRoot="<current-checkout>" -p:PdfLayoutReconstruct=true`, then run its DLL with a different output directory. This keeps the scoring code identical while enabling the newer option. Later revisions can use the normal corpus command, but their results describe their own product code rather than the dated measurement.
+For the measured current product, build a second detached checkout at `ea1c48d52dc6e1d718c0397567d599230f6e5f0f` with the same two product build commands. Rebuild this host with `-p:PdfLayoutBaselineRoot="<current-checkout>" -p:PdfLayoutReconstruct=true`, then run its DLL with a different output directory. This keeps the scoring code identical while enabling the newer option. Later revisions can use the normal corpus command, but their results describe their own product code rather than the dated measurement.
 
 ## Regenerate
 

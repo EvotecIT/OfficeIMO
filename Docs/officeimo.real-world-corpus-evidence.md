@@ -103,10 +103,10 @@ The [8 September 2026 measurement](quality/multilingual-layout/2026-09-08-linux-
 | OCR whole-document CER | 45.94–59.15% | 2.81–5.63% |
 | Searchable readback CER | 24.38–82.39% | 2.81–4.23% |
 | Native correctly ordered labelled pairs | 86/728 | 728/728 |
-| Exact table rows, native / OCR / readback | 4 / 8 / 0 of 32 each | 32 / 32 / 32 of 32 each |
+| Exact table rows, native / OCR / readback | 0 / 4 / 0 of 32 each | 32 / 32 / 32 of 32 each |
 | Native caption classification | 0/8 | 8/8 |
 
-Provider-token recall is 90–95.83%, with precision of 86.54–90.20%. These order-independent values retain provider spelling, diacritic, and figure-text errors. Exact segment and pair counts remain lower in the OCR modes because an incorrectly recognized segment cannot establish a correct labelled pair. The report preserves per-case results rather than treating a table object or nonempty text as success.
+Provider-token recall is 90–95.83%, with precision of 86.54–90.20%. These order-independent values retain provider spelling, diacritic, and figure-text errors. Exact segment and pair counts remain lower in the OCR modes because an incorrectly recognized segment cannot establish a correct labelled pair. Table scoring requires one table with the expected row count and compares cells at their labelled row and column positions. The report preserves per-case results, including extra or fragmented tables.
 
 Searchable outputs match the corresponding source scans pixel-for-pixel when rendered with Poppler at 96 DPI. The evidence also records this bounded visual check; it does not prove all renderers or resolutions. Full-page scans have no separate figure region, so OCR and readback do not classify their caption even when its text survives. Broader producers, scripts, paragraph-direction metadata, vertical writing, and scan figure segmentation remain open in [the roadmap](ROADMAP.md).
 

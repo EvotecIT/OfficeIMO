@@ -1,5 +1,5 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "MeasuredDate": "2026-09-08",
   "Environment": "Ubuntu 24.04 on WSL, .NET 8.0.30",
   "TesseractVersion": "5.3.4",
@@ -46,7 +46,7 @@
       "Measurements": {
         "Runtime": ".NET 8.0.30",
         "SourceManifestSha256": "CF8C7776BC751C49203B45F18284A73DD487D59E96F60A6EBFD71F532C28C89E",
-        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table cells and caption classification are separate observations.",
+        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table rows and caption classification are separate observations. Exact table rows require one detected table, the expected row count, and matching cells at the same row and column positions.",
         "Limit": "Controlled Pango/Cairo fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible.",
         "RecognitionMetric": "Case-sensitive NFC token multiset precision and recall, ignoring order. This separates recognized-token evidence from canonical line/column ordering; it is not a character accuracy score.",
         "ProviderRecognition": [
@@ -173,7 +173,7 @@
             "ExpectedReadingOrderPairs": 91,
             "ExactCaption": false,
             "Captions": [],
-            "ExactTableRows": 4,
+            "ExactTableRows": 0,
             "ExpectedTableRows": 4,
             "Tables": [
               [
@@ -1125,7 +1125,7 @@
             "ExpectedReadingOrderPairs": 91,
             "ExactCaption": false,
             "Captions": [],
-            "ExactTableRows": 4,
+            "ExactTableRows": 0,
             "ExpectedTableRows": 4,
             "Tables": [
               [
@@ -1394,39 +1394,39 @@
     },
     {
       "Stage": "current",
-      "ProductCommit": "92d170ad46d187f311c02a896289d826e359fd27",
+      "ProductCommit": "ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
       "ReconstructLayout": true,
       "Assemblies": [
         {
           "Assembly": "OfficeIMO.Core",
-          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
-          "Sha256": "96046402355B5F9D6CAF5CF01ACF3D0DF827A94C39805A02AC7FFFB1FDC65CEB"
+          "ProductVersion": "3.4.1+ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
+          "Sha256": "34EC743A07BED963B8633929E08893CF4F5F94AEF678566A67C8C4FCC3B64723"
         },
         {
           "Assembly": "OfficeIMO.Pdf",
-          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
-          "Sha256": "EBB45DF5C1BE84BB282024CC679E9FC48EFFBE118AA02A24CFA5D6A4DA8B8E79"
+          "ProductVersion": "3.4.1+ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
+          "Sha256": "36C6BF86AAF46D35C943BB10F50B1D1512C7D11599946367235F98135F9E4009"
         },
         {
           "Assembly": "OfficeIMO.Ocr",
-          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
-          "Sha256": "DE73F7F119ED406DD93FD753986AEEE2F6AFE3BB37A5CAD2DA64E7C2B582A7CE"
+          "ProductVersion": "3.4.1+ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
+          "Sha256": "CDE16BD8349B89D678569EB613D5D11E341159CF6518D7B2BD7DC2A6E900EB73"
         },
         {
           "Assembly": "OfficeIMO.Pdf.Ocr",
-          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
-          "Sha256": "0794F350F21669AB0793F7670AB457735DED5B7D1996DFBF786A310C1F120A04"
+          "ProductVersion": "3.4.1+ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
+          "Sha256": "3C7F98A79BFA363BB87AD290ABD74B768CE12A5BAE8A0C990C1FAB83C3B43264"
         },
         {
           "Assembly": "OfficeIMO.Ocr.Tesseract",
-          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
-          "Sha256": "CBD9C15835ED33190FED7721AD66E9C38CABC2210CCD0FC3ECA201BC268B0858"
+          "ProductVersion": "3.4.1+ea1c48d52dc6e1d718c0397567d599230f6e5f0f",
+          "Sha256": "286DF074B35A5033215D85A3E8A1220223B9D786D1D9D7D87907C8BEC8EF6116"
         }
       ],
       "Measurements": {
         "Runtime": ".NET 8.0.30",
         "SourceManifestSha256": "CF8C7776BC751C49203B45F18284A73DD487D59E96F60A6EBFD71F532C28C89E",
-        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table cells and caption classification are separate observations.",
+        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table rows and caption classification are separate observations. Exact table rows require one detected table, the expected row count, and matching cells at the same row and column positions.",
         "Limit": "Controlled Pango/Cairo fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible.",
         "RecognitionMetric": "Case-sensitive NFC token multiset precision and recall, ignoring order. This separates recognized-token evidence from canonical line/column ordering; it is not a character accuracy score.",
         "ProviderRecognition": [
