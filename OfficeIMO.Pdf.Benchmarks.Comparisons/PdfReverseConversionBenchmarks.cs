@@ -109,7 +109,8 @@ public class PdfReverseConversionBenchmarks {
         if (htmlPages != _scenario.PageCount) throw new InvalidOperationException($"HTML reverse conversion retained {htmlPages} of {_scenario.PageCount} page scopes.");
         ValidateContent(WebUtility.HtmlDecode(Regex.Replace(html, "<[^>]+>", " ")), "HTML");
         using (var stream = new MemoryStream()) {
-            PdfExcelTableImportReport report = logical.SaveTablesAsExcel(stream);
+            PdfExcelTableImportReport report = logical.SaveTablesAsExcel(stream).Report
+                ?? throw new InvalidOperationException("XLSX reverse conversion did not return a table-scope report.");
             if (report.Entries.Count == 0) throw new InvalidOperationException("XLSX reverse conversion did not recover benchmark tables.");
             using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(stream.ToArray()), false);
             if (package.WorkbookPart?.Workbook is null) throw new InvalidOperationException("XLSX reverse conversion did not produce a workbook.");

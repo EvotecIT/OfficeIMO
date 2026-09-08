@@ -37,24 +37,26 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options) {
-        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null);
+    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null, documentFactory);
     }
 
     internal static byte[] ExtractPages(
         byte[] pdf,
         IEnumerable<int> pageNumbers,
         PdfLoadOptions? options,
-        long maximumOutputBytes) {
+        long maximumOutputBytes,
+        Func<PdfReadDocument>? documentFactory = null) {
         Guard.Positive(maximumOutputBytes, nameof(maximumOutputBytes));
-        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes);
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes, documentFactory);
     }
 
     private static byte[] ExtractPagesCore(
         byte[] pdf,
         IEnumerable<int> pageNumbers,
         PdfLoadOptions? options,
-        long? maximumOutputBytes) {
+        long? maximumOutputBytes,
+        Func<PdfReadDocument>? documentFactory) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
 
@@ -63,17 +65,7 @@ internal static partial class PdfPageExtractor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
-            pdf,
-            PdfMutationOperation.ExtractPages,
-            options);
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
-        ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
-
-        var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
-        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion, maximumOutputBytes: maximumOutputBytes);
+        return new ExtractionSession(pdf, options, documentFactory).Extract(selected, maximumOutputBytes);
     }
 
     /// <summary>
@@ -244,7 +236,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options) {
+    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 
@@ -253,23 +245,7 @@ internal static partial class PdfPageExtractor {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
-            pdf,
-            PdfMutationOperation.ExtractPages,
-            options);
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
-        ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
-
-        var pageObjectNumbers = new List<int>(ranges.Sum(range => range.PageCount));
-        foreach (var range in ranges) {
-            for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
-                pageObjectNumbers.Add(document.Pages[pageNumber - 1].ObjectNumber);
-            }
-        }
-
-        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return new ExtractionSession(pdf, options, documentFactory).Extract(ranges);
     }
 
     /// <summary>
@@ -342,20 +318,13 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one single-page PDF per source page, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfLoadOptions? options) {
+    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
-            pdf,
-            PdfMutationOperation.ExtractPages,
-            options);
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
-        var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
-        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        var result = new List<byte[]>(document.Pages.Count);
+        var source = new ExtractionSession(pdf, options, documentFactory);
+        var result = new List<byte[]>(source.PageCount);
 
-        foreach (var page in document.Pages) {
-            result.Add(ExtractPages(objects, document.UncheckedMetadata, new[] { page.ObjectNumber }, catalogState: catalogState, fileVersion: fileVersion));
+        for (int page = 1; page <= source.PageCount; page++) {
+            result.Add(source.Extract(new[] { page }));
         }
 
         return result;
@@ -392,7 +361,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options) {
+    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 
@@ -401,23 +370,12 @@ internal static partial class PdfPageExtractor {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
-            pdf,
-            PdfMutationOperation.ExtractPages,
-            options);
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
-        ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
-        var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
-        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
+        var source = new ExtractionSession(pdf, options, documentFactory);
+        ValidatePageRanges(ranges, source.PageCount, nameof(pageRanges));
         var result = new List<byte[]>(ranges.Length);
 
         foreach (var range in ranges) {
-            int[] pageObjectNumbers = Enumerable
-                .Range(range.FirstPage, range.PageCount)
-                .Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber)
-                .ToArray();
-            result.Add(ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: catalogState, fileVersion: fileVersion));
+            result.Add(source.Extract(new[] { range }));
         }
 
         return result;

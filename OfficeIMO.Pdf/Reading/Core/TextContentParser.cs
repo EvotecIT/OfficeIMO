@@ -419,8 +419,6 @@ internal static class TextContentParser {
             cancellationCheck?.Invoke();
             currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
                 ?? contentStreamObjectNumber;
-            args.Clear();
-            args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
@@ -760,7 +758,7 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
         ApplyPendingTextClippingPath();
         return spans;
 
@@ -1495,8 +1493,6 @@ internal static class TextContentParser {
 
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
-            args.Clear();
-            args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
             switch (op) {
@@ -1853,7 +1849,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
 
         return invocations;
 

@@ -446,8 +446,6 @@ internal static partial class PdfPageContentVisualParser {
                 _content,
                 _maxOperations,
                 operation => {
-                    _args.Clear();
-                    _args.AddRange(operation.Operands);
                     _currentOperatorIndex = operation.OperatorOffset;
                     ApplyOperator(
                         operation.Name,
@@ -458,7 +456,8 @@ internal static partial class PdfPageContentVisualParser {
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands,
                 dispatchInvalidOperations: _unsupportedOperatorVisitor != null,
-                inlineImageArrayComponentCount: _inlineImageArrayComponentCount);
+                inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
+                operandBuffer: _args);
 
             return _primitives == null || _primitives.Count == 0
                 ? Array.Empty<PdfPageVisualPrimitive>()

@@ -14,6 +14,7 @@ Each page contains a heading, narrative text, and a four-column account/status t
 
 The benchmark families intentionally answer different questions:
 
+- `PdfNativeOperationsBenchmarks`: OfficeIMO reads, selects, merges, and splits independently generated iText and MigraDoc inputs. Each source has 100 pages with four table rows and one narrative paragraph per page. Selection preserves a descending 25-page selection; merge combines 25 four-page documents. `Split` and `SplitSelections` both emit 100 single-page PDFs, with the latter exercising the compound selection API. Setup independently validates all input and output pages before timing. This lane compares OfficeIMO revisions and does not time the input producers.
 - `PdfGenerationBenchmarks`: OfficeIMO, QuestPDF, MigraDoc/PDFsharp, and iText generate the same structured report from the same logical model. The measured operation includes document construction, layout, font embedding, compression, and in-memory serialization.
 - `PdfHtmlBenchmarks`: OfficeIMO.Html.Pdf, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX parse and render the exact same HTML string. Every engine emits tagged PDF bytes and must preserve the exact page count, narrative, and table content before its measurements are accepted. The managed engines include HTML/CSS parsing, paged layout, and in-memory serialization. Chromium reuses one HtmlTinkerX-owned browser session per benchmark case; each measured operation still replaces and reparses the complete page before printing, so warmed browser throughput is not mislabeled as process startup.
 - `PdfHtmlPayloadBenchmarks`: OfficeIMO.Html.Pdf and PeachPDF render exact 21 KiB plain-text, table-heavy, and multilingual HTML payloads as tagged PDFs. The multilingual lane makes the same bundled Carlito font the primary CSS family for both engines and requires every measured Latin, Greek, and Cyrillic sample plus the embedded font in the resulting artifact. It therefore runs portably without host-font dependencies or role mismatches. The quick runner uses BenchmarkDotNet's process-isolated `Dry` job for cold-start evidence; full runs measure warmed throughput. Cleanup reopens each result, checks page count, first/last content, the unique terminal marker, all multilingual samples, and reports HTML bytes, PDF bytes, pages, and extracted-text length.
@@ -102,6 +103,7 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfstructuredread -RunMode quick -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -RunMode full -Framework net8.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
