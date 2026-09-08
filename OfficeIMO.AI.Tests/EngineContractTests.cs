@@ -7,6 +7,52 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class EngineContractTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InvalidUsageCannotProduceKnownTotals(bool providerThrows) {
+        var executor = new Executor((_, _) => providerThrows
+            ? throw new InvalidDataException("Invalid executor payload")
+            : Task.FromResult(new OfficeAiExecutionResponse(Empty, InputTokens: -1, OutputTokens: 2)));
+        var result = await new OfficeAiEngine(executor).RunAsync(Document("source"), Request());
+        Assert.Equal(OfficeAiResultStatus.InvalidResponse, result.Status);
+        Assert.Null(result.InputTokens);
+        Assert.Null(result.OutputTokens);
+    }
+
+    [Theory]
+    [InlineData(OfficeAiOperation.Ask)]
+    [InlineData(OfficeAiOperation.ExtractFields)]
+    [InlineData(OfficeAiOperation.Parse)]
+    public async Task GenerationSchemaRequiresNonblankContentAndEvidence(OfficeAiOperation operation) {
+        var executor = new Executor(Empty);
+        await new OfficeAiEngine(executor).RunAsync(Document("source"), Request() with {
+            Operation = operation, Fields = operation == OfficeAiOperation.ExtractFields
+                ? new[] { new OfficeAiFieldDefinition("value") } : Array.Empty<OfficeAiFieldDefinition>()
+        });
+        using var schema = JsonDocument.Parse(Assert.Single(executor.Requests).OutputSchema);
+        var properties = schema.RootElement.GetProperty("properties");
+        var requiredText = properties.GetProperty(operation == OfficeAiOperation.ExtractFields ? "fields" : operation == OfficeAiOperation.Parse ? "blocks" : "claims")
+            .GetProperty("items").GetProperty("properties");
+        var stringSchemas = new[] { requiredText.GetProperty(operation == OfficeAiOperation.ExtractFields ? "rawValue" : "text"),
+            requiredText.GetProperty("evidence").GetProperty("items").GetProperty("properties").GetProperty("id"),
+            requiredText.GetProperty("evidence").GetProperty("items").GetProperty("properties").GetProperty("quote") };
+        foreach (var textSchema in stringSchemas) {
+            Assert.Equal(1, textSchema.GetProperty("minLength").GetInt32());
+            string pattern = textSchema.GetProperty("pattern").GetString()!;
+            foreach (string blank in new[] { "", " ", "\t\r\n", "\u0085\u00a0\u202f", "\u3000" })
+                Assert.DoesNotMatch(pattern, blank);
+            Assert.Matches(pattern, " source ");
+            Assert.DoesNotMatch(pattern, "source\0text");
+        }
+        if (operation == OfficeAiOperation.Parse) {
+            var cell = schema.RootElement.GetProperty("$defs").GetProperty("text");
+            Assert.False(cell.TryGetProperty("minLength", out _));
+            Assert.Matches(cell.GetProperty("pattern").GetString()!, "");
+            Assert.DoesNotMatch(cell.GetProperty("pattern").GetString()!, "cell\0text");
+        }
+    }
+
+    [Theory]
     [InlineData("Running")]
     [InlineData("Validating")]
     public async Task ProgressResourceFailureIsNotSwallowed(string stage) {
@@ -277,6 +323,10 @@ public sealed class EngineContractTests {
     [InlineData("Count: 42 top-rated widgets", "42", "en-US", "42")]
     [InlineData("Count: 42 all-in", "42", "en-US", "42")]
     [InlineData("Count: 42 usd per item", "42", "en-US", "42")]
+    [InlineData("Quantity: 42 2025 model", "42", "en-US", "42")]
+    [InlineData("Quantity: 42\u00a02025 model", "42", "en-US", "42")]
+    [InlineData("Quantity: 42\u202f2025 model", "42", "en-US", "42")]
+    [InlineData("Quantity: 2025 42 units", "42", "en-US", "42")]
     public async Task CompleteNumericEvidencePreservesSignsUnitsAndSentencePunctuation(string source, string raw, string culture, string expected) {
         var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(source), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,

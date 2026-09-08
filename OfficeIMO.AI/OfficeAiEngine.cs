@@ -60,6 +60,7 @@ public sealed partial class OfficeAiEngine {
             token.ThrowIfCancellationRequested();
             Batch batch = plan.Batches[index];
             ReportProgress(progress, new("Running", index, plan.Batches.Count));
+            bool usageRecorded = false;
             try {
                 requestCount++;
                 OfficeAiExecutionResponse response = await ExecuteBoundedAsync(batch.Request, token).ConfigureAwait(false);
@@ -67,6 +68,7 @@ public sealed partial class OfficeAiEngine {
                 if (response.InputTokens < 0 || response.OutputTokens < 0) throw new InvalidDataException("Invalid usage counters.");
                 inputTokens = SumUsage(inputTokens, response.InputTokens);
                 outputTokens = SumUsage(outputTokens, response.OutputTokens);
+                usageRecorded = true;
                 ReportProgress(progress, new("Validating", index, plan.Batches.Count));
                 ParsedBatch parsed = Parse(response, batch, request, document);
                 if (parsed.Claims.Count > 0) claimBatches++;
@@ -81,6 +83,7 @@ public sealed partial class OfficeAiEngine {
             } catch (OperationCanceledException) when (token.IsCancellationRequested) {
                 throw;
             } catch (InvalidDataException) {
+                if (!usageRecorded) { inputTokens = null; outputTokens = null; }
                 failed = true; omitted.AddRange(batch.Ids); diagnostics.Add("invalid-provider-response");
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 // Never include a provider exception message: it can contain prompts, endpoint secrets or source text.

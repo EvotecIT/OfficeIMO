@@ -114,7 +114,10 @@ public sealed partial class OfficeAiEngine {
 
     private static bool HasNumericContinuation(string source, int boundary, bool backwards, NumberFormatInfo format) {
         // Dot/comma also catch an incompatible-culture token being shortened to a valid integer.
-        string[] separators = { format.NumberGroupSeparator, format.NumberDecimalSeparator, ".", ",", "\u00a0", "\u202f", " " };
+        var separators = new List<string> { format.NumberGroupSeparator, format.NumberDecimalSeparator, ".", "," };
+        // Normalize the common space variants only for cultures that actually group with whitespace.
+        if (format.NumberGroupSeparator.Length > 0 && string.IsNullOrWhiteSpace(format.NumberGroupSeparator))
+            separators.AddRange(new[] { "\u00a0", "\u202f", " " });
         foreach (string separator in separators) {
             if (separator.Length == 0) continue;
             int start = backwards ? boundary - separator.Length : boundary;

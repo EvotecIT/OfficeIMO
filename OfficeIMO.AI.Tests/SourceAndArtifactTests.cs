@@ -10,6 +10,33 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class SourceAndArtifactTests {
+    [Theory]
+    [InlineData(16383, true)]
+    [InlineData(20000, false)]
+    public async Task UnicodeExportChecksExcelLimitsBeforeWritingArtifacts(int emojiCount, bool exportable) {
+        string raw = string.Concat(Enumerable.Repeat("😀", emojiCount));
+        var document = OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(raw), new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = raw } }
+        });
+        var result = await new OfficeAiEngine(new LiteralExecutor(raw)).RunAsync(document, new OfficeAiRequest {
+            Operation = OfficeAiOperation.ExtractFields, Instruction = "Extract the literal value.",
+            Fields = new[] { new OfficeAiFieldDefinition("value") },
+            Limits = new() { MaxRequestCharacters = 1_000_000, MaxResponseCharacters = 1_000_000 }
+        });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-unicode-" + Guid.NewGuid().ToString("N"));
+        try {
+            if (exportable) {
+                ArtifactWriter.Save(output, document, result);
+                using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
+                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            } else {
+                Assert.Throws<NotSupportedException>(() => ArtifactWriter.Save(output, document, result));
+                Assert.False(Directory.Exists(output));
+            }
+        } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
+    }
+
     [Fact]
     public async Task ContentDetectedNativePdfDoesNotReportSourceOmissions() {
         byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("Native total 42"))).ToBytes();
@@ -99,11 +126,12 @@ public sealed class SourceAndArtifactTests {
         } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
     }
 
-    private sealed class LiteralExecutor : IOfficeAiExecutor {
-        public OfficeAiExecutionProfile Profile { get; } = new() { Id = "artifact", Provider = "fixture", Model = "fixture", IsLocal = true };
+    private sealed class LiteralExecutor(string raw = "=2+3") : IOfficeAiExecutor {
+        public OfficeAiExecutionProfile Profile { get; } = new() { Id = "artifact", Provider = "fixture", Model = "fixture", IsLocal = true, MaxRequestCharacters = 1_000_000 };
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new OfficeAiExecutionResponse("""
-                {"status":"ok","claims":[],"fields":[{"name":"value","status":"present","rawValue":"=2+3","evidence":[{"id":"e1","quote":"=2+3"}]}],"blocks":[],"tables":[]}
-                """));
+            Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new {
+                status = "ok", claims = Array.Empty<object>(), fields = new[] { new { name = "value", status = "present",
+                    rawValue = raw, evidence = new[] { new { id = "e1", quote = raw } } } }, blocks = Array.Empty<object>(), tables = Array.Empty<object>()
+            })));
     }
 }

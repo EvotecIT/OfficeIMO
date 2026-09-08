@@ -6,6 +6,15 @@ using OfficeIMO.Reader;
 
 internal static class ArtifactWriter {
     public static void Save(string output, OfficeAiDocument document, OfficeAiResult result) {
+        var tables = new List<(string Name, IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows)>();
+        if (result.Fields.Count > 0) tables.Add(("Fields", new[] { "Name", "Status", "Raw value", "Normalized value", "Evidence" },
+            result.Fields.Select(field => (IReadOnlyList<string>)new[] { field.Name, field.Status.ToString(), field.RawValue ?? "",
+                field.NormalizedValue ?? "", string.Join(", ", field.Citations.Select(citation => citation.EvidenceId)) }).ToArray()));
+        for (int index = 0; index < result.Tables.Count; index++) tables.Add(("Table " + (index + 1), result.Tables[index].Table.Columns, result.Tables[index].Table.Rows));
+        // JSON strings are bounded in Unicode scalars; the XLSX cell contract counts UTF-16 code units.
+        // Check every exported value before writing any artifacts, including field/evidence summaries and headings.
+        if (tables.Any(table => table.Columns.Concat(table.Rows.SelectMany(row => row)).Any(value => value.Length > 32_767)))
+            throw new NotSupportedException("XLSX export requires every cell to fit Excel's 32,767 UTF-16 code-unit limit. No artifacts were written.");
         Directory.CreateDirectory(output);
         WriteNew(Path.Combine(output, "report.json"), Encoding.UTF8.GetBytes(OfficeAiArtifacts.SerializeReport(document, result)));
         if (result.Operation == OfficeAiOperation.Parse) {
@@ -13,11 +22,6 @@ internal static class ArtifactWriter {
             WriteNew(Path.Combine(output, "proposed-reader.json"), Encoding.UTF8.GetBytes(readback));
             _ = OfficeDocumentReadResultJson.Deserialize(File.ReadAllText(Path.Combine(output, "proposed-reader.json")));
         }
-        var tables = new List<(string Name, IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows)>();
-        if (result.Fields.Count > 0) tables.Add(("Fields", new[] { "Name", "Status", "Raw value", "Normalized value", "Evidence" },
-            result.Fields.Select(field => (IReadOnlyList<string>)new[] { field.Name, field.Status.ToString(), field.RawValue ?? "",
-                field.NormalizedValue ?? "", string.Join(", ", field.Citations.Select(citation => citation.EvidenceId)) }).ToArray()));
-        for (int index = 0; index < result.Tables.Count; index++) tables.Add(("Table " + (index + 1), result.Tables[index].Table.Columns, result.Tables[index].Table.Rows));
         if (tables.Count == 0) return;
         using var workbookBytes = new MemoryStream();
         using (var workbook = ExcelDocument.Create(workbookBytes)) {

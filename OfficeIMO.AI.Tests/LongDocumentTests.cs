@@ -6,6 +6,19 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class LongDocumentTests {
+    [Theory]
+    [InlineData("negative-usage")]
+    [InlineData("invalid-executor")]
+    public async Task InvalidSynthesisUsageMakesOperationTotalsUnknown(string mode) {
+        var result = await new OfficeAiEngine(new Executor { SynthesisMode = mode }).RunAsync(
+            Document("North total 42. " + new string('x', 30000), "South total 57. " + new string('y', 30000)),
+            Request() with { Operation = OfficeAiOperation.Summarize });
+        Assert.Equal(3, result.RequestCount);
+        Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
+        Assert.Null(result.InputTokens);
+        Assert.Null(result.OutputTokens);
+    }
+
     [Fact]
     public async Task SummaryStopsAfterTheFirstNonReducingPassAndRetainsSupportedDrafts() {
         var executor = new Executor { LargeDrafts = true, SynthesisMode = "shrink-then-stall" };
@@ -189,6 +202,8 @@ public sealed class LongDocumentTests {
             using var json = JsonDocument.Parse(request.InputJson);
             string output;
             if (json.RootElement.TryGetProperty("drafts", out var drafts)) {
+                if (SynthesisMode == "negative-usage") return Task.FromResult(new OfficeAiExecutionResponse("{}", InputTokens: 1, OutputTokens: -1));
+                if (SynthesisMode == "invalid-executor") throw new InvalidDataException("Invalid executor payload");
                 if (SynthesisMode == "shrink-then-stall") {
                     output = JsonSerializer.Serialize(new { claims = drafts.EnumerateArray().Select(item => new {
                         text = item.GetProperty("text").GetString()![..4000],

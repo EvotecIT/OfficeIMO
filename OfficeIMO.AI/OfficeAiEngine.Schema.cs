@@ -57,16 +57,31 @@ public sealed partial class OfficeAiEngine {
     }
 
     private const int MaxOutputStringLength = 32_000;
+    // Match String.IsNullOrWhiteSpace's Unicode whitespace set independently of a provider's regex dialect.
+    private const string NonblankStringPattern = @"^[^\u0000]*[^\u0000\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000][^\u0000]*$";
 
-    private static void BoundStrings(JsonNode node) {
+    private static void BoundStrings(JsonNode node, bool allowEmpty = false) {
         if (node is JsonObject obj) {
             if (obj["type"] is JsonValue scalar && scalar.TryGetValue<string>(out var type) && type == "string"
-                || obj["type"] is JsonArray types && types.Any(value => value?.ToString() == "string"))
+                || obj["type"] is JsonArray types && types.Any(value => value?.ToString() == "string")) {
                 obj["maxLength"] = MaxOutputStringLength;
-            foreach (var property in obj)
-                if (property.Value is not null) BoundStrings(property.Value);
+                obj["pattern"] = allowEmpty ? @"^[^\u0000]*$" : NonblankStringPattern;
+                if (!allowEmpty) {
+                    obj["minLength"] = 1;
+                }
+            }
+            foreach (var property in obj) {
+                if (property.Value is not { } value) continue;
+                if (property.Key == "properties" && value is JsonObject properties) {
+                    foreach (var field in properties)
+                        if (field.Value is not null) BoundStrings(field.Value, field.Key is "title" or "columns" or "rows");
+                } else if (property.Key == "$defs" && value is JsonObject definitions) {
+                    foreach (var definition in definitions)
+                        if (definition.Value is not null) BoundStrings(definition.Value, definition.Key == "text");
+                } else BoundStrings(value, allowEmpty);
+            }
         } else if (node is JsonArray array) {
-            foreach (JsonNode? child in array) if (child is not null) BoundStrings(child);
+            foreach (JsonNode? child in array) if (child is not null) BoundStrings(child, allowEmpty);
         }
     }
 }

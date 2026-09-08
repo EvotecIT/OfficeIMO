@@ -50,6 +50,7 @@ public sealed partial class OfficeAiEngine {
             var next = new List<OfficeAiClaim>();
             foreach (List<OfficeAiClaim> items in groups) {
                 token.ThrowIfCancellationRequested();
+                bool usageRecorded = false;
                 try {
                     calls++;
                     OfficeAiExecutionRequest execution = Create(items) with { RequestId = requestId + "-summary-" + calls };
@@ -57,9 +58,13 @@ public sealed partial class OfficeAiEngine {
                     token.ThrowIfCancellationRequested();
                     if (response.InputTokens < 0 || response.OutputTokens < 0) throw Invalid();
                     inputTokens = SumUsage(inputTokens, response.InputTokens); outputTokens = SumUsage(outputTokens, response.OutputTokens);
+                    usageRecorded = true;
                     next.AddRange(ParseSynthesis(response, items, request.Limits));
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-                  catch (InvalidDataException) { return Finish(false); }
+                  catch (InvalidDataException) {
+                    if (!usageRecorded) { inputTokens = null; outputTokens = null; }
+                    return Finish(false);
+                }
                   catch (Exception exception) when (exception is not OutOfMemoryException) { inputTokens = null; outputTokens = null; return Finish(false); }
             }
             current = next.AsReadOnly();

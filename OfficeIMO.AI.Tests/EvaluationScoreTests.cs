@@ -4,6 +4,22 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class EvaluationScoreTests {
+    [Theory]
+    [InlineData("117 crates and 123 crates", "17", false)]
+    [InlineData("17 crates and 23 crates", "17", true)]
+    [InlineData("17.5 crates", "17", false)]
+    [InlineData("1,017 crates", "17", false)]
+    [InlineData("-17 crates", "17", false)]
+    [InlineData("17 crates.", "17", true)]
+    [InlineData("The count is 17, followed by another fact.", "17", true)]
+    [InlineData("17 crates were shipped on Friday.", "Friday", true)]
+    [InlineData("The Fridayish schedule", "Friday", false)]
+    [InlineData("Shipment on 2031-11-19.", "2031-11-19", true)]
+    public void FactMarkersMatchCompleteValues(string text, string marker, bool expected) {
+        var result = Result(new[] { "A", "17" }) with { Claims = new[] { new OfficeAiClaim(text, Array.Empty<OfficeAiCitation>()) } };
+        Assert.Equal(expected, new EvaluationGold(FactMarkers: new[] { marker }).Score(result).Passed);
+    }
+
     [Fact]
     public void TableScoringPenalizesReorderedAndAdditionalCells() {
         var gold = new EvaluationGold(Table: new(new[] { "Code", "Count" }, new[] { (IReadOnlyList<string>)new[] { "A", "17" } }));
