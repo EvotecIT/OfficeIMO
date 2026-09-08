@@ -1,0 +1,26 @@
+[
+  {
+    "Kind": "CSV",
+    "Version": "baseline",
+    "SHA256": "29914DEE0D5E47836CCB927C706DB6C88B1F55215E42B8BDE2733C75D46C8F7A",
+    "Bytes": 315392
+  },
+  {
+    "Kind": "CSV",
+    "Version": "candidate",
+    "SHA256": "C19D69E6F73A9F4E3C743916BB058CBCFA641B825050B95CECFB9E3F06311893",
+    "Bytes": 316416
+  },
+  {
+    "Kind": "Excel",
+    "Version": "baseline",
+    "SHA256": "1A52B27025DAFA4ECCC9D133BF23177E726C1EE3A46DE8EAC795019FB55FCE28",
+    "Bytes": 5507072
+  },
+  {
+    "Kind": "Excel",
+    "Version": "candidate",
+    "SHA256": "B9B0E2166B6AC3FB60BDF48464136FA833088754E8324E3E2F153C4DD00285AD",
+    "Bytes": 5514240
+  }
+]

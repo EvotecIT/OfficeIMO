@@ -1,0 +1,96 @@
+{
+  "beforeCommit": "3f2b32a60114514e92af24ba682aae2d4ca3e097",
+  "originalQualificationBaseline": "d3aa130ac52beb39cf382cef7987cc5b29d5bd2e",
+  "afterCommit": "a95d8ebf8194ad6ea6d395f625f5edd716ad016c",
+  "afterBoundary": "Product source fingerprints match the measured candidate. Final benchmark source additionally contains the independently validated setup-only code-page registration.",
+  "sourceSHA256": {
+    "OfficeIMO.CSV.Benchmarks/CsvBenchmarkOutputValidator.cs": "7476012c5cacadf10dda1844156b00abc8e1fd436012b336924f2caae023dcc9",
+    "OfficeIMO.CSV.Benchmarks/CsvFileWriteBenchmarks.cs": "6fbc0ccca5012d88314a73f2683fb80749babe9fbbb777bc569e6a31e800a748",
+    "OfficeIMO.CSV.Tests/CsvEscapingRegressionTests.cs": "2868890b8892560be2683d91887dca6b79af17ff1395766333335e55241eecd4",
+    "OfficeIMO.CSV/CsvWriter.Escaping.cs": "3cd2473812a0c902981492dee5159a88c71beea3a43ee25861a6f60f664191f8",
+    "OfficeIMO.Excel.Benchmarks/ExcelDefaultTextWriteBenchmarks.cs": "96e76f752aa9affafbc7b6c6cd9506f7b631496a52625f60240552574ae03dfd",
+    "OfficeIMO.Excel.Benchmarks/ExcelTextWriteBenchmarks.cs": "afbce96fc1f8d11ac8ce240007dddc6bc86b9e87868f28b0242bea483288d24a",
+    "OfficeIMO.Excel.Benchmarks/ExcelTextWriteFixture.cs": "81ea574391d6f0c3272c415f10662200c60c48bad1bae67c65c31ddd3185867a",
+    "OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs": "bc4a5897c86e5cb8f070b315262bc8cda05821cfff815c4ebecafd4401060a44",
+    "OfficeIMO.Excel.Tests/Excel.PooledTextWriter.cs": "ae2cf4488cf95739a0a927c3dc4abada23e5fd22d0eb22fb5ee8472ca4f7213b",
+    "OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs": "b91cb2226ea177dbc30a57a2748577b8b7d2d53a7a80e1ffa14e24d885f8dcc3",
+    "OfficeIMO.Excel/Read/ExcelDocumentReader.MetadataLimits.cs": "d2cb295276f983234a1b932847f2b8c8222736bb726bee7f57b02000fddcc282",
+    "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs": "d8f6deb7203769398838cf0e8754ef4adb612656e118ebf0ad2d3c2b252480f0",
+    "OfficeIMO.Excel/Read/Helpers/SharedStringCache.cs": "53b2f82e86cfd67bc25e2fb2d014b0a78f5e9b1e09612ac95718432918b30347",
+    "OfficeIMO.Excel/Read/Helpers/StylesCache.cs": "a00e256e5d631d378a057ee700a9f4aac7c52ae28f81b374aadd7cd7d27c887c",
+    "OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs": "92ec89e80d2434d21f73188775e3d4615b8aa09e42ac3e13ac56774497a9bc1f",
+    "OfficeIMO.Excel/Read/OpenXmlPartName.cs": "7741ce19b5664dc701ecbcc898bd0eb1362189f2a0d3c9bea820cb8bf9fa3436",
+    "OfficeIMO.Excel/Read/OpenXmlPooledPartStream.cs": "f910cd1480fdba8ca3b0063dad81f10bbf6fc5e10e2e4055b0b270ba7db6e905",
+    "OfficeIMO.Excel/Read/OpenXmlReadNameTable.cs": "f166dee7913835c4f203e21d16a4bdf081a2d1bd4b9123cbcd2ddd657a55bb1d",
+    "OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs": "e04005d28dcb7d0ef05538c353bf82990c1b9903c8f9dbd2c6582561404a9f79"
+  },
+  "protocol": {
+    "runtime": ".NET 10.0.11",
+    "sdk": "10.0.111",
+    "powershell": "7.6.5",
+    "benchmarkDotNet": "0.15.8",
+    "powerForgeLocal": "3.0.135.1",
+    "priority": "Normal",
+    "affinityMasks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "outliersRemoved": false
+  },
+  "excludedRuns": [
+    {
+      "pattern": "final-qualification-*",
+      "reason": "Oversized interrupted protocol; incomplete data."
+    },
+    {
+      "pattern": "final-rotated-r1-4294901760",
+      "reason": "PowerForge provenance guard rejected the run after benchmark README edits."
+    },
+    {
+      "pattern": "native/readers",
+      "reason": "BenchmarkDotNet project discovery found duplicate Compare.csproj names; zero cases executed. Replaced by native/readers-final."
+    },
+    {
+      "pattern": "native/excel-defaults",
+      "reason": "Twelve attempted cases failed setup because independent ExcelDataReader validation lacked CodePagesEncodingProvider in fresh processes. Replaced by native/excel-defaults-final after the shared validator fix."
+    },
+    {
+      "pattern": "native-reader-comparison generated runners",
+      "reason": "Generated runner files could not be copied in the long Windows artifact path. No measurements were produced; the identical source built and ran from rc/RcBench.csproj."
+    }
+  ],
+  "intermediateRuns": "Profiling and refinement runs are diagnostic history. The final writer comparison retains all six final processes without favorable-run selection; reader timing retains all six final reader processes.",
+  "FixtureSHA256": {
+    "65K_Records_Data.csv": "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490",
+    "65K_Records_Data.xlsx": "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8"
+  },
+  "finalSourceSHA256": {
+    "OfficeIMO.CSV.Benchmarks/CsvBenchmarkOutputValidator.cs": "7476012c5cacadf10dda1844156b00abc8e1fd436012b336924f2caae023dcc9",
+    "OfficeIMO.CSV.Benchmarks/CsvFileWriteBenchmarks.cs": "6fbc0ccca5012d88314a73f2683fb80749babe9fbbb777bc569e6a31e800a748",
+    "OfficeIMO.CSV.Tests/CsvEscapingRegressionTests.cs": "2868890b8892560be2683d91887dca6b79af17ff1395766333335e55241eecd4",
+    "OfficeIMO.CSV/CsvWriter.Escaping.cs": "3cd2473812a0c902981492dee5159a88c71beea3a43ee25861a6f60f664191f8",
+    "OfficeIMO.Excel.Benchmarks/ExcelDefaultTextWriteBenchmarks.cs": "96e76f752aa9affafbc7b6c6cd9506f7b631496a52625f60240552574ae03dfd",
+    "OfficeIMO.Excel.Benchmarks/ExcelTextWriteBenchmarks.cs": "afbce96fc1f8d11ac8ce240007dddc6bc86b9e87868f28b0242bea483288d24a",
+    "OfficeIMO.Excel.Benchmarks/ExcelTextWriteFixture.cs": "d040fe9444d9aba15ea4b2116344fb438ab202d23e9054c1bc7f2d329213ee84",
+    "OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs": "bc4a5897c86e5cb8f070b315262bc8cda05821cfff815c4ebecafd4401060a44",
+    "OfficeIMO.Excel.Tests/Excel.PooledTextWriter.cs": "ae2cf4488cf95739a0a927c3dc4abada23e5fd22d0eb22fb5ee8472ca4f7213b",
+    "OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs": "b91cb2226ea177dbc30a57a2748577b8b7d2d53a7a80e1ffa14e24d885f8dcc3",
+    "OfficeIMO.Excel/Read/ExcelDocumentReader.MetadataLimits.cs": "d2cb295276f983234a1b932847f2b8c8222736bb726bee7f57b02000fddcc282",
+    "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs": "d8f6deb7203769398838cf0e8754ef4adb612656e118ebf0ad2d3c2b252480f0",
+    "OfficeIMO.Excel/Read/Helpers/SharedStringCache.cs": "53b2f82e86cfd67bc25e2fb2d014b0a78f5e9b1e09612ac95718432918b30347",
+    "OfficeIMO.Excel/Read/Helpers/StylesCache.cs": "a00e256e5d631d378a057ee700a9f4aac7c52ae28f81b374aadd7cd7d27c887c",
+    "OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs": "92ec89e80d2434d21f73188775e3d4615b8aa09e42ac3e13ac56774497a9bc1f",
+    "OfficeIMO.Excel/Read/OpenXmlPartName.cs": "7741ce19b5664dc701ecbcc898bd0eb1362189f2a0d3c9bea820cb8bf9fa3436",
+    "OfficeIMO.Excel/Read/OpenXmlPooledPartStream.cs": "f910cd1480fdba8ca3b0063dad81f10bbf6fc5e10e2e4055b0b270ba7db6e905",
+    "OfficeIMO.Excel/Read/OpenXmlReadNameTable.cs": "f166dee7913835c4f203e21d16a4bdf081a2d1bd4b9123cbcd2ddd657a55bb1d",
+    "OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs": "e04005d28dcb7d0ef05538c353bf82990c1b9903c8f9dbd2c6582561404a9f79"
+  },
+  "postMeasurementSetupFix": "ExcelTextWriteFixture.Validate explicitly registers CodePagesEncodingProvider before independent reader validation. This setup-only fix has no timed production changes; native default-XLSX cases use the fixed validator. Other measurements remain valid.",
+  "nativeSuccessfulCases": 144,
+  "nativeSourceNote": "Native writers use repo benchmark projects; the allocation/short-JSON runner uses the same Program.cs in a short RcBench project to avoid ambiguous project discovery and generated Windows path failures.",
+  "ComparisonPackages": {
+    "CsvHelper": "33.1.0",
+    "SpreadCheetah": "1.28.0",
+    "ExcelDataReader": "3.9.0"
+  }
+}

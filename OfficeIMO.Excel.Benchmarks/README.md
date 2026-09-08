@@ -10,14 +10,21 @@ OfficeIMO and SpreadCheetah receive the same table. Setup reopens each package
 with ExcelDataReader, compares every cell, rejects extra rows, and records
 package bytes. The timed operation includes reader construction, serialization,
 compression, and package finalization; fixture creation and validation are outside it.
+This comparison uses compact exports without shared strings or explicit cell
+references. `ExcelDefaultTextWriteBenchmarks` measures the same fixtures with
+ordinary `ExcelDocument.WriteDataReader` defaults, including both features.
+Keep those profiles separate when comparing results.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelTextWriteBenchmarks*" --priority Normal --invocationCount 16 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelDefaultTextWriteBenchmarks*" --priority Normal --invocationCount 16 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove
 ```
 
 Use topology-derived `--affinityMasks` on Windows to compare cache domains
 separately. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
 records the XML escaping improvement, package sizes, and remaining long-text cost.
+The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
+records writer buffering and reader allocation results, including ordinary defaults.
 
 ## Run benchmarks
 
