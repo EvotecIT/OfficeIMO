@@ -6,13 +6,35 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class ExtractionSchemaTests {
+    [Theory]
+    [InlineData(OfficeAiOperation.Ask)]
+    [InlineData(OfficeAiOperation.Explain)]
+    [InlineData(OfficeAiOperation.Summarize)]
+    [InlineData(OfficeAiOperation.Parse)]
+    [InlineData(OfficeAiOperation.ExtractFields)]
+    public async Task EmptyValidatedOutputDerivesInsufficientEvidence(OfficeAiOperation operation) {
+        string fields = operation == OfficeAiOperation.ExtractFields
+            ? "{\"field1\":{\"status\":\"missing\",\"rawValue\":null,\"evidence\":[]}}" : "[]";
+        var executor = new Executor("{\"claims\":[],\"fields\":" + fields + ",\"blocks\":[],\"tables\":[]}");
+        var document = OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes("42"), new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = "42" } }
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() { Operation = operation,
+            Instruction = "Find the requested information.",
+            Fields = operation == OfficeAiOperation.ExtractFields ? new[] { new OfficeAiFieldDefinition("amount") } : Array.Empty<OfficeAiFieldDefinition>() });
+        Assert.Equal(OfficeAiResultStatus.InsufficientEvidence, result.Status);
+        Assert.Empty(result.Claims);
+        Assert.Empty(result.Tables);
+        if (operation == OfficeAiOperation.ExtractFields) Assert.Equal(OfficeAiFieldStatus.Missing, Assert.Single(result.Fields).Status);
+    }
+
     [Fact]
     public async Task RequestedKeysPreserveNamesAndResultOrder() {
         string[] names = { "amount/a~b", "reference\"id", "总额" };
         var fields = names.Select((name,index) => "field" + (index + 1)).Reverse().ToDictionary(key => key,
             _ => (object)new { status = "present", rawValue = "42", evidence = new[] { new { id = "e1", quote = "42" } } });
         var executor = new Executor(JsonSerializer.Serialize(new {
-            status = "ok", claims = Array.Empty<object>(), fields, blocks = Array.Empty<object>(), tables = Array.Empty<object>()
+            claims = Array.Empty<object>(), fields, blocks = Array.Empty<object>(), tables = Array.Empty<object>()
         }));
         var result = await Run(executor, names);
         Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
@@ -33,7 +55,7 @@ public sealed class ExtractionSchemaTests {
     [InlineData("{\"unrequested\":{\"status\":\"missing\",\"rawValue\":null,\"evidence\":[]}}")]
     [InlineData("{\"field1\":{\"status\":\"missing\",\"rawValue\":null,\"evidence\":[]},\"field1\":{\"status\":\"missing\",\"rawValue\":null,\"evidence\":[]}}")]
     public async Task MissingUnknownAndDuplicateKeysAreRejectedByLocalValidation(string fields) {
-        var executor = new Executor("{\"status\":\"insufficient\",\"claims\":[],\"fields\":" + fields + ",\"blocks\":[],\"tables\":[]}");
+        var executor = new Executor("{\"claims\":[],\"fields\":" + fields + ",\"blocks\":[],\"tables\":[]}");
         Assert.Equal(OfficeAiResultStatus.InvalidResponse, (await Run(executor, new[] { "amount", "reference" })).Status);
     }
 
@@ -49,7 +71,7 @@ public sealed class ExtractionSchemaTests {
     [InlineData("ambiguous", null, "[]", false)]
     public async Task FieldStatesRetainTheirValueAndEvidenceContracts(string status, string? raw, string evidence, bool valid) {
         string value = JsonSerializer.Serialize(raw);
-        var executor = new Executor("{\"status\":\"ok\",\"claims\":[],\"fields\":{\"field1\":{\"status\":\"" + status
+        var executor = new Executor("{\"claims\":[],\"fields\":{\"field1\":{\"status\":\"" + status
             + "\",\"rawValue\":" + value + ",\"evidence\":" + evidence + "}},\"blocks\":[],\"tables\":[]}");
         var result = await Run(executor, new[] { "amount" });
         Assert.Equal(valid, result.Status != OfficeAiResultStatus.InvalidResponse);

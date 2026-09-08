@@ -2,13 +2,6 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "status": {
-      "type": "string",
-      "enum": [
-        "ok",
-        "insufficient"
-      ]
-    },
     "claims": {
       "type": "array",
       "items": {
@@ -222,7 +215,6 @@
     }
   },
   "required": [
-    "status",
     "claims",
     "fields",
     "blocks",

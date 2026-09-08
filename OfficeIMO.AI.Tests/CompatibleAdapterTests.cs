@@ -11,7 +11,7 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class CompatibleAdapterTests {
     private const string Answer = """
-        {"status":"ok","claims":[{"text":"The total is 42.","evidence":[{"id":"e1","quote":"42"}]}],"fields":[],"blocks":[],"tables":[]}
+        {"claims":[{"text":"The total is 42.","evidence":[{"id":"e1","quote":"42"}]}],"fields":[],"blocks":[],"tables":[]}
         """;
 
     [Theory]

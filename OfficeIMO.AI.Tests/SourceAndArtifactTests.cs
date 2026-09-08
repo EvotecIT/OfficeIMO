@@ -130,7 +130,7 @@ public sealed class SourceAndArtifactTests {
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "artifact", Provider = "fixture", Model = "fixture", IsLocal = true, MaxRequestCharacters = 1_000_000 };
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) =>
             Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new {
-                status = "ok", claims = Array.Empty<object>(), fields = new { field1 = new { status = "present",
+                claims = Array.Empty<object>(), fields = new { field1 = new { status = "present",
                     rawValue = raw, evidence = new[] { new { id = "e1", quote = raw } } } }, blocks = Array.Empty<object>(), tables = Array.Empty<object>()
             })));
     }

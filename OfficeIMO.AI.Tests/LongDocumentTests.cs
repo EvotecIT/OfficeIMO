@@ -221,7 +221,7 @@ public sealed class LongDocumentTests {
                     string quote = text[..Math.Min(12, text.Length)];
                     return new { text = quote + (LargeDrafts ? new string('z', 6000) : ""), evidence = new[] { new { id = item.GetProperty("id").GetString(), quote } } };
                 }).ToArray();
-                output = JsonSerializer.Serialize(new { status = "ok", claims, fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>() });
+                output = JsonSerializer.Serialize(new { claims, fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>() });
             }
             return Task.FromResult(new OfficeAiExecutionResponse(output, IsComplete: !(request.RequestId.Contains("summary") && SynthesisMode == "truncated"), InputTokens: 1, OutputTokens: 2));
         }

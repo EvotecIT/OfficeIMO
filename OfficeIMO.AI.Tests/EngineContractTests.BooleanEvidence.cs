@@ -36,7 +36,7 @@ public sealed partial class EngineContractTests {
             string id = observation.GetProperty("id").GetString()!;
             string text = observation.GetProperty("text").GetString()!;
             string response = text.Contains("untrue", StringComparison.Ordinal) ? Field("true", id)
-                : JsonSerializer.Serialize(new { status = "insufficient", claims = Array.Empty<object>(),
+                : JsonSerializer.Serialize(new { claims = Array.Empty<object>(),
                     fields = new { field1 = new { status = "missing", rawValue = (string?)null, evidence = Array.Empty<object>() } },
                     blocks = Array.Empty<object>(), tables = Array.Empty<object>() });
             return Task.FromResult(new OfficeAiExecutionResponse(response));

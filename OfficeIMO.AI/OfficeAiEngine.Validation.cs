@@ -16,9 +16,7 @@ public sealed partial class OfficeAiEngine {
         try {
             using JsonDocument json = JsonDocument.Parse(response.Json, new JsonDocumentOptions { MaxDepth = 12 });
             JsonElement root = json.RootElement;
-            CheckObject(root, "status", "claims", "fields", "blocks", "tables");
-            string status = Text(root.GetProperty("status"));
-            if (status is not ("ok" or "insufficient")) throw Invalid();
+            CheckObject(root, "claims", "fields", "blocks", "tables");
             int maximum = Math.Min(200, request.Limits.MaxResultItems);
             JsonElement[] claimItems = Items(root.GetProperty("claims"), maximum);
             JsonElement fieldItems = root.GetProperty("fields");
@@ -30,7 +28,6 @@ public sealed partial class OfficeAiEngine {
             bool reasoning = request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain or OfficeAiOperation.Summarize;
             if ((!reasoning && claimItems.Length != 0)
                 || (request.Operation != OfficeAiOperation.Parse && (blockItems.Length != 0 || tableItems.Length != 0))) throw Invalid();
-            if (status == "insufficient" && (claimItems.Length + blockItems.Length + tableItems.Length > 0)) throw Invalid();
             var claims = new List<OfficeAiClaim>();
             foreach (JsonElement item in claimItems) {
                 CheckObject(item, "text", "evidence");
@@ -51,7 +48,6 @@ public sealed partial class OfficeAiEngine {
                 IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, fieldStatus != OfficeAiFieldStatus.Missing);
                 if (fieldStatus == OfficeAiFieldStatus.Missing && (raw is not null || citations.Count != 0)) throw Invalid();
                 if (fieldStatus == OfficeAiFieldStatus.Present && raw is null) throw Invalid();
-                if (status == "insufficient" && fieldStatus != OfficeAiFieldStatus.Missing) throw Invalid();
                 // A text-only field value must actually occur in its quoted source. Visual readings stay review candidates.
                 if (raw is not null && !citations.Any(citation => citation.Quote?.Contains(raw, StringComparison.Ordinal) == true
                     || batch.Images.ContainsKey(citation.EvidenceId))) throw Invalid();

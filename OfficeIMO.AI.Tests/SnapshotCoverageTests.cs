@@ -373,7 +373,7 @@ public sealed class SnapshotCoverageTests {
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
             Requests.Add(request);
-            return Task.FromResult(new OfficeAiExecutionResponse("{\"status\":\"insufficient\",\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}"));
+            return Task.FromResult(new OfficeAiExecutionResponse("{\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}"));
         }
     }
 }

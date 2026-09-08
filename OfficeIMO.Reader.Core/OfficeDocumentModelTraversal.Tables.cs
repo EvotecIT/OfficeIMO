@@ -7,14 +7,18 @@ internal static partial class OfficeDocumentModelTraversal {
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var canonical = new List<ReaderTable>();
-        var canonicalMatches = new Dictionary<string, Queue<int>>(StringComparer.Ordinal);
+        var canonicalMatches = new TableMatchIndex<int>();
+        var payloads = new Dictionary<ReaderTable, string>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        string Payload(ReaderTable table) {
+            if (!payloads.TryGetValue(table, out var identity))
+                payloads.Add(table, identity = BuildTableIdentity(table, includeLocation: false, includeAnchor: false));
+            return identity;
+        }
         void RegisterCanonical(ReaderTable original, ReaderTable projected) {
-            string key = BuildTableIdentity(original, includeLocation: false, includeAnchor: false);
-            if (!canonicalMatches.TryGetValue(key, out var matches)) canonicalMatches.Add(key, matches = new());
-            matches.Enqueue(canonical.Count);
+            canonicalMatches.Add(Payload(original), projected.Location, canonical.Count);
             canonical.Add(projected);
         }
-        var pageMatches = new Dictionary<string, Queue<(ReaderTable Table, OfficeDocumentPage Page, int Index)>>(StringComparer.Ordinal);
+        var pageMatches = new TableMatchIndex<ReaderTable>();
         var pageReferences = new Dictionary<ReaderTable, (OfficeDocumentPage Page, int Index)>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var matchedPages = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var aggregateReferences = new HashSet<ReaderTable>(document.Tables ?? Array.Empty<ReaderTable>(), ReferenceIdentityComparer<ReaderTable>.Instance);
@@ -24,15 +28,9 @@ internal static partial class OfficeDocumentModelTraversal {
                 ReaderTable table = page.Tables[index];
                 if (table == null) continue;
                 if (!pageReferences.ContainsKey(table)) pageReferences.Add(table, (page, index));
-                AddMatch(BuildTableIdentity(table, includeLocation: false, includeAnchor: false), table, page, index);
+                if (!aggregateReferences.Contains(table))
+                    pageMatches.Add(Payload(table), WithPageLocationFallback(table, page, index).Location, table);
             }
-        }
-        void AddMatch(string identity, ReaderTable table, OfficeDocumentPage page, int index) {
-            if (!pageMatches.TryGetValue(identity, out var matches)) {
-                matches = new Queue<(ReaderTable, OfficeDocumentPage, int)>();
-                pageMatches.Add(identity, matches);
-            }
-            matches.Enqueue((table, page, index));
         }
         foreach (ReaderTable table in document.Tables ?? System.Array.Empty<ReaderTable>()) {
             if (table == null || !seen.Add(table)) continue;
@@ -41,25 +39,12 @@ internal static partial class OfficeDocumentModelTraversal {
                 matchedPages.Add(table);
                 projected = WithPageLocationFallback(table, pageReference.Page, pageReference.Index);
             } else {
-                string key = BuildTableIdentity(table, includeLocation: false, includeAnchor: false);
-                if (pageMatches.TryGetValue(key, out var matches)) {
-                    int remaining = matches.Count;
-                    while (remaining-- > 0) {
-                        var match = matches.Dequeue();
-                        if (matchedPages.Contains(match.Table) || aggregateReferences.Contains(match.Table)) continue;
-                        ReaderTable candidate = WithPageLocationFallback(match.Table, match.Page, match.Index);
-                        ReaderTable proposed = WithLocationFallback(table, candidate.Location!, candidate.Location!.TableIndex);
-                        ReaderTable comparable = WithLocationFallback(candidate, table.Location ?? new ReaderLocation(), table.Location?.TableIndex);
-                        // Use the canonical located identity: checking only page/path would erase
-                        // distinct source blocks, ranges or heading positions with identical cells.
-                        if (BuildTableIdentity(proposed) != BuildTableIdentity(comparable)) {
-                            matches.Enqueue(match);
-                            continue;
-                        }
-                        matchedPages.Add(match.Table);
-                        projected = proposed;
-                        break;
-                    }
+                while (pageMatches.TryTake(Payload(table), table.Location, out var match)) {
+                    if (!matchedPages.Add(match)) continue;
+                    var scope = pageReferences[match];
+                    ReaderTable candidate = WithPageLocationFallback(match, scope.Page, scope.Index);
+                    projected = WithLocationFallback(table, candidate.Location!, candidate.Location!.TableIndex);
+                    break;
                 }
             }
             // Each matching page occurrence is consumed once, including after JSON separates references.
@@ -80,27 +65,12 @@ internal static partial class OfficeDocumentModelTraversal {
             foreach (ReaderTable table in chunk.Tables) {
                 if (table == null || !chunkSeen.Add(table)) continue;
                 ReaderTable projected = WithLocationFallback(table, chunk.Location ?? new ReaderLocation(), null);
-                string key = BuildTableIdentity(table, includeLocation: false, includeAnchor: false);
-                bool matched = false;
-                if (canonicalMatches.TryGetValue(key, out var matches)) {
-                    int remaining = matches.Count;
-                    while (remaining-- > 0) {
-                        int candidateIndex = matches.Dequeue();
-                        ReaderTable candidate = canonical[candidateIndex];
-                        ReaderTable proposed = WithLocationFallback(projected, candidate.Location ?? new ReaderLocation(), candidate.Location?.TableIndex);
-                        // Missing table ordinals inherit from the matched canonical table. A global chunk
-                        // index is not comparable with a page-local ordinal after JSON separates references.
-                        ReaderTable comparable = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
-                        // Additional coordinates on either projection are compatible; explicit disagreements are not.
-                        if (BuildTableIdentity(proposed) == BuildTableIdentity(comparable)) {
-                            if (BuildTableIdentity(candidate) != BuildTableIdentity(comparable)) canonical[candidateIndex] = comparable;
-                            matched = true;
-                            break;
-                        }
-                        matches.Enqueue(candidateIndex);
-                    }
+                if (canonicalMatches.TryTake(Payload(table), projected.Location, out int candidateIndex)) {
+                    ReaderTable candidate = canonical[candidateIndex];
+                    canonical[candidateIndex] = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
+                    continue;
                 }
-                if (matched || !seen.Add(table)) continue;
+                if (!seen.Add(table)) continue;
                 canonical.Add(projected);
             }
         }

@@ -110,7 +110,7 @@ public sealed partial class EngineContractTests {
     public async Task GeneratedStringLimitMatchesLocalUnicodeValidation(int length, bool supplementary, bool valid) {
         string text = supplementary ? string.Concat(Enumerable.Repeat("😀", length)) : new string('x', length);
         string response = JsonSerializer.Serialize(new {
-            status = "ok", claims = new[] { new { text, evidence = new[] { new { id = "e1", quote = "source" } } } },
+            claims = new[] { new { text, evidence = new[] { new { id = "e1", quote = "source" } } } },
             fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>()
         });
         var executor = new Executor(response);
@@ -141,7 +141,7 @@ public sealed partial class EngineContractTests {
         }
     }
 
-    private const string Empty = "{\"status\":\"insufficient\",\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}";
+    private const string Empty = "{\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}";
 
     [Theory]
     [InlineData(OfficeAiOperation.Ask, "claims")]
@@ -201,7 +201,7 @@ public sealed partial class EngineContractTests {
     public async Task TruncatedAndDuplicatePropertyResponsesAreRejected() {
         foreach (OfficeAiExecutionResponse response in new[] {
             new OfficeAiExecutionResponse(Claim("e1", "Total 42"), IsComplete: false),
-            new OfficeAiExecutionResponse(Empty.Replace("\"status\":", "\"status\":\"ok\",\"status\":"))
+            new OfficeAiExecutionResponse(Empty.Replace("\"claims\":", "\"claims\":[],\"claims\":"))
         }) {
             var executor = new Executor(response);
             OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document("Total 42"), Request());
@@ -318,7 +318,7 @@ public sealed partial class EngineContractTests {
     public async Task NumericSubstringCannotBecomeAnAcceptedAmount(string source, string raw, string culture, OfficeAiFieldType type) {
         foreach (string quote in new[] { raw, source }) {
             string response = JsonSerializer.Serialize(new {
-                status = "ok", claims = Array.Empty<object>(),
+                claims = Array.Empty<object>(),
                 fields = new { field1 = new { status = "present", rawValue = raw, evidence = new[] { new { id = "e1", quote } } } },
                 blocks = Array.Empty<object>(), tables = Array.Empty<object>()
             });
@@ -417,7 +417,7 @@ public sealed partial class EngineContractTests {
         byte[] copy = image.CopyBytes(); copy[1] = 9;
         OfficeAiDocument document = OfficeAiDocument.FromReadResult(new byte[] { 4 }, new(), new[] { image });
         const string parsed = """
-            {"status":"ok","claims":[],"fields":[],"blocks":[{"kind":"heading","text":"Stock","evidence":[{"id":"image-page-1","quote":null}]}],
+            {"claims":[],"fields":[],"blocks":[{"kind":"heading","text":"Stock","evidence":[{"id":"image-page-1","quote":null}]}],
              "tables":[{"title":"Stock","columns":["Item","Count"],"rows":[["Pencil","12"]],"evidence":[{"id":"image-page-1","quote":null}]}]}
             """;
         var executor = new Executor(parsed, images: true);
@@ -435,7 +435,7 @@ public sealed partial class EngineContractTests {
     [Fact]
     public async Task StructuralParserRejectsRaggedTables() {
         const string parsed = """
-            {"status":"ok","claims":[],"fields":[],"blocks":[],"tables":[{"title":"","columns":["A","B"],"rows":[["only one"]],"evidence":[{"id":"e1","quote":"table"}]}]}
+            {"claims":[],"fields":[],"blocks":[],"tables":[{"title":"","columns":["A","B"],"rows":[["only one"]],"evidence":[{"id":"e1","quote":"table"}]}]}
             """;
         OfficeAiResult result = await new OfficeAiEngine(new Executor(parsed)).RunAsync(Document("table"), Request() with { Operation = OfficeAiOperation.Parse });
         Assert.Equal(OfficeAiResultStatus.InvalidResponse, result.Status);
@@ -533,7 +533,7 @@ public sealed partial class EngineContractTests {
         var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source);
         Assert.True(document.HasSourceDiagnostics);
         const string missing = """
-            {"status":"insufficient","claims":[],"fields":{"field1":{"status":"missing","rawValue":null,"evidence":[]}},"blocks":[],"tables":[]}
+            {"claims":[],"fields":{"field1":{"status":"missing","rawValue":null,"evidence":[]}},"blocks":[],"tables":[]}
             """;
         var result = await new OfficeAiEngine(new Executor(missing)).RunAsync(document, Request() with {
             Operation = OfficeAiOperation.ExtractFields, Fields = new[] { new OfficeAiFieldDefinition("value") }
@@ -580,7 +580,7 @@ public sealed partial class EngineContractTests {
     public async Task GeneratedTableShapesAndValidatorApplyTheSameEffectiveBounds(int rowCount, int columnCount, int rowWidth, bool accepted) {
         string[] columns = Enumerable.Range(0, columnCount).Select(index => "Column " + index).ToArray();
         string[][] values = Enumerable.Range(0, rowCount).Select(_ => Enumerable.Repeat("value", rowWidth).ToArray()).ToArray();
-        string response = JsonSerializer.Serialize(new { status = "ok", claims = Array.Empty<object>(), fields = Array.Empty<object>(),
+        string response = JsonSerializer.Serialize(new { claims = Array.Empty<object>(), fields = Array.Empty<object>(),
             blocks = Array.Empty<object>(), tables = new[] { new { title = "", columns, rows = values, evidence = new[] { new { id = "e1", quote = "table" } } } } });
         var executor = new Executor(response);
         var result = await new OfficeAiEngine(executor).RunAsync(Document("table"), Request() with {
@@ -610,11 +610,11 @@ public sealed partial class EngineContractTests {
     private static OfficeAiDocument Document(string text) => OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(text),
         new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Text = text, Kind = "paragraph", Location = new() { Page = 1 } } } });
     private static string Claim(string id, string? quote) => JsonSerializer.Serialize(new {
-        status = "ok", claims = new[] { new { text = "The total is 42.", evidence = new[] { new { id, quote } } } },
+        claims = new[] { new { text = "The total is 42.", evidence = new[] { new { id, quote } } } },
         fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>()
     });
     private static string Field(string rawValue, string id) => JsonSerializer.Serialize(new {
-        status = "ok", claims = Array.Empty<object>(), fields = new Dictionary<string, object> { ["field1"] = new { status = "present", rawValue, evidence = new[] { new { id, quote = rawValue } } } },
+        claims = Array.Empty<object>(), fields = new Dictionary<string, object> { ["field1"] = new { status = "present", rawValue, evidence = new[] { new { id, quote = rawValue } } } },
         blocks = Array.Empty<object>(), tables = Array.Empty<object>()
     });
     private sealed class Executor : IOfficeAiExecutor {
