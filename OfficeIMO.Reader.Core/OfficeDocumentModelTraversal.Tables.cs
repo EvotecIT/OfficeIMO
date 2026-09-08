@@ -83,16 +83,18 @@ internal static partial class OfficeDocumentModelTraversal {
             foreach (ReaderTable table in chunk.Tables) {
                 if (table == null || !chunkSeen.Add(table)) continue;
                 ReaderTable projected = WithLocationFallback(table, chunk.Location ?? new ReaderLocation(), null);
-                if (canonicalReferences.TryGetValue(table, out int candidateIndex)
-                    || canonicalMatches.TryTake(Payload(table), projected.Location, out candidateIndex)) {
-                    // Two distinct aliases occurring in the chunk are two occurrences, even when
-                    // aggregate/page reconciliation represented them by one canonical projection.
-                    if (!matchedCanonical.Add(candidateIndex)) { canonical.Add(projected); continue; }
+                bool knownReference = canonicalReferences.TryGetValue(table, out int candidateIndex);
+                bool matched = knownReference && !matchedCanonical.Contains(candidateIndex);
+                // A second distinct alias can represent another already-known occurrence. Prefer
+                // a remaining compatible canonical table before introducing an additional one.
+                if (!matched) matched = canonicalMatches.TryTake(Payload(table), projected.Location, out candidateIndex);
+                if (matched) {
+                    matchedCanonical.Add(candidateIndex);
                     ReaderTable candidate = canonical[candidateIndex];
                     canonical[candidateIndex] = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
                     continue;
                 }
-                if (!seen.Add(table)) continue;
+                if (!knownReference && !seen.Add(table)) continue;
                 canonical.Add(projected);
             }
         }

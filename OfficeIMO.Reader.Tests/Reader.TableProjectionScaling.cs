@@ -6,13 +6,41 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderTableProjectionScalingTests {
     [Fact]
-    public void DistinctReconciledAliasesInOneChunkStillCountAsTwoOccurrences() {
+    public void EqualOccurrenceCountsSurviveReferenceAndOrderCombinations() {
+        var tables = Enumerable.Range(0, 3).Select(_ => new ReaderTable {
+            Columns = new[] { "Value" }, Rows = new[] { new[] { "42" } }, Location = new() { Page = 1, TableIndex = 0 }
+        }).ToArray();
+        var projections = new List<ReaderTable[]> { Array.Empty<ReaderTable>() };
+        foreach (ReaderTable first in tables) {
+            projections.Add(new[] { first });
+            foreach (ReaderTable second in tables.Where(table => !ReferenceEquals(table, first))) {
+                projections.Add(new[] { first, second });
+                projections.Add(new[] { first, second, tables.Single(table => !ReferenceEquals(table, first) && !ReferenceEquals(table, second)) });
+            }
+        }
+        foreach (ReaderTable[] aggregate in projections)
+            foreach (ReaderTable[] page in projections)
+                foreach (ReaderTable[] chunk in projections) {
+                    var document = new OfficeDocumentReadResult { Tables = aggregate,
+                        Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = page } },
+                        Chunks = new[] { new ReaderChunk { Tables = chunk } } };
+                    int expected = Math.Max(aggregate.Length, Math.Max(page.Length, chunk.Length));
+                    Assert.Equal(expected, document.EnumerateTables().Count());
+                    var transported = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document));
+                    Assert.Equal(expected, transported.EnumerateTables().Count());
+                }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DistinctReconciledAliasesInOneChunkStillCountAsTwoOccurrences(bool extraCanonical) {
         ReaderTable Table() => new() { Columns = new[] { "Value" }, Rows = new[] { new[] { "42" } },
             Location = new() { Page = 1, TableIndex = 0 } };
         ReaderTable aggregate = Table(), page = Table();
         foreach (bool aggregateFirst in new[] { false, true }) {
             var document = new OfficeDocumentReadResult {
-                Tables = new[] { aggregate },
+                Tables = extraCanonical ? new[] { aggregate, Table() } : new[] { aggregate },
                 Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { page } } },
                 Chunks = new[] { new ReaderChunk { Tables = aggregateFirst ? new[] { aggregate, page } : new[] { page, aggregate } } }
             };
