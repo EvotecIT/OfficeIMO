@@ -36,7 +36,8 @@ public sealed partial class OfficeAiEngine {
         string Serialize() => JsonSerializer.Serialize(new {
             schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, snapshotHash = document.SnapshotHash, pageProvenance = document.PageProvenance,
             operation = request.Operation.ToString(), instruction = request.Instruction,
-            resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells },
+            resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells,
+                maxTableColumns = request.Limits.MaxTableColumns },
             fields = request.Fields.Select(field => new { name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
             evidence = currentText.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page,
                 sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor }),
@@ -57,7 +58,7 @@ public sealed partial class OfficeAiEngine {
                 currentText.ToDictionary(item => item.Id, StringComparer.Ordinal), currentImages.ToDictionary(item => item.Id, StringComparer.Ordinal), Array.AsReadOnly(ids), new Dictionary<string, EvidenceSlice>(slices)));
             currentText.Clear(); currentImages.Clear(); slices.Clear();
         }
-        if (!Fits()) throw new ArgumentException("Instructions and schema exceed the execution profile's request limit.");
+        if (!Fits()) throw new ArgumentException("Instructions and schema exceed the execution profile's request limit. For table parsing, reduce MaxTableColumns or increase the request budget.");
         var textByPage = text.ToLookup(item => item.Page ?? 0);
         var imagesByPage = images.ToLookup(item => item.Page);
         foreach (int page in text.Select(item => item.Page ?? 0).Concat(images.Select(item => item.Page)).Distinct()) {

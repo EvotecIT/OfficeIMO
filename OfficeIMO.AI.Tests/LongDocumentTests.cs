@@ -6,6 +6,15 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class LongDocumentTests {
+    [Fact]
+    public async Task SynthesisOutOfMemoryEscapesWithoutAnotherModelCall() {
+        var executor = new Executor { FatalOnCall = 3 };
+        await Assert.ThrowsAsync<OutOfMemoryException>(() => new OfficeAiEngine(executor).RunAsync(
+            Document("North total 42. " + new string('x', 30000), "South total 57. " + new string('y', 30000)),
+            Request() with { Operation = OfficeAiOperation.Summarize }));
+        Assert.Equal(3, executor.Requests.Count);
+    }
+
     [Theory]
     [InlineData(OfficeAiOperation.Ask, false)]
     [InlineData(OfficeAiOperation.Ask, true)]
@@ -144,11 +153,13 @@ public sealed class LongDocumentTests {
         public bool EmptyClaims { get; init; }
         public bool EmptyAfterFirstBatch { get; init; }
         public int FailCall { get; init; }
+        public int FatalOnCall { get; init; }
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "bounded", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
             Assert.True(request.Instructions.Length + request.InputJson.Length + request.OutputSchema.Length <= Profile.MaxRequestCharacters);
             Requests.Add(request);
+            if (Requests.Count == FatalOnCall) throw new OutOfMemoryException("fixture resource failure");
             if (Requests.Count == FailCall) throw new IOException("fixture transport failure");
             using var json = JsonDocument.Parse(request.InputJson);
             string output;

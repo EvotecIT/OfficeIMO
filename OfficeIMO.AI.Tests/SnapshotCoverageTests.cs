@@ -8,6 +8,40 @@ public sealed class SnapshotCoverageTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void EqualTablesRetainOccurrenceCountsAndPageOnlyContent(bool roundTrip) {
+        ReaderTable Table(int? page = null) => new() { Columns = new[] { "Item" }, Rows = new[] { new[] { "Widget" } },
+            Location = page.HasValue ? new ReaderLocation { Page = page } : null };
+        var first = Table();
+        var second = Table();
+        var source = new OfficeDocumentReadResult { Tables = new[] { first, second }, Pages = new[] {
+            new OfficeDocumentPage { Number = 3, Tables = new[] { roundTrip ? Table(3) : first } },
+            new OfficeDocumentPage { Number = 5, Tables = new[] { roundTrip ? Table(5) : second } },
+            new OfficeDocumentPage { Number = 7, Tables = new[] { Table() } }
+        } };
+        var restored = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var snapshot = OfficeAiDocument.FromReadResult(new byte[] { 1 }, restored);
+        Assert.Equal(new int?[] { 3, 3, 5, 5, 7, 7 }, snapshot.Evidence.Select(item => item.Page));
+        Assert.Null(first.Location);
+        Assert.Null(second.Location);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LocationlessTableProjectionsKeepOnePagedObservationAfterTransport(bool roundTrip) {
+        var table = new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "Widget" } } };
+        var source = new OfficeDocumentReadResult { Tables = new[] { table },
+            Pages = new[] { new OfficeDocumentPage { Number = 3, Tables = new[] { table } } } };
+        var restored = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var snapshot = OfficeAiDocument.FromReadResult(new byte[] { 1 }, restored);
+        Assert.Equal(2, snapshot.Evidence.Count);
+        Assert.All(snapshot.Evidence, item => Assert.Equal(3, item.Page));
+        Assert.Null(table.Location);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task TransportedBlockIdentityRetainsPageFallbackAndSelection(bool useAnchor) {
         var first = new OfficeDocumentBlock { Id = useAnchor ? "" : "first", Text = "First page",
             Location = new() { BlockAnchor = useAnchor ? "first-anchor" : null } };

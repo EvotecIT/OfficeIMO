@@ -16,27 +16,37 @@ public sealed partial class OfficeAiEngine {
         JsonNode properties = schema["properties"]!;
         foreach (string name in new[] { "claims", "fields", "blocks", "tables" })
             properties[name]!["maxItems"] = enabled.Contains(name, StringComparer.Ordinal) ? request.Limits.MaxResultItems : 0;
-        JsonNode rows = properties["tables"]!["items"]!["properties"]!["rows"]!;
-        rows["maxItems"] = request.Limits.MaxResultItems;
-        if (request.Operation == OfficeAiOperation.Parse && request.Limits.MaxTableCells < 100 * request.Limits.MaxResultItems) {
-            // Any valid rectangle must fit at least one row-count/width pair. Group equivalent
-            // row limits so narrow, tall tables remain possible without permitting oversized tables.
-            var shapes = new JsonArray();
-            int previousRows = 0;
-            for (int width = 100; width >= 1; width--) {
-                int count = Math.Min(request.Limits.MaxResultItems, request.Limits.MaxTableCells / width);
-                if (count == previousRows) continue;
-                previousRows = count;
-                shapes.Add(new JsonObject {
-                    ["type"] = "array", ["maxItems"] = count,
-                    ["items"] = new JsonObject { ["type"] = "array", ["maxItems"] = width,
-                        ["items"] = new JsonObject { ["type"] = "string" } }
-                });
-            }
-            rows["anyOf"] = shapes;
-        }
+        if (request.Operation == OfficeAiOperation.Parse) AddRectangularTableShapes(schema, request.Limits);
         BoundStrings(schema);
         return schema.ToJsonString();
+    }
+
+    private static void AddRectangularTableShapes(JsonNode schema, OfficeAiLimits limits) {
+        JsonNode tables = schema["properties"]!["tables"]!;
+        var definitions = new JsonObject {
+            ["text"] = new JsonObject { ["type"] = "string" },
+            ["evidence"] = tables["items"]!["properties"]!["evidence"]!.DeepClone()
+        };
+        var shapes = new JsonArray();
+        for (int width = 1; width <= limits.MaxTableColumns; width++) {
+            string rowDefinition = "row" + width;
+            definitions[rowDefinition] = new JsonObject { ["type"] = "array", ["minItems"] = width, ["maxItems"] = width,
+                ["items"] = Reference("text") };
+            shapes.Add(new JsonObject {
+                ["type"] = "object", ["additionalProperties"] = false,
+                ["properties"] = new JsonObject {
+                    ["title"] = Reference("text"), ["columns"] = Reference(rowDefinition),
+                    ["rows"] = new JsonObject { ["type"] = "array",
+                        ["maxItems"] = Math.Min(limits.MaxResultItems, limits.MaxTableCells / width),
+                        ["items"] = Reference(rowDefinition) },
+                    ["evidence"] = Reference("evidence")
+                },
+                ["required"] = new JsonArray("title", "columns", "rows", "evidence")
+            });
+        }
+        schema["$defs"] = definitions;
+        tables["items"] = new JsonObject { ["anyOf"] = shapes };
+        static JsonObject Reference(string name) => new() { ["$ref"] = "#/$defs/" + name };
     }
 
     private static string CreateSynthesisSchema(OfficeAiLimits limits) {

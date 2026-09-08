@@ -149,7 +149,9 @@ public sealed class OfficeAiDocument {
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");
             imageList.Add(image); pages.Add(image.Page);
         }
-        bool incompleteSource = document.Diagnostics.Count > 0 || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0);
+        bool incompleteSource = document.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
+            || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
+            || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0);
         // Table truncation is independent of top-level diagnostics. Inspect every Reader owner,
         // including chunk tables, so alternate projections cannot silently erase known omissions.
         incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))

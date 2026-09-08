@@ -24,6 +24,8 @@ public sealed record OfficeAiLimits {
     public int MaxResultItems { get; init; } = 200;
     /// <summary>Maximum cells in a returned table.</summary>
     public int MaxTableCells { get; init; } = 10_000;
+    /// <summary>Maximum columns in a returned table. Smaller bounds reduce the rectangular generation schema's context cost.</summary>
+    public int MaxTableColumns { get; init; } = 32;
     /// <summary>Maximum aggregate encoded image bytes per request.</summary>
     public int MaxImageBytes { get; init; } = 8 * 1024 * 1024;
     /// <summary>Maximum aggregate image pixels per request.</summary>
@@ -36,7 +38,7 @@ public sealed record OfficeAiLimits {
             || MaxDocumentBlocks is < 1 or > 200_000 || MaxPages is < 1 or > 10_000 || MaxDocumentImages is < 1 or > 10_000
             || MaxRequestCharacters is < 4096 or > 2_000_000 || MaxResponseCharacters is < 1024 or > 2_000_000
             || MaxSynthesisPasses is < 1 or > 8 || MaxRequests is < 1 or > 256 || MaxResultItems is < 1 or > 200
-            || MaxTableCells is < 1 or > 100_000 || MaxImageBytes is < 1 or > 67_108_864
+            || MaxTableCells is < 1 or > 100_000 || MaxTableColumns is < 1 or > 100 || MaxImageBytes is < 1 or > 67_108_864
             || MaxImagePixels is < 1 or > 100_000_000 || Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromHours(1))
             throw new ArgumentOutOfRangeException(nameof(OfficeAiLimits), "Document AI limits are outside the supported bounds.");
     }

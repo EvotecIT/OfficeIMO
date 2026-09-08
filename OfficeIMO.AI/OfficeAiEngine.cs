@@ -82,7 +82,7 @@ public sealed partial class OfficeAiEngine {
                 throw;
             } catch (InvalidDataException) {
                 failed = true; omitted.AddRange(batch.Ids); diagnostics.Add("invalid-provider-response");
-            } catch (Exception) {
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 // Never include a provider exception message: it can contain prompts, endpoint secrets or source text.
                 failed = true; omitted.AddRange(batch.Ids); diagnostics.Add("provider-execution-failed");
                 inputTokens = null; outputTokens = null;
@@ -131,7 +131,7 @@ public sealed partial class OfficeAiEngine {
 
     private static void ReportProgress(IProgress<OfficeAiProgress>? progress, OfficeAiProgress value) {
         try { progress?.Report(value); }
-        catch (Exception) { /* Observational callbacks cannot replace the document operation's outcome. */ }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { /* Observational callbacks cannot replace the document operation's outcome. */ }
     }
 
     private async Task<OfficeAiExecutionResponse> ExecuteBoundedAsync(OfficeAiExecutionRequest request, CancellationToken token) {

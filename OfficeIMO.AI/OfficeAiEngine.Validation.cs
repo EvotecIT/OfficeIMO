@@ -56,8 +56,7 @@ public sealed partial class OfficeAiEngine {
                 if (fieldStatus == OfficeAiFieldStatus.Present && !TryNormalize(raw!, definition, request.Culture, out normalized))
                     fieldStatus = OfficeAiFieldStatus.Invalid;
                 if (fieldStatus == OfficeAiFieldStatus.Present && definition.Type is OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer
-                    && !citations.Any(citation => batch.Images.ContainsKey(citation.EvidenceId)
-                        || SupportsCompleteNumber(raw!, citation, document, request.Culture))) {
+                    && !TryValidateNumericEvidence(raw!, citations, batch, document, request.Culture, out citations)) {
                     fieldStatus = OfficeAiFieldStatus.Invalid;
                     normalized = null;
                 }
@@ -79,13 +78,13 @@ public sealed partial class OfficeAiEngine {
             foreach (JsonElement item in tableItems) {
                 CheckObject(item, "title", "columns", "rows", "evidence");
                 string title = Text(item.GetProperty("title"), allowEmpty: true);
-                string[] columns = Items(item.GetProperty("columns"), 100).Select(value => Text(value, allowEmpty: true)).ToArray();
+                string[] columns = Items(item.GetProperty("columns"), request.Limits.MaxTableColumns).Select(value => Text(value, allowEmpty: true)).ToArray();
                 if (columns.Length == 0) throw Invalid();
                 JsonElement[] rows = Items(item.GetProperty("rows"), maximum);
                 if ((long)rows.Length * columns.Length > request.Limits.MaxTableCells) throw Invalid();
                 var values = new List<IReadOnlyList<string>>();
                 foreach (JsonElement row in rows) {
-                    string[] cells = Items(row, 100).Select(value => Text(value, allowEmpty: true)).ToArray();
+                    string[] cells = Items(row, request.Limits.MaxTableColumns).Select(value => Text(value, allowEmpty: true)).ToArray();
                     if (cells.Length != columns.Length) throw Invalid();
                     values.Add(Array.AsReadOnly(cells));
                 }

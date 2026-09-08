@@ -7,6 +7,56 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class EngineContractTests {
     [Theory]
+    [InlineData("Running")]
+    [InlineData("Validating")]
+    public async Task ProgressResourceFailureIsNotSwallowed(string stage) {
+        var executor = new Executor(Empty);
+        await Assert.ThrowsAsync<OutOfMemoryException>(() => new OfficeAiEngine(executor).RunAsync(Document("source"), Request(),
+            progress: new FatalProgress(stage)));
+    }
+
+    private sealed class FatalProgress(string stage) : IProgress<OfficeAiProgress> {
+        public void Report(OfficeAiProgress value) { if (value.Stage == stage) throw new OutOfMemoryException("fixture resource failure"); }
+    }
+
+    [Fact]
+    public async Task NumericCitationSelectsTheCompleteOccurrenceAndRecordsItsOffset() {
+        const string source = "1234 ... 234";
+        var result = await new OfficeAiEngine(new Executor(Field("amount", "234", "e1"))).RunAsync(Document(source), Request() with {
+            Operation = OfficeAiOperation.ExtractFields,
+            Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Integer) }
+        });
+        var field = Assert.Single(result.Fields);
+        Assert.Equal(OfficeAiFieldStatus.Present, field.Status);
+        Assert.Equal("234", field.NormalizedValue);
+        Assert.Equal(source.LastIndexOf("234", StringComparison.Ordinal), Assert.Single(field.Citations).QuoteStart);
+    }
+
+    [Fact]
+    public async Task ProviderOutOfMemoryStopsBeforeTheNextBatch() {
+        var failure = new OutOfMemoryException("fixture resource failure");
+        var executor = new Executor((_, _) => throw failure);
+        Assert.Same(failure, await Assert.ThrowsAsync<OutOfMemoryException>(() =>
+            new OfficeAiEngine(executor).RunAsync(Document(new string('a', 100000)), Request())));
+        Assert.Single(executor.Requests);
+    }
+
+    [Theory]
+    [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Detection, "input-kind-detected", false)]
+    [InlineData(OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Parsing, "partial-parse", true)]
+    [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Content, "omitted-content", true)]
+    public async Task SourceCoverageDistinguishesDetectionInformationFromOmissions(OfficeDocumentDiagnosticSeverity severity,
+        OfficeDocumentDiagnosticCategory category, string code, bool incomplete) {
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = "Total 42" } },
+            Diagnostics = new[] { new OfficeDocumentDiagnostic { Severity = severity, Category = category, Code = code } }
+        });
+        var result = await new OfficeAiEngine(new Executor(Claim("e1", "Total 42"))).RunAsync(document, Request());
+        Assert.Equal(incomplete, document.HasSourceDiagnostics);
+        Assert.Equal(incomplete ? OfficeAiResultStatus.Partial : OfficeAiResultStatus.Completed, result.Status);
+    }
+
+    [Theory]
     [InlineData(32000, false, true)]
     [InlineData(32001, false, false)]
     [InlineData(32000, true, true)]
@@ -419,26 +469,39 @@ public sealed class EngineContractTests {
     }
 
     [Theory]
-    [InlineData(1, 3, true)]
-    [InlineData(3, 1, true)]
-    [InlineData(2, 2, false)]
-    [InlineData(4, 1, false)]
-    public async Task GeneratedTableShapesAndValidatorApplyTheSameEffectiveBounds(int rowCount, int columnCount, bool accepted) {
+    [InlineData(1, 3, 3, true)]
+    [InlineData(3, 1, 1, true)]
+    [InlineData(2, 2, 2, false)]
+    [InlineData(4, 1, 1, false)]
+    [InlineData(1, 3, 2, false)]
+    [InlineData(1, 2, 3, false)]
+    [InlineData(1, 2, 0, false)]
+    [InlineData(0, 3, 3, true)]
+    [InlineData(1, 4, 4, false)]
+    public async Task GeneratedTableShapesAndValidatorApplyTheSameEffectiveBounds(int rowCount, int columnCount, int rowWidth, bool accepted) {
         string[] columns = Enumerable.Range(0, columnCount).Select(index => "Column " + index).ToArray();
-        string[][] values = Enumerable.Range(0, rowCount).Select(_ => Enumerable.Repeat("value", columnCount).ToArray()).ToArray();
+        string[][] values = Enumerable.Range(0, rowCount).Select(_ => Enumerable.Repeat("value", rowWidth).ToArray()).ToArray();
         string response = JsonSerializer.Serialize(new { status = "ok", claims = Array.Empty<object>(), fields = Array.Empty<object>(),
             blocks = Array.Empty<object>(), tables = new[] { new { title = "", columns, rows = values, evidence = new[] { new { id = "e1", quote = "table" } } } } });
         var executor = new Executor(response);
         var result = await new OfficeAiEngine(executor).RunAsync(Document("table"), Request() with {
-            Operation = OfficeAiOperation.Parse, Limits = new() { MaxResultItems = 3, MaxTableCells = 3 }
+            Operation = OfficeAiOperation.Parse, Limits = new() { MaxResultItems = 3, MaxTableCells = 3, MaxTableColumns = 3 }
         });
         var sent = Assert.Single(executor.Requests);
         using var schema = JsonDocument.Parse(sent.OutputSchema);
         var properties = schema.RootElement.GetProperty("properties");
         Assert.Equal(3, properties.GetProperty("tables").GetProperty("maxItems").GetInt32());
-        var rows = properties.GetProperty("tables").GetProperty("items").GetProperty("properties").GetProperty("rows");
-        bool schemaAcceptsShape = rows.GetProperty("anyOf").EnumerateArray().Any(shape => rowCount <= shape.GetProperty("maxItems").GetInt32()
-            && columnCount <= shape.GetProperty("items").GetProperty("maxItems").GetInt32());
+        var definitions = schema.RootElement.GetProperty("$defs");
+        JsonElement Resolve(JsonElement node) => node.TryGetProperty("$ref", out var reference)
+            ? definitions.GetProperty(reference.GetString()!.Split('/')[^1]) : node;
+        bool CountFits(JsonElement array, int count) => (!array.TryGetProperty("minItems", out var minimum) || count >= minimum.GetInt32())
+            && (!array.TryGetProperty("maxItems", out var maximum) || count <= maximum.GetInt32());
+        bool schemaAcceptsShape = properties.GetProperty("tables").GetProperty("items").GetProperty("anyOf").EnumerateArray().Any(shape => {
+            var table = shape.GetProperty("properties");
+            var rows = table.GetProperty("rows");
+            return CountFits(Resolve(table.GetProperty("columns")), columnCount) && CountFits(rows, rowCount)
+                && values.All(row => CountFits(Resolve(rows.GetProperty("items")), row.Length));
+        });
         Assert.Equal(accepted, schemaAcceptsShape);
         Assert.Equal(accepted ? OfficeAiResultStatus.Completed : OfficeAiResultStatus.InvalidResponse, result.Status);
         using var input = JsonDocument.Parse(sent.InputJson);

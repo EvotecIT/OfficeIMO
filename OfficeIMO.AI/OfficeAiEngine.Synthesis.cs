@@ -58,7 +58,7 @@ public sealed partial class OfficeAiEngine {
                     next.AddRange(ParseSynthesis(response, items, request.Limits));
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                   catch (InvalidDataException) { return Finish(false); }
-                  catch (Exception) { inputTokens = null; outputTokens = null; return Finish(false); }
+                  catch (Exception exception) when (exception is not OutOfMemoryException) { inputTokens = null; outputTokens = null; return Finish(false); }
             }
             current = next.AsReadOnly();
             if (groups.Count == 1) return Finish(true);

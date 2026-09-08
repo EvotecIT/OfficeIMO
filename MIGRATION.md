@@ -11,10 +11,6 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
-### Document AI Copilot transport
-
-Replace `OfficeAiIntelligenceXTransport.CopilotCli` with `CopilotNative` and remove `CopilotCliPath`. Copilot inference uses IntelligenceX's native HTTPS transport and no longer starts a CLI. Keep an explicit account-available model and `IsLocal = false`. Configure a GitHub credential through `ApiKey`, the SDK's supported environment variables, or host-owned `CopilotOptions`. Set image and schema capabilities for the selected model. See the [adapter README](OfficeIMO.AI.IntelligenceX/README.md#copilot) for connection examples.
-
 ### Rendering loss and gallery evidence
 
 PDF warnings now retain the existing `OfficeConversionLossKind` classification

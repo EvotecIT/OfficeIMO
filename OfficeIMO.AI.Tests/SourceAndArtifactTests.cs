@@ -10,6 +10,14 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class SourceAndArtifactTests {
+    [Fact]
+    public async Task ContentDetectedNativePdfDoesNotReportSourceOmissions() {
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("Native total 42"))).ToBytes();
+        var document = await DocumentInputs.ReadAsync(source, "attachment", false, Array.Empty<int>(), new(), CancellationToken.None);
+        Assert.Contains(document.Evidence, item => item.Text.Contains("Native total 42"));
+        Assert.False(document.HasSourceDiagnostics);
+    }
+
     [Theory]
     [InlineData("attachment", true)]
     [InlineData("attachment.bin", true)]
