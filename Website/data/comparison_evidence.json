@@ -3,6 +3,20 @@
   "lastReviewed": "2026-07-27",
   "comparisons": [
     {
+      "id": "pdf-desktop-tools",
+      "route": "/comparisons/pdf-desktop-tools/",
+      "sourcePath": "content/comparisons/pdf-desktop-tools.md",
+      "subject": "Acrobat editions, Foxit PDF Editor, and KillerPDF",
+      "checkedAt": "2026-09-07",
+      "verification": "Official feature documentation; no competitor binary tested",
+      "sources": [
+        { "name": "Adobe Acrobat edition comparison", "url": "https://www.adobe.com/acrobat/pricing/compare-versions.html" },
+        { "name": "Foxit PDF Editor", "url": "https://www.foxit.com/pdf-editor/" },
+        { "name": "KillerPDF release and features", "url": "https://killerpdf.net/" }
+      ],
+      "officeImoEvidence": ["/studio/", "/products/pdf/", "/corpus/", "/benchmarks/"]
+    },
+    {
       "id": "aspose-commercial-suites",
       "route": "/comparison/",
       "sourcePath": "content/pages/comparison.md",
@@ -43,8 +57,9 @@
       "route": "/comparisons/officeimo-vs-questpdf/",
       "sourcePath": "content/comparisons/officeimo-vs-questpdf.md",
       "subject": "QuestPDF",
-      "checkedAt": "2026-07-27",
+      "checkedAt": "2026-09-07",
       "sources": [
+        { "name": "QuestPDF document operations", "url": "https://www.questpdf.com/concepts/document-operations.html" },
         { "name": "QuestPDF quick start", "url": "https://www.questpdf.com/quick-start.html" },
         { "name": "QuestPDF pricing and license", "url": "https://www.questpdf.com/pricing.html" }
       ],

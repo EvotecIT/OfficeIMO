@@ -60,6 +60,24 @@ internal static class PdfQualityCorpusProgram {
         var rooted = new QualityCase { Id = "rooted", File = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "escape.pdf")) };
         Expect<InvalidDataException>(() => PdfQualityCorpusManifest.ResolveCasePath(Path.GetTempPath(), rooted));
         PdfQualityCorpusCoordinator.VerifyFailureScoringContract();
+        var report = new QualityReport {
+            Cases = new[] {
+                new QualityCaseResult { Outcome = "failed" },
+                new QualityCaseResult { Sha256 = "ABC", Checks = new[] {
+                    new QualityCheckResult { Name = "text", Succeeded = true },
+                    new QualityCheckResult { Name = "render", Succeeded = false }
+                } },
+                new QualityCaseResult { Sha256 = "abc", Checks = new[] {
+                    new QualityCheckResult { Name = "text", Succeeded = false }
+                } }
+            }
+        };
+        QualityOperationTotals text = report.Operations.Single(operation => operation.Name == "text");
+        QualityOperationTotals render = report.Operations.Single(operation => operation.Name == "render");
+        if (report.UniqueFiles != 1 || text.Attempted != 2 || text.Succeeded != 1 ||
+            render.Attempted != 1 || render.Succeeded != 0) {
+            throw new InvalidOperationException("Corpus summaries lost failed, partial, or duplicate-input evidence.");
+        }
     }
 
     private static void Expect<TException>(Action action) where TException : Exception {

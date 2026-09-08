@@ -111,7 +111,8 @@ function Sync-DocumentationPages {
             $targetPath = Join-Path $targetDirectory 'index.md'
         }
 
-        Copy-Item -LiteralPath $sourceFile.FullName -Destination $targetPath -Force
+        $content = [IO.File]::ReadAllText($sourceFile.FullName)
+        [IO.File]::WriteAllText($targetPath, $content, [Text.UTF8Encoding]::new($false))
     }
 }
 
@@ -281,8 +282,124 @@ function Test-ApiBundle {
     [PSCustomObject]@{ Valid = $true; Reason = 'complete'; CommandCount = $ExpectedCommands.Count }
 }
 
+function Set-PSWriteOfficeSourceLinks {
+    param(
+        [Parameter(Mandatory)][string] $MetadataPath,
+        [Parameter(Mandatory)] $Source
+    )
+
+    if ($Source.Repo -cne 'EvotecIT/PSWriteOffice' -or [string]::IsNullOrWhiteSpace($Source.Ref)) {
+        throw 'PSWriteOffice API source links require the configured repository and a pinned source ref.'
+    }
+    $metadata = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json -Depth 40
+    $sourcePrefix = "https://github.com/$($Source.Repo)/blob/$([Uri]::EscapeDataString($Source.Ref))/"
+    $changed = $false
+    foreach ($command in @($metadata.commands)) {
+        if ([string]::IsNullOrWhiteSpace($command.sourcePath)) { continue }
+        $sourcePath = (($command.sourcePath -replace '\\', '/') -split '/' |
+            ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
+        $sourceUrl = $sourcePrefix + $sourcePath
+        if ([int] $command.sourceLine -gt 0) { $sourceUrl += "#L$($command.sourceLine)" }
+        if ($command.sourceUrl -cne $sourceUrl) {
+            $command.sourceUrl = $sourceUrl
+            $changed = $true
+        }
+    }
+    if ($changed) {
+        [IO.File]::WriteAllText($MetadataPath, ($metadata | ConvertTo-Json -Depth 40) + [Environment]::NewLine)
+    }
+    return $changed
+}
+
+function Set-PSWriteOfficeDocumentationSnapshot {
+    param(
+        [Parameter(Mandatory)][string] $SiteRootPath,
+        [Parameter(Mandatory)] $Source
+    )
+
+    $repository = [regex]::Escape($Source.Repo)
+    $sourceRef = [Uri]::EscapeDataString($Source.Ref)
+    # Only floating repository refs change. Explicit historical tags, other
+    # repositories, URL suffixes and branches such as main-next retain their meaning.
+    $pattern = '(?<prefix>https://(?:github\.com/' + $repository +
+        '/(?:blob|tree)/|raw\.githubusercontent\.com/' + $repository +
+        '/))(?:main|master)(?=[/?#\s"''<>)]|$)'
+    $replacement = [System.Text.RegularExpressions.MatchEvaluator] {
+        param($match)
+        $match.Groups['prefix'].Value + $sourceRef
+    }
+
+    $catalogPath = Join-Path $SiteRootPath 'data/pswriteoffice_command_catalog.json'
+    $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -Depth 20
+    # A family's examples belong to this module version even if its catalog was
+    # previously pinned. Historical links in guide prose are handled separately.
+    $examplesPattern = '^(?<prefix>https://github\.com/' + $repository +
+        '/tree/)[^/]+(?=/Examples(?:[/#?]|$))'
+    $catalogChanged = $false
+    foreach ($family in @($catalog.families)) {
+        $examplesUrl = [regex]::Replace([string] $family.examplesUrl, $examplesPattern, $replacement)
+        if ($examplesUrl -cne $family.examplesUrl) {
+            $family.examplesUrl = $examplesUrl
+            $catalogChanged = $true
+        }
+    }
+    if ($catalogChanged) {
+        [IO.File]::WriteAllText($catalogPath, ($catalog | ConvertTo-Json -Depth 20 -Compress) + [Environment]::NewLine)
+    }
+
+    $pagesChanged = $false
+    $documentationRoot = Join-Path $SiteRootPath 'content/docs/pswriteoffice'
+    foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
+        $content = [IO.File]::ReadAllText($page.FullName)
+        $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
+        $family = @($catalog.families | Where-Object id -CEQ $page.Directory.Name)
+        if ($page.Name -ceq 'index.md' -and $family.Count -eq 1) {
+            # Imported and fallback summaries follow the same catalog totals.
+            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)|(?<=\bexports )\d+(?= commands\b)')
+            $pinnedContent = $summaryCount.Replace($pinnedContent, [string] $family[0].commandCount, 1)
+        }
+        if ($content -cne $pinnedContent) {
+            [IO.File]::WriteAllText($page.FullName, $pinnedContent, [Text.UTF8Encoding]::new($false))
+            $pagesChanged = $true
+        }
+    }
+    [PSCustomObject]@{ CatalogUpdated = $catalogChanged; DocumentationUpdated = $pagesChanged }
+}
+
 $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
+$siteConfiguration = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'site.json') -Raw | ConvertFrom-Json
+$powerShellSource = @($siteConfiguration.Sources | Where-Object Slug -CEQ 'pswriteoffice')
+if ($powerShellSource.Count -ne 1) { throw 'The website must configure exactly one PSWriteOffice source.' }
 $resolvedRepoRoot = Resolve-RepoRoot -SiteRootPath $resolvedSiteRoot -RequestedRoot $PSWriteOfficeRoot
+if ($resolvedRepoRoot) {
+    $sourceHead = & git -C $resolvedRepoRoot rev-parse --verify HEAD 2>$null
+    $headExitCode = $LASTEXITCODE
+    $pinnedCommit = & git -C $resolvedRepoRoot rev-parse --verify "$($powerShellSource[0].Ref)^{commit}" 2>$null
+    $pinExitCode = $LASTEXITCODE
+    $syncManifestPath = Join-Path $resolvedSiteRoot '.powerforge/git-sync-manifest.json'
+    if ($pinExitCode -ne 0 -and (Test-Path -LiteralPath $syncManifestPath -PathType Leaf)) {
+        # PowerForge can fetch a release into FETCH_HEAD without creating a local tag.
+        $syncManifest = Get-Content -LiteralPath $syncManifestPath -Raw | ConvertFrom-Json
+        $syncedSource = @($syncManifest.entries | Where-Object {
+            $_.repo -ceq "https://github.com/$($powerShellSource[0].Repo).git" -and
+            $_.requestedRef -ceq $powerShellSource[0].Ref -and $_.destination -ceq $resolvedRepoRoot
+        })
+        if ($syncedSource.Count -eq 1 -and $syncedSource[0].resolvedRef -cmatch '^[0-9a-f]{7,64}$') {
+            $pinnedCommit = & git -C $resolvedRepoRoot rev-parse --verify "$($syncedSource[0].resolvedRef)^{commit}" 2>$null
+            $pinExitCode = $LASTEXITCODE
+        }
+    }
+    $sourceChanges = @(& git -C $resolvedRepoRoot status --porcelain --untracked-files=all 2>$null)
+    $statusExitCode = $LASTEXITCODE
+    if ($headExitCode -ne 0 -or $pinExitCode -ne 0 -or $statusExitCode -ne 0 -or
+        $sourceHead -cne $pinnedCommit -or $sourceChanges.Count -gt 0) {
+        if (-not [string]::IsNullOrWhiteSpace($PSWriteOfficeRoot)) {
+            throw "The explicit PSWriteOffice source must be clean and checked out at '$($powerShellSource[0].Ref)'."
+        }
+        Write-Host "The local PSWriteOffice source is not a clean '$($powerShellSource[0].Ref)' checkout. Keeping the checked-in release snapshot." -ForegroundColor Yellow
+        $resolvedRepoRoot = $null
+    }
+}
 $targetRoot = Join-Path $resolvedSiteRoot 'data\apidocs\powershell'
 $targetHelpPath = Join-Path $targetRoot 'PSWriteOffice-Help.xml'
 $targetManifestPath = Join-Path $targetRoot 'PSWriteOffice.psd1'
@@ -316,7 +433,13 @@ $summary = [ordered]@{
 }
 
 if (-not $resolvedRepoRoot) {
-    Write-Host 'PSWriteOffice repo not found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
+    $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
+    if (-not $SkipDocumentation) {
+        $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+        $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
+        $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
+    }
+    Write-Host 'No matching PSWriteOffice release checkout found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
     [PSCustomObject] $summary
     return
 }
@@ -370,6 +493,9 @@ if ($sourceBundle.Valid) {
     throw "No complete PSWriteOffice API snapshot is available. Source bundle: $($sourceBundle.Reason). Checked-in bundle: $($checkedInBundle.Reason)."
 }
 
+$sourceLinksUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
+$summary.commandMetadataUpdated = $summary.commandMetadataUpdated -or $sourceLinksUpdated
+
 if (-not $SkipExamples) {
     $sourceExamplesPath = Join-Path $resolvedRepoRoot 'Examples'
     if (Test-Path -LiteralPath $sourceExamplesPath -PathType Container) {
@@ -420,6 +546,9 @@ if (-not $SkipDocumentation) {
     } else {
         throw "No complete PSWriteOffice documentation/catalog pair is available in source or the checked-in site snapshot."
     }
+    $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
+    $summary.documentationCatalogUpdated = $summary.documentationCatalogUpdated -or $linkUpdates.CatalogUpdated
+    $summary.documentationUpdated = $summary.documentationUpdated -or $linkUpdates.DocumentationUpdated
 }
 
 [PSCustomObject] $summary

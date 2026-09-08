@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "b3e2f0ea46dd4ae4136013b16bfffcbe188a747f",
+  "engineArtifact": "OfficeIMO.Pdf.dll",
+  "engineSha256": "66e2538a466b5c78ab3beb0c6e77e9abcf9b440e358690b890704f9cf29083eb",
+  "reportSha256": "502fb21af4ddbfc2fc227a3d5cdbf2f3f1d842ddb292123f019f4fa289b48deb",
+  "sourceManifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
+  "reproduce": "pwsh ./Build/Test-PdfQualityCorpus.ps1 -Framework net10.0 -OutputDirectory artifacts/pdf-quality-corpus"
+}

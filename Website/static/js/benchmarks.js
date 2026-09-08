@@ -372,6 +372,12 @@
 
   function workloadName(comparisonId) {
     var names = {
+      'pdf-structured-generation-net10.0': 'PDF · structured generation',
+      'pdf-html-generation-net10.0': 'PDF · HTML generation',
+      'pdf-merge-net10.0': 'PDF · merge',
+      'pdf-split-net10.0': 'PDF · split',
+      'pdf-page-selection-net10.0': 'PDF · page selection',
+      'pdf-text-extraction-net10.0': 'PDF · text extraction',
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
       'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
       'markpflug-65k-xls-typed-net10.0': 'XLS · typed values',

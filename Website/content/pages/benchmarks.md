@@ -7,18 +7,12 @@ meta.raw_html: true
 ---
 
 <div class="imo-benchmark-hub">
-  <section class="imo-benchmark-hub__hero">
-    <p class="imo-benchmark-eyebrow">Performance evidence</p>
-    <h2>Use the benchmark that matches your workload.</h2>
-    <p>Office documents, delimited data, extraction, and rendering have different cost profiles. Every result below links to a committed suite, a reproducible command, or a documented performance contract.</p>
-    <div class="imo-benchmark-principles" aria-label="Benchmark principles">
-      <span>Equivalent work</span>
-      <span>Validated output</span>
-      <span>Committed artifacts</span>
-      <span>Platforms kept separate</span>
-    </div>
-  </section>
+  <div id="library-comparison-evidence">
+    {{< include path="../../themes/officeimo/partials/library-comparison-benchmarks.html" >}}
+  </div>
 
+  <details class="imo-benchmark-evidence-notes">
+    <summary>How to interpret the evidence and find additional suites</summary>
   <section class="imo-benchmark-evidence-model" aria-labelledby="benchmark-evidence-model-title">
     <div class="imo-benchmark-section-heading">
       <p class="imo-benchmark-eyebrow">Evidence model</p>
@@ -65,9 +59,7 @@ meta.raw_html: true
     </div>
   </section>
 
-  <div id="library-comparison-evidence">
-    {{< include path="../../themes/officeimo/partials/library-comparison-benchmarks.html" >}}
-  </div>
+  </details>
 
   <section class="imo-benchmark-archive" id="historical-benchmark-evidence" aria-labelledby="historical-benchmark-title">
     <header class="imo-benchmark-archive__header">

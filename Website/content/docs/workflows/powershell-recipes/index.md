@@ -21,7 +21,7 @@ $rows | Export-OfficeExcel `
     -AutoFit
 ```
 
-Use [database reporting](/docs/workflows/database-reporting/) when the source is DbaClientX, and the [operational dashboard example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) when the workbook needs a more designed summary.
+Use [database reporting](/docs/workflows/database-reporting/) when the source is DbaClientX, and the {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="operational dashboard example" >}} when the workbook needs a more designed summary.
 
 ## Create Word and PDF side by side
 
@@ -35,7 +35,7 @@ New-OfficeWord -Path '.\Change-Report.docx' -PdfPath '.\Change-Report.pdf' {
 }
 ```
 
-The [PDF sidecar example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Pdf/Example-OfficePdfSidecars.ps1) also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
+The {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-OfficePdfSidecars.ps1" label="PDF sidecar example" >}} also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
 
 ## Build a PDF report directly
 
@@ -48,7 +48,7 @@ New-OfficePdf -Path '.\Deployment-Evidence.pdf' {
 }
 ```
 
-Continue with the [PDF report DSL example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Pdf/Example-PdfReportDsl.ps1) for the currently supported authoring components.
+Continue with the {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-PdfReportDsl.ps1" label="PDF report DSL example" >}} for the currently supported authoring components.
 
 ## Build repository-friendly Markdown
 
@@ -59,7 +59,7 @@ New-OfficeMarkdown -Path '.\release-notes.md' {
 }
 ```
 
-The [Markdown examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Markdown) cover the fluent block, tables, callouts, details, front matter, and conversion-oriented patterns.
+The {{< pswriteoffice-source kind="tree" path="Examples/Markdown" label="Markdown examples" >}} cover the fluent block, tables, callouts, details, front matter, and conversion-oriented patterns.
 
 ## Export delimited data with an explicit contract
 
@@ -68,7 +68,7 @@ $rows | Export-OfficeCsv -Path '.\inventory.csv' -Delimiter ';'
 $table = Import-OfficeCsv -Path '.\inventory.csv' -AsDataTable -InferSchema
 ```
 
-Choose the delimiter, culture, compression, quote policy, headers, schema, and error behavior deliberately. Use the [CSV examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Csv) and [performance evidence](/docs/workflows/powershell-benchmarks/) for large or database-shaped transfers.
+Choose the delimiter, culture, compression, quote policy, headers, schema, and error behavior deliberately. Use the {{< pswriteoffice-source kind="tree" path="Examples/Csv" label="CSV examples" >}} and [performance evidence](/docs/workflows/powershell-benchmarks/) for large or database-shaped transfers.
 
 ## Extract across document formats
 
@@ -82,6 +82,6 @@ Use the normalized Reader commands for indexing, migration, classification, sear
 
 ## Create and review a presentation
 
-Start with the [PowerPoint service brief](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) for a complete deck, or the [PowerPoint examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/PowerPoint) for focused charts, layouts, themes, transitions, imported slides, and HTML review.
+Start with the {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1" label="PowerPoint service brief" >}} for a complete deck, or the {{< pswriteoffice-source kind="tree" path="Examples/PowerPoint" label="PowerPoint examples" >}} for focused charts, layouts, themes, transitions, imported slides, and HTML review.
 
 See the [PSWriteOffice command families](/docs/pswriteoffice/command-families/) for the current supported surface and use the package-specific examples below for concrete workflows.

@@ -2,6 +2,7 @@
 title: "OfficeIMO.Markdown"
 description: "Build, parse, and render Markdown with a typed AST and fluent API. Multiple reader profiles, HTML rendering, and zero dependencies."
 layout: product
+meta.showcase_id: "release-readiness-report"
 product_color: "#7c3aed"
 install: "dotnet add package OfficeIMO.Markdown"
 nuget: "OfficeIMO.Markdown"

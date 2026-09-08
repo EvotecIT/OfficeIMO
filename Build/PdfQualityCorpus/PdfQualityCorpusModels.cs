@@ -192,4 +192,20 @@ internal sealed class QualityReport {
     public QualityReportConfiguration Configuration { get; set; } = new();
     public QualityTotals Totals { get; set; } = new();
     public IReadOnlyList<QualityCaseResult> Cases { get; set; } = Array.Empty<QualityCaseResult>();
+    public int UniqueFiles => Cases.Select(sample => sample.Sha256).Where(hash => !string.IsNullOrEmpty(hash)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    public IReadOnlyList<QualityOperationTotals> Operations => Cases
+        .SelectMany(sample => sample.Checks)
+        .GroupBy(check => check.Name, StringComparer.Ordinal)
+        .Select(group => new QualityOperationTotals {
+            Name = group.Key,
+            Attempted = group.Count(),
+            Succeeded = group.Count(check => check.Succeeded)
+        }).ToArray();
+}
+
+/// <summary>Observed check counts across the run, including checks missing from a failed first case.</summary>
+internal sealed class QualityOperationTotals {
+    public string Name { get; set; } = string.Empty;
+    public int Attempted { get; set; }
+    public int Succeeded { get; set; }
 }

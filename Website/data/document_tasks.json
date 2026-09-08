@@ -1,0 +1,76 @@
+{
+  "title": "Start with the document job",
+  "tasks": [
+    {
+      "id": "create-report",
+      "title": "Generate a report or invoice",
+      "summary": "Build Word and PDF output from application data or an approved template.",
+      "guide": "/solutions/template-driven-document-generation/",
+      "paths": [
+        { "label": ".NET template guide", "url": "/solutions/template-driven-document-generation/" },
+        { "label": "PowerShell recipes", "url": "/docs/workflows/powershell-recipes/" },
+        { "label": "Output and source", "url": "/showcase/#word-mail-merge" }
+      ],
+      "boundary": "Check placeholder completeness and the output's layout before delivery."
+    },
+    {
+      "id": "convert-office-pdf",
+      "title": "Convert Office files to PDF",
+      "summary": "Turn a Word document, workbook, or presentation into a downloadable PDF.",
+      "guide": "/convert/word-to-pdf/",
+      "paths": [
+        { "label": "Try DOCX in your browser", "url": "/convert/?route=docx-pdf" },
+        { "label": "CLI conversion", "url": "/tool/" },
+        { "label": "All conversion guides", "url": "/convert/guides/" }
+      ],
+      "boundary": "Fonts and unsupported layout features can change the result; read the conversion diagnostics."
+    },
+    {
+      "id": "organize-pdf",
+      "title": "Merge, split, or reorder PDFs",
+      "summary": "Select pages and produce a separate document while retaining the source.",
+      "guide": "/pdf/",
+      "paths": [
+        { "label": "Browser PDF tools", "url": "/pdf/" },
+        { "label": ".NET PDF guide", "url": "/docs/pdf/" },
+        { "label": "PowerShell PDF commands", "url": "/docs/pswriteoffice/pdf/" }
+      ],
+      "boundary": "Protected, signed, or unsupported inputs can restrict rewriting. Each tool reports its limits."
+    },
+    {
+      "id": "extract-content",
+      "title": "Extract content for search and AI",
+      "summary": "Read text, tables, and source locations across document formats.",
+      "guide": "/solutions/document-ingestion/",
+      "paths": [
+        { "label": ".NET Reader", "url": "/docs/reader/" },
+        { "label": "CLI and MCP", "url": "/tool/" },
+        { "label": "PowerShell Reader", "url": "/docs/pswriteoffice/reader/" }
+      ],
+      "boundary": "Scans need an optional OCR provider. Extracted text is not proof of original reading order."
+    },
+    {
+      "id": "powershell-reporting",
+      "title": "Automate spreadsheet reporting",
+      "summary": "Export objects and database results to Excel or CSV in repeatable scripts.",
+      "guide": "/solutions/powershell-document-automation/",
+      "paths": [
+        { "label": "Install PSWriteOffice", "url": "/products/pswriteoffice/" },
+        { "label": "Database reporting", "url": "/docs/workflows/database-reporting/" },
+        { "label": "Measured workloads", "url": "/benchmarks/" }
+      ],
+      "boundary": "Use the module's documented runtime and provider requirements for your chosen data source."
+    },
+    {
+      "id": "desktop-review",
+      "title": "Review and edit a PDF visually",
+      "summary": "Keep the document in view while working with comments, forms, pages, and supported content.",
+      "guide": "/studio/",
+      "paths": [
+        { "label": "Studio workflows and screenshots", "url": "/studio/" },
+        { "label": "Source build instructions", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme" }
+      ],
+      "boundary": "Studio currently requires a source build. Public installers and native printer submission are not available."
+    }
+  ]
+}

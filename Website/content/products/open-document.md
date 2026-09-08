@@ -3,6 +3,7 @@ title: "OfficeIMO.OpenDocument"
 hero_title_html: "OfficeIMO.<wbr>OpenDocument"
 description: "Create and edit ODT, ODS, and ODP files and connect them to Office and PDF conversion workflows. Compare packages, examples, and limits."
 layout: product
+meta.showcase_id: "portable-project-handover"
 product_label: "OpenDocument engine"
 product_color: "#0f766e"
 install: "dotnet add package OfficeIMO.OpenDocument"

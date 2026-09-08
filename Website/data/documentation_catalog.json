@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42657
+    "conceptualWordCount": 42688
   },
   "categories": [
     {
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 532,
+      "sourceFileCount": 541,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -872,7 +872,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1131,
+      "sourceFileCount": 1142,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -885,7 +885,7 @@
       "description": "Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
@@ -1393,7 +1393,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Security/OfficeIMO.Security.csproj",
       "sourceFileCount": 14,
-      "referencingTestProjectCount": 4,
+      "referencingTestProjectCount": 5,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
@@ -1405,7 +1405,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 81,
+      "sourceFileCount": 161,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1561,7 +1561,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 29,
+      "sourceFileCount": 59,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

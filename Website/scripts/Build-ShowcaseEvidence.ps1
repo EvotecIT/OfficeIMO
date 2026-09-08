@@ -3,7 +3,8 @@ param(
     [string] $Framework = 'net10.0',
     [ValidateSet('Debug', 'Release')][string] $Configuration = 'Debug',
     [switch] $SkipGeneration,
-    [switch] $ManifestOnly
+    [switch] $ManifestOnly,
+    [string[]] $ExampleId = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,21 +14,48 @@ $downloadRoot = Join-Path $repoRoot 'Website/static/downloads/showcase'
 $catalog = Get-Content -LiteralPath (Join-Path $repoRoot 'Website/data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
 
+$selectedCards = @($catalog.cards)
+if ($ExampleId.Count -gt 0) {
+    foreach ($id in $ExampleId) {
+        if ($id -cnotin @($catalog.cards.id)) { throw "Unknown showcase example: $id" }
+    }
+    $selectedCards = @($catalog.cards | Where-Object { $_.id -cin $ExampleId })
+}
+$selectedUrls = @($selectedCards | ForEach-Object {
+    @($_.downloads.url) + @($_.source_url, $_.image) + @($_.previews.url)
+})
+$refreshArtifacts = @($catalog.artifacts | Where-Object {
+    $ExampleId.Count -eq 0 -or ('/downloads/showcase/' + $_.destination) -cin $selectedUrls
+})
+
 if (-not $SkipGeneration -and -not $ManifestOnly) {
     Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
     $examplesAssembly = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/OfficeIMO.Examples.dll"
-    foreach ($exampleSwitch in ($catalog.cards.generator_switch | Select-Object -Unique)) {
-        Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch)
+    foreach ($exampleSwitch in ($selectedCards.generator_switch | Select-Object -Unique)) {
+        $generatorCards = @($selectedCards | Where-Object generator_switch -CEQ $exampleSwitch)
+        if ($ExampleId.Count -gt 0 -and $exampleSwitch -ceq '--showcase-workflows') {
+            foreach ($card in $generatorCards) {
+                Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch, '--showcase-example', $card.id)
+            }
+        } elseif ($ExampleId.Count -gt 0 -and $exampleSwitch -ceq '--showcase-features') {
+            foreach ($format in ($generatorCards.format_id | Select-Object -Unique)) {
+                Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch, '--showcase-group', $format)
+            }
+        } else {
+            Invoke-ShowcaseDotNet @($examplesAssembly, $exampleSwitch)
+        }
     }
 }
 
 if (-not $ManifestOnly) {
     $reader = $catalog.artifacts | Where-Object id -eq 'reader-output'
-    New-ShowcaseReaderProjection `
-        -InputPath (Join-Path $documentsRoot 'PowerPoint Design Brief Recommendations.pptx') `
-        -OutputPath (Join-Path $documentsRoot $reader.source) `
-        -RepositoryRoot $repoRoot -Configuration $Configuration -Framework $Framework
-    foreach ($artifact in $catalog.artifacts) {
+    if ($reader -in $refreshArtifacts) {
+        New-ShowcaseReaderProjection `
+            -InputPath (Join-Path $documentsRoot 'PowerPoint Design Brief Recommendations.pptx') `
+            -OutputPath (Join-Path $documentsRoot $reader.source) `
+            -RepositoryRoot $repoRoot -Configuration $Configuration -Framework $Framework
+    }
+    foreach ($artifact in $refreshArtifacts) {
         if ($artifact.previewSource) {
             New-ShowcasePdfPreview `
                 -InputPath (Resolve-ShowcasePath $documentsRoot $artifact.previewSource) `
@@ -41,7 +69,7 @@ $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer
 $manifestArtifacts = foreach ($artifact in $catalog.artifacts) {
     if (-not $seen.Add($artifact.destination)) { throw "Duplicate showcase destination: $($artifact.destination)" }
     $destination = Resolve-ShowcasePath $downloadRoot $artifact.destination
-    if (-not $ManifestOnly) {
+    if (-not $ManifestOnly -and $artifact -in $refreshArtifacts) {
         $sourceRoot = switch ($artifact.sourceRoot) {
             'documents' { $documentsRoot }
             'repository' { $repoRoot }
@@ -65,7 +93,7 @@ $manifestArtifacts = foreach ($artifact in $catalog.artifacts) {
 }
 
 foreach ($card in $catalog.cards) {
-    foreach ($url in @($card.downloads.url) + @($card.source_url, $card.image)) {
+    foreach ($url in @($card.downloads.url) + @($card.source_url, $card.image) + @($card.previews.url)) {
         if ($url -and (-not $url.StartsWith('/downloads/showcase/') -or
             -not $seen.Contains($url.Substring('/downloads/showcase/'.Length)))) {
             throw "Example '$($card.id)' references an undeclared artifact: $url"
@@ -78,3 +106,4 @@ foreach ($card in $catalog.cards) {
     artifacts = @($manifestArtifacts)
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $downloadRoot 'manifest.json') -Encoding utf8NoBOM
 Write-Host "Showcase evidence refreshed: $($catalog.cards.Count) examples, $($manifestArtifacts.Count) artifacts."
+& (Join-Path $PSScriptRoot 'Sync-ShowcaseWalkthroughs.ps1')

@@ -34,4 +34,4 @@ Each family provides four bounded interoperability commands for reading, saving,
 
 ## HTML review
 
-Office format families provide focused HTML conversion commands, and `Export-OfficeHtmlImage` supports extracted assets. Use the [HTML review examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples) to build a browser-review step without discarding the source document.
+Office format families provide focused HTML conversion commands, and `Export-OfficeHtmlImage` supports extracted assets. Use the [HTML review examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples) to build a browser-review step without discarding the source document.

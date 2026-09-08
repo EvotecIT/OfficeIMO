@@ -2,6 +2,7 @@
 title: "PSWriteOffice"
 description: "Automate Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, and LaTeX workflows from PowerShell."
 layout: product
+meta.showcase_id: "customer-delivery-summary"
 product_color: "#d97706"
 product_label: "PowerShell document automation"
 runtime_label: "PowerShell 5.1 and 7+"
@@ -37,10 +38,10 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 
 | Job | Working path |
 |---|---|
-| Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the [runnable Excel example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1) |
-| Move database data through CSV | [Runnable CSV round-trip example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1) |
-| Create an operational Excel dashboard | [Excel showcase example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) |
-| Build a PowerPoint service brief | [PowerPoint showcase example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) |
+| Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the {{< pswriteoffice-source kind="blob" path="Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1" label="runnable Excel example" >}} |
+| Move database data through CSV | {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="Runnable CSV round-trip example" >}} |
+| Create an operational Excel dashboard | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="Excel showcase example" >}} |
+| Build a PowerPoint service brief | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1" label="PowerPoint showcase example" >}} |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
 | Evaluate mixed search, authenticated PDF, or Confluence publishing | [PSWriteOffice command families](/docs/pswriteoffice/command-families/) |

@@ -4,7 +4,7 @@ description: "Build, inspect, validate, compare, repair, and publish workbook wo
 layout: docs
 ---
 
-Excel is the largest PSWriteOffice family with 155 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, and streaming contracts.
+Excel is the largest PSWriteOffice family with 158 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, streaming contracts, and direct range or chart image export.
 
 ## Create a workbook from data
 
@@ -36,4 +36,4 @@ The read surface can return used ranges, tables, named ranges, formulas, comment
 - `Compare-OfficeExcelWorkbook` and `Compare-OfficeExcelRange` make change evidence explicit.
 - `Repair-OfficeExcelWorkbook` is a deliberate repair path, not an implicit side effect of reading.
 
-Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Excel) for end-to-end patterns.
+Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Excel) for end-to-end patterns.

@@ -17,6 +17,7 @@
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
+      "Ref": "v3.0.5",
       "Slug": "pswriteoffice",
       "Destination": "./projects/pswriteoffice",
       "Clean": true
@@ -24,6 +25,10 @@
   ],
   "StaticAssets": [
     { "Source": "static" },
+    { "Source": "data/pdf_corpus_report.json", "Destination": "data/corpus/pdf-quality-windows.json" },
+    { "Source": "data/pdf_corpus_publication.json", "Destination": "data/corpus/pdf-quality-windows.provenance.json" },
+    { "Source": "Apps/OfficeIMO.Web.Converter/wwwroot/samples/business-summary.docx", "Destination": "downloads/samples/business-summary.docx" },
+    { "Source": "../OfficeIMO.Examples/Showcase/BrowserBusinessSample.cs", "Destination": "downloads/samples/BrowserBusinessSample.cs.txt" },
     {
       "Source": "../OfficeIMO.Pdf.Tests/Pdf/VisualBaselines/officeimo-pdf-professional-report.page1.poppler.png",
       "Destination": "images/proof/pdf-professional-report.png"
@@ -60,6 +65,15 @@
       "Input": "content/products",
       "Output": "/products",
       "DefaultLayout": "product",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
+      "Name": "showcase-examples",
+      "Input": "content/showcase-examples",
+      "Output": "/showcase",
+      "DefaultLayout": "showcase-example",
       "UseToc": false,
       "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
@@ -508,6 +522,7 @@
         "Bundles": [
           "global",
           "benchmarks",
+          "product",
           "experience"
         ]
       },
@@ -721,6 +736,10 @@
                 {
                   "Title": "Benchmarks",
                   "Url": "/benchmarks/"
+                },
+                {
+                  "Title": "PDF corpus evidence",
+                  "Url": "/corpus/"
                 },
                 {
                   "Title": "Comparisons",

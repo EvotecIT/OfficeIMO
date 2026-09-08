@@ -1,0 +1,2744 @@
+{
+  "schemaVersion": 1,
+  "measurementStatus": "measured",
+  "startedUtc": "2026-09-07T18:44:59.692656+00:00",
+  "completedUtc": "2026-09-07T18:45:02.2339376+00:00",
+  "authority": "https://github.com/pdf-association/pdf-corpora",
+  "sources": [
+    {
+      "id": "openpreserve-format-corpus",
+      "repository": "https://github.com/openpreserve/format-corpus",
+      "commit": "366f068cec399d0cdfd61fa473de3ab6dc858098",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "verapdf-corpus",
+      "repository": "https://github.com/veraPDF/veraPDF-corpus",
+      "commit": "49de56cd987929932c9e4fbbbe67d052bf44ef83",
+      "license": "CC-BY-4.0"
+    }
+  ],
+  "environment": {
+    "framework": ".NET 10.0.11",
+    "operatingSystem": "Microsoft Windows 10.0.26200",
+    "processArchitecture": "X64",
+    "engineAssemblyVersion": "3.4.1.0"
+  },
+  "configuration": {
+    "manifestFileName": "corpus-manifest.json",
+    "manifestSha256": "35B002FE29A555712E600D9889CADEDA6589D43973510F420FD99207ACC9975F",
+    "maxFileBytes": 134217728,
+    "maxRenderPages": 4,
+    "timeoutSeconds": 60,
+    "parallelism": 4,
+    "maxWorkerMemoryBytes": 1073741824
+  },
+  "totals": {
+    "cases": 14,
+    "passed": 14,
+    "failed": 0,
+    "timedOut": 0,
+    "operationalChecks": 112,
+    "operationalChecksPassed": 112,
+    "expectations": 141,
+    "expectationsPassed": 141,
+    "inputBytes": 877031,
+    "pages": 14,
+    "durationMilliseconds": 2541,
+    "peakWorkingSetBytes": 351768576,
+    "operationalScore": 1,
+    "expectationScore": 1
+  },
+  "cases": [
+    {
+      "id": "producer-text-embedded-subset",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/text_only_fontsEmbeddedSubset.pdf",
+      "sha256": "fb0c62591ac545f0b56e8986a30f67c008d0434b28ac5bd550e0e7ecd3c56435",
+      "byteLength": 33411,
+      "features": [
+        "word-2003",
+        "acrobat-9",
+        "embedded-subset-font",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 230,
+        "paragraphCount": 3,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 65420,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 2,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 14,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "Blocked",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 0,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": []
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 133
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 172
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 15
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 34
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 26
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "230"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 433,
+      "workerWallClockMilliseconds": 503,
+      "workerCpuMilliseconds": 453,
+      "peakWorkingSetBytes": 64786432,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-pdfa1b-text",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/text_only_pdfa1b.pdf",
+      "sha256": "81bf11af4c56488c63c6d038d4ba09c7334dc3e26c5d6a17c7df9bd398f48635",
+      "byteLength": 39513,
+      "features": [
+        "word-2003",
+        "acrobat-9",
+        "pdfa-1b",
+        "output-intent",
+        "xmp",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 230,
+        "paragraphCount": 3,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 65420,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 3,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 13,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 130
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 194
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 6
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 35
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 31
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "230"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 445,
+      "workerWallClockMilliseconds": 514,
+      "workerCpuMilliseconds": 515,
+      "peakWorkingSetBytes": 68911104,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-document-attachment",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/fileAttachment.pdf",
+      "sha256": "c7ff5c769c257a7ab0cc3a906e63b15aea91e1605a269b7dcbcb3911ea07681c",
+      "byteLength": 78950,
+      "features": [
+        "word-2003",
+        "acrobat-9",
+        "embedded-file",
+        "name-tree",
+        "tagged",
+        "document-javascript"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 233,
+        "paragraphCount": 3,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 1,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 131377,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "Blocked",
+        "mutationBlockerCodes": [
+          "FullRewrite.TaggedContent",
+          "FullRewrite.ActiveContent",
+          "FullRewrite.XrefStreamPreservation",
+          "FullRewrite.ObjectStreamPreservation"
+        ],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 2,
+        "appendOnlyMutationPlanCount": 2,
+        "blockedMutationPlanCount": 17,
+        "mutationPlanModes": {
+          "UpdateMetadata": "Blocked",
+          "FillFormFields": "Blocked",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "Blocked",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "Blocked",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 0,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": []
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 148
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 168
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 6
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 37
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 45
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "233"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "1"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "Blocked",
+          "actual": "Blocked"
+        }
+      ],
+      "durationMilliseconds": 458,
+      "workerWallClockMilliseconds": 522,
+      "workerCpuMilliseconds": 515,
+      "peakWorkingSetBytes": 63291392,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-external-link",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/externalLink.pdf",
+      "sha256": "14ca68bc60b188279ffa9b2dae926d9fe5cefe83b52fcdfd0a64e67232407008",
+      "byteLength": 73227,
+      "features": [
+        "word-2003",
+        "acrobat-9",
+        "external-document",
+        "launch-action",
+        "link-annotation",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 281,
+        "paragraphCount": 4,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 1,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 132018,
+        "renderDiagnosticCodes": [
+          "render.resource.annotation-appearance-missing"
+        ],
+        "repairCodes": [],
+        "annotationActionTypes": [
+          "Launch"
+        ],
+        "mutationMode": "Blocked",
+        "mutationBlockerCodes": [
+          "FullRewrite.TaggedContent",
+          "FullRewrite.ActiveContent",
+          "FullRewrite.XrefStreamPreservation",
+          "FullRewrite.ObjectStreamPreservation",
+          "FullRewrite.AppendOnlyRequired"
+        ],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 2,
+        "appendOnlyMutationPlanCount": 2,
+        "blockedMutationPlanCount": 17,
+        "mutationPlanModes": {
+          "UpdateMetadata": "Blocked",
+          "FillFormFields": "Blocked",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "Blocked",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "Blocked",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 0,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": []
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 146
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 189
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 7
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 47
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 37
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 6
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "281"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "1"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "Launch",
+          "actual": "Launch"
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "render.resource.annotation-appearance-missing",
+          "actual": "render.resource.annotation-appearance-missing"
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "Blocked",
+          "actual": "Blocked"
+        }
+      ],
+      "durationMilliseconds": 478,
+      "workerWallClockMilliseconds": 543,
+      "workerCpuMilliseconds": 546,
+      "peakWorkingSetBytes": 64372736,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-recoverable-header-corruption",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/corruptionOneByteMissing.pdf",
+      "sha256": "7423451704ef9cb32340618416796a812c47fa2337cf1356aa63c2f414b7798e",
+      "byteLength": 39512,
+      "features": [
+        "word-2003",
+        "acrobat-9",
+        "recoverable-corruption",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 230,
+        "paragraphCount": 3,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 65420,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [
+          "InvalidStartXref"
+        ],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 3,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 13,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 137
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 216
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 6
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 37
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 29
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "230"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "InvalidStartXref",
+          "actual": "InvalidStartXref"
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 473,
+      "workerWallClockMilliseconds": 552,
+      "workerCpuMilliseconds": 484,
+      "peakWorkingSetBytes": 74194944,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-valid-high-resolution-image",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/veraPDFHiRes.pdf",
+      "sha256": "a9be3e1100d450637da1b9f8837384934b435ace122b3962136797fa8568a611",
+      "byteLength": 65205,
+      "features": [
+        "pdfa-1b",
+        "bitmap-image",
+        "output-intent",
+        "xmp"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 0,
+        "embeddedFontCount": 0,
+        "subsetFontCount": 0,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 0,
+        "imageCount": 1,
+        "imagePlacementCount": 1,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 8478160,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 12,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 4,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "FullRewrite",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "FullRewrite",
+          "ModifyPageTree": "FullRewrite",
+          "MergeDocuments": "FullRewrite",
+          "ModifyPageContent": "FullRewrite",
+          "ModifyCatalog": "FullRewrite",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "FullRewrite",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "FullRewrite",
+          "ModifyJavaScript": "FullRewrite"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 150
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 565
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 278
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 279
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 478
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 28
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 1832,
+      "workerWallClockMilliseconds": 1915,
+      "workerCpuMilliseconds": 2000,
+      "peakWorkingSetBytes": 351768576,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "producer-missing-image-xobject",
+      "sourceId": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/veraPDFHiResWrongObjectID.pdf",
+      "sha256": "dc7ae1ae93dab50806bf881077559bb004d7f18b9de6335aefbe0cd81aa966af",
+      "byteLength": 65205,
+      "features": [
+        "pdfa-1b-claim",
+        "missing-xobject",
+        "bounded-degradation"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 0,
+        "embeddedFontCount": 0,
+        "subsetFontCount": 0,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 0,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 120,
+        "renderDiagnosticCodes": [
+          "render.resource.xobject-unsupported"
+        ],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 1,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 15,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "Blocked",
+          "Redact": "Blocked",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 156
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 89
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 29
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 26
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "render.resource.xobject-unsupported",
+          "actual": "render.resource.xobject-unsupported"
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 349,
+      "workerWallClockMilliseconds": 415,
+      "workerCpuMilliseconds": 390,
+      "peakWorkingSetBytes": 58785792,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-tounicode-valid-a",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-1a/6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-pass-a.pdf",
+      "sha256": "42df79430e88e6ce0e8fbe8f5c81111502d3b28dcb4b3959e76ba6ee3ab4fdc1",
+      "byteLength": 10433,
+      "features": [
+        "verapdf",
+        "pdfa-1a",
+        "tounicode",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 4,
+        "paragraphCount": 1,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 6223,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 3,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 13,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1a:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 152
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 157
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 35
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 31
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "4"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 433,
+      "workerWallClockMilliseconds": 505,
+      "workerCpuMilliseconds": 468,
+      "peakWorkingSetBytes": 64958464,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-tounicode-valid-j",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-1a/6.3 Fonts/6.3.8 Unicode character maps/veraPDF test suite 6-3-8-t01-pass-j.pdf",
+      "sha256": "c030cabbc151c8ce06cae09969fc3d0e2ac54738f0d80c6396d559e92c01fd4e",
+      "byteLength": 25625,
+      "features": [
+        "verapdf",
+        "pdfa-1a",
+        "tounicode",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 4,
+        "paragraphCount": 1,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 756,
+        "renderDiagnosticCodes": [
+          "render.resource.font-substitution"
+        ],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 3,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 13,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1a:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 148
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 184
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 8
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 36
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 27
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "4"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "render.resource.font-substitution",
+          "actual": "render.resource.font-substitution"
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 453,
+      "workerWallClockMilliseconds": 523,
+      "workerCpuMilliseconds": 484,
+      "peakWorkingSetBytes": 68935680,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-iccbased-content",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-1b/6.2 Graphics/6.2.3.2 ICCBased colour spaces/veraPDF test suite 6-2-3-2-t01-pass-a.pdf",
+      "sha256": "ac6814d795e2c5a0996e8b708bdec0750459b5d41a8344292abe69b18c1f7de8",
+      "byteLength": 3463,
+      "features": [
+        "verapdf",
+        "pdfa-1b",
+        "iccbased",
+        "matrix-trc-profile"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 0,
+        "embeddedFontCount": 0,
+        "subsetFontCount": 0,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 0,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 198,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 12,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 4,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "FullRewrite",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "FullRewrite",
+          "ModifyPageTree": "FullRewrite",
+          "MergeDocuments": "FullRewrite",
+          "ModifyPageContent": "FullRewrite",
+          "ModifyCatalog": "FullRewrite",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "FullRewrite",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "FullRewrite",
+          "ModifyJavaScript": "FullRewrite"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 127
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 117
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 27
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 23
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 361,
+      "workerWallClockMilliseconds": 435,
+      "workerCpuMilliseconds": 421,
+      "peakWorkingSetBytes": 58961920,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-devicen-content",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-1b/6.2 Graphics/6.2.3.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-3-4-t01-pass-a.pdf",
+      "sha256": "b6b836fb98dbab30ff7e3b201409c04dd207ae60c24cdc6129deceb863764a0a",
+      "byteLength": 392848,
+      "features": [
+        "verapdf",
+        "pdfa-1b",
+        "devicen",
+        "calculator-tint-transform"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 1,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 11918,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 12,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 4,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "FullRewrite",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "FullRewrite",
+          "ModifyPageTree": "FullRewrite",
+          "MergeDocuments": "FullRewrite",
+          "ModifyPageContent": "FullRewrite",
+          "ModifyCatalog": "FullRewrite",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "FullRewrite",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "FullRewrite",
+          "ModifyJavaScript": "FullRewrite"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 0,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 1,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-1b:UnsupportedProfile"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 146
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 123
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 6
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 31
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 49
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 9
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 412,
+      "workerWallClockMilliseconds": 491,
+      "workerCpuMilliseconds": 453,
+      "peakWorkingSetBytes": 83398656,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-indexed-icc-content",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-2b/6.2 Graphics/6.2.4.5 Indexed and Pattern colour spaces/veraPDF test suite 6-2-4-5-t01-pass-a.pdf",
+      "sha256": "5cda438b8ceb59ba138f99c92401cd894c0fed92379ff028b2690f6debc37400",
+      "byteLength": 3969,
+      "features": [
+        "verapdf",
+        "pdfa-2b",
+        "indexed-content",
+        "iccbased-palette"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 0,
+        "embeddedFontCount": 0,
+        "subsetFontCount": 0,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 0,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 641,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 12,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 4,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "FullRewrite",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "FullRewrite",
+          "ModifyPageTree": "FullRewrite",
+          "MergeDocuments": "FullRewrite",
+          "ModifyPageContent": "FullRewrite",
+          "ModifyCatalog": "FullRewrite",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "FullRewrite",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "FullRewrite",
+          "ModifyJavaScript": "FullRewrite"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 1,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-2b:InternalGaps"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 122
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 111
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 4
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 28
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 18
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 8
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 335,
+      "workerWallClockMilliseconds": 403,
+      "workerCpuMilliseconds": 390,
+      "peakWorkingSetBytes": 60227584,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-optional-content",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-4/6.10 Optional content/veraPDF test suite 6-10-t01-pass-a.pdf",
+      "sha256": "4167d8dde59a858ff0521d83f7bc69c4017033952a1ac236ff00586bc36d6084",
+      "byteLength": 42510,
+      "features": [
+        "verapdf",
+        "pdfa-4",
+        "optional-content",
+        "tagged"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 16,
+        "paragraphCount": 1,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 1,
+        "embeddedFontCount": 1,
+        "subsetFontCount": 1,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 1,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 0,
+        "optionalContentGroupCount": 1,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 295,
+        "renderDiagnosticCodes": [
+          "render.resource.font-substitution"
+        ],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 2,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 14,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "Blocked",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "Blocked",
+          "ModifyPageTree": "Blocked",
+          "MergeDocuments": "Blocked",
+          "ModifyPageContent": "Blocked",
+          "ModifyCatalog": "Blocked",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "Blocked",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "Blocked",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "Blocked",
+          "ModifyJavaScript": "Blocked"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 1,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-4:InternalGaps"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 195
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 164
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 14
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 5
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 9
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 42
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 68
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 37
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "16"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "render.resource.font-substitution",
+          "actual": "render.resource.font-substitution"
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        },
+        {
+          "name": "optional-content-groups",
+          "succeeded": true,
+          "expected": "\u003E= 1",
+          "actual": "1"
+        }
+      ],
+      "durationMilliseconds": 571,
+      "workerWallClockMilliseconds": 649,
+      "workerCpuMilliseconds": 593,
+      "peakWorkingSetBytes": 70193152,
+      "operationalScore": 1,
+      "expectationScore": 1
+    },
+    {
+      "id": "standard-zero-area-annotation",
+      "sourceId": "verapdf-corpus",
+      "sourcePath": "PDF_A-2b/6.3 Annotations/6.3.3 Annotation appearances/veraPDF test suite 6-3-3-t01-pass-a.pdf",
+      "sha256": "93ac7ed7dfcd86d81e7a4865220fc77eb2284297370aca5a87c10e2d3e75d10b",
+      "byteLength": 3160,
+      "features": [
+        "verapdf",
+        "pdfa-2b",
+        "text-annotation",
+        "zero-area",
+        "appearance-exemption"
+      ],
+      "outcome": "passed",
+      "timedOut": false,
+      "metrics": {
+        "pageCount": 1,
+        "textCharacters": 0,
+        "paragraphCount": 0,
+        "crossPageParagraphCount": 0,
+        "tableCount": 0,
+        "crossPageTableCount": 0,
+        "fontCount": 0,
+        "embeddedFontCount": 0,
+        "subsetFontCount": 0,
+        "missingToUnicodeFontCount": 0,
+        "unreadableToUnicodeFontCount": 0,
+        "fontResourceReferenceCount": 0,
+        "imageCount": 0,
+        "imagePlacementCount": 0,
+        "attachmentCount": 0,
+        "linkCount": 0,
+        "annotationCount": 1,
+        "optionalContentGroupCount": 0,
+        "renderAttemptedPages": 1,
+        "renderSucceededPages": 1,
+        "renderOutputBytes": 108,
+        "renderDiagnosticCodes": [],
+        "repairCodes": [],
+        "annotationActionTypes": [],
+        "mutationMode": "AppendOnly",
+        "mutationBlockerCodes": [],
+        "mutationPlanCount": 21,
+        "fullRewriteMutationPlanCount": 12,
+        "appendOnlyMutationPlanCount": 5,
+        "blockedMutationPlanCount": 4,
+        "mutationPlanModes": {
+          "UpdateMetadata": "AppendOnly",
+          "FillFormFields": "AppendOnly",
+          "FlattenFormFields": "Blocked",
+          "FillAndFlattenFormFields": "Blocked",
+          "ModifyAcroForm": "FullRewrite",
+          "PrepareExternalSignature": "AppendOnly",
+          "FinalizeExternalSignature": "Blocked",
+          "ExtractPages": "FullRewrite",
+          "ModifyPageTree": "FullRewrite",
+          "MergeDocuments": "FullRewrite",
+          "ModifyPageContent": "FullRewrite",
+          "ModifyCatalog": "FullRewrite",
+          "ModifyAnnotations": "AppendOnly",
+          "ModifyAttachments": "FullRewrite",
+          "ChangeEncryption": "FullRewrite",
+          "Optimize": "FullRewrite",
+          "Redact": "FullRewrite",
+          "EnrichLongTermValidation": "Blocked",
+          "SynchronizeMetadata": "AppendOnly",
+          "Sanitize": "FullRewrite",
+          "ModifyJavaScript": "FullRewrite"
+        },
+        "declaredComplianceClaimCount": 1,
+        "recognizedComplianceClaimCount": 1,
+        "claimableComplianceClaimCount": 0,
+        "unsupportedComplianceClaimCount": 0,
+        "declaredComplianceClaimStatuses": [
+          "PDF/A-2b:InternalGaps"
+        ]
+      },
+      "checks": [
+        {
+          "name": "open-and-inspect",
+          "succeeded": true,
+          "durationMilliseconds": 139
+        },
+        {
+          "name": "text",
+          "succeeded": true,
+          "durationMilliseconds": 38
+        },
+        {
+          "name": "logical-semantics",
+          "succeeded": true,
+          "durationMilliseconds": 2
+        },
+        {
+          "name": "font-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "image-inspection",
+          "succeeded": true,
+          "durationMilliseconds": 3
+        },
+        {
+          "name": "managed-svg-render",
+          "succeeded": true,
+          "durationMilliseconds": 29
+        },
+        {
+          "name": "mutation-portfolio",
+          "succeeded": true,
+          "durationMilliseconds": 20
+        },
+        {
+          "name": "declared-compliance-claims",
+          "succeeded": true,
+          "durationMilliseconds": 10
+        }
+      ],
+      "expectations": [
+        {
+          "name": "page-count",
+          "succeeded": true,
+          "expected": "1",
+          "actual": "1"
+        },
+        {
+          "name": "text-characters",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "attachments",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "links",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "0"
+        },
+        {
+          "name": "annotations",
+          "succeeded": true,
+          "expected": "\u003E= 0",
+          "actual": "1"
+        },
+        {
+          "name": "annotation-action-types",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "repair-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "render-succeeded",
+          "succeeded": true,
+          "expected": "True",
+          "actual": "True"
+        },
+        {
+          "name": "render-diagnostic-codes",
+          "succeeded": true,
+          "expected": "",
+          "actual": ""
+        },
+        {
+          "name": "mutation-mode",
+          "succeeded": true,
+          "expected": "AppendOnly",
+          "actual": "AppendOnly"
+        }
+      ],
+      "durationMilliseconds": 282,
+      "workerWallClockMilliseconds": 368,
+      "workerCpuMilliseconds": 312,
+      "peakWorkingSetBytes": 56573952,
+      "operationalScore": 1,
+      "expectationScore": 1
+    }
+  ],
+  "uniqueFiles": 14,
+  "operations": [
+    {
+      "name": "open-and-inspect",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "text",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "logical-semantics",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "font-inspection",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "image-inspection",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "managed-svg-render",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "mutation-portfolio",
+      "attempted": 14,
+      "succeeded": 14
+    },
+    {
+      "name": "declared-compliance-claims",
+      "attempted": 14,
+      "succeeded": 14
+    }
+  ]
+}

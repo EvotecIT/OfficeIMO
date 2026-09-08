@@ -269,7 +269,7 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         if ($hubArtifact -notmatch "$registeredComparisonCount maintained comparisons") {
             Add-Failure "The rendered comparison hub does not show the registered count '$registeredComparisonCount'."
         }
-        if ($hubArtifact -notmatch [regex]::Escape("Reviewed $($registry.lastReviewed)")) {
+        if ($hubArtifact -notmatch [regex]::Escape("Full catalog review $($registry.lastReviewed)")) {
             Add-Failure "The rendered comparison hub does not show registry review date '$($registry.lastReviewed)'."
         }
     }
@@ -317,6 +317,46 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
             }
         }
     }
+}
+
+$corpusPath = Join-Path $SiteRoot 'data/pdf_corpus_report.json'
+$corpusPublicationPath = Join-Path $SiteRoot 'data/pdf_corpus_publication.json'
+if ((Test-Path -LiteralPath $corpusPath) -and (Test-Path -LiteralPath $corpusPublicationPath)) {
+    $corpus = Get-Content -LiteralPath $corpusPath -Raw | ConvertFrom-Json
+    $publication = Get-Content -LiteralPath $corpusPublicationPath -Raw | ConvertFrom-Json
+    if ((Get-FileHash -LiteralPath $corpusPath -Algorithm SHA256).Hash -ne $publication.reportSha256) {
+        Add-Failure 'The corpus publication hash does not match its raw report.'
+    }
+    if ($publication.sourceRevision -notmatch '^[a-f0-9]{40}$' -or $publication.engineSha256 -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'The corpus publication must identify its source revision and tested engine artifact.'
+    }
+    $cases = @($corpus.cases)
+    $uniqueFiles = @($cases.sha256 | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() } | Sort-Object -Unique).Count
+    if ($corpus.schemaVersion -ne 1 -or $corpus.measurementStatus -ne 'measured' -or
+        $cases.Count -eq 0 -or $cases.Count -ne $corpus.totals.cases -or $uniqueFiles -ne $corpus.uniqueFiles) {
+        Add-Failure 'The corpus case and unique-input totals do not match the recorded evidence.'
+    }
+    $checks = @($cases | ForEach-Object { $_.checks })
+    $groups = @($checks | Group-Object name)
+    if ($groups.Count -ne @($corpus.operations).Count) {
+        Add-Failure 'The corpus operation summary omits or duplicates recorded checks.'
+    }
+    foreach ($group in $groups) {
+        $operation = @($corpus.operations | Where-Object name -EQ $group.Name)
+        $succeeded = @($group.Group | Where-Object succeeded).Count
+        if ($operation.Count -ne 1 -or $operation[0].attempted -ne $group.Count -or $operation[0].succeeded -ne $succeeded) {
+            Add-Failure "Corpus operation '$($group.Name)' does not match the observed checks."
+        }
+    }
+    if ($ArtifactRoot) {
+        $publishedReport = Join-Path $ArtifactRoot 'data/corpus/pdf-quality-windows.json'
+        if (-not (Test-Path -LiteralPath $publishedReport) -or
+            (Get-FileHash -LiteralPath $publishedReport -Algorithm SHA256).Hash -ne $publication.reportSha256) {
+            Add-Failure 'The rendered site must publish the exact corpus report behind the summary.'
+        }
+    }
+} else {
+    Add-Failure 'The corpus report and publication provenance must be present together.'
 }
 
 if ($failures.Count -gt 0) {
