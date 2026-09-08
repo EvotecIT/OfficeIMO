@@ -30,7 +30,7 @@ internal static partial class OfficeDocumentModelTraversal {
                 .Where(page => page?.Blocks != null)
                 .SelectMany(page => page.Blocks));
         OfficeDocumentBlock[] materialized = candidates.Where(block => block != null).ToArray();
-        foreach (OfficeDocumentBlock block in OrderBlocks(materialized, projections.ResolveLocation)) {
+        foreach (OfficeDocumentBlock block in OrderBlocks(materialized, projections.ResolveLocation, document.Pages)) {
             ReaderLocation? location = projections.ResolveLocation(block);
             // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
             yield return location != null && !ReferenceEquals(location, block.Location)
@@ -46,7 +46,8 @@ internal static partial class OfficeDocumentModelTraversal {
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
         IEnumerable<OfficeDocumentBlock> candidates,
-        Func<OfficeDocumentBlock, ReaderLocation?> locationSelector) {
+        Func<OfficeDocumentBlock, ReaderLocation?> locationSelector,
+        IEnumerable<OfficeDocumentPage>? pages = null) {
         if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var identities = new HashSet<string>(StringComparer.Ordinal);
@@ -59,101 +60,7 @@ internal static partial class OfficeDocumentModelTraversal {
                 ordered.Add(block);
             }
         }
-        return OrderSourceItems(ordered, locationSelector);
-    }
-
-    internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
-        var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var pageMatches = new Dictionary<string, Queue<(ReaderTable Table, OfficeDocumentPage Page, int Index)>>(StringComparer.Ordinal);
-        var pageReferences = new Dictionary<ReaderTable, (OfficeDocumentPage Page, int Index)>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        var matchedPages = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        var aggregateReferences = new HashSet<ReaderTable>(document.Tables ?? Array.Empty<ReaderTable>(), ReferenceIdentityComparer<ReaderTable>.Instance);
-        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
-            if (page?.Tables == null) continue;
-            for (int index = 0; index < page.Tables.Count; index++) {
-                ReaderTable table = page.Tables[index];
-                if (table == null) continue;
-                if (!pageReferences.ContainsKey(table)) pageReferences.Add(table, (page, index));
-                string rawIdentity = BuildTableIdentity(table);
-                string scopedIdentity = BuildTableIdentity(table, page, index);
-                AddMatch(rawIdentity, table, page, index);
-                if (rawIdentity != scopedIdentity) AddMatch(scopedIdentity, table, page, index);
-                AddMatch("unscoped:" + BuildTableIdentity(table, includeLocation: false), table, page, index);
-            }
-        }
-        void AddMatch(string identity, ReaderTable table, OfficeDocumentPage page, int index) {
-            if (!pageMatches.TryGetValue(identity, out var matches)) {
-                matches = new Queue<(ReaderTable, OfficeDocumentPage, int)>();
-                pageMatches.Add(identity, matches);
-            }
-            matches.Enqueue((table, page, index));
-        }
-        foreach (ReaderTable table in document.Tables ?? System.Array.Empty<ReaderTable>()) {
-            if (table == null || !seen.Add(table)) continue;
-            ReaderTable projected = table;
-            if (pageReferences.TryGetValue(table, out var pageReference)) {
-                matchedPages.Add(table);
-                projected = WithPageLocationFallback(table, pageReference.Page, pageReference.Index);
-            } else {
-                var keys = new List<string> { BuildTableIdentity(table) };
-                if (table.Location?.Page == null && table.Location?.Slide == null && string.IsNullOrWhiteSpace(table.Location?.Sheet))
-                    keys.Insert(0, "unscoped:" + BuildTableIdentity(table, includeLocation: false));
-                foreach (string key in keys) {
-                    if (!pageMatches.TryGetValue(key, out var matches)) continue;
-                    int remaining = matches.Count;
-                    bool found = false;
-                    while (remaining-- > 0) {
-                        var match = matches.Dequeue();
-                        if (matchedPages.Contains(match.Table) || aggregateReferences.Contains(match.Table)) continue;
-                        ReaderTable candidate = WithPageLocationFallback(match.Table, match.Page, match.Index);
-                        ReaderTable proposed = WithLocationFallback(table, candidate.Location!, candidate.Location!.TableIndex);
-                        // Use the canonical located identity: checking only page/path would erase
-                        // distinct source blocks, ranges or heading positions with identical cells.
-                        if (BuildTableIdentity(proposed) != BuildTableIdentity(candidate)) {
-                            matches.Enqueue(match);
-                            continue;
-                        }
-                        matchedPages.Add(match.Table);
-                        projected = proposed;
-                        found = true;
-                        break;
-                    }
-                    if (found) break;
-                }
-            }
-            // Matching counts retain repeated equal tables while reconciling aggregate/page copies
-            // whose object references were separated by a Reader JSON round-trip.
-            IncrementIdentity(aggregateIdentityCounts, BuildTableIdentity(projected, null, null));
-            yield return projected;
-        }
-        foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
-            if (page?.Tables == null) continue;
-            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
-                ReaderTable table = page.Tables[tableIndex];
-                if (table == null || matchedPages.Contains(table) || !seen.Add(table)) continue;
-                ReaderTable scopedTable = WithPageLocationFallback(table, page, tableIndex);
-                string identity = BuildTableIdentity(scopedTable, null, null);
-                if (aggregateIdentityCounts.ContainsKey(identity)) continue;
-                IncrementIdentity(aggregateIdentityCounts, identity);
-                yield return scopedTable;
-            }
-        }
-        var chunkIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        int fallbackTableIndex = 0;
-        foreach (ReaderChunk chunk in document.Chunks ?? System.Array.Empty<ReaderChunk>()) {
-            if (chunk?.Tables == null) continue;
-            foreach (ReaderTable table in chunk.Tables) {
-                if (table == null || !seen.Add(table)) {
-                    fallbackTableIndex++;
-                    continue;
-                }
-                string identity = BuildTableIdentity(table, chunk.Location, fallbackTableIndex++);
-                int occurrence = IncrementIdentity(chunkIdentityCounts, identity);
-                if (aggregateIdentityCounts.TryGetValue(identity, out int aggregateCount) && occurrence <= aggregateCount) continue;
-                yield return table;
-            }
-        }
+        return OrderSourceItems(ordered, locationSelector, pages);
     }
 
     internal static IEnumerable<ReaderTable> TableInstances(OfficeDocumentReadResult document) {
@@ -419,14 +326,14 @@ internal static partial class OfficeDocumentModelTraversal {
         return count;
     }
 
-    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null, bool includeLocation = true) {
+    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null, bool includeLocation = true, bool includeAnchor = true) {
         var builder = new StringBuilder();
         AppendIdentity(builder, table.PayloadHash);
         AppendIdentity(builder, table.CallId);
         AppendIdentity(builder, table.Kind);
         AppendIdentity(builder, table.Title);
         if (includeLocation) AppendLocationIdentity(builder, table.Location, fallback, fallbackTableIndex);
-        else AppendIdentity(builder, table.Location?.BlockAnchor);
+        else if (includeAnchor) AppendIdentity(builder, table.Location?.BlockAnchor);
         AppendIdentity(builder, table.Columns);
         foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) AppendIdentity(builder, row);
         AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));

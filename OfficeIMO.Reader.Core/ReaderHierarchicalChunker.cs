@@ -228,7 +228,8 @@ public static partial class ReaderHierarchicalChunker {
 
         IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(
             candidates,
-            pageIndex.ResolveLocation);
+            pageIndex.ResolveLocation,
+            pageIndex.InspectedPages);
         if (ordered.Count > maximumInputChunks) limitReached = true;
         int selectedCount = Math.Min(ordered.Count, maximumInputChunks);
         for (int blockIndex = 0; blockIndex < selectedCount; blockIndex++) {
@@ -266,7 +267,9 @@ public static partial class ReaderHierarchicalChunker {
             cancellationToken.ThrowIfCancellationRequested();
             inspections++;
             OfficeDocumentPage page = pages[pageIndex];
-            if (page?.Blocks == null) continue;
+            if (page == null) continue;
+            projections.RegisterPage(page);
+            if (page.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
             int blockIndex = 0;
             for (;

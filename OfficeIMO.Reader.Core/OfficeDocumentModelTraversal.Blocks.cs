@@ -11,6 +11,10 @@ internal static partial class OfficeDocumentModelTraversal {
             new(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         private readonly Dictionary<string, List<ReaderLocation>> _identityLocations = new(StringComparer.Ordinal);
 
+        private readonly List<OfficeDocumentPage> _inspectedPages = new();
+        internal IReadOnlyList<OfficeDocumentPage> InspectedPages => _inspectedPages;
+        internal void RegisterPage(OfficeDocumentPage page) => _inspectedPages.Add(page);
+
         internal void Add(OfficeDocumentBlock block, OfficeDocumentPage page) {
             ReaderLocation fallback = BuildPageLocation(page);
             // Explicit block container coordinates remain authoritative.

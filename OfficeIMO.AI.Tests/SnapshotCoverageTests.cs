@@ -305,6 +305,35 @@ public sealed class SnapshotCoverageTests {
         Assert.Equal(expected, input.RootElement.GetProperty("evidence").EnumerateArray().Select(item => item.GetProperty("text").GetString()));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PageAndChunkTableCopiesProduceOneSetOfEvidenceAfterTransport(bool aggregate) {
+        var tables = Enumerable.Range(0, 4).Select(_ => new ReaderTable { Location = null,
+            Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } } }).ToArray();
+        var source = new OfficeDocumentReadResult {
+            Tables = aggregate ? tables : Array.Empty<ReaderTable>(),
+            Pages = Enumerable.Range(1, 2).Select(page => new OfficeDocumentPage { Number = page,
+                Tables = tables.Skip((page - 1) * 2).Take(2).ToArray() }).ToArray(),
+            Chunks = Enumerable.Range(1, 2).Select(page => new ReaderChunk { Location = new() { Page = page },
+                Tables = tables.Skip((page - 1) * 2).Take(2).ToArray() }).ToArray()
+        };
+        string? snapshot = null;
+        foreach (bool roundTrip in new[] { false, true }) {
+            var reader = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+            var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, reader);
+            Assert.Equal(8, document.Evidence.Count);
+            Assert.Equal(new int?[] { 1, 1, 1, 1, 2, 2, 2, 2 }, document.Evidence.Select(item => item.Page));
+            snapshot ??= document.SnapshotHash;
+            Assert.Equal(snapshot, document.SnapshotHash);
+            var executor = new Capture();
+            var result = await new OfficeAiEngine(executor).RunAsync(document, new() { Instruction = "Read tables" });
+            Assert.Equal(8, result.ProcessedEvidenceIds.Count);
+            using var input = JsonDocument.Parse(Assert.Single(executor.Requests).InputJson);
+            Assert.Equal(8, input.RootElement.GetProperty("evidence").GetArrayLength());
+        }
+    }
+
     private sealed class Capture : IOfficeAiExecutor {
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "fixture", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();

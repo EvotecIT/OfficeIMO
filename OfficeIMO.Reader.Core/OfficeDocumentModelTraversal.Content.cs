@@ -68,8 +68,9 @@ internal static partial class OfficeDocumentModelTraversal {
             if (!string.IsNullOrWhiteSpace(sheet) && !sheetOrder.ContainsKey(sheet!)) sheetOrder.Add(sheet!, sheetOrder.Count);
         }
         foreach (OfficeDocumentPage page in pages ?? Array.Empty<OfficeDocumentPage>()) {
-            RegisterPath(page?.Location?.Path);
-            RegisterSheet(page?.Location?.Sheet);
+            ReaderLocation? location = page?.GetResolvedLocation();
+            RegisterPath(location?.Path);
+            RegisterSheet(location?.Sheet);
         }
         var ordered = candidates.Select((item, index) => (Item: item, Location: locationSelector(item), Index: index)).ToList();
         foreach (var item in ordered) {
