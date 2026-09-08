@@ -4,17 +4,40 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderBlockFragmentProjectionTests {
-    [Fact]
-    public void WordParagraphSpanningComputedPagesRetainsEveryVisibleFragment() {
+    [Theory]
+    [InlineData("inherit")]
+    [InlineData("conflict")]
+    [InlineData("aggregate")]
+    public void GeometryFallbackRequiresOneCompatibleObservation(string mode) {
+        var aggregate = new OfficeDocumentBlock { Id = "source", Text = "Aggregate text", Region = mode == "aggregate" ? new() { X = 9 } : null };
+        var source = new OfficeDocumentReadResult { Blocks = new[] { aggregate }, Pages = new[] { new OfficeDocumentPage { Number = 1,
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "source", Text = "Page text", Region = new() { X = 1 } },
+                new OfficeDocumentBlock { Id = "source", Text = "Page text", Region = new() { X = mode == "conflict" ? 2 : 1 } }
+            } } } };
+        foreach (var document in new[] { source, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) }) {
+            var block = Assert.Single(document.EnumerateBlocks());
+            Assert.Equal("Aggregate text", block.Text);
+            if (mode == "conflict") Assert.Null(block.Region);
+            else Assert.Equal(mode == "aggregate" ? 9 : 1, block.Region!.X);
+        }
+        Assert.Equal(mode == "aggregate" ? 9 : (double?)null, aggregate.Region?.X);
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(1200)]
+    public void WordParagraphRetainsComputedPageTextAndGeometry(int words) {
         using var stream = new MemoryStream();
         using (var word = OfficeIMO.Word.WordDocument.Create(stream)) {
-            word.AddParagraph(string.Join(" ", Enumerable.Range(0, 1200).Select(index => "word" + index)));
+            word.AddParagraph(string.Join(" ", Enumerable.Range(0, words).Select(index => "word" + index)));
             word.Save();
         }
         stream.Position = 0;
         var source = OfficeIMO.Reader.Tests.ReaderTestReaders.Word(includePageLocations: true).ReadDocument(stream, "paragraph.docx");
         var fragments = source.Pages.SelectMany(page => page.Blocks).Where(block => !string.IsNullOrWhiteSpace(block.Text)).ToArray();
-        Assert.True(fragments.Length > 1);
+        if (words > 5) Assert.True(fragments.Length > 1);
+        else Assert.Single(fragments);
         Assert.Single(fragments.Select(block => block.Id).Distinct());
         foreach (var document in new[] { source, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) }) {
             var blocks = document.EnumerateBlocks().Where(block => !string.IsNullOrWhiteSpace(block.Text)).ToArray();
@@ -22,6 +45,22 @@ public sealed class ReaderBlockFragmentProjectionTests {
             Assert.Equal(fragments.Select(block => block.Location!.Page), blocks.Select(block => block.Location!.Page));
             Assert.All(blocks, block => Assert.NotNull(block.Region));
         }
+    }
+
+    [Fact]
+    public void PartialPageInspectionCannotLocateTheFullAggregateAtItsFirstFragment() {
+        var source = new OfficeDocumentReadResult { Blocks = new[] { new OfficeDocumentBlock { Id = "source", Text = "Alpha. Beta." } },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = new[] { new OfficeDocumentBlock { Id = "source", Text = "Alpha." } }
+                    .Concat(Enumerable.Range(0, 14).Select(index => new OfficeDocumentBlock { Id = "filler" + index, Text = "Other" })).ToArray() },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { new OfficeDocumentBlock { Id = "source", Text = "Beta." } } }
+            } };
+        var hierarchy = ReaderHierarchicalChunker.Chunk(source, new ReaderHierarchicalChunkingOptions {
+            MaxInputChunks = 1, MaxTokens = 100, OverlapTokens = 0, IncludeContextInText = false });
+        var chunk = Assert.Single(hierarchy.Chunks);
+        Assert.Equal("Alpha.", chunk.Text);
+        Assert.Equal(1, chunk.Location.Page);
+        Assert.Contains(hierarchy.Diagnostics, item => item.Code == "hierarchical-input-chunk-limit");
     }
 
     [Theory]

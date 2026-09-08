@@ -32,10 +32,11 @@ internal static partial class OfficeDocumentModelTraversal {
         OfficeDocumentBlock[] materialized = candidates.Where(block => block != null).ToArray();
         foreach (OfficeDocumentBlock block in OrderBlocks(materialized.Where(block => !projections.HasPageFragments(block)), projections.ResolveLocation, document.Pages)) {
             ReaderLocation? location = projections.ResolveLocation(block);
+            OfficeDocumentRegion? region = projections.ResolveRegion(block);
             // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
-            yield return location != null && !ReferenceEquals(location, block.Location)
+            yield return (location != null && !ReferenceEquals(location, block.Location)) || !ReferenceEquals(region, block.Region)
                 ? new OfficeDocumentBlock { Id = block.Id, Kind = block.Kind, Text = block.Text, Level = block.Level,
-                    Marker = block.Marker, Region = block.Region, Location = location }
+                    Marker = block.Marker, Region = region, Location = location ?? block.Location }
                 : block;
         }
     }

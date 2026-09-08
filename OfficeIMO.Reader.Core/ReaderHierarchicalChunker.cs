@@ -223,6 +223,7 @@ public static partial class ReaderHierarchicalChunker {
             cancellationToken,
             out bool pageInspectionLimitReached);
         limitReached |= pageInspectionLimitReached;
+        pageIndex.IsComplete = !pageInspectionLimitReached;
 
         IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(
             candidates.Where(block => !pageIndex.HasPageFragments(block)),

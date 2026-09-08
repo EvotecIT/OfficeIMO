@@ -18,6 +18,7 @@ public sealed partial class OfficeAiEngine {
     /// Processes an immutable snapshot. Remote processing requires explicit request authorization.
     /// Cancellation/timeout stops new work and ignores late results. Provider exceptions are sanitized in the result.
     /// </summary>
+    /// <exception cref="InvalidDataException">The executor cannot measure a request before inference starts; no model request is sent.</exception>
     public async Task<OfficeAiResult> RunAsync(OfficeAiDocument document, OfficeAiRequest request,
         IProgress<OfficeAiProgress>? progress = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
@@ -135,6 +136,19 @@ public sealed partial class OfficeAiEngine {
     private static void ReportProgress(IProgress<OfficeAiProgress>? progress, OfficeAiProgress value) {
         try { progress?.Report(value); }
         catch (Exception exception) when (exception is not OutOfMemoryException) { /* Observational callbacks cannot replace the document operation's outcome. */ }
+    }
+
+    private bool TryMeasureRequest(OfficeAiExecutionRequest request, CancellationToken token, out int characters) {
+        token.ThrowIfCancellationRequested();
+        try {
+            characters = _executor.MeasureRequestCharacters(request);
+            token.ThrowIfCancellationRequested();
+            return characters >= 0;
+        } catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+          catch (Exception exception) when (exception is not OutOfMemoryException) {
+            characters = 0;
+            return false;
+        }
     }
 
     private async Task<OfficeAiExecutionResponse> ExecuteBoundedAsync(OfficeAiExecutionRequest request, CancellationToken token) {

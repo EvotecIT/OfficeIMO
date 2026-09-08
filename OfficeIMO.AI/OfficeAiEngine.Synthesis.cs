@@ -37,11 +37,15 @@ public sealed partial class OfficeAiEngine {
             foreach (OfficeAiClaim claim in current) {
                 token.ThrowIfCancellationRequested();
                 group.Add(claim);
-                if (group.Count <= 200 && _executor.MeasureRequestCharacters(Create(group, calls + groups.Count + 1)) <= maximum) continue;
+                if (group.Count <= 200) {
+                    if (!TryMeasureRequest(Create(group, calls + groups.Count + 1), token, out int characters)) return Finish(false);
+                    if (characters <= maximum) continue;
+                }
                 group.RemoveAt(group.Count - 1);
                 if (group.Count > 0) groups.Add(group);
                 group = new() { claim };
-                if (_executor.MeasureRequestCharacters(Create(group, calls + groups.Count + 1)) > maximum) return Finish(false);
+                if (!TryMeasureRequest(Create(group, calls + groups.Count + 1), token, out int singleCharacters)
+                    || singleCharacters > maximum) return Finish(false);
             }
             if (group.Count > 0) groups.Add(group);
             if (groups.Count == 0) return Finish(false);

@@ -46,9 +46,13 @@ public sealed partial class OfficeAiEngine {
         string outputSchema = CreateOutputSchema(request);
         OfficeAiExecutionRequest CreateRequest() => new(requestId + "-" + (batches.Count + 1), Instructions, Serialize(), outputSchema,
             Array.AsReadOnly(currentImages.ToArray()), request.Limits.MaxResponseCharacters);
-        bool Fits() => currentImages.Sum(image => (long)image.ByteLength) <= Math.Min(profile.MaxImageBytes, request.Limits.MaxImageBytes)
-            && currentImages.Sum(image => (long)image.Width * image.Height) <= request.Limits.MaxImagePixels
-            && _executor.MeasureRequestCharacters(CreateRequest()) <= maxCharacters;
+        bool Fits() {
+            if (currentImages.Sum(image => (long)image.ByteLength) > Math.Min(profile.MaxImageBytes, request.Limits.MaxImageBytes)
+                || currentImages.Sum(image => (long)image.Width * image.Height) > request.Limits.MaxImagePixels) return false;
+            if (!TryMeasureRequest(CreateRequest(), token, out int characters))
+                throw new InvalidDataException("The executor could not measure this request.");
+            return characters <= maxCharacters;
+        }
         void Flush() {
             if (currentText.Count + currentImages.Count == 0) return;
             string[] ids = currentText.Select(item => slices.TryGetValue(item.Id, out var slice) ? slice.OriginalId : item.Id)
