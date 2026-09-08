@@ -47,6 +47,27 @@ Every selected page is rendered to a bounded raster request. Pixel, point, and n
 
 `NativeDocument` retains the native-only parse. `Document` is the canonical native-plus-OCR parse and can be passed directly to the existing PDF-to-Word, Excel, PowerPoint, HTML, RTF, or OpenDocument adapters. Page results retain accepted words, provider/model/language evidence, rejections, and diagnostics.
 
+## Reconstruct columns and mixed-direction text
+
+Provider line hierarchy and logical sequence are preserved by default. If a provider joins two columns into one line or supplies an unsuitable page order, enable geometry-based reconstruction:
+
+```csharp
+PdfOcrMergeResult reconstructed = await pdf.ReadWithOcrAsync(engine,
+    new PdfOcrMergeOptions {
+        ReconstructLayout = true,
+        Language = "heb+ara+eng",
+        ReadOptions = new PdfReadOptions {
+            LayoutOptions = new PdfTextLayoutOptions {
+                ReadingDirection = PdfReadingDirection.RightToLeft
+            }
+        }
+    });
+```
+
+The shared PDF stages rebuild OCR lines, columns, and aligned tables from accepted words. Mixed-direction fragments use the same logical-order resolver as native text. Dominant quarter-turn layouts are analyzed in a corrected reading frame; returned words, selection rectangles, and table bounds use the original page geometry. Explicit direction is useful for ambiguous pages; `Auto` remains the default.
+
+Reconstruction does not repair recognition errors or infer a figure from its caption vocabulary. A full-page scan can retain caption text without exposing a separate figure region or classified caption. Searchable output preserves the visible scan and supports subsequent line and table reconstruction from its invisible selection boxes. See the [independent layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md) for measured coverage and limits.
+
 ## Prepare uneven or rotated scans
 
 Scan cleanup is opt-in and uses the shared `OfficeIMO.Core` image processor. It changes the raster sent to OCR; the source PDF and its visible scans are preserved.

@@ -1,0 +1,2621 @@
+{
+  "SchemaVersion": 1,
+  "MeasuredDate": "2026-09-08",
+  "Environment": "Ubuntu 24.04 on WSL, .NET 8.0.30",
+  "TesseractVersion": "5.3.4",
+  "LeptonicaVersion": "1.82.0",
+  "TesseractDataSha256": {
+    "eng": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "pol": "c4476cdbc0e33d898d32345122b7be1cbf85ace15f920f06c7714756e1ef79b2",
+    "deu": "19d219bbb6672c869d20a9636c6816a81eb9a71796cb93ebe0cb1530e2cdb22d",
+    "heb": "11f9e43ab227f786352a50f75c94c2e9906f1baba86d93276da19da7ce0904db",
+    "ara": "e3206d3dc87fd50c24a0fb9f01838615911d25168f4e64415244b67d2bb3e729"
+  },
+  "Stages": [
+    {
+      "Stage": "baseline",
+      "ProductCommit": "316af053340445f7d9933b8560c7f729ff98d8af",
+      "ReconstructLayout": false,
+      "Assemblies": [
+        {
+          "Assembly": "OfficeIMO.Core",
+          "ProductVersion": "3.4.1+316af053340445f7d9933b8560c7f729ff98d8af",
+          "Sha256": "8167D1C6D0D020822DAF6F0072ED8D0850A6C7C8D9E8392F44C67376901567CA"
+        },
+        {
+          "Assembly": "OfficeIMO.Pdf",
+          "ProductVersion": "3.4.1+316af053340445f7d9933b8560c7f729ff98d8af",
+          "Sha256": "789C5BF4866956D76D897DFEBBFE02939F572864FCC90E84E76CA773EEFDEF04"
+        },
+        {
+          "Assembly": "OfficeIMO.Ocr",
+          "ProductVersion": "3.4.1+316af053340445f7d9933b8560c7f729ff98d8af",
+          "Sha256": "B1AFA0689BCFD847EB73C30D6EF9D176D48356792C3BD80CFA17BE73E607C59A"
+        },
+        {
+          "Assembly": "OfficeIMO.Pdf.Ocr",
+          "ProductVersion": "3.4.1+316af053340445f7d9933b8560c7f729ff98d8af",
+          "Sha256": "F8FB3168F4E41E4447A880747A5CB3D0BD2187278747282A345445711D804B4A"
+        },
+        {
+          "Assembly": "OfficeIMO.Ocr.Tesseract",
+          "ProductVersion": "3.4.1+316af053340445f7d9933b8560c7f729ff98d8af",
+          "Sha256": "00418C89E52A3F5CEC620ED39B0D5E3B98F8337B0D02D60EC0BC42598573B5D1"
+        }
+      ],
+      "Measurements": {
+        "Runtime": ".NET 8.0.30",
+        "SourceManifestSha256": "CF8C7776BC751C49203B45F18284A73DD487D59E96F60A6EBFD71F532C28C89E",
+        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table cells and caption classification are separate observations.",
+        "Limit": "Controlled Pango/Cairo fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible.",
+        "RecognitionMetric": "Case-sensitive NFC token multiset precision and recall, ignoring order. This separates recognized-token evidence from canonical line/column ordering; it is not a character accuracy score.",
+        "ProviderRecognition": [
+          {
+            "Id": "latin-0",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 45,
+              "Precision": 0.8653846153846154,
+              "Recall": 0.9
+            }
+          },
+          {
+            "Id": "latin-90",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "latin-180",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "latin-270",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "rtl-0",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 45,
+              "Precision": 0.8823529411764706,
+              "Recall": 0.9375
+            }
+          },
+          {
+            "Id": "rtl-90",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 45,
+              "Precision": 0.8823529411764706,
+              "Recall": 0.9375
+            }
+          },
+          {
+            "Id": "rtl-180",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 46,
+              "Precision": 0.9019607843137255,
+              "Recall": 0.9583333333333334
+            }
+          },
+          {
+            "Id": "rtl-270",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 46,
+              "Precision": 0.9019607843137255,
+              "Recall": 0.9583333333333334
+            }
+          }
+        ],
+        "Cases": [
+          {
+            "Id": "latin-0",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 142,
+              "ExpectedWords": 50,
+              "WordEdits": 24,
+              "CharacterErrorRate": 0.44375,
+              "WordErrorRate": 0.48
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 85,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Zażółć gęślą jaźń.",
+                  "Version Office IMO 12.5 is ready."
+                ],
+                [
+                  "Prüfung der Qualität folgt.",
+                  "Dane końcowe są poprawne."
+                ],
+                [
+                  "Die nächste Zeile bleibt links.",
+                  "Last paragraph closes the report."
+                ]
+              ],
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-0",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 150,
+              "ExpectedWords": 50,
+              "WordEdits": 28,
+              "CharacterErrorRate": 0.46875,
+              "WordErrorRate": 0.56
+            },
+            "ExactSegments": 10,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 44,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-0",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 78,
+              "ExpectedWords": 50,
+              "WordEdits": 18,
+              "CharacterErrorRate": 0.24375,
+              "WordErrorRate": 0.36
+            },
+            "ExactSegments": 5,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 10,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 265,
+              "ExpectedWords": 50,
+              "WordEdits": 85,
+              "CharacterErrorRate": 0.828125,
+              "WordErrorRate": 1.7
+            },
+            "ExactSegments": 0,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "r",
+                  "i"
+                ],
+                [
+                  "a",
+                  ""
+                ],
+                [
+                  "i",
+                  ""
+                ],
+                [
+                  "",
+                  "e"
+                ],
+                [
+                  "ü",
+                  ""
+                ],
+                [
+                  "e",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "ż",
+                  "a"
+                ],
+                [
+                  "r",
+                  ""
+                ],
+                [
+                  "f",
+                  ""
+                ],
+                [
+                  "ó",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "c",
+                  "g"
+                ],
+                [
+                  "",
+                  "za"
+                ],
+                [
+                  "",
+                  "g"
+                ],
+                [
+                  "",
+                  "o"
+                ],
+                [
+                  "h",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "l",
+                  "a"
+                ],
+                [
+                  "l",
+                  ""
+                ],
+                [
+                  "e",
+                  ""
+                ],
+                [
+                  "i",
+                  ""
+                ],
+                [
+                  "",
+                  "a"
+                ]
+              ],
+              [
+                [
+                  "r",
+                  "c"
+                ],
+                [
+                  "n",
+                  ""
+                ],
+                [
+                  "u",
+                  ""
+                ],
+                [
+                  "s",
+                  "n"
+                ],
+                [
+                  "t",
+                  ""
+                ],
+                [
+                  "",
+                  "o"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 147,
+              "ExpectedWords": 50,
+              "WordEdits": 27,
+              "CharacterErrorRate": 0.459375,
+              "WordErrorRate": 0.54
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 54,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 236,
+              "ExpectedWords": 50,
+              "WordEdits": 45,
+              "CharacterErrorRate": 0.7375,
+              "WordErrorRate": 0.9
+            },
+            "ExactSegments": 6,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 3,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 299,
+              "ExpectedWords": 50,
+              "WordEdits": 114,
+              "CharacterErrorRate": 0.934375,
+              "WordErrorRate": 2.28
+            },
+            "ExactSegments": 2,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "63",
+                  "a m amG"
+                ],
+                [
+                  "21",
+                  "a etB"
+                ],
+                [
+                  "42",
+                  "af Al"
+                ],
+                [
+                  "abz icL",
+                  "t kudor P"
+                ],
+                [
+                  ".tr oper eht s es ol c hpar gar ap t s aL",
+                  ". s knil t bi el b eli eZ et s hcän ei D"
+                ],
+                [
+                  ". en war pop ąs e wocńok ena D",
+                  ".t gl of t ätil au Q r ed gnuf ür P"
+                ],
+                [
+                  ". ydaer si 5. 21 O MI ec ffiO noi sr eV",
+                  ". źńaj ąl ś ęg ćł óż a Z"
+                ],
+                [
+                  ". er eh str at s mnul oc dnoceS",
+                  ". si po ar ei w za a mnul ok zas wr ei P"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 147,
+              "ExpectedWords": 50,
+              "WordEdits": 27,
+              "CharacterErrorRate": 0.459375,
+              "WordErrorRate": 0.54
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 54,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 257,
+              "ExpectedWords": 50,
+              "WordEdits": 50,
+              "CharacterErrorRate": 0.803125,
+              "WordErrorRate": 1
+            },
+            "ExactSegments": 2,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 292,
+              "ExpectedWords": 50,
+              "WordEdits": 102,
+              "CharacterErrorRate": 0.9125,
+              "WordErrorRate": 2.04
+            },
+            "ExactSegments": 0,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "o",
+                  "r"
+                ],
+                [
+                  "",
+                  "a"
+                ],
+                [
+                  "l",
+                  ""
+                ],
+                [
+                  "ffi",
+                  ""
+                ],
+                [
+                  "c",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "c",
+                  "r",
+                  "t",
+                  "a"
+                ],
+                [
+                  "",
+                  "",
+                  "l",
+                  ""
+                ],
+                [
+                  "",
+                  "",
+                  "",
+                  "n"
+                ],
+                [
+                  "",
+                  "",
+                  "",
+                  "a"
+                ],
+                [
+                  "",
+                  "",
+                  "",
+                  "o"
+                ]
+              ],
+              [
+                [
+                  "e",
+                  "g"
+                ],
+                [
+                  "",
+                  "t"
+                ],
+                [
+                  "",
+                  "f u"
+                ],
+                [
+                  "i",
+                  "l"
+                ],
+                [
+                  "ś",
+                  ""
+                ],
+                [
+                  "",
+                  "r am"
+                ],
+                [
+                  "",
+                  "et"
+                ]
+              ],
+              [
+                [
+                  "b",
+                  "s"
+                ],
+                [
+                  "o",
+                  ""
+                ],
+                [
+                  "i",
+                  ""
+                ],
+                [
+                  "w",
+                  ""
+                ],
+                [
+                  "f",
+                  "P Al B G"
+                ],
+                [
+                  "",
+                  "y"
+                ]
+              ],
+              [
+                [
+                  "u",
+                  "n"
+                ],
+                [
+                  "w",
+                  ""
+                ],
+                [
+                  "ó",
+                  ""
+                ],
+                [
+                  "f",
+                  ""
+                ],
+                [
+                  "r",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "a",
+                  "ż"
+                ],
+                [
+                  "",
+                  "e"
+                ],
+                [
+                  "",
+                  "ü"
+                ],
+                [
+                  "",
+                  "e"
+                ],
+                [
+                  "",
+                  "i"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 148,
+              "ExpectedWords": 50,
+              "WordEdits": 27,
+              "CharacterErrorRate": 0.4625,
+              "WordErrorRate": 0.54
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 54,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 212,
+              "ExpectedWords": 50,
+              "WordEdits": 36,
+              "CharacterErrorRate": 0.6625,
+              "WordErrorRate": 0.72
+            },
+            "ExactSegments": 6,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 13,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 211,
+              "ExpectedWords": 48,
+              "WordEdits": 39,
+              "CharacterErrorRate": 0.7429577464788732,
+              "WordErrorRate": 0.8125
+            },
+            "ExactSegments": 2,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 1,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  ".انه أدبي ةعجارملا ريرقت",
+                  ".ןאכ הליחתמ הנושארה הדומעה"
+                ],
+                [
+                  ".زهاج Office IMO 12.5 رادصلإا",
+                  ".הנכומ Office IMO 12.5 הסרג"
+                ],
+                [
+                  ".ةظوفحم رابتخلاا ةجيتن",
+                  ".ךמסמב תרמשנ הקידבה תאצות"
+                ],
+                [
+                  ".ريرقتلا قلغت ةريخلأا ةرقفلا",
+                  ".ןימימ תראשנ הנורחאה הרושה"
+                ]
+              ],
+              [
+                [
+                  "תומכ",
+                  "טירפ"
+                ],
+                [
+                  "24",
+                  "אפלא"
+                ],
+                [
+                  "12",
+                  "אטב"
+                ],
+                [
+                  "36",
+                  "אמג"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 156,
+              "ExpectedWords": 48,
+              "WordEdits": 32,
+              "CharacterErrorRate": 0.5492957746478874,
+              "WordErrorRate": 0.6666666666666666
+            },
+            "ExactSegments": 8,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 25,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "24",
+                  "אלפא"
+                ],
+                [
+                  "12",
+                  "בטא"
+                ],
+                [
+                  "36",
+                  "גמא"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 96,
+              "ExpectedWords": 48,
+              "WordEdits": 23,
+              "CharacterErrorRate": 0.3380281690140845,
+              "WordErrorRate": 0.4791666666666667
+            },
+            "ExactSegments": 6,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 15,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 255,
+              "ExpectedWords": 48,
+              "WordEdits": 85,
+              "CharacterErrorRate": 0.897887323943662,
+              "WordErrorRate": 1.7708333333333333
+            },
+            "ExactSegments": 1,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "מ",
+                  "ا"
+                ],
+                [
+                  "3 1 2",
+                  ""
+                ],
+                [
+                  "",
+                  "د"
+                ],
+                [
+                  "ر",
+                  "ر"
+                ],
+                [
+                  "ة",
+                  ""
+                ],
+                [
+                  "6 2 4",
+                  ""
+                ],
+                [
+                  "כ",
+                  "ص"
+                ],
+                [
+                  "ق",
+                  "ي"
+                ],
+                [
+                  "ج",
+                  ""
+                ],
+                [
+                  "",
+                  "ر"
+                ]
+              ],
+              [
+                [
+                  "מ",
+                  "ת"
+                ],
+                [
+                  "מ",
+                  ""
+                ],
+                [
+                  "ש",
+                  ""
+                ],
+                [
+                  "c",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "ח",
+                  "י"
+                ],
+                [
+                  "",
+                  "ד ר"
+                ],
+                [
+                  "",
+                  "ב"
+                ],
+                [
+                  "",
+                  "1"
+                ]
+              ],
+              [
+                [
+                  "ה",
+                  "ה"
+                ],
+                [
+                  "",
+                  "."
+                ],
+                [
+                  "",
+                  "ה"
+                ],
+                [
+                  "",
+                  "5"
+                ],
+                [
+                  "",
+                  "ח"
+                ],
+                [
+                  "ה",
+                  "ת"
+                ],
+                [
+                  "",
+                  "ד"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 149,
+              "ExpectedWords": 48,
+              "WordEdits": 29,
+              "CharacterErrorRate": 0.5246478873239436,
+              "WordErrorRate": 0.6041666666666666
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 52,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 219,
+              "ExpectedWords": 48,
+              "WordEdits": 45,
+              "CharacterErrorRate": 0.7711267605633803,
+              "WordErrorRate": 0.9375
+            },
+            "ExactSegments": 3,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 3,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 263,
+              "ExpectedWords": 48,
+              "WordEdits": 107,
+              "CharacterErrorRate": 0.926056338028169,
+              "WordErrorRate": 2.2291666666666665
+            },
+            "ExactSegments": 2,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "ג מא",
+                  "63"
+                ],
+                [
+                  "ב טא",
+                  "21"
+                ],
+                [
+                  "אלפ א",
+                  "42"
+                ],
+                [
+                  "פרי ט",
+                  "כ מו ת"
+                ],
+                [
+                  "השו ר ה האחרו נ ה נ שאר ת מי מי ן.",
+                  "ال فقرة ا لأخي رة ت غل ق الت قري ر."
+                ],
+                [
+                  "תו צ את הבדי קה נ שמר ת ב מסמך.",
+                  "نتي جة ا لاختبا ر م حفو ظة."
+                ],
+                [
+                  "ג ר סה 5. 21 O MI ec ffiO מו כנ ה.",
+                  "ا لإ صدا ر 5. 21 O MI ec ffiO جا هز."
+                ],
+                [
+                  "העמו ד ה הר אשו נ ה מתחי ל ה כ אן.",
+                  "ت قري ر ال مرا جعة يب دأ هنا."
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 168,
+              "ExpectedWords": 48,
+              "WordEdits": 34,
+              "CharacterErrorRate": 0.5915492957746479,
+              "WordErrorRate": 0.7083333333333334
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 57,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "גמא",
+                  "36"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "פריט",
+                  "כמות"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 234,
+              "ExpectedWords": 48,
+              "WordEdits": 47,
+              "CharacterErrorRate": 0.823943661971831,
+              "WordErrorRate": 0.9791666666666666
+            },
+            "ExactSegments": 4,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 243,
+              "ExpectedWords": 48,
+              "WordEdits": 100,
+              "CharacterErrorRate": 0.8556338028169014,
+              "WordErrorRate": 2.0833333333333335
+            },
+            "ExactSegments": 0,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 0,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "ה",
+                  "ה"
+                ],
+                [
+                  "2",
+                  ""
+                ],
+                [
+                  "ה",
+                  ""
+                ],
+                [
+                  "ב",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "e",
+                  "נ"
+                ],
+                [
+                  "ש",
+                  ""
+                ],
+                [
+                  "c",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "ר",
+                  "ג"
+                ],
+                [
+                  "ת",
+                  ""
+                ],
+                [
+                  "",
+                  "ב"
+                ],
+                [
+                  "ח",
+                  ""
+                ],
+                [
+                  "O",
+                  "פ א"
+                ],
+                [
+                  "י",
+                  ""
+                ],
+                [
+                  "",
+                  "א"
+                ]
+              ],
+              [
+                [
+                  "מ",
+                  "י"
+                ],
+                [
+                  "",
+                  "א"
+                ],
+                [
+                  "ו",
+                  "פ"
+                ],
+                [
+                  "מ",
+                  "מ א ר"
+                ],
+                [
+                  "ה",
+                  ""
+                ],
+                [
+                  "ס",
+                  ""
+                ],
+                [
+                  "",
+                  "י"
+                ],
+                [
+                  "",
+                  "ט"
+                ],
+                [
+                  "כ",
+                  ""
+                ],
+                [
+                  "ס",
+                  "א"
+                ],
+                [
+                  "נ",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "O",
+                  "ت"
+                ],
+                [
+                  "ي",
+                  ""
+                ],
+                [
+                  "ح",
+                  ""
+                ],
+                [
+                  "",
+                  "غ"
+                ],
+                [
+                  "ب",
+                  ""
+                ]
+              ],
+              [
+                [
+                  "أ",
+                  "و"
+                ],
+                [
+                  "",
+                  "ق"
+                ],
+                [
+                  "e",
+                  ""
+                ],
+                [
+                  "ه",
+                  "ظ ا"
+                ],
+                [
+                  "ن",
+                  "ل"
+                ],
+                [
+                  "c",
+                  ""
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 146,
+              "ExpectedWords": 48,
+              "WordEdits": 28,
+              "CharacterErrorRate": 0.5140845070422535,
+              "WordErrorRate": 0.5833333333333334
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 63,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 226,
+              "ExpectedWords": 48,
+              "WordEdits": 46,
+              "CharacterErrorRate": 0.795774647887324,
+              "WordErrorRate": 0.9583333333333334
+            },
+            "ExactSegments": 7,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 4,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 0,
+            "ExpectedTableRows": 4,
+            "Tables": []
+          }
+        ]
+      }
+    },
+    {
+      "Stage": "current",
+      "ProductCommit": "92d170ad46d187f311c02a896289d826e359fd27",
+      "ReconstructLayout": true,
+      "Assemblies": [
+        {
+          "Assembly": "OfficeIMO.Core",
+          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
+          "Sha256": "96046402355B5F9D6CAF5CF01ACF3D0DF827A94C39805A02AC7FFFB1FDC65CEB"
+        },
+        {
+          "Assembly": "OfficeIMO.Pdf",
+          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
+          "Sha256": "EBB45DF5C1BE84BB282024CC679E9FC48EFFBE118AA02A24CFA5D6A4DA8B8E79"
+        },
+        {
+          "Assembly": "OfficeIMO.Ocr",
+          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
+          "Sha256": "DE73F7F119ED406DD93FD753986AEEE2F6AFE3BB37A5CAD2DA64E7C2B582A7CE"
+        },
+        {
+          "Assembly": "OfficeIMO.Pdf.Ocr",
+          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
+          "Sha256": "0794F350F21669AB0793F7670AB457735DED5B7D1996DFBF786A310C1F120A04"
+        },
+        {
+          "Assembly": "OfficeIMO.Ocr.Tesseract",
+          "ProductVersion": "3.4.1+92d170ad46d187f311c02a896289d826e359fd27",
+          "Sha256": "CBD9C15835ED33190FED7721AD66E9C38CABC2210CCD0FC3ECA201BC268B0858"
+        }
+      ],
+      "Measurements": {
+        "Runtime": ".NET 8.0.30",
+        "SourceManifestSha256": "CF8C7776BC751C49203B45F18284A73DD487D59E96F60A6EBFD71F532C28C89E",
+        "Metric": "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table cells and caption classification are separate observations.",
+        "Limit": "Controlled Pango/Cairo fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible.",
+        "RecognitionMetric": "Case-sensitive NFC token multiset precision and recall, ignoring order. This separates recognized-token evidence from canonical line/column ordering; it is not a character accuracy score.",
+        "ProviderRecognition": [
+          {
+            "Id": "latin-0",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 45,
+              "Precision": 0.8653846153846154,
+              "Recall": 0.9
+            }
+          },
+          {
+            "Id": "latin-90",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "latin-180",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "latin-270",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:eng+pol+deu",
+            "Language": "eng+pol+deu",
+            "Tokens": {
+              "ExpectedTokens": 50,
+              "RecognizedTokens": 52,
+              "MatchedTokens": 46,
+              "Precision": 0.8846153846153846,
+              "Recall": 0.92
+            }
+          },
+          {
+            "Id": "rtl-0",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 45,
+              "Precision": 0.8823529411764706,
+              "Recall": 0.9375
+            }
+          },
+          {
+            "Id": "rtl-90",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 45,
+              "Precision": 0.8823529411764706,
+              "Recall": 0.9375
+            }
+          },
+          {
+            "Id": "rtl-180",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 46,
+              "Precision": 0.9019607843137255,
+              "Recall": 0.9583333333333334
+            }
+          },
+          {
+            "Id": "rtl-270",
+            "Provider": "tesseract-cli",
+            "Model": "tessdata:heb+ara+eng",
+            "Language": "heb+ara+eng",
+            "Tokens": {
+              "ExpectedTokens": 48,
+              "RecognizedTokens": 51,
+              "MatchedTokens": 46,
+              "Precision": 0.9019607843137255,
+              "Recall": 0.9583333333333334
+            }
+          }
+        ],
+        "Cases": [
+          {
+            "Id": "latin-0",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 0,
+              "ExpectedWords": 50,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "Rysunek 1: wynik pomiaru"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-0",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 12,
+              "ExpectedWords": 50,
+              "WordEdits": 7,
+              "CharacterErrorRate": 0.0375,
+              "WordErrorRate": 0.14
+            },
+            "ExactSegments": 10,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 45,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-0",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 12,
+              "ExpectedWords": 50,
+              "WordEdits": 7,
+              "CharacterErrorRate": 0.0375,
+              "WordErrorRate": 0.14
+            },
+            "ExactSegments": 10,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 45,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 0,
+              "ExpectedWords": 50,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "Rysunek 1: wynik pomiaru"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 9,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.028125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-90",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 9,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.028125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 0,
+              "ExpectedWords": 50,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "Rysunek 1: wynik pomiaru"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 9,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.028125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-180",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 9,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.028125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 0,
+              "ExpectedWords": 50,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "Rysunek 1: wynik pomiaru"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 10,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.03125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "latin-270",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 320,
+              "CharacterEdits": 10,
+              "ExpectedWords": 50,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.03125,
+              "WordErrorRate": 0.12
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "Produkt",
+                  "Liczba"
+                ],
+                [
+                  "Alfa",
+                  "24"
+                ],
+                [
+                  "Beta",
+                  "12"
+                ],
+                [
+                  "Gamma",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 0,
+              "ExpectedWords": 48,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "איור 1: תוצאת המדידה"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 16,
+              "ExpectedWords": 48,
+              "WordEdits": 7,
+              "CharacterErrorRate": 0.056338028169014086,
+              "WordErrorRate": 0.14583333333333334
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-0",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 12,
+              "ExpectedWords": 48,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.04225352112676056,
+              "WordErrorRate": 0.125
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 0,
+              "ExpectedWords": 48,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "איור 1: תוצאת המדידה"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 15,
+              "ExpectedWords": 48,
+              "WordEdits": 7,
+              "CharacterErrorRate": 0.0528169014084507,
+              "WordErrorRate": 0.14583333333333334
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-90",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 11,
+              "ExpectedWords": 48,
+              "WordEdits": 6,
+              "CharacterErrorRate": 0.03873239436619718,
+              "WordErrorRate": 0.125
+            },
+            "ExactSegments": 11,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 55,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 0,
+              "ExpectedWords": 48,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "איור 1: תוצאת המדידה"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 8,
+              "ExpectedWords": 48,
+              "WordEdits": 5,
+              "CharacterErrorRate": 0.028169014084507043,
+              "WordErrorRate": 0.10416666666666667
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 66,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-180",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 8,
+              "ExpectedWords": 48,
+              "WordEdits": 5,
+              "CharacterErrorRate": 0.028169014084507043,
+              "WordErrorRate": 0.10416666666666667
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 66,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "native",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 0,
+              "ExpectedWords": 48,
+              "WordEdits": 0,
+              "CharacterErrorRate": 0,
+              "WordErrorRate": 0
+            },
+            "ExactSegments": 14,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 91,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": true,
+            "Captions": [
+              "איור 1: תוצאת המדידה"
+            ],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "ocr",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 8,
+              "ExpectedWords": 48,
+              "WordEdits": 5,
+              "CharacterErrorRate": 0.028169014084507043,
+              "WordErrorRate": 0.10416666666666667
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 66,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          },
+          {
+            "Id": "rtl-270",
+            "Mode": "readback",
+            "Accuracy": {
+              "ExpectedCharacters": 284,
+              "CharacterEdits": 8,
+              "ExpectedWords": 48,
+              "WordEdits": 5,
+              "CharacterErrorRate": 0.028169014084507043,
+              "WordErrorRate": 0.10416666666666667
+            },
+            "ExactSegments": 12,
+            "ExpectedSegments": 14,
+            "CorrectReadingOrderPairs": 66,
+            "ExpectedReadingOrderPairs": 91,
+            "ExactCaption": false,
+            "Captions": [],
+            "ExactTableRows": 4,
+            "ExpectedTableRows": 4,
+            "Tables": [
+              [
+                [
+                  "פריט",
+                  "כמות"
+                ],
+                [
+                  "אלפא",
+                  "24"
+                ],
+                [
+                  "בטא",
+                  "12"
+                ],
+                [
+                  "גמא",
+                  "36"
+                ]
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "VisualPreservation": {
+    "Renderer": "Poppler pdftoppm 24.02.0",
+    "Dpi": 96,
+    "Cases": [
+      {
+        "Id": "latin-0",
+        "Size": [
+          794,
+          1123
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "DA425BDDAC0471ABDF66AA17085D7CA0888ADE28BF87DBA87758D494C032C1B4",
+        "SearchablePdfSha256": "0677D173C41A6776D1BAFAF9F46C2F668BADC7F09CEC99EFB0C0EE2A0534C22E",
+        "RenderedPngSha256": "E84B7FBFC35D93B5624A01D22B42E024815719299EE8FA2CBEEB23AA872F4DBA"
+      },
+      {
+        "Id": "latin-90",
+        "Size": [
+          1123,
+          794
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "3998B979F0C1CFDF8A4D5A3A4012F4D96D97AD36234E6539F216E3C8C989F200",
+        "SearchablePdfSha256": "AF4651D061C62E06C667985D27CCCBBA5DDFB91682876D20B69B9D1B18E7E49E",
+        "RenderedPngSha256": "30EB8022F3D937E0E2B14454AD61E07977DA4E2AB9A2E4DA01C4E838DF803959"
+      },
+      {
+        "Id": "latin-180",
+        "Size": [
+          794,
+          1123
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "2A8A93D6873A592861FC5E02A5A7ACC9E071CB341209B2E3B8C6B119F07511BC",
+        "SearchablePdfSha256": "4137E597FACAB51AD7FC3D15C57D0E5786FF272202D0134C7EFF2CDAB3C21151",
+        "RenderedPngSha256": "F95D376075CF1E890F6F7A694C6A6275532E72A1F0E89A920B35595DB07C3272"
+      },
+      {
+        "Id": "latin-270",
+        "Size": [
+          1123,
+          794
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "2DFCB69BF97CE5C4E910EBD514F8A9ECED91D02AD5EC10528343386F66D69BD5",
+        "SearchablePdfSha256": "D0666A916B660B077B77CFA73DEFB74148A233DD6F545890A8D5D6C8AF7BEA42",
+        "RenderedPngSha256": "6B76800E396BF21DAF0878D9BBA0CD1416DDD91147B40395A3CBCE6FA818D869"
+      },
+      {
+        "Id": "rtl-0",
+        "Size": [
+          794,
+          1123
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "16B02D97591C4CCF1BFB058F9FC7BA3813EFCFBBF1AAF6685A80FA17022A7DB1",
+        "SearchablePdfSha256": "557F286B83D89ABBBFC35B8D388802A8AA4AD53227473959A99814A8E0091B28",
+        "RenderedPngSha256": "481A393E366A7C746DA84E8293D6A8A2104386A209EBEBC085D2F12D1ADF59E6"
+      },
+      {
+        "Id": "rtl-90",
+        "Size": [
+          1123,
+          794
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "603EAA71D0F747333EAA1D98C8779DEEB0B6AAC018AEC391F7EF069D048D7A10",
+        "SearchablePdfSha256": "B3E655E36E8910E334E9CF2CA3900C14399FF1A5DD5601AFD83E7426EA97D189",
+        "RenderedPngSha256": "F6F3D53D9A21EEB7D3AD8AF8112588FA3414A995215DF704984D6717BF4275AF"
+      },
+      {
+        "Id": "rtl-180",
+        "Size": [
+          794,
+          1123
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "52998EE05A4729C0B5705A1F2FE2BDB03783EF1841C73500A97C1C2DD14569FA",
+        "SearchablePdfSha256": "E5D58B18DE3CA2ABF2E77E08ED8380CECFAD2C86D8EB9D978CA93FEBCEDAADE5",
+        "RenderedPngSha256": "3E4D68DCCBF34FC00B57D3B79D6EF72D26D68919495E51FCCCC3A759B470FAF3"
+      },
+      {
+        "Id": "rtl-270",
+        "Size": [
+          1123,
+          794
+        ],
+        "IdenticalPixels": true,
+        "DifferenceBounds": null,
+        "SourcePdfSha256": "133AB8573D573E2032046CACF306FC5693570E86FE03D17016322C99D51AD224",
+        "SearchablePdfSha256": "C0959AE23437E3C0D8605B61687C9252BD87328D416F9175A919EC3F3D045C38",
+        "RenderedPngSha256": "A8EE0657465369D6220E707292E3F47787513BAD0C178E29EC031948A6053F59"
+      }
+    ]
+  }
+}

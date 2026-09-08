@@ -91,6 +91,25 @@ The repository contract check uses small project-owned fixtures to exercise all 
 pwsh -NoProfile -File Build/Test-RealWorldCorpusContract.ps1
 ```
 
+## Multilingual native and OCR reconstruction
+
+The [multilingual layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md) provides eight independently produced Pango/Cairo cases: Polish/German/English and Hebrew/Arabic/English pages at four quarter-turn rotations. Labels specify paragraph order, table cells, and a figure caption. Each native PDF has a corresponding full-page scan. Recognition uses Tesseract with the recorded language models and labelled rotation; canonical reconstruction does not use expected text to repair OCR output.
+
+The [8 September 2026 measurement](quality/multilingual-layout/2026-09-08-linux-net8.json) records source revisions, assembly and fixture hashes, runtime, provider models, token recognition evidence, and separate native, OCR, and searchable-readback scores. Ranges below cover these eight controlled cases; CER includes ordering errors as well as wrong or missing characters.
+
+| Observation | Baseline | Reconstructed |
+| --- | --- | --- |
+| Native whole-document CER | 44.38–93.44% | 0% |
+| OCR whole-document CER | 45.94–59.15% | 2.81–5.63% |
+| Searchable readback CER | 24.38–82.39% | 2.81–4.23% |
+| Native correctly ordered labelled pairs | 86/728 | 728/728 |
+| Exact table rows, native / OCR / readback | 4 / 8 / 0 of 32 each | 32 / 32 / 32 of 32 each |
+| Native caption classification | 0/8 | 8/8 |
+
+Provider-token recall is 90–95.83%, with precision of 86.54–90.20%. These order-independent values retain provider spelling, diacritic, and figure-text errors. Exact segment and pair counts remain lower in the OCR modes because an incorrectly recognized segment cannot establish a correct labelled pair. The report preserves per-case results rather than treating a table object or nonempty text as success.
+
+Searchable outputs match the corresponding source scans pixel-for-pixel when rendered with Poppler at 96 DPI. The evidence also records this bounded visual check; it does not prove all renderers or resolutions. Full-page scans have no separate figure region, so OCR and readback do not classify their caption even when its text survives. Broader producers, scripts, paragraph-direction metadata, vertical writing, and scan figure segmentation remain open in [the roadmap](ROADMAP.md).
+
 ## Turning discovery into regression proof
 
 An external-corpus observation is a lead, not a permanent test by itself. Reproduce the issue, identify the owning format contract, minimize the input without removing the defect, verify redistribution terms and provenance, and add the smallest useful fixture to that owner's curated corpus. The focused test should assert the affected semantic, diagnostic, security, or round-trip contract—not merely that a historical file opens.

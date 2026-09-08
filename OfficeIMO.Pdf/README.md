@@ -752,6 +752,14 @@ typography can establish the first row as a header. Otherwise `SchemaKind` is
 `Unknown`, every source row remains data, and `Columns` contains empty names;
 the parser does not invent translated or English column labels.
 
+The structured reader handles repeated column gutters, mixed Latin/Hebrew/Arabic
+fragments, and dominant quarter-turn text layouts while retaining source-page
+geometry. Invisible searchable-text boxes use their selection geometry for line
+and table recovery. For OCR providers that merge columns into one line, opt into
+[`ReconstructLayout`](../OfficeIMO.Pdf.Ocr/README.md#reconstruct-columns-and-mixed-direction-text).
+The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md)
+records exact fixture coverage and recognition limits.
+
 ### Split and extract pages
 
 ```csharp

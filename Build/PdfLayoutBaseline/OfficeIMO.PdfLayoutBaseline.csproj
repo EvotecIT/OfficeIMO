@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Historical evidence only: the measured revision predates ReconstructLayout. -->
+    <DefineConstants Condition="'$(PdfLayoutReconstruct)' != 'true'">$(DefineConstants);PDF_LAYOUT_BASELINE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../PdfQualityCorpus/MultilingualLayoutCorpus.cs" Link="MultilingualLayoutCorpus.cs" />
+    <Compile Include="../PdfQualityCorpus/ScanTextAccuracy.cs" Link="ScanTextAccuracy.cs" />
+    <Reference Include="OfficeIMO.Core"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Core/bin/Release/net8.0/OfficeIMO.Core.dll</HintPath></Reference>
+    <Reference Include="OfficeIMO.Pdf"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.dll</HintPath></Reference>
+    <Reference Include="OfficeIMO.Ocr"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Ocr/bin/Release/net8.0/OfficeIMO.Ocr.dll</HintPath></Reference>
+    <Reference Include="OfficeIMO.Pdf.Ocr"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Pdf.Ocr/bin/Release/net8.0/OfficeIMO.Pdf.Ocr.dll</HintPath></Reference>
+    <Reference Include="OfficeIMO.Ocr.Tesseract"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Ocr.Tesseract/bin/Release/net8.0/OfficeIMO.Ocr.Tesseract.dll</HintPath></Reference>
+  </ItemGroup>
+  <Target Name="RequireBaselineRoot" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(PdfLayoutBaselineRoot)/OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.dll')" Text="Set PdfLayoutBaselineRoot to the release-built historical checkout described in the multilingual corpus README." />
+  </Target>
+</Project>
