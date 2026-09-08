@@ -149,7 +149,8 @@ public sealed class OfficeAiDocument {
         }
         bool incompleteSource = document.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
             || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
-            || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0);
+            || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
+            || document.OcrCandidates.Count > 0 || document.Pages.Any(page => page.OcrCandidates.Count > 0);
         // Table truncation is independent of top-level diagnostics. Inspect every Reader owner,
         // including chunk tables, so alternate projections cannot silently erase known omissions.
         incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))

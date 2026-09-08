@@ -44,9 +44,25 @@ public sealed partial class OfficeAiEngine {
         return null;
     }
 
-    private static bool IsCompleteBooleanAt(string source, int start, int length) =>
+    private static bool IsCompleteWordValueAt(string source, int start, int length) =>
         (start == 0 || !IsWordAt(source, start - 1))
         && (start + length == source.Length || !IsWordAt(source, start + length));
+
+    private static bool IsCompleteDateAt(string source, int start, int length, DateTimeFormatInfo format) {
+        if (!IsCompleteWordValueAt(source, start, length)) return false;
+        // Separators joining another date component are part of the source value; ordinary
+        // sentence punctuation and spaced delimiters remain valid citation boundaries.
+        foreach (string separator in new[] { "-", "/", ".", format.DateSeparator }) {
+            if (separator.Length == 0 || string.IsNullOrWhiteSpace(separator)) continue;
+            int before = start - separator.Length;
+            int after = start + length;
+            if (before > 0 && source.AsSpan(before, separator.Length).SequenceEqual(separator.AsSpan())
+                && IsWordAt(source, before - 1)) return false;
+            if (after + separator.Length < source.Length && source.AsSpan(after, separator.Length).SequenceEqual(separator.AsSpan())
+                && IsWordAt(source, after + separator.Length)) return false;
+        }
+        return true;
+    }
 
     private static bool IsWordAt(string source, int index) {
         if (char.IsLowSurrogate(source[index]) && index > 0 && char.IsHighSurrogate(source[index - 1])) index--;

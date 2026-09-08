@@ -334,6 +334,40 @@ public sealed class SnapshotCoverageTests {
         }
     }
 
+    [Theory]
+    [InlineData("aggregate")]
+    [InlineData("page")]
+    [InlineData("both")]
+    public async Task ChunkCoordinatesRemainAvailableToPageScopedInferenceAfterTransport(string owner) {
+        var tables = Enumerable.Range(0, 4).Select(_ => new ReaderTable {
+            Columns = new[] { "Count" }, Rows = new[] { new[] { "42" } }
+        }).ToArray();
+        var source = new OfficeDocumentReadResult {
+            Tables = owner != "page" ? tables : Array.Empty<ReaderTable>(),
+            Pages = owner != "aggregate" ? Enumerable.Range(1, 2).Select(page => new OfficeDocumentPage {
+                Number = page, Tables = tables.Skip((page - 1) * 2).Take(2).ToArray()
+            }).ToArray() : Array.Empty<OfficeDocumentPage>(),
+            Chunks = Enumerable.Range(1, 2).Select(page => new ReaderChunk { Location = new() { Page = page, SourceBlockIndex = page * 2 },
+                Tables = tables.Skip((page - 1) * 2).Take(2).ToArray() }).ToArray()
+        };
+        string? snapshotHash = null;
+        foreach (bool roundTrip in new[] { false, true }) {
+            var reader = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+            var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, reader);
+            Assert.Equal(new int?[] { 1, 1, 2, 2 }, reader.EnumerateTables().Select(table => table.Location!.Page));
+            Assert.Equal(new int?[] { 2, 2, 4, 4 }, reader.EnumerateTables().Select(table => table.Location!.SourceBlockIndex));
+            Assert.Equal(8, document.Evidence.Count);
+            snapshotHash ??= document.SnapshotHash;
+            Assert.Equal(snapshotHash, document.SnapshotHash);
+            var executor = new Capture();
+            var result = await new OfficeAiEngine(executor).RunAsync(document, new() { Instruction = "Read page two", Pages = new[] { 2 } });
+            Assert.Equal(4, result.ProcessedEvidenceIds.Count);
+            using var input = JsonDocument.Parse(Assert.Single(executor.Requests).InputJson);
+            Assert.All(input.RootElement.GetProperty("evidence").EnumerateArray(), item => Assert.Equal(2, item.GetProperty("page").GetInt32()));
+        }
+        Assert.All(tables, table => Assert.Null(table.Location));
+    }
+
     private sealed class Capture : IOfficeAiExecutor {
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "fixture", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();

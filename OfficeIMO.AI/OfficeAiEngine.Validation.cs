@@ -61,7 +61,9 @@ public sealed partial class OfficeAiEngine {
                 Func<string, int, int, bool>? isComplete = definition.Type switch {
                     OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer => (source, start, length) =>
                         IsCompleteNumberAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).NumberFormat),
-                    OfficeAiFieldType.Boolean => IsCompleteBooleanAt,
+                    OfficeAiFieldType.Boolean => IsCompleteWordValueAt,
+                    OfficeAiFieldType.Date => (source, start, length) =>
+                        IsCompleteDateAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).DateTimeFormat),
                     _ => null
                 };
                 if (fieldStatus == OfficeAiFieldStatus.Present && isComplete is not null

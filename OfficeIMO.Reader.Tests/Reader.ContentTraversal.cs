@@ -196,7 +196,9 @@ public sealed class ReaderContentTraversalTests {
             Chunks = new[] { new ReaderChunk { Text = "Chunk text", Location = new() { Page = 1 }, Tables = new[] { table } } } };
         var content = document.EnumerateContent().ToArray();
         Assert.Equal("Chunk text", content[0].Chunk!.Text);
-        Assert.Same(table, content[1].Table);
+        Assert.Equal(table.Columns, content[1].Table!.Columns);
+        Assert.Equal(table.Rows, content[1].Table!.Rows);
+        Assert.Equal(1, content[1].Table!.Location!.Page);
         Assert.Equal(1, content[1].Location!.Page);
         Assert.NotNull(content[2].Block);
         Assert.Null(table.Location);

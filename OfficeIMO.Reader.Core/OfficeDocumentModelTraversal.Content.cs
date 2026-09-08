@@ -26,17 +26,9 @@ internal static partial class OfficeDocumentModelTraversal {
             foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>())
                 if (chunk != null) Add(new(null, null, chunk, chunk.Location));
         }
-        var chunkLocations = new Dictionary<ReaderTable, ReaderLocation>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
-            if (chunk?.Location == null) continue;
-            foreach (ReaderTable table in chunk.Tables ?? Array.Empty<ReaderTable>())
-                if (table != null && !chunkLocations.ContainsKey(table)) chunkLocations.Add(table, chunk.Location);
-        }
         foreach (ReaderTable table in Tables(document)) {
             ReaderLocation? location = table.Location;
             long? order = null;
-            if (chunkLocations.TryGetValue(table, out ReaderLocation? chunkLocation))
-                location = MergeLocation(location, chunkLocation, location?.TableIndex);
             if (!string.IsNullOrWhiteSpace(location?.BlockAnchor) && anchors.TryGetValue(location!.BlockAnchor!, out var positions)) {
                 // Readers can reuse a local anchor on different pages, slides, sheets or paths.
                 // Only ambiguity among compatible containers prevents a reliable position.

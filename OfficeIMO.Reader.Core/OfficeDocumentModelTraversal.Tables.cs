@@ -7,11 +7,13 @@ internal static partial class OfficeDocumentModelTraversal {
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var canonicalMatches = new Dictionary<string, Queue<ReaderTable>>(StringComparer.Ordinal);
+        var canonical = new List<ReaderTable>();
+        var canonicalMatches = new Dictionary<string, Queue<int>>(StringComparer.Ordinal);
         void RegisterCanonical(ReaderTable original, ReaderTable projected) {
             string key = BuildTableIdentity(original, includeLocation: false, includeAnchor: false);
             if (!canonicalMatches.TryGetValue(key, out var matches)) canonicalMatches.Add(key, matches = new());
-            matches.Enqueue(projected);
+            matches.Enqueue(canonical.Count);
+            canonical.Add(projected);
         }
         var pageMatches = new Dictionary<string, Queue<(ReaderTable Table, OfficeDocumentPage Page, int Index)>>(StringComparer.Ordinal);
         var pageReferences = new Dictionary<ReaderTable, (OfficeDocumentPage Page, int Index)>(ReferenceIdentityComparer<ReaderTable>.Instance);
@@ -74,7 +76,6 @@ internal static partial class OfficeDocumentModelTraversal {
             // whose object references were separated by a Reader JSON round-trip.
             IncrementIdentity(aggregateIdentityCounts, BuildTableIdentity(projected, null, null));
             RegisterCanonical(table, projected);
-            yield return projected;
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Tables == null) continue;
@@ -86,7 +87,6 @@ internal static partial class OfficeDocumentModelTraversal {
                 if (aggregateIdentityCounts.ContainsKey(identity)) continue;
                 IncrementIdentity(aggregateIdentityCounts, identity);
                 RegisterCanonical(table, scopedTable);
-                yield return scopedTable;
             }
         }
         var chunkSeen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
@@ -100,23 +100,27 @@ internal static partial class OfficeDocumentModelTraversal {
                 if (canonicalMatches.TryGetValue(key, out var matches)) {
                     int remaining = matches.Count;
                     while (remaining-- > 0) {
-                        ReaderTable candidate = matches.Dequeue();
+                        int candidateIndex = matches.Dequeue();
+                        ReaderTable candidate = canonical[candidateIndex];
                         ReaderTable proposed = WithLocationFallback(projected, candidate.Location ?? new ReaderLocation(), candidate.Location?.TableIndex);
                         // Missing table ordinals inherit from the matched canonical table. A global chunk
                         // index is not comparable with a page-local ordinal after JSON separates references.
                         ReaderTable comparable = WithLocationFallback(candidate, projected.Location ?? new ReaderLocation(), projected.Location?.TableIndex);
                         // Additional coordinates on either projection are compatible; explicit disagreements are not.
                         if (BuildTableIdentity(proposed) == BuildTableIdentity(comparable)) {
+                            if (BuildTableIdentity(candidate) != BuildTableIdentity(comparable)) canonical[candidateIndex] = comparable;
                             matched = true;
                             break;
                         }
-                        matches.Enqueue(candidate);
+                        matches.Enqueue(candidateIndex);
                     }
                 }
                 if (matched || !seen.Add(table)) continue;
-                yield return table;
+                canonical.Add(projected);
             }
         }
+        // Reconcile all projections before exposing tables so later chunk coordinates are retained.
+        return canonical;
     }
 
 }

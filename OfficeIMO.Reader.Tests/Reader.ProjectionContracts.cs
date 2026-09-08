@@ -28,6 +28,10 @@ public sealed class ReaderProjectionContractTests {
             foreach (bool roundTrip in new[] { false, true }) {
                 var document = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
                 Assert.Equal(conflicting ? 2 : 1, document.EnumerateTables().Count());
+                if (!conflicting) {
+                    Assert.Equal(property.GetValue(chunkLocation), property.GetValue(Assert.Single(document.EnumerateTables()).Location));
+                    Assert.Equal(property.GetValue(chunkLocation), property.GetValue(Assert.Single(document.EnumerateContent(), item => item.Table != null).Location));
+                }
             }
         }
     }
