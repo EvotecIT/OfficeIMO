@@ -239,6 +239,13 @@ public sealed class EngineContractTests {
     [InlineData("Total: 42e3 USD.", "3", "en-US", OfficeAiFieldType.Integer)]
     [InlineData("Total: 42e-3 USD.", "-3", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Refund: -$42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -usd 42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: 42.00 uSd-", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -ZŁ 42,00", "42,00", "pl-PL", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -R$42,00", "42,00", "pt-BR", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: 42,00R$-", "42,00", "pt-BR", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -R$42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
+    [InlineData("Refund: -US$42.00", "42.00", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Refund: 42.00 $-", "42.00", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Refund: ($42.00)", "42.00", "en-US", OfficeAiFieldType.Decimal)]
     [InlineData("Total: ,50 PLN.", "50", "pl-PL", OfficeAiFieldType.Decimal)]
@@ -265,6 +272,11 @@ public sealed class EngineContractTests {
     [InlineData("Total: 42.50USD.", "42.50", "en-US", "42.50")]
     [InlineData("Total: 42. Next item.", "42", "en-US", "42")]
     [InlineData("Total: .50 USD.", ".50", "en-US", "0.50")]
+    [InlineData("Total: 42 pre-tax", "42", "en-US", "42")]
+    [InlineData("Count: 42 red-green widgets", "42", "en-US", "42")]
+    [InlineData("Count: 42 top-rated widgets", "42", "en-US", "42")]
+    [InlineData("Count: 42 all-in", "42", "en-US", "42")]
+    [InlineData("Count: 42 usd per item", "42", "en-US", "42")]
     public async Task CompleteNumericEvidencePreservesSignsUnitsAndSentencePunctuation(string source, string raw, string culture, string expected) {
         var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(source), Request() with {
             Operation = OfficeAiOperation.ExtractFields, Culture = culture,
@@ -275,6 +287,25 @@ public sealed class EngineContractTests {
     }
 
     private static OfficeAiRequest Request() => new() { Instruction = "What is the total?" };
+    [Theory]
+    [InlineData("1,234", "en-US", "1234")]
+    [InlineData("-1,234", "en-US", "-1234")]
+    [InlineData("1 234", "pl-PL", "1234")]
+    [InlineData("12,34,567", "hi-IN", "1234567")]
+    [InlineData("1,23", "en-US", null)]
+    [InlineData("1,,234", "en-US", null)]
+    [InlineData("123,456", "hi-IN", null)]
+    [InlineData("1,234.0", "en-US", null)]
+    [InlineData("9,223,372,036,854,775,808", "en-US", null)]
+    public async Task IntegerFieldsValidateLocaleGroupingAndIntegralRange(string raw, string culture, string? expected) {
+        var result = await new OfficeAiEngine(new Executor(Field("amount", raw, "e1"))).RunAsync(Document(raw), Request() with {
+            Operation = OfficeAiOperation.ExtractFields, Culture = culture,
+            Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Integer) }
+        });
+        var field = Assert.Single(result.Fields);
+        Assert.Equal(expected is null ? OfficeAiFieldStatus.Invalid : OfficeAiFieldStatus.Present, field.Status);
+        Assert.Equal(expected, field.NormalizedValue);
+    }
     [Theory]
     [InlineData("1,23")]
     [InlineData("1,,234")]

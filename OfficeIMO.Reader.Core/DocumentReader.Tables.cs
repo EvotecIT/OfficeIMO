@@ -163,6 +163,10 @@ internal static partial class DocumentReaderEngine {
             NormalizedStartLine = tableLocation?.NormalizedStartLine ?? chunkLocation.NormalizedStartLine,
             NormalizedEndLine = tableLocation?.NormalizedEndLine ?? chunkLocation.NormalizedEndLine,
             HeadingPath = tableLocation?.HeadingPath ?? chunkLocation.HeadingPath,
+            HierarchyHeadingPath = string.IsNullOrWhiteSpace(tableLocation?.HierarchyHeadingPath)
+                ? chunkLocation.HierarchyHeadingPath : tableLocation!.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = string.IsNullOrWhiteSpace(tableLocation?.HierarchyHeadingPath)
+                ? chunkLocation.HierarchyHeadingDisplayPath : tableLocation!.HierarchyHeadingDisplayPath,
             HeadingSlug = tableLocation?.HeadingSlug ?? chunkLocation.HeadingSlug,
             SourceBlockKind = tableLocation?.SourceBlockKind ?? chunkLocation.SourceBlockKind,
             BlockAnchor = tableLocation?.BlockAnchor ?? chunkLocation.BlockAnchor,

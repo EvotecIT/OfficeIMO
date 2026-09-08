@@ -33,6 +33,12 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx");
 ```
 
+Use `document.EnumerateContent()` to walk paragraphs and tables together in source order. Each item exposes
+one `Block`, `Table`, or fallback `Chunk`, plus its effective `Location`. Tables keep their rows together and
+use known source positions or an unambiguous block anchor. Content without a known position follows positioned
+content in the same page, slide, or sheet. The traversal preserves the source objects; copy values when an
+immutable snapshot is needed.
+
 ## Find content by page
 
 Page-aware reading stays on `OfficeDocumentReadResult`; it is not a separate conversion path. A format adapter

@@ -23,6 +23,8 @@ public sealed partial class OfficeAiEngine {
         Synthesis Finish(bool completed) => new(current, completed, calls, inputTokens, outputTokens);
         for (int pass = 0; pass < request.Limits.MaxSynthesisPasses; pass++) {
             token.ThrowIfCancellationRequested();
+            int previousCount = current.Count;
+            long previousCharacters = current.Sum(claim => (long)claim.Text.Length);
             var groups = new List<List<OfficeAiClaim>>();
             var group = new List<OfficeAiClaim>();
             OfficeAiExecutionRequest Create(IReadOnlyList<OfficeAiClaim> items) => new(
@@ -63,8 +65,8 @@ public sealed partial class OfficeAiEngine {
             current = next.AsReadOnly();
             if (groups.Count == 1) return Finish(true);
             // More passes are useful only when the draft representation becomes smaller.
-            if (current.Sum(claim => (long)claim.Text.Length) >= drafts.Sum(claim => (long)claim.Text.Length)
-                && current.Count >= drafts.Count) return Finish(false);
+            if (current.Sum(claim => (long)claim.Text.Length) >= previousCharacters
+                && current.Count >= previousCount) return Finish(false);
         }
         return Finish(false);
     }

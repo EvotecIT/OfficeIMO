@@ -7,6 +7,31 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class LongDocumentTests {
     [Fact]
+    public async Task SummaryStopsAfterTheFirstNonReducingPassAndRetainsSupportedDrafts() {
+        var executor = new Executor { LargeDrafts = true, SynthesisMode = "shrink-then-stall" };
+        var result = await new OfficeAiEngine(executor).RunAsync(Document(new string('a', 50000)), Request() with {
+            Operation = OfficeAiOperation.Summarize,
+            Limits = new() { MaxRequestCharacters = 12000, MaxRequests = 64, MaxSynthesisPasses = 5 }
+        });
+        int initialDrafts = 0, stalledDrafts = 0;
+        foreach (var request in executor.Requests) {
+            using var json = JsonDocument.Parse(request.InputJson);
+            if (!json.RootElement.TryGetProperty("drafts", out var drafts)) continue;
+            foreach (var draft in drafts.EnumerateArray()) {
+                if (draft.GetProperty("text").GetString()!.Length > 4000) initialDrafts++;
+                else stalledDrafts++;
+            }
+        }
+        Assert.True(initialDrafts > 2);
+        Assert.Equal(initialDrafts, stalledDrafts);
+        Assert.Equal(initialDrafts, result.Claims.Count);
+        Assert.All(result.Claims, claim => Assert.NotEmpty(claim.Citations));
+        Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Empty(result.OmittedEvidenceIds);
+    }
+
+    [Fact]
     public async Task SynthesisOutOfMemoryEscapesWithoutAnotherModelCall() {
         var executor = new Executor { FatalOnCall = 3 };
         await Assert.ThrowsAsync<OutOfMemoryException>(() => new OfficeAiEngine(executor).RunAsync(
@@ -164,6 +189,13 @@ public sealed class LongDocumentTests {
             using var json = JsonDocument.Parse(request.InputJson);
             string output;
             if (json.RootElement.TryGetProperty("drafts", out var drafts)) {
+                if (SynthesisMode == "shrink-then-stall") {
+                    output = JsonSerializer.Serialize(new { claims = drafts.EnumerateArray().Select(item => new {
+                        text = item.GetProperty("text").GetString()![..4000],
+                        sourceClaimIds = new[] { item.GetProperty("id").GetString()! }
+                    }) });
+                    return Task.FromResult(new OfficeAiExecutionResponse(output));
+                }
                 string[] ids = drafts.EnumerateArray().Select(item => item.GetProperty("id").GetString()!).ToArray();
                 if (SynthesisMode == "unknown-id") ids[0] = "invented";
                 if (SynthesisMode == "missing-source") ids = ids.Take(1).ToArray();

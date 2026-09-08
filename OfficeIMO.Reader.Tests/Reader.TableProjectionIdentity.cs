@@ -5,11 +5,38 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderTableProjectionIdentityTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PromotedTablesAndVisualsPreserveHierarchyWithoutDuplicates(bool roundTrip) {
+        var location = new ReaderLocation { Path = "doc.md", Page = 1, BlockAnchor = "section", HeadingPath = "A > B" };
+        ReaderHeadingPath.SetHierarchyPath(location, ReaderHeadingPath.Combine(new[] { "A > B" }));
+        var chunks = new[] { new ReaderChunk {
+            Location = location,
+            Tables = new[] { new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "Widget" } } } },
+            Visuals = new[] { new ReaderVisual { Kind = "mermaid", Content = "graph TD\nA-->B", PayloadHash = "graph" } }
+        } };
+        var document = new OfficeDocumentReadResult {
+            Chunks = chunks,
+            Tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractTables(chunks),
+            Visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(chunks)
+        };
+        if (roundTrip) document = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document));
+        var table = Assert.Single(document.EnumerateTables());
+        var visual = Assert.Single(OfficeDocumentModelTraversal.Visuals(document));
+        Assert.Equal(location.HierarchyHeadingPath, table.Location!.HierarchyHeadingPath);
+        Assert.Equal(location.HierarchyHeadingPath, visual.Location!.HierarchyHeadingPath);
+    }
+
+    [Theory]
     [InlineData("SourceBlockIndex")]
     [InlineData("BlockIndex")]
     [InlineData("StartLine")]
+    [InlineData("EndLine")]
+    [InlineData("NormalizedStartLine")]
+    [InlineData("NormalizedEndLine")]
     [InlineData("A1Range")]
     [InlineData("HeadingPath")]
+    [InlineData("HierarchyHeadingPath")]
     [InlineData("HeadingSlug")]
     [InlineData("SourceBlockKind")]
     [InlineData("Path")]

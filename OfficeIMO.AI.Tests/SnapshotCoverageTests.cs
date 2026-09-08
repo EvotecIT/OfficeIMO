@@ -8,6 +8,25 @@ public sealed class SnapshotCoverageTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void InterleavedTablesStayBetweenTheirSourceParagraphsBeforeIdsAreAssigned(bool roundTrip) {
+        var source = new OfficeDocumentReadResult {
+            Blocks = new[] {
+                new OfficeDocumentBlock { Text = "After", Location = new() { Page = 1, SourceBlockIndex = 3 } },
+                new OfficeDocumentBlock { Text = "Before", Location = new() { Page = 1, SourceBlockIndex = 1 } }
+            },
+            Tables = new[] { new ReaderTable { Columns = new[] { "Count" }, Rows = new[] { new[] { "12" } },
+                Location = new() { Page = 1, SourceBlockIndex = 2 } } }
+        };
+        var restored = roundTrip ? OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source)) : source;
+        var snapshot = OfficeAiDocument.FromReadResult(new byte[] { 1 }, restored);
+        Assert.Equal(new[] { "Before", "Count", "Count: 12", "After" }, snapshot.Evidence.Select(item => item.Text));
+        Assert.Equal(new[] { "e1", "e2", "e3", "e4" }, snapshot.Evidence.Select(item => item.Id));
+        Assert.Equal(new[] { "After", "Before" }, source.Blocks.Select(block => block.Text));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void EqualTablesRetainOccurrenceCountsAndPageOnlyContent(bool roundTrip) {
         ReaderTable Table(int? page = null) => new() { Columns = new[] { "Item" }, Rows = new[] { new[] { "Widget" } },
             Location = page.HasValue ? new ReaderLocation { Page = page } : null };

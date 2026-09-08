@@ -3,6 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.AI;
 
 public sealed partial class OfficeAiEngine {
+    private static readonly string[] CurrencyTokens = CreateCurrencyTokens();
     private static bool TryValidateNumericEvidence(string raw, IReadOnlyList<OfficeAiCitation> citations, Batch batch,
         OfficeAiDocument document, string cultureName, out IReadOnlyList<OfficeAiCitation> locatedCitations) {
         bool supported = false;
@@ -54,39 +55,61 @@ public sealed partial class OfficeAiEngine {
         if (end < source.Length && (char.IsDigit(source[end]) || source[end] is '-' or '+' or '\u2212')) return false;
         if (end < source.Length && source[end] is 'e' or 'E' && end + 1 < source.Length
             && (char.IsDigit(source[end + 1]) || source[end + 1] is '-' or '+')) return false;
-        int before = SkipCurrencyContext(source, start - 1, -1, format);
+        int before = SkipCurrencyContext(source, start - 1, -1);
         if (before >= 0 && (source[before] is '-' or '+' or '\u2212' or '(')) return false;
-        int after = SkipCurrencyContext(source, end, 1, format);
+        int after = SkipCurrencyContext(source, end, 1);
         if (after < source.Length && source[after] is '-' or '+' or '\u2212') return false;
         return !HasNumericContinuation(source, start, backwards: true, format)
             && !HasNumericContinuation(source, end, backwards: false, format);
     }
 
-    private static int SkipCurrencyContext(string source, int index, int direction, NumberFormatInfo format) {
+    private static int SkipCurrencyContext(string source, int index, int direction) {
         while (index >= 0 && index < source.Length) {
-            if (char.IsWhiteSpace(source[index]) || char.GetUnicodeCategory(source[index]) == UnicodeCategory.CurrencySymbol) {
+            if (char.IsWhiteSpace(source[index])) {
                 index += direction;
                 continue;
             }
-            string symbol = format.CurrencySymbol;
-            int symbolStart = direction < 0 ? index - symbol.Length + 1 : index;
-            if (symbol.Length > 0 && symbolStart >= 0 && symbolStart + symbol.Length <= source.Length
-                && source.AsSpan(symbolStart, symbol.Length).SequenceEqual(symbol.AsSpan())) {
-                index += direction * symbol.Length;
+            // Longest complete tokens must win before individual symbols: R$ cannot be reduced to $.
+            int tokenLength = CurrencyTokenLength(source, index, direction);
+            if (tokenLength > 0) {
+                index += direction * tokenLength;
                 continue;
             }
-            int codeStart = direction < 0 ? index - 2 : index;
-            if (codeStart >= 0 && codeStart + 3 <= source.Length
-                && source[codeStart] is >= 'A' and <= 'Z' && source[codeStart + 1] is >= 'A' and <= 'Z'
-                && source[codeStart + 2] is >= 'A' and <= 'Z'
-                && (codeStart == 0 || !char.IsLetter(source[codeStart - 1]))
-                && (codeStart + 3 == source.Length || !char.IsLetter(source[codeStart + 3]))) {
-                index += direction * 3;
+            if (char.GetUnicodeCategory(source[index]) == UnicodeCategory.CurrencySymbol) {
+                index += direction;
                 continue;
             }
             break;
         }
         return index;
+    }
+
+    private static int CurrencyTokenLength(string source, int index, int direction) {
+        foreach (string token in CurrencyTokens) {
+            int start = direction < 0 ? index - token.Length + 1 : index;
+            int end = start + token.Length;
+            if (start < 0 || end > source.Length
+                || !source.AsSpan(start, token.Length).Equals(token.AsSpan(), StringComparison.OrdinalIgnoreCase)) continue;
+            if (char.IsLetter(token[0]) && start > 0 && char.IsLetter(source[start - 1])) continue;
+            if (char.IsLetter(token[^1]) && end < source.Length && (char.IsLetter(source[end])
+                || (source[end] == '-' && end + 1 < source.Length && char.IsLetter(source[end + 1])))) continue;
+            return token.Length;
+        }
+        return 0;
+    }
+
+    private static string[] CreateCurrencyTokens() {
+        var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (CultureInfo culture in CultureInfo.GetCultures(CultureTypes.SpecificCultures)) {
+            string symbol = culture.NumberFormat.CurrencySymbol;
+            if (!string.IsNullOrWhiteSpace(symbol)) tokens.Add(symbol);
+            try {
+                var region = new RegionInfo(culture.Name);
+                tokens.Add(region.ISOCurrencySymbol);
+                if (symbol == "$") tokens.Add(region.TwoLetterISORegionName + "$");
+            } catch (ArgumentException) { /* Some runtime cultures do not identify a geographic region. */ }
+        }
+        return tokens.OrderByDescending(token => token.Length).ThenBy(token => token, StringComparer.Ordinal).ToArray();
     }
 
     private static bool HasNumericContinuation(string source, int boundary, bool backwards, NumberFormatInfo format) {

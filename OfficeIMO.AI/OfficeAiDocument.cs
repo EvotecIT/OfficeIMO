@@ -107,25 +107,23 @@ public sealed class OfficeAiDocument {
                 pages.Add(number);
             }
         }
-        var tablePages = new Dictionary<ReaderTable, int?>(ReferenceEqualityComparer.Instance);
-        foreach (OfficeDocumentPage page in document.Pages) {
-            foreach (ReaderTable table in page.Tables) tablePages.TryAdd(table, page.Number ?? page.Location?.Page);
-        }
-        foreach (ReaderChunk chunk in document.Chunks)
-            foreach (ReaderTable table in chunk.Tables ?? Array.Empty<ReaderTable>()) tablePages.TryAdd(table, chunk.Location?.Page);
-        foreach (OfficeDocumentBlock block in document.EnumerateBlocks())
-            Add(block.Kind, block.Text, block.Location?.Page, block.Id, block.Region, block.Location?.BlockAnchor);
-        if (evidence.Count == 0) {
-            foreach (ReaderChunk chunk in document.Chunks) Add("chunk", chunk.Text, chunk.Location?.Page, chunk.Id, sourceAnchor: chunk.Location?.BlockAnchor);
-        }
-        // Preserve table identity and empty headers; repeat titles and labels alongside row values.
         int tableIndex = 0;
-        foreach (ReaderTable table in document.EnumerateTables()) {
+        foreach (OfficeDocumentContentItem item in document.EnumerateContent()) {
+            if (item.Block is { } block) {
+                Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor);
+                continue;
+            }
+            if (item.Chunk is { } chunk) {
+                Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor);
+                continue;
+            }
+            ReaderTable table = item.Table!;
+            // Preserve table identity and empty headers; keep every row beside its table in source order.
             tableIndex++;
             if (table.Columns.Count > limits.MaxTableCells || table.Rows.Sum(row => (long)row.Count) > limits.MaxTableCells)
                 throw new InvalidDataException("Source table exceeds the configured cell limit.");
-            int? tablePage = table.Location?.Page ?? tablePages.GetValueOrDefault(table);
-            string? anchor = table.Location?.BlockAnchor;
+            int? tablePage = item.Location?.Page;
+            string? anchor = item.Location?.BlockAnchor;
             string tableId = string.IsNullOrWhiteSpace(anchor) ? $"table-{tableIndex}" : anchor;
             string title = string.IsNullOrWhiteSpace(table.Title) ? "" : table.Title + "\n";
             Add("table", title + string.Join(" | ", table.Columns), tablePage, tableId, sourceAnchor: anchor);

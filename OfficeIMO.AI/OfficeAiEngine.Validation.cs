@@ -160,7 +160,8 @@ public sealed partial class OfficeAiEngine {
                     culture, out decimal number)) return false;
                 normalized = number.ToString(CultureInfo.InvariantCulture); return true;
             case OfficeAiFieldType.Integer:
-                if (!long.TryParse(raw, NumberStyles.Integer, culture, out long integer)) return false;
+                if (!ValidGrouping(raw, culture.NumberFormat)
+                    || !long.TryParse(raw, NumberStyles.Integer | NumberStyles.AllowThousands, culture, out long integer)) return false;
                 normalized = integer.ToString(CultureInfo.InvariantCulture); return true;
             case OfficeAiFieldType.Boolean:
                 if (!bool.TryParse(raw, out bool boolean)) return false;
