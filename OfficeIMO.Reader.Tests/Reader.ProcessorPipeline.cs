@@ -8,6 +8,30 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderProcessorPipelineTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BlockNormalizationUpdatesPageAndAggregateSourceInstances(bool roundTrip) {
+        var shared = new OfficeDocumentBlock { Id = "shared", Kind = " HEADING ", Text = " heading ", Level = 10, Marker = " 1. " };
+        var pageOnly = new OfficeDocumentBlock { Id = "page", Kind = " LIST ", Text = " item ", Level = -1 };
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { shared },
+            Pages = new[] { new OfficeDocumentPage { Number = 2, Blocks = new[] { shared, pageOnly } } }
+        };
+        if (roundTrip) document = JsonSerializer.Deserialize<OfficeDocumentReadResult>(JsonSerializer.Serialize(document))!;
+        var result = new OfficeDocumentProcessorPipelineBuilder().Add(new OfficeDocumentBlockNormalizationProcessor()).Build().Process(document);
+        Assert.True(result.Succeeded);
+        Assert.Equal("heading", document.Blocks[0].Text);
+        Assert.Equal("heading", document.Blocks[0].Kind);
+        Assert.Equal(6, document.Blocks[0].Level);
+        Assert.Equal("1.", document.Blocks[0].Marker);
+        Assert.Equal("heading", document.Pages[0].Blocks[0].Text);
+        Assert.Equal(6, document.Pages[0].Blocks[0].Level);
+        Assert.Equal("list", document.Pages[0].Blocks[1].Kind);
+        Assert.Equal("item", document.Pages[0].Blocks[1].Text);
+        Assert.Equal(1, document.Pages[0].Blocks[1].Level);
+    }
+
     [Fact]
     public void PipelineBuilder_FreezesOrderAndRejectsDuplicateIds() {
         var builder = new OfficeDocumentProcessorPipelineBuilder()

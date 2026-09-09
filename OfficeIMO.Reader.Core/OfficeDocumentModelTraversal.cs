@@ -6,14 +6,39 @@ using System.Text;
 
 namespace OfficeIMO.Reader;
 
-internal static class OfficeDocumentModelTraversal {
+internal static partial class OfficeDocumentModelTraversal {
+    // Mutation needs every distinct source instance, including separate aggregate/page copies of the same ID.
+    internal static IEnumerable<OfficeDocumentBlock> BlockInstances(OfficeDocumentReadResult document) {
+        var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+            if (block != null && seen.Add(block)) yield return block;
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>())
+            foreach (OfficeDocumentBlock block in page?.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+                if (block != null && seen.Add(block)) yield return block;
+    }
+
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
+        var projections = new BlockProjectionIndex();
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+            if (page == null) continue;
+            foreach (OfficeDocumentBlock block in page.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+                if (block != null) projections.Add(block, page);
+        }
         IEnumerable<OfficeDocumentBlock> candidates =
             (document.Blocks ?? System.Array.Empty<OfficeDocumentBlock>())
             .Concat((document.Pages ?? System.Array.Empty<OfficeDocumentPage>())
                 .Where(page => page?.Blocks != null)
                 .SelectMany(page => page.Blocks));
-        foreach (OfficeDocumentBlock block in OrderBlocks(candidates)) yield return block;
+        OfficeDocumentBlock[] materialized = candidates.Where(block => block != null).ToArray();
+        foreach (OfficeDocumentBlock block in OrderBlocks(materialized.Where(block => !projections.HasPageFragments(block)), projections.ResolveLocation, document.Pages)) {
+            ReaderLocation? location = projections.ResolveLocation(block);
+            OfficeDocumentRegion? region = projections.ResolveRegion(block);
+            // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
+            yield return (location != null && !ReferenceEquals(location, block.Location)) || !ReferenceEquals(region, block.Region)
+                ? new OfficeDocumentBlock { Id = block.Id, Kind = block.Kind, Text = block.Text, Level = block.Level,
+                    Marker = block.Marker, Region = region, Location = location ?? block.Location }
+                : block;
+        }
     }
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
@@ -22,55 +47,21 @@ internal static class OfficeDocumentModelTraversal {
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
         IEnumerable<OfficeDocumentBlock> candidates,
-        Func<OfficeDocumentBlock, ReaderLocation?> locationSelector) {
+        Func<OfficeDocumentBlock, ReaderLocation?> locationSelector,
+        IEnumerable<OfficeDocumentPage>? pages = null) {
         if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
-        var ordered = new List<OrderedBlock>();
-        int insertionIndex = 0;
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        var ordered = new List<OfficeDocumentBlock>();
         foreach (OfficeDocumentBlock block in candidates) {
             if (block != null && seen.Add(block)) {
-                ordered.Add(new OrderedBlock(block, locationSelector(block), insertionIndex++));
+                // IDs and anchors survive transport round-trips; unlabelled repeated text is not a duplicate.
+                if ((!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(block.Location?.BlockAnchor))
+                    && !identities.Add(BuildBlockIdentity(block, locationSelector(block)))) continue;
+                ordered.Add(block);
             }
         }
-        ordered.Sort(CompareBlocks);
-        return ordered.Select(item => item.Block).ToArray();
-    }
-
-    internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
-        var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
-        var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (ReaderTable table in document.Tables ?? System.Array.Empty<ReaderTable>()) {
-            if (table == null || !seen.Add(table)) continue;
-            IncrementIdentity(aggregateIdentityCounts, BuildTableIdentity(table, null, null));
-            yield return table;
-        }
-        foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
-            if (page?.Tables == null) continue;
-            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
-                ReaderTable table = page.Tables[tableIndex];
-                if (table == null || !seen.Add(table)) continue;
-                ReaderTable scopedTable = WithPageLocationFallback(table, page, tableIndex);
-                string identity = BuildTableIdentity(scopedTable, null, null);
-                if (aggregateIdentityCounts.ContainsKey(identity)) continue;
-                IncrementIdentity(aggregateIdentityCounts, identity);
-                yield return scopedTable;
-            }
-        }
-        var chunkIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        int fallbackTableIndex = 0;
-        foreach (ReaderChunk chunk in document.Chunks ?? System.Array.Empty<ReaderChunk>()) {
-            if (chunk?.Tables == null) continue;
-            foreach (ReaderTable table in chunk.Tables) {
-                if (table == null || !seen.Add(table)) {
-                    fallbackTableIndex++;
-                    continue;
-                }
-                string identity = BuildTableIdentity(table, chunk.Location, fallbackTableIndex++);
-                int occurrence = IncrementIdentity(chunkIdentityCounts, identity);
-                if (aggregateIdentityCounts.TryGetValue(identity, out int aggregateCount) && occurrence <= aggregateCount) continue;
-                yield return table;
-            }
-        }
+        return OrderSourceItems(ordered, locationSelector, pages);
     }
 
     internal static IEnumerable<ReaderTable> TableInstances(OfficeDocumentReadResult document) {
@@ -241,6 +232,8 @@ internal static class OfficeDocumentModelTraversal {
             NormalizedStartLine = source.NormalizedStartLine,
             NormalizedEndLine = source.NormalizedEndLine,
             HeadingPath = source.HeadingPath,
+            HierarchyHeadingPath = source.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = source.HierarchyHeadingDisplayPath,
             HeadingSlug = source.HeadingSlug,
             SourceBlockKind = source.SourceBlockKind,
             BlockAnchor = source.BlockAnchor,
@@ -252,18 +245,11 @@ internal static class OfficeDocumentModelTraversal {
         };
     }
 
-    private static int CompareBlocks(OrderedBlock left, OrderedBlock right) {
-        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location), BuildContainerOrderKey(right.Location));
-        if (comparison != 0) return comparison;
-        comparison = BuildBlockPosition(left.Location).CompareTo(BuildBlockPosition(right.Location));
-        return comparison != 0 ? comparison : left.InsertionIndex.CompareTo(right.InsertionIndex);
-    }
-
-    private static string BuildContainerOrderKey(ReaderLocation? location) {
+    private static string BuildContainerOrderKey(ReaderLocation? location, IReadOnlyDictionary<string, int> sheetOrder) {
         if (location == null) return "9|";
         if (location.Page.HasValue) return "0|" + location.Page.Value.ToString("D10", CultureInfo.InvariantCulture);
         if (location.Slide.HasValue) return "1|" + location.Slide.Value.ToString("D10", CultureInfo.InvariantCulture);
-        if (!string.IsNullOrWhiteSpace(location.Sheet)) return "2|" + location.Sheet;
+        if (!string.IsNullOrWhiteSpace(location.Sheet)) return "2|" + sheetOrder[location.Sheet!].ToString("D10", CultureInfo.InvariantCulture);
         return "9|";
     }
 
@@ -274,11 +260,23 @@ internal static class OfficeDocumentModelTraversal {
         ?? location?.NormalizedStartLine
         ?? int.MaxValue;
 
-    internal static string BuildBlockIdentity(OfficeDocumentBlock block) {
-        if (!string.IsNullOrWhiteSpace(block.Id)) return "id:" + block.Id;
-        string? anchor = block.Location?.BlockAnchor;
-        if (!string.IsNullOrWhiteSpace(anchor)) return "anchor:" + anchor;
-        return BuildLocatedIdentity(block, block.Location, block.Kind, block.Text);
+    private static string BuildBlockProjectionKey(OfficeDocumentBlock block) =>
+        !string.IsNullOrWhiteSpace(block.Id) ? "id:" + block.Id : "anchor:" + block.Location?.BlockAnchor;
+
+    internal static string BuildBlockIdentity(OfficeDocumentBlock block) => BuildBlockIdentity(block, block.Location);
+
+    private static string BuildBlockIdentity(OfficeDocumentBlock block, ReaderLocation? location) {
+        string? anchor = location?.BlockAnchor;
+        if (!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(anchor)) {
+            var builder = new StringBuilder(!string.IsNullOrWhiteSpace(block.Id) ? "id:" : "anchor:");
+            AppendIdentity(builder, !string.IsNullOrWhiteSpace(block.Id) ? block.Id : anchor);
+            AppendIdentity(builder, location?.Path);
+            AppendIdentity(builder, location?.Page?.ToString(CultureInfo.InvariantCulture));
+            AppendIdentity(builder, location?.Slide?.ToString(CultureInfo.InvariantCulture));
+            AppendIdentity(builder, location?.Sheet);
+            return builder.ToString();
+        }
+        return BuildLocatedIdentity(block, location, block.Kind, block.Text);
     }
 
     internal static string BuildAssetIdentity(OfficeDocumentAsset asset) {
@@ -328,16 +326,17 @@ internal static class OfficeDocumentModelTraversal {
         return count;
     }
 
-    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null) {
+    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null, bool includeLocation = true, bool includeAnchor = true, bool includeCoverage = true) {
         var builder = new StringBuilder();
         AppendIdentity(builder, table.PayloadHash);
         AppendIdentity(builder, table.CallId);
         AppendIdentity(builder, table.Kind);
         AppendIdentity(builder, table.Title);
-        AppendLocationIdentity(builder, table.Location, fallback, fallbackTableIndex);
+        if (includeLocation) AppendLocationIdentity(builder, table.Location, fallback, fallbackTableIndex);
+        else if (includeAnchor) AppendIdentity(builder, table.Location?.BlockAnchor);
         AppendIdentity(builder, table.Columns);
         foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) AppendIdentity(builder, row);
-        AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
+        if (includeCoverage) AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
         return builder.ToString();
     }
 
@@ -346,7 +345,11 @@ internal static class OfficeDocumentModelTraversal {
 
     private static ReaderTable WithPageLocationFallback(ReaderTable table, OfficeDocumentPage page, int tableIndex) {
         ReaderLocation fallback = BuildPageLocation(page);
-        if (table.Location != null && !NeedsLocationFallback(table.Location)) return table;
+        ReaderTable projected = WithLocationFallback(table, fallback, tableIndex);
+        return Enumerable.SequenceEqual(LocationCoordinates(table.Location), LocationCoordinates(projected.Location), StringComparer.Ordinal) ? table : projected;
+    }
+
+    private static ReaderTable WithLocationFallback(ReaderTable table, ReaderLocation fallback, int? tableIndex) {
         return new ReaderTable {
             Title = table.Title,
             Kind = table.Kind,
@@ -363,9 +366,9 @@ internal static class OfficeDocumentModelTraversal {
         };
     }
 
-    private static ReaderLocation BuildPageLocation(OfficeDocumentPage page) {
+    internal static ReaderLocation BuildPageLocation(OfficeDocumentPage page) {
         ReaderLocation source = page.Location ?? new ReaderLocation();
-        return new ReaderLocation {
+        var fallback = new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
             SourceBlockIndex = source.SourceBlockIndex,
@@ -374,15 +377,33 @@ internal static class OfficeDocumentModelTraversal {
             NormalizedStartLine = source.NormalizedStartLine,
             NormalizedEndLine = source.NormalizedEndLine,
             HeadingPath = source.HeadingPath,
+            HierarchyHeadingPath = source.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = source.HierarchyHeadingDisplayPath,
             HeadingSlug = source.HeadingSlug,
             SourceBlockKind = source.SourceBlockKind,
             BlockAnchor = source.BlockAnchor,
             Sheet = source.Sheet,
             A1Range = source.A1Range,
             Slide = source.Slide,
-            Page = source.Page ?? page.Number,
+            Page = source.Page,
             TableIndex = source.TableIndex
         };
+        // A sheet or slide number denotes that container, not a PDF-style page number.
+        fallback.Page = page.Location?.Page;
+        string? kind = page.Location?.SourceBlockKind?.Trim();
+        if (string.Equals(kind, "sheet", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(fallback.Sheet))
+            fallback.Sheet = !string.IsNullOrWhiteSpace(page.Name) ? page.Name
+                : page.Number > 0 ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture) : null;
+        if (!fallback.Slide.HasValue && string.IsNullOrWhiteSpace(fallback.Sheet)) {
+            int? number = page.Number > 0 ? page.Number : fallback.Page;
+            if (string.Equals(kind, "slide", StringComparison.OrdinalIgnoreCase)) {
+                fallback.Slide = number;
+                fallback.Page = null;
+            } else {
+                fallback.Page = number;
+            }
+        }
+        return fallback;
     }
 
     private static bool NeedsLocationFallback(ReaderLocation location) {
@@ -390,7 +411,7 @@ internal static class OfficeDocumentModelTraversal {
             || (!location.Page.HasValue && !location.Slide.HasValue && string.IsNullOrWhiteSpace(location.Sheet));
     }
 
-    private static ReaderLocation MergeLocation(ReaderLocation? location, ReaderLocation fallback, int fallbackTableIndex) {
+    private static ReaderLocation MergeLocation(ReaderLocation? location, ReaderLocation fallback, int? fallbackTableIndex) {
         return new ReaderLocation {
             Path = Prefer(location?.Path, fallback.Path),
             BlockIndex = location?.BlockIndex ?? fallback.BlockIndex,
@@ -400,6 +421,9 @@ internal static class OfficeDocumentModelTraversal {
             NormalizedStartLine = location?.NormalizedStartLine ?? fallback.NormalizedStartLine,
             NormalizedEndLine = location?.NormalizedEndLine ?? fallback.NormalizedEndLine,
             HeadingPath = Prefer(location?.HeadingPath, fallback.HeadingPath),
+            HierarchyHeadingPath = Prefer(location?.HierarchyHeadingPath, fallback.HierarchyHeadingPath),
+            HierarchyHeadingDisplayPath = string.IsNullOrWhiteSpace(location?.HierarchyHeadingPath)
+                ? fallback.HierarchyHeadingDisplayPath : location!.HierarchyHeadingDisplayPath,
             HeadingSlug = Prefer(location?.HeadingSlug, fallback.HeadingSlug),
             SourceBlockKind = Prefer(location?.SourceBlockKind, fallback.SourceBlockKind),
             BlockAnchor = Prefer(location?.BlockAnchor, fallback.BlockAnchor),
@@ -432,6 +456,7 @@ internal static class OfficeDocumentModelTraversal {
         AppendIdentity(builder, Prefer(location?.Sheet, fallback?.Sheet));
         AppendIdentity(builder, Prefer(location?.A1Range, fallback?.A1Range));
         AppendIdentity(builder, Prefer(location?.HeadingPath, fallback?.HeadingPath));
+        AppendIdentity(builder, Prefer(location?.HierarchyHeadingPath, fallback?.HierarchyHeadingPath));
         AppendIdentity(builder, Prefer(location?.HeadingSlug, fallback?.HeadingSlug));
         AppendIdentity(builder, Prefer(location?.SourceBlockKind, fallback?.SourceBlockKind));
         AppendIdentity(builder, Prefer(location?.BlockAnchor, fallback?.BlockAnchor));
@@ -440,6 +465,9 @@ internal static class OfficeDocumentModelTraversal {
         AppendIdentity(builder, (location?.BlockIndex ?? fallback?.BlockIndex)?.ToString(CultureInfo.InvariantCulture));
         AppendIdentity(builder, (location?.SourceBlockIndex ?? fallback?.SourceBlockIndex)?.ToString(CultureInfo.InvariantCulture));
         AppendIdentity(builder, (location?.StartLine ?? fallback?.StartLine)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.EndLine ?? fallback?.EndLine)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.NormalizedStartLine ?? fallback?.NormalizedStartLine)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.NormalizedEndLine ?? fallback?.NormalizedEndLine)?.ToString(CultureInfo.InvariantCulture));
         AppendIdentity(builder, (location?.TableIndex ?? fallbackTableIndex ?? fallback?.TableIndex)?.ToString(CultureInfo.InvariantCulture));
     }
 
@@ -465,17 +493,6 @@ internal static class OfficeDocumentModelTraversal {
         builder.Append(value);
     }
 
-    private readonly struct OrderedBlock {
-        internal OrderedBlock(OfficeDocumentBlock block, ReaderLocation? location, int insertionIndex) {
-            Block = block;
-            Location = location;
-            InsertionIndex = insertionIndex;
-        }
-
-        internal OfficeDocumentBlock Block { get; }
-        internal ReaderLocation? Location { get; }
-        internal int InsertionIndex { get; }
-    }
 }
 
 internal sealed class ReferenceIdentityComparer<T> : IEqualityComparer<T> where T : class {

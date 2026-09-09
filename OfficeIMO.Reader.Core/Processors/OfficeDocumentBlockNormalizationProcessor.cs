@@ -39,7 +39,7 @@ public sealed class OfficeDocumentBlockNormalizationProcessor : OfficeDocumentPr
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.Blocks(document)) {
+        foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.BlockInstances(document)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             if (_options.TrimText) block.Text = (block.Text ?? string.Empty).Trim();
             if (_options.NormalizeKinds) block.Kind = (block.Kind ?? string.Empty).Trim().ToLowerInvariant();

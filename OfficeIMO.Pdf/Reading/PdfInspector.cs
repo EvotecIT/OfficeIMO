@@ -205,6 +205,10 @@ internal static class PdfInspector {
             }
         }
 
+        if (readDocument?.RepairReport.HasUnreadableObjects == true)
+            AddRewriteBlocker(PdfRewriteBlockerKind.IncompleteObjectGraph,
+                "PDF contains unreadable indirect objects; mutation cannot prove preservation or signature safety.");
+
         if (canRead && readDocument is not null && !probe.HasEncryption) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
@@ -407,8 +411,8 @@ internal static class PdfInspector {
             cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options, out _, out _, cancellationToken);
-            return Probe(pdf, security, objects, trailerRaw, cancellationToken);
+            var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options, out PdfRepairReport repairReport, out _, cancellationToken);
+            return Probe(pdf, security, objects, trailerRaw, repairReport, cancellationToken);
         } catch (Exception ex) when (
             ex is not PdfEncryptionException &&
             ex is not OperationCanceledException &&
@@ -423,28 +427,28 @@ internal static class PdfInspector {
     }
 
     internal static PdfDocumentProbe Probe(byte[] pdf, PdfReadDocument document) =>
-        Probe(pdf, document.Security, document.Objects, document.TrailerRaw);
+        Probe(pdf, document.Security, document.Objects, document.TrailerRaw, document.RepairReport);
 
     internal static PdfDocumentProbe Probe(
         byte[] pdf,
         PdfReadDocument document,
         CancellationToken cancellationToken) =>
-        Probe(pdf, document.Security, document.Objects, document.TrailerRaw, cancellationToken);
+        Probe(pdf, document.Security, document.Objects, document.TrailerRaw, document.RepairReport, cancellationToken);
 
     private static PdfDocumentProbe Probe(
         byte[] pdf,
         PdfDocumentSecurityInfo security,
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
+        PdfRepairReport repairReport,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        string text = PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         bool Has(params string[] names) {
             cancellationToken.ThrowIfCancellationRequested();
-            bool found = PdfSyntax.ContainsAnyPdfName(text, names) ||
-                PdfSyntax.ContainsAnyParsedPdfName(objects, names);
+            // Parsed dictionaries are authoritative here. Stream bytes and string values
+            // can contain marker-shaped text, including random encrypted payload bytes.
+            bool found = PdfSyntax.ContainsAnyDocumentPdfName(pdf, objects, repairReport, names);
             cancellationToken.ThrowIfCancellationRequested();
             return found;
         }

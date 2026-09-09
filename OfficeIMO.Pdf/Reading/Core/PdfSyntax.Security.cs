@@ -33,6 +33,7 @@ internal static partial class PdfSyntax {
         // fields and values from it. Keep this initial fallback marker scan raw so a
         // cancellation-aware caller does not pay for a second, tokenless parse.
         bool hasSignatures = ContainsAnyPdfName(text, cancellationToken, "ByteRange", "SigFlags", "Sig");
+        bool hasByteRange = ContainsPdfName(text, "ByteRange", cancellationToken);
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
@@ -91,7 +92,7 @@ internal static partial class PdfSyntax {
                 var (objects, trailerRaw) = ParseObjects(
                     pdf,
                     options,
-                    out _,
+                    out PdfRepairReport repairReport,
                     out _,
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -208,6 +209,10 @@ internal static partial class PdfSyntax {
                             currentByteRangeValues));
                     }
                 }
+                // Successful parsing supersedes raw fallback markers: opaque strings and
+                // stream payloads are not signature dictionaries or byte-range arrays.
+                hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
+                hasByteRange = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
                 byteRangeValueCount = 0;
@@ -235,7 +240,7 @@ internal static partial class PdfSyntax {
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),
             signatures.Count == 0 ? Array.Empty<PdfSignatureInfo>() : signatures.AsReadOnly(),
             signatureValueCount,
-            byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange", cancellationToken),
+            byteRangeValueCount > 0 || hasByteRange,
             byteRangeValueCount,
             acroFormSignatureFlags,
             hasDocMDPPermissions,

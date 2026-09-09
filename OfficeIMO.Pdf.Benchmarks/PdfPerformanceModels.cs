@@ -1,7 +1,6 @@
 internal sealed record PdfPerformanceBudget(
     Dictionary<string, PdfWorkloadBudget> Workloads,
-    double MinimumCachedSpeedup,
-    long MinimumCachedAllocatedBytesSaved);
+    double MinimumCachedSpeedup);
 
 internal sealed record PdfWorkloadBudget(
     double MaxElapsedMilliseconds,

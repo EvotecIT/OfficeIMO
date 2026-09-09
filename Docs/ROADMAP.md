@@ -172,6 +172,17 @@ Completion evidence: accepted physical-device journeys and explicit unsupported-
 4. Complete one everyday journey end to end, starting with comment/review handoff or OCR review according to the next concrete user need. Apply the same input/review/output pattern to the remaining workflows.
 5. Run native desktop acceptance alongside those slices and use observed platform defects to refine phase 5. Keep comparison, accessibility remediation, preflight, recipes, optional integrations, and mobile as separately bounded follow-on work.
 
+## Document assistant
+
+- [ ] Add operation-aware combination for questions and explanations that require facts from different input batches. Preserve contributing citations, distinguish missing source facts from an unsupported reasoning scope, and validate distant-page comparisons and joins against independently labelled answers within shared request budgets.
+
+Current APIs and qualification limits are documented in the [architecture and support matrix](officeimo.document-assistant-design.md) and package READMEs.
+
+- [ ] Expand the synthetic AI corpus into independently produced documents, complex diagrams, multi-column reading order and geometry alignment. Measure recognition error, semantic support, omission rates and peak memory by operation and document class; compare specialist recognition with general vision on equivalent labelled inputs.
+- [ ] Improve repeated-call reliability across hosted and local model profiles, including exact scalar evidence and long-document coverage. Extend qualification to text-only OCR composition, direct vendor authentication and additional context/resource profiles; preserve failed runs and require equivalent extraction/reasoning assertions.
+- [ ] Extend headless operations with one supported edit proposal and explicitly attached document collections. Reuse mutation/publication guards, bind approval to source identity and concrete before/after changes, reject stale sources and reopen artifacts. Decide retention/storage before persistent history or indexing.
+- [ ] Integrate Studio last over the engine contracts: current unsaved workspace snapshots, evidence navigation, review previews, processing setup and per-tab cancellation/lifetime. Retain workspace revision and hash identity; a source hash alone cannot establish that an open workspace is unchanged. Reject stale actions and validate tab changes, stale results and actual compact/wide accessible interaction on claimed platforms. Mobile follows its separate acceptance gates.
+
 ## HTML, RTF, and lightweight markup
 
 - [ ] Close the HTML rendering gaps exposed by the feature showcases: preserve spaces across mixed inline emphasis, render CSS two-position gradient stops, avoid visible seams between conic-gradient segments, align inline MathML fractions and roots with adjacent text, and fill implicitly closed SVG paths. Add small reproducible fixtures and inspect PDF, SVG, and raster output at normal reading size.
@@ -214,6 +225,7 @@ Completion evidence: accepted physical-device journeys and explicit unsupported-
 
 ## Document-format depth
 
+- [ ] Preserve carriage returns and CRLF sequences in XLSX cell text across the standard, fast, and direct data-set package writers. Validate exact text after reopening shared and inline strings with OfficeIMO and an independent reader; retain tab, line-feed, Unicode, and XML-character safeguards.
 - [ ] Reduce complete XLSX long-text export time beyond the [2026-09-08 measurements](benchmarks/officeimo.excel-csv-buffering-2026-09-08.md), which fall short of the additional 25-30% long-plain target. Profile encoding, output-buffer growth, compression, and package finalization separately; preserve cell values, XML sanitization, whitespace, shared strings, and package defaults. Establish separate compact and public-default budgets for elapsed time, allocation, peak memory, and output size on Windows, Linux, and macOS.
 - [ ] Reduce the remaining XLSX package-metadata, XML-reader, shared-string, and ZIP-index allocation beyond the [183,832 to 116,720 bytes per scan result](benchmarks/officeimo.excel-csv-buffering-2026-09-08.md). The 50% reduction target remains unmet. Preserve strict/transitional namespaces, package fallback, metadata limits, cancellation, URI validation, and pooled-buffer ownership; require repeated elapsed-time proof before accepting another allocation tradeoff.
 - [ ] Improve short JSON and mixed-field CSV write consistency beyond the [2026-09-08 measurements](benchmarks/officeimo.excel-csv-buffering-2026-09-08.md), retaining long-note and dense-quote gains. Extend the validated Unicode, custom-delimiter, UTF-8 file, and typed-value lanes with larger corpora and Linux/macOS evidence. Reduce read allocation only where the public result contract permits reuse; keep span-only scans distinct from APIs that materialize every field as a string.

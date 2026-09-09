@@ -215,6 +215,11 @@ public sealed class OfficeDocumentSource {
 /// </summary>
 public sealed class OfficeDocumentPage {
     /// <summary>
+    /// Resolves a new location using this container's number, kind and name without treating sheet or slide ordinals as pages.
+    /// </summary>
+    public ReaderLocation GetResolvedLocation() => OfficeDocumentModelTraversal.BuildPageLocation(this);
+
+    /// <summary>
     /// One-based page, slide, sheet, or diagram-page number when applicable.
     /// </summary>
     public int? Number { get; set; }

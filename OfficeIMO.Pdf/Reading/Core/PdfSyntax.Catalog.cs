@@ -500,25 +500,25 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static bool ContainsAnyParsedPdfName(byte[] pdf, params string[] names) {
-        return ContainsAnyParsedPdfName(pdf, null, names);
-    }
+    private static bool ContainsParsedOrFallbackPdfName(byte[] pdf, params string[] names) =>
+        ContainsParsedOrFallbackPdfName(pdf, null, names);
 
-    private static bool ContainsAnyParsedPdfName(byte[] pdf, PdfLoadOptions? options, params string[] names) {
+    private static bool ContainsParsedOrFallbackPdfName(byte[] pdf, PdfLoadOptions? options, params string[] names) {
         try {
-            var (map, _) = ParseObjects(pdf, options);
-            var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
-            foreach (PdfIndirectObject indirectObject in map.Values) {
-                if (ContainsAnyParsedPdfName(indirectObject.Value, nameSet)) {
-                    return true;
-                }
-            }
+            var (objects, trailer) = ParseObjects(pdf, options, out PdfRepairReport repairReport);
+            if (FindCatalog(objects, trailer) is null)
+                return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
+            return ContainsAnyDocumentPdfName(pdf, objects, repairReport, names);
         } catch (Exception ex) when (ShouldSuppressParsedPdfNameException(ex, options)) {
-            return false;
+            // Malformed or unauthenticated input retains the conservative raw probe.
+            return ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names);
         }
-
-        return false;
     }
+
+    internal static bool ContainsAnyDocumentPdfName(byte[] pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        PdfRepairReport repairReport, params string[] names) =>
+        ContainsAnyParsedPdfName(objects, names) ||
+        (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names));
 
     internal static bool ContainsAnyParsedPdfName(
         IReadOnlyDictionary<int, PdfIndirectObject> objects,
@@ -580,7 +580,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfLoadOptions? options) {
-        if (exception is OutOfMemoryException || exception is StackOverflowException) {
+        if (exception is OperationCanceledException || exception is OutOfMemoryException || exception is StackOverflowException) {
             return false;
         }
 

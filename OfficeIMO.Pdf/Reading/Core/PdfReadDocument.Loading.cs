@@ -32,6 +32,7 @@ public sealed partial class PdfReadDocument {
             map,
             trailer,
             security,
+            repairReport,
             effectiveOptions,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

@@ -4,9 +4,6 @@ PdfPerformanceBudget budget = JsonSerializer.Deserialize<PdfPerformanceBudget>(
     File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "pdf-performance-budgets.json")),
     new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
     ?? throw new InvalidOperationException("PDF performance budget manifest is invalid.");
-if (budget.MinimumCachedAllocatedBytesSaved <= 0L) {
-    throw new InvalidOperationException("PDF performance budget must define positive cached allocation savings.");
-}
 
 byte[] corpus = PdfBenchmarkCorpus.Create();
 IReadOnlyList<PdfPerformanceMeasurement> measurements = PdfBenchmarkRunner.Measure(
@@ -45,6 +42,8 @@ if (!verifyBudgets && !verifyTimingBudgets) {
 
 // Absolute ceilings catch runaway work on shared CI runners. Relative wall-clock
 // comparisons require a controlled host and are opt-in.
+// Gate each allocation total: an improvement to cold analysis must not fail a
+// minimum-savings delta or encourage retaining unnecessary cold allocations.
 var failures = new List<string>();
 foreach (PdfPerformanceMeasurement measurement in measurements) {
     if (!budget.Workloads.TryGetValue(measurement.Name, out PdfWorkloadBudget? workloadBudget)) {
@@ -79,12 +78,6 @@ foreach (string workloadName in budget.Workloads.Keys) {
 
 if (verifyTimingBudgets && speedup < budget.MinimumCachedSpeedup) {
     failures.Add($"Cached workflow speedup {speedup:F2}x was below {budget.MinimumCachedSpeedup:F2}x.");
-}
-
-if (allocatedBytesSaved < budget.MinimumCachedAllocatedBytesSaved) {
-    failures.Add(
-        $"Cached workflow saved {allocatedBytesSaved:N0} allocated bytes, below " +
-        $"{budget.MinimumCachedAllocatedBytesSaved:N0}.");
 }
 
 foreach (string failure in failures) {

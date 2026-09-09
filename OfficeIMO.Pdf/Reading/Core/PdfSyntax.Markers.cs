@@ -27,7 +27,7 @@ internal static partial class PdfSyntax {
             throw new NotSupportedException("Encrypted PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (HasSignatureMarkers(pdf)) {
+        if (HasSignatureMarkers(pdf, options)) {
             throw new NotSupportedException("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -109,12 +109,10 @@ internal static partial class PdfSyntax {
         return ReadDocumentSecurityInfo(pdf).HasEncryption;
     }
 
-    internal static bool HasSignatureMarkers(byte[] pdf) {
+    internal static bool HasSignatureMarkers(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "ByteRange", "SigFlags", "Sig") ||
-            ContainsAnyParsedPdfName(pdf, "ByteRange", "SigFlags", "Sig");
+        return ContainsParsedOrFallbackPdfName(pdf, options, "ByteRange", "SigFlags", "Sig");
     }
 
     internal static bool HasFormMarkers(byte[] pdf) {
@@ -125,28 +123,22 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "AcroForm", "Fields", "FT", "XFA");
+            return ContainsParsedOrFallbackPdfName(pdf, options, "AcroForm", "Fields", "FT", "XFA");
         }
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "AcroForm", "Fields", "FT", "XFA") ||
-            ContainsAnyParsedPdfName(pdf, "AcroForm", "Fields", "FT", "XFA");
+        return ContainsParsedOrFallbackPdfName(pdf, "AcroForm", "Fields", "FT", "XFA");
     }
 
     internal static bool HasAnnotationMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "Annots", "Annot") ||
-            ContainsAnyParsedPdfName(pdf, "Annots", "Annot");
+        return ContainsParsedOrFallbackPdfName(pdf, "Annots", "Annot");
     }
 
     internal static bool HasOutlineMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "Outlines", "UseOutlines") ||
-            ContainsAnyParsedPdfName(pdf, "Outlines", "UseOutlines");
+        return ContainsParsedOrFallbackPdfName(pdf, "Outlines", "UseOutlines");
     }
 
     internal static bool HasUnsupportedOutlineRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -171,17 +163,13 @@ internal static partial class PdfSyntax {
     internal static bool HasCatalogViewSettingMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "PageMode", "PageLayout") ||
-            ContainsAnyParsedPdfName(pdf, "PageMode", "PageLayout");
+        return ContainsParsedOrFallbackPdfName(pdf, "PageMode", "PageLayout");
     }
 
     internal static bool HasPageLabelMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "PageLabels") ||
-            ContainsAnyParsedPdfName(pdf, "PageLabels");
+        return ContainsParsedOrFallbackPdfName(pdf, "PageLabels");
     }
 
     internal static bool HasUnsupportedPageLabelRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -206,17 +194,13 @@ internal static partial class PdfSyntax {
     internal static bool HasNamedDestinationMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Dests") ||
-            ContainsAnyParsedPdfName(pdf, "Dests");
+        return ContainsParsedOrFallbackPdfName(pdf, "Dests");
     }
 
     internal static bool HasCatalogNameTreeMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Names") ||
-            ContainsAnyParsedPdfName(pdf, "Names");
+        return ContainsParsedOrFallbackPdfName(pdf, "Names");
     }
 
     internal static bool HasUnsupportedCatalogNameTreeRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -291,9 +275,7 @@ internal static partial class PdfSyntax {
     internal static bool HasOpenActionMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "OpenAction") ||
-            ContainsAnyParsedPdfName(pdf, "OpenAction");
+        return ContainsParsedOrFallbackPdfName(pdf, "OpenAction");
     }
 
     internal static bool HasUnsupportedOpenActionRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -329,9 +311,7 @@ internal static partial class PdfSyntax {
     internal static bool HasViewerPreferenceMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "ViewerPreferences") ||
-            ContainsAnyParsedPdfName(pdf, "ViewerPreferences");
+        return ContainsParsedOrFallbackPdfName(pdf, "ViewerPreferences");
     }
 
     internal static bool HasUnsupportedViewerPreferenceRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -367,20 +347,16 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
+            return ContainsParsedOrFallbackPdfName(pdf, options, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
         }
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem") ||
-            ContainsAnyParsedPdfName(pdf, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
+        return ContainsParsedOrFallbackPdfName(pdf, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
     }
 
     internal static bool HasXmpMetadataMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Metadata") ||
-            ContainsAnyParsedPdfName(pdf, "Metadata");
+        return ContainsParsedOrFallbackPdfName(pdf, "Metadata");
     }
 
     internal static bool HasUnsupportedXmpMetadataRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -451,9 +427,7 @@ internal static partial class PdfSyntax {
     internal static bool HasOutputIntentMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "OutputIntents") ||
-            ContainsPdfName(text, "OutputIntent");
+        return ContainsParsedOrFallbackPdfName(pdf, "OutputIntents", "OutputIntent");
     }
 
     internal static bool HasUnsupportedOutputIntentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -482,9 +456,7 @@ internal static partial class PdfSyntax {
     internal static bool HasEmbeddedFileMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF") ||
-            ContainsAnyParsedPdfName(pdf, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF");
+        return ContainsParsedOrFallbackPdfName(pdf, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF");
     }
 
     internal static bool HasUnsupportedEmbeddedFileRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -528,9 +500,7 @@ internal static partial class PdfSyntax {
     internal static bool HasOptionalContentMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "OCProperties", "OCGs", "OCG", "OCMD") ||
-            ContainsAnyParsedPdfName(pdf, "OCProperties", "OCGs", "OCG", "OCMD");
+        return ContainsParsedOrFallbackPdfName(pdf, "OCProperties", "OCGs", "OCG", "OCMD");
     }
 
     internal static bool HasUnsupportedOptionalContentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null) {
@@ -564,12 +534,10 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, PdfActiveContentPolicy.MarkerNames);
+            return ContainsParsedOrFallbackPdfName(pdf, options, PdfActiveContentPolicy.MarkerNames);
         }
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, PdfActiveContentPolicy.MarkerNames) ||
-            ContainsAnyParsedPdfName(pdf, PdfActiveContentPolicy.MarkerNames);
+        return ContainsParsedOrFallbackPdfName(pdf, PdfActiveContentPolicy.MarkerNames);
     }
 
     internal static string? GetHeaderVersion(byte[] pdf) {

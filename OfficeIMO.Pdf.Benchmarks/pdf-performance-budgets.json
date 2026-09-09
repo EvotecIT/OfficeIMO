@@ -2,12 +2,12 @@
   "workloads": {
     "analysis-cold": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 100663296,
+      "maxAllocatedBytes": 16777216,
       "maxPeakManagedHeapBytes": 536870912
     },
     "analysis-cached": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 67108864,
+      "maxAllocatedBytes": 4194304,
       "maxPeakManagedHeapBytes": 402653184
     },
     "render-svg-12": {
@@ -36,6 +36,5 @@
       "maxPeakManagedHeapBytes": 536870912
     }
   },
-  "minimumCachedSpeedup": 1.1,
-  "minimumCachedAllocatedBytesSaved": 6000000
+  "minimumCachedSpeedup": 1.1
 }

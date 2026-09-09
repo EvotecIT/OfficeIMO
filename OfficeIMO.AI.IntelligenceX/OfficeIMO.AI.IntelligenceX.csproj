@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <VersionPrefix>3.4.1</VersionPrefix>
+    <PackageId>OfficeIMO.AI.IntelligenceX</PackageId>
+    <Description>IntelligenceX execution adapter for provider-neutral OfficeIMO document AI operations.</Description>
+    <Authors>Przemyslaw Klys</Authors>
+    <Company>Evotec</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.AI\OfficeIMO.AI.csproj" />
+    <PackageReference Include="IntelligenceX" Version="0.1.1" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

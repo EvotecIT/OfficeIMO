@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Reflection;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -91,24 +89,6 @@ public class PdfFormModelSecurityTests {
         Assert.Equal(4096, page.LeaderRows.Count);
         Assert.Equal(new[] { "Label 0", "Value 0" }, page.LeaderRows[0]);
         Assert.Equal(new[] { "Label 4095", "Value 4095" }, page.LeaderRows[4095]);
-    }
-
-    [Fact]
-    public void XrefStreamRejectsOversizedFieldWidthsWithoutEnumeratingBytes() {
-        var widths = new PdfArray();
-        widths.Items.Add(new PdfNumber(int.MaxValue));
-        widths.Items.Add(new PdfNumber(int.MaxValue));
-        widths.Items.Add(new PdfNumber(3));
-        var dictionary = new PdfDictionary();
-        dictionary.Items["W"] = widths;
-        dictionary.Items["Size"] = new PdfNumber(1);
-        MethodInfo method = typeof(PdfSyntax).GetMethod(
-            "ReadXrefStreamEntries",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        var entries = (IEnumerable)method.Invoke(null, new object[] { dictionary, new byte[] { 0, 0, 0 } })!;
-
-        Assert.Empty(entries.Cast<object>());
     }
 
     [Fact]

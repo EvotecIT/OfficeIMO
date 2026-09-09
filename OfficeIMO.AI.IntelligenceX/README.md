@@ -1,0 +1,92 @@
+# OfficeIMO.AI.IntelligenceX
+
+This optional .NET 10 adapter connects `OfficeIMO.AI` to IntelligenceX Treatment. It requires `IntelligenceX` 0.1.1 and keeps provider/authentication code out of the document engine.
+
+## Add the adapter from source
+
+With `OfficeIMO` and `IntelligenceX` source checkouts beside your application directory, pack the SDK into a local feed and reference the adapter project:
+
+```shell
+dotnet pack IntelligenceX/IntelligenceX/IntelligenceX.csproj --configuration Release --output local-feed
+dotnet new console --framework net10.0 --name DocumentAssistant
+dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj
+dotnet restore DocumentAssistant/DocumentAssistant.csproj --source local-feed --source https://api.nuget.org/v3/index.json
+dotnet build DocumentAssistant/DocumentAssistant.csproj --no-restore
+```
+
+The local feed must contain the required `IntelligenceX` 0.1.1 package built from the matching SDK source. The project reference brings in the AI engine and Reader Core; add format readers in your host as needed.
+
+## ChatGPT
+
+```csharp
+using OfficeIMO.AI;
+using OfficeIMO.AI.IntelligenceX;
+
+using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(
+    new OfficeAiExecutionProfile {
+        Id = "chatgpt-documents",
+        Provider = "ChatGPT",
+        Model = "gpt-5.5",
+        SupportsImages = true,
+        EnforcesJsonSchema = true
+    }, new OfficeAiIntelligenceXOptions {
+        PreferCurrentCodexSession = true
+    });
+
+var engine = new OfficeAiEngine(executor);
+```
+
+The native route uses IX's authentication support. `PreferCurrentCodexSession` explicitly chooses the existing local Codex login over an older IX credential when available. The adapter does not redirect the native endpoint or overwrite Codex's authentication file. A hosted operation still requires `OfficeAiRequest.AllowRemoteProcessing = true`.
+
+The example model is an explicit profile setting. If it is unavailable for an account, select an available model and qualify it; the adapter does not silently choose a replacement.
+
+## Compatible HTTP
+
+```csharp
+using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(
+    new OfficeAiExecutionProfile {
+        Id = "local-documents",
+        Provider = "Local runtime",
+        Model = "your-installed-model",
+        IsLocal = true,
+        SupportsImages = false,
+        EnforcesJsonSchema = false
+    }, new OfficeAiIntelligenceXOptions {
+        Transport = OfficeAiIntelligenceXTransport.CompatibleHttp,
+        Endpoint = new Uri("http://127.0.0.1:11434/v1"),
+        Streaming = false
+    });
+```
+
+Use the model identifier and capabilities of the configured runtime. `EnforcesJsonSchema = false` enables prompted JSON with the same local validator and a diagnostic identifying that mode. A hosted compatible provider uses `IsLocal = false`, an HTTPS endpoint, and a caller-supplied `ApiKey` when required. Switching profiles does not change document operations or result schemas. Providers that do not implement this protocol need an executor or an IX transport for their native protocol.
+
+Local profiles require a loopback endpoint. HTTP redirects are disabled; local connections also bypass system proxies. The operator must verify that the service listening on loopback performs inference locally and does not itself forward requests to a hosted service. Transport checks do not certify the server's deployment.
+
+## Copilot
+
+Select `OfficeAiIntelligenceXTransport.CopilotNative` with an explicit model available to the authenticated account. The SDK sends HTTPS requests directly and selects Responses or Chat Completions using the Copilot model catalog. The profile must use `IsLocal = false`; set `SupportsImages` and `EnforcesJsonSchema` for the selected model's qualified capabilities.
+
+```csharp
+using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(
+    new OfficeAiExecutionProfile {
+        Id = "copilot-documents",
+        Provider = "GitHub Copilot",
+        Model = "your-available-model",
+        SupportsImages = false,
+        EnforcesJsonSchema = true
+    }, new OfficeAiIntelligenceXOptions {
+        Transport = OfficeAiIntelligenceXTransport.CopilotNative
+    });
+```
+
+By default, IntelligenceX reads `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN` from the host process. `ApiKey` supplies an explicit GitHub credential. For host-managed sign-in, renewal, or account selection, supply `CopilotOptions` with IntelligenceX's `CopilotNativeOptions`; do not combine it with `ApiKey`. The reusable SDK owns token callbacks, registered-app device authorization, optional credential persistence, and account checks. Credentials remain connection settings, separate from document requests.
+
+This route starts no CLI and has no filesystem tools or ambient workspace configuration. Images use the shared input contract, and JSON Schema is sent to the selected model. OfficeIMO still validates every response locally. Use `EnforcesJsonSchema = false` only for a model qualified for prompted JSON.
+
+## Isolation and limits
+
+Each Treatment request is ephemeral: it starts fresh and removes local SDK thread state when the request settles. No ambient tool packs, filesystem tools, image-generation tools, or provider model fallback are enabled. Native request/response payload tracing and usage telemetry are disabled. These controls do not assert that a hosted provider deletes its own records.
+
+Inline images, prompt text, model output, and response wire bytes have separate bounds. The wire bound includes SSE overhead. The SDK rejects JSON nesting beyond 128 containers before parsing provider envelopes or candidate output. Cancellation is forwarded to IX, and the document engine suppresses late results. Finish or cancel active operations before disposing the executor; a provider that ignores cancellation may still be running until its task settles.
+
+The [headless example](../Examples/OfficeIMO.AI.Example/README.md) demonstrates authentication selection, local/hosted profiles, PDF/image input, and artifact output. The [engine README](../OfficeIMO.AI/README.md) defines evidence checks, review requirements, and result states.

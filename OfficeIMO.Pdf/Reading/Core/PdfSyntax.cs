@@ -97,12 +97,13 @@ internal static partial class PdfSyntax {
             }
 
             int preliminaryBodyCharacters = preliminaryBodyEnd - bodyStart;
-            int firstBodyCharacter = bodyStart;
-            while (firstBodyCharacter < preliminaryBodyEnd && char.IsWhiteSpace(text[firstBodyCharacter])) {
-                firstBodyCharacter++;
-            }
+            int firstBodyCharacter = SkipWhitespaceAndComments(text, bodyStart, preliminaryBodyEnd);
 
-            if (firstBodyCharacter < preliminaryBodyEnd && text[firstBodyCharacter] == '[') {
+            void ReportUnreadableObject() => HandleStructuralDefect(parsingMode, repairDiagnostics,
+                "UnreadableIndirectObject", "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " could not be read completely; feature detection retains conservative source markers.", id);
+
+            if (firstBodyCharacter + 1 >= preliminaryBodyEnd || text[firstBodyCharacter] != '<' || text[firstBodyCharacter + 1] != '<') {
                 if (preliminaryBodyCharacters > limits.MaxObjectCharacters) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
                 }
@@ -110,14 +111,17 @@ internal static partial class PdfSyntax {
                 string preliminaryArrayBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
                 var parsedArray = ParseTopLevelObject(preliminaryArrayBody, limits);
                 if (parsedArray is not null) {
+                    if (parsedArray.HasIncompleteSyntax) ReportUnreadableObject();
                     map[id] = new PdfIndirectObject(id, gen, parsedArray);
                     parsedOffsets[id] = start;
                     continue;
                 }
+                ReportUnreadableObject();
+                continue;
             }
 
             // Extract dictionary (balanced << >>) within object bounds
-            int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
+            int dictStart = firstBodyCharacter;
             if (dictStart >= 0) {
                 int dictEnd = FindDictEnd(text, dictStart, end);
                 if (dictEnd > dictStart) {
@@ -133,11 +137,15 @@ internal static partial class PdfSyntax {
                         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
                     }
                     if (dict is null) {
+                        ReportUnreadableObject();
                         continue;
                     }
+                    if (dict.HasIncompleteSyntax) ReportUnreadableObject();
 
                     // Check for stream section; prefer dictionary /Length when available
                     int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
+                    int tailStart = SkipWhitespaceAndComments(text, dictEnd, preliminaryBodyEnd);
+                    if (tailStart < preliminaryBodyEnd && tailStart != streamKw) ReportUnreadableObject();
                     if (streamKw >= 0) {
                         int dataStart = SkipEOL(text, streamKw + 6, end);
                         streamLocations.Add((id, gen, dataStart));
@@ -194,12 +202,13 @@ internal static partial class PdfSyntax {
                         }
                     }
                     // No stream; store dictionary-only object
+                    if (streamKw >= 0) ReportUnreadableObject();
                     map[id] = new PdfIndirectObject(id, gen, dict);
                     parsedOffsets[id] = start;
                 }
             }
 
-            if (!map.ContainsKey(id)) {
+            if (!parsedOffsets.TryGetValue(id, out int parsedOffset) || parsedOffset != start) {
                 if (preliminaryBodyCharacters > limits.MaxObjectCharacters) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
                 }
@@ -209,7 +218,7 @@ internal static partial class PdfSyntax {
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
                     parsedOffsets[id] = start;
-                }
+                } else ReportUnreadableObject();
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -219,9 +228,16 @@ internal static partial class PdfSyntax {
         var activeClassicObjectNumbers = new HashSet<int>();
         var xrefScanBudget = new XrefObjectScanBudget(limits);
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, out bool appliedClassicEntries);
+        bool reportedIncompleteXref = false;
+        void ReportIncompleteXref() {
+            if (reportedIncompleteXref) return;
+            reportedIncompleteXref = true;
+            HandleStructuralDefect(parsingMode, repairDiagnostics, "UnreadableIndirectObject",
+                "Cross-reference stream entries could not be read completely.", null);
+        }
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, out bool appliedClassicEntries);
         cancellationToken.ThrowIfCancellationRequested();
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget) || appliedXrefStreamEntries;
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref) || appliedXrefStreamEntries;
         cancellationToken.ThrowIfCancellationRequested();
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
@@ -245,10 +261,22 @@ internal static partial class PdfSyntax {
             // Xref streams are never encrypted, but the object streams they reference can be.
             // Materialize compressed objects only after authentication and decryption so their
             // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
-            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget);
+            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject);
+        }
+        void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
+            "UnreadableIndirectObject", "Compressed object content could not be read completely.", objectNumber);
+        var unreadableObjects = new HashSet<int?>(repairDiagnostics
+            .Where(static diagnostic => diagnostic.Code == "UnreadableIndirectObject")
+            .Select(static diagnostic => diagnostic.ObjectNumber));
+        foreach (var entry in map.Values) {
+            bool incomplete = entry.Value.HasIncompleteSyntax ||
+                (entry.Value is PdfStream stream && stream.Dictionary.HasIncompleteSyntax);
+            if (incomplete && unreadableObjects.Add(entry.ObjectNumber))
+                HandleStructuralDefect(parsingMode, repairDiagnostics, "UnreadableIndirectObject",
+                    "An active object retained incomplete syntax during cross-reference recovery.", entry.ObjectNumber);
         }
         cancellationToken.ThrowIfCancellationRequested();
 

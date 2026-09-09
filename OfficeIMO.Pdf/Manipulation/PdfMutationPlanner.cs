@@ -253,6 +253,12 @@ internal static class PdfMutationPlanner {
             metadataPreservationValidated &&
             !BlocksActiveContentPreservingMutation(preflight, operation);
 
+        bool incompleteObjectGraph = preflight.RewriteBlockers.Any(static blocker => blocker.Kind == PdfRewriteBlockerKind.IncompleteObjectGraph);
+        if (incompleteObjectGraph) {
+            fullRewriteAvailable = false;
+            appendOnlyAvailable = false;
+        }
+
         PdfMutationExecutionMode mode;
         if (executionPreference == PdfMutationExecutionPreference.RequireFullRewrite) {
             mode = fullRewriteAvailable ? PdfMutationExecutionMode.FullRewrite : PdfMutationExecutionMode.Blocked;
@@ -274,6 +280,11 @@ internal static class PdfMutationPlanner {
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security)
             : Array.Empty<string>();
+        if (incompleteObjectGraph) {
+            var sourceBlockers = blockers.ToList();
+            Add(sourceBlockers, "Source.IncompleteObjectGraph");
+            blockers = sourceBlockers.AsReadOnly();
+        }
         if (mode == PdfMutationExecutionMode.Blocked &&
             operation == PdfMutationOperation.FinalizeExternalSignature &&
             !finalizationReservationValidated) {

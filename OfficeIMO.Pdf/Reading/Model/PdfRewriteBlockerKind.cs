@@ -56,5 +56,8 @@ public enum PdfRewriteBlockerKind {
     ActiveContent,
 
     /// <summary>Rewrite object graph contains missing or wrong-generation indirect references.</summary>
-    InvalidObjectReferences
+    InvalidObjectReferences,
+
+    /// <summary>At least one indirect object could not be read completely.</summary>
+    IncompleteObjectGraph
 }
