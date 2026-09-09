@@ -9,6 +9,27 @@ using OfficeWordDocument = OfficeIMO.Word.WordDocument;
 namespace OfficeIMO.Tests;
 
 public sealed class PdfVisualPageImportTests {
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public void ForegroundImageCoversOverlappingLaterContent(bool table) {
+        var raster = new OfficeIMO.Drawing.OfficeRasterImage(240, 320, OfficeIMO.Drawing.OfficeColor.White);
+        byte[] png = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png);
+        using OfficeWordDocument word = OfficeWordDocument.Create();
+        word.Sections[0].PageSettings.Width = 4800; word.Sections[0].PageSettings.Height = 6400;
+        using var stream = new MemoryStream(png);
+        var image = word.AddParagraph().InsertImage(stream, "foreground.png", 320, 426.6666666667, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
+        image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
+        image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
+        image.HorizontalPositionOffset = 0; image.VerticalPositionOffset = 0;
+        if (table) word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Covered content";
+        else word.AddParagraph("Covered content");
+        var pdf = word.ToPdfDocument();
+        Assert.Contains("Covered", pdf.Reader.Text());
+        var rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 });
+        Assert.True(OfficePngReader.TryDecode(rendered[0].Bytes, out var actual));
+        Assert.True(actual!.GetPixels().All(value => value == 255), "Opaque white foreground must cover later text and table strokes.");
+    }
+
     [Fact]
     public void VisualPagesPreserveSelectedPageOrderGeometryAndRenderedImages() {
         PdfCore.PdfDocument source = Create();

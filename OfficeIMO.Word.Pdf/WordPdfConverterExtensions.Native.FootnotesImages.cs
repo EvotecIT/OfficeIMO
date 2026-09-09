@@ -260,7 +260,7 @@ namespace OfficeIMO.Word.Pdf {
                 y / 12700D + height <= pdf.PageSize.Height + 0.001D &&
                 (image.Rotation ?? 0) == 0 && (image.CropTop ?? 0) == 0 && (image.CropBottom ?? 0) == 0 &&
                 (image.CropLeft ?? 0) == 0 && (image.CropRight ?? 0) == 0) {
-                pdf.Canvas(canvas => canvas.Image(preparedBytes, x / 12700D, y / 12700D, width, height,
+                pdf.Canvas(canvas => canvas.ForegroundImage(preparedBytes, x / 12700D, y / 12700D, width, height,
                     horizontalFlip: image.HorizontalFlip ?? false,
                     verticalFlip: image.VerticalFlip ?? false));
                 return;
