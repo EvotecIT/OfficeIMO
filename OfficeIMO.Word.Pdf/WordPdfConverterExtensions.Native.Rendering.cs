@@ -143,11 +143,13 @@ namespace OfficeIMO.Word.Pdf {
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
             List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, footnoteNumbers, footnoteNumbersById);
+            bool needsAnchorLine = style.AnchoredCanvas != null && !hasRenderableRuns &&
+                string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
 
-            if (marker == null &&
+            if (!needsAnchorLine && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 &&
                 IsNativeHorizontalRuleParagraph(paragraph, runs, renderContent) &&
                 CreateNativeHorizontalRuleStyle(paragraph, style) is { } horizontalRuleStyle) {
@@ -155,8 +157,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (!hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0 &&
-                ((checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) || style.AnchoredCanvas != null)) {
+            if (!needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null &&
+                paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -164,9 +166,6 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     nativeFontMap,
                     renderSpacingOnlyEmptyParagraphLineBox);
-                RenderNativeFormFields(pdf, formFieldControls, objectAlign);
-                RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
-                RenderNativeRepeatingSections(pdf, repeatingSectionControls, objectAlign, ResolveNativeParagraphDefaultColor(paragraph));
                 return;
             }
 
@@ -183,7 +182,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.HR(style: topBorderRuleStyle);
             }
 
-            if (headingLevel > 0 && marker == null) {
+            if (!needsAnchorLine && headingLevel > 0 && marker == null) {
                 if (paragraph._paragraph != null &&
                     string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
                     headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
@@ -205,7 +204,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
                 pdf.PanelParagraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
@@ -222,9 +221,9 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphStyle.SpacingAfter = 0;
             }
 
-            if (hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
+            if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -244,13 +243,6 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
             bool renderSpacingOnlyLineBox) {
-            if (style.AnchoredCanvas != null) {
-                // Even an image-only Word paragraph has an anchor line. Let its line box
-                // choose the page without reserving the floating image's dimensions.
-                pdf.Paragraph(builder => builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
-                    nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak(), style: style);
-                return;
-            }
             if (!ShouldRenderNativeEmptyParagraphLineBox(paragraph, renderSpacingOnlyLineBox)) {
                 if (renderSpacingOnlyLineBox && paragraph.LineSpacingAfterPoints is { } spacingAfter && spacingAfter > 0D) {
                     pdf.Spacer(spacingAfter);
@@ -489,7 +481,14 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<int> paragraphFootnoteNumbers,
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
+            NativeFontMap nativeFontMap,
+            bool needsAnchorLine = false) {
+            if (needsAnchorLine) {
+                // An image-only paragraph still participates in pagination and decoration.
+                builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
+                    nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak();
+                return;
+            }
             if (marker != null) {
                 builder.Text(new string(' ', Math.Max(0, marker.Value.Level - 1) * 2));
                 builder.Text(marker.Value.Marker);

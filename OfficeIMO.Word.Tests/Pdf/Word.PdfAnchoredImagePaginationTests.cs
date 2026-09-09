@@ -8,6 +8,56 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfAnchoredImagePaginationTests {
     [Theory]
+    [InlineData(false, "bottom")]
+    [InlineData(true, "bottom")]
+    [InlineData(false, "top")]
+    [InlineData(true, "top")]
+    [InlineData(false, "panel")]
+    [InlineData(true, "panel")]
+    [InlineData(false, "heading")]
+    [InlineData(true, "heading")]
+    public void EmptyPictureControlRetainsImageAndDecoration(bool columns, string decoration) {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-anchor-control-" + Guid.NewGuid().ToString("N") + ".png");
+        try {
+            File.WriteAllBytes(path, OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
+                new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.Drawing.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
+            using WordDocument word = WordDocument.Create();
+            var section = word.Sections[0];
+            section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
+            if (columns) { section.ColumnCount = 2; section.ColumnsSpace = 120; }
+            var anchor = word.AddParagraph();
+            var control = anchor.AddPictureControl(path, 24, 24);
+            var image = control.Image!;
+            image.WrapText = WordImageTextWrapping.InFrontOfText;
+            image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+            image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
+            image.HorizontalPositionOffset = 10 * 12700; image.VerticalPositionOffset = 10 * 12700;
+            if (decoration == "top") {
+                anchor.Borders.TopStyle = WordBorderStyle.Single;
+                anchor.Borders.TopColorHex = "FF0000";
+                anchor.Borders.TopSize = 16;
+            } else {
+                anchor.Borders.BottomStyle = WordBorderStyle.Single;
+                anchor.Borders.BottomColorHex = "FF0000";
+                anchor.Borders.BottomSize = 16;
+            }
+            if (decoration == "panel") anchor.ShadingFillColorHex = "E6F2FF";
+            if (decoration == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
+            var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+            var placement = Assert.Single(pdf.Images.Placements());
+            Assert.Equal(10, placement.X, 3);
+            var rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(placement.PageNumber), new PdfCore.PdfPageRenderOptions { Dpi = 72 });
+            Assert.True(OfficePngReader.TryDecode(rendered[0].Bytes, out var bitmap));
+            byte[] pixels = bitmap!.GetPixels();
+            Assert.True(Enumerable.Range(0, pixels.Length / 4).Any(index => pixels[index * 4] > 200 && pixels[index * 4 + 1] < 40 && pixels[index * 4 + 2] < 40), "The red paragraph border must remain visible.");
+            if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
+                Directory.CreateDirectory(output);
+                File.WriteAllBytes(Path.Combine(output, $"control-{decoration}-{columns}.png"), rendered[0].Bytes!);
+            }
+        } finally { File.Delete(path); }
+    }
+
+    [Theory]
     [InlineData(false, "paragraph")]
     [InlineData(true, "paragraph")]
     [InlineData(false, "heading")]
