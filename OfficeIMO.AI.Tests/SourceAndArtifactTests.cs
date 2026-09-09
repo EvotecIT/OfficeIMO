@@ -11,6 +11,54 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class SourceAndArtifactTests {
     [Theory]
+    [InlineData("A\u0001B", false)]
+    [InlineData("A\u000BB", false)]
+    [InlineData("A\uFFFEB", false)]
+    [InlineData("A\tB\nC😀", true)]
+    public async Task XmlCellCompatibilityIsCheckedBeforeWritingArtifacts(string raw, bool exportable) {
+        var document = OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(raw), new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = raw } }
+        });
+        var result = await new OfficeAiEngine(new LiteralExecutor(raw)).RunAsync(document, new() {
+            Operation = OfficeAiOperation.ExtractFields, Instruction = "Extract", Fields = new[] { new OfficeAiFieldDefinition("value") }
+        });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-xml-" + Guid.NewGuid().ToString("N"));
+        try {
+            if (exportable) {
+                await ArtifactWriter.SaveAsync(output, document, result);
+                using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
+                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            } else {
+                await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
+                Assert.False(Directory.Exists(output));
+            }
+        } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
+    }
+
+    [Fact]
+    public async Task WorkbookExportsRemainFaithfulOrFailBeforeWritingArtifacts() {
+        const string raw = "A\rB\r\nC";
+        var document = OfficeAiDocument.FromReadResult(Encoding.UTF8.GetBytes(raw), new OfficeDocumentReadResult {
+            Blocks = new[] { new OfficeDocumentBlock { Text = raw } }
+        });
+        var result = await new OfficeAiEngine(new LiteralExecutor(raw)).RunAsync(document, new() {
+            Operation = OfficeAiOperation.ExtractFields, Instruction = "Extract", Fields = new[] { new OfficeAiFieldDefinition("value") }
+        });
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-ai-fidelity-" + Guid.NewGuid().ToString("N"));
+        try {
+            // Either the format preserves the value or verification rejects the whole artifact set.
+            try { await ArtifactWriter.SaveAsync(output, document, result); }
+            catch (InvalidDataException) {
+                Assert.False(Directory.Exists(output));
+                return;
+            }
+            using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
+            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+        } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
+    }
+
+    [Theory]
     [InlineData(16383, true)]
     [InlineData(20000, false)]
     public async Task UnicodeExportChecksExcelLimitsBeforeWritingArtifacts(int emojiCount, bool exportable) {

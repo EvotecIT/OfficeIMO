@@ -92,7 +92,7 @@ internal static partial class PdfSyntax {
                 var (objects, trailerRaw) = ParseObjects(
                     pdf,
                     options,
-                    out _,
+                    out PdfRepairReport repairReport,
                     out _,
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -211,8 +211,8 @@ internal static partial class PdfSyntax {
                 }
                 // Successful parsing supersedes raw fallback markers: opaque strings and
                 // stream payloads are not signature dictionaries or byte-range arrays.
-                hasSignatures = ContainsAnyParsedPdfName(objects, "ByteRange", "SigFlags", "Sig");
-                hasByteRange = ContainsAnyParsedPdfName(objects, "ByteRange");
+                hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
+                hasByteRange = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
                 byteRangeValueCount = 0;

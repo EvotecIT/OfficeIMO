@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml;
 using OfficeIMO.AI;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
@@ -6,6 +7,15 @@ using OfficeIMO.Reader;
 
 internal static class ArtifactWriter {
     public static async Task SaveAsync(string output, OfficeAiDocument document, OfficeAiResult result, CancellationToken cancellationToken = default) {
+        var artifacts = await PrepareAsync(document, result, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        Directory.CreateDirectory(output);
+        foreach (var artifact in artifacts)
+            await WriteNewAsync(Path.Combine(output, artifact.Name), artifact.Bytes, cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(string Name, byte[] Bytes)>> PrepareAsync(
+        OfficeAiDocument document, OfficeAiResult result, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var tables = new List<(string Name, IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows)>();
         if (result.Fields.Count > 0) tables.Add(("Fields", new[] { "Name", "Status", "Raw value", "Normalized value", "Evidence" },
@@ -25,17 +35,22 @@ internal static class ArtifactWriter {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (value.Length > 32_767)
                     throw new NotSupportedException("XLSX export requires every cell to fit Excel's 32,767 UTF-16 code-unit limit. No artifacts were written.");
+                try { XmlConvert.VerifyXmlChars(value); }
+                catch (XmlException) {
+                    throw new NotSupportedException("XLSX export requires XML-compatible cell characters. No artifacts were written.");
+                }
             }
         cancellationToken.ThrowIfCancellationRequested();
-        Directory.CreateDirectory(output);
-        await WriteNewAsync(Path.Combine(output, "report.json"), Encoding.UTF8.GetBytes(OfficeAiArtifacts.SerializeReport(document, result)), cancellationToken);
+        var artifacts = new List<(string Name, byte[] Bytes)> {
+            ("report.json", Encoding.UTF8.GetBytes(OfficeAiArtifacts.SerializeReport(document, result)))
+        };
         if (result.Operation == OfficeAiOperation.Parse) {
             string readback = OfficeDocumentReadResultJson.Serialize(OfficeAiArtifacts.CreateProposedReadResult(document, result), indented: true);
-            await WriteNewAsync(Path.Combine(output, "proposed-reader.json"), Encoding.UTF8.GetBytes(readback), cancellationToken);
-            _ = OfficeDocumentReadResultJson.Deserialize(await File.ReadAllTextAsync(Path.Combine(output, "proposed-reader.json"), cancellationToken));
+            _ = OfficeDocumentReadResultJson.Deserialize(readback);
+            artifacts.Add(("proposed-reader.json", Encoding.UTF8.GetBytes(readback)));
         }
         cancellationToken.ThrowIfCancellationRequested();
-        if (tables.Count == 0) return;
+        if (tables.Count == 0) return artifacts;
         using var workbookBytes = new MemoryStream();
         using (var workbook = ExcelDocument.Create(workbookBytes)) {
             foreach (var table in tables) {
@@ -56,13 +71,13 @@ internal static class ArtifactWriter {
                 }
                 using var csvBytes = new MemoryStream();
                 await csv.SaveAsync(csvBytes, new CsvSaveOptions { IncludeHeader = true, FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape }, cancellationToken);
-                await WriteNewAsync(Path.Combine(output, table.Name.Replace(' ', '-') + ".csv"), csvBytes.ToArray(), cancellationToken);
+                artifacts.Add((table.Name.Replace(' ', '-') + ".csv", csvBytes.ToArray()));
             }
             await workbook.SaveAsync(cancellationToken);
         }
-        string workbookPath = Path.Combine(output, "extraction.xlsx");
-        await WriteNewAsync(workbookPath, workbookBytes.ToArray(), cancellationToken);
-        using var reopened = ExcelDocument.Load(workbookPath);
+        byte[] workbookArtifact = workbookBytes.ToArray();
+        using var readbackStream = new MemoryStream(workbookArtifact, writable: false);
+        using var reopened = ExcelDocument.Load(readbackStream);
         cancellationToken.ThrowIfCancellationRequested();
         if (reopened.Sheets.Count != tables.Count) throw new InvalidDataException("Workbook readback did not preserve its worksheets.");
         for (int index = 0; index < tables.Count; index++) {
@@ -80,6 +95,8 @@ internal static class ArtifactWriter {
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
+        artifacts.Add(("extraction.xlsx", workbookArtifact));
+        return artifacts;
     }
 
     private static async Task WriteNewAsync(string path, byte[] bytes, CancellationToken cancellationToken) {

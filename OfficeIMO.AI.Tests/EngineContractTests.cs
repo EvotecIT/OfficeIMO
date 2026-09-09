@@ -427,6 +427,8 @@ public sealed partial class EngineContractTests {
         Assert.False(Assert.Single(Assert.Single(result.Tables).Citations).QuoteMatched);
         OfficeDocumentReadResult reopened = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(OfficeAiArtifacts.CreateProposedReadResult(document, result)));
         Assert.Equal(new[] { "Pencil", "12" }, Assert.Single(Assert.Single(reopened.Tables).Rows));
+        Assert.Equal(1, Assert.Single(result.Tables).Table.TotalRowCount);
+        Assert.Equal(1, Assert.Single(reopened.Tables).TotalRowCount);
         Assert.Equal("ai-proposed-requires-review", Assert.Single(reopened.Diagnostics).Code);
         Assert.Equal(document.SourceHash, reopened.Source.SourceHash);
         Assert.Equal(1, Assert.Single(reopened.Blocks).Location.Page);

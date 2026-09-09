@@ -326,7 +326,7 @@ internal static partial class OfficeDocumentModelTraversal {
         return count;
     }
 
-    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null, bool includeLocation = true, bool includeAnchor = true) {
+    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null, bool includeLocation = true, bool includeAnchor = true, bool includeCoverage = true) {
         var builder = new StringBuilder();
         AppendIdentity(builder, table.PayloadHash);
         AppendIdentity(builder, table.CallId);
@@ -336,7 +336,7 @@ internal static partial class OfficeDocumentModelTraversal {
         else if (includeAnchor) AppendIdentity(builder, table.Location?.BlockAnchor);
         AppendIdentity(builder, table.Columns);
         foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) AppendIdentity(builder, row);
-        AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
+        if (includeCoverage) AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
         return builder.ToString();
     }
 

@@ -11,7 +11,7 @@ internal static partial class PdfSanitizer {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PdfSanitizationFinding> findings) {
         policy.CancellationToken.ThrowIfCancellationRequested();
-        var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, policy.CancellationToken);
+        var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out PdfRepairReport repairReport, out _, policy.CancellationToken);
         PdfDocumentSecurityInfo baseline = PdfSyntax.ReadDocumentSecurityInfo(
             pdf,
             readOptions,
@@ -22,6 +22,7 @@ internal static partial class PdfSanitizer {
             parsed.Map,
             parsed.TrailerRaw,
             baseline,
+            repairReport,
             readOptions,
             policy.CancellationToken);
         int userMetadata = policy.ShouldRemoveUserMetadata ? CountUserMetadataEntries(parsed.Map, security) : 0;

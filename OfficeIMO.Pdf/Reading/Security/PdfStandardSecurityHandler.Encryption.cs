@@ -5,11 +5,13 @@ namespace OfficeIMO.Pdf;
 internal sealed partial class PdfStandardSecurityHandler {
     internal PdfObject EncryptObject(int objectNumber, int generation, PdfObject value) {
         if (value is PdfStringObj text) {
-            return new PdfStringObj(EncryptData(objectNumber, generation, text.RawBytes, _stringMethod), text.UseTextStringEncoding);
+            return new PdfStringObj(EncryptData(objectNumber, generation, text.RawBytes, _stringMethod), text.UseTextStringEncoding) {
+                HasIncompleteSyntax = text.HasIncompleteSyntax
+            };
         }
 
         if (value is PdfArray array) {
-            var encrypted = new PdfArray();
+            var encrypted = new PdfArray { HasIncompleteSyntax = array.HasIncompleteSyntax };
             for (int i = 0; i < array.Items.Count; i++) {
                 encrypted.Items.Add(EncryptObject(objectNumber, generation, array.Items[i]));
             }
@@ -27,14 +29,16 @@ internal sealed partial class PdfStandardSecurityHandler {
             byte[] encryptedData = skipData
                 ? stream.Data
                 : EncryptData(objectNumber, generation, stream.Data, _streamMethod);
-            return new PdfStream(encryptedDictionary, encryptedData, stream.DecodingFailed, stream.DecodingError);
+            return new PdfStream(encryptedDictionary, encryptedData, stream.DecodingFailed, stream.DecodingError) {
+                HasIncompleteSyntax = stream.HasIncompleteSyntax
+            };
         }
 
         return value;
     }
 
     private PdfDictionary EncryptDictionary(int objectNumber, int generation, PdfDictionary dictionary) {
-        var encrypted = new PdfDictionary();
+        var encrypted = new PdfDictionary { HasIncompleteSyntax = dictionary.HasIncompleteSyntax };
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
             encrypted.Items[item.Key] = EncryptObject(objectNumber, generation, item.Value);
         }

@@ -8,6 +8,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo fallback,
+        PdfRepairReport repairReport,
         PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -143,8 +144,8 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        bool hasByteRange = byteRangeValueCount > 0 || ContainsAnyParsedPdfName(objects, "ByteRange");
-        bool hasSignatures = ContainsAnyParsedPdfName(objects, "ByteRange", "SigFlags", "Sig");
+        bool hasByteRange = byteRangeValueCount > 0 || ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
+        bool hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(

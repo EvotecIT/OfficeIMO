@@ -21,6 +21,9 @@ internal static partial class OfficeDocumentModelTraversal {
             return false;
         }
 
+        internal IEnumerable<T> Candidates(string payload, ReaderLocation? location) =>
+            _payloads.TryGetValue(payload, out var bucket) ? bucket.Candidates(LocationCoordinates(location)) : Array.Empty<T>();
+
         private sealed class Bucket {
             private readonly Dictionary<int, LocationGroup> _groups = new();
             private int _next;
@@ -46,6 +49,12 @@ internal static partial class OfficeDocumentModelTraversal {
                 value = selected.Take(first);
                 return true;
             }
+
+            internal IEnumerable<T> Candidates(string?[] coordinates) {
+                int mask = Mask(coordinates);
+                return _groups.Values.SelectMany(group => group.Candidates(mask, coordinates))
+                    .OrderBy(candidate => candidate.Id).Select(candidate => candidate.Value);
+            }
         }
 
         // Tables with the same set of known coordinates share a tuple index. A query uses only
@@ -64,6 +73,20 @@ internal static partial class OfficeDocumentModelTraversal {
             }
 
             internal int? First(int queryMask, string?[] coordinates) {
+                var ids = MatchingIds(queryMask, coordinates);
+                if (ids == null) return null;
+                while (ids.Count > 0 && !_entries.ContainsKey(ids.Peek())) ids.Dequeue();
+                return ids.Count > 0 ? ids.Peek() : null;
+            }
+
+            internal IEnumerable<(int Id, T Value)> Candidates(int queryMask, string?[] coordinates) {
+                var ids = MatchingIds(queryMask, coordinates);
+                if (ids == null) yield break;
+                foreach (int id in ids)
+                    if (_entries.TryGetValue(id, out var entry)) yield return (id, entry.Value);
+            }
+
+            private Queue<int>? MatchingIds(int queryMask, string?[] coordinates) {
                 if (_entries.Count == 0) return null;
                 int shared = queryMask & _mask;
                 if (!_projections.TryGetValue(shared, out var index)) {
@@ -73,9 +96,7 @@ internal static partial class OfficeDocumentModelTraversal {
                         AddKey(index, Key(shared, entry.Value.Coordinates), entry.Key);
                     _projections.Add(shared, index);
                 }
-                if (!index.TryGetValue(Key(shared, coordinates), out var ids)) return null;
-                while (ids.Count > 0 && !_entries.ContainsKey(ids.Peek())) ids.Dequeue();
-                return ids.Count > 0 ? ids.Peek() : null;
+                return index.TryGetValue(Key(shared, coordinates), out var ids) ? ids : null;
             }
 
             internal T Take(int id) {

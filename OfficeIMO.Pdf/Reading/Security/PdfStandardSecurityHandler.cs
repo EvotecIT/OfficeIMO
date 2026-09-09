@@ -112,7 +112,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
 
         if (value is PdfArray array) {
-            var decrypted = new PdfArray();
+            var decrypted = new PdfArray { HasIncompleteSyntax = array.HasIncompleteSyntax };
             for (int i = 0; i < array.Items.Count; i++) {
                 decrypted.Items.Add(DecryptObject(objectNumber, generation, array.Items[i], cancellationToken));
             }
@@ -130,7 +130,9 @@ internal sealed partial class PdfStandardSecurityHandler {
             byte[] data = ShouldSkipStreamData(streamDictionary)
                 ? stream.Data
                 : DecryptData(objectNumber, generation, stream.Data, _streamMethod);
-            return new PdfStream(streamDictionary, data, stream.DecodingFailed, stream.DecodingError);
+            return new PdfStream(streamDictionary, data, stream.DecodingFailed, stream.DecodingError) {
+                HasIncompleteSyntax = stream.HasIncompleteSyntax
+            };
         }
 
         return value;
@@ -141,11 +143,11 @@ internal sealed partial class PdfStandardSecurityHandler {
         return new PdfStringObj(
             decrypted,
             text.UseTextStringEncoding,
-            text.EncodedTokenLength);
+            text.EncodedTokenLength) { HasIncompleteSyntax = text.HasIncompleteSyntax };
     }
 
     private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary, CancellationToken cancellationToken) {
-        var decrypted = new PdfDictionary();
+        var decrypted = new PdfDictionary { HasIncompleteSyntax = dictionary.HasIncompleteSyntax };
         foreach (var item in dictionary.Items) {
             decrypted.Items[item.Key] = DecryptObject(objectNumber, generation, item.Value, cancellationToken);
         }

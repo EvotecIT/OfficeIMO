@@ -123,7 +123,7 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "AcroForm", "Fields", "FT", "XFA");
+            return ContainsParsedOrFallbackPdfName(pdf, options, "AcroForm", "Fields", "FT", "XFA");
         }
 
         return ContainsParsedOrFallbackPdfName(pdf, "AcroForm", "Fields", "FT", "XFA");
@@ -347,7 +347,7 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
+            return ContainsParsedOrFallbackPdfName(pdf, options, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
         }
 
         return ContainsParsedOrFallbackPdfName(pdf, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
@@ -534,7 +534,7 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, PdfActiveContentPolicy.MarkerNames);
+            return ContainsParsedOrFallbackPdfName(pdf, options, PdfActiveContentPolicy.MarkerNames);
         }
 
         return ContainsParsedOrFallbackPdfName(pdf, PdfActiveContentPolicy.MarkerNames);

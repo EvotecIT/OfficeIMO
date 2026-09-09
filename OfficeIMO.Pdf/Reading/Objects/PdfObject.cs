@@ -1,6 +1,10 @@
 namespace OfficeIMO.Pdf;
 
-internal abstract class PdfObject { }
+internal abstract class PdfObject {
+    // Retain lenient read compatibility while exposing discarded or incomplete syntax
+    // to mutation preflight and conservative feature detection.
+    internal bool HasIncompleteSyntax { get; set; }
+}
 
 /// <summary>PDF numeric value (integer or real).</summary>
 internal sealed class PdfNumber : PdfObject {

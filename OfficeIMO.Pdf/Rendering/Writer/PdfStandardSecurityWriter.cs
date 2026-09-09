@@ -133,6 +133,13 @@ internal static partial class PdfStandardSecurityWriter {
         while (index < input.Length) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[index];
+            if (current == (byte)'<' && index + 1 < input.Length && input[index + 1] == (byte)'<') {
+                // Consume the dictionary opener together; its second '<' is not a hex string.
+                output.WriteByte(current);
+                output.WriteByte(current);
+                index += 2;
+                continue;
+            }
             if (current == (byte)'(' && TryReadLiteralString(input, index, out int literalEnd, out byte[] literalBytes, cancellationToken)) {
                 WriteEncryptedHexString(output, literalBytes, objectNumber, fileKey);
                 index = literalEnd + 1;

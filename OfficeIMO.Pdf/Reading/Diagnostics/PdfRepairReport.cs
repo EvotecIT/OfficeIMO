@@ -18,6 +18,14 @@ public sealed class PdfRepairReport {
     /// <summary>Number of detected issues intentionally left unchanged.</summary>
     public int DetectionOnlyCount => Diagnostics.Count(static diagnostic => !diagnostic.WasRecovered);
 
+    // An index rebuilt from complete objects can still support precise feature detection.
+    // Lost objects or uncertain object/stream boundaries require conservative marker checks.
+    internal bool HasIncompleteObjectCoverage => Diagnostics.Any(static diagnostic => diagnostic.Code is
+        "UnreadableIndirectObject" or "MissingEndObject" or "IncorrectStreamLength" or
+        "MissingStreamLength" or "DuplicateObjectIdentifier");
+
+    internal bool HasUnreadableObjects => Diagnostics.Any(static diagnostic => diagnostic.Code == "UnreadableIndirectObject");
+
     internal PdfRepairReport Append(IEnumerable<PdfRepairDiagnostic> diagnostics) {
         PdfRepairDiagnostic[] appended = diagnostics.ToArray();
         if (appended.Length == 0) return this;

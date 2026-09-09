@@ -96,7 +96,8 @@ public sealed partial class OfficeAiEngine {
                 }
                 IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, required: true);
                 tables.Add(new(new ReaderTable { Title = title, Kind = "ai-proposed", Columns = Array.AsReadOnly(columns),
-                    Rows = values.AsReadOnly(), Location = new ReaderLocation { Page = CommonPage(citations) } }, citations));
+                    Rows = values.AsReadOnly(), TotalRowCount = values.Count,
+                    Location = new ReaderLocation { Page = CommonPage(citations) } }, citations));
             }
             return new(claims.AsReadOnly(), fields.AsReadOnly(), blocks.AsReadOnly(), tables.AsReadOnly());
         } catch (JsonException) { throw Invalid(); }

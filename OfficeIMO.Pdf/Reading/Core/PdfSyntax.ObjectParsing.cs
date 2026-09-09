@@ -38,6 +38,7 @@ internal static partial class PdfSyntax {
             if (dictStart >= 0) {
                 int dictEnd = FindDictEnd(body, dictStart, body.Length);
                 if (dictEnd > dictStart) {
+                    if (SkipWhitespaceAndComments(body, dictEnd, body.Length) < body.Length) return null;
                     int dictionaryCharacters = dictEnd - (dictStart + 2);
                     if (dictionaryCharacters > effectiveLimits.MaxObjectCharacters) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, dictionaryCharacters);
@@ -51,24 +52,24 @@ internal static partial class PdfSyntax {
         }
         if (s.Length > 0 && s[0] == '[') {
             var toks = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, _) = ParseObject(toks, 0, effectiveLimits, 0);
-            return obj;
+            var (obj, consumed) = ParseObject(toks, 0, effectiveLimits, 0);
+            return consumed + 1 == toks.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '(') {
             var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, _) = ParseObject(stringTokens, 0, effectiveLimits, 0);
-            return obj;
+            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
+            return consumed + 1 == stringTokens.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '<' && (s.Length == 1 || s[1] != '<')) {
             var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, _) = ParseObject(stringTokens, 0, effectiveLimits, 0);
-            return obj;
+            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
+            return consumed + 1 == stringTokens.Count ? obj : null;
         }
         // number or name fallbacks
         var tokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
         if (tokens.Count > 0) {
-            var (obj0, _) = ParseObject(tokens, 0, effectiveLimits, 0);
-            return obj0;
+            var (obj0, consumed) = ParseObject(tokens, 0, effectiveLimits, 0);
+            return consumed + 1 == tokens.Count ? obj0 : null;
         }
         return null;
     }
@@ -95,14 +96,19 @@ internal static partial class PdfSyntax {
         var tokens = Tokenize(dict, effectiveLimits, trackEncodedStringSourceSpans);
         for (int i = 0; i < tokens.Count; i++) {
             string tokenText = tokens[i].Text;
+            if (i == 0 && tokenText == "<<") continue;
             if (tokenText.Length > 0 && tokenText[0] == '/') {
                 string key = DecodeName(tokenText.Substring(1));
-                if (i + 1 < tokens.Count) {
+                if (i + 1 < tokens.Count && tokens[i + 1].Text != ">>") {
                     var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
+                    d.HasIncompleteSyntax |= d.Items.ContainsKey(key);
                     d.Items[key] = obj;
+                    d.HasIncompleteSyntax |= obj.HasIncompleteSyntax;
                     i += consumed + 1;
-                }
-            }
+                } else d.HasIncompleteSyntax = true;
+            } else if (tokenText == ">>" && i == tokens.Count - 1) {
+                break;
+            } else d.HasIncompleteSyntax = true;
         }
         return d;
     }
@@ -122,15 +128,19 @@ internal static partial class PdfSyntax {
                 string keyToken = tokens[j].Text;
                 if (keyToken.Length > 0 && keyToken[0] == '/') {
                     string key = DecodeName(keyToken.Substring(1));
-                    if (j + 1 < tokens.Count) {
+                    if (j + 1 < tokens.Count && tokens[j + 1].Text != ">>") {
                         var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
+                        dict.HasIncompleteSyntax |= dict.Items.ContainsKey(key);
                         dict.Items[key] = obj;
+                        dict.HasIncompleteSyntax |= obj.HasIncompleteSyntax;
                         j += consumed + 2;
                         continue;
                     }
                 }
+                dict.HasIncompleteSyntax = true;
                 j++;
             }
+            dict.HasIncompleteSyntax |= j >= tokens.Count;
             return (dict, j - i);
         }
         if (tok == "[") {
@@ -138,8 +148,10 @@ internal static partial class PdfSyntax {
             while (j < tokens.Count && tokens[j].Text != "]") {
                 var (inner, used) = ParseObject(tokens, j, limits, depth + 1);
                 arr.Items.Add(inner);
+                arr.HasIncompleteSyntax |= inner.HasIncompleteSyntax;
                 j += used + 1;
             }
+            arr.HasIncompleteSyntax |= j >= tokens.Count;
             return (arr, j - i);
         }
         if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeName(tok.Substring(1))), 0);
@@ -148,23 +160,27 @@ internal static partial class PdfSyntax {
             string inner = isTerminated
                 ? tok.Substring(1, tok.Length - 2)
                 : tok.Substring(1);
-            return (CreateParsedString(
+            var value = CreateParsedString(
                 PdfStringParser.ParseLiteralToBytes(inner),
-                token.EncodedLength), 0);
+                token.EncodedLength);
+            value.HasIncompleteSyntax = !isTerminated;
+            return (value, 0);
         }
         if (token.IsString && tok.Length > 0 && tok[0] == '<' && (tok.Length == 1 || tok[1] != '<')) {
             bool isTerminated = token.IsTerminated;
             string inner = isTerminated
                 ? tok.Substring(1, tok.Length - 2)
                 : tok.Substring(1);
-            return (CreateParsedString(
+            var value = CreateParsedString(
                 PdfTextString.DecodeHexBytes(inner),
-                token.EncodedLength), 0);
+                token.EncodedLength);
+            value.HasIncompleteSyntax = !isTerminated;
+            return (value, 0);
         }
         if (string.Equals(tok, "true", StringComparison.Ordinal)) return (new PdfBoolean(true), 0);
         if (string.Equals(tok, "false", StringComparison.Ordinal)) return (new PdfBoolean(false), 0);
         if (string.Equals(tok, "null", StringComparison.Ordinal)) return (PdfNull.Instance, 0);
-        if (tok.Length > 0 && (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+')) {
+        if (tok.Length > 0 && (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+' || tok[0] == '.')) {
             // reference (obj gen R) or number
             if (i + 2 < tokens.Count && tokens[i + 2].Text == "R" && int.TryParse(tokens[i].Text, out int obj) && int.TryParse(tokens[i + 1].Text, out int gen)) {
                 return (new PdfReference(obj, gen), 2);
@@ -173,7 +189,7 @@ internal static partial class PdfSyntax {
                 return (new PdfNumber(val), 0);
             }
         }
-        return (new PdfName(tok), 0);
+        return (new PdfName(tok) { HasIncompleteSyntax = true }, 0);
     }
 
     private static List<PdfToken> Tokenize(
