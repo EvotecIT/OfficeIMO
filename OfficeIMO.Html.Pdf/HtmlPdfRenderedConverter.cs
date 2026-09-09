@@ -31,6 +31,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
+        measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
         renderOptions.FallbackTextMeasurement = (text, font) => PdfCore.PdfWriter.MeasurePositionedText(
             new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
@@ -661,7 +662,8 @@ internal static partial class HtmlPdfRenderedConverter {
             PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
             MapAlignment(visual.Alignment),
             visual.Font.Size * PointsPerCssPixel,
-            visual.LineHeight * PointsPerCssPixel);
+            visual.LineHeight * PointsPerCssPixel,
+            (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel);
     }
 
     private static bool IsFragmentLink(string? link) =>

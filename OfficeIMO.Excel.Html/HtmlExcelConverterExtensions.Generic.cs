@@ -473,8 +473,8 @@ public static partial class HtmlExcelConverterExtensions {
                 _ => (ExcelVerticalTextAlignment?)null
             }
         };
-        if (source.Bold || source.Style?.IsSpecifiedValue("font-weight") == true) run.Bold = source.Bold;
-        if (source.Italic || source.Style?.IsSpecifiedValue("font-style") == true) run.Italic = source.Italic;
+        if (source.Bold || HasResolvedRunStyle(source, "font-weight")) run.Bold = source.Bold;
+        if (source.Italic || HasResolvedRunStyle(source, "font-style")) run.Italic = source.Italic;
 
         bool decorationSpecified = source.Style?.IsSpecifiedValue("text-decoration") == true
             || source.Style?.IsSpecifiedValue("text-decoration-line") == true;
@@ -500,6 +500,11 @@ public static partial class HtmlExcelConverterExtensions {
         OfficeTextDecorationStyle.Double => ExcelUnderlineStyle.Double,
         _ => ExcelUnderlineStyle.Single
     };
+
+    private static bool HasResolvedRunStyle(HtmlSemanticRun source, string property) =>
+        source.Style?.IsSpecifiedValue(property) == true
+        || source.Style?.IsInheritedValue(property) == true
+        || source.Style?.IsResetValue(property) == true;
 
     private static ExcelUnderlineStyle? ResolveExcelUnderlineStyle(HtmlSemanticRun source) {
         if (source.DataAttributes.TryGetValue("data-officeimo-excel-underline", out string? exact)

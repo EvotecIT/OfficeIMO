@@ -55,7 +55,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     public double DefaultFontSize { get; set; } = 16D;
 
     // A target writer can supply its fallback font metrics without replacing document fonts.
-    internal Func<string, OfficeFontInfo, double>? FallbackTextMeasurement { get; set; }
+    internal Func<string, OfficeFontInfo, double?>? FallbackTextMeasurement { get; set; }
 
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;

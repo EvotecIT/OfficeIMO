@@ -1,8 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    internal static double MeasurePositionedText(PdfTextRun run, PdfOptions options) =>
-        MeasureRichSegment(CreatePositionedTextSegment(run, options.DefaultFontSize, options), options);
+    internal static double? MeasurePositionedText(PdfTextRun run, PdfOptions options) {
+        PdfStandardFont baseFont = ChooseNormal(options.DefaultFont);
+        var parts = NormalizeFallbackRuns(new[] { run }, baseFont, options).ToList();
+        // Automatic fallback fonts may only be registered once the full scene is known.
+        if (parts.Any(part => !CanWriteRunWithSelectedFont(part, baseFont, options))) return null;
+        return parts.Sum(part => MeasureRichSegment(CreatePositionedTextSegment(part, options.DefaultFontSize, options), options));
+    }
 
     private static RichSeg CreatePositionedTextSegment(PdfTextRun run, double fontSize, PdfOptions options) {
         PdfStandardFont font = ResolveFontForRun(run, ChooseNormal(options.DefaultFont));

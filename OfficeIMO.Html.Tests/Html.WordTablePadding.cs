@@ -13,9 +13,12 @@ public class HtmlWordTablePadding {
     [InlineData("padding:9px 8px", "135", "120", "135", "120")]
     [InlineData("padding:1pt 2pt 3pt 4pt;padding-left:0", "20", "40", "60", "0")]
     [InlineData("padding:40000pt", "32767", "32767", "32767", "32767")]
+    [InlineData("font-size:24px;padding:1em", "360", "360", "360", "360")]
+    [InlineData("padding:1rem", "300", "300", "300", "300")]
+    [InlineData("direction:rtl;padding:1px;padding-inline-start:8px", "15", "120", "15", "15")]
     public void CssCellPaddingBecomesBoundedNativeMargins(string css, string top, string right, string bottom, string left) {
         HtmlToWordResult result = HtmlConversionDocument.Parse(
-            $"<style>th,td {{{css}}}</style><table><tr><th>Header</th><td>Value</td></tr></table>")
+            $"<style>html {{font-size:20px}} th,td {{{css}}}</style><table><tr><th>Header</th><td>Value</td></tr></table>")
             .ToWordDocumentResult();
         using WordDocument word = result.RequireValue();
         using MemoryStream artifact = word.ToStream();

@@ -16,6 +16,8 @@ public class HtmlExcelReportValues {
             + $"<table><tr><th {attributes}>Value</th>"
             + $"<td class='emphasis' {attributes}>Value</td>"
             + $"<td style='font-weight:bold;font-style:italic' {attributes}><span style='font-weight:normal;font-style:normal'>Value</span></td>"
+            + $"<td style='font-weight:bold;font-style:italic' {attributes}><span style='font-weight:normal;font-style:normal'><span>Value</span></span></td>"
+            + $"<th {attributes}><span style='font-weight:normal'><span>Value</span></span></th>"
             + "</tr></table>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
@@ -29,6 +31,9 @@ public class HtmlExcelReportValues {
         Assert.True(sheet.GetCellStyle(1, 2).Strikethrough);
         Assert.False(sheet.GetCellStyle(1, 3).Bold);
         Assert.False(sheet.GetCellStyle(1, 3).Italic);
+        Assert.False(sheet.GetCellStyle(1, 4).Bold);
+        Assert.False(sheet.GetCellStyle(1, 4).Italic);
+        Assert.False(sheet.GetCellStyle(1, 5).Bold);
     }
 
     [Theory]

@@ -1,10 +1,63 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public class HtmlPdfTextPlacement {
+    [Fact]
+    public void LayoutDefersUncoveredEmbeddedGlyphsUntilAutomaticFallbackSelection() {
+        byte[] primaryBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
+        var options = new HtmlToPdfOptions {
+            PdfOptions = new OfficeIMO.Pdf.PdfOptions().EmbedStandardFont(
+                OfficeIMO.Pdf.PdfStandardFont.Helvetica, primaryBytes, "Primary")
+        };
+        const string expected = "office\u012C continued";
+        byte[] bytes = HtmlConversionDocument.Parse("<p>" + expected + "</p>").ToPdfBytes(options);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Contains(expected, pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PrecomputedSceneKeepsTextAndLinkWithinItsAllocatedAdvance() {
+        const string uri = "https://example.test/details";
+        var rendered = HtmlRenderTestDriver.Render("<p style='font:24px Arial'><a href='" + uri + "'>NORTHWIND</a> follows</p>");
+        var result = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlToPdfOptions(), CancellationToken.None);
+        byte[] bytes = result.Document.ToBytes();
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("NORTHWINDfollows", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.True(letters[9].StartBaseLine.X >= letters[8].EndBaseLine.X);
+        var link = Assert.Single(OfficeIMO.Pdf.PdfDocumentReadResult.Load(bytes).GetLinksByUri(uri));
+        Assert.InRange(link.Width, letters[8].EndBaseLine.X - letters[0].StartBaseLine.X - 0.1D,
+            letters[8].EndBaseLine.X - letters[0].StartBaseLine.X + 0.1D);
+    }
+
+    [Fact]
+    public void LayoutUsesConfiguredEmbeddedFallbacksBeforeMeasuringTheirGlyphs() {
+        byte[] primaryBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
+        byte[] fallbackBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf"));
+        var primary = OfficeIMO.Pdf.PdfOpenTypeCffFontProgram.Parse(primaryBytes, "Primary");
+        var fallback = OfficeIMO.Pdf.PdfTrueTypeFontProgram.Parse(fallbackBytes, "Fallback");
+        int scalar = Enumerable.Range(0x20, 0x3000 - 0x20).First(value =>
+            !char.IsControl((char)value) && !char.IsWhiteSpace((char)value)
+            && (!primary.TryGetGlyphId(value, out int primaryGlyph) || primaryGlyph == 0)
+            && fallback.TryGetGlyphId(value, out int fallbackGlyph) && fallbackGlyph > 0);
+        string text = "office" + char.ConvertFromUtf32(scalar);
+        var options = new OfficeIMO.Pdf.PdfOptions()
+            .EmbedStandardFont(OfficeIMO.Pdf.PdfStandardFont.Helvetica, primaryBytes, "Primary")
+            .RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(
+                new[] { new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Fallback", fallbackBytes) },
+                new[] { OfficeIMO.Pdf.PdfStandardFont.TimesRoman }));
+        byte[] bytes = HtmlConversionDocument.Parse("<p>" + text + "</p>").ToPdfBytes(new HtmlToPdfOptions {
+            PdfOptions = options,
+            TextFallbacks = OfficeIMO.Pdf.PdfTextFallbackFeatures.None
+        });
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Contains(text, pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("Arial")]
     [InlineData("Times New Roman")]

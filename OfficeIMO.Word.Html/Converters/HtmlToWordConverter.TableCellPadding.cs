@@ -1,8 +1,9 @@
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private void ApplyTableCellPadding(WordTableCell cell, string? style) {
+        private void ApplyTableCellPadding(WordTableCell cell, AngleSharp.Dom.IElement element) {
+            string? style = element.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(style) || style!.IndexOf("padding", StringComparison.OrdinalIgnoreCase) < 0) return;
-            CssStyleMapper.CssProperties parsed = CssStyleMapper.ParseStyles(style);
+            CssStyleMapper.CssProperties parsed = ParseElementBoxStyles(element);
             if (parsed.PaddingTop.HasValue) cell.MarginTopWidth = NormalizeTableCellPadding(parsed.PaddingTop.Value, "top");
             if (parsed.PaddingRight.HasValue) cell.MarginRightWidth = NormalizeTableCellPadding(parsed.PaddingRight.Value, "right");
             if (parsed.PaddingBottom.HasValue) cell.MarginBottomWidth = NormalizeTableCellPadding(parsed.PaddingBottom.Value, "bottom");
