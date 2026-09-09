@@ -66,7 +66,10 @@ internal sealed partial class PdfWorkspace {
             return prepared.OutputBytes.ToArray();
         }, token, progress);
 
-    internal async Task<(byte[] Before, byte[] After)> RenderTextPreviewAsync(PreparedTextEdit prepared, int page, CancellationToken token) {
+    internal Task<(byte[] Before, byte[] After)> RenderTextPreviewAsync(PreparedTextEdit prepared, int page, CancellationToken token) =>
+        RunNonDetachableCpuWorkAsync(() => RenderTextPreviewPairAsync(prepared, page, token).GetAwaiter().GetResult(), token);
+
+    private async Task<(byte[] Before, byte[] After)> RenderTextPreviewPairAsync(PreparedTextEdit prepared, int page, CancellationToken token) {
         var options = new PdfImageExportOptions { Scale = 2, ThumbnailMaxDimension = 1600, MaximumOutputCount = 1 };
         async Task<byte[]> RenderAsync(byte[] bytes) {
             IReadOnlyList<OfficeImageExportResult> result = await LoadDocument(bytes).ToImages(options)

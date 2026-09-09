@@ -13,6 +13,7 @@ public sealed partial class PdfPageView : UserControl {
         PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
         PageCanvas.ObjectSelected += OnObjectSelected;
         PageCanvas.ObjectTransformCompleted += gesture => _viewModel?.TransformObject(gesture);
+        PageCanvas.SizeChanged += (_, args) => _viewModel?.UpdateCanvasSize(args.NewSize);
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;
@@ -42,6 +43,7 @@ public sealed partial class PdfPageView : UserControl {
 
         _viewModel?.DetachFromViewport();
         _viewModel = DataContext as PdfPageViewModel;
+        _viewModel?.UpdateCanvasSize(PageCanvas.Bounds.Size);
         if (_attached) _viewModel?.AttachToViewport();
     }
 }

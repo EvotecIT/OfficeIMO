@@ -14,6 +14,7 @@ public sealed partial class MainWindowViewModel {
     private long _textReviewRevision;
     private PdfWorkspace? _textReviewWorkspace;
     private CancellationTokenSource? _textInspectionCancellation;
+    private CancellationTokenSource? _textPreviewCancellation;
     private PreparedTextEdit? _preparedTextEdit;
     private bool _textReviewIsBatch;
     [ObservableProperty] private PdfTextDraftViewModel? _textEditDraft;
@@ -77,6 +78,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void InvalidateTextPreview() {
+        _textPreviewCancellation?.Cancel();
+        _textPreviewCancellation = null;
         _textReviewGeneration++;
         _preparedTextEdit = null;
         TextPreviewBefore?.Dispose();
@@ -139,13 +142,14 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnSelectedReplacementMatchChanged(PdfTextReplacementMatchViewModel? value) {
+        _textPreviewCancellation?.Cancel();
         if (value is null) return;
         var bounds = value.Match.VisualBounds;
         foreach (var page in Pages) page.ActiveSearchHighlight = page.PageNumber == value.PageNumber
             ? new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height) : null;
         NavigateToPage(value.PageNumber);
         UpdateTextPreviewRegion(value.PageNumber);
-        if (_preparedTextEdit is { } prepared) _ = ShowTextPreviewPageAsync(prepared, value.PageNumber);
+        if (_preparedTextEdit is not null) _ = ShowTextPreviewPageAsync(value.PageNumber);
     }
 
     partial void OnTextPreviewFullPageChanged(bool value) => UpdateTextPreviewRegion(SelectedReplacementMatch?.PageNumber ?? SelectedObject?.PageNumber ?? 1);
@@ -160,7 +164,7 @@ public sealed partial class MainWindowViewModel {
         } else if (SelectedObject is { Kind: PdfEditorSelectionKind.Text } selection && selection.PageNumber == pageNumber) {
             bounds = new(selection.Bounds.Left, selection.Bounds.Top, selection.Bounds.Width, selection.Bounds.Height);
         } else return;
-        double width = page.DisplayWidth / Math.Max(Zoom, 0.01), height = page.DisplayHeight / Math.Max(Zoom, 0.01);
+        double width = page.VisualPageWidth, height = page.VisualPageHeight;
         double cropWidth = Math.Min(width, Math.Max(240, bounds.Width + 120));
         double cropHeight = Math.Min(height, Math.Max(100, bounds.Height + 70));
         double left = Math.Clamp(bounds.Left - 30, 0, Math.Max(0, width - cropWidth));
@@ -196,16 +200,20 @@ public sealed partial class MainWindowViewModel {
         TextPreviewSummary = _localizer.FormatOrDefault("TextEdit.PreviewSummary", "Prepared {0:N0} replacement(s). Review the rendered result before applying.", prepared.AffectedCount)
             + (prepared.Warnings.Count > 0 ? " " + string.Join(" ", prepared.Warnings) : string.Empty);
         OnPropertyChanged(nameof(HasTextPreview));
-        await ShowTextPreviewPageAsync(prepared, SelectedReplacementMatch?.PageNumber ?? prepared.Pages[0], token).ConfigureAwait(true);
+        await ShowTextPreviewPageAsync(SelectedReplacementMatch?.PageNumber ?? prepared.Pages[0], token).ConfigureAwait(true);
     }
 
     private long _textPreviewPageGeneration;
-    private async Task ShowTextPreviewPageAsync(PreparedTextEdit prepared, int page, CancellationToken token = default) {
-        if (_workspace is not { } workspace) return;
+    internal async Task ShowTextPreviewPageAsync(int page, CancellationToken token = default) {
+        if (_workspace is not { } workspace || _preparedTextEdit is not { } prepared) return;
+        _textPreviewCancellation?.Cancel();
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _textPreviewCancellation = operation;
         UpdateTextPreviewRegion(page);
         long generation = ++_textPreviewPageGeneration;
         try {
-            (byte[] before, byte[] after) = await workspace.RenderTextPreviewAsync(prepared, page, token).ConfigureAwait(true);
+            (byte[] before, byte[] after) = await workspace.RenderTextPreviewAsync(prepared, page, operation.Token).ConfigureAwait(true);
+            operation.Token.ThrowIfCancellationRequested();
             if (!ReferenceEquals(prepared, _preparedTextEdit) || generation != _textPreviewPageGeneration) return;
             using var beforeStream = new MemoryStream(before, writable: false);
             using var afterStream = new MemoryStream(after, writable: false);
@@ -216,7 +224,8 @@ public sealed partial class MainWindowViewModel {
             TextPreviewBefore = beforeImage; TextPreviewAfter = afterImage;
             OnPropertyChanged(nameof(HasTextPreview));
         } catch (OperationCanceledException) { }
-        catch (Exception error) { if (ReferenceEquals(prepared, _preparedTextEdit)) { InvalidateTextPreview(); ErrorMessage = error.Message; } }
+        catch (Exception error) { if (generation == _textPreviewPageGeneration && ReferenceEquals(prepared, _preparedTextEdit)) { InvalidateTextPreview(); ErrorMessage = error.Message; } }
+        finally { if (ReferenceEquals(_textPreviewCancellation, operation)) _textPreviewCancellation = null; }
     }
 
     [RelayCommand]

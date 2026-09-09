@@ -107,8 +107,14 @@ public sealed partial class PdfPageCanvas {
         double width = Math.Max(4, original.Width + (left ? -delta.X : right ? delta.X : 0));
         double height = Math.Max(4, original.Height + (top ? -delta.Y : bottom ? delta.Y : 0));
         if (proportional) {
-            double scale = left || right ? width / original.Width : height / original.Height;
-            if ((left || right) && (top || bottom) && Math.Abs(delta.Y) > Math.Abs(delta.X)) scale = height / original.Height;
+            double scale;
+            if ((left || right) && (top || bottom)) {
+                // Project the corner drag onto the aspect-ratio diagonal instead of switching axes.
+                double horizontal = left ? -delta.X : delta.X;
+                double vertical = top ? -delta.Y : delta.Y;
+                scale = 1 + (horizontal * original.Width + vertical * original.Height) /
+                    (original.Width * original.Width + original.Height * original.Height);
+            } else scale = left || right ? width / original.Width : height / original.Height;
             scale = Math.Max(scale, Math.Max(4 / original.Width, 4 / original.Height));
             width = original.Width * scale; height = original.Height * scale;
         }

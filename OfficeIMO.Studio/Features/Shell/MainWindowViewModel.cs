@@ -337,7 +337,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                      Zoom,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer))
+                     _localizer, page.Geometry))
                 .ToArray();
             candidateOrganizerPages = session.Pages
                 .Select(page => new PdfOrganizerPageViewModel(

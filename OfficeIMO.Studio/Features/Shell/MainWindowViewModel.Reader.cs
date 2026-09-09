@@ -158,7 +158,7 @@ public sealed partial class MainWindowViewModel {
                      Zoom,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer) {
+                     _localizer, page.Geometry) {
                     EditorTool = PdfEditorTool.Select,
                     SelectionMode = PdfEditorSelectionMode.None,
                     IsNightMode = IsPageNightMode

@@ -171,6 +171,63 @@ public sealed class TextEditingReviewTests {
         }, default);
     }
 
+    [Theory]
+    [InlineData(1000, 5)]
+    [InlineData(5, 1000)]
+    [InlineData(120, 60)]
+    public void CornerResizeChangesContinuouslyAcrossPointerAxisBoundaries(double width, double height) {
+        foreach (int handle in new[] { 0, 2, 4, 6 }) {
+            var original = new Rect(20, 30, width, height);
+            double x = handle is 0 or 6 ? -10 : 10;
+            double sign = handle is 0 or 2 ? -1 : 1;
+            Rect previous = PdfPageCanvas.ResizeObjectBounds(original, new Vector(x, 0), handle, true);
+            for (int step = 1; step <= 20; step++) {
+                Rect current = PdfPageCanvas.ResizeObjectBounds(original, new Vector(x, sign * step), handle, true);
+                double dw = current.Width - previous.Width, dh = current.Height - previous.Height;
+                Assert.InRange(Math.Sqrt(dw * dw + dh * dh), 0, 1.000001);
+                Assert.Equal(width / height, current.Width / current.Height, 8);
+                previous = current;
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SupersededPreviewLeavesTheCpuQueueBeforeItsWorkerIsReleased() {
+        using var files = new Files();
+        CreateDocument().Save(files.Source);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(files.Source);
+            model.ShowEditModeCommand.Execute(null);
+            model.ReplaceAllFindText = "Account";
+            model.ReplaceAllReplacementText = "Record";
+            await model.FindTextReplacementsCommand.ExecuteAsync(null);
+            await model.PreviewTextEditCommand.ExecuteAsync(null);
+            Assert.True(model.HasTextPreview, model.ErrorMessage);
+            using PdfWorkspace blocker = await PdfWorkspace.OpenAsync(files.Source, default);
+            var acquired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<bool> holding = blocker.RunNonDetachableCpuWorkAsync(() => {
+                acquired.SetResult(); release.Task.GetAwaiter().GetResult(); return true;
+            }, default);
+            try {
+                await acquired.Task;
+                Task first = model.ShowTextPreviewPageAsync(1);
+                Assert.False(first.IsCompleted);
+                Task second = model.ShowTextPreviewPageAsync(2);
+                await first.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(second.IsCompleted);
+                model.CancelTextEditCommand.Execute(null);
+                await second.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(model.HasTextPreview);
+                Assert.False(holding.IsCompleted);
+                Assert.Null(model.ErrorMessage);
+            } finally { release.TrySetResult(); await holding; }
+            return true;
+        }, default);
+    }
+
     internal static PdfDocument CreateDocument() => PdfDocument.Create(compose => {
         compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account alpha Account beta")))));
         compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account gamma")))));
