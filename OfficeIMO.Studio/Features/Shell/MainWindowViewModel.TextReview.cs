@@ -13,6 +13,7 @@ public sealed partial class MainWindowViewModel {
     private long _textReviewGeneration;
     private long _textReviewRevision;
     private PdfWorkspace? _textReviewWorkspace;
+    private CancellationTokenSource? _textInspectionCancellation;
     private PreparedTextEdit? _preparedTextEdit;
     private bool _textReviewIsBatch;
     [ObservableProperty] private PdfTextDraftViewModel? _textEditDraft;
@@ -36,7 +37,7 @@ public sealed partial class MainWindowViewModel {
     partial void OnReplaceAllMatchCaseChanged(bool value) { if (_textReviewIsBatch) ClearTextReview(); }
     partial void OnReplaceAllWholeWordsChanged(bool value) { if (_textReviewIsBatch) ClearTextReview(); }
 
-    private async Task BeginInlineTextEditAsync(PdfEditorSelection selection) {
+    internal async Task BeginInlineTextEditAsync(PdfEditorSelection selection) {
         ClearTextReview();
         if (_workspace is not { } workspace || selection.Kind != PdfEditorSelectionKind.Text || !CanEditPageContent) return;
         _textReviewWorkspace = workspace;
@@ -44,13 +45,19 @@ public sealed partial class MainWindowViewModel {
         var draft = CreateTextDraft(selection.Text ?? string.Empty);
         TextEditDraft = draft;
         foreach (var page in Pages) page.InlineTextDraft = page.PageNumber == selection.PageNumber ? draft : null;
+        using var inspectionCancellation = new CancellationTokenSource();
+        _textInspectionCancellation = inspectionCancellation;
         try {
-            PdfTextMatch match = await workspace.InspectSelectedTextAsync(selection, CancellationToken.None).ConfigureAwait(true);
+            PdfTextMatch match = await workspace.InspectSelectedTextAsync(selection, inspectionCancellation.Token).ConfigureAwait(true);
             if (!ReferenceEquals(draft, TextEditDraft) || !ReferenceEquals(workspace, _workspace) || workspace.Revision != _textReviewRevision) return;
             draft.SourceStyle = _localizer.FormatOrDefault("TextEdit.SourceStyle", "Source: {0}, {1:0.##} pt. Replacement uses a standard PDF font; review any substitution warnings.", match.SourceFont ?? match.SuggestedFont.ToString(), match.FontSize);
             draft.IsReady = true;
+        } catch (OperationCanceledException) when (inspectionCancellation.IsCancellationRequested) {
+            // The selection or document changed while this inspection was queued or running.
         } catch (Exception error) {
             if (ReferenceEquals(draft, TextEditDraft)) draft.SourceStyle = error.Message;
+        } finally {
+            if (ReferenceEquals(_textInspectionCancellation, inspectionCancellation)) _textInspectionCancellation = null;
         }
     }
 
@@ -81,6 +88,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void ClearTextReview() {
+        _textInspectionCancellation?.Cancel();
+        _textInspectionCancellation = null;
         if (_textReviewIsBatch) foreach (var page in Pages) page.ActiveSearchHighlight = null;
         InvalidateTextPreview();
         if (TextEditDraft is { } draft) draft.PropertyChanged -= OnTextDraftChanged;

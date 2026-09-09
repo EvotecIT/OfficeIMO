@@ -109,6 +109,68 @@ public sealed class TextEditingReviewTests {
         Assert.True(changed.Width > 0 && changed.Height > 0);
     }
 
+    [Theory]
+    [InlineData(120, 60)]
+    [InlineData(60, 120)]
+    [InlineData(1000, 5)]
+    [InlineData(5, 1000)]
+    public void EveryImageHandleKeepsBothDimensionsEditable(double width, double height) {
+        var original = new Rect(30, 40, width, height);
+        for (int handle = 0; handle < 8; handle++) {
+            bool left = handle is 0 or 6 or 7, top = handle is 0 or 1 or 2;
+            Rect changed = PdfPageCanvas.ResizeObjectBounds(original,
+                new Vector(left ? 10000 : -10000, top ? 10000 : -10000), handle, true);
+            Assert.InRange(changed.Width, 4, double.MaxValue);
+            Assert.InRange(changed.Height, 4, double.MaxValue);
+            Assert.Equal(width / height, changed.Width / changed.Height, precision: 8);
+            Assert.Equal(left ? original.Right : handle is 2 or 3 or 4 ? original.Left : original.Center.X,
+                left ? changed.Right : handle is 2 or 3 or 4 ? changed.Left : changed.Center.X, precision: 8);
+            Assert.Equal(top ? original.Bottom : handle is 4 or 5 or 6 ? original.Top : original.Center.Y,
+                top ? changed.Bottom : handle is 4 or 5 or 6 ? changed.Top : changed.Center.Y, precision: 8);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SupersededInspectionCompletesWhileCpuWorkerIsStillOccupied(bool dispose) {
+        using var files = new Files();
+        PdfDocument document = CreateDocument();
+        document.Save(files.Source);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(files.Source);
+            model.ShowEditModeCommand.Execute(null);
+            using PdfWorkspace blocker = await PdfWorkspace.OpenAsync(files.Source, default);
+            var acquired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<bool> holding = blocker.RunNonDetachableCpuWorkAsync(() => {
+                acquired.SetResult();
+                release.Task.GetAwaiter().GetResult();
+                return true;
+            }, default);
+            try {
+                await acquired.Task;
+                Task first = model.BeginInlineTextEditAsync(Selection(document.Text.Find("Account")[0]));
+                PdfTextDraftViewModel firstDraft = Assert.IsType<PdfTextDraftViewModel>(model.TextEditDraft);
+                Assert.False(first.IsCompleted);
+                Task second = model.BeginInlineTextEditAsync(Selection(document.Text.Find("Account")[1]));
+                await first.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(firstDraft.IsReady);
+                Assert.False(second.IsCompleted);
+                if (dispose) model.Dispose(); else model.CancelTextEditCommand.Execute(null);
+                await second.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.Null(model.TextEditDraft);
+                Assert.False(holding.IsCompleted);
+            } finally {
+                release.TrySetResult();
+                await holding;
+            }
+            return true;
+        }, default);
+    }
+
     internal static PdfDocument CreateDocument() => PdfDocument.Create(compose => {
         compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account alpha Account beta")))));
         compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account gamma")))));

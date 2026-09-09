@@ -109,6 +109,7 @@ public sealed partial class PdfPageCanvas {
         if (proportional) {
             double scale = left || right ? width / original.Width : height / original.Height;
             if ((left || right) && (top || bottom) && Math.Abs(delta.Y) > Math.Abs(delta.X)) scale = height / original.Height;
+            scale = Math.Max(scale, Math.Max(4 / original.Width, 4 / original.Height));
             width = original.Width * scale; height = original.Height * scale;
         }
         double x = left ? original.Right - width : right ? original.Left : original.Center.X - width / 2;

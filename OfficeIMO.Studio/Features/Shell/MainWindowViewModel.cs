@@ -529,6 +529,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (_disposed) return;
         SaveDocumentViewState();
         _disposed = true;
+        ClearTextReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
