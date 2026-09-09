@@ -24,7 +24,14 @@ public sealed class ScanSelectionCanvas : Control {
         DetachedFromVisualTree += (_, _) => { if (_model != null) _model.PropertyChanged -= ModelChanged; };
         AttachedToVisualTree += (_, _) => { if (_model != null) { _model.PropertyChanged -= ModelChanged; _model.PropertyChanged += ModelChanged; } };
     }
-    private void ModelChanged(object? sender, PropertyChangedEventArgs e) => InvalidateVisual();
+    private void ModelChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName is nameof(ScanPreparationViewModel.SourcePreview)
+            or nameof(ScanPreparationViewModel.EditCorners) or nameof(ScanPreparationViewModel.UsePerspective)) {
+            _start = null;
+            _corner = -1;
+        }
+        InvalidateVisual();
+    }
     private Rect ImageBounds() {
         if (_model?.SourcePreview is not { } image) return default;
         double scale = Math.Min(Bounds.Width / image.Size.Width, Bounds.Height / image.Size.Height);
@@ -57,8 +64,7 @@ public sealed class ScanSelectionCanvas : Control {
         if (!bounds.Contains(position)) return;
         Focus();
         _start = Normalize(position, bounds);
-        if (_model.EditCorners) {
-            _model.UsePerspective = true;
+        if (_model.UsePerspective && _model.EditCorners) {
             Point normalized = InRegion(_start.Value);
             Point[] corners = { _model.TopLeft, _model.TopRight, _model.BottomRight, _model.BottomLeft };
             _corner = Enumerable.Range(0, 4).OrderBy(i => Math.Pow(corners[i].X - normalized.X, 2) + Math.Pow(corners[i].Y - normalized.Y, 2)).First();
@@ -87,7 +93,7 @@ public sealed class ScanSelectionCanvas : Control {
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
         if (_model?.CanEdit != true || _model.SourcePreview == null) return;
-        if (_model.EditCorners && e.Key is >= Key.D1 and <= Key.D4) {
+        if (_model.UsePerspective && _model.EditCorners && e.Key is >= Key.D1 and <= Key.D4) {
             _keyboardCorner = (int)e.Key - (int)Key.D1;
             e.Handled = true;
             InvalidateVisual();
@@ -96,8 +102,7 @@ public sealed class ScanSelectionCanvas : Control {
         double dx = e.Key == Key.Left ? -0.01 : e.Key == Key.Right ? 0.01 : 0;
         double dy = e.Key == Key.Up ? -0.01 : e.Key == Key.Down ? 0.01 : 0;
         if (dx == 0 && dy == 0) return;
-        if (_model.EditCorners) {
-            _model.UsePerspective = true;
+        if (_model.UsePerspective && _model.EditCorners) {
             Point[] corners = { _model.TopLeft, _model.TopRight, _model.BottomRight, _model.BottomLeft };
             Point current = corners[_keyboardCorner];
             _corner = _keyboardCorner;

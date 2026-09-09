@@ -11,6 +11,72 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class ScanPreparationVisualTests {
+    [Fact]
+    public async Task PageAndDocumentChangesClearVisualSelectionsAndDisabledPerspectiveStaysDisabled() {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            string source = Path.Combine(services.Paths.Root, "distinct-scan-pages.pdf");
+            PdfDocument.Create(c => {
+                c.Page(p => p.Size(240, 320).Content(content => content.Item(i => i.Paragraph(t => t.Text("FIRST PORTRAIT PAGE")))));
+                c.Page(p => p.Size(320, 240).Content(content => content.Item(i => i.Paragraph(t => t.Text("SECOND LANDSCAPE PAGE")))));
+            }).Save(source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(source), services: services);
+            model.OcrWorkbench.UseDocument(source);
+            var scan = model.OcrWorkbench.Scan;
+            scan.Dpi = 72;
+            var view = new SearchablePdfOcrView { DataContext = model };
+            var window = new Window { Width = 960, Height = 640, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                await scan.PreviewCommand.ExecuteAsync(null);
+                Assert.True(scan.IsCurrent, scan.Status);
+                Assert.Equal(240, scan.SourcePreview!.PixelSize.Width);
+                scan.Region = new Rect(.1, .1, .5, .5); scan.UseRegion = true;
+                scan.UsePerspective = true; scan.EditCorners = true;
+                scan.TopLeft = new Point(.05, .05);
+                scan.PageNumber = 2;
+                Assert.Null(scan.SourcePreview); Assert.Null(scan.PreparedPreview);
+                Assert.False(scan.CanEdit); Assert.False(scan.IsCurrent);
+                Assert.False(scan.UseRegion); Assert.False(scan.UsePerspective); Assert.False(scan.EditCorners);
+                Assert.Empty(scan.ApplyTo(new()).Regions);
+                await scan.PreviewCommand.ExecuteAsync(null);
+                Assert.True(scan.IsCurrent, scan.Status);
+                Assert.Equal(320, scan.SourcePreview!.PixelSize.Width);
+                Assert.Equal(240, scan.SourcePreview.PixelSize.Height);
+                window.UpdateLayout();
+                var canvas = view.GetVisualDescendants().OfType<ScanSelectionCanvas>().Single();
+                canvas.BringIntoView(); window.UpdateLayout();
+                Capture(window, "scan-page-two-selection-reset");
+                scan.UsePerspective = true; scan.EditCorners = true;
+                scan.UsePerspective = false;
+                Assert.False(scan.EditCorners);
+                canvas.Focus();
+                window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.None, null);
+                Assert.False(scan.UsePerspective); Assert.True(scan.UseRegion);
+                double scale = Math.Min(canvas.Bounds.Width / 320, canvas.Bounds.Height / 240);
+                Point At(double x, double y) => canvas.TranslatePoint(new Point(
+                    (canvas.Bounds.Width - 320 * scale) / 2 + 320 * scale * x,
+                    (canvas.Bounds.Height - 240 * scale) / 2 + 240 * scale * y), window)!.Value;
+                window.MouseDown(At(.2, .2), MouseButton.Left);
+                window.MouseMove(At(.7, .7), RawInputModifiers.LeftMouseButton);
+                window.MouseUp(At(.7, .7), MouseButton.Left);
+                Assert.False(scan.UsePerspective);
+                Assert.Equal(.5, scan.Region.Width, 4);
+                Assert.Equal(2, Assert.Single(scan.ApplyTo(new()).Regions).PageNumber);
+                Capture(window, "scan-perspective-disabled-region");
+                scan.UsePerspective = true;
+                Assert.False(scan.EditCorners);
+                scan.EditCorners = true;
+                scan.Invalidate(clearSource: true);
+                Assert.Equal(1, scan.PageNumber);
+                Assert.False(scan.EditCorners); Assert.False(scan.UsePerspective); Assert.False(scan.CanEdit);
+                Assert.Null(scan.SourcePreview);
+            } finally { window.Close(); }
+            return true;
+        }, default);
+    }
+
     [Theory]
     [InlineData(960, 640)]
     [InlineData(1280, 800)]

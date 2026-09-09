@@ -66,9 +66,16 @@ public sealed partial class ScanPreparationViewModel : ObservableObject, IDispos
         set { if (value != null) ColorMode = value.Value; }
     }
     partial void OnColorModeChanged(OfficeScanColorMode value) => OnPropertyChanged(nameof(SelectedColorMode));
+    partial void OnPageNumberChanged(int value) {
+        ClearPageSelection();
+        Invalidate();
+    }
+    partial void OnUsePerspectiveChanged(bool value) {
+        if (!value) EditCorners = false;
+    }
     public bool CanPreview => !_disposed && !IsBusy && !HostBusy;
     public bool CanSave => CanPreview && IsCurrent;
-    public bool CanEdit => CanPreview;
+    public bool CanEdit => CanPreview && SourcePreview != null;
     public bool HasPreview => SourcePreview != null;
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
@@ -80,16 +87,26 @@ public sealed partial class ScanPreparationViewModel : ObservableObject, IDispos
             PreviewCommand.NotifyCanExecuteChanged(); SaveCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanSave));
         }
-        if (e.PropertyName == nameof(SourcePreview)) OnPropertyChanged(nameof(HasPreview));
+        if (e.PropertyName == nameof(SourcePreview)) {
+            OnPropertyChanged(nameof(HasPreview));
+            OnPropertyChanged(nameof(CanEdit));
+        }
     }
     internal void Invalidate(bool clearSource = false) {
         _previewCancellation?.Cancel(); _reviewedOptions = null; _reviewedHash = null; IsCurrent = false;
         if (clearSource) {
-            SourcePreview?.Dispose(); SourcePreview = null; PreparedPreview?.Dispose(); PreparedPreview = null;
-            Region = new(0, 0, 1, 1); UseRegion = false;
-            PageNumber = 1; UsePerspective = false;
+            ClearPageSelection();
+            PageNumber = 1;
         }
         Status = T("Refresh", "Preview the current settings before saving a prepared copy.");
+    }
+    private void ClearPageSelection() {
+        SourcePreview?.Dispose(); SourcePreview = null;
+        PreparedPreview?.Dispose(); PreparedPreview = null;
+        Region = new(0, 0, 1, 1); UseRegion = false;
+        UsePerspective = false; EditCorners = false;
+        TopLeft = new(0, 0); TopRight = new(1, 0);
+        BottomRight = new(1, 1); BottomLeft = new(0, 1);
     }
     internal PdfOcrMergeOptions ApplyTo(PdfOcrMergeOptions options) {
         options.Dpi = Dpi;
