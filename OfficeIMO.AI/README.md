@@ -67,11 +67,29 @@ Table evidence includes the title and column headers even when there are no rows
 
 Each snapshot retains the SHA-256 of the original bytes, Reader page provenance, source block identifiers, and available source geometry. A separate `SnapshotHash` binds results and exports to the exact evidence projection, image payload hashes and coverage state; the same original bytes with different observations are not interchangeable. `FromReadResult` is a trusted-adapter entry point: its caller must enforce source permissions and ensure the supplied Reader result and images describe those exact bytes. `OfficeAiImage` takes verified dimensions from the rendering/image owner and copies its payload. It does not decode or certify an image itself.
 
+Call `OfficeAiEvidenceReadiness.Inspect(document)` to inspect local text availability before connecting a provider. An optional page collection scopes the count. The result includes pages without text and reader limitations; it does not certify OCR accuracy or model quality. Reader-generated warning and visual-only chunk placeholders are excluded from citable text evidence.
+
+```csharp
+static async Task<string?> AskForReviewAsync(
+    IOfficeAiExecutor executor, OfficeAiDocument document, string question,
+    bool allowRemote, CancellationToken cancellationToken = default) {
+    if (!OfficeAiEvidenceReadiness.Inspect(document).HasText) return null;
+    var request = new OfficeAiRequest { Instruction = question, AllowRemoteProcessing = allowRemote };
+    var answer = await new OfficeAiEngine(executor).RunAsync(document, request,
+        cancellationToken: cancellationToken);
+    return OfficeAiArtifacts.FormatAnswer(document, answer, question, "invoice.pdf");
+}
+```
+
+`FormatAnswer` formats Ask, Explain and Summarize results with source identity, exact quotes, provider/model identity and coverage limitations. It rejects a result from another evidence snapshot. The host owns clipboard access, destination selection and publication.
+
 Text references must contain an exact contiguous source quote. `QuoteStart` records its zero-based UTF-16 offset within the original evidence record. Unknown references and altered quotes invalidate the response. Image references have no text-match claim. A matching quote proves where text occurs; it does **not** establish that the model's interpretation follows from it. Every result has `RequiresReview = true`.
 
 ## Result states
 
 `Completed` means all selected evidence reached requests whose responses satisfied the structural contract. It does not mean every claim is correct or every visible detail was recognized. `Partial` identifies omissions, source warnings (including truncated tables and chunk warnings), pages without evidence, or invalid scalar normalization. `InsufficientEvidence` identifies a valid abstention. `InvalidResponse` means no batch produced a validated result after provider or response-validation failures; diagnostic codes distinguish those failures without exposing raw errors.
+
+Executors can throw `OfficeAiExecutionException` with a typed authentication, access, model, rate-limit, availability, timeout or request category. The engine stops remaining evidence requests for these known failures, retains validated partial results and adds a safe diagnostic code. It also preserves typed synthesis failures. Unknown provider failures remain content-free general diagnostics; the engine never includes exception messages or retries a rejected request automatically.
 
 The response schema matches the selected operation. For field extraction, the executor returns a `fields` object with every requested field key (`field1`, `field2`, and so on) required; each value contains `status`, `rawValue` and `evidence`. Request metadata pairs each stable key with the original field name, so punctuation and Unicode in caller names do not become schema-key restrictions. The schema rejects omitted or unrequested keys and constrains the value and evidence shape for present, missing and uncertain fields. Local validation also rejects duplicate JSON keys. The public `OfficeAiResult.Fields` collection retains the original names and requested field order. Field extraction requires empty claims, blocks and tables; parsing requires empty claims and fields; questions, explanations and summaries require empty fields, blocks and tables. The same rules are checked locally for every provider.
 

@@ -114,6 +114,8 @@ public sealed class OfficeAiDocument {
                 continue;
             }
             if (item.Chunk is { } chunk) {
+                // Diagnostic notices and visual placeholders are reader metadata, not source text.
+                if (chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
                 Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor);
                 continue;
             }

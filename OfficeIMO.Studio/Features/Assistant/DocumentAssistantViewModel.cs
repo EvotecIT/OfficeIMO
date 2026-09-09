@@ -22,6 +22,8 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     private readonly List<(string Question, OfficeAiResult Result)> _history = [];
     private CancellationTokenSource? _operation;
     private AssistantSource? _source;
+    private OfficeAiDocument? _preparedDocument;
+    private OfficeAiEvidenceReadiness? _readiness;
     private string? _snapshotHash;
     private int _generation;
     private bool _disposed;
@@ -37,6 +39,9 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     }
 
     public StudioAiConnections Connections { get; }
+    internal Func<CancellationToken, Task>? OpenOcr { get; set; }
+    internal Func<string, Task>? CopyAnswer { get; set; }
+    internal Func<string, Func<bool>, CancellationToken, Task<bool>>? ExportAnswer { get; set; }
     public ObservableCollection<AssistantMessage> Messages { get; } = [];
     [ObservableProperty] private string _question = string.Empty;
     [ObservableProperty] private string _status = string.Empty;
@@ -44,14 +49,33 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     [ObservableProperty] private bool _currentPageOnly;
     [ObservableProperty] private bool _allowRemoteProcessing;
     [ObservableProperty] private bool _showConnections = true;
+    [ObservableProperty] private string _evidenceSummary = string.Empty;
+    [ObservableProperty] private string _lastAnswerText = string.Empty;
+    internal OfficeAiDocument? PreparedDocument => _preparedDocument;
+    public bool CanPrepare => !_disposed && !IsBusy;
+    public bool CanReviewAnswer => !_disposed && !IsBusy && LastAnswerText.Length > 0 && _source?.IsCurrent() == true;
+    public bool CanOpenOcr => !_disposed && !IsBusy && _readiness?.PagesWithoutText.Count > 0 && OpenOcr is not null;
     public bool CanAsk => !_disposed && !IsBusy && Connections.CanUse && (Connections.IsLocal || AllowRemoteProcessing)
+        && _preparedDocument is not null && _readiness?.HasText == true && _source?.IsCurrent() == true
         && !string.IsNullOrWhiteSpace(Question) && Question.Length <= 8000;
 
     partial void OnQuestionChanged(string value) => Refresh();
     partial void OnAllowRemoteProcessingChanged(bool value) { if (!value && IsBusy) Cancel(); Refresh(); }
-    partial void OnCurrentPageOnlyChanged(bool value) => ResetContext();
+    partial void OnCurrentPageOnlyChanged(bool value) {
+        ResetContext();
+        if (CanPrepare) _ = PrepareEvidenceCommand.ExecuteAsync(null);
+    }
+    partial void OnShowConnectionsChanged(bool value) {
+        if (!value && CanPrepare) _ = PrepareEvidenceCommand.ExecuteAsync(null);
+    }
     partial void OnIsBusyChanged(bool value) => Refresh();
-    private void Refresh() { OnPropertyChanged(nameof(CanAsk)); AskCommand.NotifyCanExecuteChanged(); }
+    partial void OnLastAnswerTextChanged(string value) => Refresh();
+    private void Refresh() {
+        foreach (string name in new[] { nameof(CanAsk), nameof(CanPrepare), nameof(CanReviewAnswer), nameof(CanOpenOcr) }) OnPropertyChanged(name);
+        AskCommand.NotifyCanExecuteChanged(); PrepareEvidenceCommand.NotifyCanExecuteChanged();
+        CopyLastAnswerCommand.NotifyCanExecuteChanged(); ExportLastAnswerCommand.NotifyCanExecuteChanged();
+        OpenOcrCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand(CanExecute = nameof(CanAsk))]
     private async Task AskAsync() {
@@ -64,12 +88,8 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
         ShowConnections = false;
         IOfficeAiExecutor? executor = null;
         try {
-            Status = Text("Reading", "Reading the current document snapshot…");
-            AssistantSource source = _capture(CurrentPageOnly);
-            _source = source;
-            using var stream = new MemoryStream(source.Bytes, writable: false);
-            OfficeAiDocument document = await OfficeAiDocument.ReadAsync(new OfficeDocumentReaderBuilder().AddPdfHandler(source.ReaderOptions).Build(),
-                stream, source.Name, cancellationToken: cancellation.Token);
+            AssistantSource source = _source!;
+            OfficeAiDocument document = _preparedDocument!;
             if (!Current()) return;
             if (_snapshotHash != document.SnapshotHash) { _history.Clear(); Messages.Clear(); }
             _snapshotHash = document.SnapshotHash;
@@ -89,6 +109,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
                 Pages = source.Page.HasValue ? [source.Page.Value] : [], AllowRemoteProcessing = AllowRemoteProcessing
             }, progress, cancellation.Token);
             if (!Current() || result.SnapshotHash != document.SnapshotHash) return;
+            LastAnswerText = OfficeAiArtifacts.FormatAnswer(document, result, question, source.Name);
             foreach (OfficeAiClaim claim in result.Claims) {
                 var citations = claim.Citations.Select(citation => new AssistantCitation(citation,
                     () => { if (source.IsCurrent() && connectionRevision == Connections.Revision && citation.Page is int page) _navigate(page); }, _localizer)).ToArray();
@@ -99,6 +120,8 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
             if (_history.Count > 3) _history.RemoveAt(0);
             while (Messages.Count > 60) Messages.RemoveAt(0);
             Status = _localizer.FormatOrDefault("Assistant.ResultStatus", "{0} · {1} requests · {2} omitted evidence items. Check source references; a matching quote does not prove the interpretation.", result.Status, result.RequestCount, result.OmittedEvidenceIds.Count);
+            string? providerCode = result.Diagnostics.FirstOrDefault(code => code.StartsWith("provider-", StringComparison.Ordinal));
+            if (providerCode is not null) Status += " " + StudioAiFailureText.FromCode(_localizer, providerCode);
 
             bool Current() => !_disposed && generation == _generation && connectionRevision == Connections.Revision
                 && !cancellation.IsCancellationRequested && source.IsCurrent();
@@ -107,8 +130,8 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
         } catch (AssistantSourceUnavailableException exception) {
             // Capture failures originate in the local document boundary, not the remote provider.
             if (!_disposed && generation == _generation) Status = exception.Message;
-        } catch (Exception) {
-            if (!_disposed && generation == _generation) Status = Text("RequestFailed", "The document request failed. Check the connection and document support, then try again.");
+        } catch (Exception exception) {
+            if (!_disposed && generation == _generation) Status = StudioAiFailureText.FromException(_localizer, exception);
         } finally {
             if (executor is IDisposable disposable) disposable.Dispose();
             if (ReferenceEquals(_operation, cancellation)) _operation = null;
@@ -117,15 +140,18 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     }
 
     [RelayCommand] private void Cancel() { _operation?.Cancel(); }
-    [RelayCommand] private void NewConversation() => ResetContext();
+    [RelayCommand] private void NewConversation() => ResetContext(keepEvidence: true);
     internal void CheckSource() { if (_source is not null && !_source.IsCurrent()) ResetContext(); }
-    internal void Deactivate() { _operation?.Cancel(); }
-    private void OnConnectionChanged(object? sender, EventArgs e) { AllowRemoteProcessing = false; ResetContext(); }
+    internal void Deactivate() { _operation?.Cancel(); _preparedDocument = null; _readiness = null; EvidenceSummary = string.Empty; Refresh(); }
+    private void OnConnectionChanged(object? sender, EventArgs e) { AllowRemoteProcessing = false; ResetContext(keepEvidence: true); }
     private void OnConnectionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(StudioAiConnections.CanUse)) Refresh();
     }
-    private void ResetContext() {
-        _generation++; _operation?.Cancel(); _source = null; _snapshotHash = null; _history.Clear(); Messages.Clear();
+    private void ResetContext(bool keepEvidence = false) {
+        _generation++; _operation?.Cancel(); _history.Clear(); Messages.Clear(); LastAnswerText = string.Empty;
+        if (!keepEvidence || _source?.IsCurrent() != true) {
+            _source = null; _snapshotHash = null; _preparedDocument = null; _readiness = null; EvidenceSummary = string.Empty;
+        }
         Status = Text("ContextReset", "Conversation cleared. The next question uses the current document, scope and connection.");
         Refresh();
     }

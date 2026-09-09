@@ -122,6 +122,7 @@ public sealed partial class MainWindow : Window {
             publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
                 isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)));
         document.Session = _session;
+        ConfigureAssistantHost(document);
         return document;
     }
 

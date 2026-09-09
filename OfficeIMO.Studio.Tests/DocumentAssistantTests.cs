@@ -6,7 +6,7 @@ using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class DocumentAssistantTests {
+public sealed partial class DocumentAssistantTests {
     [Fact]
     public async Task AuthorizedEncryptedSourceAnswersWithoutSendingItsPassword() {
         using var app = TestAppBuilder.StartSession();
@@ -31,6 +31,7 @@ public sealed class DocumentAssistantTests {
             using var model = new DocumentAssistantViewModel(connections,
                 _ => new(workspace.CopyBytes(), workspace.FileName, null, () => true, workspace.CreateReaderOptions()),
                 _ => { }, services.Localizer, (_, _, _) => Task.FromResult<IOfficeAiExecutor>(executor));
+            await model.PrepareEvidenceCommand.ExecuteAsync(null);
             model.Question = "What is in the source?";
             await model.AskCommand.ExecuteAsync(null);
             Assert.Single(model.Messages, message => !message.IsQuestion);
@@ -71,6 +72,7 @@ public sealed class DocumentAssistantTests {
             bool current = true;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => current),
                 _ => { }, services.Localizer, (_, _, _) => Task.FromResult<IOfficeAiExecutor>(executor));
+            await model.PrepareEvidenceCommand.ExecuteAsync(null);
             model.Question = "What is in the source?";
             Task pending = model.AskCommand.ExecuteAsync(null);
             await started.Task.WaitAsync(TimeSpan.FromSeconds(15));
@@ -93,6 +95,7 @@ public sealed class DocumentAssistantTests {
             int navigated = 0;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
                 page => navigated = page, services.Localizer, (_, _, _) => Task.FromResult<IOfficeAiExecutor>(executor));
+            await model.PrepareEvidenceCommand.ExecuteAsync(null);
             model.Question = "What is in the source?";
             await model.AskCommand.ExecuteAsync(null);
             var answer = Assert.Single(model.Messages, message => !message.IsQuestion);

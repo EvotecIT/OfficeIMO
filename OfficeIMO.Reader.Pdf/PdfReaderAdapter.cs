@@ -104,7 +104,8 @@ internal static partial class PdfReaderAdapter {
                 readerOptions,
                 page: null,
                 sourceBlockIndex: 0,
-                blockKind: "document",
+                blockKind: pages.Any(item => item.Elements.OfType<PdfLogicalTextBlock>().Any(block => !string.IsNullOrWhiteSpace(block.Text))
+                    || item.Elements.OfType<PdfLogicalTable>().Any()) ? "document" : "visual",
                 blockAnchor: "document",
                 tables: documentTables,
                 visuals: documentVisuals,
@@ -141,7 +142,8 @@ internal static partial class PdfReaderAdapter {
                 readerOptions,
                 page.PageNumber,
                 pageIndex,
-                "page",
+                page.Elements.OfType<PdfLogicalTextBlock>().Any(block => !string.IsNullOrWhiteSpace(block.Text))
+                    || page.Elements.OfType<PdfLogicalTable>().Any() ? "page" : "visual",
                 pageAnchor,
                 pageTables,
                 pageVisuals,
@@ -190,6 +192,7 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<ReaderChunk> BuildChunksFromText(string markdown, SourceMetadata source, ReaderOptions readerOptions, int? page, int sourceBlockIndex, string blockKind, string blockAnchor, IReadOnlyList<ReaderTable>? tables, IReadOnlyList<ReaderVisual>? visuals, IReadOnlyList<ReaderFormField>? formFields, IReadOnlyList<ReaderActionSummary>? actions, ReaderChunkDiagnostics diagnostics, string idPrefix, int maxChars, CancellationToken cancellationToken) {
         var parts = SplitText(markdown, maxChars);
         if (parts.Count == 0) {
+            blockKind = "warning";
             string warning = page.HasValue
                 ? "PDF page " + page.Value.ToString(CultureInfo.InvariantCulture) + " produced no readable text."
                 : "PDF content produced no readable text.";

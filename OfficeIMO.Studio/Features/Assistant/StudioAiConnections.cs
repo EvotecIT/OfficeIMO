@@ -116,6 +116,13 @@ internal sealed partial class StudioAiConnections : ObservableObject {
         long revision = _revision;
         try {
             Status = Text("Connecting", "Connecting…");
+            if (UsesEndpoint && (!Uri.TryCreate(Endpoint.Trim(), UriKind.Absolute, out var endpoint)
+                || endpoint.Scheme is not ("http" or "https") || endpoint.UserInfo.Length > 0
+                || endpoint.Query.Length > 0 || endpoint.Fragment.Length > 0
+                || IsLocal && !endpoint.IsLoopback || endpoint.Scheme == "http" && !endpoint.IsLoopback)) {
+                Status = Text("InvalidEndpoint", "Enter an HTTP(S) base URL without credentials or query parameters. Local models require a loopback address; remote endpoints require HTTPS.");
+                return;
+            }
             if (!signIn && !importCodex && !UsesEndpoint && string.IsNullOrWhiteSpace(ApiKey)) {
                 var store = IsChatGpt ? _chatGptStore : _copilotStore;
                 var accounts = await store.ListAsync(IsChatGpt ? "openai-codex" : "copilot", cancellation.Token);
@@ -124,6 +131,10 @@ internal sealed partial class StudioAiConnections : ObservableObject {
                 OnPropertyChanged(nameof(HasSavedAccounts));
                 if (accounts.Count > 1 && string.IsNullOrWhiteSpace(AccountId)) {
                     Status = Text("ChooseAccount", "Several Studio accounts are saved. Select an account before connecting or signing out.");
+                    return;
+                }
+                if (!signOut && accounts.Count == 0) {
+                    Status = Text("NoSavedAccount", "No Studio login is saved. Use Sign in, import an existing Codex login for ChatGPT, or supply a Copilot credential.");
                     return;
                 }
             }
@@ -160,10 +171,10 @@ internal sealed partial class StudioAiConnections : ObservableObject {
             Status = account is null ? Text("Connected", "Connected. Select or enter a model before asking a question.")
                 : _localizer.FormatOrDefault("Assistant.AccountConnected", "Connected as {0} ({1}).", account.Email ?? account.AccountId ?? "account", account.PlanType ?? Providers[ProviderIndex]);
         } catch (OperationCanceledException) {
-            Status = Text("Cancelled", "Cancelled. No new connection was selected.");
-        } catch (Exception) {
+            Status = Text("Cancelled", "Connection cancelled or timed out. Reconnect to inspect saved sign-in state; no new model was selected.");
+        } catch (Exception exception) {
             // Provider exceptions may contain credentials, response bodies or authorization URLs.
-            Status = Text("ConnectionFailed", "Connection failed. Check the endpoint, credentials, account access and model support, then try again.");
+            Status = StudioAiFailureText.FromException(_localizer, exception);
         } finally { if (ReferenceEquals(_operation, cancellation)) _operation = null; IsBusy = false; }
     }
 

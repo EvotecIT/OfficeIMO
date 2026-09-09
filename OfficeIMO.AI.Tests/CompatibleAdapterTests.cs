@@ -10,6 +10,35 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class CompatibleAdapterTests {
+    [Theory]
+    [InlineData(401, "provider-authentication-required")]
+    [InlineData(403, "provider-access-denied")]
+    [InlineData(404, "provider-not-found")]
+    [InlineData(429, "provider-rate-limited")]
+    [InlineData(503, "provider-unavailable")]
+    public async Task HttpFailureKeepsSafeRecoveryCategoryAndAllowsAnExplicitRetry(int status, string code) {
+        bool recovered = false;
+        using var server = new Server(async context => {
+            if (recovered) { await Reply(context, Answer); return; }
+            context.Response.StatusCode = status;
+            byte[] bytes = Encoding.UTF8.GetBytes("private provider payload: secret-token");
+            context.Response.ContentLength64 = bytes.Length;
+            await context.Response.OutputStream.WriteAsync(bytes); context.Response.Close();
+        });
+        using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(Profile(), new() {
+            Transport = OfficeAiIntelligenceXTransport.CompatibleHttp, Endpoint = server.Endpoint
+        });
+        var engine = new OfficeAiEngine(executor);
+        var failed = await engine.RunAsync(Document(), new() { Instruction = "Total?" });
+        Assert.Contains(code, failed.Diagnostics);
+        Assert.DoesNotContain("secret-token", OfficeAiArtifacts.SerializeReport(Document(), failed));
+        Assert.Single(server.Requests);
+        recovered = true;
+        var retry = await engine.RunAsync(Document(), new() { Instruction = "Total?" });
+        Assert.Equal(OfficeAiResultStatus.Completed, retry.Status);
+        Assert.Equal(2, server.Requests.Count);
+    }
+
     private const string Answer = """
         {"claims":[{"text":"The total is 42.","evidence":[{"id":"e1","quote":"42"}]}],"fields":[],"blocks":[],"tables":[]}
         """;

@@ -55,6 +55,7 @@ public sealed partial class OfficeAiEngine {
         if (plan.Omitted.Count > 0) diagnostics.Add("evidence-budget-exceeded");
         if (plan.EmptyPages.Count > 0) diagnostics.Add("pages-without-evidence");
         bool failed = false;
+        bool providerStopped = false;
         long? inputTokens = 0;
         long? outputTokens = 0;
         for (int index = 0; index < plan.Batches.Count; index++) {
@@ -83,12 +84,20 @@ public sealed partial class OfficeAiEngine {
                 }
             } catch (OperationCanceledException) when (token.IsCancellationRequested) {
                 throw;
+            } catch (OfficeAiExecutionException exception) when (exception.Failure != OfficeAiExecutionFailure.Unknown) {
+                failed = true;
+                providerStopped = true;
+                omitted.AddRange(plan.Batches.Skip(index).SelectMany(pending => pending.Ids));
+                diagnostics.Add(exception.DiagnosticCode);
+                inputTokens = null; outputTokens = null;
+                break;
             } catch (InvalidDataException) {
                 if (!usageRecorded) { inputTokens = null; outputTokens = null; }
                 failed = true; omitted.AddRange(batch.Ids); diagnostics.Add("invalid-provider-response");
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 // Never include a provider exception message: it can contain prompts, endpoint secrets or source text.
-                failed = true; omitted.AddRange(batch.Ids); diagnostics.Add("provider-execution-failed");
+                failed = true; omitted.AddRange(batch.Ids);
+                diagnostics.Add(exception is OfficeAiExecutionException classified ? classified.DiagnosticCode : "provider-execution-failed");
                 inputTokens = null; outputTokens = null;
             }
         }
@@ -101,13 +110,17 @@ public sealed partial class OfficeAiEngine {
         omitted = omitted.Distinct(StringComparer.Ordinal).ToList();
         processed = processed.Distinct(StringComparer.Ordinal).Except(omitted, StringComparer.Ordinal).ToList();
         OfficeAiSynthesisStatus synthesisStatus = OfficeAiSynthesisStatus.NotRequired;
-        if (request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
+        if (providerStopped && request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
+            synthesisStatus = OfficeAiSynthesisStatus.Incomplete;
+            diagnostics.Add("summary-synthesis-incomplete");
+        } else if (request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
             ReportProgress(progress, new("Synthesizing", requestCount, request.Limits.MaxRequests));
             Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
             claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;
             inputTokens = SumUsage(inputTokens, synthesis.InputTokens); outputTokens = SumUsage(outputTokens, synthesis.OutputTokens);
             synthesisStatus = synthesis.Completed ? OfficeAiSynthesisStatus.Completed : OfficeAiSynthesisStatus.Incomplete;
             if (!synthesis.Completed) diagnostics.Add("summary-synthesis-incomplete");
+            if (synthesis.FailureCode is not null) diagnostics.Add(synthesis.FailureCode);
         }
         IReadOnlyList<OfficeAiField> mergedFields = MergeFields(fields, request.Fields);
         bool crossBatchReasoningUnsupported = plan.Batches.Count > 1 && request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain;

@@ -124,6 +124,10 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
             TurnInfo? turn = result.Raw as TurnInfo;
             return new OfficeAiExecutionResponse(result.Text ?? string.Empty, result.Id,
                 turn?.Usage?.InputTokens, turn?.Usage?.OutputTokens, string.Equals(result.Status, "completed", StringComparison.OrdinalIgnoreCase));
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch (Exception exception) when (exception is not (OutOfMemoryException or InvalidDataException)) {
+            throw new OfficeAiExecutionException(IntelligenceXOfficeAiErrors.Classify(exception));
         } finally { _gate.Release(); }
     }
 

@@ -13,7 +13,13 @@
         <ScrollViewer IsVisible="{Binding ShowConnections}" HorizontalScrollBarVisibility="Disabled">
           <ai:ConnectionsView DataContext="{Binding Connections}" />
         </ScrollViewer>
-        <ScrollViewer IsVisible="{Binding !ShowConnections}" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="ConversationScroll" IsVisible="{Binding !ShowConnections}" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="8">
+          <TextBlock Text="{Binding EvidenceSummary}" TextWrapping="Wrap" Classes="muted" />
+          <WrapPanel>
+            <Button Classes="tool" Content="{loc:Loc Assistant.PrepareEvidence}" Command="{Binding PrepareEvidenceCommand}" Margin="0,0,6,6" />
+            <Button Classes="tool" Content="{loc:Loc Assistant.OpenOcr}" Command="{Binding OpenOcrCommand}" IsVisible="{Binding CanOpenOcr}" Margin="0,0,6,6" />
+          </WrapPanel>
           <ItemsControl ItemsSource="{Binding Messages}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="ai:AssistantMessage">
@@ -35,6 +41,11 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <WrapPanel IsVisible="{Binding CanReviewAnswer}">
+            <Button Classes="tool" Content="{loc:Loc Assistant.CopyAnswer}" Command="{Binding CopyLastAnswerCommand}" Margin="0,0,6,6" />
+            <Button Classes="tool" Content="{loc:Loc Assistant.ExportAnswer}" Command="{Binding ExportLastAnswerCommand}" Margin="0,0,6,6" />
+          </WrapPanel>
+          </StackPanel>
         </ScrollViewer>
       </Grid>
       <StackPanel Grid.Row="2" Spacing="8">
