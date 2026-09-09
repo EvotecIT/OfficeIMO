@@ -64,6 +64,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Examples\Converters\Html\Content\Reports\service-review.html" Link="Reports\service-review.html" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Word\EvidenceCorpus\**" Link="Documents\Word\EvidenceCorpus\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OpenSans-Regular.woff2" Link="Fonts\OpenSans-Regular.woff2" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\SourceSansPro-Regular.otf" Link="Fonts\SourceSansPro-Regular.otf" CopyToOutputDirectory="PreserveNewest" />

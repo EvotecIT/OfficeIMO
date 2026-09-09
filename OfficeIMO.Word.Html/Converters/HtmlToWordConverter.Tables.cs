@@ -9,7 +9,8 @@ using System.Globalization;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter,
+            TextFormatting inheritedFormatting) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;
             int bodyRows = 0;
             foreach (var body in tableElem.Bodies) {
@@ -23,6 +24,7 @@ namespace OfficeIMO.Word.Html {
                 ApplyCssToElement(caption);
             }
             ApplyCssToElement(tableElem);
+            var tableFormatting = GetTableTextFormatting(tableElem, inheritedFormatting);
 
             int cols = DetermineTableColumnCount(tableElem, rows, options);
             ValidateTableLimit(options, rows, cols);
@@ -37,7 +39,7 @@ namespace OfficeIMO.Word.Html {
                 ApplyClassStyle(caption, captionParagraph, options);
                 ApplyBidiIfPresent(caption, captionParagraph);
                 AddBookmarkIfPresent(caption, captionParagraph);
-                var fmt = new TextFormatting();
+                var fmt = GetTableTextFormatting(caption, tableFormatting);
                 if (props.WhiteSpace.HasValue) {
                     fmt.WhiteSpace = props.WhiteSpace.Value;
                 }
@@ -88,7 +90,11 @@ namespace OfficeIMO.Word.Html {
                 var groupRowCount = htmlRows.Length;
                 for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
                     var htmlRow = htmlRows[localRowIndex];
+                    if (htmlRow.ParentElement is IElement rowGroup) ApplyCssToElement(rowGroup);
+                    var groupFormatting = htmlRow.ParentElement is IElement group
+                        ? GetTableTextFormatting(group, tableFormatting) : tableFormatting;
                     ApplyCssToElement(htmlRow);
+                    var rowFormatting = GetTableTextFormatting(htmlRow, groupFormatting);
                     var wordRow = wordTable.Rows[rIndex];
                     ApplyRowStyles(wordRow, htmlRow);
                     int cIndex = 0;
@@ -122,8 +128,9 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         WordParagraph? innerParagraph = null;
+                        var cellFormatting = GetTableTextFormatting(htmlCell, rowFormatting);
                         foreach (var child in htmlCell.ChildNodes) {
-                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell, headerFooter);
+                            ProcessNode(child, doc, section, options, innerParagraph, listStack, cellFormatting, wordCell, headerFooter);
                             if (wordCell.Paragraphs.Count > 0) {
                                 innerParagraph = wordCell.Paragraphs[wordCell.Paragraphs.Count - 1];
                             } else {
@@ -194,7 +201,7 @@ namespace OfficeIMO.Word.Html {
                 ApplyClassStyle(caption, captionParagraphBelow, options);
                 ApplyBidiIfPresent(caption, captionParagraphBelow);
                 AddBookmarkIfPresent(caption, captionParagraphBelow);
-                var fmtBelow = new TextFormatting();
+                var fmtBelow = GetTableTextFormatting(caption, tableFormatting);
                 if (propsBelow.WhiteSpace.HasValue) {
                     fmtBelow.WhiteSpace = propsBelow.WhiteSpace.Value;
                 }

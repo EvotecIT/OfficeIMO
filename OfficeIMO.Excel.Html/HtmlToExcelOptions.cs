@@ -26,6 +26,13 @@ public sealed class HtmlToExcelOptions {
     public HtmlImportMode Mode { get; set; } = HtmlImportMode.Semantic;
 
     /// <summary>
+    /// Imports explicitly annotated text, number, Boolean, and date/time values from ordinary HTML table cells.
+    /// Applies to generic imports, including the generic path selected by <see cref="HtmlImportMode.Auto"/>.
+    /// Unannotated cells remain text and generic formula metadata is never executed.
+    /// </summary>
+    public bool ImportTypedCellValues { get; set; }
+
+    /// <summary>
     /// Imports embedded data URI images from the semantic image inventory.
     /// </summary>
     public bool ImportImages { get; set; } = true;
@@ -57,6 +64,7 @@ public sealed class HtmlToExcelOptions {
     internal HtmlToExcelOptions Clone() => new HtmlToExcelOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
+        ImportTypedCellValues = ImportTypedCellValues,
         ImportImages = ImportImages,
         ImportChartInventory = ImportChartInventory,
         ImportComments = ImportComments,

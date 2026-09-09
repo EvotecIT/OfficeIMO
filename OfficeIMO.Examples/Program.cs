@@ -249,6 +249,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--multi-format-report")) {
+                Html.Html.Example_HtmlMultiFormatReport(folderPath);
+                return;
+            }
+
             if (HasArgument(args, "--pdf-professional")) {
                 Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
                 return;
