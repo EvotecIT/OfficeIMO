@@ -382,6 +382,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        _assistant?.CheckSource();
         OnPropertyChanged(nameof(CanSearchDocument));
         OnPropertyChanged(nameof(ReaderHint));
         SearchCommand.NotifyCanExecuteChanged();

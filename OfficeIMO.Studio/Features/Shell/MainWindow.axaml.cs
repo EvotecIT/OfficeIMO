@@ -42,6 +42,9 @@ public sealed partial class MainWindow : Window {
         _session = new StudioSessionController(TabHost, _services, token => PickFileSafelyAsync(PickSavePdfAsync, token));
         ViewModel.Session = _session;
         InitializeComponent();
+        AssistantHost.PropertyChanged += (_, change) => {
+            if (change.Property == SplitView.IsPaneOpenProperty) ApplyResponsiveLayout(Bounds.Width);
+        };
         DocumentTabs.DataContext = TabHost;
         OpenDocumentTabButton.DataContext = TabHost;
         DataContext = ViewModel;
@@ -161,8 +164,9 @@ public sealed partial class MainWindow : Window {
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) => ApplyResponsiveLayout(e.NewSize.Width);
 
     internal void ApplyResponsiveLayout(double width) {
+        AssistantHost.DisplayMode = width >= 1500D ? SplitViewDisplayMode.Inline : SplitViewDisplayMode.Overlay;
         IsCompactLayout = width < 1180D;
-        double workspaceWidth = Math.Max(0D, width - 116D);
+        double workspaceWidth = Math.Max(0D, width - 116D - (width >= 1500D && AssistantHost.IsPaneOpen ? 400D : 0D));
         DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
@@ -203,12 +207,18 @@ public sealed partial class MainWindow : Window {
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
         if (e.Key == Key.F9) {
+            ViewModel.IsAssistantVisible = false;
             await ViewModel.Commands["FocusReading"].ExecuteAsync();
             e.Handled = true;
             return;
         }
         if (e.Key == Key.Escape && ViewModel.IsFocusReading) {
             ViewModel.IsFocusReading = false;
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Escape && ViewModel.IsAssistantVisible) {
+            ViewModel.IsAssistantVisible = false;
             e.Handled = true;
             return;
         }

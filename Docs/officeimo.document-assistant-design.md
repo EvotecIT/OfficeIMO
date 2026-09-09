@@ -16,7 +16,7 @@ Questions and explanations currently evaluate each input batch independently. Mu
 | `OfficeIMO.AI.IntelligenceX` | Document request mapping, explicit connection/profile selection, and SDK lifecycle |
 | IntelligenceX SDK | Native ChatGPT and compatible HTTP transports, authentication, inline images, structured output, bounded response reading, and ephemeral Treatment state |
 | Headless example | Explicit file/request selection, reader/render composition, JSON reports, CSV and Excel artifacts, and opt-in evaluation |
-| Studio | Future presentation and workspace integration; no dependency from the engine to the GUI |
+| Studio | Read-only PDF question panel, connection setup, current workspace capture, source navigation and per-tab cancellation; no dependency from the engine to the GUI |
 
 The neutral `IOfficeAiExecutor` supports caller-owned model clients. The engine references Reader Core only. The adapter references the engine and IntelligenceX SDK, without IX Chat, tool packs, or a GUI toolkit. Base format packages and `Reader.All` do not acquire AI dependencies. Provider transport improvements belong in IX; document interpretation and validation belong in OfficeIMO.
 
@@ -51,7 +51,8 @@ Cancellation stops waiting and suppresses late results. A provider that ignores 
 | --- | --- | --- |
 | Input | Reader snapshots; example supports text, native/scanned PDF and raster images | Additional Reader formats are caller composition, not automatically qualified AI inputs |
 | Operations | Ask, Explain, Summarize, ExtractFields, Parse | Read-only proposals; no source edits, collections, redaction or signing |
-| Scope | One-based pages and evidence IDs tied to the immutable source hash | No region-selection UI or live workspace revision bridge |
+| Scope | One-based pages and evidence IDs tied to the immutable snapshot; Studio checks workspace identity and revision | No region-selection UI |
+| Follow-up context | Optional untrusted discussion, bounded to 8000 characters and measured in every request; Studio retains up to three exchanges for the same snapshot | Prior answers are never citable evidence; no persistent conversation store |
 | Structure | Proposed Reader blocks and rectangular tables | Original geometry is preserved; model output does not invent authoritative geometry or establish searchable-PDF fidelity |
 | Scalars | Explicit-culture decimals, integers, Boolean values, exact-format dates | Ambiguity/conflicts remain review states; no guessed date formats |
 | Long documents | Measured text windows, original citation offsets, partial text ranges and bounded summary synthesis | No retrieval index; incomplete reduction retains drafts and reports Partial |
@@ -60,7 +61,7 @@ Cancellation stops waiting and suppresses late results. A provider that ignores 
 | Copilot | Native HTTPS treatment with an explicit account-available model; shared image and JSON Schema contracts | Qualify vision, schema enforcement and context limits for the selected model; no CLI or workspace tools |
 | Other clients | Caller-supplied `IOfficeAiExecutor` | Capabilities and deployment locality are declared by the caller and need independent qualification |
 | Exports | Versioned evidence report, proposed Reader JSON, CSV and Excel review tables | Files are created without overwrite; a multi-file export is not an atomic publication transaction |
-| Runtime | .NET 10 | Other target frameworks, AOT/trimming and GUI integration are not claimed |
+| Runtime | .NET 10; Studio PDF question integration | Other target frameworks and AI AOT/trimming are not claimed; hosted login and cross-platform GUI qualification remain separate |
 
 The native adapter disables raw payload tracing and usage telemetry. Ephemeral SDK state is removed after each request. Neither control establishes hosted-provider retention policy. A loopback address establishes the connected endpoint, not whether its service forwards inference elsewhere.
 

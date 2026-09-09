@@ -40,6 +40,23 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - In **OCR → Images and multiple files**, add PDFs or raster images and choose an output folder. The queue shows proposed filenames before recognition and adds numeric suffixes when selected files share a name. PDFs produce searchable copies; images produce UTF-8 text files whose text can be corrected alongside the source preview. Enlarge an image or select another image/page when the source container provides several. Review each file before saving. Completed outputs are available immediately in Jobs and from **Open output** in the session. Cancelling retains earlier outputs; **Retry failed or cancelled** excludes completed and uncertain attempts and protects retained outputs from replacement. An uncertain output stops the remaining files for inspection. Provider folders use the same explicit write confirmation and durable recovery contract as other workflows. Recognition uses one engine sequentially within the session and shares the application's workflow execution budget.
 - Closing a tab or Studio while work is active offers **Wait and close**, **Cancel work and close**, and **Keep open**. Waiting or cancelling keeps the affected document alive until operations finish; cancelling one tab leaves other tabs' jobs running. Whole-window close also waits for session restoration. Cancelling restoration retains unopened entries for a later restart choice. Already saved outputs are preserved, and unsaved-edit choices follow once active work has stopped. An unexpected process exit does not resume workflow execution.
 
+## Document assistant
+
+Open **Assistant** to ask read-only questions about the current PDF. Choose **Connections and model**, connect, and select an available model. The assistant uses the current workspace bytes, including applied unsaved edits. Apply form drafts before asking; PDFs that prohibit content extraction are unavailable to the assistant.
+
+| Connection | Setup |
+| --- | --- |
+| ChatGPT | Sign in with your ChatGPT account, or explicitly choose **Use existing Codex login**. The native IX Codex transport needs no agent CLI. |
+| OpenAI-compatible API | Enter an HTTPS API base URL and your API key, then refresh the model list. |
+| GitHub Copilot | Supply a Copilot-authorized GitHub token, or enter your registered GitHub app client ID and use browser device sign-in. |
+| Local model | Enter a loopback OpenAI-compatible endpoint, such as `http://localhost:11434/v1/`, and select a model. The adapter disables hosted fallback, redirects and proxy use for this route. |
+
+Hosted connections require the document-text consent checkbox before each connection's questions are enabled. Model discovery and sign-in do not send document evidence. Supplied API keys and GitHub tokens remain in memory for the Studio session. Native login credentials use separate Studio-owned IX stores; the existing Codex login is read only when explicitly selected and its authentication file is not overwritten. An optional account ID selects a particular saved account. Connection settings and model selection remain session-local.
+
+Choose the whole document or the current page. Answers show checked source references and exact quotes; select a page reference to navigate to it. A quote match proves that the text occurs in the source, so review the interpretation yourself. The status shows incomplete or unsupported answers and omitted evidence. The initial Studio surface uses text evidence and bounded questions; scanned pages need an extractable text layer, and cross-batch reasoning is limited by the [shared engine contract](../Docs/officeimo.document-assistant-design.md).
+
+Conversations remain in memory and include at most three prior exchanges as bounded context. Changing the document, page scope, model or connection clears the conversation. Closing a tab, hiding the assistant, switching tabs or cancelling discards pending answers. The panel docks beside the document in wide windows and opens as a drawer at narrower widths. It does not edit, save, sign, redact or publish documents.
+
 ## Capability ownership
 
 Studio does not contain a second document engine:
@@ -78,6 +95,8 @@ The initial update policy is manual: install a newer signed artifact over the st
 Studio's reusable document behavior stays in OfficeIMO packages, while presentation preferences, localization, accessibility, and transport-neutral activation belong to the Studio host layer. A future browser companion should send a bounded activation request through an authenticated local native host and let Studio open the document or workflow. It should not duplicate PDF editing, OCR, conversion, storage, or policy logic in an extension.
 
 ## Run and verify
+
+Set `OFFICEIMO_STUDIO_DATA_ROOT` to an explicit directory when running an isolated Studio profile, for example during UI validation. This redirects preferences, recovery, diagnostics and Studio authentication stores together.
 
 ```powershell
 dotnet run --project OfficeIMO.Studio/OfficeIMO.Studio.csproj

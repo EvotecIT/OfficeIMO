@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ai="using:OfficeIMO.Studio.Features.Assistant" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Assistant.AssistantView" x:DataType="ai:DocumentAssistantViewModel">
+  <Border Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="12">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{loc:Loc Assistant.Title}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{loc:Loc Assistant.ReadOnly}" Classes="muted" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Connections.Summary}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" FontSize="12" MaxLines="2" TextTrimming="CharacterEllipsis" />
+        <ToggleButton Classes="tool" Content="{loc:Loc Assistant.Connections}" IsChecked="{Binding ShowConnections}" HorizontalAlignment="Stretch" />
+      </StackPanel>
+      <Grid Grid.Row="1">
+        <ScrollViewer IsVisible="{Binding ShowConnections}" HorizontalScrollBarVisibility="Disabled">
+          <ai:ConnectionsView DataContext="{Binding Connections}" />
+        </ScrollViewer>
+        <ScrollViewer IsVisible="{Binding !ShowConnections}" HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Messages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="ai:AssistantMessage">
+                <Border Margin="0,0,0,12" Padding="10" CornerRadius="8" Background="{DynamicResource StudioWindowBrush}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Citations}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="ai:AssistantCitation">
+                          <StackPanel Spacing="3" Margin="0,4">
+                            <Button Classes="ghost" Content="{Binding Label}" Command="{Binding NavigateCommand}" HorizontalAlignment="Left" />
+                            <TextBlock Text="{Binding Quote}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+      <StackPanel Grid.Row="2" Spacing="8">
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" AutomationProperties.LiveSetting="Polite" />
+        <ProgressBar IsVisible="{Binding IsBusy}" IsIndeterminate="True" Height="3" />
+        <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="6">
+          <CheckBox Content="{loc:Loc Assistant.CurrentPage}" IsChecked="{Binding CurrentPageOnly}" />
+          <CheckBox IsVisible="{Binding !Connections.IsLocal}" IsChecked="{Binding AllowRemoteProcessing}">
+            <TextBlock Text="{loc:Loc Assistant.RemoteConsent}" TextWrapping="Wrap" />
+          </CheckBox>
+          <TextBox Text="{Binding Question}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="66" MaxHeight="110" MaxLength="8000"
+                   PlaceholderText="{loc:Loc Assistant.Question}" AutomationProperties.Name="{loc:Loc Assistant.Question}" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <Button Classes="primary" Content="{loc:Loc Assistant.Ask}" Command="{Binding AskCommand}" HorizontalAlignment="Stretch" />
+          <Button Classes="tool" Grid.Column="1" Content="{loc:Loc MainWindow.Cancel}" IsVisible="{Binding IsBusy}" Command="{Binding CancelCommand}" />
+          <Button Classes="tool" Grid.Column="2" Content="{loc:Loc Assistant.NewChat}" Command="{Binding NewConversationCommand}" />
+        </Grid>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

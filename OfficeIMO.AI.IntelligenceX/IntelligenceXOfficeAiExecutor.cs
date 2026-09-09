@@ -41,6 +41,9 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
                     throw new ArgumentException("ChatGPT uses the IX auth store and cannot be labelled local or redirected.", nameof(connection));
                 options.TransportKind = OpenAITransportKind.Native;
                 options.NativeOptions.PreferCurrentCodexSession = connection.PreferCurrentCodexSession;
+                options.NativeOptions.LoadCodexAuthJson = connection.LoadCodexAuthJson || connection.PreferCurrentCodexSession;
+                if (connection.AuthStore is not null) options.NativeOptions.AuthStore = connection.AuthStore;
+                if (connection.AuthStore is not null || connection.AccountId is not null) options.NativeOptions.AuthAccountId = connection.AccountId;
                 options.NativeOptions.PersistCodexAuthJson = false;
                 options.NativeOptions.EnableModelFallback = false;
                 options.NativeOptions.EnableToolSchemaFallback = false;
@@ -67,6 +70,40 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         }
         IntelligenceXClient client = await IntelligenceXClient.ConnectAsync(options, cancellationToken).ConfigureAwait(false);
         return new IntelligenceXOfficeAiExecutor(client, profile with { });
+    }
+
+    /// <summary>Lists models available through this connection without sending document evidence.</summary>
+    public Task<ModelListResult> ListModelsAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.ListModelsAsync(cancellationToken), cancellationToken);
+
+    /// <summary>Reads the selected account without starting an inference request.</summary>
+    public Task<AccountInfo> GetAccountAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.GetAccountAsync(cancellationToken), cancellationToken);
+
+    /// <summary>Signs in through the native ChatGPT browser flow; no agent CLI is launched.</summary>
+    public Task LoginChatGptAsync(Action<string> onUrl, CancellationToken cancellationToken = default) =>
+        WithClientAsync(async client => {
+            await client.LoginChatGptAndWaitAsync(onUrl: onUrl, useLocalListener: true,
+                timeout: TimeSpan.FromMinutes(5), cancellationToken: cancellationToken).ConfigureAwait(false);
+            return true;
+        }, cancellationToken);
+
+    /// <summary>Signs in through the native GitHub device flow using the configured registered app.</summary>
+    public Task<AccountInfo> LoginCopilotAsync(Action<global::IntelligenceX.Authentication.GitHub.GitHubDeviceAuthorization> onCode,
+        CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.LoginCopilotAsync(onCode, cancellationToken), cancellationToken);
+
+    /// <summary>Signs out of this connection's selected account.</summary>
+    public Task LogoutAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(async client => { await client.LogoutAsync(cancellationToken).ConfigureAwait(false); return true; }, cancellationToken);
+
+    private async Task<T> WithClientAsync<T>(Func<IntelligenceXClient, Task<T>> operation, CancellationToken token) {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        await _gate.WaitAsync(token).ConfigureAwait(false);
+        try {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return await operation(_client!).ConfigureAwait(false);
+        } finally { _gate.Release(); }
     }
 
     /// <inheritdoc />

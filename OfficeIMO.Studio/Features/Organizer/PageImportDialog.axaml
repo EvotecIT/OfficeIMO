@@ -25,7 +25,7 @@
           </CheckBox>
           <StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Text="{loc:Loc Organizer.SplitCount}" /><TextBlock Text="{Binding PageCount}" /></StackPanel>
           <TextBox Text="{Binding PageRange, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsIncluded}" MaxLength="5000"
-                   AutomationProperties.Name="{Binding RangeLabel}" Watermark="{loc:Loc Organizer.PageRange}" />
+                   AutomationProperties.Name="{Binding RangeLabel}" PlaceholderText="{loc:Loc Organizer.PageRange}" />
           <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
         </StackPanel>
       </DataTemplate></ListBox.ItemTemplate>

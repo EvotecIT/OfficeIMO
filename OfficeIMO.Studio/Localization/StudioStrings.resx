@@ -1698,4 +1698,27 @@
   <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
   <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
+  <data name="Assistant.Title" xml:space="preserve"><value>Assistant</value></data>
+  <data name="Assistant.ReadOnly" xml:space="preserve"><value>Read-only help with the current PDF. Review answers against the source.</value></data>
+  <data name="Assistant.Connections" xml:space="preserve"><value>Connections and model</value></data>
+  <data name="Assistant.CurrentPage" xml:space="preserve"><value>Use the current page only</value></data>
+  <data name="Assistant.RemoteConsent" xml:space="preserve"><value>Allow selected document text to be sent to this hosted connection.</value></data>
+  <data name="Assistant.Question" xml:space="preserve"><value>Ask about this document…</value></data>
+  <data name="Assistant.Ask" xml:space="preserve"><value>Ask</value></data>
+  <data name="Assistant.NewChat" xml:space="preserve"><value>New chat</value></data>
+  <data name="Assistant.Provider" xml:space="preserve"><value>Connection</value></data>
+  <data name="Assistant.NativeLogin" xml:space="preserve"><value>Use your ChatGPT account through the native Codex engine. No Codex CLI is required.</value></data>
+  <data name="Assistant.LocalOnly" xml:space="preserve"><value>Only a loopback endpoint is accepted. No hosted fallback is used.</value></data>
+  <data name="Assistant.Endpoint" xml:space="preserve"><value>API base URL</value></data>
+  <data name="Assistant.Credential" xml:space="preserve"><value>API key or GitHub token</value></data>
+  <data name="Assistant.SessionCredential" xml:space="preserve"><value>Supplied API keys and tokens stay in memory for this Studio session.</value></data>
+  <data name="Assistant.GitHubClient" xml:space="preserve"><value>Registered GitHub app client ID</value></data>
+  <data name="Assistant.CopilotLogin" xml:space="preserve"><value>Sign-in uses your registered GitHub app. You can also supply a Copilot-authorized GitHub token.</value></data>
+  <data name="Assistant.Account" xml:space="preserve"><value>Account ID (optional for a single stored account)</value></data>
+  <data name="Assistant.Connect" xml:space="preserve"><value>Connect / refresh models</value></data>
+  <data name="Assistant.SignIn" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Assistant.ImportCodex" xml:space="preserve"><value>Use existing Codex login</value></data>
+  <data name="Assistant.SignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Assistant.Model" xml:space="preserve"><value>Model ID</value></data>
+  <data name="Assistant.AvailableModels" xml:space="preserve"><value>Available models</value></data>
 </root>

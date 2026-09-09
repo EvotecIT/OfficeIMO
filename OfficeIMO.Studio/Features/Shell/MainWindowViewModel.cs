@@ -277,6 +277,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
+        _assistant?.CheckSource();
         UpdateFormAnchor();
         RefreshReaderPages();
         OnPropertyChanged(nameof(SelectedReaderGridRow));
@@ -521,6 +522,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        _assistant?.Dispose();
         ClearFormPreview();
         _commands?.Dispose();
         if (_disposed) return;
@@ -552,6 +554,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private async Task<bool> PrepareDocumentTransitionAsync() {
+        _assistant?.Deactivate();
         if (CanCancelOperation) {
             OperationStatus = _localizer.Get("Document.WaitForOperation");
             return false;
@@ -596,6 +599,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         }
 
         _workspace = workspace;
+        _assistant?.CheckSource();
         _session = session;
         ClearSearchResults();
         _sceneCoordinator = sceneCoordinator;

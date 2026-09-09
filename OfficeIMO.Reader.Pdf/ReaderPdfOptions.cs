@@ -6,6 +6,9 @@ namespace OfficeIMO.Reader.Pdf;
 /// Options for PDF ingestion through the OfficeIMO.Reader adapter.
 /// </summary>
 public sealed class ReaderPdfOptions {
+    /// <summary>Optional password used locally to open an encrypted PDF. It is not included in extracted content or metadata.</summary>
+    public string? Password { get; set; }
+
     /// <summary>
     /// Creates the default PDF reader profile with page-level chunks and wrapper-friendly Markdown.
     /// </summary>
@@ -47,6 +50,7 @@ public sealed class ReaderPdfOptions {
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
     public ReaderPdfOptions Clone() => new ReaderPdfOptions {
+        Password = Password,
         ReadOptions = ReadOptions?.Clone(),
         MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
         IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,

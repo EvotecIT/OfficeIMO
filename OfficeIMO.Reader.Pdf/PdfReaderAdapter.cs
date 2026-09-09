@@ -21,7 +21,7 @@ internal static partial class PdfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions));
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions));
         PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
@@ -44,7 +44,7 @@ internal static partial class PdfReaderAdapter {
         };
 
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
@@ -866,19 +866,20 @@ internal static partial class PdfReaderAdapter {
         return document.Read(options.ReadOptions, cancellationToken);
     }
 
-    private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options) {
-        return options.MaxInputBytes.HasValue
+    private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options, ReaderPdfOptions pdfOptions) {
+        return options.MaxInputBytes.HasValue || pdfOptions.Password is not null
             ? new PdfLoadOptions {
-                Limits = new PdfReadLimits {
+                Password = pdfOptions.Password,
+                Limits = options.MaxInputBytes.HasValue ? new PdfReadLimits {
                     MaxInputBytes = options.MaxInputBytes.Value
-                }
+                } : PdfReadLimits.Default
             }
             : null;
     }
 
-    private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options) {
+    private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options, ReaderPdfOptions pdfOptions) {
         try {
-            PdfLoadOptions? readOptions = CreatePdfLoadOptions(options);
+            PdfLoadOptions? readOptions = CreatePdfLoadOptions(options, pdfOptions);
             return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
                 ? PdfDocument.LoadOwned(ownedBytes, readOptions)
                 : PdfDocument.Load(stream, readOptions);

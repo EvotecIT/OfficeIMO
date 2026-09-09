@@ -59,6 +59,8 @@ static async Task<OfficeAiResult> ExtractAsync(
 
 Select one-based `Pages`, `EvidenceIds`, or both. Unknown identifiers and selections outside the page/image scope are rejected before execution. Empty selections mean all captured evidence. `IncludeImages` must be explicit, and the selected execution profile must support vision.
 
+For follow-up questions, `ConversationContext` accepts up to 8000 characters of prior discussion. It is measured in the request budget and supplied separately as untrusted context. Previous answers cannot substitute for current source evidence or become citations. Hosts must clear or rebind that context when the document, scope or account changes; Studio keeps at most three exchanges for the current snapshot.
+
 `Ask` and `Explain` evaluate each batch independently. When selected evidence spans multiple batches, validated batch claims remain available, but the result is `Partial` with `cross-batch-reasoning-not-supported`. The engine cannot determine an answer that requires relating facts across those batches. A single-batch request does not have this limitation.
 
 Table evidence includes the title and column headers even when there are no rows. Each row retains its title and column labels, and `sourceBlockId` identifies its table and row in execution requests. When Reader supplies a shared anchor for a table placeholder and its data, `sourceAnchor` preserves that association across narrative blocks, table headers and rows, including untitled tables beneath section headings.

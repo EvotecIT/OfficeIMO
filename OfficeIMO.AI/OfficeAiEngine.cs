@@ -171,6 +171,8 @@ public sealed partial class OfficeAiEngine {
     private static OfficeAiRequest SnapshotRequest(OfficeAiRequest request) {
         ArgumentNullException.ThrowIfNull(request.Limits);
         request.Limits.Validate();
+        if (request.ConversationContext is null || request.ConversationContext.Length > 8000)
+            throw new ArgumentException("Conversation context must contain at most 8000 characters.", nameof(request));
         if (!Enum.IsDefined(request.Operation) || string.IsNullOrWhiteSpace(request.Instruction) || request.Instruction.Length > 8000)
             throw new ArgumentException("A supported operation and 1-8000 character instruction are required.", nameof(request));
         ArgumentNullException.ThrowIfNull(request.Pages); ArgumentNullException.ThrowIfNull(request.EvidenceIds); ArgumentNullException.ThrowIfNull(request.Fields);
