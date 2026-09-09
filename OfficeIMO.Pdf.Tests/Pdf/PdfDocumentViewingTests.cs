@@ -21,6 +21,11 @@ public sealed class PdfDocumentViewingTests {
         var owner = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "owner" });
         PdfDocumentViewInfo authorized = owner.InspectForViewing();
         Assert.True(authorized.CanExtractContent); Assert.NotNull(authorized.LogicalContent);
+        PdfDocumentViewInfo geometry = owner.InspectForViewing(includeLogicalContent: false);
+        Assert.True(geometry.CanExtractContent); Assert.Null(geometry.LogicalContent);
+        Assert.Equal(authorized.PageCount, geometry.PageCount);
+        Assert.Equal(authorized.Pages[0].Width, geometry.Pages[0].Width);
+        Assert.False(restricted.InspectForViewing(includeLogicalContent: false).CanExtractContent);
         Assert.Equal("Private metadata", authorized.LogicalContent.Metadata.Title);
         Assert.Equal(authorized.Pages[0].Width, view.Pages[0].Width);
         PdfPageRenderResult raster = restricted.Render.DisplayPage(1);

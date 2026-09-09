@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfDocumentViewInfo {
     internal PdfDocumentViewInfo(IReadOnlyList<PdfPageInfo> pages, PdfDocumentSecurityInfo security,
-        bool canExtractText, PdfDocumentInfo? logicalContent) {
+        bool canExtractText, PdfDocumentInfo? logicalContent, bool? canExtractContent = null) {
         Pages = pages; Security = security; CanExtractText = canExtractText; LogicalContent = logicalContent;
+        CanExtractContent = canExtractContent ?? logicalContent is not null;
     }
 
     /// <summary>Page geometry in document order. Annotation and widget objects are omitted when content extraction is restricted.</summary>
@@ -18,7 +19,7 @@ public sealed class PdfDocumentViewInfo {
     /// <summary>Whether the current authorization permits text extraction, including accessibility text.</summary>
     public bool CanExtractText { get; }
     /// <summary>Whether the current authorization permits logical content extraction.</summary>
-    public bool CanExtractContent => LogicalContent is not null;
-    /// <summary>Full inspection only when content extraction is authorized; otherwise null.</summary>
+    public bool CanExtractContent { get; }
+    /// <summary>Full inspection only when requested and content extraction is authorized; otherwise null.</summary>
     public PdfDocumentInfo? LogicalContent { get; }
 }

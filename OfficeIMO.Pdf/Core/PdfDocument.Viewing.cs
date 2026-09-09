@@ -7,12 +7,20 @@ public sealed partial class PdfDocument {
     /// Inspects authenticated page geometry for viewing without requiring content-copy permission.
     /// Full logical inspection is included only when extraction is authorized. This does not change mutation or extraction policy.
     /// </summary>
-    public PdfDocumentViewInfo InspectForViewing(PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+    public PdfDocumentViewInfo InspectForViewing(PdfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
+        InspectForViewing(includeLogicalContent: true, options, cancellationToken);
+
+    /// <summary>
+    /// Inspects authenticated page geometry and permissions. Set <paramref name="includeLogicalContent"/> to false
+    /// to avoid decoding logical page content even when extraction is permitted.
+    /// </summary>
+    public PdfDocumentViewInfo InspectForViewing(bool includeLogicalContent, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         var snapshot = GetReadSnapshot(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument document = snapshot.Document;
         bool canExtractText = PdfPermissionAuthorization.CanExtractText(document.Security, snapshot.Options.PermissionPolicy);
-        if (PdfPermissionAuthorization.CanExtractContent(document.Security, snapshot.Options.PermissionPolicy)) {
+        bool canExtractContent = PdfPermissionAuthorization.CanExtractContent(document.Security, snapshot.Options.PermissionPolicy);
+        if (includeLogicalContent && canExtractContent) {
             PdfDocumentInfo content = PdfInspector.Inspect(snapshot.Bytes, document, cancellationToken);
             return new PdfDocumentViewInfo(content.Pages, document.Security, canExtractText, content);
         }
@@ -23,6 +31,6 @@ public sealed partial class PdfDocument {
             var size = page.GetPageSize();
             pages.Add(new PdfPageInfo(index + 1, size.Width, size.Height, page.GetRotationDegrees(), page.GetGeometry()));
         }
-        return new PdfDocumentViewInfo(pages.AsReadOnly(), document.Security, canExtractText, null);
+        return new PdfDocumentViewInfo(pages.AsReadOnly(), document.Security, canExtractText, null, canExtractContent);
     }
 }
