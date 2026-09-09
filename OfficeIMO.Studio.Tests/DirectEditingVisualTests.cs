@@ -33,6 +33,13 @@ public sealed class DirectEditingVisualTests {
                 await TextEditingReviewTests.WaitUntilAsync(() => model.Pages[0].Scene is not null);
                 window.UpdateLayout();
                 var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control => control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.PageContent);
+                var space = document.Render.Interactions(1).TextRegions.First(region => region.Text == " ");
+                Point whitespace = PagePoint(canvas, (space.Quad.TopLeft.X + space.Quad.BottomRight.X) / 2,
+                    (space.Quad.TopLeft.Y + space.Quad.BottomRight.Y) / 2, window);
+                window.MouseDown(whitespace, MouseButton.Left); window.MouseUp(whitespace, MouseButton.Left);
+                window.UpdateLayout();
+                Assert.False(model.HasSelectedText);
+                Assert.Null(model.TextEditDraft);
                 PdfTextMatch match = document.Text.Find("Account")[0];
                 Point position = PagePoint(canvas, (match.VisualBounds.TopLeft.X + match.VisualBounds.BottomRight.X) / 2,
                     (match.VisualBounds.TopLeft.Y + match.VisualBounds.BottomRight.Y) / 2, window);

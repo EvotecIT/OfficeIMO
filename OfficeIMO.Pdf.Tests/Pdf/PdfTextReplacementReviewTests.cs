@@ -31,6 +31,14 @@ public sealed class PdfTextReplacementReviewTests {
             (match.VisualBounds.TopLeft.Y + match.VisualBounds.BottomRight.Y) / 2);
         Assert.Equal("Account", string.Concat(word.Select(region => region.Text)));
         Assert.Empty(map.SelectWord(1, 1));
+        var spaces = map.TextRegions.Where(region => !string.IsNullOrEmpty(region.Text) && region.Text.All(char.IsWhiteSpace)).ToArray();
+        Assert.NotEmpty(spaces);
+        foreach (var space in spaces) {
+            Assert.Empty(map.SelectWord((space.Quad.TopLeft.X + space.Quad.BottomRight.X) / 2,
+                (space.Quad.TopLeft.Y + space.Quad.BottomRight.Y) / 2));
+            Assert.Empty(map.SelectWord((space.Quad.TopLeft.X + space.Quad.BottomRight.X) / 2,
+                (space.Quad.TopLeft.Y + space.Quad.BottomRight.Y) / 2, tolerance: 2));
+        }
     }
 
     [Fact]

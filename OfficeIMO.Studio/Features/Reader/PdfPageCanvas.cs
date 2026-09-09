@@ -408,6 +408,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
                     Text: string.Concat(word.Select(region => region.Text))));
                 return true;
             }
+            ObjectSelected?.Invoke(null);
+            return false;
         }
         ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
         return true;

@@ -3,12 +3,14 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfPageInteractionMap {
     /// <summary>Selects the contiguous non-whitespace text run at a visual page coordinate, without crossing a line or a gap between independent runs.</summary>
     public IReadOnlyList<PdfPageInteractionRegion> SelectWord(double x, double y, double tolerance = 0D) {
-        PdfPageInteractionRegion? hit = HitTest(x, y, tolerance).FirstOrDefault(region => region.Kind == PdfInteractionKind.Text);
+        // An exact whitespace hit must not be replaced by a neighboring glyph admitted by pointer tolerance.
+        PdfPageInteractionRegion? hit = HitTest(x, y).FirstOrDefault(region => region.Kind == PdfInteractionKind.Text)
+            ?? HitTest(x, y, tolerance).FirstOrDefault(region => region.Kind == PdfInteractionKind.Text);
         if (hit is null) return Array.Empty<PdfPageInteractionRegion>();
         int index = -1;
         for (int i = 0; i < TextRegions.Count; i++) if (ReferenceEquals(TextRegions[i], hit)) { index = i; break; }
         if (index < 0) return Array.Empty<PdfPageInteractionRegion>();
-        if (!IsWordElement(hit)) return new[] { hit };
+        if (!IsWordElement(hit)) return Array.Empty<PdfPageInteractionRegion>();
         int first = index, last = index;
         while (first > 0 && IsWordElement(TextRegions[first - 1]) && AreWordNeighbors(TextRegions[first - 1], TextRegions[first])) first--;
         while (last + 1 < TextRegions.Count && IsWordElement(TextRegions[last + 1]) && AreWordNeighbors(TextRegions[last], TextRegions[last + 1])) last++;
