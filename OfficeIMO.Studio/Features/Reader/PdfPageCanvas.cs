@@ -128,6 +128,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
+        DrawObjectTransform(context);
         DrawCommentAnchor(context);
         DrawFormAnchor(context);
         DrawPendingRedaction(context);
@@ -145,6 +146,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
+        if (change.Property == SelectedObjectProperty || change.Property == SceneProperty || change.Property == SelectionModeProperty) ResetObjectTransform();
         if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
         if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
@@ -179,6 +181,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         base.OnPointerPressed(e);
         if (Scene is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
+        if (EditorTool == PdfEditorTool.Select && BeginObjectTransform(e)) return;
         if (EditorTool != PdfEditorTool.Select) {
             _editorPath.Clear();
             _editorPath.Add(ToPagePoint(e.GetPosition(this)));
@@ -198,6 +201,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPointerMoved(PointerEventArgs e) {
         base.OnPointerMoved(e);
+        if (UpdateObjectTransform(e)) return;
         if (_editing) {
             Point point = ToPagePoint(e.GetPosition(this));
             if (_editorPath.Count == 0 || Distance(_editorPath[^1], point) >= 1D) _editorPath.Add(point);
@@ -222,6 +226,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e) {
         base.OnPointerReleased(e);
+        if (CompleteObjectTransform(e)) return;
         if (_editing) {
             Point point = ToPagePoint(e.GetPosition(this));
             if (_editorPath.Count == 0 || Distance(_editorPath[^1], point) > 0.1D) _editorPath.Add(point);
@@ -393,6 +398,16 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             return false;
         }
 
+        if (selected.Kind == PdfInteractionKind.Text) {
+            IReadOnlyList<PdfPageInteractionRegion> word = scene.Interactions.SelectWord(point.X, point.Y, tolerance: 2D);
+            if (word.Count > 0) {
+                ObjectSelected?.Invoke(new PdfEditorSelection(PdfEditorSelectionKind.Text, scene.PageNumber,
+                    new PdfEditorVisualBounds(word.Min(region => region.Quad.Left), word.Min(region => region.Quad.Top),
+                        word.Max(region => region.Quad.Right), word.Max(region => region.Quad.Bottom)),
+                    Text: string.Concat(word.Select(region => region.Text))));
+                return true;
+            }
+        }
         ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
         return true;
     }
@@ -574,6 +589,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     }
 
     private void ResetPointerState() {
+        ResetObjectTransform();
         _selecting = false;
         _editing = false;
         _selectionStart = null;

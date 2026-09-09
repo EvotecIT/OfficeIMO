@@ -2,6 +2,7 @@
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                           xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+             xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
              x:Class="OfficeIMO.Studio.Features.Reader.PdfPageView"
              x:DataType="reader:PdfPageViewModel">
   <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
@@ -32,6 +33,12 @@
                 IsHitTestVisible="False"
                 Background="White"
                 RenderOptions.BitmapBlendingMode="Difference" />
+
+        <Canvas IsVisible="{Binding HasInlineTextDraft}" ClipToBounds="True">
+          <Border Canvas.Left="{Binding InlineEditorLeft}" Canvas.Top="{Binding InlineEditorTop}" Width="{Binding InlineEditorWidth}">
+            <editor:InlineTextEditorView DataContext="{Binding InlineTextDraft}" />
+          </Border>
+        </Canvas>
 
         <StackPanel IsVisible="{Binding IsRendering}"
                     HorizontalAlignment="Center"

@@ -622,6 +622,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.LinkActivated += OnPageLinkActivated;
             page.EditorGestureCompleted += OnPageEditorGestureCompleted;
             page.ObjectSelected += OnPageObjectSelected;
+            page.ObjectTransformCompleted += OnPageObjectTransform;
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
             page.IsNightMode = IsPageNightMode;

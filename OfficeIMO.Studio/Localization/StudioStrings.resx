@@ -1698,6 +1698,32 @@
   <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
   <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
+  <data name="ObjectEdit.DragHelp" xml:space="preserve"><value>Drag the selected image to move it. Drag its handles to resize proportionally; blue guides show alignment.</value></data>
+  <data name="ObjectEdit.Behind" xml:space="preserve"><value>Place edited image behind existing content</value></data>
+  <data name="ObjectEdit.LayerHelp" xml:space="preserve"><value>Image edits place the rewritten image above existing content unless the background option is selected. Original paint order cannot be preserved.</value></data>
+  <data name="ObjectEdit.Scale" xml:space="preserve"><value>Proportional size (%)</value></data>
+  <data name="ObjectEdit.ApplyScale" xml:space="preserve"><value>Resize selected image</value></data>
+  <data name="TextEdit.InlineText" xml:space="preserve"><value>Edit selected text on the page</value></data>
+  <data name="TextEdit.Preview" xml:space="preserve"><value>Preview replacement</value></data>
+  <data name="TextEdit.Replacement" xml:space="preserve"><value>Replacement text</value></data>
+  <data name="TextEdit.Matches" xml:space="preserve"><value>Replacement occurrences</value></data>
+  <data name="TextEdit.Include" xml:space="preserve"><value>Include page</value></data>
+  <data name="TextEdit.Font" xml:space="preserve"><value>Replacement font</value></data>
+  <data name="TextEdit.Size" xml:space="preserve"><value>Font size (empty preserves detected size)</value></data>
+  <data name="TextEdit.MinimumSize" xml:space="preserve"><value>Minimum shrink size</value></data>
+  <data name="TextEdit.Before" xml:space="preserve"><value>Original page</value></data>
+  <data name="TextEdit.FullPage" xml:space="preserve"><value>Show full page</value></data>
+  <data name="TextEdit.After" xml:space="preserve"><value>Prepared page</value></data>
+  <data name="TextEdit.Apply" xml:space="preserve"><value>Apply reviewed replacement</value></data>
+  <data name="TextEdit.FindMatches" xml:space="preserve"><value>Find and review occurrences</value></data>
+  <data name="TextEdit.FontDetected" xml:space="preserve"><value>Closest detected font</value></data>
+  <data name="TextEdit.FitReject" xml:space="preserve"><value>Reject overflow</value></data>
+  <data name="TextEdit.FitShrink" xml:space="preserve"><value>Shrink to fit</value></data>
+  <data name="TextEdit.FitFlow" xml:space="preserve"><value>Keep size and reflow nearby text</value></data>
+  <data name="TextEdit.SourceStyle" xml:space="preserve"><value>Source: {0}, {1:0.##} pt. Replacement uses a standard PDF font; review any substitution warnings.</value></data>
+  <data name="TextEdit.BatchStyle" xml:space="preserve"><value>Each selected occurrence keeps its detected size unless overridden. Review font substitutions and nearby text flow in the preview.</value></data>
+  <data name="TextEdit.TooManyMatches" xml:space="preserve"><value>Narrow the search to at most 2,000 occurrences before reviewing replacements.</value></data>
+  <data name="TextEdit.PreviewSummary" xml:space="preserve"><value>Prepared {0:N0} replacement(s). Review the rendered result before applying.</value></data>
   <data name="Redaction.CopySaved" xml:space="preserve"><value>Saved the verified PDF copy. Its evidence report is ready to export.</value></data>
   <data name="Redaction.SelectPages" xml:space="preserve"><value>Select at least one page in the page organizer.</value></data>
   <data name="Redaction.TooManyMarks" xml:space="preserve"><value>A review can contain at most 2,000 marks. Narrow the search or remove some marks.</value></data>

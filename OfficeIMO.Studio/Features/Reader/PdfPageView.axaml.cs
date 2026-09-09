@@ -12,6 +12,7 @@ public sealed partial class PdfPageView : UserControl {
         PageCanvas.LinkActivated += OnLinkActivated;
         PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
         PageCanvas.ObjectSelected += OnObjectSelected;
+        PageCanvas.ObjectTransformCompleted += gesture => _viewModel?.TransformObject(gesture);
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;

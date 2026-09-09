@@ -219,6 +219,7 @@
 
       <Grid Grid.Column="1" IsVisible="{Binding HasDocument}" ColumnDefinitions="*,6,*">
         <ListBox x:Name="PagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding !IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}"
                  Classes.readerSingle="{Binding IsSinglePageReaderLayout}"
@@ -244,6 +245,7 @@
         </ListBox>
 
         <ListBox x:Name="GridPagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderGridRows}"
                  SelectedItem="{Binding SelectedReaderGridRow, Mode=OneWay}"
@@ -346,7 +348,8 @@
                   <TextBox Text="{Binding ReplaceAllReplacementText}" PlaceholderText="{loc:Loc DocumentWorkspace.ReplaceWith}" />
                   <CheckBox IsChecked="{Binding ReplaceAllMatchCase}" Content="{loc:Loc DocumentWorkspace.MatchCase}" />
                   <CheckBox IsChecked="{Binding ReplaceAllWholeWords}" Content="{loc:Loc DocumentWorkspace.WholeWords}" />
-                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceAll}" Content="{loc:Loc DocumentWorkspace.ReplaceAll}" Command="{Binding ReplaceAllDocumentTextCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                  <Button Classes="tool" Content="{loc:Loc TextEdit.FindMatches}" Command="{Binding FindTextReplacementsCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                  <editor:TextEditInspectorView />
                 </StackPanel>
               </StackPanel>
 
@@ -355,12 +358,16 @@
                 <TextBlock Text="{Binding SelectedObjectSummary}" Classes="muted" TextWrapping="Wrap" />
 
                 <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="7">
-                  <TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="12" />
-                  <TextBox Text="{Binding SelectedObjectText}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap" />
-                  <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceText}" Content="{loc:Loc DocumentWorkspace.ReplaceText}" Command="{Binding ReplaceSelectedTextCommand}" IsEnabled="{Binding CanReplaceSelectedText}" />
+                  <editor:TextEditInspectorView />
                 </StackPanel>
 
                 <StackPanel IsVisible="{Binding HasSelectedImage}" Spacing="7">
+                  <TextBlock Text="{loc:Loc ObjectEdit.DragHelp}" Classes="muted" TextWrapping="Wrap" />
+                  <CheckBox Content="{loc:Loc ObjectEdit.Behind}" IsChecked="{Binding PlaceEditedImageBehindContent}" />
+                  <TextBlock Text="{loc:Loc ObjectEdit.LayerHelp}" Classes="muted" TextWrapping="Wrap" />
+                  <TextBlock Text="{loc:Loc ObjectEdit.Scale}" />
+                  <NumericUpDown Value="{Binding ObjectScalePercent}" Minimum="1" Maximum="1000" />
+                  <Button Classes="tool" Content="{loc:Loc ObjectEdit.ApplyScale}" Command="{Binding ScaleSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.TheReplacementKeepsThisPlacementSPositionSizeAndRotation}" Classes="muted" TextWrapping="Wrap" />
                   <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceImage}" Content="{loc:Loc DocumentWorkspace.ReplaceImage}" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
                 </StackPanel>

@@ -116,6 +116,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
 
     internal event Action<PdfEditorSelection?>? ObjectSelected;
+    internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
 
     internal void AttachToViewport() {
         if (_disposed || _isAttached) return;
@@ -153,6 +154,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal void CompleteEditorGesture(PdfEditorGesture gesture) => EditorGestureCompleted?.Invoke(gesture);
 
     internal void SelectObject(PdfEditorSelection? selection) => ObjectSelected?.Invoke(selection);
+    internal void TransformObject(PdfObjectTransformGesture gesture) => ObjectTransformCompleted?.Invoke(gesture);
 
     internal async Task EnsureRenderedAsync() {
         if (_disposed || !_isAttached) return;

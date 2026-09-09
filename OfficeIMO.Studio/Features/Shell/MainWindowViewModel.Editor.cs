@@ -356,6 +356,8 @@ public sealed partial class MainWindowViewModel {
         foreach (PdfPageViewModel page in Pages) {
             page.SelectedObject = page.PageNumber == selection.PageNumber ? selection : null;
         }
+        if (selection.Kind == PdfEditorSelectionKind.Text) _ = BeginInlineTextEditAsync(selection);
+        else ClearTextReview();
     }
 
     [RelayCommand]
@@ -601,6 +603,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void ClearObjectSelection() {
+        ClearTextReview();
         SelectedObject = null;
         SelectedObjectSummary = null;
         SelectedAnnotationSummary = null;

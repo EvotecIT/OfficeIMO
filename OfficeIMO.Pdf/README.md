@@ -1233,6 +1233,12 @@ Unmatched glyphs remain encoded in their original font; newly inserted replaceme
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
 
+Use `Text.ReplaceSelected(find, replacement, matchIndexes, searchOptions, editOptions)`
+to apply a reviewed subset of the zero-based occurrences returned by `Text.Find`
+with the same query and search options. The document and search contract must
+remain unchanged between discovery and mutation. `PdfTextMatch.SourceFont`,
+`FontSize`, and `SuggestedFont` expose the detected style for a review interface.
+
 Invisible OCR text stored with PDF text rendering mode 3 is opt-in for both
 discovery and mutation. Use `IncludeTextRenderingMode3` to find it, then
 `AllowTextRenderingMode3` to authorize an edit that preserves the invisible
@@ -1291,6 +1297,11 @@ page content. The editor fails closed for ambiguous placements and for source
 clipping, opacity, skew/reflection, unresolved transparency, image-mask, raw
 payload, or inline-image semantics that cannot be reproduced safely. Exact
 XObject removal remains available for rotated and skewed placements.
+
+`Images.Transform(placement, deltaX, deltaY, scale, options)` translates an image's
+center and scales both dimensions proportionally while retaining its rotation.
+The placement must belong to the current document revision. As with movement,
+the selected `PdfImageEditLayer` controls where the rewritten placement is painted.
 
 ### Fill and flatten a PDF form
 
