@@ -293,7 +293,8 @@ internal static partial class PdfReaderAdapter {
                     yield return new OfficeDocumentBlock {
                         Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = "table",
-                        Text = "Detected PDF table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " row(s).",
+                        // The table's text lives in its cells. This block supplies geometry and identity only.
+                        Text = string.Empty,
                         Location = BuildLocation(source, page.PageNumber, pageIndex, "table", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString(CultureInfo.InvariantCulture)),
                         Region = new OfficeDocumentRegion {
                             X = table.Columns.Count > 0 ? table.Columns[0].From : 0D,

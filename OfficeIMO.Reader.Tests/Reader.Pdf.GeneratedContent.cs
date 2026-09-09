@@ -7,6 +7,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderPdfGeneratedContentTests {
+    [Fact]
+    public void DetectedTableKeepsItsGeometryAndCellsWithoutInventingSourceText() {
+        byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.Table(new[] {
+            new[] { "Code", "Name", "Qty" }, new[] { "A-100", "Alpha", "2" }, new[] { "B-200", "Beta", "14" }
+        }, style: new PdfTableStyle { HeaderRowCount = 1 }))).ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+        var document = PdfReaderAdapter.ReadDocument(stream, "table.pdf");
+        var block = Assert.Single(document.Pages.SelectMany(page => page.Blocks), block => block.Kind == "table");
+        Assert.Empty(block.Text);
+        Assert.False(string.IsNullOrWhiteSpace(block.Id));
+        Assert.Equal(1, block.Location!.Page);
+        Assert.NotNull(block.Region);
+        Assert.True(block.Region!.Width > 0 && block.Region.Height > 0);
+        Assert.Contains(document.Pages.SelectMany(page => page.Tables).SelectMany(table => table.Rows), row => row.Contains("A-100") && row.Contains("Alpha"));
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

@@ -71,12 +71,17 @@ internal sealed partial class DocumentAssistantViewModel {
     [RelayCommand(CanExecute = nameof(CanReviewAnswer))]
     private async Task ExportLastAnswerAsync(CancellationToken token) {
         if (!CanReviewAnswer || ExportAnswer is null) return;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _operation = cancellation; IsBusy = true;
+        int generation = _generation;
         try {
             string text = LastAnswerText;
-            int generation = _generation;
-            bool saved = await ExportAnswer(text, () => generation == _generation && CanReviewAnswer && LastAnswerText == text, token);
-            Status = saved ? Text("AnswerExported", "Answer, source quotes and limitations exported.") : Text("ExportCancelled", "Answer export cancelled.");
-        } catch (OperationCanceledException) { Status = Text("ExportCancelled", "Answer export cancelled."); }
-        catch (Exception) { Status = Text("ExportFailed", "The answer could not be saved. Check the destination and try again."); }
+            bool saved = await ExportAnswer(text, () => !_disposed && !cancellation.IsCancellationRequested
+                && generation == _generation && _source?.IsCurrent() == true && LastAnswerText == text, cancellation.Token);
+            if (!_disposed && generation == _generation)
+                Status = saved ? Text("AnswerExported", "Answer, source quotes and limitations exported.") : Text("ExportCancelled", "Answer export cancelled.");
+        } catch (OperationCanceledException) { if (!_disposed && generation == _generation) Status = Text("ExportCancelled", "Answer export cancelled."); }
+        catch (Exception) { if (!_disposed && generation == _generation) Status = Text("ExportFailed", "The answer could not be saved. Check the destination and try again."); }
+        finally { if (ReferenceEquals(_operation, cancellation)) _operation = null; IsBusy = false; }
     }
 }

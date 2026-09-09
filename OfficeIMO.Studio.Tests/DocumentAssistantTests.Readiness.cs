@@ -5,6 +5,37 @@ using OfficeIMO.Studio.Features.Assistant;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class DocumentAssistantTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HidingOrResettingAssistantCancelsPendingExport(bool resetConversation) {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var services = TestAppBuilder.CreateTestServices();
+            var connections = services.AiConnections;
+            connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
+                _ => { }, services.Localizer, (profile, _, _) => Task.FromResult<IOfficeAiExecutor>(new FixtureExecutor(profile, request => Task.FromResult(Answer(request)))));
+            model.ExportAnswer = (_, isCurrent, token) => {
+                Assert.True(model.IsBusy);
+                Assert.True(isCurrent());
+                if (resetConversation) model.NewConversationCommand.Execute(null);
+                else model.Deactivate();
+                Assert.True(token.IsCancellationRequested);
+                Assert.False(isCurrent());
+                return Task.FromCanceled<bool>(token);
+            };
+            await model.PrepareEvidenceCommand.ExecuteAsync(null);
+            model.Question = "What is in the source?";
+            await model.AskCommand.ExecuteAsync(null);
+            await model.ExportLastAnswerCommand.ExecuteAsync(null);
+            Assert.False(model.IsBusy);
+            if (resetConversation) Assert.Empty(model.LastAnswerText);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Fact]
     public async Task CancelledProviderCannotPublishLateAnswerAndPreparedEvidenceCanBeReused() {
         using var app = TestAppBuilder.StartSession();

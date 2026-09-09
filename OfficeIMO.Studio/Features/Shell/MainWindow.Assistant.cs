@@ -1,7 +1,8 @@
 using System.Text;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
-using OfficeIMO.Core.Internal;
+using Avalonia.Threading;
+using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Features.Shell;
@@ -36,22 +37,22 @@ public partial class MainWindow {
         });
         string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], token);
         if (location is null || !isCurrent()) return false;
-        async Task Authorize(CancellationToken cancellation) {
-            cancellation.ThrowIfCancellationRequested();
+        void Authorize() {
+            token.ThrowIfCancellationRequested();
             _services.Storage.EnsureWritableLocation(location);
             if (!isCurrent() || !TabHost.CanPublishPath(location)) throw new IOException("The source or destination changed. Export the current answer to a separate file.");
-            await Task.CompletedTask;
         }
-        await Authorize(token);
+        async Task AuthorizeProvider(CancellationToken cancellation) {
+            cancellation.ThrowIfCancellationRequested();
+            await Dispatcher.UIThread.InvokeAsync(Authorize, DispatcherPriority.Normal, cancellation);
+        }
+        Authorize();
         byte[] bytes = Encoding.UTF8.GetBytes(text);
         if (_services.Storage.UsesProviderPublication(location)) {
             if (!await ConfirmProviderWriteAsync(location)) return false;
-            await _services.Storage.PublishAsync(location, bytes, expectedFingerprint: null, Authorize, token);
+            await _services.Storage.PublishAsync(location, bytes, expectedFingerprint: null, AuthorizeProvider, token);
         } else {
-            await OfficeFileCommit.WriteAsync(location, async (stream, cancellation) => {
-                await stream.WriteAsync(bytes, cancellation);
-                await Authorize(cancellation);
-            }, cancellationToken: token);
+            await StudioLocalPublication.WriteAsync(location, bytes, Authorize, token);
         }
         return true;
     }
