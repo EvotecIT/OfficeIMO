@@ -28,8 +28,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<PdfEditorSelectionMode> SelectionModeProperty =
         AvaloniaProperty.Register<PdfPageCanvas, PdfEditorSelectionMode>(nameof(SelectionMode));
 
-    public static readonly StyledProperty<Rect?> PendingRedactionAreaProperty =
-        AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(PendingRedactionArea));
+    public static readonly StyledProperty<IReadOnlyList<Rect>> PendingRedactionAreasProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, IReadOnlyList<Rect>>(nameof(PendingRedactionAreas), Array.Empty<Rect>());
 
     private readonly OfficeDrawingAvaloniaRenderer _renderer = new();
     private readonly Cursor _textCursor = new(StandardCursorType.Ibeam);
@@ -56,7 +56,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             CommentAnchorObjectNumberProperty,
             FormAnchorFieldNameProperty,
             SelectionModeProperty,
-            PendingRedactionAreaProperty);
+            PendingRedactionAreasProperty);
     }
 
     public PdfPageCanvas() {
@@ -89,9 +89,9 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         set => SetValue(SelectionModeProperty, value);
     }
 
-    public Rect? PendingRedactionArea {
-        get => GetValue(PendingRedactionAreaProperty);
-        set => SetValue(PendingRedactionAreaProperty, value);
+    public IReadOnlyList<Rect> PendingRedactionAreas {
+        get => GetValue(PendingRedactionAreasProperty);
+        set => SetValue(PendingRedactionAreasProperty, value);
     }
 
     internal string SelectedText {
@@ -505,7 +505,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     }
 
     private void DrawPendingRedaction(DrawingContext context) {
-        if (PendingRedactionArea is not Rect area || area.Width <= 0D || area.Height <= 0D) return;
+        foreach (Rect area in PendingRedactionAreas) DrawPendingRedactionArea(context, area);
+    }
+
+    private static void DrawPendingRedactionArea(DrawingContext context, Rect area) {
+        if (area.Width <= 0D || area.Height <= 0D) return;
         var fill = new SolidColorBrush(Color.FromArgb(58, 220, 38, 38));
         var stroke = new Pen(new SolidColorBrush(Color.FromArgb(235, 220, 38, 38)), 2D);
         context.DrawRectangle(fill, stroke, area);

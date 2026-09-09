@@ -24,7 +24,7 @@
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
                               FormAnchorFieldName="{Binding FormAnchorFieldName}"
                               SelectionMode="{Binding SelectionMode}"
-                              PendingRedactionArea="{Binding PendingRedactionArea}"
+                              PendingRedactionAreas="{Binding PendingRedactionAreas}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
 

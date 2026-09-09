@@ -68,7 +68,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorSelectionMode _selectionMode;
 
     [ObservableProperty]
-    private Rect? _pendingRedactionArea;
+    private IReadOnlyList<Rect> _pendingRedactionAreas = Array.Empty<Rect>();
 
     [ObservableProperty]
     private bool _isNightMode;

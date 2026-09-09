@@ -41,7 +41,7 @@ public sealed class PdfPageViewTests {
     }
 
     [Fact]
-    public async Task PendingRedactionAreaBindsToThePageCanvas() {
+    public async Task PendingRedactionAreasBindsToThePageCanvas() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(() => {
             using var renderCoordinator = new PageRenderCoordinator((page, scale, _) =>
@@ -49,7 +49,7 @@ public sealed class PdfPageViewTests {
             using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
                 Task.FromResult(TestPdfPageScenes.Create(page)));
             using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 1D, sceneCoordinator, renderCoordinator) {
-                PendingRedactionArea = new Rect(42D, 64D, 180D, 36D)
+                PendingRedactionAreas = new[] { new Rect(42D, 64D, 180D, 36D) }
             };
             var view = new PdfPageView { DataContext = viewModel };
             var window = new Window { Content = view };
@@ -60,7 +60,7 @@ public sealed class PdfPageViewTests {
                 window.Arrange(new Rect(0, 0, 800, 900));
 
                 PdfPageCanvas canvas = Assert.IsType<PdfPageCanvas>(view.FindControl<PdfPageCanvas>("PageCanvas"));
-                Assert.Equal(viewModel.PendingRedactionArea, canvas.PendingRedactionArea);
+                Assert.Equal(viewModel.PendingRedactionAreas, canvas.PendingRedactionAreas);
             } finally {
                 window.Close();
             }

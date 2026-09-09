@@ -126,6 +126,21 @@ public sealed partial class PdfLogicalPage {
     }
 
     /// <summary>
+    /// Converts a PDF default user-space rectangle into top-left visual page coordinates,
+    /// accounting for the effective crop box, inherited rotation, and user-unit scale.
+    /// </summary>
+    public PdfSelectionQuad MapUserSpaceRectangleToVisual(double left, double bottom, double right, double top) {
+        if (double.IsNaN(left) || double.IsInfinity(left)) throw new ArgumentOutOfRangeException(nameof(left));
+        if (double.IsNaN(bottom) || double.IsInfinity(bottom)) throw new ArgumentOutOfRangeException(nameof(bottom));
+        if (double.IsNaN(right) || double.IsInfinity(right) || right <= left) throw new ArgumentOutOfRangeException(nameof(right));
+        if (double.IsNaN(top) || double.IsInfinity(top) || top <= bottom) throw new ArgumentOutOfRangeException(nameof(top));
+        PdfVisualBounds bounds = TransformBoundsToVisual(left, bottom, right, top);
+        return new PdfSelectionQuad(
+            new PdfSelectionPoint(bounds.Left, bounds.Top), new PdfSelectionPoint(bounds.Right, bounds.Top),
+            new PdfSelectionPoint(bounds.Right, bounds.Bottom), new PdfSelectionPoint(bounds.Left, bounds.Bottom));
+    }
+
+    /// <summary>
     /// Converts a point from top-left visual page coordinates into PDF default user-space coordinates.
     /// This accounts for the effective crop box origin and inherited page rotation.
     /// </summary>

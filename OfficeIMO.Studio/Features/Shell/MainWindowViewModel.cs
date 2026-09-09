@@ -17,6 +17,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable {
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
+    private readonly Func<CancellationToken, Task<string?>> _pickSaveRedactionReport;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
@@ -115,7 +116,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<PdfProtectionPreviewViewModel, Task>? showProtectionResult = null,
         Func<PdfSigningPreviewViewModel, Task<bool>>? reviewSigning = null,
         Func<PdfSigningPreviewViewModel, Task>? showSigningResult = null,
-        Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null) {
+        Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null,
+        Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -125,6 +127,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         InitializeLocalizedReaderLayouts();
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
+        _pickSaveRedactionReport = pickSaveRedactionReport ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
         _pickImage = pickImage ?? (_ => Task.FromResult<byte[]?>(null));
@@ -582,6 +585,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();
+        LastRedactionSummary = null;
+        LastRedactionCopyPath = null;
         ClearObjectSelection();
         foreach (PdfPageViewModel page in Pages) page.Dispose();
         foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();

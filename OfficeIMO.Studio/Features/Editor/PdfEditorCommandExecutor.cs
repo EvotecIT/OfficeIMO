@@ -46,16 +46,20 @@ internal static class PdfEditorCommandExecutor {
     internal static PdfVerifiedRedactionResult ApplyVerifiedRedaction(
         byte[] pdf,
         PdfRedactionPlan plan,
-        string? removedTextMarker = null) {
+        string? removedTextMarker = null,
+        PdfSanitizationOptions? sanitizationOptions = null,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(plan);
         PdfDocument source = PdfDocument.Load(pdf);
         var applyOptions = new PdfRedactionApplyOptions {
+            CancellationToken = cancellationToken,
             PaintUnmatchedAreas = true,
             UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
             RemoveIntersectingPaths = true
         };
         var verificationOptions = new PdfRedactionVerificationOptions {
+            CancellationToken = cancellationToken,
             CheckManagedRendering = true,
             FailOnUndecodablePdfStreams = true,
             RequireCompleteStreamInspection = true
@@ -63,10 +67,14 @@ internal static class PdfEditorCommandExecutor {
         if (!string.IsNullOrWhiteSpace(removedTextMarker)) {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
+        if (sanitizationOptions is not null) {
+            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions);
+            return new PdfVerifiedRedactionResult(sharing.ToBytes(), plan, sharing.Redaction, sharing.Summary);
+        }
         PdfRedactionApplyResult applied = source.Redactions
             .ApplyWithEvidence(plan, applyOptions, verificationOptions)
             .ThrowIfUnverified();
-        return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence);
+        return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence, applied.Evidence.CreateShareableSummary());
     }
 
     internal static PdfRedactionPlan PlanRedaction(byte[] pdf, PdfEditorCommand command) {

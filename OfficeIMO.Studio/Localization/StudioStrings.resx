@@ -1698,4 +1698,29 @@
   <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
   <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
+  <data name="Redaction.CopySaved" xml:space="preserve"><value>Saved the verified PDF copy. Its evidence report is ready to export.</value></data>
+  <data name="Redaction.SelectPages" xml:space="preserve"><value>Select at least one page in the page organizer.</value></data>
+  <data name="Redaction.TooManyMarks" xml:space="preserve"><value>A review can contain at most 2,000 marks. Narrow the search or remove some marks.</value></data>
+  <data name="Redaction.SearchResult" xml:space="preserve"><value>Found {0:N0} matching line(s). Review the marked areas before applying.</value></data>
+  <data name="Redaction.PendingSummary" xml:space="preserve"><value>{0:N0} of {1:N0} marks selected. Review their impact before applying.</value></data>
+  <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation and {5:N0} vector matches.</value></data>
+  <data name="Redaction.SearchText" xml:space="preserve"><value>Text or pattern to find</value></data>
+  <data name="Redaction.Regex" xml:space="preserve"><value>Regular expression</value></data>
+  <data name="Redaction.MatchCase" xml:space="preserve"><value>Match case</value></data>
+  <data name="Redaction.SelectedPagesOnly" xml:space="preserve"><value>Selected organizer pages only</value></data>
+  <data name="Redaction.SearchScope" xml:space="preserve"><value>Search marks each matching line, including surrounding text on that line. Inspect the highlighted areas before applying.</value></data>
+  <data name="Redaction.FindMarks" xml:space="preserve"><value>Find and add marks</value></data>
+  <data name="Redaction.Marks" xml:space="preserve"><value>Pending redaction marks</value></data>
+  <data name="Redaction.Include" xml:space="preserve"><value>Include page</value></data>
+  <data name="Redaction.Reason" xml:space="preserve"><value>Reason for redaction</value></data>
+  <data name="Redaction.RemoveMark" xml:space="preserve"><value>Remove selected mark</value></data>
+  <data name="Redaction.ReviewImpact" xml:space="preserve"><value>Review selected marks</value></data>
+  <data name="Redaction.Sanitize" xml:space="preserve"><value>Sanitize after redaction</value></data>
+  <data name="Redaction.SanitizeScope" xml:space="preserve"><value>Also remove user metadata, embedded files, unsafe actions, comments and markup. Recheck the final PDF before accepting it.</value></data>
+  <data name="Redaction.SaveCopy" xml:space="preserve"><value>Save verified PDF copy</value></data>
+  <data name="Redaction.ExportReport" xml:space="preserve"><value>Export redaction evidence</value></data>
+  <data name="Redaction.EvidencePrivacy" xml:space="preserve"><value>Save the verified copy before exporting its report. The report contains fingerprints and counts; it excludes document text, search terms and reasons.</value></data>
+  <data name="Redaction.AdditionalCheck" xml:space="preserve"><value>Additional text check</value></data>
+  <data name="Redaction.BlockedPreparation" xml:space="preserve"><value>This document is not currently eligible for redaction. Documents with active content may need a sanitized copy before redaction planning.</value></data>
+  <data name="Redaction.OpenSanitization" xml:space="preserve"><value>Review sanitization options</value></data>
 </root>

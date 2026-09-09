@@ -13,8 +13,10 @@ public class PdfTextEditorTests {
     public void SearchVisualBoundsAccountForCropRotationAndUserUnit(int rotation) {
         const string content = "BT /F1 12 Tf 50 700 Td (Needle needle) Tj ET\n";
         var baseline = PdfDocument.Load(BuildRawTextPdf(content)).Text.Find("needle");
-        var matches = PdfDocument.Load(BuildRawTextPdf(content,
-            pageEntries: $"/CropBox [20 30 580 780] /Rotate {rotation} /UserUnit 2")).Text.Find("needle");
+        var document = PdfDocument.Load(BuildRawTextPdf(content,
+            pageEntries: $"/CropBox [20 30 580 780] /Rotate {rotation} /UserUnit 2"));
+        var matches = document.Text.Find("needle");
+        PdfLogicalPage page = Assert.Single(document.Read().Pages);
         Assert.Equal(2, matches.Count);
         for (int i = 0; i < matches.Count; i++) {
             var original = baseline[i]; var match = matches[i];
@@ -29,6 +31,12 @@ public class PdfTextEditorTests {
             Assert.Equal(expected.Top * 2, match.VisualBounds.Top, 5);
             Assert.Equal(expected.Width * 2, match.VisualBounds.Width, 5);
             Assert.Equal(expected.Height * 2, match.VisualBounds.Height, 5);
+            PdfSelectionQuad mapped = page.MapUserSpaceRectangleToVisual(original.X, original.Y,
+                original.X + original.Width, original.Y + original.Height);
+            Assert.Equal(expected.Left * 2, mapped.Left, 5);
+            Assert.Equal(expected.Top * 2, mapped.Top, 5);
+            Assert.Equal(expected.Width * 2, mapped.Width, 5);
+            Assert.Equal(expected.Height * 2, mapped.Height, 5);
             Assert.Equal(x, match.X, 5); Assert.Equal(y, match.Y, 5);
         }
     }
