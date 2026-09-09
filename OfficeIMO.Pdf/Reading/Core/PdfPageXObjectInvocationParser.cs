@@ -370,8 +370,6 @@ internal static class PdfPageXObjectInvocationParser {
                 _maxOperations,
                 operation => {
                     _operationCheck?.Invoke();
-                    _args.Clear();
-                    _args.AddRange(operation.Operands);
                     _currentInlineImage = operation.InlineImage;
                     _currentOperatorIndex = operation.OperatorOffset;
                     ApplyOperator(
@@ -383,7 +381,8 @@ internal static class PdfPageXObjectInvocationParser {
                 ResolveInlineImageComponentCount,
                 _maxNestingDepth,
                 _maxOperands,
-                inlineImageArrayComponentCount: _inlineImageArrayComponentCount);
+                inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
+                operandBuffer: _args);
 
             ApplyPendingTextClippingPath();
 

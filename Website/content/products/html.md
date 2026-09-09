@@ -2,6 +2,7 @@
 title: "OfficeIMO.Html"
 description: "Parse HTML, resolve resources safely, and render web content into OfficeIMO models. Add focused bridges only for MHTML, RTF, email, or PDF workflows."
 layout: product
+meta.showcase_id: "managed-html-renderer-field-guide"
 meta.seo_title: "OfficeIMO.Html for web document workflows"
 product_label: "Web document engine"
 product_color: "#ea580c"

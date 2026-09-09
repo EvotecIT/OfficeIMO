@@ -306,6 +306,12 @@ public sealed partial class PdfDocument {
         return source is null ? null : () => source.Read(cancellationToken: cancellationToken);
     }
 
+    /// <summary>Reuses opened bytes under the requested read contract; explicit overrides keep their own parse.</summary>
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(PdfLoadOptions? options) {
+        PdfDocumentSource? source = _source;
+        return source is null ? null : () => source.Read(options);
+    }
+
     /// <summary>
     /// Captures one byte snapshot and its canonical parse for a compound read operation.
     /// Generated documents are rendered once for the complete operation.

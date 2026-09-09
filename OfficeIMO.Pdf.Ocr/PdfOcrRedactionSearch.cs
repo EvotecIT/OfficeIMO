@@ -72,6 +72,7 @@ public static class PdfOcrRedactionExtensions {
         Regex[] expressions = search.RegularExpressions
             .Select(pattern => new Regex(pattern, search.RegexOptions, search.RegexTimeout))
             .ToArray();
+        PdfReadingDirection readingDirection = options?.ReadOptions.LayoutOptions.ReadingDirection ?? PdfReadingDirection.Auto;
         PdfOcrMergeResult ocr = await document.ReadWithOcrAsync(engine, options, effectiveCancellation).ConfigureAwait(false);
         var candidates = new List<PdfOcrRedactionCandidate>();
         for (int pageIndex = 0; pageIndex < ocr.Pages.Count; pageIndex++) {
@@ -79,7 +80,8 @@ public static class PdfOcrRedactionExtensions {
             PdfOcrPageMergeResult page = ocr.Pages[pageIndex];
             if (page.Words.Count == 0) continue;
             PdfLogicalPage logicalPage = ocr.Document.Pages.First(item => item.PageNumber == page.PageNumber);
-            foreach (WordTextMap map in WordTextMap.CreateLines(page.Words)) {
+            foreach (WordTextMap map in WordTextMap.CreateLines(page.Words,
+                readingDirection, effectiveCancellation)) {
                 for (int literalIndex = 0; literalIndex < search.LiteralText.Count; literalIndex++) {
                     string literal = search.LiteralText[literalIndex];
                     int start = 0;
@@ -130,17 +132,11 @@ public static class PdfOcrRedactionExtensions {
         private WordTextMap(string text, PdfRecognizedWord[] words, int[] starts) { Text = text; _words = words; _starts = starts; }
         internal string Text { get; }
 
-        internal static IReadOnlyList<WordTextMap> CreateLines(IReadOnlyList<PdfRecognizedWord> words) {
+        internal static IReadOnlyList<WordTextMap> CreateLines(IReadOnlyList<PdfRecognizedWord> words,
+            PdfReadingDirection direction, CancellationToken token) {
             var result = new List<WordTextMap>();
-            var line = new List<PdfRecognizedWord>();
-            for (int index = 0; index < words.Count; index++) {
-                if (line.Count > 0 && !ContinuesLine(line[line.Count - 1], words[index])) {
-                    result.Add(Create(line));
-                    line.Clear();
-                }
-                line.Add(words[index]);
-            }
-            if (line.Count > 0) result.Add(Create(line));
+            foreach (IReadOnlyList<PdfRecognizedWord> line in PdfOcrLogicalDocumentBuilder.BuildWordLines(words, direction, token))
+                result.Add(Create(line));
             return result;
         }
 
@@ -155,18 +151,6 @@ public static class PdfOcrRedactionExtensions {
                 text.Append(words[index].Text);
             }
             return new WordTextMap(text.ToString(), snapshot, starts);
-        }
-
-        private static bool ContinuesLine(PdfRecognizedWord previous, PdfRecognizedWord current) {
-            if (!string.IsNullOrEmpty(previous.BlockId) && !string.IsNullOrEmpty(current.BlockId) && !string.Equals(previous.BlockId, current.BlockId, StringComparison.Ordinal)) return false;
-            if (!string.IsNullOrEmpty(previous.ParagraphId) && !string.IsNullOrEmpty(current.ParagraphId) && !string.Equals(previous.ParagraphId, current.ParagraphId, StringComparison.Ordinal)) return false;
-            if (!string.IsNullOrEmpty(previous.LineId) || !string.IsNullOrEmpty(current.LineId)) return string.Equals(previous.LineId, current.LineId, StringComparison.Ordinal);
-            double previousCenter = previous.Y + previous.Height / 2D;
-            double currentCenter = current.Y + current.Height / 2D;
-            double lineTolerance = Math.Max(previous.Height, current.Height) * 0.6D;
-            double horizontalGap = current.X - (previous.X + previous.Width);
-            double maximumGap = Math.Max(previous.Height, current.Height) * 4D;
-            return Math.Abs(previousCenter - currentCenter) <= lineTolerance && horizontalGap >= -lineTolerance && horizontalGap <= maximumGap;
         }
 
         internal PdfRecognizedWord[] GetWords(int start, int length) {

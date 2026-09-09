@@ -32,7 +32,8 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
             SupportsWordSpans = true,
             SupportsCharacterSpans = false,
             SupportsConfidence = true,
-            SupportsConcurrentRequests = true
+            SupportsConcurrentRequests = true,
+            SupportsOrientationDetection = true
         };
     }
 
@@ -61,6 +62,9 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
             throw new NotSupportedException("Tesseract provider accepts supported raster image assets only.");
         }
         cancellationToken.ThrowIfCancellationRequested();
+        if (request.Operation == OcrOperation.DetectOrientation)
+            return await DetectOrientationAsync(request, cancellationToken).ConfigureAwait(false);
+        if (request.Operation != OcrOperation.RecognizeText) throw new ArgumentOutOfRangeException(nameof(request.Operation));
         string temporaryRoot = Path.GetFullPath(_options.TemporaryDirectory ?? Path.GetTempPath());
         string requestDirectory = OcrTemporaryStorage.CreateRequestDirectory(temporaryRoot, "officeimo-tesseract-");
         try {

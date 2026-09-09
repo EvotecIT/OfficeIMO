@@ -16,10 +16,11 @@ internal static class PdfContentStreamInterpreter {
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         bool dispatchInvalidOperations = false,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        List<object>? operandBuffer = null) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer);
         reader.InterpretUntil(operation => {
             visit(operation);
             return true;
@@ -49,7 +50,8 @@ internal static class PdfContentStreamInterpreter {
         private readonly Func<string, int>? _inlineImageComponentCount;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private readonly bool _dispatchInvalidOperations;
-        private readonly List<object> _operands = new List<object>(8);
+        private readonly List<object> _operands;
+        private readonly bool _borrowOperands;
         private int _index;
         private int _operationCount;
         private int _operandCount;
@@ -62,7 +64,8 @@ internal static class PdfContentStreamInterpreter {
             int maxNestingDepth,
             Func<string, int>? inlineImageComponentCount,
             Func<PdfArray, int>? inlineImageArrayComponentCount,
-            bool dispatchInvalidOperations) {
+            bool dispatchInvalidOperations,
+            List<object>? operandBuffer = null) {
             _content = content;
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
@@ -70,6 +73,11 @@ internal static class PdfContentStreamInterpreter {
             _inlineImageComponentCount = inlineImageComponentCount;
             _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _dispatchInvalidOperations = dispatchInvalidOperations;
+            // An explicitly supplied buffer belongs to a synchronous visitor. Its contents
+            // are valid only during that callback; ordinary visitors retain stable snapshots.
+            _borrowOperands = operandBuffer != null;
+            _operands = operandBuffer ?? new List<object>(8);
+            _operands.Clear();
         }
 
         internal bool InterpretUntil(Func<PdfContentOperation, bool> visit) {
@@ -116,19 +124,26 @@ internal static class PdfContentStreamInterpreter {
                 bool invalidOperation = hasInvalidOperand || hasInvalidInlineImageOperand;
                 bool skipOperation = hasInvalidInlineImageOperand && !_dispatchInvalidOperations ||
                     hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name);
+                if (invalidOperation) _operands.Clear();
                 var operation = new PdfContentOperation(
                     name,
-                    invalidOperation || _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
+                    _borrowOperands ? _operands : _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
                     operatorOffset,
                     inlineImage,
                     invalidOperation);
-                _operands.Clear();
+                if (!_borrowOperands || skipOperation) _operands.Clear();
                 _hasInvalidOperand = false;
                 if (skipOperation) {
                     continue;
                 }
 
-                if (!visit(operation)) {
+                bool keepReading;
+                try {
+                    keepReading = visit(operation);
+                } finally {
+                    if (_borrowOperands) _operands.Clear();
+                }
+                if (!keepReading) {
                     return false;
                 }
             }

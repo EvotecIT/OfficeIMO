@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Built-in dependency-free understanding stages for rotated baselines, spatial regions, multi-column reading order, and richer business-document semantics.
 /// </summary>
-public static class PdfAdvancedUnderstandingStages {
+public static partial class PdfAdvancedUnderstandingStages {
     /// <summary>Parser-backed positioned text decoding.</summary>
     public static IPdfGlyphDecodingStage GlyphDecoding { get; } = new AdvancedGlyphDecodingStage();
     /// <summary>Rotation-aware word grouping.</summary>
@@ -117,9 +117,9 @@ public static class PdfAdvancedUnderstandingStages {
         if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
         if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns, direction)) return true;
         double radians = angle * Math.PI / 180D;
-        double gap = direction == PdfReadingDirection.RightToLeft
-            ? GetProjectedAlongStart(previous, radians) - GetProjectedAlongEnd(current, radians)
-            : GetProjectedAlongStart(current, radians) - GetProjectedAlongEnd(previous, radians);
+        double gap = Math.Max(
+            GetProjectedAlongStart(previous, radians) - GetProjectedAlongEnd(current, radians),
+            GetProjectedAlongStart(current, radians) - GetProjectedAlongEnd(previous, radians));
         double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
         return gap > threshold;
     }
@@ -199,7 +199,13 @@ public static class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
             context.ThrowIfCancellationRequested();
-            return context.Page.GetTextSpans(context.CancellationToken);
+            IReadOnlyList<PdfTextSpan> source = context.Page.GetTextSpans(context.CancellationToken);
+            var runs = new PdfTextSpan[source.Count];
+            for (int index = 0; index < runs.Length; index++) {
+                context.ConsumeWork();
+                runs[index] = source[index].WithPageFontSize();
+            }
+            return Array.AsReadOnly(runs);
         }
     }
 
@@ -260,8 +266,10 @@ public static class PdfAdvancedUnderstandingStages {
                                 : "Word geometry was projected uniformly along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline because per-character advances were unavailable.",
                             hasResolvedCharacterAdvances ? 0.95D : (Math.Abs(run.RotationDegrees) <= 0.5D ? 0.8D : 0.6D)) },
                         Math.Max(0D, endDistance - startDistance),
-                        visualBounds: null,
-                        sourceSequence: sourceSequence));
+                        visualBounds: run.HasActualText && run.TextRenderingMode == 3
+                            ? GetSelectionBounds(context, startX, startY, endDistance - startDistance, run.FontSize, run.RotationDegrees)
+                            : null,
+                        sourceSequence: sourceSequence) { IsSelectionBox = run.HasActualText && run.TextRenderingMode == 3 });
                 }
             }
             return result.Count == 0 ? Array.Empty<PdfUnderstandingWord>() : result.AsReadOnly();
@@ -282,170 +290,6 @@ public static class PdfAdvancedUnderstandingStages {
                 boundaries[index] = distance;
             }
             return boundaries;
-        }
-    }
-
-    private sealed class AdvancedLineGroupingStage : IPdfLineGroupingStage {
-        public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
-            var groups = new List<BaselineGroup>();
-            var spatialIndex = new Dictionary<(int Angle, int Normal), List<BaselineGroup>>();
-            PdfUnderstandingWord[] sortedWords = CopyAndSort(
-                context,
-                words,
-                static (left, right) => {
-                    int angle = NormalizeAngle(left.RotationDegrees).CompareTo(NormalizeAngle(right.RotationDegrees));
-                    if (angle != 0) return angle;
-                    int baseline = right.BaselineY.CompareTo(left.BaselineY);
-                    return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
-                });
-            foreach (PdfUnderstandingWord word in sortedWords) {
-                context.ConsumeWork();
-                double angle = NormalizeAngle(word.RotationDegrees);
-                double radians = angle * Math.PI / 180D;
-                double normal = (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY);
-                double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMaxPoints, word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
-                BaselineGroup? group = FindIndexedGroup(context, spatialIndex, angle, normal, tolerance);
-                (int Angle, int Normal) previousKey = default;
-                if (group is null) {
-                    group = new BaselineGroup(angle, normal);
-                    groups.Add(group);
-                    AddToIndex(spatialIndex, group);
-                } else {
-                    previousKey = IndexKey(group.Angle, group.Normal);
-                }
-                group.Words.Add(word);
-                group.Normal = ((group.Normal * (group.Words.Count - 1)) + normal) / group.Words.Count;
-                if (group.Words.Count > 1) MoveInIndex(spatialIndex, group, previousKey);
-            }
-
-            var lines = new List<PdfUnderstandingLine>(groups.Count);
-            foreach (BaselineGroup group in groups) {
-                double radians = group.Angle * Math.PI / 180D;
-                PdfUnderstandingWord[] sourceOrdered = CopyAndSort(
-                    context,
-                    group.Words,
-                    static (left, right) => Nullable.Compare(left.SourceSequence, right.SourceSequence));
-                PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-                    context.LayoutOptions.ReadingDirection,
-                    sourceOrdered.Select(static word => word.Text));
-                PdfUnderstandingWord[] ordered = CopyAndSort(
-                    context,
-                    group.Words,
-                    (left, right) => direction == PdfReadingDirection.RightToLeft
-                        ? CompareRightToLeft(left, right, radians)
-                        : ProjectAlong(left, radians).CompareTo(ProjectAlong(right, radians)));
-                var runs = new List<List<PdfUnderstandingWord>> { new List<PdfUnderstandingWord>() };
-                double previousAlongEnd = double.NegativeInfinity;
-                double previousAlongStart = double.PositiveInfinity;
-                for (int i = 0; i < ordered.Length; i++) {
-                    double alongStart = GetProjectedAlongStart(ordered[i], radians);
-                    double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
-                    double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
-                    double gap = direction == PdfReadingDirection.RightToLeft
-                        ? previousAlongStart - alongEnd
-                        : alongStart - previousAlongEnd;
-                    if (runs[runs.Count - 1].Count > 0 && gap > splitGap) runs.Add(new List<PdfUnderstandingWord>());
-                    runs[runs.Count - 1].Add(ordered[i]);
-                    previousAlongEnd = Math.Max(previousAlongEnd, alongEnd);
-                    previousAlongStart = alongStart;
-                }
-                foreach (List<PdfUnderstandingWord> run in runs) {
-                    PdfUnderstandingWord[] runWords = run.ToArray();
-                    string lineText = ComposeLineText(context, runWords, group.Angle, direction);
-                    double normalSpread = runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Max() -
-                        runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Min();
-                    int? lineSourceSequence = runWords.Any(static word => word.SourceSequence.HasValue)
-                        ? runWords.Where(static word => word.SourceSequence.HasValue).Min(static word => word.SourceSequence!.Value)
-                        : null;
-                    lines.Add(new PdfUnderstandingLine(runWords, lineText, PdfInference.Clamp(runWords.Average(static word => word.Confidence) - Math.Min(0.25D, normalSpread / 20D)), new[] {
-                        new PdfInferenceEvidence("line.arbitrary-baseline", "Words share a projected baseline at " + group.Angle.ToString("0.###", CultureInfo.InvariantCulture) + " degrees with " + normalSpread.ToString("0.###", CultureInfo.InvariantCulture) + " point spread.", normalSpread <= 2D ? 0.9D : 0.3D)
-                    },
-                    sourceSequence: lineSourceSequence));
-                }
-            }
-            PdfReadingDirection pageDirection = PdfTextDirectionAnalysis.Resolve(
-                context.LayoutOptions.ReadingDirection,
-                words.OrderBy(static word => word.SourceSequence)
-                    .Select(static word => word.Text));
-            PdfUnderstandingLine[] sortedLines = CopyAndSort(
-                context,
-                lines,
-                (left, right) => {
-                    int top = right.BaselineY.CompareTo(left.BaselineY);
-                    return top != 0
-                        ? top
-                        : pageDirection == PdfReadingDirection.RightToLeft
-                            ? right.XStart.CompareTo(left.XStart)
-                            : left.XStart.CompareTo(right.XStart);
-                });
-            return sortedLines.Length == 0 ? Array.Empty<PdfUnderstandingLine>() : Array.AsReadOnly(sortedLines);
-        }
-
-        private static int CompareRightToLeft(
-            PdfUnderstandingWord left,
-            PdfUnderstandingWord right,
-            double radians) {
-            if (SharesSourceRun(left.SourceRuns, right.SourceRuns) &&
-                left.SourceSequence.HasValue &&
-                right.SourceSequence.HasValue) {
-                int sourceOrder = left.SourceSequence.Value.CompareTo(right.SourceSequence.Value);
-                if (sourceOrder != 0) return sourceOrder;
-            }
-            int geometry = ProjectAlong(right, radians).CompareTo(ProjectAlong(left, radians));
-            return geometry != 0
-                ? geometry
-                : Nullable.Compare(left.SourceSequence, right.SourceSequence);
-        }
-
-        private static BaselineGroup? FindIndexedGroup(
-            PdfUnderstandingPageContext context,
-            Dictionary<(int Angle, int Normal), List<BaselineGroup>> index,
-            double angle,
-            double normal,
-            double tolerance) {
-            (int angleBucket, int normalBucket) = IndexKey(angle, normal);
-            int normalRadius = (int)Math.Ceiling(tolerance / 0.75D) + 1;
-            for (int angleOffset = -2; angleOffset <= 2; angleOffset++) {
-                int candidateAngle = (angleBucket + angleOffset + 180) % 180;
-                for (int normalOffset = -normalRadius; normalOffset <= normalRadius; normalOffset++) {
-                    context.ConsumeWork();
-                    if (!index.TryGetValue((candidateAngle, normalBucket + normalOffset), out List<BaselineGroup>? candidates)) continue;
-                    for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
-                        context.ConsumeWork();
-                        BaselineGroup candidate = candidates[candidateIndex];
-                        if (AngularDistance(candidate.Angle, angle) <= 2D && Math.Abs(candidate.Normal - normal) <= tolerance) return candidate;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static void AddToIndex(Dictionary<(int Angle, int Normal), List<BaselineGroup>> index, BaselineGroup group) {
-            (int Angle, int Normal) key = IndexKey(group.Angle, group.Normal);
-            if (!index.TryGetValue(key, out List<BaselineGroup>? values)) {
-                values = new List<BaselineGroup>();
-                index.Add(key, values);
-            }
-            values.Add(group);
-        }
-
-        private static void MoveInIndex(
-            Dictionary<(int Angle, int Normal), List<BaselineGroup>> index,
-            BaselineGroup group,
-            (int Angle, int Normal) previousKey) {
-            (int Angle, int Normal) nextKey = IndexKey(group.Angle, group.Normal);
-            if (nextKey == previousKey) return;
-            if (index.TryGetValue(previousKey, out List<BaselineGroup>? previous)) {
-                previous.Remove(group);
-                if (previous.Count == 0) index.Remove(previousKey);
-            }
-            AddToIndex(index, group);
-        }
-
-        private static (int Angle, int Normal) IndexKey(double angle, double normal) {
-            int angleBucket = ((int)Math.Floor((NormalizeAngle(angle) + 180D) / 2D)) % 180;
-            if (angleBucket < 0) angleBucket += 180;
-            return (angleBucket, (int)Math.Floor(normal / 0.75D));
         }
     }
 
@@ -851,7 +695,7 @@ public static class PdfAdvancedUnderstandingStages {
             IReadOnlyList<PdfUnderstandingRegion> pageRegions) {
             if (candidate.Lines.Count != 1 || candidate.Text.Trim().Length == 0) return false;
             PdfVisualBounds candidateBounds = GetVisualBounds(context, candidate);
-            (double pageWidth, _) = context.Page.GetVisualPageSize();
+            (double pageWidth, _) = context.GetVisualSize();
             double candidateWidth = candidateBounds.Right - candidateBounds.Left;
             double pageCenter = pageWidth / 2D;
             double candidateCenter = (candidateBounds.Left + candidateBounds.Right) / 2D;
@@ -891,7 +735,7 @@ public static class PdfAdvancedUnderstandingStages {
             }
             double bottom = region.Lines.Min(static line => line.BaselineY - Math.Max(1D, line.FontSize * 0.25D));
             double top = region.Lines.Max(static line => line.BaselineY + Math.Max(1D, line.FontSize));
-            return context.Page.TransformBoundsToVisual(region.XStart, bottom, region.XEnd, top);
+            return context.ToVisualBounds(region.XStart, bottom, region.XEnd, top);
         }
 
     }

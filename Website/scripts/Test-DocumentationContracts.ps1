@@ -99,6 +99,9 @@ foreach ($publicContentFile in $publicContentFiles) {
     if ($publicContent -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main(?:/|")') {
         Add-Failure "'$([System.IO.Path]::GetRelativePath($SiteRoot, $publicContentFile.FullName))' uses the nonexistent OfficeIMO 'main' branch in a public link."
     }
+    if ($publicContent -match 'https://(?:github\.com/EvotecIT/PSWriteOffice/(?:tree|blob)/|raw\.githubusercontent\.com/EvotecIT/PSWriteOffice/)(?:main|master)(?=[/?#\s"''<>)]|$)') {
+        Add-Failure "'$([IO.Path]::GetRelativePath($SiteRoot, $publicContentFile.FullName))' contains a floating PSWriteOffice repository reference."
+    }
 }
 
 $excelProductPath = Join-Path $SiteRoot 'content\products\excel.md'
@@ -366,11 +369,14 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
 $psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
+$psWriteOfficeModule = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')
+$psWriteOfficeVersion = [string] $psWriteOfficeModule.ModuleVersion
 if ($psWriteOfficeSource.Count -ne 1 -or
     $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
     $psWriteOfficeSource[0].Clean -ne $true -or
-    -not [string]::IsNullOrWhiteSpace([string] $psWriteOfficeSource[0].Ref)) {
-    Add-Failure 'The default PSWriteOffice source must cleanly clone the repository default branch.'
+    $psWriteOfficeVersion -notmatch '^\d+\.\d+\.\d+$' -or
+    $psWriteOfficeSource[0].Ref -cne "v$psWriteOfficeVersion") {
+    Add-Failure 'The PSWriteOffice source tag must match the imported three-part module version.'
 }
 $sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
 if ($sourceSyncStep.Count -ne 1 -or
@@ -424,6 +430,18 @@ if (@($aotMatrix.components).Count -ne $catalog.repository.productionComponentCo
 
 $powerShellCatalogPath = Join-Path $SiteRoot 'data\pswriteoffice_command_catalog.json'
 $powerShellCatalog = Get-Content -LiteralPath $powerShellCatalogPath -Raw | ConvertFrom-Json
+if ($powerShellCatalog.module.version -cne $psWriteOfficeVersion) {
+    Add-Failure 'The PSWriteOffice catalog version must match the imported module manifest.'
+}
+$examplesPrefix = "https://github.com/EvotecIT/PSWriteOffice/tree/v$psWriteOfficeVersion/Examples"
+foreach ($family in @($powerShellCatalog.families)) {
+    $examplesUrl = [string] $family.examplesUrl
+    if ($examplesUrl -cne $examplesPrefix -and
+        -not $examplesUrl.StartsWith($examplesPrefix + '/', [StringComparison]::Ordinal)) {
+        Add-Failure "PowerShell family '$($family.id)' must link to examples from the imported release."
+        continue
+    }
+}
 if ($powerShellCatalog.module.commandCount -le 0) {
     Add-Failure 'The PSWriteOffice snapshot must contain at least one exported command.'
 }
@@ -452,6 +470,16 @@ if ($powerShellExample.Count -ne 1) {
 
     $commandMetadataPath = Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json'
     $commandMetadata = Get-Content -LiteralPath $commandMetadataPath -Raw | ConvertFrom-Json
+    $sourcePrefix = "https://github.com/EvotecIT/PSWriteOffice/blob/v$psWriteOfficeVersion/"
+    foreach ($command in @($commandMetadata.commands | Where-Object sourcePath)) {
+        $relativeSourcePath = (($command.sourcePath -replace '\\', '/') -split '/' |
+            ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
+        $expectedSourceUrl = $sourcePrefix + $relativeSourcePath
+        if ([int] $command.sourceLine -gt 0) { $expectedSourceUrl += "#L$($command.sourceLine)" }
+        if ($command.sourceUrl -cne $expectedSourceUrl) {
+            Add-Failure "PowerShell command '$($command.name)' must link to its source path and line in the imported release."
+        }
+    }
     $commandByName = @{}
     foreach ($command in @($commandMetadata.commands)) {
         $commandByName[[string] $command.name] = [string] $command.name

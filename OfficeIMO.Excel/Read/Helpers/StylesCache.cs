@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel {
 
         private static bool TryBuildXmlFast(Stream stream, StylesCache cache) {
             try {
-                using var reader = XmlReader.Create(stream, StylesXmlReaderSettings);
+                using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(StylesXmlReaderSettings));
                 Dictionary<uint, string>? nf = null;
 
                 while (reader.Read()) {

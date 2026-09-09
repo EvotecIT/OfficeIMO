@@ -2,6 +2,18 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfUnderstandingTableCandidateReconciler {
     internal static IReadOnlyList<PdfUnderstandingTableCandidate> Reconcile(
+        PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingTableCandidate> existing,
+        IReadOnlyList<PdfUnderstandingTableCandidate> additions) =>
+        Reconcile(existing, additions, candidate => {
+            bool valid = TryGetCandidateBounds(candidate, context.ConsumeWork, context.ThrowIfCancellationRequested,
+                out double left, out double right, out double bottom, out double top);
+            PdfVisualBounds bounds = candidate.CoordinateSpace == PdfTableCoordinateSpace.VisualTopLeft
+                ? new PdfVisualBounds(left, bottom, right, top) : context.ToVisualBounds(left, bottom, right, top);
+            return CreateState(candidate, valid && bounds.Right > bounds.Left && bounds.Bottom > bounds.Top,
+                bounds, context.ConsumeWork, context.ThrowIfCancellationRequested);
+        }, context.ConsumeWork, context.ThrowIfCancellationRequested);
+
+    internal static IReadOnlyList<PdfUnderstandingTableCandidate> Reconcile(
         PdfReadPage page,
         IReadOnlyList<PdfUnderstandingTableCandidate> existing,
         IReadOnlyList<PdfUnderstandingTableCandidate> additions,

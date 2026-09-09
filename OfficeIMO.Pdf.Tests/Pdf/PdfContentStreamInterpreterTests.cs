@@ -6,6 +6,32 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfContentStreamInterpreterTests {
     [Fact]
+    public void Interpreter_ReusableOperandsKeepInvalidAndFollowingOperationsIsolated() {
+        var buffer = new List<object>();
+        var observed = new List<(string Name, object[] Operands)>();
+        PdfContentStreamInterpreter.Interpret("1 2 m 1e309 Q 3 4 l q", 10, operation => {
+            observed.Add((operation.Name, buffer.ToArray()));
+            // Existing synchronous visitors may clear their operands after consuming them.
+            buffer.Clear();
+        }, operandBuffer: buffer);
+
+        Assert.Equal(new[] { "m", "Q", "l", "q" }, observed.Select(item => item.Name));
+        Assert.Equal(new object[] { 1D, 2D }, observed[0].Operands);
+        Assert.Empty(observed[1].Operands);
+        Assert.Equal(new object[] { 3D, 4D }, observed[2].Operands);
+        Assert.Empty(observed[3].Operands);
+        Assert.Empty(buffer);
+    }
+
+    [Fact]
+    public void Interpreter_ReleasesBorrowedOperandReferencesWhenVisitorFails() {
+        var buffer = new List<object>();
+        Assert.Throws<OperationCanceledException>(() => PdfContentStreamInterpreter.Interpret(
+            "(sensitive text) Tj", 10, operation => throw new OperationCanceledException(), operandBuffer: buffer));
+        Assert.Empty(buffer);
+    }
+
+    [Fact]
     public void Interpreter_NormalizesInlineDctFilterShorthand() {
         const string content = "BI /W 1 /H 1 /BPC 8 /CS /RGB /F /DCT ID A EI";
         var operations = new List<PdfContentOperation>();

@@ -28,7 +28,8 @@
         <h1>{{ data.showcase.title }}</h1>
         <p>{{ data.showcase.description }}</p>
       </header>
-
+      {{ walkthrough_count = 0 }}{{ for card in data.showcase.cards }}{{ if card.walkthrough_url }}{{ walkthrough_count = walkthrough_count + 1 }}{{ end }}{{ end }}
+      {{ if walkthrough_count > 0 }}<a class="imo-gallery__walkthroughs" href="/showcase/?q=walkthrough"><strong>{{ walkthrough_count }} code walkthroughs</strong><span>Follow the C# source from a practical task to its generated document <span aria-hidden="true">&rarr;</span></span></a>{{ end }}
       <form id="showcase-controls" class="imo-gallery__controls" role="search" aria-label="Find a showcase example">
         <label class="imo-gallery__search" for="showcase-query"><span>Search examples</span>
           <input id="showcase-query" name="q" type="search" maxlength="160" placeholder="Try charts, mail merge, forms…" autocomplete="off" />
@@ -68,9 +69,10 @@
             {{ end }}
           </div>
           <div class="imo-example__body">
-            <h3><a href="#{{ card.id }}">{{ card.title }}</a></h3>
+            <h3><a href="{{ if card.walkthrough_url }}{{ card.walkthrough_url }}{{ else }}#{{ card.id }}{{ end }}">{{ card.title }}</a></h3>
             <p>{{ card.description }}</p>
             <div class="imo-example__tags">{{ for badge in card.badge_tags }}<span>{{ badge }}</span>{{ end }}</div>
+            {{ if card.walkthrough_url }}<a class="imo-example__walkthrough-link" href="{{ card.walkthrough_url }}" aria-label="Read walkthrough: {{ card.title | html.escape }}">Code and walkthrough <span aria-hidden="true">&rarr;</span></a>{{ end }}
             <details class="imo-example__details">
               <summary>Explore example<span class="imo-visually-hidden">: {{ card.title }}</span></summary>
               <div class="imo-example__detail-content">

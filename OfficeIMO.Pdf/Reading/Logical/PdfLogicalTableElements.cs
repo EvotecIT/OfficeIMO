@@ -39,7 +39,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         PdfTableCoordinateSpace coordinateSpace = PdfTableCoordinateSpace.PdfUserSpace,
         PdfLogicalVisualBounds? visualBounds = null,
         double? confidence = null,
-        IReadOnlyList<PdfInferenceEvidence>? evidence = null) {
+        IReadOnlyList<PdfInferenceEvidence>? evidence = null,
+        IReadOnlyList<PdfUnderstandingLine>? sourceLines = null) {
         PageNumber = pageNumber;
         DetectionKind = kind;
         YTop = yTop;
@@ -50,6 +51,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         SourceKind = sourceKind;
         CoordinateSpace = coordinateSpace;
         VisualBounds = visualBounds;
+        SourceLines = sourceLines ?? Array.Empty<PdfUnderstandingLine>();
         int expectedCells = rows.Count * columns.Count;
         int filledCells = rows.Sum(static row => row.Count(static cell => !string.IsNullOrWhiteSpace(cell)));
         double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
@@ -94,11 +96,12 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     public double Confidence { get; }
     /// <summary>Evidence supporting the table detection.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
 
     internal static PdfLogicalTable From(int pageNumber, StructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);
         for (int i = 0; i < table.Columns.Count; i++) {
-            columns.Add(new PdfLogicalTableColumn(table.Columns[i].From, table.Columns[i].To));
+            columns.Add(new PdfLogicalTableColumn(table.Columns[i].From, table.Columns[i].To, table.Columns[i].VisualBounds));
         }
 
         var rows = new List<IReadOnlyList<string>>(table.Rows.Count);
@@ -119,12 +122,12 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.YBottom,
             columns.AsReadOnly(),
             rows.AsReadOnly(),
-            cells.AsReadOnly());
+            cells.AsReadOnly(), visualBounds: table.VisualBounds);
     }
 
     internal static PdfLogicalTable From(int pageNumber, PdfUnderstandingTableCandidate table) {
         var columns = table.Columns
-            .Select(static column => new PdfLogicalTableColumn(column.From, column.To))
+            .Select(static column => new PdfLogicalTableColumn(column.From, column.To, column.VisualBounds))
             .ToArray();
         var rows = table.Rows
             .Select(static row => (IReadOnlyList<string>)Array.AsReadOnly(row.ToArray()))
@@ -152,7 +155,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.CoordinateSpace,
             table.VisualBounds,
             table.Confidence,
-            table.Evidence);
+            table.Evidence,
+            table.SourceLines);
     }
 
 }
@@ -189,9 +193,10 @@ public sealed class PdfLogicalTableCell {
 /// Detected table column geometry.
 /// </summary>
 public sealed class PdfLogicalTableColumn {
-    internal PdfLogicalTableColumn(double from, double to) {
+    internal PdfLogicalTableColumn(double from, double to, PdfLogicalVisualBounds? visualBounds = null) {
         From = from;
         To = to;
+        VisualBounds = visualBounds;
     }
 
     /// <summary>Left X coordinate in the owning table's coordinate space.</summary>
@@ -199,4 +204,10 @@ public sealed class PdfLogicalTableColumn {
 
     /// <summary>Right X coordinate in the owning table's coordinate space.</summary>
     public double To { get; }
+
+    /// <summary>
+    /// Complete column strip in top-left visual page coordinates when available. Use both axes
+    /// for quarter-turn tables, whose columns can have identical <see cref="From"/> and <see cref="To"/> values.
+    /// </summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
 }

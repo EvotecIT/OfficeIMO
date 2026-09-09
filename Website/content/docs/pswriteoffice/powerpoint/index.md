@@ -4,7 +4,7 @@ description: "Compose, inspect, update, theme, import, and render repeatable pre
 layout: docs
 ---
 
-The PowerPoint family exports 57 commands for slide creation and editing, sections, shapes, images, text, charts, tables, notes, themes, layouts, transitions, import, inspection, designer decks, and semantic deck plans.
+The PowerPoint family exports 58 commands for slide creation and editing, sections, shapes, images, text, charts, tables, notes, themes, layouts, transitions, import, inspection, designer decks, and semantic deck plans.
 
 ## Choose direct authoring or a deck plan
 
@@ -20,4 +20,4 @@ Copy or import slides when the workflow assembles a deck from approved sources. 
 
 ## Review output
 
-Use `ConvertTo-OfficePowerPointHtml` for a browser-review surface and `Export-OfficePowerPointImage` for visual artifacts. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/PowerPoint) demonstrate normal script shapes.
+Use `ConvertTo-OfficePowerPointHtml` for a browser-review surface and `Export-OfficePowerPointImage` for visual artifacts. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/PowerPoint) demonstrate normal script shapes.

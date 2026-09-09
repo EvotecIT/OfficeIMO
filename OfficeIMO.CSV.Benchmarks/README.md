@@ -2,6 +2,45 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Text export and quote density
+
+`CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
+DataReader API and CsvHelper. It covers short labels, long notes, JSON-shaped
+text, and an all-quotes stress case under `AsNeeded` and `Always`. Setup reads
+every output field and requires identical CSV text, including headers, quoting,
+Unicode, and line endings. The timed operation includes writer and reader
+construction plus the complete export to a `StringWriter`.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvTextWriteBenchmarks*" --priority Normal --invocationCount 32 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove
+```
+
+On Windows, add `--affinityMasks` with masks derived from the current machine's
+cache topology. Keep each domain separate and retain outliers when background
+work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+records the long-note improvement and the limits of short-row timing on a busy PC.
+
+## UTF-8 file export
+
+`CsvFileWriteBenchmarks` writes and closes complete files containing 1,000 rows.
+The fixtures cover short ASCII text, Unicode, dense JSON, quote runs, long notes,
+and typed integers, decimals, UTC dates, booleans, and nullable strings. Delimiters
+include comma, semicolon, `||`, and `※`; both quote modes are measured.
+
+Both libraries use matching 64 KiB file and text-writer buffers and UTF-8 without
+a byte-order mark. Timing includes file creation, serialization, encoding, and
+disposal, which flushes to the operating system. It does not include a durable
+storage flush. Setup requires identical bytes and validates every decoded field.
+Each benchmark instance removes its own two output files and temporary folder.
+
+```powershell
+$env:OFFICEIMO_BENCHMARK_OUTPUT = Join-Path (Get-Location) 'Ignore/Benchmarks/csv-files'
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvFileWriteBenchmarks*" --priority Normal --invocationCount 16 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/csv-file-results
+```
+
+The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
+records the file workloads, repeated comparisons, and reader allocation analysis.
+
 ## Historical generated workstation snapshot
 
 This single-workstation table is retained so the older focused investigations

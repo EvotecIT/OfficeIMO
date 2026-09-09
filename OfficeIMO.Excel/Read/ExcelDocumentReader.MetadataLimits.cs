@@ -84,7 +84,8 @@ namespace OfficeIMO.Excel {
 
             using Stream stream = partBufferReader.OpenPart(
                 partName,
-                options.MaxMetadataPartBytes);
+                options.MaxMetadataPartBytes,
+                options.CancellationToken);
             DrainMetadataPartStream(stream, partName, options);
         }
 

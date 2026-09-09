@@ -1,0 +1,50 @@
+{
+  "DenseJson/AsNeeded": {
+    "rows": 1000,
+    "bytes": 5296580
+  },
+  "DenseJson/Always": {
+    "rows": 1000,
+    "bytes": 5302588
+  },
+  "LongNotes/AsNeeded": {
+    "rows": 1000,
+    "bytes": 4139580
+  },
+  "LongNotes/Always": {
+    "rows": 1000,
+    "bytes": 4145588
+  },
+  "QuoteRuns/AsNeeded": {
+    "rows": 1000,
+    "bytes": 8223586
+  },
+  "QuoteRuns/Always": {
+    "rows": 1000,
+    "bytes": 8229594
+  },
+  "ShortAscii/AsNeeded": {
+    "rows": 1000,
+    "bytes": 49580
+  },
+  "ShortAscii/Always": {
+    "rows": 1000,
+    "bytes": 57588
+  },
+  "ShortUnicode/AsNeeded": {
+    "rows": 1000,
+    "bytes": 70583
+  },
+  "ShortUnicode/Always": {
+    "rows": 1000,
+    "bytes": 76591
+  },
+  "TypedValues/AsNeeded": {
+    "rows": 1000,
+    "bytes": 66432
+  },
+  "TypedValues/Always": {
+    "rows": 1000,
+    "bytes": 74624
+  }
+}

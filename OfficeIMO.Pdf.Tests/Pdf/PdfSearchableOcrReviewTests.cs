@@ -74,6 +74,46 @@ public sealed class PdfSearchableOcrReviewTests {
 
     private static byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
 
+    [Fact]
+    public async Task ReviewCorrectionsPreserveSourceEvidenceGeometryAndIndependentText() {
+        byte[] original = Source();
+        var source = PdfDocument.Load(original);
+        PdfSearchableOcrReview review = await source.PrepareSearchableOcrAsync(Engine());
+        PdfRecognizedWord word = review.Ocr.Pages[0].Words[0];
+        PdfSearchableOcrResult result = review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> {
+            [word] = "Zażółć"
+        });
+        Assert.Equal(1, result.CorrectedWordCount);
+        Assert.Equal(1, result.AddedWordCount);
+        PdfRecognizedWord written = Assert.Single(result.WrittenWords[1]);
+        Assert.Equal("Zażółć", written.Text);
+        Assert.Equal(word.X, written.X);
+        Assert.Equal(word.Y, written.Y);
+        Assert.Equal(word.Width, written.Width);
+        Assert.Equal(word.Height, written.Height);
+        Assert.Equal("First", word.Text);
+        Assert.Same(review.Ocr, result.Ocr);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(result.Document.ToBytes());
+        Assert.Equal("Zażółć", Assert.Single(ActualText(independent.GetPage(1).GetMarkedContents())));
+        Assert.Equal(original, source.ToBytes());
+    }
+
+    [Fact]
+    public async Task ReviewCorrectionsEnforceEligibilityAndAggregateTextBudget() {
+        var source = PdfDocument.Load(Source());
+        var review = await source.PrepareSearchableOcrAsync(Engine(), new PdfOcrMergeOptions { MaxOcrTextCharactersPerPage = 20 });
+        var other = await source.PrepareSearchableOcrAsync(Engine());
+        PdfRecognizedWord word = review.Ocr.Pages[0].Words[0];
+        Assert.Throws<ArgumentException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [other.Ocr.Pages[0].Words[0]] = "Foreign" }));
+        Assert.Throws<ArgumentException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [review.Ocr.Pages[0].WordEvidence[2].Word] = "Rejected" }));
+        Assert.Throws<ArgumentException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [word] = " " }));
+        Assert.Throws<PdfReadLimitException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> {
+            [word] = new string('x', 11), [review.Ocr.Pages[0].Words[1]] = new string('y', 11)
+        }));
+        PdfSearchableOcrResult unchangedText = review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [word] = word.Text });
+        Assert.Equal(0, unchangedText.CorrectedWordCount);
+    }
+
     private static System.Collections.Generic.IEnumerable<string> ActualText(
         System.Collections.Generic.IEnumerable<UglyToad.PdfPig.Content.MarkedContentElement> elements) {
         foreach (var element in elements) {

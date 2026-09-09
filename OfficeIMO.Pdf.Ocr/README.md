@@ -30,6 +30,7 @@ PdfOcrMergeResult result = await pdf.ReadWithOcrAsync(
     new PdfOcrMergeOptions {
         Language = "eng+pol",
         Dpi = 180,
+        MaxConcurrentPages = 2,
         MinimumConfidence = 0.75,
         ReadOptions = new PdfReadOptions {
             LayoutOptions = new PdfTextLayoutOptions {
@@ -45,6 +46,60 @@ Console.WriteLine($"Accepted OCR words: {result.AcceptedWordCount}");
 Every selected page is rendered to a bounded raster request. Pixel, point, and normalized provider coordinates are projected into the page's cropped and rotated visual point space. Low-confidence spans and spans overlapping native text are rejected before OCR evidence enters the same language-neutral reading-order, region, list, paragraph, heading, and table pipeline as native positioned text.
 
 `NativeDocument` retains the native-only parse. `Document` is the canonical native-plus-OCR parse and can be passed directly to the existing PDF-to-Word, Excel, PowerPoint, HTML, RTF, or OpenDocument adapters. Page results retain accepted words, provider/model/language evidence, rejections, and diagnostics.
+
+## Reconstruct columns and mixed-direction text
+
+Provider line hierarchy and logical sequence are preserved by default. If a provider joins two columns into one line or supplies an unsuitable page order, enable geometry-based reconstruction:
+
+```csharp
+PdfOcrMergeResult reconstructed = await pdf.ReadWithOcrAsync(engine,
+    new PdfOcrMergeOptions {
+        ReconstructLayout = true,
+        Language = "heb+ara+eng",
+        ReadOptions = new PdfReadOptions {
+            LayoutOptions = new PdfTextLayoutOptions {
+                ReadingDirection = PdfReadingDirection.RightToLeft
+            }
+        }
+    });
+```
+
+The shared PDF stages rebuild OCR lines, columns, and aligned tables from accepted words. Mixed-direction fragments use the same logical-order resolver as native text. Dominant quarter-turn layouts are analyzed in a corrected reading frame; returned words, selection rectangles, and table bounds use the original page geometry. Explicit direction is useful for ambiguous pages; `Auto` remains the default.
+
+Reconstruction does not repair recognition errors or infer a figure from its caption vocabulary. A full-page scan can retain caption text without exposing a separate figure region or classified caption. Searchable output preserves the visible scan and supports subsequent line and table reconstruction from its invisible selection boxes. See the [independent layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md) for measured coverage and limits.
+
+## Prepare uneven or rotated scans
+
+Scan cleanup is opt-in and uses the shared `OfficeIMO.Core` image processor. It changes the raster sent to OCR; the source PDF and its visible scans are preserved.
+
+```csharp
+using OfficeIMO.Drawing;
+
+PdfSearchableOcrReview review = await pdf.PrepareSearchableOcrAsync(engine,
+    new PdfOcrMergeOptions {
+        Dpi = 300,
+        DetectOrientation = true,
+        MinimumOrientationConfidence = 0.75,
+        ScanProcessing = new OfficeScanProcessingOptions {
+            Deskew = true,
+            NormalizeBackground = true,
+            ColorMode = OfficeScanColorMode.Grayscale,
+            MaximumDimension = 3000,
+            MaximumWorkingBytes = 256L * 1024 * 1024
+        }
+    });
+
+foreach (PdfOcrPageMergeResult page in review.Ocr.Pages) {
+    Console.WriteLine($"Page {page.PageNumber}: deskew {page.ScanProcessing?.AppliedDeskewDegrees}");
+}
+PdfSearchableOcrResult searchable = review.ApplyAll();
+```
+
+Orientation detection uses the provider's optional orientation capability and the same timeout, cancellation, and concurrency gate as recognition. Missing or low-confidence evidence retains the source orientation and produces a diagnostic. Tesseract needs its `osd` trained data. An explicit `ClockwiseQuarterTurns` value can supply a caller-reviewed correction; it combines with any accepted provider correction.
+
+Deskew searches a bounded range of small angles. Background normalization estimates local paper brightness, and `Bilevel` uses a measured or explicit global threshold. Downsampling never enlarges a scan. Blank-page detection reports a suggestion and keeps the page. These operations do not perform perspective correction, curved-page dewarping, or document cropping.
+
+`ScanProcessing` reports applied and skipped operations, buffer estimates, and forward/inverse pixel transforms. Its pixel, buffer, and analysis-work limits reject optional cleanup with an `ocr-scan-limit` diagnostic and retain the original OCR raster; cancellation still propagates. Buffer accounting covers the managed image operation, while encoded PDF/raster and provider-process limits remain separate. `PdfRecognizedWord.Geometry` retains all four corners on the original page, so the invisible text layer follows the original scan's angle after deskew or a quarter-turn. `X`, `Y`, `Width`, and `Height` remain its enclosing visual bounds.
 
 ## Discover scanned redaction candidates
 
@@ -95,10 +150,33 @@ Selections may exclude eligible words but cannot inject words from another revie
 
 `PdfOcrMergeOptions` bounds provider-call duration, rendered pixels, selected pages, inspected spans, accepted OCR words and characters, aggregate raw hierarchy identifiers, provider metadata and diagnostics, native-overlap comparisons, and merged text. Calls use one shared `OcrEngineExecution` per document, so identity and capabilities are stable across pages and the same non-concurrent engine instance cannot overlap across PDF, Reader, or a future integration. Language is provider configuration only; it is never used to infer captions, lists, paragraphs, tables, or continuations.
 
+Use `ApplyCorrections` to correct recognized text after reviewing the page. Include only the eligible words to write, paired with their final text:
+
+```csharp
+var corrections = review.Ocr.Pages.SelectMany(page => page.Words)
+    .ToDictionary(word => word, word => word.Text);
+PdfRecognizedWord selectedWord = review.Ocr.Pages[0].Words[0];
+corrections[selectedWord] = "Corrected text";
+PdfSearchableOcrResult corrected = review.ApplyCorrections(corrections);
+await corrected.Document.SaveAsync("corrected-searchable.pdf");
+```
+
+Corrections preserve the selected word's geometry and reading order. `WrittenWords` contains the replacement text, `CorrectedWordCount` counts changed words, and `Ocr` retains the original provider text and confidence. Replacement text must be nonempty and fit the per-page OCR character budget.
+
+## Scan rendering and execution limits
+
+CCITT Group 3 and Group 4 scans use the managed decoder. Packed 1-, 2-, and 4-bit DeviceGray samples pass through the existing decode-array, color, and mask handling. Fax decoding requires a declared row count or image height; uncompressed fax extension mode and damaged-row recovery are outside the supported contract.
+
+Opaque JPEG 2000 images with baseline Gray/sRGB headers or one/three-component codestreams can use `PdfOcrMergeOptions.ImageCodec`, the shared `IOfficeRasterImageCodec` interface. The same codec is used by review previews. A missing decoder or an unprojectable scan causes rendering to fail before that page is sent to OCR. JPEG 2000 embedded or external masks, palette/channel remapping, alternate color spaces, and output-intent normalization remain unsupported. Embedded alpha is rejected even when `SMaskInData` is absent or zero, because those PDF cases require discarding that alpha before rendering. No JPEG 2000 runtime is bundled.
+
+`Pages[i].Diagnostics` includes render warnings as well as provider and normalization diagnostics. Inspect these before treating a result as complete: font substitution and unsupported drawing features can affect recognition even when a page renders.
+
+`MaxConcurrentPages` defaults to one. Raise it to overlap page requests for providers that declare concurrent-request support. Non-concurrent providers remain serialized, and result pages retain the requested order. Parsing and rendering use one producer; only a bounded number of provider requests are retained. `MaxRenderedBytesPerPage` defaults to 64 MiB and limits each encoded PNG. Rendered pages are released as requests complete rather than accumulated for the whole document.
+
 ## Targets and dependency footprint
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).
-- OfficeIMO dependencies: `OfficeIMO.Ocr` and `OfficeIMO.Pdf`.
+- OfficeIMO dependencies: `OfficeIMO.Core`, `OfficeIMO.Ocr`, and `OfficeIMO.Pdf`.
 - Not dependencies: Reader, Tesseract, process execution, cloud SDKs, or native OCR runtimes.
 - License: MIT.
 

@@ -108,42 +108,16 @@ internal static partial class PdfPageImageRenderer {
         IOfficeTextShapingProvider? textShapingProvider = null,
         string? textShapingLanguage = null,
         CancellationToken cancellationToken = default) {
-        EnsureRasterImagesCanRender(drawing, imageCodec, cancellationToken);
+
         return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
+            ThrowOnImageDecodeFailure = true,
             TextShapingProvider = textShapingProvider,
             TextShapingLanguage = textShapingLanguage,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
-    }
-
-    private static void EnsureRasterImagesCanRender(
-        OfficeDrawing drawing,
-        IOfficeRasterImageCodec? imageCodec,
-        CancellationToken cancellationToken = default) {
-        foreach (OfficeDrawingElement element in drawing.Elements) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (element is OfficeDrawingImage image &&
-                !OfficeRasterImageDecoder.TryDecode(image.Bytes, out _) &&
-                (imageCodec is null || !imageCodec.TryDecode(image.Bytes, image.ContentType, out OfficeRasterImage? decoded) || decoded is null)) {
-                string contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "unknown" : image.ContentType!;
-                throw new NotSupportedException("PDF PNG rendering cannot rasterize " + contentType + " image bytes with the dependency-free rasterizer. Supported image formats are " + OfficeRasterImageDecoder.SupportedFormatDescription + ".");
-            }
-
-            if (element is OfficeDrawingImagePattern pattern &&
-                !OfficeRasterImageDecoder.TryDecode(pattern.Bytes, out _) &&
-                (imageCodec is null || !imageCodec.TryDecode(pattern.Bytes, pattern.ContentType, out OfficeRasterImage? decodedPattern) || decodedPattern is null)) {
-                throw new NotSupportedException("PDF PNG rendering cannot rasterize image-pattern bytes with content type " + pattern.ContentType + ".");
-            }
-
-            if (element is OfficeDrawingGroup group) {
-                EnsureRasterImagesCanRender(group.Drawing, imageCodec, cancellationToken);
-            } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                EnsureRasterImagesCanRender(effectGroup.Drawing, imageCodec, cancellationToken);
-            }
-        }
     }
 }

@@ -57,6 +57,12 @@ The provider parses Tesseract TSV into line and word spans with pixel bounding b
 
 Per-request payload and output files use owner-only Unix directories and permissions. Temporary files are deleted by default; enable `KeepTemporaryFiles` only for controlled diagnostics.
 
+## Detect page orientation
+
+The engine advertises `SupportsOrientationDetection`. Set `OcrRequest.Operation` to `OcrOperation.DetectOrientation` and run it through `OcrEngineRunner` to share the same timeout and concurrency rules as text recognition. The provider uses Tesseract's page segmentation mode 0 with `osd` trained data and returns `OcrResult.Orientation`.
+
+`ClockwiseRotationDegrees` is the corrective rotation, restricted to 0, 90, 180, or 270 degrees. `Confidence` is Tesseract's orientation score divided by 15 and capped at 1; it is a provider-specific scale, not a probability. Missing data, insufficient text, or invalid/conflicting output produces a diagnostic and no accepted orientation. Callers choose their confidence threshold and retain the original image when evidence is insufficient. `OfficeIMO.Pdf.Ocr` exposes this through `PdfOcrMergeOptions.DetectOrientation`.
+
 ## Targets and licenses
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).

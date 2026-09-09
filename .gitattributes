@@ -16,6 +16,10 @@ Website/static/downloads/showcase/** -text -diff
 # catalog. Keep their committed line endings unchanged on every platform.
 Website/static/data/benchmarks/library-comparisons/*.json text eol=lf -diff
 
+# Corpus publication hashes identify the original runner report bytes. Preserve
+# them exactly, including the measured producer's line endings, on every OS.
+Website/data/pdf_corpus_report.json -text -diff
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

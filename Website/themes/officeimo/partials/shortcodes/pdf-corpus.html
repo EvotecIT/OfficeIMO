@@ -1,0 +1,44 @@
+{{ report = data.pdf_corpus_report }}
+{{ publication = data.pdf_corpus_publication }}
+<section class="imo-pdf-corpus" aria-labelledby="corpus-run-title">
+  <h2 id="corpus-run-title">Measured PDF quality run</h2>
+  <p><strong>{{ report.uniqueFiles }} unique files</strong> · {{ report.totals.passed }} of {{ report.totals.cases }} cases met expectations · {{ report.totals.failed }} failures · {{ report.totals.timedOut }} timeouts.</p>
+  <p>{{ report.totals.operationalChecksPassed }} of {{ report.totals.operationalChecks }} operational checks completed; {{ report.totals.expectationsPassed }} of {{ report.totals.expectations }} pinned expectations passed.</p>
+  <dl>
+    <dt>Completed (UTC)</dt><dd>{{ report.completedUtc }}</dd>
+    <dt>Runtime and platform</dt><dd>{{ report.environment.framework }} · {{ report.environment.operatingSystem }} · {{ report.environment.processArchitecture }}</dd>
+    <dt>Tested engine</dt><dd>OfficeIMO.Pdf {{ report.environment.engineAssemblyVersion }} · local source build</dd>
+    <dt>Source revision</dt><dd><a href="https://github.com/EvotecIT/OfficeIMO/tree/{{ publication.sourceRevision }}"><code>{{ publication.sourceRevision }}</code></a></dd>
+  </dl>
+  <p><a href="/data/corpus/pdf-quality-windows.json">Download the full JSON report</a> · <a href="/data/corpus/pdf-quality-windows.provenance.json">Download artifact provenance and hashes</a></p>
+  <h3>Checks by operation</h3>
+  <table>
+    <thead><tr><th>Operation</th><th>Completed checks</th></tr></thead>
+    <tbody>
+      {{~ for operation in report.operations ~}}
+      <tr><td>{{ operation.name }}</td><td>{{ operation.succeeded }} / {{ operation.attempted }}</td></tr>
+      {{~ end ~}}
+    </tbody>
+  </table>
+  <p>The render check uses managed SVG output for at most {{ report.configuration.maxRenderPages }} pages per file. Mutation checks assess preservation plans; they do not prove that every planned edit was saved and reopened. Compliance checks inspect declarations and do not certify them.</p>
+  <h3>Inspect each input and outcome</h3>
+  {{~ for sample in report.cases ~}}
+  <details>
+    <summary>{{ sample.id }} — {{ sample.outcome }}</summary>
+    <p>Source: <code>{{ sample.sourceId }}</code> · {{ sample.byteLength }} bytes · SHA-256: <code>{{ sample.sha256 }}</code></p>
+    {{~ for source in report.sources ~}}{{~ if source.id == sample.sourceId ~}}
+    <p><a href="{{ source.repository }}/blob/{{ source.commit }}/{{ sample.sourcePath }}">Open source: {{ sample.id }}</a> · {{ source.license }}</p>
+    {{~ end ~}}{{~ end ~}}
+    <p>Rendered {{ sample.metrics.renderSucceededPages }} / {{ sample.metrics.renderAttemptedPages }} attempted pages; extracted {{ sample.metrics.textCharacters }} characters. Mutation decision: <strong>{{ sample.metrics.mutationMode }}</strong>.</p>
+    <p>Mutation plans: {{ sample.metrics.fullRewriteMutationPlanCount }} full rewrite, {{ sample.metrics.appendOnlyMutationPlanCount }} append-only, {{ sample.metrics.blockedMutationPlanCount }} blocked. Claimable compliance declarations: {{ sample.metrics.claimableComplianceClaimCount }}.</p>
+    {{~ if sample.failureCode ~}}<p>Failure: {{ sample.failureCode }}</p>{{~ end ~}}
+    <table><thead><tr><th>Expectation</th><th>Expected</th><th>Observed</th><th>Met</th></tr></thead><tbody>
+      {{~ for expectation in sample.expectations ~}}<tr><td>{{ expectation.name }}</td><td>{{ expectation.expected | html.escape }}</td><td>{{ expectation.actual | html.escape }}</td><td>{{ expectation.succeeded }}</td></tr>{{~ end ~}}
+    </tbody></table>
+  </details>
+  {{~ end ~}}
+  <h3>Reproduce this corpus</h3>
+  <p>Check out the source revision above, then run:</p>
+  <pre><code>{{ publication.reproduce }}</code></pre>
+  <p>The run checks the manifest and input hashes before processing. Keep the environment and engine artifact with any new result; a fresh run may have different timings.</p>
+</section>

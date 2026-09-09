@@ -1,5 +1,8 @@
 ## Decision and discovery guides
 
+- [Choose a document task](/solutions/): Routes into browser tools, .NET, PowerShell, CLI, and Studio, with workflow limits.
+- [Inspect the PDF corpus](/corpus/): Pinned input hashes, per-operation outcomes, raw measured reports, and reproduction commands.
+- [Compare desktop PDF workflows](/comparisons/pdf-desktop-tools/): Product editions, editing and OCR boundaries, deployment, and documented versus tested evidence.
 - [Compare OfficeIMO with .NET document libraries](/comparisons/): Evidence-backed comparison hub with dated first-party sources.
 - [OfficeIMO vs Aspose and commercial suites](/comparison/): Format breadth, deployment, licensing, support, and source access.
 - [OfficeIMO vs Syncfusion Document SDKs](/comparisons/officeimo-vs-syncfusion/): Commercial SDK scope and Community License eligibility.

@@ -2,6 +2,7 @@
 title: "OfficeIMO.Word"
 description: "Create and edit DOCX, work with documented DOC and DOT subsets, and inspect compatibility limits from .NET without Microsoft Word."
 layout: product
+meta.showcase_id: "customer-delivery-summary"
 product_color: "#2563eb"
 install: "dotnet add package OfficeIMO.Word"
 nuget: "OfficeIMO.Word"

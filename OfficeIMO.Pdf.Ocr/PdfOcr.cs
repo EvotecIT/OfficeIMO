@@ -6,7 +6,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Pdf.Ocr;
 
 /// <summary>PDF-specific rendering and native-text merge orchestration over an engine-neutral OCR provider.</summary>
-internal static class PdfOcr {
+internal static partial class PdfOcr {
     internal static async Task<PdfOcrMergeResult> RecognizeAndMergeAsync(
         byte[] pdf,
         IOcrEngine engine,
@@ -16,7 +16,6 @@ internal static class PdfOcr {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(engine, nameof(engine));
         OcrEngineExecution engineExecution = OcrEngineRunner.CreateExecution(engine);
-        string engineId = engineExecution.Id;
         EnsurePngSupport(engineExecution.Capabilities);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
@@ -39,55 +38,9 @@ internal static class PdfOcr {
             semanticOptions,
             out IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
             cancellationToken);
-        var renderOptions = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
-            Dpi = effectiveOptions.Dpi,
-            MaxPages = effectiveOptions.MaxPages,
-            MaxPixelsPerPage = effectiveOptions.MaxPixelsPerPage,
-            ContinueOnError = false
-        };
-        IReadOnlyList<PdfPageRenderResult> rendered = PdfPageImageRenderer.RenderPages(
-            pdf,
-            semanticOptions.PageSelection,
-            renderOptions,
-            readOptions,
-            cancellationToken);
-        var pages = new List<PdfOcrPageMergeResult>(rendered.Count);
-        for (int index = 0; index < rendered.Count; index++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfPageRenderResult render = rendered[index];
-            PdfLogicalPage nativePage = logical.Pages.First(page => page.PageNumber == render.PageNumber);
-            PdfReadPage readPage = readDocument.Pages[render.PageNumber - 1];
-            PdfReadPage overlapReadPage = overlapReadDocument.Pages[render.PageNumber - 1];
-            IReadOnlyList<PdfSelectionQuad> nativeTextBounds = PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(overlapReadPage);
-            (double visualWidth, double visualHeight) = readPage.GetInteractionPageSize();
-            byte[] payload = (byte[])render.Bytes!.Clone();
-            string candidateId = "pdf-page-" + render.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var request = new OcrRequest {
-                Payload = payload,
-                MediaType = "image/png",
-                FileName = candidateId + ".png",
-                SourceId = effectiveOptions.SourceId,
-                SourceName = effectiveOptions.SourceName,
-                CandidateId = candidateId,
-                CandidateKind = "page",
-                PageNumber = render.PageNumber,
-                PixelWidth = render.Width,
-                PixelHeight = render.Height,
-                Region = new OcrRegion { X = 0D, Y = 0D, Width = visualWidth, Height = visualHeight },
-                RegionCoordinateUnit = OcrCoordinateUnit.Points,
-                Language = effectiveOptions.Language,
-                ProviderOptions = effectiveOptions.ProviderOptions
-            };
-            OcrResult result = await engineExecution.RecognizeAsync(
-                request,
-                effectiveOptions.ProviderTimeout,
-                cancellationToken).ConfigureAwait(false);
-            ProjectedOcrResult projected = ProjectResult(result, request, engineId, effectiveOptions, cancellationToken);
-            pages.Add(MergePage(nativePage, nativeTextBounds, projected, effectiveOptions, cancellationToken));
-        }
-
-        var mergedPages = pages.AsReadOnly();
+        IReadOnlyList<PdfOcrPageMergeResult> mergedPages = await RecognizePagesAsync(
+            readDocument, overlapReadDocument, logical, selectedPages,
+            engineExecution, effectiveOptions, cancellationToken).ConfigureAwait(false);
         PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
             readDocument,
             logical,
@@ -95,7 +48,8 @@ internal static class PdfOcr {
             mergedPages,
             layoutOptions,
             pipelineOptions,
-            cancellationToken);
+            cancellationToken,
+            effectiveOptions.ReconstructLayout);
         var canonicalTextByPage = new Dictionary<int, Queue<string>>();
         for (int pageIndex = 0; pageIndex < enriched.Pages.Count; pageIndex++) {
             PdfLogicalPage page = enriched.Pages[pageIndex];
@@ -121,7 +75,8 @@ internal static class PdfOcr {
         OcrRequest request,
         string engineId,
         PdfOcrMergeOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        PreparedPage? prepared = null) {
         IReadOnlyList<OcrDiagnostic> returnedDiagnostics = result.Diagnostics ?? Array.Empty<OcrDiagnostic>();
         if (returnedDiagnostics.Count > options.MaxDiagnosticsPerPage) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, returnedDiagnostics.Count);
@@ -188,6 +143,15 @@ internal static class PdfOcr {
                 diagnostics.Add("ocr-span-geometry: A recognized span did not contain valid page geometry.");
                 continue;
             }
+            PdfLogicalVisualBounds? recognitionBounds = prepared?.Report != null
+                ? new PdfLogicalVisualBounds(x, y, x + width, y + height) : null;
+            PdfSelectionQuad geometry = MapWordGeometry(x, y, width, height, prepared);
+            if (prepared != null && (geometry.Left < -0.01D || geometry.Top < -0.01D ||
+                    geometry.Right > prepared.SourceWidth + 0.01D || geometry.Bottom > prepared.SourceHeight + 0.01D)) {
+                diagnostics.Add("ocr-span-outside-source: A processed-image span mapped outside the original page and was retained only as a diagnostic.");
+                continue;
+            }
+            x = geometry.Left; y = geometry.Top; width = geometry.Width; height = geometry.Height;
             double confidence = span.Confidence ?? result.Confidence ?? options.ConfidenceWhenUnavailable;
             if (!IsFinite(confidence) || confidence < 0D || confidence > 1D) {
                 diagnostics.Add("ocr-confidence-invalid: A recognized span reported an invalid confidence value.");
@@ -216,7 +180,7 @@ internal static class PdfOcr {
                     span.LineId,
                     ref inspectedHierarchyCharacters,
                     options.MaxOcrHierarchyCharactersPerPage,
-                    ref discardedHierarchyId)));
+                    ref discardedHierarchyId), geometry, recognitionBounds));
         }
 
         if (words.Count == 0 && !string.IsNullOrWhiteSpace(returnedText)) {
@@ -230,6 +194,8 @@ internal static class PdfOcr {
         }
 
         EnsureCharacters(words.Select(static word => word.Text), options.MaxOcrTextCharactersPerPage);
+        if (diagnostics.Count > options.MaxDiagnosticsPerPage)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, diagnostics.Count);
         EnsureCharacters(diagnostics, options.MaxDiagnosticCharactersPerPage);
         string providerValue = NormalizeProviderMetadata(result.Provider, options.MaxProviderMetadataCharactersPerPage)
             ?? engineId;
@@ -252,7 +218,8 @@ internal static class PdfOcr {
         IReadOnlyList<PdfSelectionQuad> nativeTextBounds,
         ProjectedOcrResult result,
         PdfOcrMergeOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null) {
         if (nativePage.TextBlocks.Count > options.MaxNativeTextBlocksPerPage) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxNativeTextBlocksPerPage, nativePage.TextBlocks.Count);
         }
@@ -274,7 +241,7 @@ internal static class PdfOcr {
                 word.Sequence,
                 word.BlockId,
                 word.ParagraphId,
-                word.LineId);
+                word.LineId, word.Geometry, word.RecognitionBounds);
             if (word.Confidence < options.MinimumConfidence) {
                 lowConfidence++;
                 evidence.Add(new PdfOcrWordEvidence(normalized, PdfOcrWordDisposition.LowConfidence));
@@ -309,7 +276,7 @@ internal static class PdfOcr {
             result.Provider,
             result.Model,
             result.Language,
-            evidence.AsReadOnly());
+            evidence.AsReadOnly(), scanProcessing);
     }
 
     private static bool TryConvertRegion(
@@ -362,69 +329,15 @@ internal static class PdfOcr {
         long maximumComparisons,
         ref long comparisons,
         CancellationToken cancellationToken) {
-        double wordArea = word.Width * word.Height;
-        double requiredArea = wordArea * threshold;
-        var intersections = new List<OcrOverlapRectangle>();
-        double summedIntersectionArea = 0D;
-        for (int index = 0; index < nativeTextBounds.Count; index++) {
-            comparisons = checked(comparisons + 1L);
-            if (comparisons > maximumComparisons) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumComparisons, comparisons);
-            }
-            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            PdfSelectionQuad bounds = nativeTextBounds[index];
-            double left = Math.Max(word.X, bounds.Left);
-            double top = Math.Max(word.Y, bounds.Top);
-            double right = Math.Min(word.X + word.Width, bounds.Right);
-            double bottom = Math.Min(word.Y + word.Height, bounds.Bottom);
-            double overlapArea = Math.Max(0D, right - left) * Math.Max(0D, bottom - top);
-            if (overlapArea >= requiredArea) return true;
-            if (overlapArea <= 0D) continue;
-            intersections.Add(new OcrOverlapRectangle(left, top, right, bottom));
-            summedIntersectionArea += overlapArea;
-        }
-        return summedIntersectionArea >= requiredArea && CalculateRectangleUnionArea(intersections, cancellationToken) >= requiredArea;
+        long spent = comparisons;
+        try {
+            return PdfSelectionCoverage.Covers(word.Geometry, nativeTextBounds, threshold, work => {
+                if (work > maximumComparisons - spent)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumComparisons, maximumComparisons + 1);
+                spent += work;
+            }, cancellationToken);
+        } finally { comparisons = spent; }
     }
-
-    private static double CalculateRectangleUnionArea(IReadOnlyList<OcrOverlapRectangle> rectangles, CancellationToken cancellationToken) {
-        if (rectangles.Count == 0) return 0D;
-        var yCoordinates = new List<double>(checked(rectangles.Count * 2));
-        for (int index = 0; index < rectangles.Count; index++) {
-            yCoordinates.Add(rectangles[index].Top);
-            yCoordinates.Add(rectangles[index].Bottom);
-        }
-        yCoordinates.Sort();
-        int uniqueCount = 0;
-        for (int index = 0; index < yCoordinates.Count; index++) {
-            if (uniqueCount == 0 || yCoordinates[index] != yCoordinates[uniqueCount - 1]) yCoordinates[uniqueCount++] = yCoordinates[index];
-        }
-        if (uniqueCount < yCoordinates.Count) yCoordinates.RemoveRange(uniqueCount, yCoordinates.Count - uniqueCount);
-        var coordinateIndexes = new Dictionary<double, int>(yCoordinates.Count);
-        for (int index = 0; index < yCoordinates.Count; index++) coordinateIndexes.Add(yCoordinates[index], index);
-        var events = new List<OcrOverlapEvent>(checked(rectangles.Count * 2));
-        for (int index = 0; index < rectangles.Count; index++) {
-            OcrOverlapRectangle rectangle = rectangles[index];
-            events.Add(new OcrOverlapEvent(rectangle.Left, coordinateIndexes[rectangle.Top], coordinateIndexes[rectangle.Bottom] - 1, 1));
-            events.Add(new OcrOverlapEvent(rectangle.Right, coordinateIndexes[rectangle.Top], coordinateIndexes[rectangle.Bottom] - 1, -1));
-        }
-        events.Sort(static (first, second) => first.X.CompareTo(second.X));
-        var coverage = new OcrVerticalCoverageTree(yCoordinates);
-        double area = 0D;
-        double previousX = events[0].X;
-        int eventIndex = 0;
-        while (eventIndex < events.Count) {
-            if ((eventIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            double x = events[eventIndex].X;
-            area += (x - previousX) * coverage.CoveredLength;
-            while (eventIndex < events.Count && events[eventIndex].X == x) {
-                OcrOverlapEvent current = events[eventIndex++];
-                coverage.Update(current.TopIndex, current.BottomIndex, current.Delta);
-            }
-            previousX = x;
-        }
-        return area;
-    }
-
     private static string? NormalizeHierarchyId(
         string? value,
         ref long inspectedCharacters,
@@ -496,7 +409,7 @@ internal static class PdfOcr {
     }
 
     private sealed class ProjectedOcrWord {
-        internal ProjectedOcrWord(string text, double x, double y, double width, double height, double confidence, int sequence, string? blockId, string? paragraphId, string? lineId) {
+        internal ProjectedOcrWord(string text, double x, double y, double width, double height, double confidence, int sequence, string? blockId, string? paragraphId, string? lineId, PdfSelectionQuad geometry, PdfLogicalVisualBounds? recognitionBounds) {
             Text = text;
             X = x;
             Y = y;
@@ -507,6 +420,8 @@ internal static class PdfOcr {
             BlockId = blockId;
             ParagraphId = paragraphId;
             LineId = lineId;
+            Geometry = geometry;
+            RecognitionBounds = recognitionBounds;
         }
         internal string Text { get; }
         internal double X { get; }
@@ -518,66 +433,8 @@ internal static class PdfOcr {
         internal string? BlockId { get; }
         internal string? ParagraphId { get; }
         internal string? LineId { get; }
+        internal PdfSelectionQuad Geometry { get; }
+        internal PdfLogicalVisualBounds? RecognitionBounds { get; }
     }
 
-    private readonly struct OcrOverlapEvent {
-        internal OcrOverlapEvent(double x, int topIndex, int bottomIndex, int delta) {
-            X = x;
-            TopIndex = topIndex;
-            BottomIndex = bottomIndex;
-            Delta = delta;
-        }
-        internal double X { get; }
-        internal int TopIndex { get; }
-        internal int BottomIndex { get; }
-        internal int Delta { get; }
-    }
-
-    private sealed class OcrVerticalCoverageTree {
-        private readonly IReadOnlyList<double> _coordinates;
-        private readonly int[] _coverageCounts;
-        private readonly double[] _coveredLengths;
-
-        internal OcrVerticalCoverageTree(IReadOnlyList<double> coordinates) {
-            _coordinates = coordinates;
-            int intervalCount = coordinates.Count - 1;
-            int storageSize = checked(Math.Max(1, intervalCount) * 4);
-            _coverageCounts = new int[storageSize];
-            _coveredLengths = new double[storageSize];
-        }
-        internal double CoveredLength => _coveredLengths[1];
-        internal void Update(int firstInterval, int lastInterval, int delta) {
-            if (firstInterval > lastInterval) return;
-            Update(1, 0, _coordinates.Count - 2, firstInterval, lastInterval, delta);
-        }
-        private void Update(int node, int left, int right, int firstInterval, int lastInterval, int delta) {
-            if (firstInterval <= left && right <= lastInterval) {
-                _coverageCounts[node] += delta;
-            } else {
-                int middle = left + ((right - left) / 2);
-                if (firstInterval <= middle) Update(node * 2, left, middle, firstInterval, lastInterval, delta);
-                if (lastInterval > middle) Update((node * 2) + 1, middle + 1, right, firstInterval, lastInterval, delta);
-            }
-            if (_coverageCounts[node] > 0) {
-                _coveredLengths[node] = _coordinates[right + 1] - _coordinates[left];
-            } else if (left == right) {
-                _coveredLengths[node] = 0D;
-            } else {
-                _coveredLengths[node] = _coveredLengths[node * 2] + _coveredLengths[(node * 2) + 1];
-            }
-        }
-    }
-
-    private readonly struct OcrOverlapRectangle {
-        internal OcrOverlapRectangle(double left, double top, double right, double bottom) {
-            Left = left;
-            Top = top;
-            Right = right;
-            Bottom = bottom;
-        }
-        internal double Left { get; }
-        internal double Top { get; }
-        internal double Right { get; }
-        internal double Bottom { get; }
-    }
 }

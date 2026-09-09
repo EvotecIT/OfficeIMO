@@ -53,7 +53,10 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
-        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken);
+        IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
+            ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
+            : options.ImageCodec;
+        RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;
     }

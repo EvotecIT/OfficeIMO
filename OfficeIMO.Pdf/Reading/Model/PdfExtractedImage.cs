@@ -30,7 +30,8 @@ public sealed class PdfExtractedImage {
         bool hasExplicitDecode = false,
         bool hasDecodeParameters = false,
         bool interpolate = false,
-        bool hasAuthoredRenderingIntent = false) {
+        bool hasAuthoredRenderingIntent = false,
+        bool requiresScanDecode = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -53,6 +54,7 @@ public sealed class PdfExtractedImage {
         HasExplicitDecode = hasExplicitDecode;
         HasDecodeParameters = hasDecodeParameters;
         Interpolate = interpolate;
+        RequiresScanDecode = requiresScanDecode;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -84,6 +86,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>PDF filter name or names when available.</summary>
     public string Filter { get; }
+
+    // Derived from resolved PDF names; Filter is a lossy display string, not a parseable filter list.
+    internal bool RequiresScanDecode { get; }
 
     /// <summary>
     /// Extracted bytes. JPEG images are returned as JPEG files. Simple PNG-predictor Flate

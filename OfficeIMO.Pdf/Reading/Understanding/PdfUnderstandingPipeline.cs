@@ -155,7 +155,8 @@ internal sealed class PdfUnderstandingPipeline {
         IReadOnlyList<PdfUnderstandingWord> words,
         IReadOnlyList<PdfUnderstandingLine> lines,
         Type sourceProviderType,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long priorWorkUnits = 0, bool reconstructOcrLayout = false) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(words, nameof(words));
@@ -165,11 +166,43 @@ internal sealed class PdfUnderstandingPipeline {
         if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
 #pragma warning restore CA1512
         var context = CreateContext(page, pageNumber, cancellationToken);
+        if (priorWorkUnits > 0) context.ConsumeWork(priorWorkUnits);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
         EnsureCount(words.Count, _limits.MaxWordsPerPage);
         EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
         EnsureCount(lines.Count, _limits.MaxLinesPerPage);
+        if (reconstructOcrLayout) {
+            if (!_restrictLogicalProjectionToReadingOrder &&
+                ReferenceEquals(_semanticClassification, PdfAdvancedUnderstandingStages.SemanticClassification) &&
+                ReferenceEquals(_imageRegionDetection, PdfAdvancedUnderstandingStages.ImageRegionDetection)) {
+                PdfUnderstandingReadingFrame frame = PdfUnderstandingReadingFrame.CreateForPositionedWords(context, words);
+                runs = frame.ProjectRuns(runs);
+                words = frame.ProjectWords(words);
+                lines = frame.ProjectLines(lines);
+                context.SetReadingFrame(frame);
+            }
+            context.DecodedRuns = runs;
+            PdfUnderstandingWord[] ocrWords = lines.Where(static line => line.SourceKind == PdfLogicalContentSourceKind.Ocr)
+                .SelectMany(static line => line.Words).Distinct().ToArray();
+            context.ConsumeWork(words.Count);
+            IReadOnlyList<PdfUnderstandingLine> rebuilt = NotNull(_lineGrouping.GroupLines(context, ocrWords), nameof(IPdfLineGroupingStage));
+            EnsureCount(rebuilt.Count, _limits.MaxLinesPerPage);
+            var combined = lines.Where(static line => line.SourceKind != PdfLogicalContentSourceKind.Ocr).ToList();
+            foreach (PdfUnderstandingLine line in rebuilt) {
+                context.ConsumeWork();
+                PdfLogicalVisualBounds? visual = line.Words.All(static word => word.VisualBounds is not null)
+                    ? new PdfLogicalVisualBounds(line.Words.Min(static word => word.VisualBounds!.Left),
+                        line.Words.Min(static word => word.VisualBounds!.Top), line.Words.Max(static word => word.VisualBounds!.Right),
+                        line.Words.Max(static word => word.VisualBounds!.Bottom)) : null;
+                combined.Add(new PdfUnderstandingLine(line.Words, line.Text, line.Confidence,
+                    line.Evidence.Concat(new[] { new PdfInferenceEvidence("line.ocr-reconstructed-layout",
+                        "OCR line hierarchy was reconstructed from accepted word geometry.", 0.75D) }),
+                    PdfLogicalContentSourceKind.Ocr, visualBounds: visual));
+            }
+            EnsureCount(combined.Count, _limits.MaxLinesPerPage);
+            lines = combined.AsReadOnly();
+        }
         context.DecodedRuns = runs;
         var trace = new List<PdfUnderstandingStageTrace>(8) {
             new PdfUnderstandingStageTrace("positioned-word-input", sourceProviderType, runs.Count, words.Count),
@@ -179,6 +212,36 @@ internal sealed class PdfUnderstandingPipeline {
             _tableDetection.DetectTables(context, lines),
             nameof(IPdfTableDetectionStage));
         return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+    }
+
+    // A positioned provider can establish order in a corrected image frame before projecting its
+    // geometry back to the source page. Reuse the canonical table, segmentation, and XY-cut owners.
+    // Custom stages still run exactly once, on the actual source-page geometry in RunPositionedPage.
+    internal IReadOnlyList<PdfUnderstandingLine> InferPositionedReadingOrder(
+        PdfReadPage page, int pageNumber, IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines, double visualWidth, double visualHeight,
+        CancellationToken token, out long workUnits) {
+        EnsureCount(words.Count, _limits.MaxWordsPerPage);
+        EnsureCount(lines.Count, _limits.MaxLinesPerPage);
+        EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
+        var context = new PdfUnderstandingPageContext(page, pageNumber, _layout,
+            _limits.MaxTextCharactersPerPage, _limits.MaxWordsPerPage, _limits.MaxWorkUnitsPerPage, token) {
+            MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage
+        };
+        try {
+            IReadOnlyList<PdfUnderstandingTableCandidate> tables = PdfAdvancedUnderstandingStages.TableDetection.DetectTables(context, lines);
+            EnsureCount(tables.Count, _limits.MaxTableCandidatesPerPage);
+            EnsureTableCandidateArtifacts(context, tables, _limits.MaxLinesPerPage, _limits.MaxWordsPerPage, _limits.MaxTextCharactersPerPage);
+            context.TableCandidates = tables;
+            IReadOnlyList<PdfUnderstandingRegion> regions = PdfAdvancedUnderstandingStages.PageSegmentation.Segment(context, lines);
+            EnsureCount(regions.Count, _limits.MaxRegionsPerPage);
+            IReadOnlyList<PdfUnderstandingRegion> ordered = PdfRecursiveXyCutReadingOrderStage
+                .OrderInVisualFrame(context, regions, visualWidth, visualHeight);
+            workUnits = context.WorkUnitsConsumed;
+            return ordered.SelectMany(static region => region.Lines).ToArray();
+        } finally {
+            context.CompleteOperation();
+        }
     }
 
     private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
@@ -196,6 +259,15 @@ internal sealed class PdfUnderstandingPipeline {
             context.ThrowIfCancellationRequested);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        if (!_restrictLogicalProjectionToReadingOrder &&
+            ReferenceEquals(_semanticClassification, PdfAdvancedUnderstandingStages.SemanticClassification) &&
+            ReferenceEquals(_imageRegionDetection, PdfAdvancedUnderstandingStages.ImageRegionDetection)) {
+            PdfUnderstandingReadingFrame? frame = PdfUnderstandingReadingFrame.TryCreate(context, runs);
+            if (frame is not null) {
+                runs = frame.ProjectRuns(runs);
+                context.SetReadingFrame(frame);
+            }
+        }
         context.DecodedRuns = runs;
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("glyph-decoding", _glyphDecoding.GetType(), 0, runs.Count));
@@ -280,7 +352,7 @@ internal sealed class PdfUnderstandingPipeline {
             _imageRegionDetection.GetType(),
             context.ImagePlacements.Count,
             imageRegions.Count));
-        return new PdfUnderstandingPageResult(
+        var result = new PdfUnderstandingPageResult(
             context.PageNumber,
             runs,
             words,
@@ -298,6 +370,7 @@ internal sealed class PdfUnderstandingPipeline {
             tableCandidates: tableCandidates,
             imagePlacements: context.ImagePlacements,
             imageRegions: imageRegions);
+        return context.ReadingFrame is null ? result : context.ReadingFrame.Restore(result);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {

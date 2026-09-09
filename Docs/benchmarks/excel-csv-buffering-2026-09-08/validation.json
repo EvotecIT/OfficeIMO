@@ -1,0 +1,296 @@
+{
+  "runs": [
+    {
+      "run": "csv-quote-gate",
+      "counts": {
+        "total": 494,
+        "executed": 494,
+        "passed": 494,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-full-net10",
+      "counts": {
+        "total": 3903,
+        "executed": 3898,
+        "passed": 3897,
+        "failed": 1,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.Excel.Test_ExcelWorkbooks_OpenInDesktopExcelWhenAvailable",
+          "message": "One or more generated Excel workbooks required repair or failed to open in desktop Excel.\r\nPivot.Interactions.xlsx close: COMException: The remote procedure call failed. (0x800706BE)\r\nExcel quit: COMException: The RPC server is unavailable. (0x800706BA)"
+        }
+      ]
+    },
+    {
+      "run": "excel-com-recheck",
+      "counts": {
+        "total": 1,
+        "executed": 1,
+        "passed": 0,
+        "failed": 1,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.Excel.Test_ExcelWorkbooks_OpenInDesktopExcelWhenAvailable",
+          "message": "One or more generated Excel workbooks required repair or failed to open in desktop Excel.\r\nPivot.Interactions.xlsx close: COMException: The remote procedure call failed. (0x800706BE)\r\nExcel quit: COMException: The RPC server is unavailable. (0x800706BA)"
+        }
+      ]
+    },
+    {
+      "run": "excel-com-baseline",
+      "counts": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-com-candidate-probe",
+      "counts": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-com-final",
+      "counts": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "csv-net8",
+      "counts": {
+        "total": 494,
+        "executed": 494,
+        "passed": 494,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "csv-net472",
+      "counts": {
+        "total": 366,
+        "executed": 366,
+        "passed": 366,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-net8",
+      "counts": {
+        "total": 625,
+        "executed": 624,
+        "passed": 624,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-net472",
+      "counts": {
+        "total": 618,
+        "executed": 617,
+        "passed": 617,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "csv-no-intrinsics",
+      "counts": {
+        "total": 6,
+        "executed": 6,
+        "passed": 6,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    },
+    {
+      "run": "excel-no-intrinsics",
+      "counts": {
+        "total": 11,
+        "executed": 11,
+        "passed": 11,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "failures": []
+    }
+  ],
+  "fullSuiteBoundary": "Full net10 suite excludes two image-rendering baselines reproduced as pre-existing during the initial performance round. Its desktop COM smoke failed twice with RPC errors, then passed with the same candidate binaries in a separate probe and the original test location. All 3897 other tests passed; five repository tests were skipped.",
+  "excludedKnownBaselineTests": [
+    "CroppedImageExportMatchesApprovedBaselines",
+    "TransformedImageExportMatchesApprovedBaselines"
+  ],
+  "builds": {
+    "products": [
+      "CSV netstandard2.0",
+      "Excel netstandard2.0"
+    ],
+    "benchmarks": [
+      "CSV net8.0 and net10.0",
+      "Excel net8.0 and net10.0"
+    ],
+    "result": "All successful"
+  },
+  "publicApi": "Exported types, base types, interfaces, and declared public members equal for CSV and Excel.",
+  "independentReview": "One read-only production/test review and one targeted confirmation; no actionable findings. The later benchmark-only validator registration fix passed all twelve fresh-process default-profile cases."
+}

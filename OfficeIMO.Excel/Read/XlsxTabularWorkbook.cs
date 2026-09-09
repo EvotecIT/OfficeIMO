@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
             _sharedStrings = sharedStringsPart == null
                 ? SharedStringCache.Empty(options)
                 : SharedStringCache.Build(
-                    () => _parts.OpenPart(sharedStringsPart, maximumPartBytes),
+                    () => _parts.OpenPart(sharedStringsPart, maximumPartBytes, options.CancellationToken),
                     options);
 
             string? stylesPart = ResolveOptionalPart(
@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
             _styles = stylesPart == null
                 ? new StylesCacheProvider(StylesCache.Empty())
                 : new StylesCacheProvider(
-                    () => _parts.OpenPart(stylesPart, maximumPartBytes));
+                    () => _parts.OpenPart(stylesPart, maximumPartBytes, options.CancellationToken));
         }
 
         internal IReadOnlyList<string> TableNames => _tableNames;
@@ -553,8 +553,9 @@ namespace OfficeIMO.Excel {
 
         private XDocument ReadXmlPart(string partName, int maximumBytes) {
             try {
-                using Stream stream = _parts.OpenPart(partName, maximumBytes);
+                using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken);
                 using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                    NameTable = new OpenXmlReadNameTable(),
                     DtdProcessing = DtdProcessing.Prohibit,
                     XmlResolver = null,
                     CloseInput = false,
@@ -586,6 +587,7 @@ namespace OfficeIMO.Excel {
             string combined = target.StartsWith("/", StringComparison.Ordinal)
                 ? target.TrimStart('/')
                 : directory + target;
+            if (OpenXmlPartName.IsCanonicalPath(combined)) return combined;
             var segments = new List<string>();
             foreach (string encodedSegment in combined.Split('/')) {
                 if (encodedSegment.Length == 0) {
@@ -633,6 +635,7 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
+            if (OpenXmlPartName.IsCanonicalPath(partName, startIndex: 1)) return partName;
             string[] encodedSegments = partName.Split('/');
             if (encodedSegments.Length < 2) {
                 return string.Empty;

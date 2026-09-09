@@ -75,6 +75,9 @@
 
     <div class="imo-container imo-comparison-detail-layout">
       <article id="comparison-evidence" class="imo-comparison-detail-content imo-prose markdown-body">
+        {{ for comparison in data.comparison_evidence.comparisons }}{{ if comparison.route == current_path }}
+        <p class="imo-comparison-detail-sidebar__note">Sources checked <time datetime="{{ comparison.checkedAt }}">{{ comparison.checkedAt }}</time>. {{ comparison.verification ?? "Documentation review; use representative files to verify your workload." }}</p>
+        {{ end }}{{ end }}
 {{ content }}
       </article>
 

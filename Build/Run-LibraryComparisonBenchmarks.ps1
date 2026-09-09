@@ -40,6 +40,7 @@ param(
         'pdfreverse',
         'pdfcorpusread',
         'pdfstructuredread',
+        'pdfnative',
         'pdfsplit',
         'pdfmerge',
         'pdfselect')]
@@ -108,6 +109,20 @@ $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatfor
 }
 
 $definitions = [ordered]@{
+    pdfnative = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfNativeOperationsBenchmarks*'
+        ComparisonId = "pdf-native-100-pages-$Framework"
+        Suite = 'OfficeIMO.Pdf.NativeOperations'
+        IdentityVariables = @('producer', 'operation')
+        ExpectedCases = @(
+            foreach ($producer in @('IText', 'MigraDoc')) {
+                foreach ($operation in @('ReadText', 'ReadStructured', 'Select', 'Merge', 'Split', 'SplitSelections')) {
+                    "Execute|Operation=$operation&Producer=$producer"
+                }
+            }
+        )
+    }
     csv = [pscustomobject]@{
         Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
         Filter = '*MarkPflug65KCsvBenchmarks*'

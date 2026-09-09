@@ -1,178 +1,561 @@
 [
-  { "title": "Documentation", "href": "/docs/" },
+  {
+    "title": "Documentation",
+    "href": "/docs/"
+  },
   {
     "title": "Getting Started",
     "items": [
-      { "title": "Getting Started Guide", "path": "getting-started/index.md", "href": "/docs/getting-started/" },
-      { "title": "Installation", "path": "getting-started/installation/index.md", "href": "/docs/getting-started/installation/" },
-      { "title": "Quick Start", "path": "getting-started/quickstart/index.md", "href": "/docs/getting-started/quickstart/" },
-      { "title": "Platform Support", "path": "getting-started/platform-support/index.md", "href": "/docs/getting-started/platform-support/" }
+      {
+        "title": "Getting Started Guide",
+        "path": "getting-started/index.md",
+        "href": "/docs/getting-started/"
+      },
+      {
+        "title": "Installation",
+        "path": "getting-started/installation/index.md",
+        "href": "/docs/getting-started/installation/"
+      },
+      {
+        "title": "Quick Start",
+        "path": "getting-started/quickstart/index.md",
+        "href": "/docs/getting-started/quickstart/"
+      },
+      {
+        "title": "Platform Support",
+        "path": "getting-started/platform-support/index.md",
+        "href": "/docs/getting-started/platform-support/"
+      }
     ]
   },
   {
     "title": "Workflow Playbooks",
     "items": [
-      { "title": "Find a Workflow", "path": "workflows/index.md", "href": "/docs/workflows/" },
-      { "title": "Database Reporting", "path": "workflows/database-reporting/index.md", "href": "/docs/workflows/database-reporting/" },
-      { "title": "Content Publishing", "path": "workflows/content-publishing/index.md", "href": "/docs/workflows/content-publishing/" },
-      { "title": "PowerShell Recipes", "path": "workflows/powershell-recipes/index.md", "href": "/docs/workflows/powershell-recipes/" },
-      { "title": "PSWriteOffice Benchmarks", "path": "workflows/powershell-benchmarks/index.md", "href": "/docs/workflows/powershell-benchmarks/" }
+      {
+        "title": "Find a Workflow",
+        "path": "workflows/index.md",
+        "href": "/docs/workflows/"
+      },
+      {
+        "title": "Database Reporting",
+        "path": "workflows/database-reporting/index.md",
+        "href": "/docs/workflows/database-reporting/"
+      },
+      {
+        "title": "Content Publishing",
+        "path": "workflows/content-publishing/index.md",
+        "href": "/docs/workflows/content-publishing/"
+      },
+      {
+        "title": "PowerShell Recipes",
+        "path": "workflows/powershell-recipes/index.md",
+        "href": "/docs/workflows/powershell-recipes/"
+      },
+      {
+        "title": "PSWriteOffice Benchmarks",
+        "path": "workflows/powershell-benchmarks/index.md",
+        "href": "/docs/workflows/powershell-benchmarks/"
+      }
     ]
   },
   {
     "title": "Platform Map",
     "items": [
-      { "title": "Capability Catalog", "path": "capabilities/index.md", "href": "/docs/capabilities/" },
-      { "title": "Packages and Components", "path": "capabilities/packages/index.md", "href": "/docs/capabilities/packages/" },
-      { "title": "Conversion Capability Map", "path": "capabilities/conversions/index.md", "href": "/docs/capabilities/conversions/" },
-      { "title": "Validation and Evidence", "path": "capabilities/validation/index.md", "href": "/docs/capabilities/validation/" },
-      { "title": "Benchmark Evidence", "path": "capabilities/benchmarks/index.md", "href": "/docs/capabilities/benchmarks/" }
+      {
+        "title": "Capability Catalog",
+        "path": "capabilities/index.md",
+        "href": "/docs/capabilities/"
+      },
+      {
+        "title": "Packages and Components",
+        "path": "capabilities/packages/index.md",
+        "href": "/docs/capabilities/packages/"
+      },
+      {
+        "title": "Conversion Capability Map",
+        "path": "capabilities/conversions/index.md",
+        "href": "/docs/capabilities/conversions/"
+      },
+      {
+        "title": "Validation and Evidence",
+        "path": "capabilities/validation/index.md",
+        "href": "/docs/capabilities/validation/"
+      },
+      {
+        "title": "Benchmark Evidence",
+        "path": "capabilities/benchmarks/index.md",
+        "href": "/docs/capabilities/benchmarks/"
+      }
     ]
   },
   {
     "title": "Word Documents",
     "items": [
-      { "title": "Word Overview", "path": "word/index.md", "href": "/docs/word/" },
-      { "title": "Paragraphs", "path": "word/paragraphs/index.md", "href": "/docs/word/paragraphs/" },
-      { "title": "Tables", "path": "word/tables/index.md", "href": "/docs/word/tables/" },
-      { "title": "Images", "path": "word/images/index.md", "href": "/docs/word/images/" },
-      { "title": "Headers & Footers", "path": "word/headers-footers/index.md", "href": "/docs/word/headers-footers/" },
-      { "title": "Templates and Forms", "path": "word/templates/index.md", "href": "/docs/word/templates/" },
-      { "title": "Review and Comparison", "path": "word/review/index.md", "href": "/docs/word/review/" },
-      { "title": "Word Conversion and Rendering", "path": "word/conversion/index.md", "href": "/docs/word/conversion/" },
-      { "title": "Production Workflows", "path": "word/market-readiness/index.md", "href": "/docs/word/market-readiness/" }
+      {
+        "title": "Word Overview",
+        "path": "word/index.md",
+        "href": "/docs/word/"
+      },
+      {
+        "title": "Paragraphs",
+        "path": "word/paragraphs/index.md",
+        "href": "/docs/word/paragraphs/"
+      },
+      {
+        "title": "Tables",
+        "path": "word/tables/index.md",
+        "href": "/docs/word/tables/"
+      },
+      {
+        "title": "Images",
+        "path": "word/images/index.md",
+        "href": "/docs/word/images/"
+      },
+      {
+        "title": "Headers & Footers",
+        "path": "word/headers-footers/index.md",
+        "href": "/docs/word/headers-footers/"
+      },
+      {
+        "title": "Templates and Forms",
+        "path": "word/templates/index.md",
+        "href": "/docs/word/templates/"
+      },
+      {
+        "title": "Review and Comparison",
+        "path": "word/review/index.md",
+        "href": "/docs/word/review/"
+      },
+      {
+        "title": "Word Conversion and Rendering",
+        "path": "word/conversion/index.md",
+        "href": "/docs/word/conversion/"
+      },
+      {
+        "title": "Production Workflows",
+        "path": "word/market-readiness/index.md",
+        "href": "/docs/word/market-readiness/"
+      }
     ]
   },
   {
     "title": "Excel Workbooks",
     "items": [
-      { "title": "Excel Overview", "path": "excel/index.md", "href": "/docs/excel/" },
-      { "title": "Worksheets", "path": "excel/worksheets/index.md", "href": "/docs/excel/worksheets/" },
-      { "title": "Tables & Ranges", "path": "excel/tables-ranges/index.md", "href": "/docs/excel/tables-ranges/" }
+      {
+        "title": "Excel Overview",
+        "path": "excel/index.md",
+        "href": "/docs/excel/"
+      },
+      {
+        "title": "Worksheets",
+        "path": "excel/worksheets/index.md",
+        "href": "/docs/excel/worksheets/"
+      },
+      {
+        "title": "Tables & Ranges",
+        "path": "excel/tables-ranges/index.md",
+        "href": "/docs/excel/tables-ranges/"
+      }
     ]
   },
   {
     "title": "PowerPoint",
     "items": [
-      { "title": "PowerPoint Overview", "path": "powerpoint/index.md", "href": "/docs/powerpoint/" },
-      { "title": "Slides", "path": "powerpoint/slides/index.md", "href": "/docs/powerpoint/slides/" },
-      { "title": "Designer Decks", "path": "powerpoint/designer/index.md", "href": "/docs/powerpoint/designer/" },
-      { "title": "Templates and Brand Kits", "path": "powerpoint/templates/index.md", "href": "/docs/powerpoint/templates/" },
-      { "title": "PowerPoint Image Export", "path": "powerpoint/image-export/index.md", "href": "/docs/powerpoint/image-export/" },
-      { "title": "Capability Matrix", "path": "powerpoint/capabilities/index.md", "href": "/docs/powerpoint/capabilities/" }
+      {
+        "title": "PowerPoint Overview",
+        "path": "powerpoint/index.md",
+        "href": "/docs/powerpoint/"
+      },
+      {
+        "title": "Slides",
+        "path": "powerpoint/slides/index.md",
+        "href": "/docs/powerpoint/slides/"
+      },
+      {
+        "title": "Designer Decks",
+        "path": "powerpoint/designer/index.md",
+        "href": "/docs/powerpoint/designer/"
+      },
+      {
+        "title": "Templates and Brand Kits",
+        "path": "powerpoint/templates/index.md",
+        "href": "/docs/powerpoint/templates/"
+      },
+      {
+        "title": "PowerPoint Image Export",
+        "path": "powerpoint/image-export/index.md",
+        "href": "/docs/powerpoint/image-export/"
+      },
+      {
+        "title": "Capability Matrix",
+        "path": "powerpoint/capabilities/index.md",
+        "href": "/docs/powerpoint/capabilities/"
+      }
     ]
   },
   {
     "title": "PDF, Email, and Notes",
     "items": [
-      { "title": "PDF Overview", "path": "pdf/index.md", "href": "/docs/pdf/" },
-      { "title": "PDF Authoring", "path": "pdf/authoring/index.md", "href": "/docs/pdf/authoring/" },
-      { "title": "PDF Operations", "path": "pdf/operations/index.md", "href": "/docs/pdf/operations/" },
-      { "title": "PDF Security", "path": "pdf/security/index.md", "href": "/docs/pdf/security/" },
-      { "title": "PDF Conversion", "path": "pdf/conversion/index.md", "href": "/docs/pdf/conversion/" },
-      { "title": "Email and Outlook Data", "path": "email/index.md", "href": "/docs/email/" },
-      { "title": "Messages and Conversion", "path": "email/messages-and-conversion/index.md", "href": "/docs/email/messages-and-conversion/" },
-      { "title": "Mailbox Stores", "path": "email/mailbox-stores/index.md", "href": "/docs/email/mailbox-stores/" },
-      { "title": "Calendars and Contacts", "path": "email/calendars-and-contacts/index.md", "href": "/docs/email/calendars-and-contacts/" },
-      { "title": "Safety and Verification", "path": "email/safety-and-verification/index.md", "href": "/docs/email/safety-and-verification/" },
-      { "title": "OneNote", "path": "onenote/index.md", "href": "/docs/onenote/" },
-      { "title": "OneNote Export and Conversion", "path": "onenote/export-and-convert/index.md", "href": "/docs/onenote/export-and-convert/" }
+      {
+        "title": "PDF Overview",
+        "path": "pdf/index.md",
+        "href": "/docs/pdf/"
+      },
+      {
+        "title": "PDF Authoring",
+        "path": "pdf/authoring/index.md",
+        "href": "/docs/pdf/authoring/"
+      },
+      {
+        "title": "PDF Operations",
+        "path": "pdf/operations/index.md",
+        "href": "/docs/pdf/operations/"
+      },
+      {
+        "title": "PDF Security",
+        "path": "pdf/security/index.md",
+        "href": "/docs/pdf/security/"
+      },
+      {
+        "title": "PDF Conversion",
+        "path": "pdf/conversion/index.md",
+        "href": "/docs/pdf/conversion/"
+      },
+      {
+        "title": "Email and Outlook Data",
+        "path": "email/index.md",
+        "href": "/docs/email/"
+      },
+      {
+        "title": "Messages and Conversion",
+        "path": "email/messages-and-conversion/index.md",
+        "href": "/docs/email/messages-and-conversion/"
+      },
+      {
+        "title": "Mailbox Stores",
+        "path": "email/mailbox-stores/index.md",
+        "href": "/docs/email/mailbox-stores/"
+      },
+      {
+        "title": "Calendars and Contacts",
+        "path": "email/calendars-and-contacts/index.md",
+        "href": "/docs/email/calendars-and-contacts/"
+      },
+      {
+        "title": "Safety and Verification",
+        "path": "email/safety-and-verification/index.md",
+        "href": "/docs/email/safety-and-verification/"
+      },
+      {
+        "title": "OneNote",
+        "path": "onenote/index.md",
+        "href": "/docs/onenote/"
+      },
+      {
+        "title": "OneNote Export and Conversion",
+        "path": "onenote/export-and-convert/index.md",
+        "href": "/docs/onenote/export-and-convert/"
+      }
     ]
   },
   {
     "title": "Web and Open Formats",
     "items": [
-      { "title": "HTML and MHTML", "path": "html/index.md", "href": "/docs/html/" },
-      { "title": "HTML Rendering and Conversion", "path": "html/render-and-convert/index.md", "href": "/docs/html/render-and-convert/" },
-      { "title": "Rich Text Format", "path": "rtf/index.md", "href": "/docs/rtf/" },
-      { "title": "EPUB Extraction", "path": "epub/index.md", "href": "/docs/epub/" },
-      { "title": "OpenDocument", "path": "open-document/index.md", "href": "/docs/open-document/" },
-      { "title": "Apple iWork", "path": "iwork/index.md", "href": "/docs/iwork/" }
+      {
+        "title": "HTML and MHTML",
+        "path": "html/index.md",
+        "href": "/docs/html/"
+      },
+      {
+        "title": "HTML Rendering and Conversion",
+        "path": "html/render-and-convert/index.md",
+        "href": "/docs/html/render-and-convert/"
+      },
+      {
+        "title": "Rich Text Format",
+        "path": "rtf/index.md",
+        "href": "/docs/rtf/"
+      },
+      {
+        "title": "EPUB Extraction",
+        "path": "epub/index.md",
+        "href": "/docs/epub/"
+      },
+      {
+        "title": "OpenDocument",
+        "path": "open-document/index.md",
+        "href": "/docs/open-document/"
+      },
+      {
+        "title": "Apple iWork",
+        "path": "iwork/index.md",
+        "href": "/docs/iwork/"
+      }
     ]
   },
   {
     "title": "Markdown",
     "items": [
-      { "title": "Markdown Overview", "path": "markdown/index.md", "href": "/docs/markdown/" },
-      { "title": "Builder API", "path": "markdown/builder/index.md", "href": "/docs/markdown/builder/" }
+      {
+        "title": "Markdown Overview",
+        "path": "markdown/index.md",
+        "href": "/docs/markdown/"
+      },
+      {
+        "title": "Builder API",
+        "path": "markdown/builder/index.md",
+        "href": "/docs/markdown/builder/"
+      }
     ]
   },
   {
     "title": "CSV",
     "items": [
-      { "title": "CSV Overview", "path": "csv/index.md", "href": "/docs/csv/" }
+      {
+        "title": "CSV Overview",
+        "path": "csv/index.md",
+        "href": "/docs/csv/"
+      }
     ]
   },
   {
     "title": "Visio",
     "items": [
-      { "title": "Visio Overview", "path": "visio/index.md", "href": "/docs/visio/" },
-      { "title": "Diagram Builders", "path": "visio/diagram-builders/index.md", "href": "/docs/visio/diagram-builders/" },
-      { "title": "Editing and Validation", "path": "visio/editing-and-validation/index.md", "href": "/docs/visio/editing-and-validation/" },
-      { "title": "Stencils and Catalogs", "path": "visio/stencils-and-catalogs/index.md", "href": "/docs/visio/stencils-and-catalogs/" },
-      { "title": "Visio Image Export", "path": "visio/image-export/index.md", "href": "/docs/visio/image-export/" }
+      {
+        "title": "Visio Overview",
+        "path": "visio/index.md",
+        "href": "/docs/visio/"
+      },
+      {
+        "title": "Diagram Builders",
+        "path": "visio/diagram-builders/index.md",
+        "href": "/docs/visio/diagram-builders/"
+      },
+      {
+        "title": "Editing and Validation",
+        "path": "visio/editing-and-validation/index.md",
+        "href": "/docs/visio/editing-and-validation/"
+      },
+      {
+        "title": "Stencils and Catalogs",
+        "path": "visio/stencils-and-catalogs/index.md",
+        "href": "/docs/visio/stencils-and-catalogs/"
+      },
+      {
+        "title": "Visio Image Export",
+        "path": "visio/image-export/index.md",
+        "href": "/docs/visio/image-export/"
+      }
     ]
   },
   {
     "title": "Reader",
     "items": [
-      { "title": "Reader Overview", "path": "reader/index.md", "href": "/docs/reader/" }
+      {
+        "title": "Reader Overview",
+        "path": "reader/index.md",
+        "href": "/docs/reader/"
+      }
     ]
   },
   {
     "title": "PSWriteOffice",
     "items": [
-      { "title": "PSWriteOffice Overview", "path": "pswriteoffice/index.md", "href": "/docs/pswriteoffice/" },
-      { "title": "Platform and Command Map", "path": "pswriteoffice/overview/index.md", "href": "/docs/pswriteoffice/overview/" },
-      { "title": "Install and Update", "path": "pswriteoffice/install/index.md", "href": "/docs/pswriteoffice/install/" },
-      { "title": "Choose a Workflow", "path": "pswriteoffice/choosing-a-workflow/index.md", "href": "/docs/pswriteoffice/choosing-a-workflow/" },
-      { "title": "All Command Families", "path": "pswriteoffice/command-families/index.md", "href": "/docs/pswriteoffice/command-families/" },
-      { "title": "Compare ImportExcel and ExcelFast", "path": "pswriteoffice/compare-importexcel-excelfast/index.md", "href": "/docs/pswriteoffice/compare-importexcel-excelfast/" },
-      { "title": "Compare Office Automation Options", "path": "pswriteoffice/compare-office-automation-options/index.md", "href": "/docs/pswriteoffice/compare-office-automation-options/" },
-      { "title": "Migrate from Legacy Modules", "path": "pswriteoffice/migrate-from-legacy-modules/index.md", "href": "/docs/pswriteoffice/migrate-from-legacy-modules/" },
-      { "title": "Migrate from PSWriteWord", "path": "pswriteoffice/migrate-from-pswriteword/index.md", "href": "/docs/pswriteoffice/migrate-from-pswriteword/" },
-      { "title": "Migrate from PSWriteExcel", "path": "pswriteoffice/migrate-from-pswriteexcel/index.md", "href": "/docs/pswriteoffice/migrate-from-pswriteexcel/" },
-      { "title": "Migrate from PSWritePDF", "path": "pswriteoffice/migrate-from-pswritepdf/index.md", "href": "/docs/pswriteoffice/migrate-from-pswritepdf/" },
-      { "title": "Word Cmdlets", "path": "pswriteoffice/word/index.md", "href": "/docs/pswriteoffice/word/" },
-      { "title": "Excel Cmdlets", "path": "pswriteoffice/excel/index.md", "href": "/docs/pswriteoffice/excel/" },
-      { "title": "PowerPoint Cmdlets", "path": "pswriteoffice/powerpoint/index.md", "href": "/docs/pswriteoffice/powerpoint/" },
-      { "title": "PDF Cmdlets", "path": "pswriteoffice/pdf/index.md", "href": "/docs/pswriteoffice/pdf/" },
-      { "title": "Reader Cmdlets", "path": "pswriteoffice/reader/index.md", "href": "/docs/pswriteoffice/reader/" },
-      { "title": "Confluence Cloud Cmdlets", "path": "pswriteoffice/confluence/index.md", "href": "/docs/pswriteoffice/confluence/" },
-      { "title": "Visio Cmdlets", "path": "pswriteoffice/visio/index.md", "href": "/docs/pswriteoffice/visio/" },
-      { "title": "Open and Text Formats", "path": "pswriteoffice/open-text-formats/index.md", "href": "/docs/pswriteoffice/open-text-formats/" },
-      { "title": "Automation Patterns", "path": "pswriteoffice/automation-patterns/index.md", "href": "/docs/pswriteoffice/automation-patterns/" },
-      { "title": "Troubleshooting", "path": "pswriteoffice/troubleshooting/index.md", "href": "/docs/pswriteoffice/troubleshooting/" }
+      {
+        "title": "PSWriteOffice Overview",
+        "path": "pswriteoffice/index.md",
+        "href": "/docs/pswriteoffice/"
+      },
+      {
+        "title": "Platform and Command Map",
+        "path": "pswriteoffice/overview/index.md",
+        "href": "/docs/pswriteoffice/overview/"
+      },
+      {
+        "title": "Install and Update",
+        "path": "pswriteoffice/install/index.md",
+        "href": "/docs/pswriteoffice/install/"
+      },
+      {
+        "title": "Choose a Workflow",
+        "path": "pswriteoffice/choosing-a-workflow/index.md",
+        "href": "/docs/pswriteoffice/choosing-a-workflow/"
+      },
+      {
+        "title": "All Command Families",
+        "path": "pswriteoffice/command-families/index.md",
+        "href": "/docs/pswriteoffice/command-families/"
+      },
+      {
+        "title": "Compare ImportExcel and ExcelFast",
+        "path": "pswriteoffice/compare-importexcel-excelfast/index.md",
+        "href": "/docs/pswriteoffice/compare-importexcel-excelfast/"
+      },
+      {
+        "title": "Compare Office Automation Options",
+        "path": "pswriteoffice/compare-office-automation-options/index.md",
+        "href": "/docs/pswriteoffice/compare-office-automation-options/"
+      },
+      {
+        "title": "Migrate from Legacy Modules",
+        "path": "pswriteoffice/migrate-from-legacy-modules/index.md",
+        "href": "/docs/pswriteoffice/migrate-from-legacy-modules/"
+      },
+      {
+        "title": "Migrate from PSWriteWord",
+        "path": "pswriteoffice/migrate-from-pswriteword/index.md",
+        "href": "/docs/pswriteoffice/migrate-from-pswriteword/"
+      },
+      {
+        "title": "Migrate from PSWriteExcel",
+        "path": "pswriteoffice/migrate-from-pswriteexcel/index.md",
+        "href": "/docs/pswriteoffice/migrate-from-pswriteexcel/"
+      },
+      {
+        "title": "Migrate from PSWritePDF",
+        "path": "pswriteoffice/migrate-from-pswritepdf/index.md",
+        "href": "/docs/pswriteoffice/migrate-from-pswritepdf/"
+      },
+      {
+        "title": "Word Cmdlets",
+        "path": "pswriteoffice/word/index.md",
+        "href": "/docs/pswriteoffice/word/"
+      },
+      {
+        "title": "Excel Cmdlets",
+        "path": "pswriteoffice/excel/index.md",
+        "href": "/docs/pswriteoffice/excel/"
+      },
+      {
+        "title": "PowerPoint Cmdlets",
+        "path": "pswriteoffice/powerpoint/index.md",
+        "href": "/docs/pswriteoffice/powerpoint/"
+      },
+      {
+        "title": "PDF Cmdlets",
+        "path": "pswriteoffice/pdf/index.md",
+        "href": "/docs/pswriteoffice/pdf/"
+      },
+      {
+        "title": "Reader Cmdlets",
+        "path": "pswriteoffice/reader/index.md",
+        "href": "/docs/pswriteoffice/reader/"
+      },
+      {
+        "title": "Confluence Cloud Cmdlets",
+        "path": "pswriteoffice/confluence/index.md",
+        "href": "/docs/pswriteoffice/confluence/"
+      },
+      {
+        "title": "Visio Cmdlets",
+        "path": "pswriteoffice/visio/index.md",
+        "href": "/docs/pswriteoffice/visio/"
+      },
+      {
+        "title": "Open and Text Formats",
+        "path": "pswriteoffice/open-text-formats/index.md",
+        "href": "/docs/pswriteoffice/open-text-formats/"
+      },
+      {
+        "title": "Automation Patterns",
+        "path": "pswriteoffice/automation-patterns/index.md",
+        "href": "/docs/pswriteoffice/automation-patterns/"
+      },
+      {
+        "title": "Troubleshooting",
+        "path": "pswriteoffice/troubleshooting/index.md",
+        "href": "/docs/pswriteoffice/troubleshooting/"
+      }
     ]
   },
   {
     "title": "Google Workspace",
     "items": [
-      { "title": "Google Workspace Overview", "path": "google-workspace/index.md", "href": "/docs/google-workspace/" },
-      { "title": "Word and Google Docs", "path": "google-workspace/docs/index.md", "href": "/docs/google-workspace/docs/" },
-      { "title": "Excel and Google Sheets", "path": "google-workspace/sheets/index.md", "href": "/docs/google-workspace/sheets/" },
-      { "title": "PowerPoint and Google Slides", "path": "google-workspace/slides/index.md", "href": "/docs/google-workspace/slides/" },
-      { "title": "Google Drive", "path": "google-workspace/drive/index.md", "href": "/docs/google-workspace/drive/" },
-      { "title": "Authentication", "path": "google-workspace/authentication/index.md", "href": "/docs/google-workspace/authentication/" },
-      { "title": "Shared drives", "path": "google-workspace/shared-drives/index.md", "href": "/docs/google-workspace/shared-drives/" },
-      { "title": "Synchronization", "path": "google-workspace/sync/index.md", "href": "/docs/google-workspace/sync/" },
-      { "title": "Live tests", "path": "google-workspace/live-tests/index.md", "href": "/docs/google-workspace/live-tests/" },
-      { "title": "Support matrix", "path": "google-workspace/support/index.md", "href": "/docs/google-workspace/support/" },
-      { "title": "Package ownership", "path": "google-workspace/package-ownership/index.md", "href": "/docs/google-workspace/package-ownership/" }
+      {
+        "title": "Google Workspace Overview",
+        "path": "google-workspace/index.md",
+        "href": "/docs/google-workspace/"
+      },
+      {
+        "title": "Word and Google Docs",
+        "path": "google-workspace/docs/index.md",
+        "href": "/docs/google-workspace/docs/"
+      },
+      {
+        "title": "Excel and Google Sheets",
+        "path": "google-workspace/sheets/index.md",
+        "href": "/docs/google-workspace/sheets/"
+      },
+      {
+        "title": "PowerPoint and Google Slides",
+        "path": "google-workspace/slides/index.md",
+        "href": "/docs/google-workspace/slides/"
+      },
+      {
+        "title": "Google Drive",
+        "path": "google-workspace/drive/index.md",
+        "href": "/docs/google-workspace/drive/"
+      },
+      {
+        "title": "Authentication",
+        "path": "google-workspace/authentication/index.md",
+        "href": "/docs/google-workspace/authentication/"
+      },
+      {
+        "title": "Shared drives",
+        "path": "google-workspace/shared-drives/index.md",
+        "href": "/docs/google-workspace/shared-drives/"
+      },
+      {
+        "title": "Synchronization",
+        "path": "google-workspace/sync/index.md",
+        "href": "/docs/google-workspace/sync/"
+      },
+      {
+        "title": "Live tests",
+        "path": "google-workspace/live-tests/index.md",
+        "href": "/docs/google-workspace/live-tests/"
+      },
+      {
+        "title": "Support matrix",
+        "path": "google-workspace/support/index.md",
+        "href": "/docs/google-workspace/support/"
+      },
+      {
+        "title": "Package ownership",
+        "path": "google-workspace/package-ownership/index.md",
+        "href": "/docs/google-workspace/package-ownership/"
+      }
     ]
   },
   {
     "title": "Converters",
     "items": [
-      { "title": "Word to HTML", "path": "converters/word-html/index.md", "href": "/docs/converters/word-html/" },
-      { "title": "Word to Markdown", "path": "converters/word-markdown/index.md", "href": "/docs/converters/word-markdown/" },
-      { "title": "Browser Playground", "path": "converters/browser-playground/index.md", "href": "/docs/converters/browser-playground/" }
+      {
+        "title": "Word to HTML",
+        "path": "converters/word-html/index.md",
+        "href": "/docs/converters/word-html/"
+      },
+      {
+        "title": "Word to Markdown",
+        "path": "converters/word-markdown/index.md",
+        "href": "/docs/converters/word-markdown/"
+      },
+      {
+        "title": "Browser Playground",
+        "path": "converters/browser-playground/index.md",
+        "href": "/docs/converters/browser-playground/"
+      }
     ]
   },
   {
     "title": "Advanced",
     "items": [
-      { "title": "AOT & Trimming", "path": "advanced/aot-trimming/index.md", "href": "/docs/advanced/aot-trimming/" }
+      {
+        "title": "AOT & Trimming",
+        "path": "advanced/aot-trimming/index.md",
+        "href": "/docs/advanced/aot-trimming/"
+      }
     ]
   }
 ]

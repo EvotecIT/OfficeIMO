@@ -381,6 +381,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
+Scanned-page images support managed CCITT Group 3/4 decoding and packed 1-, 2-, and 4-bit DeviceGray samples. Opaque JPEG 2000 Gray/RGB images require a caller-supplied `IOfficeRasterImageCodec`; embedded or external masks, channel remapping, and color normalization remain diagnosed limitations. Missing scan decoders and malformed scan data fail raster rendering instead of producing a blank successful page. See the [OCR integration](../OfficeIMO.Pdf.Ocr/README.md#scan-rendering-and-execution-limits) for the decoder limits and scan-to-searchable-PDF workflow.
+
 Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
 
 ```csharp
@@ -749,6 +751,17 @@ Table schema remains evidence-based. Tagged header roles or distinct header
 typography can establish the first row as a header. Otherwise `SchemaKind` is
 `Unknown`, every source row remains data, and `Columns` contains empty names;
 the parser does not invent translated or English column labels.
+
+The structured reader handles repeated column gutters, mixed Latin/Hebrew/Arabic
+fragments, and dominant quarter-turn text layouts while retaining source-page
+geometry. Invisible searchable-text boxes use their selection geometry for line
+and table recovery. Reconstructed columns expose full source-page rectangles in
+`PdfLogicalTableColumn.VisualBounds`; at 90 or 270 degrees, distinct columns can
+share the same X projection in `From` and `To`. Continuation matching uses their
+actual progression axis. For OCR providers that merge columns into one line, opt into
+[`ReconstructLayout`](../OfficeIMO.Pdf.Ocr/README.md#reconstruct-columns-and-mixed-direction-text).
+The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md)
+records exact fixture coverage and recognition limits.
 
 ### Split and extract pages
 

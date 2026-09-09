@@ -4,7 +4,7 @@ description: "Create, inspect, arrange, stencil, and export VSDX diagrams from P
 layout: docs
 ---
 
-The Visio family exports 20 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
+The Visio family exports 21 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
 
 ## Create with primitives or stencils
 
@@ -20,4 +20,4 @@ Stencil commands can discover catalogs, find shapes, import packages, and export
 
 `Get-OfficeVisio` and `Get-OfficeVisioInfo` expose document and diagram evidence. `ConvertTo-OfficeVisioSvg` and `ConvertTo-OfficeVisioPng` provide portable review output without replacing the editable VSDX source.
 
-See the [Visio examples](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.
+See the [Visio examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.

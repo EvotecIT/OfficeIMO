@@ -1,0 +1,24 @@
+{
+  "baseline": "phase-one OfficeIMO.Excel.dll; desktop COM test passed",
+  "normalization": "Generated relationship IDs replaced by stable hashes of relationship-part path, type, target, and target mode; all other uncompressed bytes compared exactly.",
+  "results": [
+    {
+      "case": "c6a998b0a4394c9f848abf0508ae21c7",
+      "packageBytes": 5796,
+      "partCount": 15,
+      "equalApartFromGeneratedRelationshipIds": true
+    },
+    {
+      "case": "29a4da40e2b54bd1ab34d88516084a89",
+      "packageBytes": 5794,
+      "partCount": 15,
+      "equalApartFromGeneratedRelationshipIds": true
+    },
+    {
+      "case": "6abda752e08c493daaf0db2ca8de1935",
+      "packageBytes": 5796,
+      "partCount": 15,
+      "equalApartFromGeneratedRelationshipIds": true
+    }
+  ]
+}
