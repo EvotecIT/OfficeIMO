@@ -70,11 +70,17 @@ public sealed class DirectEditingVisualTests {
         }, default);
     }
 
-    [Fact]
-    public async Task DraggingImageHandleResizesThroughWorkspaceAndSupportsUndo() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelectedObjectClickDoesNotMoveButHandleDragResizesAndSupportsUndo(bool annotation) {
         using var files = new TextEditingReviewTests.Files();
         byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-        PdfDocument document = TextEditingReviewTests.CreateDocument().Images.Add(new PdfPageRegion(1, 150, 450, 120, 60), image).Document;
+        PdfDocument document = annotation
+            ? PdfDocument.Load(TextEditingReviewTests.CreateDocument().Annotations.Add(new PdfAnnotationCreateOptions {
+                Subtype = "Square", Rectangle = [2, 450, 122, 510], Contents = "Review area"
+            }).Bytes)
+            : TextEditingReviewTests.CreateDocument().Images.Add(new PdfPageRegion(1, 2, 450, 120, 60), image).Document;
         document.Save(files.Source);
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
@@ -84,21 +90,31 @@ public sealed class DirectEditingVisualTests {
                 window.Show();
                 await window.TabHost.OpenDocumentAsync(files.Source);
                 var model = window.ViewModel;
-                model.ShowEditModeCommand.Execute(null);
+                if (annotation) model.ShowAnnotateModeCommand.Execute(null); else model.ShowEditModeCommand.Execute(null);
                 window.UpdateLayout();
                 await TextEditingReviewTests.WaitUntilAsync(() => model.Pages[0].Scene is not null);
                 window.UpdateLayout();
-                var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control => control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.PageContent);
-                PdfPageInteractionRegion region = document.Render.Interactions(1).Regions.Single(item => item.Kind == PdfInteractionKind.Image);
+                var mode = annotation ? PdfEditorSelectionMode.Annotations : PdfEditorSelectionMode.PageContent;
+                var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control => control.Scene?.PageNumber == 1 && control.SelectionMode == mode);
+                PdfPageInteractionRegion region = document.Render.Interactions(1).Regions.Single(item => item.Kind == (annotation ? PdfInteractionKind.Annotation : PdfInteractionKind.Image));
                 Point center = PagePoint(canvas, (region.Quad.Left + region.Quad.Right) / 2, (region.Quad.Top + region.Quad.Bottom) / 2, window);
                 window.MouseDown(center, MouseButton.Left); window.MouseUp(center, MouseButton.Left);
-                Capture(window, "image-selection.png");
-                Assert.True(model.HasSelectedImage, $"Click {center}; canvas {canvas.Bounds}; mode {canvas.SelectionMode}; error {model.ErrorMessage}");
+                Capture(window, annotation ? "annotation-selection.png" : "image-selection.png");
+                Assert.True(annotation ? model.HasSelectedAnnotation : model.HasSelectedImage, $"Click {center}; canvas {canvas.Bounds}; mode {canvas.SelectionMode}; error {model.ErrorMessage}");
+                var selected = model.SelectedObject;
+                window.MouseDown(center, MouseButton.Left); window.MouseUp(center, MouseButton.Left);
+                Assert.False(model.IsWorkspaceBusy || model.IsDirty);
+                Assert.Same(selected, model.SelectedObject);
+                window.MouseDown(center, MouseButton.Left);
+                window.MouseMove(center + new Vector(1, 1), RawInputModifiers.LeftMouseButton);
+                window.MouseUp(center + new Vector(1, 1), MouseButton.Left);
+                Assert.False(model.IsWorkspaceBusy || model.IsDirty);
+                Assert.Same(selected, model.SelectedObject);
                 Point corner = PagePoint(canvas, region.Quad.Right, region.Quad.Bottom, window);
                 window.MouseDown(corner, MouseButton.Left);
                 Point target = corner + new Vector(45, 22.5);
                 window.MouseMove(target, RawInputModifiers.LeftMouseButton);
-                Capture(window, "image-resize-handles.png");
+                Capture(window, annotation ? "annotation-resize-handles.png" : "image-resize-handles.png");
                 window.MouseUp(target, MouseButton.Left);
                 await TextEditingReviewTests.WaitUntilAsync(() => !model.IsWorkspaceBusy && model.IsDirty);
                 Assert.False(model.HasError, model.ErrorMessage);

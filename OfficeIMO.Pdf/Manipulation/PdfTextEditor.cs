@@ -361,12 +361,18 @@ internal static partial class PdfTextEditor {
         PdfPageRegion region,
         PdfTextEditOptions options,
         out string? warning) {
+        double radians = style.RotationDegrees * Math.PI / 180D;
+        double availableWidth = Math.Abs(Math.Cos(radians)) * region.Width + Math.Abs(Math.Sin(radians)) * region.Height;
+        return FitStyleToBaselineExtent(style, text, availableWidth, options, out warning);
+    }
+
+    private static PdfResolvedTextStyle FitStyleToBaselineExtent(
+        PdfResolvedTextStyle style, string text, double availableWidth,
+        PdfTextEditOptions options, out string? warning) {
         warning = null;
         if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.PreserveFontSize || text.Length == 0) return style;
         string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         double widestLine = lines.Max(line => PdfWriter.EstimateSimpleTextWidth(line, style.Font, style.FontSize));
-        double radians = style.RotationDegrees * Math.PI / 180D;
-        double availableWidth = Math.Abs(Math.Cos(radians)) * region.Width + Math.Abs(Math.Sin(radians)) * region.Height;
         if (widestLine <= availableWidth + 0.01D) return style;
         if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.RejectOverflow) {
             throw new NotSupportedException("The replacement text exceeds the selected region's baseline extent under the RejectOverflow width policy.");

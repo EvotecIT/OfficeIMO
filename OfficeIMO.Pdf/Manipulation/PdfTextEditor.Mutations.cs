@@ -164,8 +164,7 @@ internal static partial class PdfTextEditor {
             PdfResolvedTextStyle? fittedStyle = null;
             if (snapshot.RegionWidthPolicy != PdfTextRegionWidthPolicy.PreserveFontSize && replacement.Length > 0) {
                 PdfResolvedTextStyle style = ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }));
-                fittedStyle = FitStyleToRegion(style, replacement,
-                    new PdfPageRegion(hit.PageNumber, hit.Match.X, hit.Match.Y, hit.Match.Width, hit.Match.Height),
+                fittedStyle = FitStyleToBaselineExtent(style, replacement, GetMatchedBaselineExtent(hit.Segments),
                     snapshot, out string? fitWarning);
                 if (fitWarning is not null) fitWarnings.Add(fitWarning);
             }

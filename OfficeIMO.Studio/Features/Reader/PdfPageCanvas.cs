@@ -168,6 +168,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) {
         base.OnDetachedFromVisualTree(e);
+        ResetObjectTransform();
         _renderer.ClearImages();
         _selecting = false;
         _editing = false;

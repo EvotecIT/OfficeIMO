@@ -10,6 +10,8 @@ internal sealed record PdfObjectTransformGesture(PdfEditorSelection Selection, P
 public sealed partial class PdfPageCanvas {
     private PdfEditorSelection? _transformSelection;
     private Point _transformStart;
+    private Point _transformPointerStart;
+    private bool _transformDragging;
     private Rect _transformTarget;
     private int _transformHandle;
     private double? _alignmentX;
@@ -27,6 +29,8 @@ public sealed partial class PdfPageCanvas {
         if (handle < 0 && !bounds.Contains(point)) return false;
         _transformSelection = selected;
         _transformStart = point;
+        _transformPointerStart = e.GetPosition(this);
+        _transformDragging = false;
         _transformTarget = bounds;
         _transformHandle = handle;
         e.Pointer.Capture(this);
@@ -36,6 +40,10 @@ public sealed partial class PdfPageCanvas {
 
     private bool UpdateObjectTransform(PointerEventArgs e) {
         if (_transformSelection is not { } selection || Scene is not { } scene) return false;
+        e.Handled = true;
+        // Match the reader's click threshold in display units, independently of page zoom.
+        if (!_transformDragging && Distance(e.GetPosition(this), _transformPointerStart) < 4D) return true;
+        _transformDragging = true;
         Point point = ToPagePoint(e.GetPosition(this));
         var original = new Rect(selection.Bounds.Left, selection.Bounds.Top, selection.Bounds.Width, selection.Bounds.Height);
         var delta = point - _transformStart;
@@ -64,10 +72,11 @@ public sealed partial class PdfPageCanvas {
         if (_transformSelection is not { } selection) return false;
         UpdateObjectTransform(e);
         Rect target = _transformTarget;
+        bool dragged = _transformDragging;
         ResetObjectTransform();
         e.Pointer.Capture(null);
         e.Handled = true;
-        if (Math.Abs(target.Left - selection.Bounds.Left) + Math.Abs(target.Top - selection.Bounds.Top) +
+        if (dragged && Math.Abs(target.Left - selection.Bounds.Left) + Math.Abs(target.Top - selection.Bounds.Top) +
             Math.Abs(target.Width - selection.Bounds.Width) + Math.Abs(target.Height - selection.Bounds.Height) > 0.1) {
             ObjectTransformCompleted?.Invoke(new(selection, new(target.Left, target.Top, target.Right, target.Bottom)));
         }
@@ -75,7 +84,7 @@ public sealed partial class PdfPageCanvas {
         return true;
     }
 
-    private void ResetObjectTransform() { _transformSelection = null; _alignmentX = null; _alignmentY = null; }
+    private void ResetObjectTransform() { _transformSelection = null; _transformDragging = false; _alignmentX = null; _alignmentY = null; }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) {
         base.OnPointerCaptureLost(e);
@@ -84,7 +93,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     private void DrawObjectTransform(DrawingContext context) {
-        if (_transformSelection is null || Scene is not { } scene) return;
+        if (!_transformDragging || _transformSelection is null || Scene is not { } scene) return;
         var pen = new Pen(Brushes.DodgerBlue, 1.5);
         context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, 30, 144, 255)), pen, _transformTarget);
         DrawSelectionHandles(context, _transformTarget, Colors.DodgerBlue);

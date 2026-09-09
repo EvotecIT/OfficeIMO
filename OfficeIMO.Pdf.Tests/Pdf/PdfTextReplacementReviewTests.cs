@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTextReplacementReviewTests {
+    [Theory]
+    [InlineData(30)] [InlineData(45)] [InlineData(60)] [InlineData(135)] [InlineData(225)]
+    public void DiagonalMatchFitsItsBaselineAdvanceRatherThanEnclosingRectangle(double rotation) {
+        byte[] bytes = PdfStamper.StampText(Create("Unchanged").ToBytes(), "AAAA", new PdfTextStampOptions {
+            X = 200, Y = 300, Font = PdfStandardFont.Courier, FontSize = 12, RotationDegrees = rotation
+        });
+        PdfDocument source = PdfDocument.Load(bytes);
+        PdfTextMatch match = Assert.Single(source.Text.Find("AAAA"));
+        Assert.Throws<NotSupportedException>(() => source.Text.Replace(match, "AAAAA",
+            new PdfTextEditOptions { RegionWidthPolicy = PdfTextRegionWidthPolicy.RejectOverflow }));
+        PdfTextEditResult result = source.Text.Replace(match, "AAAAA", new PdfTextEditOptions {
+            RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit, MinimumFontSize = 1
+        });
+        PdfTextMatch changed = Assert.Single(result.Document.Text.Find("AAAAA"));
+        Assert.InRange(changed.FontSize, 9.58, 9.62);
+        Assert.Contains("Unchanged", result.Document.Read().Text);
+    }
+
     [Fact]
     public void ClickingTextSelectsItsWordWithoutAdjacentWhitespaceOrWords() {
         PdfDocument source = Create("Before Account After");
