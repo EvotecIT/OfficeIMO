@@ -1775,4 +1775,33 @@
   <data name="Conversion.Preview.Failed" xml:space="preserve"><value>Preview unavailable: </value></data>
   <data name="Conversion.Output.OpenFailed" xml:space="preserve"><value>The output could not be opened: </value></data>
   <data name="Conversion.Job.VisualFidelity" xml:space="preserve"><value>Visual page images · review rendering and editability limits</value></data>
+  <data name="Scan.Title" xml:space="preserve"><value>Scan preparation</value></data>
+  <data name="Scan.Hint" xml:space="preserve"><value>Preview a page, draw an OCR region, or correct a photographed page before recognition.</value></data>
+  <data name="Scan.Page" xml:space="preserve"><value>Preview page</value></data>
+  <data name="Scan.Cleanup" xml:space="preserve"><value>Apply scan cleanup</value></data>
+  <data name="Scan.Adjustments" xml:space="preserve"><value>Straightening and levels</value></data>
+  <data name="Scan.Deskew" xml:space="preserve"><value>Automatic deskew</value></data>
+  <data name="Scan.Background" xml:space="preserve"><value>Normalize paper brightness</value></data>
+  <data name="Scan.Turns" xml:space="preserve"><value>Clockwise quarter-turns</value></data>
+  <data name="Scan.Straighten" xml:space="preserve"><value>Straighten (degrees)</value></data>
+  <data name="Scan.Black" xml:space="preserve"><value>Black point</value></data>
+  <data name="Scan.White" xml:space="preserve"><value>White point</value></data>
+  <data name="Scan.Gamma" xml:space="preserve"><value>Midtone gamma</value></data>
+  <data name="Scan.Color" xml:space="preserve"><value>Color mode</value></data>
+  <data name="Scan.Region" xml:space="preserve"><value>Use drawn region (this page only)</value></data>
+  <data name="Scan.Perspective" xml:space="preserve"><value>Correct perspective</value></data>
+  <data name="Scan.MoveCorners" xml:space="preserve"><value>Move page corners instead of drawing a region</value></data>
+  <data name="Scan.Reset" xml:space="preserve"><value>Reset region and corners</value></data>
+  <data name="Scan.Preview" xml:space="preserve"><value>Preview preparation</value></data>
+  <data name="Scan.Source" xml:space="preserve"><value>Source page</value></data>
+  <data name="Scan.DrawHint" xml:space="preserve"><value>Drag to select a region. Enable perspective and move the four corners to the page edges. Preview again after adjustments.</value></data>
+  <data name="Scan.Prepared" xml:space="preserve"><value>Prepared appearance</value></data>
+  <data name="Scan.SaveHint" xml:space="preserve"><value>Save creates a separate raster PDF of this preview page. Native text, forms, links, signatures, and attachments are omitted. Recognize and review keeps the visible source unchanged.</value></data>
+  <data name="Scan.Save" xml:space="preserve"><value>Save reviewed page as raster PDF</value></data>
+  <data name="Scan.Refresh" xml:space="preserve"><value>Preview the current settings before saving a prepared copy.</value></data>
+  <data name="Scan.Ready" xml:space="preserve"><value>Prepared preview ready. Region OCR keeps the visible source page; saving a scan copy keeps only the prepared pixels.</value></data>
+  <data name="Scan.Color.Keep" xml:space="preserve"><value>Keep color</value></data>
+  <data name="Scan.Color.Gray" xml:space="preserve"><value>Grayscale</value></data>
+  <data name="Scan.Color.BlackWhite" xml:space="preserve"><value>Black and white</value></data>
+  <data name="Scan.KeyboardHint" xml:space="preserve"><value>With the source page focused, use arrow keys to move the region and Shift+arrow keys to resize it. In corner mode, choose corner 1–4 clockwise from top left, then use arrow keys.</value></data>
 </root>

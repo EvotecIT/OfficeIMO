@@ -12,6 +12,32 @@ When working from an OfficeIMO source checkout, reference the workflow project d
 <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
 ```
 
+## Save a prepared scan copy
+
+`ScanCleanup` creates a separate PDF containing the prepared page pixels. It uses the same page selection, region crop, perspective correction, and tonal settings as `OfficeIMO.Pdf.Ocr` preview. The source is protected from replacement. Native text, forms, links, signatures, and attachments are omitted from the raster copy, so callers must acknowledge that output contract.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.Workflows;
+
+OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
+    Operation = OfficeWorkflowOperation.ScanCleanup,
+    InputPath = "scan.pdf",
+    OutputPath = "prepared-scan.pdf",
+    ScanCleanup = new() {
+        AcknowledgeRasterOutput = true,
+        Preparation = new() {
+            Dpi = 200,
+            ReadOptions = new() { PageSelection = PdfPageSelection.From(1) },
+            ScanProcessing = new() { Deskew = false, StraightenDegrees = 2, Gamma = 1.1 }
+        }
+    }
+});
+```
+
+Set `ExpectedSourceSha256` to the SHA-256 hex digest of a reviewed snapshot to reject a source that changed before export. Provider inputs and destinations use the same snapshot, confirmation, recovery, and publication guards as other workflows. To retain the visible source and add searchable text, use the searchable OCR workflow instead.
+
 ## Convert a document
 
 ```csharp

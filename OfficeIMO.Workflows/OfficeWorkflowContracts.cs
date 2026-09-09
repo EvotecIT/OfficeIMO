@@ -25,7 +25,9 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a separate unencrypted PDF after owner authorization.</summary>
     RemovePdfProtection,
     /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
-    SignPdf
+    SignPdf,
+    /// <summary>Create an explicitly reviewed raster PDF from prepared scan pages.</summary>
+    ScanCleanup
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -188,6 +190,8 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Optional route-specific settings, independently copied and validated before asynchronous execution.</summary>
     public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
+    /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
+    public OfficeScanCleanupOptions? ScanCleanup { get; set; }
 
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }

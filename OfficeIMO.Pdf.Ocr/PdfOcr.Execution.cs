@@ -83,6 +83,9 @@ internal static partial class PdfOcr {
             PdfLogicalPage nativePage, IReadOnlyList<PdfSelectionQuad> nativeBounds) {
             try {
                 PreparedPage prepared = await PreparePageAsync(request, engine, options, workCancellation.Token).ConfigureAwait(false);
+                if (prepared.HasGeometryTransform) {
+                    prepared.RecognitionWidth = request.Region!.Width; prepared.RecognitionHeight = request.Region.Height;
+                }
                 OcrResult recognized = await engine.RecognizeAsync(
                     request, options.ProviderTimeout, workCancellation.Token).ConfigureAwait(false);
                 ProjectedOcrResult projected = ProjectResult(recognized, request, engine.Id, options, workCancellation.Token, prepared);
@@ -97,7 +100,7 @@ internal static partial class PdfOcr {
                     projected = new ProjectedOcrResult(projected.Words, diagnostics.AsReadOnly(),
                         projected.Provider, projected.Model, projected.Language);
                 }
-                results[index] = MergePage(nativePage, nativeBounds, projected, options, workCancellation.Token, prepared.Report);
+                results[index] = MergePage(nativePage, nativeBounds, projected, options, workCancellation.Token, prepared);
             } catch (Exception exception) {
                 if (exception is not OperationCanceledException)
                     Interlocked.CompareExchange(ref providerFailure, ExceptionDispatchInfo.Capture(exception), null);

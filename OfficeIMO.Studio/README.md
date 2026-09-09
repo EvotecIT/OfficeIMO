@@ -53,7 +53,9 @@ Studio does not contain a second document engine:
 - `OfficeIMO.Pdf.Ocr` owns searchable text generation. `OfficeIMO.Workflows` owns source snapshots, output validation, publication, and ordered OCR sessions; Studio configures the optional Tesseract CLI provider. `OfficeIMO.Reader.Image` identifies image sources, and `OfficeIMO.Reader.Ocr` owns their recognition and normalized-document enrichment.
 - Avalonia owns only the cross-platform windowing and control layer. Studio uses OfficeIMO's retained page scene with the canonical raster renderer for content that the Avalonia adapter cannot preserve, including transformed text and embedded-font metrics. Restricted viewing also uses the raster path. Studio does not use PDFium.
 
-Tesseract is an explicit OCR runtime prerequisite. OfficeIMO discovers an installed executable and can provision checksum-pinned language data, but the application does not silently install or bundle a native OCR executable.
+In the single-PDF OCR workspace, **Scan preparation** previews the source and prepared page before recognition. Draw one region for the selected page, adjust perspective corners, or enable cleanup for straightening, black and white levels, gamma, and color mode. Arrow keys move the focused region; Shift+arrow keys resize it. In corner mode, keys 1–4 select a corner clockwise from top left and arrow keys move it. Changed settings invalidate the reviewed preview. OCR uses the prepared pixels and maps recognized text back to the original visible PDF. **Save reviewed page as raster PDF** instead exports a separate pixel-only copy and omits native text and interactive content. The source digest is checked before saving.
+
+Tesseract is an explicit OCR runtime prerequisite. OfficeIMO discovers an installed executable and can provision checksum-pinned language data, but the application does not silently install or bundle a native OCR executable. Scan preparation and raster-copy export do not require it.
 
 ## Language, accessibility, and local data
 
