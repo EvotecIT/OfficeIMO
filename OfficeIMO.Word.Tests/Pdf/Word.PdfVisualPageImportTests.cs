@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfVisualPageImportTests {
     [Theory]
-    [InlineData(false)] [InlineData(true)]
-    public void ForegroundImageCoversOverlappingLaterContent(bool table) {
+    [InlineData(0)] [InlineData(1)] [InlineData(2)]
+    public void ForegroundImageCoversOverlappingLaterContent(int contentKind) {
         var raster = new OfficeIMO.Drawing.OfficeRasterImage(240, 320, OfficeIMO.Drawing.OfficeColor.White);
         byte[] png = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using OfficeWordDocument word = OfficeWordDocument.Create();
@@ -21,7 +21,13 @@ public sealed class PdfVisualPageImportTests {
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 0; image.VerticalPositionOffset = 0;
-        if (table) word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Covered content";
+        if (contentKind == 1) word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Covered content";
+        else if (contentKind == 2) {
+            byte[] colored = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(new OfficeIMO.Drawing.OfficeRasterImage(20,20,OfficeIMO.Drawing.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
+            using var coloredStream = new MemoryStream(colored);
+            word.AddParagraph().InsertImage(coloredStream, "later.png", 20, 20);
+            word.AddParagraph("Covered content");
+        }
         else word.AddParagraph("Covered content");
         var pdf = word.ToPdfDocument();
         Assert.Contains("Covered", pdf.Reader.Text());

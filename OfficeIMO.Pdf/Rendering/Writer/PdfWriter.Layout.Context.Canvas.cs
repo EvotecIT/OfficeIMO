@@ -618,8 +618,8 @@ internal static partial class PdfWriter {
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
-            // The writer paints images without an inline token after page flow. This is the
-            // fixed foreground contract used by document importers; ordinary canvas order stays inline.
+            pageImage.IsForeground = item.Foreground;
+            // Foreground images use a distinct final image layer; ordinary canvas order stays inline.
             if (!item.Foreground) {
                 pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
                 sb.Append(pageImage.InlineDrawToken);

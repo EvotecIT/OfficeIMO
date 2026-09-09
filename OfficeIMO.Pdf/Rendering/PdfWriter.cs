@@ -662,6 +662,7 @@ internal static partial class PdfWriter {
             }
             string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
             contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
+            var foregroundImages = new StringBuilder();
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
                 foreach (var img in page.Images) {
@@ -669,9 +670,10 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    AppendPageImageDraw(sbImgs, img);
+                    StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
+                    AppendPageImageDraw(target, img);
                     if (img.DebugBox) {
-                        DrawRowRect(sbImgs, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                        DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
                     }
                 }
 
@@ -681,6 +683,7 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
                 contentStr += WrapArtifactContent(footer, markInfo);
             }
+            contentStr += foregroundImages.ToString();
             PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                 ? GetPrintColorTransform(pageOpts)
                 : null;
