@@ -215,14 +215,71 @@ public sealed class TextEditingReviewTests {
                 await acquired.Task;
                 Task first = model.ShowTextPreviewPageAsync(1);
                 Assert.False(first.IsCompleted);
+                Assert.False(model.HasTextPreview);
+                Assert.Null(model.TextPreviewBefore); Assert.Null(model.TextPreviewAfter);
                 Task second = model.ShowTextPreviewPageAsync(2);
                 await first.WaitAsync(TimeSpan.FromSeconds(3));
                 Assert.False(second.IsCompleted);
+                model.SelectedReplacementMatch = model.ReplacementMatches.Last();
+                Assert.False(model.HasTextPreview);
+                Assert.Null(model.TextPreviewBefore); Assert.Null(model.TextPreviewAfter);
+                await model.ApplyReviewedTextEditCommand.ExecuteAsync(null);
+                Assert.False(model.IsDirty);
                 model.CancelTextEditCommand.Execute(null);
                 await second.WaitAsync(TimeSpan.FromSeconds(3));
                 Assert.False(model.HasTextPreview);
                 Assert.False(holding.IsCompleted);
                 Assert.Null(model.ErrorMessage);
+            } finally { release.TrySetResult(); await holding; }
+            return true;
+        }, default);
+    }
+
+    [Theory]
+    [InlineData("inline-cancel")]
+    [InlineData("inline-draft")]
+    [InlineData("batch-query")]
+    [InlineData("batch-inclusion")]
+    [InlineData("search-query")]
+    public async Task ObsoletePreparationAndSearchReleaseTheWorkspaceWhileCpuGateIsHeld(string change) {
+        using var files = new Files();
+        PdfDocument document = CreateDocument();
+        document.Save(files.Source);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(files.Source);
+            model.ShowEditModeCommand.Execute(null);
+            model.ReplaceAllFindText = "Account";
+            if (change.StartsWith("inline", StringComparison.Ordinal)) {
+                model.Pages[0].SelectObject(Selection(document.Text.Find("Account")[0]));
+                await WaitUntilAsync(() => model.TextEditDraft?.IsReady == true);
+            } else if (change != "search-query") await model.FindTextReplacementsCommand.ExecuteAsync(null);
+            using PdfWorkspace blocker = await PdfWorkspace.OpenAsync(files.Source, default);
+            var acquired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<bool> holding = blocker.RunNonDetachableCpuWorkAsync(() => {
+                acquired.SetResult(); release.Task.GetAwaiter().GetResult(); return true;
+            }, default);
+            try {
+                await acquired.Task;
+                Task pending = change == "search-query"
+                    ? model.FindTextReplacementsCommand.ExecuteAsync(null)
+                    : model.PreviewTextEditCommand.ExecuteAsync(null);
+                Assert.True(model.IsWorkspaceBusy);
+                Assert.False(pending.IsCompleted);
+                switch (change) {
+                    case "inline-cancel": model.CancelTextEditCommand.Execute(null); break;
+                    case "inline-draft": model.TextEditDraft!.Text = "Revised"; break;
+                    case "batch-inclusion": model.ReplacementMatches[0].IsIncluded = false; break;
+                    default: model.ReplaceAllFindText = "Other"; break;
+                }
+                await pending.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(model.IsWorkspaceBusy);
+                Assert.False(model.HasTextPreview);
+                Assert.False(model.IsDirty);
+                Assert.Null(model.ErrorMessage);
+                Assert.False(holding.IsCompleted);
             } finally { release.TrySetResult(); await holding; }
             return true;
         }, default);

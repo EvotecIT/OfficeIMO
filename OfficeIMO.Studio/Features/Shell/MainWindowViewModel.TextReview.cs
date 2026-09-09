@@ -15,6 +15,8 @@ public sealed partial class MainWindowViewModel {
     private PdfWorkspace? _textReviewWorkspace;
     private CancellationTokenSource? _textInspectionCancellation;
     private CancellationTokenSource? _textPreviewCancellation;
+    private CancellationTokenSource? _textPreparationCancellation;
+    private CancellationTokenSource? _textSearchCancellation;
     private PreparedTextEdit? _preparedTextEdit;
     private bool _textReviewIsBatch;
     [ObservableProperty] private PdfTextDraftViewModel? _textEditDraft;
@@ -34,9 +36,9 @@ public sealed partial class MainWindowViewModel {
     partial void OnReplaceAllReplacementTextChanged(string value) {
         if (_textReviewIsBatch && TextEditDraft is { } draft) draft.Text = value;
     }
-    partial void OnReplaceAllFindTextChanged(string value) { if (_textReviewIsBatch) ClearTextReview(); }
-    partial void OnReplaceAllMatchCaseChanged(bool value) { if (_textReviewIsBatch) ClearTextReview(); }
-    partial void OnReplaceAllWholeWordsChanged(bool value) { if (_textReviewIsBatch) ClearTextReview(); }
+    partial void OnReplaceAllFindTextChanged(string value) { if (_textReviewIsBatch || _textSearchCancellation is not null) ClearTextReview(); }
+    partial void OnReplaceAllMatchCaseChanged(bool value) { if (_textReviewIsBatch || _textSearchCancellation is not null) ClearTextReview(); }
+    partial void OnReplaceAllWholeWordsChanged(bool value) { if (_textReviewIsBatch || _textSearchCancellation is not null) ClearTextReview(); }
 
     internal async Task BeginInlineTextEditAsync(PdfEditorSelection selection) {
         ClearTextReview();
@@ -78,15 +80,21 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void InvalidateTextPreview() {
+        _textPreparationCancellation?.Cancel();
+        _textSearchCancellation?.Cancel();
         _textPreviewCancellation?.Cancel();
         _textPreviewCancellation = null;
         _textReviewGeneration++;
         _preparedTextEdit = null;
+        ClearRenderedTextPreview();
+        TextPreviewSummary = null;
+    }
+
+    private void ClearRenderedTextPreview() {
         TextPreviewBefore?.Dispose();
         TextPreviewAfter?.Dispose();
         TextPreviewBefore = null;
         TextPreviewAfter = null;
-        TextPreviewSummary = null;
         OnPropertyChanged(nameof(HasTextPreview));
     }
 
@@ -116,9 +124,16 @@ public sealed partial class MainWindowViewModel {
         bool matchCase = ReplaceAllMatchCase, wholeWords = ReplaceAllWholeWords;
         long revision = workspace.Revision, generation = _textReviewGeneration;
         IReadOnlyList<PdfTextMatch>? matches = null;
-        bool success = await RunStandaloneAsync(async cancellation => {
-            matches = await workspace.FindReplacementMatchesAsync(find, matchCase, wholeWords, cancellation).ConfigureAwait(true);
-        }, token).ConfigureAwait(true);
+        using var searchOperation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _textSearchCancellation = searchOperation;
+        bool success;
+        try {
+            success = await RunStandaloneAsync(async cancellation => {
+                matches = await workspace.FindReplacementMatchesAsync(find, matchCase, wholeWords, cancellation).ConfigureAwait(true);
+            }, searchOperation.Token).ConfigureAwait(true);
+        } finally {
+            if (ReferenceEquals(_textSearchCancellation, searchOperation)) _textSearchCancellation = null;
+        }
         if (!success || matches is null || generation != _textReviewGeneration || !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision ||
             find != ReplaceAllFindText || matchCase != ReplaceAllMatchCase || wholeWords != ReplaceAllWholeWords) return;
         if (matches.Count > 2000) { ErrorMessage = _localizer.GetOrDefault("TextEdit.TooManyMatches", "Narrow the search to at most 2,000 occurrences before reviewing replacements."); return; }
@@ -143,6 +158,7 @@ public sealed partial class MainWindowViewModel {
 
     partial void OnSelectedReplacementMatchChanged(PdfTextReplacementMatchViewModel? value) {
         _textPreviewCancellation?.Cancel();
+        ClearRenderedTextPreview();
         if (value is null) return;
         var bounds = value.Match.VisualBounds;
         foreach (var page in Pages) page.ActiveSearchHighlight = page.PageNumber == value.PageNumber
@@ -188,13 +204,20 @@ public sealed partial class MainWindowViewModel {
         string find = ReplaceAllFindText;
         bool matchCase = ReplaceAllMatchCase, wholeWords = ReplaceAllWholeWords;
         PreparedTextEdit? prepared = null;
-        bool success = await RunStandaloneAsync(async cancellation => {
-            prepared = batch
-                ? await workspace.PreviewTextReplacementsAsync(find, replacement, matchCase, wholeWords,
-                    included.Select(match => match.Index).ToArray(), options, included.Select(match => match.PageNumber).ToArray(), cancellation).ConfigureAwait(true)
-                : selection is { Kind: PdfEditorSelectionKind.Text }
-                    ? await workspace.PreviewSelectedTextAsync(selection, replacement, options, cancellation).ConfigureAwait(true) : null;
-        }, token).ConfigureAwait(true);
+        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _textPreparationCancellation = preparation;
+        bool success;
+        try {
+            success = await RunStandaloneAsync(async cancellation => {
+                prepared = batch
+                    ? await workspace.PreviewTextReplacementsAsync(find, replacement, matchCase, wholeWords,
+                        included.Select(match => match.Index).ToArray(), options, included.Select(match => match.PageNumber).ToArray(), cancellation).ConfigureAwait(true)
+                    : selection is { Kind: PdfEditorSelectionKind.Text }
+                        ? await workspace.PreviewSelectedTextAsync(selection, replacement, options, cancellation).ConfigureAwait(true) : null;
+            }, preparation.Token).ConfigureAwait(true);
+        } finally {
+            if (ReferenceEquals(_textPreparationCancellation, preparation)) _textPreparationCancellation = null;
+        }
         if (!success || prepared is null || generation != _textReviewGeneration || !ReferenceEquals(workspace, _workspace) || workspace.Revision != prepared.Revision) return;
         _preparedTextEdit = prepared;
         TextPreviewSummary = _localizer.FormatOrDefault("TextEdit.PreviewSummary", "Prepared {0:N0} replacement(s). Review the rendered result before applying.", prepared.AffectedCount)
@@ -209,6 +232,7 @@ public sealed partial class MainWindowViewModel {
         _textPreviewCancellation?.Cancel();
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token);
         _textPreviewCancellation = operation;
+        ClearRenderedTextPreview();
         UpdateTextPreviewRegion(page);
         long generation = ++_textPreviewPageGeneration;
         try {
