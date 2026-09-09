@@ -8,13 +8,16 @@ public sealed partial class PdfDocument {
     /// Full logical inspection is included only when extraction is authorized. This does not change mutation or extraction policy.
     /// </summary>
     public PdfDocumentViewInfo InspectForViewing(PdfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
-        InspectForViewing(includeLogicalContent: true, options, cancellationToken);
+        InspectForViewingCore(includeLogicalContent: true, options, cancellationToken);
 
     /// <summary>
-    /// Inspects authenticated page geometry and permissions. Set <paramref name="includeLogicalContent"/> to false
-    /// to avoid decoding logical page content even when extraction is permitted.
+    /// Inspects authenticated page geometry and permissions without decoding logical page content,
+    /// even when extraction is permitted.
     /// </summary>
-    public PdfDocumentViewInfo InspectForViewing(bool includeLogicalContent, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+    public PdfDocumentViewInfo InspectGeometryForViewing(PdfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
+        InspectForViewingCore(includeLogicalContent: false, options, cancellationToken);
+
+    private PdfDocumentViewInfo InspectForViewingCore(bool includeLogicalContent, PdfLoadOptions? options, CancellationToken cancellationToken) {
         var snapshot = GetReadSnapshot(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument document = snapshot.Document;

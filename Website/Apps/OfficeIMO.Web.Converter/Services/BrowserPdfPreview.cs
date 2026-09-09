@@ -18,7 +18,7 @@ internal sealed class BrowserPdfPreview {
         deadline.Token.ThrowIfCancellationRequested();
         PdfLoadOptions options = BrowserPdfPolicy.CreateReadOptions(maximumInputBytes: BrowserPdfPolicy.MaxOutputBytes);
         _document = PdfDocument.Load(bytes, options);
-        PdfDocumentViewInfo geometry = _document.InspectForViewing(includeLogicalContent: false, cancellationToken: deadline.Token);
+        PdfDocumentViewInfo geometry = _document.InspectGeometryForViewing(cancellationToken: deadline.Token);
         PageCount = geometry.PageCount;
         _canExtractContent = geometry.CanExtractContent;
         if (PageCount == 0) throw new InvalidDataException("The output has no pages to preview.");

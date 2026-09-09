@@ -143,7 +143,11 @@ internal sealed class PdfDocumentSource {
             return PdfReadDocument.Open(_bytes, options, cancellationToken);
         }
 
-        lock (_readLock) {
+        // Keep contention cancellable without creating a wait handle or changing document lifetime.
+        while (!Monitor.TryEnter(_readLock, millisecondsTimeout: 25)) {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        try {
             cancellationToken.ThrowIfCancellationRequested();
             if (_readDocument is not null) return _readDocument;
             _readFailure?.Throw();
@@ -157,6 +161,8 @@ internal sealed class PdfDocumentSource {
                 _readFailure = ExceptionDispatchInfo.Capture(exception);
                 throw;
             }
+        } finally {
+            Monitor.Exit(_readLock);
         }
     }
 

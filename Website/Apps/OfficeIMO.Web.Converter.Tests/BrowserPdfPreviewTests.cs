@@ -21,7 +21,7 @@ public sealed class BrowserPdfPreviewTests {
             document.Page(page => page.Content(content => content.Text("Second page content")));
         }).ToBytes();
         var document = PdfDocument.Load(source, new PdfLoadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 1 } });
-        PdfDocumentViewInfo geometry = document.InspectForViewing(includeLogicalContent: false);
+        PdfDocumentViewInfo geometry = document.InspectGeometryForViewing();
         Assert.Equal(2, geometry.PageCount);
         Assert.True(geometry.CanExtractContent);
         Assert.Null(geometry.LogicalContent);
