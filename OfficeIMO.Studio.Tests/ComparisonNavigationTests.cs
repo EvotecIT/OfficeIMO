@@ -38,6 +38,22 @@ public sealed class ComparisonNavigationTests {
                 Assert.NotNull(model.SelectedComparisonDifference!.Comparison!.ChangedBounds);
                 window.UpdateLayout();
                 Capture(window, "comparison-changed-" + width);
+                model.NextPageCommand.Execute(null);
+                Assert.Equal(3, model.SelectedComparisonDifference!.PageNumber);
+                Assert.True(model.SelectedComparisonDifference.Comparison!.HasSizeDifference);
+                window.UpdateLayout(); Capture(window, "comparison-ordinary-next-" + width);
+                model.PreviousPageCommand.Execute(null);
+                Assert.Equal(2, model.SelectedComparisonDifference!.PageNumber);
+                await model.ActivateComparisonPageLinkAsync("FirstPage");
+                Assert.Equal(1, model.SelectedPage!.PageNumber);
+                Assert.Null(model.SelectedComparisonDifference);
+                Assert.Null(model.ComparisonDifferenceImage);
+                Assert.False(model.ShowComparisonDifferenceImage);
+                for (int attempt = 0; attempt < 100 && (model.SelectedPage!.IsRendering || model.ComparisonSelectedPage!.IsRendering); attempt++)
+                    await Task.Delay(20);
+                window.UpdateLayout(); Capture(window, "comparison-unchanged-first-" + width);
+                model.NextComparisonDifferenceCommand.Execute(null);
+                Assert.Equal(2, model.SelectedComparisonDifference!.PageNumber);
                 model.NextComparisonDifferenceCommand.Execute(null);
                 Assert.True(model.SelectedComparisonDifference!.Comparison!.HasSizeDifference);
                 model.NextComparisonDifferenceCommand.Execute(null);

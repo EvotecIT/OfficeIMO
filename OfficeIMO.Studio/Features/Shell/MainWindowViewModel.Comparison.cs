@@ -103,10 +103,22 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand] private void CancelPageComparison() => _comparisonReportCancellation?.Cancel();
     [RelayCommand] private void NextComparisonDifference() => MoveComparisonDifference(1);
     [RelayCommand] private void PreviousComparisonDifference() => MoveComparisonDifference(-1);
+    private void SynchronizeDifferenceToPage(int? pageNumber) {
+        if (_synchronizingComparison) return;
+        SelectedComparisonDifference = ComparisonDifferences.FirstOrDefault(difference => difference.PageNumber == pageNumber);
+    }
+
     private void MoveComparisonDifference(int delta) {
         if (ComparisonDifferences.Count == 0) return;
-        int current = SelectedComparisonDifference is null ? 0 : ComparisonDifferences.ToList().IndexOf(SelectedComparisonDifference);
-        SelectedComparisonDifference = ComparisonDifferences[Math.Clamp(current + delta, 0, ComparisonDifferences.Count - 1)];
+        if (SelectedComparisonDifference is null) {
+            int page = SelectedPage?.PageNumber ?? ComparisonSelectedPage?.PageNumber ?? 0;
+            SelectedComparisonDifference = delta > 0
+                ? ComparisonDifferences.FirstOrDefault(difference => difference.PageNumber > page) ?? ComparisonDifferences[^1]
+                : ComparisonDifferences.LastOrDefault(difference => difference.PageNumber < page) ?? ComparisonDifferences[0];
+        } else {
+            int current = ComparisonDifferences.ToList().IndexOf(SelectedComparisonDifference);
+            SelectedComparisonDifference = ComparisonDifferences[Math.Clamp(current + delta, 0, ComparisonDifferences.Count - 1)];
+        }
     }
 
     private void ClearComparisonDifferences() {

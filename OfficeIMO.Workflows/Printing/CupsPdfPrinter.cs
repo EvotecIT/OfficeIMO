@@ -37,14 +37,15 @@ internal static class CupsPdfPrinter {
         }
         byte[] bytes = (pages.Count == 1 ? pages[0] : PdfDocument.Merge(pages, token)).ToBytes();
         if (bytes.LongLength > 256L * 1024 * 1024) throw new InvalidOperationException("The CUPS spool document exceeds its byte limit.");
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-print-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        string directory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-print-");
         bool started = false;
         string? jobId = null;
         Exception? failure = null;
         try {
             string path = Path.Combine(directory, "sheets.pdf");
-            await File.WriteAllBytesAsync(path, bytes, token).ConfigureAwait(false);
+            await using (FileStream spool = OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(path, 81920, FileOptions.Asynchronous)) {
+                await spool.WriteAsync(bytes, token).ConfigureAwait(false);
+            }
             var arguments = new List<string> {
                 "-d", options.PrinterName, "-n", options.Copies.ToString(CultureInfo.InvariantCulture), "-t", options.DocumentName,
                 "-o", "media=" + Media(width, height), "-o", "print-scaling=none", "-o", "number-up=1", "-o", "Collate=True"

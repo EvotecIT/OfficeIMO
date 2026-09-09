@@ -289,6 +289,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         RefreshReaderPages();
         OnPropertyChanged(nameof(SelectedReaderGridRow));
         SynchronizeComparisonToPrimary(value);
+        SynchronizeDifferenceToPage(value?.PageNumber);
         if (value is not null && _zoomMode != ViewerZoomMode.Custom) {
             ApplyFitZoom();
         }

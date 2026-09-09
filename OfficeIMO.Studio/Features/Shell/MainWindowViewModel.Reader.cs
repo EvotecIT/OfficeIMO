@@ -104,13 +104,18 @@ public sealed partial class MainWindowViewModel {
         ComparisonReaderPages.Clear();
         if (value is not null) ComparisonReaderPages.Add(value);
         OnPropertyChanged(nameof(ComparisonSelectedPage));
-        if (_synchronizingComparison || value is null || Pages.Count == 0) return;
+        if (_synchronizingComparison) return;
+        if (value is null || Pages.Count == 0) {
+            SynchronizeDifferenceToPage(null);
+            return;
+        }
         _synchronizingComparison = true;
         try {
             SelectedPage = Pages[Math.Clamp(value.PageNumber, 1, Pages.Count) - 1];
         } finally {
             _synchronizingComparison = false;
         }
+        SynchronizeDifferenceToPage(value.PageNumber);
     }
 
     [RelayCommand]
