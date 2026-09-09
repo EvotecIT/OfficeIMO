@@ -135,6 +135,7 @@ pdf.SaveAsWord(
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
+- Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## What it imports
@@ -170,6 +171,7 @@ Use `WordToPdfOptions` when callers need to override page geometry, metadata, pa
 
 ## Current limits
 
+- Floating images outside the supported page-relative placement contract use document flow and report `NativeAnchoredImageFlowed`. Complex wrapping and overlapping-object layout are not reconstructed.
 - This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
 - Editable PDF-to-Word import reconstructs parser-supported logical objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Visual pages preserve rendered appearance as images within the managed renderer's support and configured limits. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 

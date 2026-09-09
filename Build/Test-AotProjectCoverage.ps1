@@ -49,6 +49,16 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.AI'
+        classification = 'managed-cross-platform'
+        evidence = 'The provider-neutral AI library targets managed .NET 10 and is not included in the NativeAOT smoke hosts.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.AI.IntelligenceX'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional IntelligenceX adapter targets managed .NET 10; no NativeAOT claim is made for its provider dependency graph.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Html.Pdf.Browser'
         classification = 'managed-cross-platform'
         evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'
@@ -171,7 +181,7 @@ $matrix = [ordered]@{
         nativeBoundedWorkflow = 'A customer-facing workflow publishes and runs natively, but the complete optional third-party dependency surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
-        managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
+        managedCrossPlatform = 'The package uses its supported cross-platform managed deployment model; no NativeAOT claim is made.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'
     }
     components = @($components)

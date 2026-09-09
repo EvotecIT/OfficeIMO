@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Describes layout options for rich paragraph rendering.
 /// </summary>
 public class PdfParagraphStyle {
+    /// <summary>Absolute page content bound to the first laid-out line, after pagination.</summary>
+    internal PdfCanvasBlock? AnchoredCanvas { get; set; }
     private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
     private double? _lineHeight;
     private double _leftIndent;
@@ -106,6 +108,7 @@ public class PdfParagraphStyle {
     /// <summary>Creates a copy of this paragraph style.</summary>
     public PdfParagraphStyle Clone() {
         var clone = new PdfParagraphStyle {
+            AnchoredCanvas = AnchoredCanvas,
             LineHeight = LineHeight,
             LeftIndent = LeftIndent,
             RightIndent = RightIndent,

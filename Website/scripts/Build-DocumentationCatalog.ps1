@@ -73,6 +73,7 @@ $benchmarkProjects = @($allProjects | Where-Object { $_.BaseName -match '(?:^|\.
 $validationProjects = @($allProjects | Where-Object {
     $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
     $relativeProjectPath -match '(^|/)Build/' -or
+    $relativeProjectPath -match '^Examples/' -or
     $_.BaseName -match '(?:^|\.)AotSmoke$' -or
     $_.BaseName -in @('OfficeIMO.Examples', 'OfficeIMO.MarkdownRenderer.SamplePlugin') -or
     $relativeProjectPath -match '^Website/Apps/'

@@ -67,6 +67,15 @@ public sealed class ConversionOptionsTests {
         Assert.ThrowsAny<OperationCanceledException>(() => OfficeWorkflowRunner.PreviewDocument(Source().ToBytes(), "pdf", new CancellationToken(true)));
     }
 
+    [Theory]
+    [InlineData("html")]
+    [InlineData(".HTM")]
+    public void HtmlPreviewAcceptsEverySourceExtension(string extension) {
+        var preview = OfficeWorkflowRunner.PreviewDocument(Encoding.UTF8.GetBytes("<p>Saved HTML preview</p>"), extension);
+        Assert.Single(preview.Pages);
+        Assert.NotEmpty(preview.Pages[0].Bytes!);
+    }
+
     [Fact]
     public async Task PdfCompressionPreservesConvertedTextAndReportsVerification() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-conversion-compression-" + Guid.NewGuid().ToString("N"));
