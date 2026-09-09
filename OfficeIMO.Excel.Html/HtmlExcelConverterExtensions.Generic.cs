@@ -431,11 +431,14 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlComputedStyle? style,
         HtmlToExcelResult result,
         HtmlImportBudget budget,
-        bool allowRichText = true) {
+        bool allowRichText = true,
+        string? expectedText = null) {
         ExcelCell cell = sheet.CellAt(row, column);
         if (allowRichText && runs.Count > 0 && runs.Any(IsFormattedRun)) {
             string richText = string.Concat(runs.Select(run => run.Text));
-            if (IsWithinExcelFieldLimit(richText, budget, ExcelCellTextCharacterLimit,
+            if (expectedText != null && !string.Equals(expectedText, richText, StringComparison.Ordinal)) {
+                allowRichText = false;
+            } else if (IsWithinExcelFieldLimit(richText, budget, ExcelCellTextCharacterLimit,
                     "ExcelCellTextCharacterLimit", out string detail)) {
                 cell.SetRichText(runs.Select(ToExcelRun).ToArray());
             } else {

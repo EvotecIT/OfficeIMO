@@ -7,6 +7,37 @@ namespace OfficeIMO.Tests;
 
 public class HtmlExcelReportValues {
     [Theory]
+    [InlineData("First\n", "Second")]
+    [InlineData(" First", "  Second ")]
+    [InlineData("First\t", "Second")]
+    public void SemanticRichTextPreservesWhitespaceAndRunFormatting(string first, string second) {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        source.AddWorksheet("Notes").CellAt(1, 1).SetRichText(
+            new ExcelRichTextRun(first) { Bold = true },
+            new ExcelRichTextRun(second) { Italic = true });
+        string html = source.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
+        using ExcelDocument imported = HtmlConversionDocument.Parse(html).ToExcelDocument();
+        using MemoryStream artifact = imported.ToStream();
+        using ExcelDocument reopened = ExcelDocument.Load(artifact);
+        ExcelCell cell = Assert.Single(reopened.Sheets).CellAt(1, 1);
+        Assert.Equal(first + second, cell.GetValue<string>());
+        Assert.Contains(cell.GetRichText(), run => run.Text == first && run.Bold);
+        Assert.Contains(cell.GetRichText(), run => run.Text == second && run.Italic);
+    }
+
+    [Theory]
+    [InlineData(HtmlImportMode.Semantic)]
+    [InlineData(HtmlImportMode.Generic)]
+    public void AnnotatedTextCannotBeReplacedByDifferentRichText(HtmlImportMode mode) {
+        const string html = "<section class='officeimo-sheet' data-officeimo-sheet='Notes'><table><tr>"
+            + "<td style='white-space:pre' data-officeimo-value-kind='text' data-officeimo-value='A B'><strong>A\nB</strong></td>"
+            + "</tr></table></section>";
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+            new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+        Assert.Equal("A B", Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<string>());
+    }
+
+    [Theory]
     [InlineData(HtmlImportMode.Generic)]
     [InlineData(HtmlImportMode.Auto)]
     public void ExplicitReportValuesRemainTypedAfterSaveAndReopen(HtmlImportMode mode) {

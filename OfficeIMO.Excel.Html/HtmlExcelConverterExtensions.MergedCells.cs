@@ -105,11 +105,14 @@ public static partial class HtmlExcelConverterExtensions {
                         result.Cells++;
                     }
                 }
+                string? preservedText = preserveValue && string.Equals(cell.GetAttribute("data-officeimo-value-kind"), "text", StringComparison.OrdinalIgnoreCase)
+                    ? cell.GetAttribute("data-officeimo-value") : null;
+                bool allowRichText = stored && (!preserveValue || preservedText != null);
                 ApplyImportedCellTextFormatting(cell, targetCell, result, budget,
-                    allowRichText: semanticCell == null && stored && !preserveValue);
+                    allowRichText: semanticCell == null && allowRichText, expectedText: preservedText);
                 if (semanticCell != null) {
                     ApplySemanticCellFormatting(sheet, cellRow, cellColumn, semanticCell.Runs,
-                        semanticCell.IsHeader, semanticCell.Style, result, budget, allowRichText: stored && !preserveValue);
+                        semanticCell.IsHeader, semanticCell.Style, result, budget, allowRichText, preservedText);
                 }
 
                 if (rowSpan > 1 || columnSpan > 1) {
@@ -125,7 +128,7 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target,
-        HtmlToExcelResult result, HtmlImportBudget budget, bool allowRichText) {
+        HtmlToExcelResult result, HtmlImportBudget budget, bool allowRichText, string? expectedText) {
         IReadOnlyDictionary<string, string> cellCss = ParseInlineStyle(source.GetAttribute("style"));
         ApplyImportedCellStyle(source, target, cellCss);
         if (allowRichText
@@ -134,9 +137,13 @@ public static partial class HtmlExcelConverterExtensions {
             var runs = new List<ExcelRichTextRun>();
             CollectImportedRichTextRuns(source, cellCss, ResolveNativeUnderline(source), HasInvalidNativeUnderline(source), runs);
             if (runs.Count > 0) {
-                if (IsWithinExcelFieldLimit(string.Concat(runs.Select(run => run.Text)), budget,
+                string richText = string.Concat(runs.Select(run => run.Text));
+                if (IsWithinExcelFieldLimit(richText, budget,
                         ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out string detail)) {
-                    target.SetRichText(runs.ToArray());
+                    // Preserve the authoritative text, including whitespace, while retaining matching runs.
+                    if (expectedText == null || string.Equals(expectedText, richText, StringComparison.Ordinal)) {
+                        target.SetRichText(runs.ToArray());
+                    }
                 } else {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                         "Cell rich text formatting was omitted because its runs exceeded a semantic or native Excel field limit.",

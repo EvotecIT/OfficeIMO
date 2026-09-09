@@ -67,7 +67,7 @@ public static partial class HtmlExcelConverterExtensions {
             AddInvalidCellValueDiagnostic(row, column, "boolean", result);
         } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
             bool stored = TrySetCellTextValue(sheet, row, column, rawValue!, result, budget);
-            preserveValue = stored && !string.Equals(rawValue, fallbackText, StringComparison.Ordinal);
+            preserveValue = stored;
             return stored;
         } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
             if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dateTime)
