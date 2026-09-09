@@ -186,6 +186,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Conversion route identifier from <see cref="OfficeWorkflowCatalog"/>.</summary>
     public string? ConversionRouteId { get; set; }
 
+    /// <summary>Optional route-specific settings, independently copied and validated before asynchronous execution.</summary>
+    public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
+
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }
 
@@ -309,6 +312,15 @@ public sealed class OfficeWorkflowRoute {
     public bool AgentDiscoverable { get; }
     /// <summary>Whether this local workflow package can execute the route directly.</summary>
     public bool CanExecute { get; }
+    /// <summary>Whether the route accepts a source PDF page selection.</summary>
+    public bool SupportsPageSelection => CanExecute && Id.StartsWith("pdf-", StringComparison.Ordinal);
+    /// <summary>Whether the route can apply verified lossless PDF output compression.</summary>
+    public bool SupportsPdfCompression => CanExecute && Id.EndsWith("-pdf", StringComparison.Ordinal);
+    /// <summary>Output profiles honored by this local route.</summary>
+    public IReadOnlyList<OfficeWorkflowOutputProfile> SupportedOutputProfiles =>
+        Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : FaithfulOutputProfile;
+    private static readonly IReadOnlyList<OfficeWorkflowOutputProfile> AllOutputProfiles = Array.AsReadOnly(Enum.GetValues<OfficeWorkflowOutputProfile>());
+    private static readonly IReadOnlyList<OfficeWorkflowOutputProfile> FaithfulOutputProfile = Array.AsReadOnly(new[] { OfficeWorkflowOutputProfile.Faithful });
     /// <summary>User-facing route label.</summary>
     public string Label => Source + " to " + Target;
 }

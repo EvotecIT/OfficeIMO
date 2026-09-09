@@ -59,8 +59,8 @@ internal static class OfficeConversionSupportAssessments {
             "Editable reconstruction is bounded to supported text, tables, basic shapes, and images; complex graphics, clipping, reading order, and effects remain incomplete."),
 
         "pdf-docx" => Targeted(
-            "Reopen tests verify parser-supported text, headings, lists, and detected tables in an editable Word document with loss diagnostics.",
-            "This is semantic reconstruction, not page-layout recovery; scans need OCR and complex graphics, columns, clipping, annotations, and exact pagination are not preserved."),
+            "Reopen tests verify editable text, headings, lists, and tables, plus visual page images with selected page order and physical sizes.",
+            "Editable mode reconstructs supported logical content; scans need OCR and exact layout is not preserved. Visual mode embeds page images within the managed renderer's support and resource limits; text and interactive objects are not editable."),
         "pdf-xlsx" => Targeted(
             "Reopen tests verify detected PDF tables as editable worksheet cells with source-page evidence and loss diagnostics.",
             "Only table-shaped content is in scope; arbitrary page layout, charts, free text, scans without OCR, and workbook formulas are not reconstructed."),

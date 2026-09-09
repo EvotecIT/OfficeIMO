@@ -58,8 +58,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (!string.Equals(Path.GetExtension(outputName ?? outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException($"Route '{route.Id}' requires a '{NormalizeExtension(route.TargetExtension)}' output.", nameof(request));
             }
-            if ((route.Id == "html-pdf" || route.Id.StartsWith("pdf-", StringComparison.Ordinal)) &&
-                request.OutputProfile != OfficeWorkflowOutputProfile.Faithful) {
+            if (!route.SupportedOutputProfiles.Contains(request.OutputProfile)) {
                 throw new ArgumentException(
                     $"The {route.Id} route currently supports only the Faithful output profile.",
                     nameof(request));
@@ -89,6 +88,10 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException("The selected report-only operation does not publish an artifact.", nameof(request));
             }
         }
+
+        if (request.ConversionOptions is not null && route is null)
+            throw new ArgumentException("Conversion settings are valid only for conversion operations.", nameof(request));
+        OfficeWorkflowConversionOptions? conversionOptions = request.ConversionOptions?.Snapshot(route!);
 
         if (request.PageNumbers is { Length: > 100000 })
             throw new ArgumentException("Page extraction is limited to 100,000 selected pages.", nameof(request));
@@ -147,7 +150,7 @@ public sealed partial class OfficeWorkflowRunner {
             outputOptions,
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
-            request.OutputSigner, signatureOptions, request.OutputSignatureValidator);
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private interface INativePdfFlow {
+            PdfCore.PageSize PageSize { get; }
             void PageBreak();
             void Spacer(double height);
             void Bookmark(string name);
@@ -78,9 +79,12 @@ namespace OfficeIMO.Word.Pdf {
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
             private readonly PdfCore.PdfDocument _pdf;
 
-            public NativePdfDocumentFlow(PdfCore.PdfDocument pdf) {
+            public NativePdfDocumentFlow(PdfCore.PdfDocument pdf, PdfCore.PageSize pageSize) {
                 _pdf = pdf;
+                PageSize = pageSize;
             }
+
+            public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak() => _pdf.PageBreak();
             public void Spacer(double height) => _pdf.Spacer(height);
@@ -109,10 +113,13 @@ namespace OfficeIMO.Word.Pdf {
             private readonly PdfCore.PdfPageBuilder _page;
             private readonly PdfCore.PdfContentBuilder _column;
 
-            public NativePdfColumnFlow(PdfCore.PdfPageBuilder page, PdfCore.PdfContentBuilder column) {
+            public NativePdfColumnFlow(PdfCore.PdfPageBuilder page, PdfCore.PdfContentBuilder column, PdfCore.PageSize pageSize) {
                 _page = page;
                 _column = column;
+                PageSize = pageSize;
             }
+
+            public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak() => _column.PageBreak();
             public void Spacer(double height) => _column.Spacer(height);
@@ -178,7 +185,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap);
-                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
+                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();

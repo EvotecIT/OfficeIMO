@@ -52,6 +52,31 @@ runner can invoke. Route metadata includes accepted extensions, the owning
 package, representative API and result contract, fidelity and support evidence,
 known limits, browser and agent availability, and `CanExecute`.
 
+Use `ConversionOptions` (or the fluent `WithConversionOptions` method) for settings
+specific to a route. PDF input routes accept `PageRanges`. PDF-to-Word and
+PDF-to-PowerPoint expose editable or visual import modes; visual pages accept
+`RasterDpi`. Excel-to-PDF supports worksheet-canvas or flowing-table layout, and
+PDF-to-HTML supports semantic or positioned HTML. PDF output routes can request
+verified lossless compression with `CompressPdfOutput`. The runner rejects options
+and output profiles unsupported by the selected route.
+
+```csharp
+OfficeWorkflowResult result = await OfficeWorkflow.Convert("source.pdf")
+    .To("visual-pages.docx")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        PageRanges = "1-3,5",
+        WordMode = OfficeIMO.Word.Pdf.PdfWordImportMode.VisualPages,
+        RasterDpi = 144
+    })
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+`OfficeWorkflowRunner.PreviewDocument(bytes, extension, cancellationToken)` creates
+an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, or HTML
+artifact. The sample includes rendering diagnostics and uses bounded input and
+image sizes. HTML previews do not load external or sibling resources. Previewing
+is a review aid; inspect the full saved document for whole-document fidelity.
+
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
 Every request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.

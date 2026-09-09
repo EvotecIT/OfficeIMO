@@ -752,5 +752,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? PdfOwnerPassword = null,
         IPdfExternalSigner? OutputSigner = null,
         PdfExternalSignatureOptions? OutputSignatureOptions = null,
-        IPdfSignatureCryptographyProvider? OutputSignatureValidator = null);
+        IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
+        OfficeWorkflowConversionOptions? ConversionOptions = null);
 }

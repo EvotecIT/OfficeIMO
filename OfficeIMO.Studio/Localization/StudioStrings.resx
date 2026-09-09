@@ -1749,4 +1749,30 @@
   <data name="Redaction.AdditionalCheck" xml:space="preserve"><value>Additional text check</value></data>
   <data name="Redaction.BlockedPreparation" xml:space="preserve"><value>This document is not currently eligible for redaction. Documents with active content may need a sanitized copy before redaction planning.</value></data>
   <data name="Redaction.OpenSanitization" xml:space="preserve"><value>Review sanitization options</value></data>
+  <data name="Conversion.Options.SourcePages" xml:space="preserve"><value>Source pages</value></data>
+  <data name="Conversion.Options.PagePlaceholder" xml:space="preserve"><value>All pages, or 1-3,5</value></data>
+  <data name="Conversion.Options.ScanHint" xml:space="preserve"><value>Scanned pages need OCR before editable text can be recovered.</value></data>
+  <data name="Conversion.Options.WordContent" xml:space="preserve"><value>Word content</value></data>
+  <data name="Conversion.Options.SlideContent" xml:space="preserve"><value>Slide content</value></data>
+  <data name="Conversion.Options.Resolution" xml:space="preserve"><value>Rendering resolution (DPI)</value></data>
+  <data name="Conversion.Options.VisualHint" xml:space="preserve"><value>Visual pages preserve appearance as images. Page text is not editable; higher resolution increases file size.</value></data>
+  <data name="Conversion.Options.WorksheetLayout" xml:space="preserve"><value>Worksheet layout</value></data>
+  <data name="Conversion.Options.HtmlLayout" xml:space="preserve"><value>HTML layout</value></data>
+  <data name="Conversion.Options.CompressPdf" xml:space="preserve"><value>Compress PDF after conversion</value></data>
+  <data name="Conversion.Options.Details" xml:space="preserve"><value>Conversion details</value></data>
+  <data name="Conversion.Preview.Action" xml:space="preserve"><value>Preview output</value></data>
+  <data name="Conversion.Output.Open" xml:space="preserve"><value>Open output</value></data>
+  <data name="Conversion.Mode.EditableContent" xml:space="preserve"><value>Editable content</value></data>
+  <data name="Conversion.Mode.VisualPages" xml:space="preserve"><value>Visual pages</value></data>
+  <data name="Conversion.Mode.HybridVisualAndEditableTables" xml:space="preserve"><value>Visual pages with editable tables</value></data>
+  <data name="Conversion.Mode.EditableTables" xml:space="preserve"><value>Editable tables only</value></data>
+  <data name="Conversion.Mode.WorksheetCanvas" xml:space="preserve"><value>Worksheet canvas</value></data>
+  <data name="Conversion.Mode.FlowTable" xml:space="preserve"><value>Flowing tables</value></data>
+  <data name="Conversion.Mode.PositionedReview" xml:space="preserve"><value>Positioned pages</value></data>
+  <data name="Conversion.Mode.Semantic" xml:space="preserve"><value>Semantic document</value></data>
+  <data name="Conversion.Preview.Loading" xml:space="preserve"><value>Preparing a sample of the saved output…</value></data>
+  <data name="Conversion.Preview.Sample" xml:space="preserve"><value>First pages of the saved artifact, rendered by OfficeIMO. Open the output to review the whole document.</value></data>
+  <data name="Conversion.Preview.Failed" xml:space="preserve"><value>Preview unavailable: </value></data>
+  <data name="Conversion.Output.OpenFailed" xml:space="preserve"><value>The output could not be opened: </value></data>
+  <data name="Conversion.Job.VisualFidelity" xml:space="preserve"><value>Visual page images · review rendering and editability limits</value></data>
 </root>

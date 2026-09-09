@@ -149,12 +149,29 @@ pdf.SaveAsWord(
 
 ## Options and diagnostics
 
+For a PDF whose page appearance matters more than editability, use visual pages:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
+
+var pdf = PdfDocument.Load("source.pdf");
+var options = PdfToWordOptions.CreateVisualPages();
+options.Dpi = 144;
+options.ReadOptions = new PdfReadOptions {
+    PageSelection = PdfPageSelection.Parse("1-3,5")
+};
+pdf.SaveAsWord("visual-pages.docx", options);
+```
+
+Each selected page becomes an image on a Word section with the source page's physical dimensions. Text, links, and form fields are not editable in this mode. Rendering uses the managed PDF engine and reports its limitations. The default limits are 100 pages, 64 million pixels per page, and 256 MB of encoded page images; Word pages larger than 22 inches in either dimension are rejected. Use the default `EditableContent` mode to reconstruct supported text, tables, and images as Word objects.
+
 Use `WordToPdfOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `SaveAsPdfResult()` when diagnostics matter; unsupported Word features and preserved header/footer overflow become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
 
 ## Current limits
 
 - This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
-- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+- Editable PDF-to-Word import reconstructs parser-supported logical objects. Complex or unsupported PDF image streams, interactive controls, unresolved destinations, and remote or cross-document navigation actions are not reconstructed as native Word objects. Visual pages preserve rendered appearance as images within the managed renderer's support and configured limits. Open reconstruction work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 
 Use `OfficeIMO.Pdf` for direct PDF layout and manipulation. PowerShell workflows are available through [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 

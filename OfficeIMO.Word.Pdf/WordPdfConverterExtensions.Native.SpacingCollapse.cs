@@ -12,6 +12,8 @@ namespace OfficeIMO.Word.Pdf {
                 _inner = inner;
             }
 
+            public PdfCore.PageSize PageSize => _inner.PageSize;
+
             public void PageBreak() {
                 _inner.PageBreak();
                 ResetSpacingCollapse();

@@ -163,7 +163,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             runner: null,
             localizer: _localizer,
             publicationGuard: publicationGuard,
-            jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+            jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+            openOutput: openWorkflowOutput);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,

@@ -18,6 +18,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly StudioStorageAccess? _storage;
     private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
     private readonly Func<string, Task<bool>> _confirmProviderWrite;
+    private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
 
     public ConversionWorkbenchViewModel(
@@ -33,7 +34,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IOfficeWorkflowPublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null,
-        OfficeWorkflowOutputRecoveryStore? recoveryStore = null, Func<string, Task<bool>>? confirmProviderWrite = null) {
+        OfficeWorkflowOutputRecoveryStore? recoveryStore = null, Func<string, Task<bool>>? confirmProviderWrite = null,
+        Func<string, CancellationToken, Task>? openOutput = null) {
         _pickFiles = pickFiles;
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
@@ -42,8 +44,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _storage = storage;
         _recoveryStore = recoveryStore;
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
+        _openOutput = openOutput;
         _localizer = localizer ?? StudioLocalization.Current;
-        Routes = OfficeWorkflowCatalog.Routes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
+        Routes = OfficeWorkflowCatalog.ExecutableRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
             new(OfficeWorkflowOutputProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
             new(OfficeWorkflowOutputProfile.Lightweight, T("Profile.Lightweight.Label", "Lightweight"), T("Profile.Lightweight.Description", "Prefer smaller, simpler output while retaining useful structure.")),
@@ -64,6 +67,13 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     public IReadOnlyList<ConversionRouteChoice> Routes { get; }
 
     public IReadOnlyList<WorkflowProfileChoice> Profiles { get; }
+
+    public IReadOnlyList<WorkflowProfileChoice> AvailableProfiles => Profiles.Where(profile => SelectedRoute.Route.SupportedOutputProfiles.Contains(profile.Value)).ToArray();
+
+    partial void OnSelectedRouteChanged(ConversionRouteChoice value) {
+        OnPropertyChanged(nameof(AvailableProfiles));
+        SelectedProfile = AvailableProfiles.First();
+    }
 
     public IReadOnlyList<WorkflowConflictChoice> ConflictPolicies { get; }
 
@@ -159,7 +169,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 skippedForLimit++;
                 continue;
             }
-            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer, fileName);
+            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer, fileName) {
+                OutputProfile = SelectedProfile.Value
+            };
             Jobs.Add(job);
             SelectedJob ??= job;
             added++;
@@ -216,6 +228,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _cancellation = operationCancellation;
         IsBusy = true;
         ProgressFraction = 0D;
+        var conversionOptions = candidates.ToDictionary(job => job.Id, job => job.CreateConversionOptions());
+        OfficeWorkflowConflictPolicy conflictPolicy = SelectedConflict.Value;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
         bool ownerStarted = false;
@@ -233,7 +247,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                     ?? throw new IOException("Workflow recovery storage is unavailable."));
             }
             var requests = new List<OfficeWorkflowRequest>(candidates.Length);
-            foreach (var candidate in candidates) requests.Add(await CreateRequestAsync(candidate, folder, directoryOutput, operationCancellation.Token).ConfigureAwait(true));
+            foreach (var candidate in candidates) requests.Add(await CreateRequestAsync(candidate, conversionOptions[candidate.Id], conflictPolicy, folder, directoryOutput, operationCancellation.Token).ConfigureAwait(true));
             if (_jobHistory is not null) {
                 foreach (OfficeWorkflowRequest request in requests) {
                     history.Add(request.Id, _jobHistory.Start(T("Job.Title", "Conversion"), request.InputPath,
@@ -307,9 +321,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     public void Dispose() {
         _cancellation?.Cancel();
+        ClearOutputPreview();
     }
 
-    private async Task<OfficeWorkflowRequest> CreateRequestAsync(ConversionJobViewModel job, string folder, StudioStorageAccess.DirectoryOutputSession? directoryOutput, CancellationToken token) {
+    private async Task<OfficeWorkflowRequest> CreateRequestAsync(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryOutputSession? directoryOutput, CancellationToken token) {
         if (string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(job.InputPath) == true) {
             throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents."));
         }
@@ -329,9 +344,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             OutputPath = providerFile?.Location ?? outputPath,
             OutputStream = providerFile?.Output,
             ConversionRouteId = job.Route.Route.Id,
-            OutputProfile = SelectedProfile.Value,
+            OutputProfile = job.OutputProfile,
+            ConversionOptions = options,
             PublicationGuard = _publicationGuard,
-            ConflictPolicy = providerFile is null ? SelectedConflict.Value : OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = providerFile is null ? conflictPolicy : OfficeWorkflowConflictPolicy.Replace
         };
     }
 
