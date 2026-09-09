@@ -7,14 +7,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfOutputIntentRenderingTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ConcurrentOpenedRendersPreserveColdOutputAndPageColorProfiles(bool pageProfile) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ConcurrentOpenedRendersPreserveColdOutputAndPageColorProfiles(bool pageProfile, bool unsupportedOutputIntent) {
         byte[] profile = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
-        byte[] bytes = BuildPdf(profile,
-            pageProfile ? "/Cs cs 0.2 0.4 0.8 scn 10 10 20 20 re f" : "0.2 0.4 0.8 rg 10 10 20 20 re f",
+        string content = unsupportedOutputIntent
+            ? "q 20 0 0 20 10 10 cm BI /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 ID abc EI Q"
+            : pageProfile ? "/Cs cs 0.2 0.4 0.8 scn 10 10 20 20 re f" : "0.2 0.4 0.8 rg 10 10 20 20 re f";
+        byte[] bytes = BuildPdf(profile, content,
             resources: pageProfile ? "/ColorSpace << /Cs [/ICCBased 6 0 R] >>" : "",
-            profileEntries: "/N 3", outputIntents: pageProfile ? "[]" : null);
+            profileEntries: "/N 3", outputIntents: unsupportedOutputIntent ? "1" : pageProfile ? "[]" : null);
         var display = new PdfPageDisplayOptions { MaximumDimension = 80 };
         byte[] expected = PdfDocument.Load(bytes).Render.DisplayPage(1, display).Bytes!;
         PdfDocument document = PdfDocument.Load(bytes);
