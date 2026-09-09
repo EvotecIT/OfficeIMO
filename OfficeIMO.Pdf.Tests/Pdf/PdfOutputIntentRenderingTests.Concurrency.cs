@@ -1,0 +1,33 @@
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public partial class PdfOutputIntentRenderingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentOpenedRendersPreserveColdOutputAndPageColorProfiles(bool pageProfile) {
+        byte[] profile = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] bytes = BuildPdf(profile,
+            pageProfile ? "/Cs cs 0.2 0.4 0.8 scn 10 10 20 20 re f" : "0.2 0.4 0.8 rg 10 10 20 20 re f",
+            resources: pageProfile ? "/ColorSpace << /Cs [/ICCBased 6 0 R] >>" : "",
+            profileEntries: "/N 3", outputIntents: pageProfile ? "[]" : null);
+        var display = new PdfPageDisplayOptions { MaximumDimension = 80 };
+        byte[] expected = PdfDocument.Load(bytes).Render.DisplayPage(1, display).Bytes!;
+        PdfDocument document = PdfDocument.Load(bytes);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => document.Render.DisplayPage(1, display, cancelled.Token));
+        PdfPageRenderResult[] results = await Task.WhenAll(Enumerable.Range(0, 8).Select(index => Task.Run(() =>
+            index % 2 == 0 ? document.Render.DisplayPage(1, display) : document.Render.Pages("1",
+                new PdfPageRenderOptions { ThumbnailMaxDimension = 80, ContinueOnError = false }).Single())));
+        Assert.All(results, result => {
+            Assert.True(result.Succeeded);
+            Assert.Equal(expected, result.Bytes);
+        });
+        Assert.Equal(expected, document.Render.DisplayPage(1, display).Bytes);
+    }
+}

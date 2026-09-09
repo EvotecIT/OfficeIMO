@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfOutputIntentRenderingTests {
+public partial class PdfOutputIntentRenderingTests {
     [Fact]
     public void RenderPage_AppliesOutputDeviceClassProfileToVectorColor() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16OutputDeviceWithDistinctOutputIntents();

@@ -10,13 +10,14 @@ public sealed partial class PdfReadPage {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
         if (outputIntentColorTransform != null) {
+            outputIntentColorTransform.Prepare(cancellationToken);
             if (!outputIntentColorTransform.IsSupported) {
                 AddRenderDiagnostic(
                     diagnostics,
                     seen,
                     PdfRenderCapabilities.UnsupportedIccOutputIntentId,
                     outputIntentColorTransform.Subject);
-            } else if (_hasOutputIntentCompositionInteraction?.Value == true) {
+            } else if (GetOutputIntentCompositionInteraction(cancellationToken)) {
                 AddRenderDiagnostic(
                     diagnostics,
                     seen,

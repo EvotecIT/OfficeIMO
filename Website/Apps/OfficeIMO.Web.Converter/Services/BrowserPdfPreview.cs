@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
@@ -13,12 +14,18 @@ internal sealed class BrowserPdfPreview {
 
     internal BrowserPdfPreview(byte[] bytes, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(bytes);
+        TimeSpan timeout = TimeSpan.FromSeconds(15);
+        var elapsed = Stopwatch.StartNew();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        deadline.CancelAfter(timeout);
         deadline.Token.ThrowIfCancellationRequested();
         PdfLoadOptions options = BrowserPdfPolicy.CreateReadOptions(maximumInputBytes: BrowserPdfPolicy.MaxOutputBytes);
         _document = PdfDocument.Load(bytes, options);
         PdfDocumentViewInfo geometry = _document.InspectGeometryForViewing(cancellationToken: deadline.Token);
+        cancellationToken.ThrowIfCancellationRequested();
+        // Browser timers cannot fire during synchronous WASM work; check elapsed time as well.
+        if (elapsed.Elapsed >= timeout) throw new OfficeImageExportTimeoutException(timeout);
+        deadline.Token.ThrowIfCancellationRequested();
         PageCount = geometry.PageCount;
         _canExtractContent = geometry.CanExtractContent;
         if (PageCount == 0) throw new InvalidDataException("The output has no pages to preview.");
