@@ -1815,4 +1815,41 @@
   <data name="Ocr.Text.Ready" xml:space="preserve"><value>Reviewed text is ready to copy.</value></data>
   <data name="Ocr.Text.Empty" xml:space="preserve"><value>No eligible words were selected.</value></data>
   <data name="Ocr.Text.Review" xml:space="preserve"><value>Review the recognized words to extract.</value></data>
+  <data name="Comparison.Compare" xml:space="preserve"><value>Find differences</value></data>
+  <data name="Comparison.Cancel" xml:space="preserve"><value>Cancel comparison</value></data>
+  <data name="Comparison.Previous" xml:space="preserve"><value>Previous changed page</value></data>
+  <data name="Comparison.Next" xml:space="preserve"><value>Next changed page</value></data>
+  <data name="Comparison.Differences" xml:space="preserve"><value>Changed pages</value></data>
+  <data name="Comparison.Highlight" xml:space="preserve"><value>Highlighted appearance changes</value></data>
+  <data name="Comparison.Comparing" xml:space="preserve"><value>Comparing page appearance…</value></data>
+  <data name="Comparison.Resized" xml:space="preserve"><value>Page size changed</value></data>
+  <data name="Comparison.Changed" xml:space="preserve"><value>Appearance changed</value></data>
+  <data name="Comparison.Added" xml:space="preserve"><value>Only in comparison</value></data>
+  <data name="Comparison.Removed" xml:space="preserve"><value>Only in current document</value></data>
+  <data name="Comparison.Match" xml:space="preserve"><value>No rendered differences found.</value></data>
+  <data name="Comparison.ChangedCount" xml:space="preserve"><value>{0:N0} page(s) differ. Red pixels show appearance changes; pages are paired by page number.</value></data>
+  <data name="Comparison.Cancelled" xml:space="preserve"><value>Comparison cancelled.</value></data>
+  <data name="Comparison.Ready" xml:space="preserve"><value>Compare the current document with this PDF. Pages are paired by page number.</value></data>
+  <data name="Comparison.PageLimit" xml:space="preserve"><value>Comparison is limited to 100 pages per document. Extract a smaller range for review.</value></data>
+  <data name="PrintPreview.Resolution" xml:space="preserve"><value>Raster resolution (DPI)</value></data>
+  <data name="PrintPreview.Printer" xml:space="preserve"><value>Printer queue</value></data>
+  <data name="PrintPreview.RefreshPrinters" xml:space="preserve"><value>Find printers</value></data>
+  <data name="PrintPreview.Copies" xml:space="preserve"><value>Collated copies</value></data>
+  <data name="PrintPreview.Duplex" xml:space="preserve"><value>Print sides</value></data>
+  <data name="PrintPreview.OutputFile" xml:space="preserve"><value>New output filename</value></data>
+  <data name="PrintPreview.ChooseOutput" xml:space="preserve"><value>Choose output file</value></data>
+  <data name="PrintPreview.Print" xml:space="preserve"><value>Print reviewed sheets</value></data>
+  <data name="PrintPreview.Cancel" xml:space="preserve"><value>Cancel printing</value></data>
+  <data name="PrintPreview.DeliveryHint" xml:space="preserve"><value>The printer receives the reviewed page pixels. Printer hardware margins may clip paper edges. Job acceptance does not confirm physical delivery.</value></data>
+  <data name="PrintPreview.Duplex.Default" xml:space="preserve"><value>Printer default</value></data>
+  <data name="PrintPreview.Duplex.Single" xml:space="preserve"><value>Single-sided</value></data>
+  <data name="PrintPreview.Duplex.Long" xml:space="preserve"><value>Double-sided, long edge</value></data>
+  <data name="PrintPreview.Duplex.Short" xml:space="preserve"><value>Double-sided, short edge</value></data>
+  <data name="PrintPreview.NoPrinters" xml:space="preserve"><value>No printer queues are installed.</value></data>
+  <data name="PrintPreview.JobTitle" xml:space="preserve"><value>Print reviewed sheets</value></data>
+  <data name="PrintPreview.Sending" xml:space="preserve"><value>Sending the reviewed sheets to the printer…</value></data>
+  <data name="PrintPreview.Accepted" xml:space="preserve"><value>Printer accepted job {0}: {1} sheet(s), {2} copy/copies. Check the printer for completion.</value></data>
+  <data name="PrintPreview.DeliveryCancelled" xml:space="preserve"><value>Printing cancelled before submission.</value></data>
+  <data name="PrintPreview.FormDrafts" xml:space="preserve"><value>Apply pending form values before preparing print sheets.</value></data>
+  <data name="Comparison.FormDrafts" xml:space="preserve"><value>Apply pending form values before comparing page appearance.</value></data>
 </root>

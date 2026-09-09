@@ -82,6 +82,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ZoomLabel))]
+    [NotifyPropertyChangedFor(nameof(ComparisonDifferenceWidth))]
+    [NotifyPropertyChangedFor(nameof(ComparisonDifferenceHeight))]
     private double _zoom = 1D;
 
     internal MainWindowViewModel(
@@ -175,7 +177,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             localizer: _localizer,
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage,
-            recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+            recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+            readPrintSnapshot: ReadPrintSnapshotAsync);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(
@@ -605,6 +608,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         _workspace = workspace;
         _session = session;
+        ClearComparisonDifferences();
+        OutputWorkbench.PrintPreview.InvalidateDocument(workspace?.Path);
         ClearSearchResults();
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;

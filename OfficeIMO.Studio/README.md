@@ -20,7 +20,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - On Unix, newly written recovery files allow read/write access only to their owner. Rewriting an older snapshot also applies these permissions. Windows recovery files use the access controls of the local application-data location.
 - Search the Tools catalog or open command search with Ctrl+Shift+P (Command+Shift+P on macOS). Commands show document requirements, use the same operations as the workspace controls, and can be selected with the keyboard.
 - Find text with Ctrl+F (Command+F on macOS), then use Enter and Shift+Enter or Next and Previous to move through individual occurrences. The result count, selected result, and page highlights identify the same match. Escape clears search and returns keyboard focus to the reader. Changing the query or editing the document clears stale results. Search includes existing OCR text layers; scanned pages without text need OCR first.
-- Follow bookmarks and links, navigate by keyboard, use page night mode, and compare two PDFs in synchronized panes.
+- Follow bookmarks and links, navigate by keyboard, use page night mode, and compare two PDFs in synchronized panes. **Find differences** lists changed page appearance, changed dimensions, and pages present in only one document. Move through the list to select the corresponding pages and show pixel differences at the reader's zoom. Pages are paired by number; this does not identify semantic edits or moved pages. Editing the current document clears the comparison results.
 - Select existing text, images, and annotations with visible bounds and handles. Replace, move, resize, recolor, flatten, or remove supported objects through the canonical PDF editors.
 - Click a word in Edit mode to type on the page. Choose a replacement font, size, and overflow policy, then compare the original and prepared result before applying. The review magnifies the selected area and can show the full page. Find-and-replace lists individual occurrences to include or exclude; selecting one reveals its page highlight. Draft changes invalidate the preview, and applying the reviewed result creates one undoable edit. New text uses a standard PDF font; substitution warnings identify fidelity limits.
 - Drag a selected image or annotation to move it, or drag its handles to resize it. Images retain their proportions and rotation; alignment guides show nearby edges and centers. Image edits rewrite the placement above existing content by default, with an explicit background option; original paint order cannot be retained.
@@ -92,7 +92,11 @@ dotnet run --project OfficeIMO.Studio/OfficeIMO.Studio.csproj
 dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj -c Release
 ```
 
-The document workspace currently opens PDF files directly. Other supported formats enter through conversion or mixed-source assembly. Print planning and preview are implemented; native operating-system printer submission remains open work.
+The document workspace currently opens PDF files directly. Other supported formats enter through conversion or mixed-source assembly.
+
+For printing, choose pages, paper, orientation, scaling, pages per sheet, and 150 or 300 DPI, then build the sheet preview. The preview includes unsaved workspace edits; apply pending form values first. Select an installed printer with **Find printers**, choose copies and duplex, and send the reviewed sheets. Windows uses the installed GDI printer driver; macOS and Linux require CUPS command-line tools. Windows file printers require a new local output filename.
+
+Printing sends the managed renderer's reviewed pixels, including its reported rendering limitations. PDF print permissions apply, and restricted low-quality printing is limited to 150 DPI. Paper edges can be clipped by the printer's hardware margins. A queue receipt confirms acceptance, not physical completion. If submission is interrupted after it begins, Jobs shows **Check output**; inspect the queue before retrying. Printer color controls, capability browsing, and physical-printer acceptance remain in the roadmap.
 
 ## Next product outcomes
 

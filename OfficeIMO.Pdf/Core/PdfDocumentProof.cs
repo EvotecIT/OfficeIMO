@@ -14,6 +14,10 @@ public sealed class PdfDocumentProof {
     public PdfVisualComparisonReport CompareVisual(PdfDocument actualDocument, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null) =>
         _document.CompareVisual(actualDocument, selection, options);
 
+    /// <summary>Compares authenticated document snapshots with cooperative cancellation and bounded rendered artifacts.</summary>
+    public PdfVisualComparisonReport CompareVisual(PdfDocument actualDocument, System.Threading.CancellationToken cancellationToken, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null) =>
+        _document.CompareVisual(actualDocument, cancellationToken, selection, options);
+
     /// <summary>Assesses structural preservation against a rewritten document.</summary>
     public PdfRewritePreservationReport AssessRewritePreservation(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) =>
         _document.AssessRewritePreservation(rewrittenDocument, options);

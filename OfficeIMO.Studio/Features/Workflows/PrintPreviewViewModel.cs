@@ -15,56 +15,28 @@ public sealed record PrintOrientationChoice(PdfPrintOrientation Value, string La
 public sealed record PrintScaleChoice(PdfPrintScaleMode Value, string Label, string Description);
 public sealed record PrintPagesPerSheetChoice(int Value, string Label);
 
-public sealed class PrintPreviewPlacementViewModel : IDisposable {
-    public PrintPreviewPlacementViewModel(PdfPrintPlacement placement, Bitmap image, double previewScale) {
-        PageNumber = placement.PageNumber;
-        Image = image;
-        Left = (placement.IsClipped ? placement.SlotX : placement.X) * previewScale;
-        Top = (placement.IsClipped ? placement.SlotY : placement.Y) * previewScale;
-        Width = (placement.IsClipped ? placement.SlotWidth : placement.Width) * previewScale;
-        Height = (placement.IsClipped ? placement.SlotHeight : placement.Height) * previewScale;
-        ImageLeft = placement.IsClipped ? (placement.X - placement.SlotX) * previewScale : 0D;
-        ImageTop = placement.IsClipped ? (placement.Y - placement.SlotY) * previewScale : 0D;
-        ImageWidth = placement.Width * previewScale;
-        ImageHeight = placement.Height * previewScale;
-        IsClipped = placement.IsClipped;
-    }
-
-    public int PageNumber { get; }
-    public Bitmap Image { get; }
-    public double Left { get; }
-    public double Top { get; }
-    public double Width { get; }
-    public double Height { get; }
-    public double ImageLeft { get; }
-    public double ImageTop { get; }
-    public double ImageWidth { get; }
-    public double ImageHeight { get; }
-    public bool IsClipped { get; }
-    public void Dispose() => Image.Dispose();
-}
-
 public sealed class PrintPreviewSheetViewModel : IDisposable {
-    public PrintPreviewSheetViewModel(PdfPrintSheet sheet, IReadOnlyList<Bitmap> images, string label) {
+    public PrintPreviewSheetViewModel(PdfRenderedPrintSheet sheet, string label) {
         const double maximumPreviewWidth = 350D;
-        double scale = maximumPreviewWidth / sheet.PaperSize.Width;
-        SheetNumber = sheet.SheetNumber;
+        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width;
+        SheetNumber = sheet.Plan.SheetNumber;
         Label = label;
         Width = maximumPreviewWidth;
-        Height = sheet.PaperSize.Height * scale;
-        Placements = sheet.Placements
-            .Select((placement, index) => new PrintPreviewPlacementViewModel(placement, images[index], scale))
-            .ToArray();
+        Height = sheet.Plan.PaperSize.Height * scale;
+        Placements = sheet.Plan.Placements;
+        using var stream = new MemoryStream(sheet.GetPng(), writable: false);
+        Image = Bitmap.DecodeToWidth(stream, (int)maximumPreviewWidth);
     }
 
     public int SheetNumber { get; }
     public double Width { get; }
     public double Height { get; }
-    public IReadOnlyList<PrintPreviewPlacementViewModel> Placements { get; }
+    public IReadOnlyList<PdfPrintPlacement> Placements { get; }
+    public Bitmap Image { get; }
     public string Label { get; }
 
     public void Dispose() {
-        foreach (PrintPreviewPlacementViewModel placement in Placements) placement.Dispose();
+        Image.Dispose();
     }
 }
 
@@ -73,14 +45,27 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly IStudioLocalizer _localizer;
     private readonly StudioStorageAccess _storage;
+    private readonly Func<string, CancellationToken, Task<PdfDocument>> _readSnapshot;
+    private readonly Func<CancellationToken, Task<string?>> _pickPrintFile;
+    private readonly IPdfPrinterService _printers;
+    private readonly StudioJobHistory? _jobHistory;
+    private PdfPreparedPrintDocument? _preparedPrint;
+    private bool _disposed;
+    private bool _delivering;
     private CancellationTokenSource? _cancellation;
 
     public PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf) : this(pickPdf, null) { }
 
-    internal PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf, IStudioLocalizer? localizer, StudioStorageAccess? storage = null) {
+    internal PrintPreviewViewModel(Func<CancellationToken, Task<string?>> pickPdf, IStudioLocalizer? localizer, StudioStorageAccess? storage = null,
+        Func<string, CancellationToken, Task<PdfDocument>>? readSnapshot = null, IPdfPrinterService? printers = null,
+        Func<CancellationToken, Task<string?>>? pickPrintFile = null, StudioJobHistory? jobHistory = null) {
         _pickPdf = pickPdf;
         _localizer = localizer ?? StudioLocalization.Current;
         _storage = storage ?? new StudioStorageAccess();
+        _readSnapshot = readSnapshot ?? ReadStorageSnapshotAsync;
+        _printers = printers ?? new PdfPrinterService();
+        _pickPrintFile = pickPrintFile ?? (_ => Task.FromResult<string?>(null));
+        _jobHistory = jobHistory;
         PaperChoices = [
             new("A4", PageSizes.A4),
             new(T("Paper.Letter", "Letter"), PageSizes.Letter),
@@ -106,6 +91,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         SelectedOrientation = OrientationChoices[0];
         SelectedScale = ScaleChoices[0];
         SelectedPagesPerSheet = PagesPerSheetChoices[0];
+        SelectedDuplex = DuplexChoices[0];
         Status = T("Status.Ready", "Choose a PDF and preview its print sheets.");
         Summary = T("Summary.Empty", "No preview yet");
     }
@@ -157,7 +143,12 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     public bool HasPreview => Sheets.Count > 0;
     public string InputName => string.IsNullOrWhiteSpace(InputPath) ? string.Empty : _storage.Describe(InputPath).Name;
     public bool CanCancel => IsBusy;
-    private bool CanBuildPreview => !IsBusy && !string.IsNullOrWhiteSpace(InputPath);
+    private bool CanBuildPreview => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(InputPath);
+
+    private async Task<PdfDocument> ReadStorageSnapshotAsync(string path, CancellationToken token) {
+        StudioStorageSnapshot snapshot = await _storage.ReadSnapshotAsync(path, token).ConfigureAwait(true);
+        return await Task.Run(() => PdfDocument.Load(snapshot.Bytes), token).ConfigureAwait(true);
+    }
 
     internal void UseDocument(string? path) {
         if (IsBusy) return;
@@ -189,45 +180,20 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 PagesPerSheet = SelectedPagesPerSheet.Value,
                 ScaleMode = SelectedScale.Value
             };
-            StudioStorageSnapshot snapshot = await _storage.ReadSnapshotAsync(request.InputPath, operation.Token).ConfigureAwait(true);
-            PdfDocument document = await Task.Run(() => PdfDocument.Load(snapshot.Bytes), operation.Token).ConfigureAwait(true);
-            PdfPrintPlan plan = await Task.Run(() => PdfPrintPlanner.Create(document, request, operation.Token), operation.Token).ConfigureAwait(true);
-            if (plan.SelectedPages.Count > MaximumPreviewPages) {
-                throw new InvalidOperationException(
-                    _localizer.FormatOrDefault("PrintPreview.Error.PageLimit", "Print preview is limited to {0:N0} pages. Enter a smaller page selection.", MaximumPreviewPages));
-            }
+            PdfDocument document = await _readSnapshot(request.InputPath, operation.Token).ConfigureAwait(true);
             ProgressFraction = 0.2D;
             Status = T("Status.Rendering", "Rendering page previews");
-            var options = new PdfImageExportOptions {
-                ThumbnailMaxDimension = 350,
-                MaximumOutputCount = MaximumPreviewPages
-            };
-            IReadOnlyList<OfficeImageExportResult> rendered = await document
-                .ToImages(options)
-                .Pages(PdfPageSelection.From(plan.SelectedPages.ToArray()))
-                .AsPng()
-                .ExportAsync(operation.Token)
-                .ConfigureAwait(true);
+            var options = new PdfPrintRenderOptions { MaximumPages = MaximumPreviewPages, Dpi = PrintDpi };
+            using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
+            PdfPreparedPrintDocument prepared = await Task.Run(() => PdfPrintRenderer.Prepare(document, request, options, operation.Token), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
-
-            int imageIndex = 0;
-            foreach (PdfPrintSheet sheet in plan.Sheets) {
-                var bitmaps = new List<Bitmap>(sheet.Placements.Count);
-                try {
-                    for (int index = 0; index < sheet.Placements.Count; index++) {
-                        using var stream = new MemoryStream(rendered[imageIndex++].Bytes, writable: false);
-                        bitmaps.Add(new Bitmap(stream));
-                    }
-                    Sheets.Add(new PrintPreviewSheetViewModel(
-                        sheet,
-                        bitmaps,
-                        _localizer.FormatOrDefault("PrintPreview.Sheet.Label", "Sheet {0}", sheet.SheetNumber)));
-                } catch {
-                    foreach (Bitmap bitmap in bitmaps) bitmap.Dispose();
-                    throw;
-                }
-                ProgressFraction = 0.2D + (double)imageIndex / rendered.Count * 0.8D;
+            if (_disposed) return;
+            PdfPrintPlan plan = prepared.Plan;
+            foreach (PdfRenderedPrintSheet sheet in prepared.Sheets) {
+                Sheets.Add(new PrintPreviewSheetViewModel(sheet,
+                    _localizer.FormatOrDefault("PrintPreview.Sheet.Label", "Sheet {0}", sheet.Plan.SheetNumber)));
             }
+            _preparedPrint = prepared;
             OnPropertyChanged(nameof(HasPreview));
             Summary = _localizer.FormatOrDefault(
                 "PrintPreview.Summary",
@@ -236,7 +202,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 plan.SelectedPages.Count == 1 ? T("Count.Page", "page") : T("Count.Pages", "pages"),
                 plan.Sheets.Count,
                 plan.Sheets.Count == 1 ? T("Count.Sheet", "sheet") : T("Count.Sheets", "sheets"));
-            Status = T("Status.Completed", "Print preview ready");
+            Status = T("Status.Completed", "Print preview ready") + (prepared.Diagnostics.Count == 0 ? string.Empty : " " + string.Join(" ", prepared.Diagnostics));
             ProgressFraction = 1D;
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             ClearPreview();
@@ -256,12 +222,16 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private void Cancel() => _cancellation?.Cancel();
 
     private void ClearPreview() {
+        _preparedPrint = null;
         foreach (PrintPreviewSheetViewModel sheet in Sheets) sheet.Dispose();
         Sheets.Clear();
         OnPropertyChanged(nameof(HasPreview));
+        PrintCommand.NotifyCanExecuteChanged();
     }
 
     public void Dispose() {
+        _disposed = true;
+        _discoveryCancellation?.Cancel();
         _cancellation?.Cancel();
         ClearPreview();
     }

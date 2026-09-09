@@ -121,6 +121,11 @@ public sealed partial class MainWindowViewModel {
         if (!HasDocument || IsWorkspaceBusy || IsOpening) return;
         string? path = await _pickPdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
+        await OpenComparisonDocumentAsync(path, cancellationToken).ConfigureAwait(true);
+    }
+
+    internal async Task OpenComparisonDocumentAsync(string path, CancellationToken cancellationToken = default) {
+        if (!HasDocument || IsWorkspaceBusy || IsOpening) return;
         string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         try {
             if (DocumentPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(fullPath, DocumentPath)) {
@@ -226,6 +231,7 @@ public sealed partial class MainWindowViewModel {
     private void CancelComparisonOpen() => _comparisonCancellation?.Cancel();
 
     private void CloseComparisonSession(bool restoreLayout, bool cancelOpen = true) {
+        ClearComparisonDifferences();
         if (cancelOpen) _comparisonCancellation?.Cancel();
         foreach (PdfPageViewModel page in ComparisonPages) page.Dispose();
         ComparisonPages.Clear();

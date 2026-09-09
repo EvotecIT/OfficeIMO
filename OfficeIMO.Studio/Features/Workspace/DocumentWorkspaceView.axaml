@@ -276,7 +276,7 @@
         <Border Grid.Column="2" IsVisible="{Binding IsComparisonOpen}"
                 Background="{DynamicResource StudioCanvasBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
-          <Grid RowDefinitions="38,*">
+          <Grid RowDefinitions="38,Auto,*">
             <Border Background="{DynamicResource StudioPanelBrush}"
                     BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="10,0">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -285,7 +285,24 @@
                 <TextBlock Grid.Column="1" Text="{Binding ComparisonPagePosition}" Classes="muted" VerticalAlignment="Center" />
               </Grid>
             </Border>
-            <ListBox Grid.Row="1" ItemsSource="{Binding ComparisonReaderPages}"
+            <StackPanel Grid.Row="1" Spacing="6" Margin="10,6">
+              <WrapPanel>
+                <Button Content="{loc:Loc Comparison.Compare}" Command="{Binding ComparePagesCommand}" IsEnabled="{Binding !IsComparingPages}" Margin="0,0,6,0" />
+                <Button Content="{loc:Loc Comparison.Cancel}" Command="{Binding CancelPageComparisonCommand}" IsVisible="{Binding IsComparingPages}" />
+              </WrapPanel>
+              <TextBlock Text="{Binding ComparisonSummary}" TextWrapping="Wrap" Classes="muted" />
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="5" IsVisible="{Binding HasComparisonDifferences}">
+                <Button Content="‹" Command="{Binding PreviousComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Previous}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding ComparisonDifferences}" SelectedItem="{Binding SelectedComparisonDifference}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Comparison.Differences}" />
+                <Button Grid.Column="2" Content="›" Command="{Binding NextComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Next}" />
+              </Grid>
+              <CheckBox Content="{loc:Loc Comparison.Highlight}" IsChecked="{Binding ShowComparisonDifferenceImage}" IsVisible="{Binding HasComparisonDifferenceImage}" />
+            </StackPanel>
+            <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowComparisonDifferenceImage}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+              <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            </ScrollViewer>
+            <ListBox Grid.Row="2" ItemsSource="{Binding ComparisonReaderPages}"
+                     IsVisible="{Binding !ShowComparisonDifferenceImage}"
                      SelectedItem="{Binding ComparisonSelectedPage, Mode=OneWay}"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">

@@ -32,9 +32,10 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         StudioJobHistory? jobHistory = null,
         OfficeIMO.Studio.Infrastructure.StudioStorageAccess? storage = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
-        Func<string, Task<bool>>? confirmProviderWrite = null) {
+        Func<string, Task<bool>>? confirmProviderWrite = null,
+        Func<string, CancellationToken, Task<OfficeIMO.Pdf.PdfDocument>>? readPrintSnapshot = null) {
         localizer ??= StudioLocalization.Current;
-        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage);
+        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage, readPrintSnapshot, pickPrintFile: pickOutputPdf, jobHistory: jobHistory);
         PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage, recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
         Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage,
             recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);

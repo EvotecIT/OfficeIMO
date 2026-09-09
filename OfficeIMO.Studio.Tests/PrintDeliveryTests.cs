@@ -1,0 +1,104 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Workflows;
+using OfficeIMO.Studio.Infrastructure.Localization;
+using OfficeIMO.Workflows;
+
+namespace OfficeIMO.Studio.Tests;
+
+public sealed class PrintDeliveryTests {
+    [Fact]
+    public async Task DeliversReviewedSnapshotAndInvalidatesChangedSettings() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter();
+            int reads = 0;
+            var history = new StudioJobHistory(StudioLocalization.Current);
+            using var model = Create(printer, history, () => reads++);
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            model.Pages = "3,1";
+            model.SelectedPagesPerSheet = model.PagesPerSheetChoices.Single(choice => choice.Value == 2);
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            Assert.True(model.CanPrint, model.Status);
+            Assert.Single(model.Sheets);
+            Assert.Equal(new[] { 3, 1 }, model.Sheets[0].Placements.Select(placement => placement.PageNumber));
+            model.Copies = 2;
+            model.SelectedDuplex = model.DuplexChoices.Single(choice => choice.Value == PdfPrintDuplex.LongEdge);
+            await model.PrintCommand.ExecuteAsync(null);
+            Assert.Equal(1, reads);
+            Assert.NotNull(printer.Document);
+            Assert.Equal(new[] { 3, 1 }, printer.Document.Plan.SelectedPages);
+            Assert.Equal(2, printer.Options!.Copies);
+            Assert.Equal(PdfPrintDuplex.LongEdge, printer.Options.Duplex);
+            Assert.Contains("Printer accepted job test-7", model.Status);
+            Assert.False(history.Entries[0].HasOutput);
+            Assert.False(history.Entries[0].IsActive);
+            byte[] copy = printer.Document.Sheets[0].GetPng();
+            byte original = copy[0];
+            copy[0] ^= 255;
+            Assert.Equal(original, printer.Document.Sheets[0].GetPng()[0]);
+            model.PrintDpi = 300;
+            Assert.False(model.HasPreview);
+            Assert.False(model.CanPrint);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancellationDistinguishesQueuedFromStartedDelivery(bool started) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter { WaitForCancellation = true };
+            var history = new StudioJobHistory(StudioLocalization.Current);
+            using var model = Create(printer, history);
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            using IDisposable? first = started ? null : await history.EnterAsync(CancellationToken.None);
+            using IDisposable? second = started ? null : await history.EnterAsync(CancellationToken.None);
+            Task printing = model.PrintCommand.ExecuteAsync(null);
+            if (started) await printer.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(model.IsBusy);
+            Assert.False(model.CanPrint);
+            history.Entries[0].CancelCommand.Execute(null);
+            await printing.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(model.IsBusy);
+            Assert.False(history.Entries[0].IsActive);
+            Assert.Equal(started ? "Check output" : "Cancelled", history.Entries[0].Status);
+            Assert.Equal(started, printer.Document is not null);
+            if (started) Assert.Contains("Check the printer queue", model.Status);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    private static PrintPreviewViewModel Create(RecordingPrinter printer, StudioJobHistory history, Action? read = null) =>
+        new(_ => Task.FromResult<string?>(null), null, readSnapshot: (_, _) => {
+            read?.Invoke();
+            return Task.FromResult(PdfDocument.Create(document => {
+                for (int index = 1; index <= 3; index++) {
+                    int number = index;
+                    document.Page(page => page.Size(200, 300).Content(content =>
+                        content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed page " + number)))));
+                }
+            }));
+        }, printers: printer, jobHistory: history) { InputPath = Path.Combine(Path.GetTempPath(), "reviewed-snapshot.pdf") };
+
+    private sealed class RecordingPrinter : IPdfPrinterService {
+        public PdfPreparedPrintDocument? Document { get; private set; }
+        public PdfPrintDeliveryOptions? Options { get; private set; }
+        public bool WaitForCancellation { get; init; }
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PdfPrinterInfo>>([new("Test queue", true, false)]);
+        public async Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
+            Document = document;
+            Options = options;
+            Started.TrySetResult();
+            if (WaitForCancellation) {
+                try { await Task.Delay(Timeout.Infinite, cancellationToken); }
+                catch (OperationCanceledException error) { throw new PdfPrintDeliveryException("test-7", error); }
+            }
+            return new(options.PrinterName, "test-7", document.Sheets.Count, options.Copies, null);
+        }
+    }
+}
