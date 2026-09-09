@@ -401,7 +401,7 @@
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "js-yaml": "4.3.1"
+    "js-yaml": "4.3.2"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
