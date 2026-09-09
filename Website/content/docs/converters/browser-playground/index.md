@@ -43,7 +43,7 @@ Switch to **PDF tools** for twelve task-oriented workflows backed by `OfficeIMO.
 
 Successful PDF operations return the result and a JSON report containing browser-local execution evidence, input and output SHA-256 fingerprints, and operation details. The built-in sample is the same [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) published with the product examples.
 
-PDF results include a page-image preview rendered by OfficeIMO, with previous/next controls for multipage output. The preview reports rendering limits and failures while keeping the generated file available to download. Download the PDF for selectable text, interactive forms, and review in another viewer.
+PDF results include a page-image preview rendered by OfficeIMO, with previous/next controls for multipage output. **Protect PDF** returns a download without a preview because its output requires the password you supplied. Other previews report rendering limits and failures while keeping the generated file available to download. Download the PDF for selectable text, interactive forms, and review in another viewer.
 
 ## Limits and input policy
 

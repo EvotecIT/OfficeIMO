@@ -1,10 +1,44 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Security;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfAesProviderPropagationTests {
+    [Fact]
+    public async Task OpenedDocumentNavigationReusesDecryptionAcrossDisplayAndEveryRenderSelection() {
+        var provider = new CountingAesProvider();
+        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128, AesCryptographyProvider = provider
+        })).Paragraph(paragraph => paragraph.Text("First cached page")).PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second cached page")).ToBytes();
+        var options = new PdfLoadOptions { Password = "open", AesCryptographyProvider = provider };
+        PdfDocument document = PdfDocument.Load(bytes, options);
+        Assert.Equal(2, document.InspectForViewing(includeLogicalContent: false).PageCount);
+        int parsedDecryptions = provider.DecryptOperations;
+        Assert.True(parsedDecryptions > 0);
+        var display = new PdfPageDisplayOptions { MaximumDimension = 80 };
+        byte[] first = document.Render.DisplayPage(1, display).Bytes!;
+        byte[] second = document.Render.DisplayPage(2, display).Bytes!;
+        var render = new PdfPageRenderOptions { ThumbnailMaxDimension = 80, ContinueOnError = false };
+        Assert.Equal(second, document.Render.Pages("2", render)[0].Bytes);
+        Assert.Equal(first, document.Render.Pages(PdfPageSelection.From(1), render)[0].Bytes);
+        Assert.Equal(second, document.Reader.RenderPages(PdfPageSelector.Parse("last"), render)[0].Bytes);
+        var concurrent = await Task.WhenAll(Enumerable.Range(0, 12).Select(index => Task.Run(() =>
+            document.Render.DisplayPage(index % 2 + 1, display).Bytes)));
+        for (int index = 0; index < concurrent.Length; index++) Assert.Equal(index % 2 == 0 ? first : second, concurrent[index]);
+        Assert.Equal(parsedDecryptions, provider.DecryptOperations);
+
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => document.Render.DisplayPage(1, display, cancellation.Token));
+        Assert.Equal(first, document.Render.DisplayPage(1, display).Bytes);
+        Assert.Throws<PdfInvalidPasswordException>(() => document.Reader.RenderPages("1", render,
+            new PdfLoadOptions { Password = "wrong", AesCryptographyProvider = provider }));
+        Assert.Equal(first, document.Render.DisplayPage(1, display).Bytes);
+    }
+
     [Fact]
     public void GeneratedEncryptedDocumentPreservesProviderForReadbackAndComplianceArtifact() {
         var provider = new CountingAesProvider();

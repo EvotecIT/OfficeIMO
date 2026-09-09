@@ -145,10 +145,9 @@ internal sealed partial class PdfDocumentReader {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(selector, nameof(selector));
         return PdfPageImageRenderer.RenderPages(
-            _document.GetBytesForOperation,
+            token => _document.GetReadDocument(ResolveReadOptions(readOptions), token),
             selector,
             options,
-            ResolveReadOptions(readOptions),
             cancellationToken);
     }
 

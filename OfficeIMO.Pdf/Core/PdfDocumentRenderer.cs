@@ -18,7 +18,7 @@ public sealed class PdfDocumentRenderer {
     /// The result contains no editable drawing objects, embedded source images, fonts, or text model. Extraction and printing remain separate permission-checked operations.
     /// </summary>
     public PdfPageRenderResult DisplayPage(int pageNumber, PdfPageDisplayOptions? options = null, CancellationToken cancellationToken = default) =>
-        PdfPageImageRenderer.RenderDisplayPage(_document.GetBytesForOperation, pageNumber, options, _document.ReadOptions, cancellationToken);
+        PdfPageImageRenderer.RenderDisplayPage(token => _document.GetReadDocument(_document.ReadOptions, token), pageNumber, options, cancellationToken);
 
     /// <summary>Projects a one-based PDF page into the shared editable drawing scene.</summary>
     public OfficeDrawing Drawing(int pageNumber) => _document.Reader.Drawing(pageNumber);
