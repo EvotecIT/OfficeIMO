@@ -29,6 +29,7 @@ public sealed class ScanPreparationVisualTests {
             var window = new Window { Width = 960, Height = 640, Content = view };
             try {
                 window.Show(); window.UpdateLayout();
+                Assert.All(view.GetVisualDescendants().OfType<NumericUpDown>(), input => Assert.True(input.IsEffectivelyEnabled));
                 await scan.PreviewCommand.ExecuteAsync(null);
                 Assert.True(scan.IsCurrent, scan.Status);
                 Assert.Equal(240, scan.SourcePreview!.PixelSize.Width);
@@ -37,7 +38,9 @@ public sealed class ScanPreparationVisualTests {
                 scan.TopLeft = new Point(.05, .05);
                 scan.PageNumber = 2;
                 Assert.Null(scan.SourcePreview); Assert.Null(scan.PreparedPreview);
-                Assert.False(scan.CanEdit); Assert.False(scan.IsCurrent);
+                Assert.False(scan.CanSelectRegion); Assert.False(scan.IsCurrent);
+                window.UpdateLayout();
+                Assert.All(view.GetVisualDescendants().OfType<NumericUpDown>(), input => Assert.True(input.IsEffectivelyEnabled));
                 Assert.False(scan.UseRegion); Assert.False(scan.UsePerspective); Assert.False(scan.EditCorners);
                 Assert.Empty(scan.ApplyTo(new()).Regions);
                 await scan.PreviewCommand.ExecuteAsync(null);
@@ -70,7 +73,8 @@ public sealed class ScanPreparationVisualTests {
                 scan.EditCorners = true;
                 scan.Invalidate(clearSource: true);
                 Assert.Equal(1, scan.PageNumber);
-                Assert.False(scan.EditCorners); Assert.False(scan.UsePerspective); Assert.False(scan.CanEdit);
+                Assert.False(scan.EditCorners); Assert.False(scan.UsePerspective); Assert.False(scan.CanSelectRegion);
+                Assert.True(scan.CanEdit);
                 Assert.Null(scan.SourcePreview);
             } finally { window.Close(); }
             return true;

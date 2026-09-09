@@ -75,7 +75,8 @@ public sealed partial class ScanPreparationViewModel : ObservableObject, IDispos
     }
     public bool CanPreview => !_disposed && !IsBusy && !HostBusy;
     public bool CanSave => CanPreview && IsCurrent;
-    public bool CanEdit => CanPreview && SourcePreview != null;
+    public bool CanEdit => CanPreview;
+    public bool CanSelectRegion => CanEdit && SourcePreview != null;
     public bool HasPreview => SourcePreview != null;
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
@@ -86,10 +87,11 @@ public sealed partial class ScanPreparationViewModel : ObservableObject, IDispos
         if (e.PropertyName is nameof(IsBusy) or nameof(HostBusy) or nameof(IsCurrent)) {
             PreviewCommand.NotifyCanExecuteChanged(); SaveCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(CanSelectRegion));
         }
         if (e.PropertyName == nameof(SourcePreview)) {
             OnPropertyChanged(nameof(HasPreview));
-            OnPropertyChanged(nameof(CanEdit));
+            OnPropertyChanged(nameof(CanSelectRegion));
         }
     }
     internal void Invalidate(bool clearSource = false) {

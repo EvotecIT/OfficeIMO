@@ -59,7 +59,7 @@ public sealed class ScanSelectionCanvas : Control {
     }
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
         base.OnPointerPressed(e);
-        if (_model?.CanEdit != true || _model.SourcePreview == null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (_model?.CanSelectRegion != true || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Rect bounds = ImageBounds(); Point position = e.GetPosition(this);
         if (!bounds.Contains(position)) return;
         Focus();
@@ -75,7 +75,7 @@ public sealed class ScanSelectionCanvas : Control {
     }
     protected override void OnPointerMoved(PointerEventArgs e) {
         base.OnPointerMoved(e);
-        if (_start == null || _model?.CanEdit != true) return;
+        if (_start == null || _model?.CanSelectRegion != true) return;
         Point point = Normalize(e.GetPosition(this), ImageBounds());
         if (_corner >= 0) SetCorner(InRegion(point));
         else {
@@ -92,7 +92,7 @@ public sealed class ScanSelectionCanvas : Control {
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) { _start = null; _corner = -1; base.OnPointerCaptureLost(e); }
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
-        if (_model?.CanEdit != true || _model.SourcePreview == null) return;
+        if (_model?.CanSelectRegion != true) return;
         if (_model.UsePerspective && _model.EditCorners && e.Key is >= Key.D1 and <= Key.D4) {
             _keyboardCorner = (int)e.Key - (int)Key.D1;
             e.Handled = true;
