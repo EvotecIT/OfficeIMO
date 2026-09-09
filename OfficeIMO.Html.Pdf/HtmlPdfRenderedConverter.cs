@@ -30,6 +30,11 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
+        PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
+        if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        renderOptions.FallbackTextMeasurement = (text, font) => PdfCore.PdfWriter.MeasurePositionedText(
+            new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
+                fontSize: font.Size, font: MapStandardFont(font.FamilyName), fontFamily: font.FamilyName), measurementOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -646,7 +651,7 @@ internal static partial class HtmlPdfRenderedConverter {
             strikeStyle: visual.StrikethroughStyle,
             decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
             .WithFeatureSettings(visual.FeatureSettings);
-        canvas.Text(
+        canvas.PositionedText(
             new[] { run },
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,

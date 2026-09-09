@@ -365,7 +365,9 @@ internal static partial class PdfWriter {
             double size = item.FontSize ?? currentOpts.DefaultFontSize;
             double leading = item.LineHeight ?? size * 1.2D;
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
-            var wrap = WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var wrap = item.PreservePositionedText
+                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts)
+                : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
             }

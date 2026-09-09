@@ -707,6 +707,7 @@ namespace OfficeIMO.Word.Html {
             JustificationValues? alignment = null;
             bool borderSet = false;
             string? backgroundValue = null;
+            ApplyTableCellPadding(cell, style);
             if (TryMapTableCellVerticalAlignment(verticalAlignAttr, out var attrVerticalAlignment)) {
                 cell.VerticalAlignment = attrVerticalAlignment.ToOfficeEnum();
             }

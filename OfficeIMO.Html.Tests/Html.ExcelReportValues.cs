@@ -7,6 +7,31 @@ namespace OfficeIMO.Tests;
 
 public class HtmlExcelReportValues {
     [Theory]
+    [InlineData("number", "12.5")]
+    [InlineData("boolean", "true")]
+    [InlineData("date-time", "2026-09-01T00:00:00")]
+    public void TypedCellsKeepHeaderAndCellStylesWhileAllowingExplicitRunOverrides(string kind, string value) {
+        string attributes = $"data-officeimo-value-kind='{kind}' data-officeimo-value='{value}'";
+        string html = "<style>.emphasis { font-weight:bold; font-style:italic; text-decoration:underline line-through; }</style>"
+            + $"<table><tr><th {attributes}>Value</th>"
+            + $"<td class='emphasis' {attributes}>Value</td>"
+            + $"<td style='font-weight:bold;font-style:italic' {attributes}><span style='font-weight:normal;font-style:normal'>Value</span></td>"
+            + "</tr></table>";
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
+        using MemoryStream artifact = workbook.ToStream();
+        using ExcelDocument reopened = ExcelDocument.Load(artifact);
+        ExcelSheet sheet = Assert.Single(reopened.Sheets);
+        Assert.True(sheet.GetCellStyle(1, 1).Bold);
+        Assert.True(sheet.GetCellStyle(1, 2).Bold);
+        Assert.True(sheet.GetCellStyle(1, 2).Italic);
+        Assert.True(sheet.GetCellStyle(1, 2).Underline);
+        Assert.True(sheet.GetCellStyle(1, 2).Strikethrough);
+        Assert.False(sheet.GetCellStyle(1, 3).Bold);
+        Assert.False(sheet.GetCellStyle(1, 3).Italic);
+    }
+
+    [Theory]
     [InlineData("First\n", "Second")]
     [InlineData(" First", "  Second ")]
     [InlineData("First\t", "Second")]

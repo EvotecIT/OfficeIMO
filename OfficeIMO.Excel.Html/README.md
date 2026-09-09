@@ -54,7 +54,17 @@ Set `ImportTypedCellValues = true` with `Mode = HtmlImportMode.Generic` (or `Aut
 
 The first three cells become a number, boolean, and date in Excel. The reference remains text, including its leading zeros. Supported kinds are `text`, `number`, `boolean`, and `date-time`; use invariant numeric values and ISO date/time values. Invalid or oversized metadata falls back to bounded visible text with a diagnostic. The option defaults to `false`, so existing generic imports keep their text behavior.
 
-Scalar values survive bold, italic, and color formatting. Excel applies the first visible run's style to the whole scalar cell; it cannot store different rich-text styles inside a numeric cell. Excel displays native values using its number formats, so labels such as `Approved` become `TRUE` and decimal padding may differ. Generic imports do not execute formula metadata or honor semantic cell-coordinate overrides. Full workbook restoration remains a separate semantic-envelope operation with its existing trust controls.
+```csharp
+var report = HtmlConversionDocument.Load("service-review.html");
+var result = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+    Mode = HtmlImportMode.Generic,
+    ImportTypedCellValues = true
+});
+using var workbook = result.RequireValue();
+workbook.Save("service-review.xlsx");
+```
+
+See the [text formatting support matrix](../Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.
 
 The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) exports one HTML source to HTML, PDF, Word, and Excel.
 

@@ -240,31 +240,16 @@ Reuse the same document for analysis too: `HtmlComputedStyleEngine.Compute(conve
 
 ## One report, several output formats
 
-Prepare the report once, then pass it to the format adapters:
+Prepare the report once and reuse the same source document with the format adapters:
 
 ```csharp
 using OfficeIMO.Html;
-using OfficeIMO.Html.Pdf;
-using OfficeIMO.Word.Html;
-using OfficeIMO.Excel.Html;
 
 var report = HtmlConversionDocument.Load("service-review.html");
 File.WriteAllText("service-review-copy.html", report.SourceHtml);
-report.SaveAsPdf("service-review.pdf").RequireSuccess();
-
-var wordResult = report.ToWordDocumentResult();
-using var word = wordResult.Value;
-wordResult.RequireValue().Save("service-review.docx");
-
-var excelResult = report.ToExcelDocumentResult(new HtmlToExcelOptions {
-    Mode = HtmlImportMode.Generic,
-    ImportTypedCellValues = true
-});
-using var excel = excelResult.Value;
-excelResult.RequireValue().Save("service-review.xlsx");
 ```
 
-Word keeps editable paragraphs and tables. Excel maps tables to worksheets and can retain explicitly declared numbers, booleans, dates, and text; see [typed table values](../OfficeIMO.Excel.Html/README.md#typed-values-in-ordinary-report-tables). PDF uses the first-party paginated renderer. Each target has its own layout and formatting limits, exposed through conversion diagnostics; the outputs are not pixel-identical.
+See the owning packages for [PDF export](../OfficeIMO.Html.Pdf/README.md#html-to-pdf), [editable Word output](../OfficeIMO.Word.Html/README.md#quick-start), and [typed Excel tables](../OfficeIMO.Excel.Html/README.md#typed-values-in-ordinary-report-tables). The [HTML support matrix](../Docs/officeimo.html-support-matrix.md) describes target coverage.
 
 Run the complete [service review example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) with `--multi-format-report`. Its [HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/service-review.html) includes grouped rows, totals, leading-zero references, dates, approval values, links, and a second table. Report content stays in ordinary HTML; the adapters own conversion behavior.
 

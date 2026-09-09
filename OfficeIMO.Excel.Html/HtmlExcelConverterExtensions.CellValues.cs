@@ -121,11 +121,13 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticRun? source = runs.FirstOrDefault(run => !string.IsNullOrWhiteSpace(run.Text));
         if (source == null) return;
         ExcelRichTextRun run = ToExcelRun(source);
-        cell.SetBold(run.Bold);
-        cell.SetItalic(run.Italic);
-        if (run.UnderlineStyle.HasValue) cell.SetUnderline(run.UnderlineStyle.Value);
-        else cell.SetUnderline(run.Underline);
-        cell.SetStrikethrough(run.Strikethrough);
+        if (run.BoldSpecified) cell.SetBold(run.Bold);
+        if (run.ItalicSpecified) cell.SetItalic(run.Italic);
+        if (run.UnderlineSpecified) {
+            if (run.UnderlineStyle.HasValue) cell.SetUnderline(run.UnderlineStyle.Value);
+            else cell.SetUnderline(run.Underline);
+        }
+        if (run.StrikethroughSpecified) cell.SetStrikethrough(run.Strikethrough);
         if (run.VerticalTextAlignment.HasValue) cell.SetVerticalTextAlignment(run.VerticalTextAlignment.Value);
         if (!string.IsNullOrWhiteSpace(run.FontName)) cell.SetFontName(run.FontName!);
         if (run.FontSize.HasValue) cell.SetFontSize(run.FontSize.Value);

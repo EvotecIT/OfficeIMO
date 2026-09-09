@@ -1298,6 +1298,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
+        if (_options.FallbackTextMeasurement != null) {
+            return _options.FallbackTextMeasurement(value, font);
+        }
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
         return measurer.MeasureWidth(value, style);
     }
