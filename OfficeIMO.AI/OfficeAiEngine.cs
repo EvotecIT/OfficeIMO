@@ -26,7 +26,7 @@ public sealed partial class OfficeAiEngine {
         request = SnapshotRequest(request);
         if (document.SourceByteLength > request.Limits.MaxInputBytes || document.Evidence.Count > request.Limits.MaxDocumentBlocks
             || document.Evidence.Sum(item => (long)item.Text.Length) > request.Limits.MaxDocumentCharacters
-            || document.Pages.Any(page => page > request.Limits.MaxPages)
+            || document.Pages.Count > request.Limits.MaxPages
             || document.Images.Count > request.Limits.MaxDocumentImages
             || document.Images.Sum(image => (long)image.ByteLength) > request.Limits.MaxInputBytes)
             throw new ArgumentException("Captured document exceeds this operation's source limits.", nameof(document));

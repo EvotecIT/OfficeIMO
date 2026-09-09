@@ -19,7 +19,10 @@ public sealed partial class MainWindowViewModel {
         if (!value) _assistant?.Deactivate();
         else if (Assistant.CanPrepare) _ = Assistant.PrepareEvidenceCommand.ExecuteAsync(null);
     }
-    internal void DeactivateAssistant() => _assistant?.Deactivate();
+    internal void DeactivateAssistant() {
+        if (IsAssistantVisible) IsAssistantVisible = false;
+        else _assistant?.Deactivate();
+    }
     private async Task OpenAssistantOcrAsync(CancellationToken token) {
         if (OcrWorkbench.IsBusy)
             throw new AssistantSourceUnavailableException(_localizer.GetOrDefault("Assistant.OcrBusy", "Finish or cancel the current OCR operation before opening another source."));
@@ -54,6 +57,6 @@ public sealed partial class MainWindowViewModel {
         if (currentPageOnly && page is null) throw new AssistantSourceUnavailableException(_localizer.GetOrDefault("Assistant.SelectPage", "Select a page first."));
         return new AssistantSource(workspace.CopyBytes(), workspace.FileName, page,
             () => !_disposed && ReferenceEquals(_workspace, workspace) && workspace.Revision == revision && !HasFormDrafts
-                && (!currentPageOnly || SelectedPage?.PageNumber == page), workspace.CreateReaderOptions());
+                && (!currentPageOnly || SelectedPage?.PageNumber == page), workspace.CreateReaderOptions(page));
     }
 }

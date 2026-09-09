@@ -87,11 +87,13 @@ public sealed class OfficeAiDocument {
         var evidence = new List<OfficeAiEvidence>();
         var pages = new SortedSet<int>();
         long characters = 0;
+        void AddPage(int page) {
+            if (page < 1) throw new InvalidDataException("Source page must be a positive one-based number.");
+            pages.Add(page);
+            if (pages.Count > limits.MaxPages) throw new InvalidDataException("Source page count exceeds the configured limit.");
+        }
         void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null) {
-            if (page.HasValue) {
-                if (page < 1 || page > limits.MaxPages) throw new InvalidDataException("Source page is outside the configured bounds.");
-                pages.Add(page.Value);
-            }
+            if (page.HasValue) AddPage(page.Value);
             if (string.IsNullOrWhiteSpace(text)) return;
             characters += text.Length;
             if (characters > limits.MaxDocumentCharacters || evidence.Count >= limits.MaxDocumentBlocks)
@@ -102,10 +104,7 @@ public sealed class OfficeAiDocument {
             });
         }
         foreach (OfficeDocumentPage page in document.Pages) {
-            if ((page.GetResolvedLocation().Page) is int number) {
-                if (number < 1 || number > limits.MaxPages) throw new InvalidDataException("Source page is outside the configured bounds.");
-                pages.Add(number);
-            }
+            if ((page.GetResolvedLocation().Page) is int number) AddPage(number);
         }
         int tableIndex = 0;
         foreach (OfficeDocumentContentItem item in document.EnumerateContent()) {
@@ -143,11 +142,11 @@ public sealed class OfficeAiDocument {
         long totalImageBytes = 0;
         foreach (OfficeAiImage image in images ?? Array.Empty<OfficeAiImage>()) {
             ArgumentNullException.ThrowIfNull(image);
-            if (imageList.Count >= limits.MaxDocumentImages || image.Page > limits.MaxPages || !imageIds.Add(image.Id)
+            if (imageList.Count >= limits.MaxDocumentImages || !imageIds.Add(image.Id)
                 || evidence.Any(item => item.Id == image.Id)) throw new ArgumentException("Image identities or page bounds are invalid.", nameof(images));
             totalImageBytes += image.ByteLength;
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");
-            imageList.Add(image); pages.Add(image.Page);
+            imageList.Add(image); AddPage(image.Page);
         }
         bool incompleteSource = document.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
             || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
