@@ -109,7 +109,7 @@ internal static partial class ProjectXmlCodec {
     private static void InspectPreservedContent(ProjectDocument document, ProjectLoadOptions options, CancellationToken token) {
         var source = document.Source!;
         int count = 0;
-        var containers = new HashSet<string>("ExtendedAttributes Calendars Tasks Resources Assignments WeekDays WorkingTimes Exceptions TimePeriod ValueList".Split(' '), StringComparer.Ordinal);
+        var containers = new HashSet<string>("ExtendedAttributes Calendars Tasks Resources Assignments WeekDays WorkingTimes Exceptions WorkWeeks TimePeriod ValueList".Split(' '), StringComparer.Ordinal);
         var known = new HashSet<XElement>();
         foreach (var pair in source.Elements) {
             token.ThrowIfCancellationRequested();

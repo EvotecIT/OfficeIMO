@@ -4,10 +4,10 @@ using System.Globalization;
 namespace OfficeIMO.Project;
 
 internal static partial class ProjectNativeCodec {
-    private static void ReadMetadata(ProjectDocument document, OfficeCompoundFile file) {
+    private static void ReadMetadata(ProjectDocument document, OfficeCompoundFile file, CancellationToken token) {
         foreach (var name in new[] { OfficeOlePropertySetWriter.SummaryInformationStreamName, OfficeOlePropertySetWriter.DocumentSummaryInformationStreamName }) {
             if (!file.Streams.TryGetValue(name, out var bytes)) continue;
-            foreach (var section in OfficeOlePropertySetReader.ReadSections(bytes)) {
+            foreach (var section in OfficeOlePropertySetReader.ReadSections(bytes, token)) {
                 string? Text(uint id) => section.Properties.TryGetValue(id, out var value) ? value.AsString() : null;
                 if (section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId) {
                     document.Title = Text(2); document.Subject = Text(3); document.Author = Text(4);

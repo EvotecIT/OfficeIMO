@@ -27,7 +27,7 @@ internal static partial class ProjectNativeCodec {
         try {
             document.NativeSource = new ProjectNativeSource(bytes, new ProjectNativeInfo(header.TryGetValue(0x35400010, out var producer) ? producer.Unicode() : null, file));
             ReadSettings(document, properties);
-            ReadMetadata(document, file);
+            ReadMetadata(document, file, token);
             ReadCustomAliases(document, file, token);
             var calendarTable = Table(file, properties, "Cal", 0x16, options, token);
             ReadCalendars(document, calendarTable, properties, options, token);

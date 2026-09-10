@@ -19,7 +19,8 @@ public sealed partial class ProjectDocument {
             decimal? minutes = assignment.Work?.Minutes, cost = null;
             bool hasVariableRates = resource != null && Source?.Element(resource)?.Element(System.Xml.Linq.XName.Get("Rates", XmlNamespace))?.HasElements == true;
             int? table = (int?)Source?.Element(assignment)?.Element(System.Xml.Linq.XName.Get("CostRateTable", XmlNamespace));
-            if (NativeSource != null) Warn("PROJECT_NATIVE_RATE_ESTIMATE_UNSUPPORTED", "Native rate tables and assignment profiles are retained but not interpreted. No rate-based cost estimate was inferred.", location);
+            if (resource?.Type == ProjectResourceType.Cost) cost = assignment.Cost;
+            else if (NativeSource != null) Warn("PROJECT_NATIVE_RATE_ESTIMATE_UNSUPPORTED", "Native rate tables and assignment profiles are retained but not interpreted. No rate-based cost estimate was inferred.", location);
             else if (hasVariableRates || table > 0) Warn("PROJECT_RATE_ESTIMATE_UNSUPPORTED", "Dated rates or a non-default rate table require interval-specific cost calculation.", location);
             else if (resource?.Type == ProjectResourceType.Work) {
                 if (!minutes.HasValue && task?.Duration is ProjectDuration duration && !duration.IsElapsed && assignment.Units.HasValue)
@@ -31,8 +32,7 @@ public sealed partial class ProjectDocument {
             } else if (resource?.Type == ProjectResourceType.Material) {
                 if (assignment.Units.HasValue && resource.StandardRate.HasValue)
                     cost = ProjectWorkEquation.MaterialCost(assignment.Units.Value.Value, resource.StandardRate.Value, resource.CostPerUse ?? 0m);
-            } else if (resource?.Type == ProjectResourceType.Cost) cost = assignment.Cost;
-            else Warn("PROJECT_ASSIGNMENT_RESOURCE", "The resource is unspecified or unresolved; no rate estimate was inferred.", location);
+            } else Warn("PROJECT_ASSIGNMENT_RESOURCE", "The resource is unspecified or unresolved; no rate estimate was inferred.", location);
             estimates.Add(new ProjectAssignmentEstimate(assignment, minutes, cost));
         }
         var grouped = Assignments.Where(a => a.Resource != null).GroupBy(a => a.Resource!).ToDictionary(g => g.Key, g => g.ToArray());

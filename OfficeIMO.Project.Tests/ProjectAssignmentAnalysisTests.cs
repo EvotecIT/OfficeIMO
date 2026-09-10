@@ -2,6 +2,19 @@ namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectAssignmentAnalysisTests {
     [Fact]
+    public void NativeCostResourcesRetainEnteredCostsWithoutInterpretingRateTables() {
+        using var document = ProjectDocument.Load(ProjectNativeTests.Fixture("resources.mpp"));
+        long revision = document.Revision;
+        var assignment = document.Assignments.Single(a => a.Resource?.Type == ProjectResourceType.Cost);
+        var analysis = document.AnalyzeAssignments();
+        var estimate = analysis.Assignments.Single(a => a.AssignmentUid == assignment.Uid);
+        Assert.Equal(300m, estimate.EstimatedCost);
+        Assert.Equal(assignment.Cost, estimate.StoredCost);
+        Assert.Equal(revision, document.Revision);
+        Assert.All(document.Assignments.Where(a => a.Resource?.Type == ProjectResourceType.Work || a.Resource?.Type == ProjectResourceType.Material),
+            a => Assert.Null(analysis.Assignments.Single(e => e.AssignmentUid == a.Uid).EstimatedCost));
+    }
+    [Fact]
     public void UniformWorkEquationsHoldTheRequestedQuantityFixed() {
         var units = ProjectUnits.Percent(50);
         Assert.Equal(480, ProjectWorkEquation.Work(960, units).Minutes);

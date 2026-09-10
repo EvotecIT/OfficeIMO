@@ -26,6 +26,7 @@ internal sealed class ProjectXmlSource {
             "Task" => new[] { "PredecessorLink", "ExtendedAttribute", "Baseline", "TimephasedData" },
             "Resource" or "Assignment" => new[] { "ExtendedAttribute", "Baseline", "TimephasedData" },
             "Baseline" => new[] { "TimephasedData" },
+            "WorkWeek" => new[] { "WeekDay" },
             _ => Array.Empty<string>()
         };
         var clone = new XElement(original.Name, original.Attributes());
@@ -43,6 +44,8 @@ internal sealed class ProjectXmlSource {
                 ("Project", "ExtendedAttributes") => "ExtendedAttribute",
                 ("Calendar", "WeekDays") => "WeekDay",
                 ("Calendar", "Exceptions") => "Exception",
+                ("Calendar", "WorkWeeks") => "WorkWeek",
+                ("WorkWeek", "WeekDays") => "WeekDay",
                 ("WeekDay", "WorkingTimes") or ("Exception", "WorkingTimes") => "WorkingTime",
                 ("ExtendedAttribute", "ValueList") => "Value",
                 _ => null

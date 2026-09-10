@@ -27,6 +27,19 @@ public sealed class ProjectSchedulingTests {
         Assert.Equal(660, reload.Calendars.GetByUid(child.Uid).WorkingMinutesBetween(Monday, Monday.AddDays(2).AddHours(4)));
     }
     [Fact]
+    public void ReloadedWorkWeeksPermitIntervalAndStructuralEditsWithoutLossPermission() {
+        using var document = Standard();
+        var week = document.Calendar!.WorkWeeks.Add(); week.FromDate = Monday.Date; week.ToDate = Monday.AddDays(4).Date;
+        week.SetWorkingDay(DayOfWeek.Wednesday, ProjectWorkingTime.Hours(9, 12));
+        using var reload = ProjectDocument.Parse(document.ToXml());
+        reload.Calendar!.WorkWeeks[0].SetWorkingDay(DayOfWeek.Wednesday, ProjectWorkingTime.Hours(10, 12));
+        reload.Tasks.Add("Added after reload");
+        using var edited = ProjectDocument.Parse(reload.ToXml());
+        Assert.Equal("Added after reload", edited.Tasks.Single().Name);
+        Assert.Single(edited.Calendar!.WorkWeeks);
+        Assert.Equal(120, edited.Calendar.WorkingMinutesBetween(Monday.AddDays(2), Monday.AddDays(2).AddHours(4)));
+    }
+    [Fact]
     public void OvernightShiftsAndLocalDstBoundaryDoNotDependOnMachineTimezone() {
         using var document = Standard(); var calendar = document.Calendar!;
         foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek))) calendar.SetWorkingDay(day);
