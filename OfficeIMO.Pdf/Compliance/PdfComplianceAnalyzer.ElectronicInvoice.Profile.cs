@@ -21,6 +21,8 @@ internal static partial class PdfComplianceAnalyzer {
                 "Analyze exact PDF bytes to compare the embedded invoice profile with its XMP declaration.");
         var files = new List<PdfEmbeddedFile>();
         var diagnostics = new List<string>();
+        string? rawDiagnostic = PdfElectronicInvoiceProfile.GetRawXmpDiagnostic(xmp?.RawXml);
+        if (rawDiagnostic != null) diagnostics.Add(rawDiagnostic);
         foreach (PdfExtractedAttachment attachment in attachments) {
             cancellationToken.ThrowIfCancellationRequested();
             if (TryCreateReadbackEmbeddedFile(attachment, diagnostics, cancellationToken, out PdfEmbeddedFile? file)) files.Add(file!);

@@ -63,6 +63,25 @@ public class PdfInvoiceProfileConsistencyTests {
         Assert.Throws<ArgumentException>(() => options.AddEmbeddedFile("factur-x.xml", Cii(InvoiceProfile.Basic), "application/xml", PdfAssociatedFileRelationship.Data));
     }
 
+    [Theory]
+    [InlineData("<fx:ConformanceLevel><x/>EN 16931</fx:ConformanceLevel>")]
+    [InlineData("<fx:ConformanceLevel> EN 16931 </fx:ConformanceLevel>")]
+    [InlineData("<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel><fx:ConformanceLevel/>")]
+    public void SavedArtifactRejectsNormalizedOrStructuredXmp(string property) {
+        const string padding = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+        const string canonical = "<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>";
+        byte[] generated = PdfDocument.Create(new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
+            .Meta(title: padding).Paragraph(p => p.Text("Invoice")).ToBytes();
+        string original = PdfEncoding.Latin1GetString(generated);
+        string tampered = original.Replace(canonical, property)
+            .Replace(">" + padding + "</rdf:li>", ">" + padding.Substring(property.Length - canonical.Length) + "</rdf:li>");
+        Assert.NotEqual(original, tampered);
+        Assert.Equal(original.Length, tampered.Length);
+        var report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, PdfEncoding.Latin1GetBytes(tampered));
+        Assert.Equal(PdfComplianceRequirementStatus.Missing,
+            report.Requirements.Single(r => r.Id == "readback-einvoice-profile-consistency").Status);
+    }
+
     [Fact]
     public void MetadataChangedAfterDocumentCreationIsCheckedBeforeSerialization() {
         var document = PdfDocument.Create(new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
