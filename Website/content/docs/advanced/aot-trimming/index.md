@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-The project inventory distinguishes NativeAOT evidence from managed deployment. **114 of 121 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+The project inventory distinguishes NativeAOT evidence from managed deployment. **114 of 123 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. The invoice engine and optional standards validator use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 114 native-validated projects are not all proved in the same way:
 
@@ -13,7 +13,7 @@ The 114 native-validated projects are not all proved in the same way:
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 - **1 build-time source generator** emits an explicit row mapper that compiles into and executes from the main native host. The analyzer itself is not deployed as a runtime assembly.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 121 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 123 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
 
 ## Publish your application
 

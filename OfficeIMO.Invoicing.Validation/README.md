@@ -3,6 +3,22 @@
 Validate exact CII or UBL invoice bytes against an explicit schema and business-rule
 release. The package runs on .NET 8 and .NET 10. It makes no network requests.
 
+## Build and install locally
+
+From the repository root, pack both projects, then add the validation package to
+your application. NuGet resolves its invoice-model dependency from the same feed:
+
+```powershell
+dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifacts/invoice-feed
+dotnet pack OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj -c Release -o artifacts/invoice-feed
+dotnet add path/to/Application.csproj package OfficeIMO.Invoicing.Validation --source artifacts/invoice-feed
+```
+
+PDF generation is independent of this package. Java and Saxon are required only
+when running the configured business-rule stage.
+
+## Validate invoice XML
+
 The configured stages are:
 
 | Release | Syntax | Schema and rules |

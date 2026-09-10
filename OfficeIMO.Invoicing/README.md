@@ -4,6 +4,18 @@ Create, read, edit and convert electronic invoices with one typed .NET model.
 The core has no external runtime dependencies and supports .NET Standard 2.0,
 .NET 8, .NET 10 and .NET Framework 4.7.2.
 
+## Build and install locally
+
+From the repository root, pack the project into a local feed, then add that
+package to your application:
+
+```powershell
+dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifacts/invoice-feed
+dotnet add path/to/Application.csproj package OfficeIMO.Invoicing --source artifacts/invoice-feed
+```
+
+This package does not depend on a PDF engine or an external validation runtime.
+
 ## Create invoice XML
 
 ```csharp
@@ -52,7 +64,7 @@ Successful serialization alone does not establish standards compliance.
 | Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details |
 | References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents |
 
-Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC and EXTENDED.
+Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC, EXTENDED and EXTENDED-CTC-FR.
 Authoring those profiles is not supported by this engine. National CIUS rules
 other than XRechnung and Peppol require separate mappings and validation.
 
@@ -113,6 +125,9 @@ if (declaration.Profile is InvoiceProfile profile && profile != InvoiceProfile.P
 ```
 
 The catalogue distinguishes MINIMUM, BASIC WL, BASIC, EN 16931, EXTENDED,
-XRechnung 3.0, and Peppol BIS Billing 3.0. Unknown identifiers are returned with a
+XRechnung 3.0, EXTENDED-CTC-FR, and Peppol BIS Billing 3.0. Unknown identifiers are returned with a
 null profile; missing, ambiguous, malformed, or oversized input is rejected.
 Peppol BIS does not define Factur-X XMP metadata.
+
+The French profile identifier follows [AFNOR XP Z12-012](https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/specification_externes_b2b/afnor/norme-afnor-factures.pdf).
+Recognition does not establish French business-rule coverage.

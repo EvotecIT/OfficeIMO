@@ -1,4 +1,4 @@
-using OfficeIMO.Invoicing;
+using OfficeIMO.Internal.Invoicing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -6,12 +6,13 @@ namespace OfficeIMO.Pdf.Tests;
 
 public class PdfInvoiceProfileConsistencyTests {
     [Theory]
-    [InlineData(InvoiceProfile.Basic, "BASIC")]
-    [InlineData(InvoiceProfile.BasicWithoutLines, "BASIC WL")]
-    [InlineData(InvoiceProfile.En16931, "EN 16931")]
-    [InlineData(InvoiceProfile.Extended, "EXTENDED")]
-    public void AttachmentHelperDerivesCanonicalXmpFromXml(InvoiceProfile profile, string expected) {
-        byte[] xml = Cii(profile);
+    [InlineData((int)InvoiceProfile.Basic, "BASIC")]
+    [InlineData((int)InvoiceProfile.BasicWithoutLines, "BASIC WL")]
+    [InlineData((int)InvoiceProfile.En16931, "EN 16931")]
+    [InlineData((int)InvoiceProfile.Extended, "EXTENDED")]
+    [InlineData((int)InvoiceProfile.ExtendedCtcFr, "EXTENDED-CTC-FR")]
+    public void AttachmentHelperDerivesCanonicalXmpFromXml(int profile, string expected) {
+        byte[] xml = Cii((InvoiceProfile)profile);
         var options = new PdfOptions().UseFacturX(xml, textFallbacks: PdfTextFallbackFeatures.None);
         Assert.Equal(expected, options.ElectronicInvoiceMetadata!.ConformanceLevel);
         byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice profile test")).ToBytes();
@@ -61,6 +62,27 @@ public class PdfInvoiceProfileConsistencyTests {
     public void DuplicateCanonicalAttachmentsCannotPassReadiness() {
         var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None);
         Assert.Throws<ArgumentException>(() => options.AddEmbeddedFile("factur-x.xml", Cii(InvoiceProfile.Basic), "application/xml", PdfAssociatedFileRelationship.Data));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnrelatedAttachmentPayloadAndMimeDoNotChangeInvoiceProfileAgreement(bool emptyPayload) {
+        var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
+            .AddEmbeddedFile("support.txt", new byte[] { 88 }, "text/plain", PdfAssociatedFileRelationship.Supplement);
+        byte[] generated = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice")).ToBytes();
+        string original = PdfEncoding.Latin1GetString(generated);
+        string altered = emptyPayload
+            ? original.Replace("/Length 1 /Params", "/Length 0 /Params")
+            : original.Replace("/Subtype /text#2Fplain", "/Subtype /text#20plain");
+        Assert.NotEqual(original, altered);
+        byte[] pdf = PdfEncoding.Latin1GetBytes(altered);
+        var auxiliary = PdfAttachmentExtractor.ExtractAttachments(pdf).Single(file => file.FileName == "support.txt");
+        if (emptyPayload) Assert.Empty(auxiliary.Bytes);
+        else Assert.Equal("text plain", auxiliary.MimeType);
+        var report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied,
+            report.Requirements.Single(r => r.Id == "readback-einvoice-profile-consistency").Status);
     }
 
     [Theory]

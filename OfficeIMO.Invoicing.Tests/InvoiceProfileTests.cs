@@ -4,12 +4,22 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceProfileTests {
     [Theory]
+    [InlineData("urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic", InvoiceProfile.Basic)]
+    [InlineData("urn:factur-x.eu:1p0:basic", InvoiceProfile.Basic)]
+    [InlineData("urn:cen.eu:en16931:2017#conformant#urn.cpro.gouv.fr:1p0:extended-ctc-fr", InvoiceProfile.ExtendedCtcFr)]
+    public void StandardProfileIdentifiersAreRecognized(string identifier, InvoiceProfile expected) {
+        var declaration = InvoiceProfileDeclaration.Read(Cii(identifier));
+        Assert.Equal(expected, declaration.Profile);
+    }
+
+    [Theory]
     [InlineData(InvoiceProfile.Minimum, "MINIMUM")]
     [InlineData(InvoiceProfile.BasicWithoutLines, "BASIC WL")]
     [InlineData(InvoiceProfile.Basic, "BASIC")]
     [InlineData(InvoiceProfile.En16931, "EN 16931")]
     [InlineData(InvoiceProfile.Extended, "EXTENDED")]
     [InlineData(InvoiceProfile.XRechnung, "XRECHNUNG")]
+    [InlineData(InvoiceProfile.ExtendedCtcFr, "EXTENDED-CTC-FR")]
     public void CanonicalCiiDeclarationsResolveToMatchingXmp(InvoiceProfile profile, string xmp) {
         var declaration = InvoiceProfileDeclaration.Read(Cii(InvoiceProfiles.GetGuidelineId(profile)));
         Assert.Equal(InvoiceSyntax.Cii, declaration.Syntax);
