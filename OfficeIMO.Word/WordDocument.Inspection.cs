@@ -205,7 +205,8 @@ namespace OfficeIMO.Word {
 
             foreach (var run in paragraph.GetRuns()) {
                 var hyperlink = run.Hyperlink;
-                var image = run.Image;
+                var images = run.GetPositionedImages().Select(item =>
+                    new WordPositionedImageSnapshot(item.Offset, BuildInlineImageSnapshot(item.Image))).ToArray();
 
                 snapshot.AddRun(new WordRunSnapshot {
                     Text = run.Text,
@@ -234,18 +235,8 @@ namespace OfficeIMO.Word {
                     HyperlinkAnchor = hyperlink?.Anchor,
                     Footnote = BuildFootnoteSnapshot(run.FootNote, expansionContext),
                     Endnote = BuildEndnoteSnapshot(run.EndNote, expansionContext),
-                    InlineImage = image == null ? null : new WordInlineImageSnapshot {
-                        FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
-                        FileName = image.FileName,
-                        ContentType = ResolveImageContentType(image),
-                        Bytes = image.IsExternal ? null : image.ToBytes(),
-                        Description = image.Description,
-                        Title = image.Title,
-                        Width = image.Width,
-                        Height = image.Height,
-                        IsInline = image.WrapText == WordImageTextWrapping.InLineWithText,
-                        WrapText = image.WrapText?.ToString(),
-                    },
+                    InlineImage = images.FirstOrDefault()?.Image,
+                    PositionedImages = images,
                 });
             }
 
@@ -259,6 +250,19 @@ namespace OfficeIMO.Word {
 
             return snapshot;
         }
+
+        private static WordInlineImageSnapshot BuildInlineImageSnapshot(WordImage image) => new WordInlineImageSnapshot {
+            FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
+            FileName = image.FileName,
+            ContentType = ResolveImageContentType(image),
+            Bytes = image.IsExternal ? null : image.ToBytes(),
+            Description = image.Description,
+            Title = image.Title,
+            Width = image.Width,
+            Height = image.Height,
+            IsInline = image.WrapText == WordImageTextWrapping.InLineWithText,
+            WrapText = image.WrapText?.ToString(),
+        };
 
         private IReadOnlyDictionary<string, string?> BuildParagraphStyleNameLookup() {
             var lookup = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);

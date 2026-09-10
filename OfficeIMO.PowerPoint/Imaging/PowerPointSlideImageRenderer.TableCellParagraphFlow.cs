@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            List<PowerPointParagraph> paragraphs = GetVisibleTableCellParagraphs(cell);
+            List<PowerPointParagraph> paragraphs = cell.Paragraphs.ToList();
             if (!ShouldRenderTableCellParagraphFlow(paragraphs)) {
                 return false;
             }
@@ -93,11 +93,6 @@ namespace OfficeIMO.PowerPoint {
 
             return true;
         }
-
-        private static List<PowerPointParagraph> GetVisibleTableCellParagraphs(PowerPointTableCell cell) =>
-            cell.Paragraphs
-                .Where(paragraph => paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) || !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered)
-                .ToList();
 
         private static bool ShouldRenderTableCellParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
             paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) ||
@@ -175,6 +170,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo ResolveTableCellParagraphFont(PowerPointTableCell cell, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
+            if (!paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text))) {
+                PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
+                    paragraph, cell.Cell.TextBody?.ListStyle,
+                    cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
+                return new OfficeFontInfo(effective.FontName ?? cell.FontName ?? "Calibri",
+                    mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize ?? 10),
+                    ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
+            }
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
                 ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;

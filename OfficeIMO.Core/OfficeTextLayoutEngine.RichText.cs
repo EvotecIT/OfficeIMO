@@ -202,7 +202,8 @@ public static partial class OfficeTextLayoutEngine {
         double minimumFontSize = 1D,
         OfficeTextOverflowBehavior overflowBehavior = OfficeTextOverflowBehavior.Ellipsis,
         OfficeTextParagraphIndent? paragraphIndent = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        bool shrinkToHeight = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
@@ -215,7 +216,11 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeRichTextRun> normalizedRuns =
             NormalizeRichTextRuns(runs, out bool inputTruncated, cancellationToken);
         double width = NormalizeNonNegative(maxWidth);
-        if (shrinkToFit && !wrap) {
+        if (shrinkToFit && shrinkToHeight) {
+            normalizedRuns = FitRichTextRunsToFrame(normalizedRuns, width, maxHeight,
+                lineHeightFactor, measure, wrap, minimumFontSize,
+                paragraphIndent ?? OfficeTextParagraphIndent.Empty, cancellationToken);
+        } else if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
                 normalizedRuns,
                 measure,

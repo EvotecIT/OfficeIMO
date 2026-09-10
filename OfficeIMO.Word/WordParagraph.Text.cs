@@ -384,7 +384,9 @@ namespace OfficeIMO.Word {
             return builder.ToString();
         }
 
-        private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element, IDictionary<int, WordBreakType>? nonTextBreaks = null) {
+        private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element, IDictionary<int, WordBreakType>? nonTextBreaks = null,
+            Action<OpenXmlElement, int>? observeElement = null) {
+            observeElement?.Invoke(element, builder.Length);
             switch (element) {
                 case Run run when IsHiddenCommentReferenceRun(run):
                     return;
@@ -418,6 +420,10 @@ namespace OfficeIMO.Word {
                 case DeletedRun:
                 case MoveFromRun:
                     return;
+                case AlternateContent alternate:
+                    OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternate);
+                    if (branch != null) AppendVisibleText(builder, branch, nonTextBreaks, observeElement);
+                    return;
             }
 
             if (element.NamespaceUri == WordMath.MathNamespace) {
@@ -426,7 +432,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleText(builder, child, nonTextBreaks);
+                AppendVisibleText(builder, child, nonTextBreaks, observeElement);
             }
         }
 

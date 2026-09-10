@@ -32,9 +32,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
-        int imageLayout = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(run => run.InlineImage != null &&
-            (!string.IsNullOrWhiteSpace(run.InlineImage.Description) || !string.IsNullOrWhiteSpace(run.InlineImage.Title) ||
-             (!run.InlineImage.IsInline && !string.IsNullOrWhiteSpace(run.InlineImage.WrapText))));
+        int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
+            .SelectMany(run => run.PositionedImages).Count(positioned =>
+                !string.IsNullOrWhiteSpace(positioned.Image.Description) || !string.IsNullOrWhiteSpace(positioned.Image.Title) ||
+                (!positioned.Image.IsInline && !string.IsNullOrWhiteSpace(positioned.Image.WrapText)));
         if (snapshot.Sections.Count > 0) ApplyWordPageLayout(snapshot.Sections[0], target.PageLayout);
         foreach (WordSectionSnapshot section in snapshot.Sections) {
             OdtList? currentList = null;

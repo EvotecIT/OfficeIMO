@@ -437,7 +437,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             drawing.AddText(
-                text,
+                richRuns.Count == 1 ? richRuns[0].Text : text,
                 left,
                 top,
                 width,

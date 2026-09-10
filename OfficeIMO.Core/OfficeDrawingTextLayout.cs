@@ -30,6 +30,6 @@ internal static class OfficeDrawingTextLayout {
             ? Math.Max(1D, text.LineHeight.Value * scale / maxFontSize) : 1.2D;
         return OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs, width, height,
             factor, measure, text.WrapText, text.ShrinkToFit, Math.Min(6D * scale, maxFontSize),
-            paragraphIndent: text.ParagraphIndent.Scale(scale));
+            paragraphIndent: text.ParagraphIndent.Scale(scale), shrinkToHeight: true);
     }
 }

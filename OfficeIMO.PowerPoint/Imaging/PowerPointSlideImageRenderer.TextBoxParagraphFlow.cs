@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme,
             List<OfficeImageExportDiagnostic> diagnostics, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily) {
-            List<PowerPointParagraph> paragraphs = GetVisibleTextBoxParagraphs(textBox);
+            List<PowerPointParagraph> paragraphs = textBox.Paragraphs.ToList();
             if (!ShouldRenderTextBoxParagraphFlow(paragraphs)) {
                 return false;
             }
@@ -90,15 +90,11 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static List<PowerPointParagraph> GetVisibleTextBoxParagraphs(PowerPointTextBox textBox) =>
-            textBox.Paragraphs
-                .Where(paragraph => paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) || !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered)
-                .ToList();
-
         private static bool ShouldRenderTextBoxParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
             paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) ||
             (paragraphs.Count > 1 &&
                 paragraphs.Any(paragraph =>
+                    !paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) ||
                     paragraph.Alignment != paragraphs[0].Alignment || paragraph.SpaceBeforePoints.HasValue ||
                     paragraph.SpaceAfterPoints.HasValue ||
                     paragraph.LineSpacingPoints.HasValue ||
@@ -127,10 +123,11 @@ namespace OfficeIMO.PowerPoint {
                     height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, measure);
                     results.Add(PowerPointParagraphDrawing.FromRichText(paragraph, richRuns, alignment, indent, lineHeight, height, mapping));
                 } else {
-                    string text = CreateParagraphPlainText(paragraph, marker);
+                    string text = richRuns.Count == 1 ? richRuns[0].Text : CreateParagraphPlainText(paragraph, marker);
                     OfficeFontInfo font = richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily);
                     height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, measure);
-                    results.Add(PowerPointParagraphDrawing.FromText(paragraph, text, font, ResolveParagraphTextColor(textBox, paragraph, colorScheme), alignment, indent, lineHeight, height, mapping));
+                    OfficeColor color = richRuns.Count == 1 ? richRuns[0].Color : ResolveParagraphTextColor(textBox, paragraph, colorScheme);
+                    results.Add(PowerPointParagraphDrawing.FromText(paragraph, text, font, color, alignment, indent, lineHeight, height, mapping));
                 }
             }
 
@@ -170,26 +167,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
-            PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
-                ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
+            PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
+                paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
+            return new OfficeFontInfo(effective.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
+                mapping.MapFontSize(effective.FontSizePoints ?? textBox.FontSize ?? 18),
+                ResolveEffectiveFontStyle(effective, textBox.Bold, textBox.Italic));
+        }
+
+        private static OfficeFontStyle ResolveEffectiveFontStyle(PowerPointEffectiveRunStyle effective, bool fallbackBold, bool fallbackItalic) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (firstRun?.Bold == true || textBox.Bold) {
-                style |= OfficeFontStyle.Bold;
-            }
-
-            if (firstRun?.Italic == true || textBox.Italic) {
-                style |= OfficeFontStyle.Italic;
-            }
-
-            if (firstRun?.Underline == true) {
-                style |= OfficeFontStyle.Underline;
-            }
-
-            if (firstRun?.Strikethrough == true) {
-                style |= OfficeFontStyle.Strikethrough;
-            }
-
-            return new OfficeFontInfo(firstRun?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily), mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18), style);
+            if (effective.Bold ?? fallbackBold) style |= OfficeFontStyle.Bold;
+            if (effective.Italic ?? fallbackItalic) style |= OfficeFontStyle.Italic;
+            if (effective.UnderlineStyle is { } underline && underline != PowerPointUnderlineStyle.None) style |= OfficeFontStyle.Underline;
+            if (effective.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None) style |= OfficeFontStyle.Strikethrough;
+            return style;
         }
 
         private static OfficeColor ResolveParagraphTextColor(PowerPointTextBox textBox, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {

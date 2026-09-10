@@ -14,9 +14,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         ApplyWordParagraphFormatting(source, target);
         foreach (WordRunSnapshot run in source.Runs) {
             int start = 0;
+            int imageIndex = 0;
             if (run.NonTextBreaks != null) {
                 foreach (var boundary in run.NonTextBreaks.OrderBy(item => item.Key)) {
-                    AppendText(run, run.Text.Substring(start, boundary.Key - start), target, ref hyperlinks, ref wrote);
+                    AppendRunSegment(run, ref start, boundary.Key, ref imageIndex, target, options,
+                        imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref wrote);
                     if (boundary.Value == WordBreakType.Page) {
                         if (target.InlineNodes.Count > 0 || target.PageBreakBefore) {
                             target = target.InsertParagraphAfter();
@@ -27,9 +29,23 @@ public static partial class WordOpenDocumentConversionExtensions {
                     start = boundary.Key + 1;
                 }
             }
-            AppendText(run, run.Text.Substring(start), target, ref hyperlinks, ref wrote);
-            if (options.IncludeImages && run.InlineImage?.Bytes is { Length: > 0 } bytes) {
-                WordInlineImageSnapshot image = run.InlineImage;
+            AppendRunSegment(run, ref start, run.Text.Length, ref imageIndex, target, options,
+                imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref wrote);
+            if (run.Footnote != null) unsupportedFootnotes++;
+        }
+        if (!wrote && source.Text.Length > 0 && source.Runs.All(run => run.NonTextBreaks == null)) target.Text = source.Text;
+        if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { first.AddBookmark(source.BookmarkName!); bookmarks++; }
+    }
+
+    private static void AppendRunSegment(WordRunSnapshot run, ref int start, int end, ref int imageIndex,
+        OdtParagraph target, WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
+        ref int hyperlinks, ref int images, ref int unsupportedImages, ref bool wrote) {
+        while (imageIndex < run.PositionedImages.Count && run.PositionedImages[imageIndex].Offset <= end) {
+            WordPositionedImageSnapshot positioned = run.PositionedImages[imageIndex++];
+            AppendText(run, run.Text.Substring(start, positioned.Offset - start), target, ref hyperlinks, ref wrote);
+            start = positioned.Offset;
+            WordInlineImageSnapshot image = positioned.Image;
+            if (options.IncludeImages && image.Bytes is { Length: > 0 } bytes) {
                 try {
                     string fileName = image.FileName ?? "image.png";
                     if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
@@ -48,10 +64,9 @@ public static partial class WordOpenDocumentConversionExtensions {
                     unsupportedImages++;
                 }
             }
-            if (run.Footnote != null) unsupportedFootnotes++;
         }
-        if (!wrote && source.Text.Length > 0 && source.Runs.All(run => run.NonTextBreaks == null)) target.Text = source.Text;
-        if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { first.AddBookmark(source.BookmarkName!); bookmarks++; }
+        AppendText(run, run.Text.Substring(start, end - start), target, ref hyperlinks, ref wrote);
+        start = end;
     }
 
     private static void AppendText(WordRunSnapshot run, string text, OdtParagraph target, ref int hyperlinks, ref bool wrote) {

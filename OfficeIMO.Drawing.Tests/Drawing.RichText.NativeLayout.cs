@@ -7,6 +7,30 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
     [Theory]
+    [InlineData("alpha beta gamma delta", true, 60D, 25D)]
+    [InlineData("first\nsecond\nthird", false, 100D, 27D)]
+    [InlineData("x\na considerably longer line", false, 80D, 25D)]
+    public void DrawingRichTextShrinksAgainstWidthAndHeight(string value, bool wrap, double width, double height) {
+        var drawing = new OfficeDrawing(width, height).AddRichText(new[] {
+            new OfficeRichTextRun(value, 18D, OfficeColor.Red, bold: true) { LinkUri = "https://officeimo.net/fit" }
+        }, 0, 0, width, height, wrapText: wrap, shrinkToFit: true);
+        var text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Elements));
+        var layout = OfficeDrawingTextLayout.Create(text, width, height,
+            (content, size, family, style) => (content?.Length ?? 0) * size / 2);
+        Assert.False(layout.Clipped);
+        Assert.InRange(layout.Width, 0D, width + 0.01D);
+        Assert.InRange(layout.Height, 0D, height + 0.01D);
+        var segments = layout.Lines.SelectMany(line => line.Segments).ToArray();
+        Assert.Equal(value.Replace(" ", "").Replace("\n", ""), string.Concat(segments.Select(segment => segment.Text)).Replace(" ", ""));
+        Assert.All(segments, segment => {
+            Assert.InRange(segment.FontSize, 6D, 17.999D);
+            Assert.True(segment.Bold);
+            Assert.Equal(OfficeColor.Red, segment.Color);
+            Assert.Equal("https://officeimo.net/fit", segment.LinkUri);
+        });
+    }
+
+    [Theory]
     [InlineData(1D, 10D)]
     [InlineData(2D, 20D)]
     public void SmallRichTextPreservesAuthoredLineSpacing(double scale, double expectedLineHeight) {
