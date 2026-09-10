@@ -34,11 +34,10 @@ public sealed partial class PdfInvoiceDocument {
             Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right }
         });
         if (_invoice.AllowancesAndCharges.Count != 0) {
-            content.H2("Document adjustments");
-            content.Table(_invoice.AllowancesAndCharges.Select(item => new[] {
-                item.IsCharge ? "Charge" : "Allowance", item.Reason ?? item.ReasonCode ?? string.Empty,
+            TableGroup(content, "Document adjustments", _invoice.AllowancesAndCharges.Select(item => new[] {
+                item.IsCharge ? "Charge" : "Allowance", AdjustmentDetails(item),
                 item.Tax!.Code + (item.Tax.Rate.HasValue ? " " + NumberText(item.Tax.Rate.Value) + "%" : string.Empty), Money(item.Amount)
-            }), style: PlainTable());
+            }));
         }
         var taxes = new List<string[]> { TaxHeaders };
         taxes.AddRange(_amounts.Taxes.Select(tax => new[] {
@@ -81,11 +80,22 @@ public sealed partial class PdfInvoiceDocument {
         Identifier("Legal registration", party.LegalRegistration), Identifier("Electronic address", party.ElectronicAddress),
         party.LegalInformation, party.Contact?.Name, party.Contact?.Email, party.Contact?.Telephone);
     private string LineText(InvoiceLine line) => Join(line.Id + ". " + line.Name, line.Description, line.Note,
+        line.OrderLineReference == null ? null : "Order line: " + line.OrderLineReference,
+        line.AccountingReference == null ? null : "Accounting reference: " + line.AccountingReference,
+        Identifier("Object", line.ObjectIdentifier), Identifier("Standard item", line.StandardItemIdentifier),
         line.SellerItemIdentifier == null ? null : "Seller item: " + line.SellerItemIdentifier,
         line.BuyerItemIdentifier == null ? null : "Buyer item: " + line.BuyerItemIdentifier,
+        line.OriginCountryCode == null ? null : "Origin: " + line.OriginCountryCode,
+        string.Join("\n", line.Classifications.Select(item => "Classification (" + item.ListId +
+            (item.ListVersion == null ? string.Empty : ", version " + item.ListVersion) + "): " + item.Value)),
+        string.Join("\n", line.Attributes.Select(item => item.Name + ": " + item.Value)),
         Period(line.Period) is string period ? "Period: " + period : null,
         line.GrossPrice.HasValue ? "Gross price: " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
         line.PriceDiscount.HasValue ? "Price discount: " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
         line.AllowancesAndCharges.Count == 0 ? null : string.Join("\n", line.AllowancesAndCharges.Select(item =>
-            (item.IsCharge ? "Charge: " : "Allowance: ") + Money(item.Amount) + " " + (item.Reason ?? item.ReasonCode))));
+            (item.IsCharge ? "Charge: " : "Allowance: ") + Money(item.Amount) + "\n" + AdjustmentDetails(item))));
+    private string AdjustmentDetails(InvoiceAllowanceCharge item) => Join(
+        item.Reason, item.ReasonCode == null ? null : "Reason code: " + item.ReasonCode,
+        item.BaseAmount.HasValue ? "Base: " + Money(item.BaseAmount.Value) : null,
+        item.Percentage.HasValue ? "Percentage: " + NumberText(item.Percentage.Value) + "%" : null);
 }

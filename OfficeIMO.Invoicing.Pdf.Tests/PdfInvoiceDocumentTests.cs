@@ -80,6 +80,44 @@ public class PdfInvoiceDocumentTests {
     }
 
     [Fact]
+    public void LineReferencesClassificationsAndAttributesRemainVisible() {
+        Invoice invoice = InvoiceFixture.Rich();
+        invoice.Lines[0].ObjectIdentifier!.SchemeId = "ABZ";
+        invoice.ObjectIdentifier!.SchemeId = "ABZ";
+        invoice.Lines[0].Classifications[0].ListVersion = "2026";
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        foreach (string expected in new[] { "Order line: 10", "Accounting reference: project-cost", "Object (ABZ): line-object",
+            "Standard item (0160): 1234567890128", "Origin: DE", "Classification (IB, version 2026): 0721-880X",
+            "Service tier: Standard", "Identifier (ABZ): object-1", "Business process", invoice.BusinessProcessId!, "text/csv" })
+            Assert.Contains(expected, text, StringComparison.Ordinal);
+        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        WriteEvidence("line-metadata", pdf);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void AdjustmentBasesPercentagesAndBothReasonsRemainVisible(bool documentLevel, bool charge) {
+        Invoice invoice = InvoiceFixture.Create();
+        var adjustment = new InvoiceAllowanceCharge { IsCharge = charge, Amount = 1m, BaseAmount = 100m,
+            Percentage = 1.00001m, Reason = "Adjusted service", ReasonCode = charge ? "FC" : "95",
+            Tax = documentLevel ? invoice.Lines[0].Tax : null };
+        if (documentLevel) invoice.AllowancesAndCharges.Add(adjustment);
+        else invoice.Lines[0].AllowancesAndCharges.Add(adjustment);
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        foreach (string expected in new[] { "Base: 100.00 EUR", "Percentage: 1.00001%", "Adjusted service", "Reason code: " + adjustment.ReasonCode })
+            Assert.Contains(expected, text, StringComparison.Ordinal);
+        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        WriteEvidence((documentLevel ? "document-" : "line-") + (charge ? "charge" : "allowance"), pdf);
+    }
+
+    [Fact]
     public void FractionalUnitPricesRetainTheirPrecision() {
         Invoice invoice = InvoiceFixture.Create();
         InvoiceLine line = invoice.Lines[0];

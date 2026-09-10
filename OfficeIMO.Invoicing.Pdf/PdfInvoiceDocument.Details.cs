@@ -6,6 +6,8 @@ public sealed partial class PdfInvoiceDocument {
     private static void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text)); }
     private static void DetailGroup(PdfContentBuilder content, string title, string text) =>
         content.Flow(group => { group.H2(title); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
+    private static void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows) =>
+        content.Flow(group => { group.H2(title); group.Table(rows, style: PlainTable()); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void ComposeDetails(PdfContentBuilder content) {
         var references = new List<string[]>();
         void Add(string label, string? value) { if (!string.IsNullOrWhiteSpace(value)) references.Add(new[] { label, value! }); }
@@ -13,11 +15,14 @@ public sealed partial class PdfInvoiceDocument {
         Add("Contract", _invoice.ContractReference); Add("Project", _invoice.ProjectReference);
         Add("Despatch advice", _invoice.DespatchAdviceReference); Add("Receiving advice", _invoice.ReceivingAdviceReference);
         Add("Tender", _invoice.TenderReference); Add("Accounting reference", _invoice.AccountingReference);
+        Add("Invoiced object", Identifier("Identifier", _invoice.ObjectIdentifier));
+        Add("Business process", _invoice.BusinessProcessId);
+        Add("Document type", _invoice.TypeCode);
         Add("Period", Period(_invoice.Period));
         Add("Tax point", _invoice.TaxPointDate.HasValue ? Date(_invoice.TaxPointDate) : _invoice.TaxPointDateCode);
         foreach (InvoiceReference preceding in _invoice.PrecedingInvoices) Add("Preceding invoice", preceding.Number + " " + Date(preceding.IssueDate));
         if (_invoice.TaxCurrency != null) Add("VAT in accounting currency", _invoice.TaxAmountInAccountingCurrency?.ToString("0.00", FormatCulture) + " " + _invoice.TaxCurrency);
-        if (references.Count != 0) { content.H2("References"); content.Table(references, style: PlainTable()); }
+        if (references.Count != 0) TableGroup(content, "References", references);
         if (_invoice.Delivery != null) {
             DetailGroup(content, "Delivery", Join(_invoice.Delivery.Name, Date(_invoice.Delivery.Date), Identifier("Location", _invoice.Delivery.LocationIdentifier),
                 _invoice.Delivery.Address == null ? null : Address(_invoice.Delivery.Address)));
@@ -44,10 +49,9 @@ public sealed partial class PdfInvoiceDocument {
             foreach (InvoiceNote note in _invoice.Notes) Paragraph(content, note.SubjectCode == null ? note.Text : note.SubjectCode + ": " + note.Text);
         }
         if (_invoice.SupportingDocuments.Count != 0) {
-            content.H2("Supporting documents");
-            content.Table(_invoice.SupportingDocuments.Select(document => new[] {
-                document.Reference, Join(document.Description, document.FileName, document.ExternalUri)
-            }), style: PlainTable());
+            TableGroup(content, "Supporting documents", _invoice.SupportingDocuments.Select(document => new[] {
+                document.Reference, Join(document.Description, document.FileName, document.MimeType, document.ExternalUri)
+            }));
         }
     }
 }

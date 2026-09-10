@@ -243,7 +243,7 @@ external runtime dependencies.
 [OfficeIMO.Invoicing.Validation](OfficeIMO.Invoicing.Validation/README.md) adds
 hash-pinned XSD and Schematron releases for EN 16931, XRechnung and UBL Peppol BIS.
 Business-rule execution uses an explicitly configured local Java/Saxon runtime.
-`OfficeIMO.Pdf` renders and attaches one captured invoice through `PdfInvoiceDocument`.
+[`OfficeIMO.Invoicing.Pdf`](OfficeIMO.Invoicing.Pdf/README.md) renders and attaches one captured invoice through `PdfInvoiceDocument`.
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
