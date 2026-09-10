@@ -112,7 +112,10 @@ public static partial class InvoiceParser {
                 invoice.TaxAmountInAccountingCurrency = value;
             } else c.Loss(tax, "VAT total currency is missing or undeclared.");
             foreach (XElement subtotal in c.Children(tax, Cac + "TaxSubtotal")) {
-                if (currency != invoice.Currency) c.Loss(subtotal, "Accounting-currency VAT breakdowns cannot be mapped to invoice-currency totals.");
+                if (currency != invoice.Currency) {
+                    c.Loss(subtotal, "Non-invoice-currency VAT breakdowns cannot be mapped to invoice-currency totals.");
+                    continue;
+                }
                 invoice.DeclaredTaxes.Add(new InvoiceDeclaredTax { Category = UblTaxCategory(c, c.Child(subtotal, Cac + "TaxCategory")),
                     TaxableAmount = c.RequiredMoney(subtotal, Cbc + "TaxableAmount", invoice.Currency, true), TaxAmount = c.RequiredMoney(subtotal, Cbc + "TaxAmount", invoice.Currency, true) });
             }
