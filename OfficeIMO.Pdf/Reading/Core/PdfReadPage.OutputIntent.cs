@@ -1,11 +1,24 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private bool HasOutputIntentCompositionInteraction() {
+    private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>
+        _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
+            this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);
+
+    private void PrepareOutputIntentRendering(CancellationToken cancellationToken) {
+        if (_outputIntentColorTransform == null) return;
+        _outputIntentColorTransform.Prepare(cancellationToken);
+        _ = GetOutputIntentCompositionInteraction(cancellationToken);
+    }
+
+    private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (IsTransparencyGroup(_pageDict)) return true;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
-        var budget = new PageContentBudget(this);
+        var budget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         if (ContentUsesOutputIntentCompositionInteraction(
                 GetContentStreamContent(budget),
@@ -20,6 +33,7 @@ public sealed partial class PdfReadPage {
         if (annotations == null) return false;
         EnsureAnnotationBudget(annotations);
         for (int index = 0; index < annotations.Items.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[index]);
             if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation)) continue;
             if (HasNonDefaultOpacity(annotation, "CA") || HasNonNormalBlendMode(annotation)) return true;
@@ -49,6 +63,7 @@ public sealed partial class PdfReadPage {
         var hiddenContentStack = new Stack<bool>();
         var malformedOptionalContentStack = new Stack<bool>();
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+            budget.CancellationToken.ThrowIfCancellationRequested();
             if (found) return;
             if (operation.Name == "BDC") {
                 object? tag = operation.Operands.Count > 1
@@ -170,7 +185,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> fonts = resources == null
             ? new Dictionary<string, PdfFontResource>(StringComparer.Ordinal)
             : ResourceResolver.GetFontsForResources(resources, _objects);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources, budget.CancellationToken.ThrowIfCancellationRequested);
 
         bool found = false;
         PdfPageXObjectInvocationParser.Parse(
@@ -222,7 +237,8 @@ public sealed partial class PdfReadPage {
             graphicsEffectPaintVisitor: (state, channels) => {
                 if (HasExplicitTransparency(state, channels)) found = true;
             },
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            operationCheck: budget.CancellationToken.ThrowIfCancellationRequested);
         return found;
     }
 

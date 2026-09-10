@@ -53,7 +53,7 @@ internal sealed partial class PdfDocumentReader {
         PdfPageRenderOptions? options = null,
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return PdfPageImageRenderer.RenderPages(_document.GetBytesForOperation, selection, options, ResolveReadOptions(readOptions), cancellationToken);
+        return PdfPageImageRenderer.RenderPages(token => _document.GetReadDocument(ResolveReadOptions(readOptions), token), selection, options, cancellationToken);
     }
 
     /// <summary>Renders parsed page ranges such as <c>1-3,5</c> through the managed batch renderer.</summary>
@@ -62,6 +62,6 @@ internal sealed partial class PdfDocumentReader {
         PdfPageRenderOptions? options = null,
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return PdfPageImageRenderer.RenderPages(_document.GetBytesForOperation, pageRanges, options, ResolveReadOptions(readOptions), cancellationToken);
+        return PdfPageImageRenderer.RenderPages(token => _document.GetReadDocument(ResolveReadOptions(readOptions), token), pageRanges, options, cancellationToken);
     }
 }
