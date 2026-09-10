@@ -11,7 +11,8 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
     private readonly IntelligenceXClient? _client;
     private readonly ITreatmentProvider _provider;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private bool _disposed;
+    private int _disposeRequested;
+    private int _clientDisposed;
 
     private IntelligenceXOfficeAiExecutor(IntelligenceXClient client, OfficeAiExecutionProfile profile) {
         _client = client; _provider = new OpenAIChatTreatmentProvider(client); Profile = profile;
@@ -98,21 +99,21 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         WithClientAsync(async client => { await client.LogoutAsync(cancellationToken).ConfigureAwait(false); return true; }, cancellationToken);
 
     private async Task<T> WithClientAsync<T>(Func<IntelligenceXClient, Task<T>> operation, CancellationToken token) {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
             return await operation(_client!).ConfigureAwait(false);
-        } finally { _gate.Release(); }
+        } finally { ReleaseOperation(); }
     }
 
     /// <inheritdoc />
     public async Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
             if (request.Images.Count > 0 && !Profile.SupportsImages) throw new NotSupportedException("Profile does not support images.");
             if (request.Images.Sum(image => (long)image.ByteLength) > Profile.MaxImageBytes) throw new ArgumentException("Image payload limit exceeded.", nameof(request));
             TreatmentRequest treatment = BuildTreatment(request, copyImages: true);
@@ -128,7 +129,7 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
             throw;
         } catch (Exception exception) when (exception is not (OutOfMemoryException or InvalidDataException)) {
             throw new OfficeAiExecutionException(IntelligenceXOfficeAiErrors.Classify(exception));
-        } finally { _gate.Release(); }
+        } finally { ReleaseOperation(); }
     }
 
     /// <inheritdoc />
@@ -155,10 +156,23 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
             };
     }
 
-    /// <summary>Disposes the owned SDK connection. Finish or cancel active operations before disposing.</summary>
+    /// <summary>Rejects new operations and disposes the owned SDK connection after any active operation settles.</summary>
     public void Dispose() {
-        if (_disposed) return;
-        _disposed = true;
-        _client?.Dispose();
+        Interlocked.Exchange(ref _disposeRequested, 1);
+        TryDisposeIdleClient();
+    }
+
+    private void ReleaseOperation() {
+        _gate.Release();
+        if (Volatile.Read(ref _disposeRequested) != 0) TryDisposeIdleClient();
+    }
+
+    private void TryDisposeIdleClient() {
+        // Engine cancellation may release its caller before the SDK operation returns.
+        // Keep the connection alive until that operation releases the shared gate.
+        if (!_gate.Wait(0)) return;
+        try {
+            if (Interlocked.Exchange(ref _clientDisposed, 1) == 0) _client?.Dispose();
+        } finally { _gate.Release(); }
     }
 }

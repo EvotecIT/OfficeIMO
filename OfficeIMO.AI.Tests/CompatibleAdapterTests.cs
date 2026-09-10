@@ -10,6 +10,30 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class CompatibleAdapterTests {
+    [Fact]
+    public async Task DisposingDuringInferencePreservesActiveConnectionAndRejectsNewOperations() {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var server = new Server(async context => {
+            started.TrySetResult();
+            await finish.Task;
+            await Reply(context, Answer);
+        });
+        using var executor = await IntelligenceXOfficeAiExecutor.ConnectAsync(Profile(), new() {
+            Transport = OfficeAiIntelligenceXTransport.CompatibleHttp, Endpoint = server.Endpoint
+        });
+        Task<OfficeAiResult> pending = new OfficeAiEngine(executor).RunAsync(Document(), new() { Instruction = "Total?" });
+        try {
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            executor.Dispose();
+            executor.Dispose();
+            await Assert.ThrowsAsync<ObjectDisposedException>(() => executor.ListModelsAsync());
+        } finally { finish.TrySetResult(); }
+        Assert.Equal(OfficeAiResultStatus.Completed, (await pending.WaitAsync(TimeSpan.FromSeconds(15))).Status);
+        Assert.Single(server.Requests);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => executor.GetAccountAsync());
+    }
+
     [Theory]
     [InlineData(401, "provider-authentication-required")]
     [InlineData(403, "provider-access-denied")]

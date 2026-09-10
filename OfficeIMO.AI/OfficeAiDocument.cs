@@ -113,8 +113,9 @@ public sealed class OfficeAiDocument {
                 continue;
             }
             if (item.Chunk is { } chunk) {
-                // Diagnostic notices and visual placeholders are reader metadata, not source text.
-                if (chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
+                // The PDF adapter reserves these kinds for generated notices/placeholders.
+                // Other adapters use the same words for real semantic source content.
+                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
                 Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor);
                 continue;
             }

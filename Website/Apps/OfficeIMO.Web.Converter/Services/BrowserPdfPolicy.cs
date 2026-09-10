@@ -14,11 +14,11 @@ internal static class BrowserPdfPolicy {
     internal static PdfDocument Open(SelectedDocument file, string? password = null) =>
         PdfDocument.Load(file.Bytes, CreateReadOptions(password));
 
-    internal static PdfLoadOptions CreateReadOptions(string? password = null) => new() {
+    internal static PdfLoadOptions CreateReadOptions(string? password = null, long maximumInputBytes = MaxInputBytes) => new() {
         Password = password,
         AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default,
         Limits = new PdfReadLimits {
-            MaxInputBytes = MaxInputBytes,
+            MaxInputBytes = maximumInputBytes,
             MaxIndirectObjects = 50_000,
             MaxRawStreamBytes = 32 * 1024 * 1024,
             MaxDecodedStreamBytes = 32 * 1024 * 1024,

@@ -12,6 +12,7 @@ internal sealed partial class DocumentAssistantViewModel {
     private async Task PrepareEvidenceAsync() {
         if (!CanPrepare) return;
         if (_preparedDocument is not null && _source?.IsCurrent() == true) { Refresh(); return; }
+        if (_source?.IsCurrent() != true) AllowRemoteProcessing = false;
         _preparedDocument = null; _readiness = null; EvidenceSummary = string.Empty;
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         _operation = cancellation; IsBusy = true;

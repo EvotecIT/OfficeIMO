@@ -433,7 +433,8 @@ internal sealed class PdfImageColorSpaceNormalization {
                 objects,
                 maxDecodedStreamBytes,
                 functionResolutionContext?.IccProfileRetentionBudget,
-                out OfficeIccColorProfile? profile) &&
+                out OfficeIccColorProfile? profile,
+                functionResolutionContext?.CancellationToken ?? default) &&
             profile != null && profile.ComponentCount == componentCount) {
             PdfPageColorSpace output = PdfPageColorSpace.IccBased(profile, ranges);
             normalization = new PdfImageColorSpaceNormalization(output, 2, profile, ranges, renderingIntent: renderingIntent);

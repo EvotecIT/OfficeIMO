@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -47,16 +48,18 @@ internal static class PdfIccProfileCache {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedBytes,
-        out OfficeIccColorProfile? profile) =>
-        TryRead(stream, objects, maxDecodedBytes, retentionBudget: null, out profile);
+        out OfficeIccColorProfile? profile,
+        CancellationToken cancellationToken = default) =>
+        TryRead(stream, objects, maxDecodedBytes, retentionBudget: null, out profile, cancellationToken);
 
     internal static bool TryRead(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedBytes,
         PdfIccProfileRetentionBudget? retentionBudget,
-        out OfficeIccColorProfile? profile) {
-        ProfileCacheEntry entry = GetProfileEntry(stream, objects, maxDecodedBytes);
+        out OfficeIccColorProfile? profile,
+        CancellationToken cancellationToken = default) {
+        ProfileCacheEntry entry = GetProfileEntry(stream, objects, maxDecodedBytes, cancellationToken);
         if (entry.Profile != null) retentionBudget?.Charge(
             stream,
             PdfIccProfileCacheRepresentation.ParsedProfile,
@@ -69,16 +72,18 @@ internal static class PdfIccProfileCache {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedBytes,
-        out byte[] bytes) =>
-        TryReadBytes(stream, objects, maxDecodedBytes, retentionBudget: null, out bytes);
+        out byte[] bytes,
+        CancellationToken cancellationToken = default) =>
+        TryReadBytes(stream, objects, maxDecodedBytes, retentionBudget: null, out bytes, cancellationToken);
 
     internal static bool TryReadBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedBytes,
         PdfIccProfileRetentionBudget? retentionBudget,
-        out byte[] bytes) {
-        BytesCacheEntry entry = GetBytesEntry(stream, objects, maxDecodedBytes);
+        out byte[] bytes,
+        CancellationToken cancellationToken = default) {
+        BytesCacheEntry entry = GetBytesEntry(stream, objects, maxDecodedBytes, cancellationToken);
         if (entry.Decoded) retentionBudget?.Charge(
             stream,
             PdfIccProfileCacheRepresentation.DecodedBytes,
@@ -90,40 +95,37 @@ internal static class PdfIccProfileCache {
     private static ProfileCacheEntry GetProfileEntry(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedBytes) {
+        int maxDecodedBytes,
+        CancellationToken cancellationToken) {
         CacheSlot slot = Entries.GetValue(stream, _ => new CacheSlot());
-        lock (slot.Sync) {
-            ProfileCacheEntry? entry = slot.ProfileEntry;
-            if (entry == null) {
-                entry = DecodeProfile(stream, objects, maxDecodedBytes);
-                slot.ProfileEntry = entry;
-            }
-            EnsureLimit(entry.DecodedLength, maxDecodedBytes);
-            return entry;
-        }
+        ProfileCacheEntry entry = slot.Profile.GetOrCreate(
+            (stream, objects, maxDecodedBytes),
+            static (state, token) => DecodeProfile(state.stream, state.objects, state.maxDecodedBytes, token),
+            cancellationToken);
+        EnsureLimit(entry.DecodedLength, maxDecodedBytes);
+        return entry;
     }
 
     private static BytesCacheEntry GetBytesEntry(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedBytes) {
+        int maxDecodedBytes,
+        CancellationToken cancellationToken) {
         CacheSlot slot = Entries.GetValue(stream, _ => new CacheSlot());
-        lock (slot.Sync) {
-            BytesCacheEntry? entry = slot.BytesEntry;
-            if (entry == null) {
-                entry = DecodeBytes(stream, objects, maxDecodedBytes);
-                slot.BytesEntry = entry;
-            }
-            EnsureLimit(entry.Bytes.LongLength, maxDecodedBytes);
-            return entry;
-        }
+        BytesCacheEntry entry = slot.Bytes.GetOrCreate(
+            (stream, objects, maxDecodedBytes),
+            static (state, token) => DecodeBytes(state.stream, state.objects, state.maxDecodedBytes, token),
+            cancellationToken);
+        EnsureLimit(entry.Bytes.LongLength, maxDecodedBytes);
+        return entry;
     }
 
     private static ProfileCacheEntry DecodeProfile(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedBytes) {
-        if (!PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] bytes, maxDecodedBytes)) {
+        int maxDecodedBytes,
+        CancellationToken cancellationToken) {
+        if (!PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] bytes, maxDecodedBytes, cancellationToken)) {
             return new ProfileCacheEntry(decodedLength: 0L, retainedLength: 0L, null);
         }
         OfficeIccColorProfile.TryCreate(bytes, out OfficeIccColorProfile? profile);
@@ -136,8 +138,9 @@ internal static class PdfIccProfileCache {
     private static BytesCacheEntry DecodeBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedBytes) =>
-        PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] bytes, maxDecodedBytes)
+        int maxDecodedBytes,
+        CancellationToken cancellationToken) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out byte[] bytes, maxDecodedBytes, cancellationToken)
             ? new BytesCacheEntry(bytes, decoded: true)
             : new BytesCacheEntry(Array.Empty<byte>(), decoded: false);
 
@@ -171,8 +174,7 @@ internal static class PdfIccProfileCache {
     }
 
     private sealed class CacheSlot {
-        internal object Sync { get; } = new object();
-        internal ProfileCacheEntry? ProfileEntry { get; set; }
-        internal BytesCacheEntry? BytesEntry { get; set; }
+        internal PdfReadCache<ProfileCacheEntry> Profile { get; } = new();
+        internal PdfReadCache<BytesCacheEntry> Bytes { get; } = new();
     }
 }

@@ -27,5 +27,6 @@
     <!-- Keep the positioned-text and dash regression fixture stable when gallery examples are regenerated. -->
     <None Update="samples\showcase-dashboard.pdf"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Update="samples\view-only.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,23 @@
+@namespace OfficeIMO.Web.Converter.Components
+@implements IDisposable
+
+<div class="pdf-artifact-preview" aria-label="PDF page preview" aria-busy="@_busy">
+    @if (_preview is not null) {
+        <div class="pdf-artifact-preview__navigation">
+            <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_busy || _page <= 1)" @onclick="PreviousAsync" aria-label="Previous preview page">Previous</button>
+            <span role="status">Page @_page of @_preview.PageCount</span>
+            <button type="button" class="ocx-button ocx-button--secondary" disabled="@(_busy || _page >= _preview.PageCount)" @onclick="NextAsync" aria-label="Next preview page">Next</button>
+        </div>
+    }
+    @if (_busy) {
+        <div class="ocx-empty-state" role="status"><strong>Preparing page preview</strong><p>The PDF stays in this browser.</p></div>
+    } else if (_image is not null) {
+        <img class="pdf-artifact-preview__page" src="@_image" alt="@($"Page {_page} of {FileName}")" />
+        <p class="pdf-artifact-preview__note">Page image rendered by OfficeIMO. Download the PDF for selectable text and interactive fields.</p>
+        @if (_hasWarnings) {
+            <p class="pdf-artifact-preview__note" role="status">Some page content could not be rendered exactly. Review the downloaded PDF in another viewer.</p>
+        }
+    } else {
+        <div class="ocx-empty-state" role="status"><strong>Preview unavailable</strong><p>The result is ready to download. This page could not be rendered within the browser preview limits.</p></div>
+    }
+</div>

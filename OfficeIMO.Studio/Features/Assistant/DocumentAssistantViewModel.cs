@@ -150,6 +150,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     private void ResetContext(bool keepEvidence = false) {
         _generation++; _operation?.Cancel(); _history.Clear(); Messages.Clear(); LastAnswerText = string.Empty;
         if (!keepEvidence || _source?.IsCurrent() != true) {
+            AllowRemoteProcessing = false;
             _source = null; _snapshotHash = null; _preparedDocument = null; _readiness = null; EvidenceSummary = string.Empty;
         }
         Status = Text("ContextReset", "Conversation cleared. The next question uses the current document, scope and connection.");

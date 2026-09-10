@@ -1,6 +1,7 @@
 using System.Net;
 using OfficeIMO.AI.IntelligenceX;
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.DocBook;
 using Xunit;
 
 namespace OfficeIMO.AI.Tests;
@@ -24,10 +25,25 @@ public sealed partial class EngineContractTests {
     public void GeneratedReaderNoticesCannotBecomeCitableEvidence(string kind) {
         var document = OfficeAiDocument.FromReadResult([1], new OfficeDocumentReadResult {
             Pages = [new() { Number = 1 }],
-            Chunks = [new() { Text = "Generated reader notice", Location = new() { Page = 1, SourceBlockKind = kind } }]
+            Chunks = [new() { Kind = ReaderInputKind.Pdf, Text = "Generated reader notice", Location = new() { Page = 1, SourceBlockKind = kind } }]
         });
         Assert.Empty(document.Evidence);
         Assert.Equal([1], OfficeAiEvidenceReadiness.Inspect(document).PagesWithoutText);
+    }
+
+    [Fact]
+    public async Task DocBookWarningRemainsCitableSourceContent() {
+        const string xml = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><warning><para>Disconnect power before servicing.</para></warning></article>";
+        var reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+        var chunks = reader.ReadDocument(System.Text.Encoding.UTF8.GetBytes(xml), "safety.docbook").Chunks;
+        Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "warning");
+        var document = OfficeAiDocument.FromReadResult(System.Text.Encoding.UTF8.GetBytes(xml), new() { Chunks = chunks });
+        var warning = Assert.Single(document.Evidence);
+        Assert.Equal("Disconnect power before servicing.", warning.Text);
+        var executor = new Executor("""{"claims":[{"text":"Disconnect the power first.","evidence":[{"id":"e1","quote":"Disconnect power before servicing."}]}],"fields":[],"blocks":[],"tables":[]}""");
+        var result = await new OfficeAiEngine(executor).RunAsync(document, Request());
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal(warning.Id, Assert.Single(Assert.Single(result.Claims).Citations).EvidenceId);
     }
 
     [Fact]

@@ -126,9 +126,9 @@ internal sealed partial class StudioAiConnections : ObservableObject {
             if (!signIn && !importCodex && !UsesEndpoint && string.IsNullOrWhiteSpace(ApiKey)) {
                 var store = IsChatGpt ? _chatGptStore : _copilotStore;
                 var accounts = await store.ListAsync(IsChatGpt ? "openai-codex" : "copilot", cancellation.Token);
-                Accounts.Clear();
-                foreach (var savedAccount in accounts) if (!string.IsNullOrWhiteSpace(savedAccount.AccountId)) Accounts.Add(savedAccount.AccountId);
-                OnPropertyChanged(nameof(HasSavedAccounts));
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (revision != _revision) return;
+                RefreshAccounts(accounts.Select(account => account.AccountId));
                 if (accounts.Count > 1 && string.IsNullOrWhiteSpace(AccountId)) {
                     Status = Text("ChooseAccount", "Several Studio accounts are saved. Select an account before connecting or signing out.");
                     return;
@@ -176,6 +176,16 @@ internal sealed partial class StudioAiConnections : ObservableObject {
             // Provider exceptions may contain credentials, response bodies or authorization URLs.
             Status = StudioAiFailureText.FromException(_localizer, exception);
         } finally { if (ReferenceEquals(_operation, cancellation)) _operation = null; IsBusy = false; }
+    }
+
+    internal void RefreshAccounts(IEnumerable<string?> accountIds) {
+        var available = accountIds.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct(StringComparer.Ordinal).ToArray();
+        // Keep surviving items in place so a bound selection cannot transiently clear
+        // AccountId and cancel the connection operation that refreshed this list.
+        foreach (string id in available) if (!Accounts.Contains(id)) Accounts.Add(id);
+        for (int index = Accounts.Count - 1; index >= 0; index--)
+            if (!available.Contains(Accounts[index], StringComparer.Ordinal)) Accounts.RemoveAt(index);
+        OnPropertyChanged(nameof(HasSavedAccounts));
     }
 
     private void ShowLogin(string url, string? code, long revision, CancellationToken token) => Dispatcher.UIThread.Post(async () => {

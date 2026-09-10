@@ -19,7 +19,7 @@ public sealed partial class PdfReadPage {
     private readonly Action<string>? _demandContentExtraction;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
-    private readonly Lazy<bool>? _hasOutputIntentCompositionInteraction;
+    private readonly PdfReadCache<bool> _hasOutputIntentCompositionInteraction = new();
 
     internal PdfDictionary PageDictionary => _pageDict;
 
@@ -52,15 +52,10 @@ public sealed partial class PdfReadPage {
                 PdfSyntax.FindCatalog(objects),
                 objects,
                 limits.MaxContentNestingDepth);
-        _hasOutputIntentCompositionInteraction = outputIntentColorTransform == null
-            ? null
-            : new Lazy<bool>(
-                HasOutputIntentCompositionInteraction,
-                System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     private PdfOutputIntentColorTransform? EffectiveOutputIntentColorTransform =>
-        _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction?.Value != true
+        _outputIntentColorTransform != null && !GetOutputIntentCompositionInteraction(CancellationToken.None)
             ? _outputIntentColorTransform
             : null;
 
@@ -2129,14 +2124,14 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private byte[] DecodeIfNeeded(PdfStream s, int maxDecodedBytes) {
+    private byte[] DecodeIfNeeded(PdfStream s, int maxDecodedBytes, CancellationToken cancellationToken = default) {
         if (s.DecodingFailed) {
             throw new InvalidDataException(
                 "PDF page content stream could not be decoded safely" +
                 (string.IsNullOrWhiteSpace(s.DecodingError) ? "." : ": " + s.DecodingError));
         }
 
-        return Filters.StreamDecoder.DecodeRequired(s.Dictionary, s.Data, _objects, maxDecodedBytes);
+        return Filters.StreamDecoder.DecodeRequired(s.Dictionary, s.Data, _objects, maxDecodedBytes, cancellationToken);
     }
 
     internal sealed class PageContentBudget {
@@ -2150,7 +2145,7 @@ public sealed partial class PdfReadPage {
             _page = page;
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
             ColorFunctionResolutionContext = new PdfColorFunctionResolutionContext(
-                Math.Min(page._limits.MaxDecodedStreamBytes, page._limits.MaxPageContentBytes));
+                Math.Min(page._limits.MaxDecodedStreamBytes, page._limits.MaxPageContentBytes), cancellationToken);
         }
 
         internal CancellationToken CancellationToken { get; }
@@ -2173,6 +2168,7 @@ public sealed partial class PdfReadPage {
         }
 
         internal byte[] Decode(PdfStream stream) {
+            CancellationToken.ThrowIfCancellationRequested();
             if (_decodedStreams.TryGetValue(stream, out byte[]? cached)) {
                 Charge(cached.LongLength);
                 return cached;
@@ -2189,7 +2185,7 @@ public sealed partial class PdfReadPage {
             int streamDecodeLimit = (int)Math.Min(_page._maxDecodedStreamBytes, remainingPageBytes);
             byte[] decoded;
             try {
-                decoded = _page.DecodeIfNeeded(stream, streamDecodeLimit);
+                decoded = _page.DecodeIfNeeded(stream, streamDecodeLimit, CancellationToken);
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
                 remainingPageBytes <= _page._maxDecodedStreamBytes) {

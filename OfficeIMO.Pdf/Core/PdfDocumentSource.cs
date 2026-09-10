@@ -11,8 +11,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
-    private readonly object _readLock = new object();
-    private PdfReadDocument? _readDocument;
+    private readonly PdfReadCache<PdfReadDocument> _readCache = new();
     private ExceptionDispatchInfo? _readFailure;
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options) {
@@ -23,7 +22,7 @@ internal sealed class PdfDocumentSource {
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, PdfReadDocument readDocument) {
         _bytes = bytes;
         Options = options;
-        _readDocument = readDocument;
+        _readCache = new PdfReadCache<PdfReadDocument>(readDocument);
     }
 
     /// <summary>Immutable read settings captured when the source is opened.</summary>
@@ -143,20 +142,19 @@ internal sealed class PdfDocumentSource {
             return PdfReadDocument.Open(_bytes, options, cancellationToken);
         }
 
-        lock (_readLock) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_readDocument is not null) return _readDocument;
-            _readFailure?.Throw();
-            try {
-                _readDocument = PdfReadDocument.Open(_bytes, Options, cancellationToken);
-                return _readDocument;
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-                // A caller's cancellation must not poison the reusable source cache.
-                throw;
-            } catch (Exception exception) {
-                _readFailure = ExceptionDispatchInfo.Capture(exception);
-                throw;
-            }
+        return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
+    }
+
+    private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
+        _readFailure?.Throw();
+        try {
+            return PdfReadDocument.Open(_bytes, Options, cancellationToken);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            // A caller's cancellation must not poison the reusable source cache.
+            throw;
+        } catch (Exception exception) {
+            _readFailure = ExceptionDispatchInfo.Capture(exception);
+            throw;
         }
     }
 
