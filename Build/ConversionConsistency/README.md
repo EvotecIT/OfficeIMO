@@ -2,7 +2,7 @@
 
 This tool compares the native PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text baselines and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG before its pixels are compared with the direct PNG export.
 
-The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
+The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
 
 ## Run locally
 

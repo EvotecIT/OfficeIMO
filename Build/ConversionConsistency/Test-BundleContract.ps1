@@ -40,3 +40,6 @@ if ($LASTEXITCODE -ne 2) { throw 'An unknown CLI option was not rejected.' }
 & dotnet $ToolPath verify --output $BundlePath --output $BundlePath *> (Join-Path $OutputPath 'duplicate-option.log')
 if ($LASTEXITCODE -ne 2) { throw 'A duplicate CLI option was not rejected.' }
 Write-Host 'PASS: missing content, missing/corrupt images, duplicate pages, and invalid CLI options are rejected.'
+# Expected native failures above have been validated; do not leak their exit code
+# into callers such as the GitHub Actions PowerShell wrapper.
+$global:LASTEXITCODE = 0

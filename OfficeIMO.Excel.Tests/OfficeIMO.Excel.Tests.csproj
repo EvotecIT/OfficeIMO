@@ -54,6 +54,8 @@
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.TestAssets\OfficeInteroperabilityCorpusManifest.cs" Link="OfficeInteroperabilityCorpusManifest.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\PdfTestFontAssets.cs" Link="PdfTestFontAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\PortableVisualFontAssets.cs" Link="PortableVisualFontAssets.cs" />
+    <None Include="..\OfficeIMO.TestAssets\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
   </ItemGroup>

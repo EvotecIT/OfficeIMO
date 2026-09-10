@@ -11,7 +11,7 @@ public sealed class HtmlPositionedBaselineTests {
     [Fact]
     public void SavedPdfAndSvgUseTheSameAuthoredTextBaselines() {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0), DefaultFontFamily = "Pinned" };
-        options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "OpenSans-Regular.woff2")));
+        options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf")));
         var document = HtmlConversionDocument.Parse("<p style='margin:16px;font:20px/32px Pinned'>A<sub>2</sub>B<sup>3</sup>C</p>");
         string svg = System.Text.Encoding.UTF8.GetString(document.ExportImages(OfficeImageExportFormat.Svg, options)[0].Bytes);
         XElement[] nodes = XDocument.Parse(svg).Descendants().Where(node => node.Name.LocalName == "text").ToArray();

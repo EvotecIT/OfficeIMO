@@ -6,6 +6,26 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlFontShorthandTests {
     [Theory]
+    [InlineData("font:12px Arial", "", "")]
+    [InlineData("--type:12px Arial;font:var(--type)", "", "")]
+    [InlineData("font:12px Arial;font-kerning:none", "none", "")]
+    [InlineData("font:inherit", "normal", "tabular-nums")]
+    [InlineData("font:unset", "normal", "tabular-nums")]
+    public void FontShorthandResetsSupportedFeaturesAndPreservesIndependentPalette(string declaration, string kerning, string numeric) {
+        foreach (bool inline in new[] { true, false }) {
+            string declarations = "font-kerning:none;font-variant-numeric:oldstyle-nums;font-feature-settings:\"liga\" 0;font-palette:dark;" + declaration;
+            var document = new HtmlParser().ParseDocument((inline ? "" : "<style>#target{" + declarations + "}</style>") +
+                "<div style='font-kerning:normal;font-variant-numeric:tabular-nums'><p id='target'" +
+                (inline ? " style='" + declarations + "'" : "") + ">Text</p></div>");
+            var computed = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
+            Assert.Equal(kerning, computed.GetValue("font-kerning"));
+            Assert.Equal(numeric, computed.GetValue("font-variant-numeric"));
+            Assert.Equal("", computed.GetValue("font-feature-settings"));
+            Assert.Equal("dark", computed.GetValue("font-palette"));
+        }
+    }
+
+    [Theory]
     [InlineData("font:italic bold 6px/8px Arial", "6px", "8px", "italic", "bold")]
     [InlineData("font:6px/8px Arial;font-size:10px", "10px", "8px", "normal", "normal")]
     [InlineData("font-size:10px;font:6px/8px Arial", "6px", "8px", "normal", "normal")]

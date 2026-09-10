@@ -1065,13 +1065,16 @@ namespace OfficeIMO.Tests {
                 paragraphAlignment: A.TextAlignmentTypeValues.Left,
                 verticalAlignment: A.TextAnchoringTypeValues.Top,
                 textColorHex: "111827",
+                textFontFamily: "WrapFixture",
                 textFontSize: 12D,
-                textWrap: true);
+                textWrap: true,
+                toRow: 5);
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                ExcelRange range = sheet.Range("A1:D4");
+                ExcelRange range = sheet.Range("A1:D6");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
+                options.Fonts.Add("WrapFixture", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
                 ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);

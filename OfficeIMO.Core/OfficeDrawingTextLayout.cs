@@ -16,7 +16,7 @@ internal static class OfficeDrawingTextLayout {
         OfficeDrawingRichText text, double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, double scale = 1D) {
         var runs = new List<OfficeRichTextRun>(text.Runs.Count);
-        double maxFontSize = 10D * scale;
+        double maxFontSize = 0D;
         foreach (OfficeRichTextRun run in text.Runs) {
             maxFontSize = Math.Max(maxFontSize, run.FontSize * scale);
             runs.Add(new OfficeRichTextRun(run.Text, run.FontSize * scale, run.Color,
@@ -25,6 +25,7 @@ internal static class OfficeDrawingTextLayout {
                 LinkUri = run.LinkUri
             });
         }
+        if (maxFontSize <= 0D) maxFontSize = 10D * scale;
         double factor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, text.LineHeight.Value * scale / maxFontSize) : 1.2D;
         return OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs, width, height,

@@ -12,6 +12,22 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointNativeTextBoundaryTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FirstLineTallerThanItsTextFrameReportsBoundedLoss(bool rich) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("TALL", 20, 20, 150, 10);
+        box.FontSize = 32;
+        box.Paragraphs[0].Runs[0].Underline = rich;
+        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        var warning = Assert.Single(result.Warnings, warning => warning.Code == "text-box-overflow");
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.True(warning.LayoutDiagnostic.HasBounds);
+    }
+
     [Fact]
     public void PartiallyVisibleTableCellParagraphsRetainTheirFittingPrefix() {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());

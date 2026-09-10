@@ -418,7 +418,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointGroupShape groupShape) {
             if (shape.OwnerSlide != null) {
-                RenderGroupShape(canvas, groupShape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
+                RenderGroupShape(canvas, groupShape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
             } else {
                 AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
             }
@@ -426,61 +426,6 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
-    }
-
-    private static void RenderGroupShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointGroupShape groupShape, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
-        if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
-            AddWarning(options, slideNumber, "group-depth-limit", "Skipped nested PowerPoint group shape content because MaxGroupShapeDepth was reached.");
-            return;
-        }
-
-        IReadOnlyList<PptCore.PowerPointShape> children = groupShape.OwnerSlide!.GetGroupChildren(groupShape);
-        foreach (PptCore.PowerPointShape child in children) {
-            if (child.Hidden) {
-                continue;
-            }
-
-            if (!TryGetShapeBox(child, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, out double x, out double y, out double width, out double height)) {
-                continue;
-            }
-
-            MapGroupChildBox(groupShape, ref x, ref y, ref width, ref height);
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
-            if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
-                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
-                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
-            } else {
-                render(canvas);
-            }
-        }
-    }
-
-    private static void MapGroupChildBox(PptCore.PowerPointGroupShape groupShape, ref double x, ref double y, ref double width, ref double height) {
-        TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-        long? groupXEmu = transform?.Offset?.X?.Value;
-        long? groupYEmu = transform?.Offset?.Y?.Value;
-        long? groupWidthEmu = transform?.Extents?.Cx?.Value;
-        long? groupHeightEmu = transform?.Extents?.Cy?.Value;
-        long? childXEmu = transform?.ChildOffset?.X?.Value;
-        long? childYEmu = transform?.ChildOffset?.Y?.Value;
-        long? childWidthEmu = transform?.ChildExtents?.Cx?.Value;
-        long? childHeightEmu = transform?.ChildExtents?.Cy?.Value;
-        if (!groupXEmu.HasValue || !groupYEmu.HasValue || !groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
-            !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
-            childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
-            return;
-        }
-
-        double groupX = PptCore.PowerPointUnits.ToPoints(groupXEmu.Value);
-        double groupY = PptCore.PowerPointUnits.ToPoints(groupYEmu.Value);
-        double childX = PptCore.PowerPointUnits.ToPoints(childXEmu.Value);
-        double childY = PptCore.PowerPointUnits.ToPoints(childYEmu.Value);
-        double scaleX = groupWidthEmu.Value / (double)childWidthEmu.Value;
-        double scaleY = groupHeightEmu.Value / (double)childHeightEmu.Value;
-        x = groupX + (x - childX) * scaleX;
-        y = groupY + (y - childY) * scaleY;
-        width *= scaleX;
-        height *= scaleY;
     }
 
     private static void RenderEmptySlide(PdfCore.PdfDocument pdf, double pageWidth, double pageHeight) {

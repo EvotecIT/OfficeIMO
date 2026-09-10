@@ -119,8 +119,8 @@ namespace OfficeIMO.Excel {
                         height,
                         options.BackgroundColor,
                         new[] { layer },
-                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, cancellationToken),
-                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, cancellationToken) : null),
+                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken),
+                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec, options.Fonts, cancellationToken) : null),
                     content.Name,
                     content.Source,
                     diagnostics);
@@ -146,7 +146,8 @@ namespace OfficeIMO.Excel {
                 options.BackgroundColor,
                 new[] { contentLayer },
                 beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken),
-                afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken) : null);
+                afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec, cancellationToken) : null,
+                fonts: options.Fonts);
             return new OfficeImageExportResult(
                 format,
                 width,
@@ -445,12 +446,12 @@ namespace OfficeIMO.Excel {
             double fontSize,
             string fontFamily,
             OfficeTextAlignment alignment) {
-            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                 section.ToOfficeRuns(fontSize, HeaderFooterTextColor, fontFamily),
                 zone.Width,
                 Math.Ceiling(section.GetMaxResolvedFontSize(fontSize) * 1.2D),
                 1.2D,
-                (text, size, family) => canvas.MeasureText(text, size, family),
+                canvas.MeasureText,
                 wrap: false);
             OfficeTextBlockRenderer.DrawRasterRichTextBlock(
                 canvas,
@@ -470,14 +471,15 @@ namespace OfficeIMO.Excel {
             int headerHeight,
             double scale,
             IOfficeRasterImageCodec imageCodec,
+            OfficeFontFaceCollection fonts,
             CancellationToken cancellationToken) {
             double fontSize = HeaderFooterFontSize * scale;
             double padding = HeaderFooterHorizontalPadding * scale;
             double lineHeight = fontSize * 1.2D;
             OfficeTextZoneLayout zones = OfficeTextZoneLayout.CreateThreeColumn(width, padding, HeaderFooterZoneGap * scale);
-            OfficeTextMeasurer textMeasurer = OfficeTextMeasurer.Create(new OfficeFontInfo(chrome.FontFamily, fontSize));
-            double MeasureText(string? text, double size, string? family) =>
-                MeasureHeaderFooterSvgText(textMeasurer, text, size, string.IsNullOrWhiteSpace(family) ? chrome.FontFamily : family);
+            OfficeRasterCanvas textMeasurer = OfficeDrawingTextLayout.CreateMetrics(fonts);
+            double MeasureText(string? text, double size, string? family, OfficeFontStyle style) =>
+                textMeasurer.MeasureText(text, size, string.IsNullOrWhiteSpace(family) ? chrome.FontFamily : family, style);
             if (chrome.HasHeader) {
                 double baseline = Math.Max(fontSize, (headerHeight + fontSize) / 2D);
                 AppendHeaderFooterSvgImages(builder, chrome, isHeader: true, 0D, headerHeight, zones, scale, imageCodec, cancellationToken);
@@ -497,11 +499,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static double MeasureHeaderFooterSvgText(OfficeTextMeasurer measurer, string? text, double fontSize, string? fontFamily) {
-            OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(fontFamily, fontSize));
-            return measurer.MeasureWidth(text, style);
-        }
-
         private static void AppendHeaderFooterSvgLine(
             StringBuilder builder,
             HeaderFooterTextSection section,
@@ -514,7 +511,7 @@ namespace OfficeIMO.Excel {
             string fontFamily,
             OfficeTextAlignment alignment,
             string clipSuffix,
-            Func<string?, double, string?, double> measure) {
+            Func<string?, double, string?, OfficeFontStyle, double> measure) {
             if (!section.HasText) {
                 return;
             }
@@ -530,7 +527,7 @@ namespace OfficeIMO.Excel {
                         section.Text,
                         fontSize,
                         zone.Width,
-                        (text, size) => measure(text, size, fontFamily),
+                        (text, size) => measure(text, size, fontFamily, OfficeFontStyle.Regular),
                         alignment);
                     builder.AppendSvgTextElement(
                         displayText,
@@ -556,8 +553,8 @@ namespace OfficeIMO.Excel {
             string fontFamily,
             double lineHeight,
             OfficeTextAlignment alignment,
-            Func<string?, double, string?, double> measure) {
-            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                 section.ToOfficeRuns(fontSize, HeaderFooterTextColor, fontFamily),
                 zone.Width,
                 Math.Max(lineHeight, section.GetMaxResolvedFontSize(fontSize) * 1.2D),

@@ -6,6 +6,21 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
+    [Theory]
+    [InlineData(1D, 10D)]
+    [InlineData(2D, 20D)]
+    public void SmallRichTextPreservesAuthoredLineSpacing(double scale, double expectedLineHeight) {
+        var drawing = new OfficeDrawing(100, 50).AddRichText(new[] {
+            new OfficeRichTextRun("first\nsecond", 8D, OfficeColor.Black)
+        }, 0, 0, 100, 50, lineHeight: 9.6D);
+        var text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Elements));
+        var layout = OfficeDrawingTextLayout.Create(text, 100 * scale, 50 * scale,
+            (value, size, family, style) => (value?.Length ?? 0) * size / 2, scale);
+        Assert.Equal(2, layout.Lines.Count);
+        Assert.Equal(expectedLineHeight, layout.LineHeight);
+        Assert.Equal(2 * expectedLineHeight, layout.Height);
+    }
+
     [Fact]
     public void UnboundedHeightMeasurementPreservesAllWrappedLines() {
         var layout = OfficeTextLayoutEngine.LayoutTextBlock("first second third", 12, 40,

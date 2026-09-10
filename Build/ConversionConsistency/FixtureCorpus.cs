@@ -97,6 +97,7 @@ internal static partial class FixtureCorpus {
                 }).ToList()
             });
         }
+        AddGroupedPowerPoint(repository, output, family, cases);
         await AddOtherFormatsAsync(repository, output, family, cases);
         GateJson.Write(Path.Combine(output, "suite.json"), new ConsistencySuite {
             FontPath = "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Regular.woff2", FontFamily = family, Cases = cases

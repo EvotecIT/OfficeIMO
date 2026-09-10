@@ -2766,7 +2766,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#D6E0EB", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#F8FAFC", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(24, 22));
+            // Sample inside the cell fill before the text inset; glyph coverage
+            // at the old sample position varies with the platform's font.
+            Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(23, 23));
         }
 
         [Fact]

@@ -5,7 +5,9 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private const string FontDeclarationSentinelPrefix = "-officeimo-internal-font-declaration-";
     private static readonly string[] FontShorthandLonghands = {
-        "font-style", "font-variant", "font-weight", "font-stretch", "font-size", "line-height", "font-family"
+        "font-style", "font-variant", "font-weight", "font-stretch", "font-size", "line-height", "font-family",
+        "font-feature-settings", "font-kerning", "font-variant-caps", "font-variant-east-asian",
+        "font-variant-ligatures", "font-variant-numeric"
     };
 
     private static bool TryExpandFontShorthand(string value, out IReadOnlyList<KeyValuePair<string, string>> longhands) {
@@ -28,7 +30,14 @@ public static partial class HtmlComputedStyleEngine {
             return false;
         }
         foreach (string name in FontShorthandLonghands) {
-            if (!expanded.Any(item => item.Key == name)) expanded.Add(new KeyValuePair<string, string>(name, "normal"));
+            if (!expanded.Any(item => item.Key == name)) {
+                // Reset-only font subproperties participate at the shorthand's
+                // cascade position. Initial also prevents inherited settings
+                // from surviving this declaration; font-palette is independent.
+                bool resetOnly = name == "font-feature-settings" || name == "font-kerning"
+                    || name.StartsWith("font-variant-", StringComparison.Ordinal);
+                expanded.Add(new KeyValuePair<string, string>(name, resetOnly ? "initial" : "normal"));
+            }
         }
         longhands = expanded;
         return true;

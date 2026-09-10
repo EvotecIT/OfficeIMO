@@ -75,7 +75,7 @@ $validationProjects = @($allProjects | Where-Object {
     $relativeProjectPath -match '(^|/)Build/' -or
     $_.BaseName -match '(?:^|\.)AotSmoke$' -or
     $_.BaseName -in @('OfficeIMO.Examples', 'OfficeIMO.MarkdownRenderer.SamplePlugin') -or
-    $relativeProjectPath -match '^Website/Apps/'
+    $relativeProjectPath -match '^(?:Website/Apps|Examples)/'
 })
 $productionProjects = @($allProjects | Where-Object {
     $_ -notin $testProjects -and

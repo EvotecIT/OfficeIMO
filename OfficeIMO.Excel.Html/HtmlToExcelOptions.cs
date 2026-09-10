@@ -29,6 +29,7 @@ public sealed class HtmlToExcelOptions {
     /// Imports explicitly annotated text, number, Boolean, and date/time values from ordinary HTML table cells.
     /// Applies to generic imports, including the generic path selected by <see cref="HtmlImportMode.Auto"/>.
     /// Unannotated cells remain text and generic formula metadata is never executed.
+    /// Date/time metadata with an explicit time zone is normalized to UTC; unzoned values retain their wall-clock time.
     /// </summary>
     public bool ImportTypedCellValues { get; set; }
 

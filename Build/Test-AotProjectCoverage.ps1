@@ -49,6 +49,16 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.AI'
+        classification = 'managed-cross-platform'
+        evidence = 'The provider-neutral AI library is validated in the managed .NET 10 build and test lanes; it is not yet covered by a NativeAOT host.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.AI.IntelligenceX'
+        classification = 'managed-cross-platform'
+        evidence = 'The AI execution adapter is validated by the managed .NET 10 example build; its external execution dependency is not advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Html.Pdf.Browser'
         classification = 'managed-cross-platform'
         evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'

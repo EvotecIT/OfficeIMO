@@ -7,6 +7,25 @@ namespace OfficeIMO.Tests;
 
 public class HtmlExcelReportValues {
     [Theory]
+    [InlineData(HtmlImportMode.Generic)]
+    [InlineData(HtmlImportMode.Semantic)]
+    public void DateMetadataUsesUtcForOffsetsAndPreservesUnzonedWallClock(HtmlImportMode mode) {
+        string[] values = { "2026-09-01T00:30:00+02:00", "2026-08-31T22:30:00Z",
+            "2026-08-31T15:30:00-07:00", "2026-09-01T00:30:00" };
+        string cells = string.Concat(values.Select(value =>
+            $"<td data-officeimo-value-kind='date-time' data-officeimo-value='{value}'>Recorded</td>"));
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(
+            "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
+            .ToExcelDocument(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+        using MemoryStream artifact = workbook.ToStream();
+        using ExcelDocument reopened = ExcelDocument.Load(artifact);
+        ExcelSheet sheet = Assert.Single(reopened.Sheets);
+        for (int column = 1; column <= 3; column++)
+            Assert.Equal(new DateTime(2026, 8, 31, 22, 30, 0), Snapshot(sheet, 1, column).DateTimeValue);
+        Assert.Equal(new DateTime(2026, 9, 1, 0, 30, 0), Snapshot(sheet, 1, 4).DateTimeValue);
+    }
+
+    [Theory]
     [InlineData("number", "12.5")]
     [InlineData("boolean", "true")]
     [InlineData("date-time", "2026-09-01T00:00:00")]

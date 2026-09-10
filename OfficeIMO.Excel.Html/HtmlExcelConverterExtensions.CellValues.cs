@@ -70,7 +70,9 @@ public static partial class HtmlExcelConverterExtensions {
             preserveValue = stored;
             return stored;
         } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
-            if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dateTime)
+            // Excel stores no time zone. Normalize explicit offsets to UTC, while
+            // retaining the authored wall clock when metadata has no zone.
+            if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime dateTime)
                 && dateTime.Year >= 100) {
                 sheet.CellValue(row, column, dateTime);
                 preserveValue = true;
