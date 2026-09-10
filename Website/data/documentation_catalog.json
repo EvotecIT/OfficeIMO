@@ -3,13 +3,13 @@
   "format": "officeimo.documentation-catalog",
   "repository": {
     "projectCount": 227,
-    "productionComponentCount": 120,
+    "productionComponentCount": 121,
     "testProjectCount": 43,
     "benchmarkProjectCount": 33,
-    "validationProjectCount": 32,
+    "validationProjectCount": 31,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42726
+    "conceptualWordCount": 42833
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 14
+      "componentCount": 15
     }
   ],
   "components": [
@@ -71,6 +71,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI"
+    },
+    {
+      "name": "OfficeIMO.AI.Example",
+      "packageId": "OfficeIMO.AI.Example",
+      "category": "Specialized components",
+      "description": "OfficeIMO.AI.Example is a focused component in the OfficeIMO managed document platform.",
+      "kind": "tool",
+      "projectPath": "Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj",
+      "sourceFileCount": 10,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
     },
     {
       "name": "OfficeIMO.AI.IntelligenceX",
@@ -469,7 +482,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 298,
+      "sourceFileCount": 299,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -898,7 +911,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1167,
+      "sourceFileCount": 1168,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

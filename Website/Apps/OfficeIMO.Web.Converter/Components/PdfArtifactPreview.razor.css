@@ -1,0 +1,5 @@
+.pdf-artifact-preview { width: 100%; min-width: 0; padding: 12px; }
+.pdf-artifact-preview__navigation { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.pdf-artifact-preview__navigation span { font-size: 13px; }
+.pdf-artifact-preview__page { display: block; width: 100%; height: auto; background: white; border: 1px solid #cbd5e1; }
+.pdf-artifact-preview__note { font-size: 12px; line-height: 1.5; margin: 12px 0 0; }

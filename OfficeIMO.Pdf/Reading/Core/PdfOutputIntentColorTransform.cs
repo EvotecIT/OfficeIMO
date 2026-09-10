@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -11,7 +12,7 @@ internal sealed class PdfOutputIntentColorTransform {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfIccProfileRetentionBudget? _retentionBudget;
-    private readonly Lazy<OfficeIccColorProfile?> _profile;
+    private readonly PdfReadCache<OfficeIccColorProfile?> _profile = new();
 
     private PdfOutputIntentColorTransform(
         PdfStream? profileStream,
@@ -24,14 +25,15 @@ internal sealed class PdfOutputIntentColorTransform {
         _maxDecodedStreamBytes = maxDecodedStreamBytes;
         _retentionBudget = retentionBudget;
         Subject = subject;
-        _profile = new Lazy<OfficeIccColorProfile?>(
-            ReadProfile,
-            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     internal string Subject { get; }
 
     internal bool IsSupported => TryGetProfile(out _);
+
+    /// <summary>Initializes shared profile state within the render caller's cancellation scope.</summary>
+    internal void Prepare(CancellationToken cancellationToken) =>
+        _ = GetProfile(cancellationToken);
 
     internal OfficeColor Apply(OfficeColor color, OfficeIccRenderingIntent renderingIntent) =>
         TryGetProfile(out OfficeIccColorProfile? profile) &&
@@ -117,18 +119,22 @@ internal sealed class PdfOutputIntentColorTransform {
     }
 
     private bool TryGetProfile(out OfficeIccColorProfile? profile) {
-        profile = _profile.Value;
+        profile = GetProfile(CancellationToken.None);
         return profile != null;
     }
 
-    private OfficeIccColorProfile? ReadProfile() {
+    private OfficeIccColorProfile? GetProfile(CancellationToken cancellationToken) =>
+        _profile.GetOrCreate(this, static (owner, token) => owner.ReadProfile(token), cancellationToken);
+
+    private OfficeIccColorProfile? ReadProfile(CancellationToken cancellationToken) {
         if (_profileStream == null ||
             !PdfIccProfileCache.TryRead(
                 _profileStream,
                 _objects,
                 _maxDecodedStreamBytes,
                 _retentionBudget,
-                out OfficeIccColorProfile? profile) ||
+                out OfficeIccColorProfile? profile,
+                cancellationToken) ||
             profile == null ||
             profile.ComponentCount is not (3 or 4) ||
             !HasCompatibleDeclaredComponentCount(profile.ComponentCount) ||

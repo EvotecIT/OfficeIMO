@@ -325,19 +325,23 @@ if ($catalog.repository.productionComponentCount -ne @($catalog.components).Coun
 if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
+$repositoryRoot = Split-Path -Parent (Resolve-Path -LiteralPath $SiteRoot).Path
+$inventory = & (Join-Path $PSScriptRoot 'Get-DocumentationProjectInventory.ps1') -RepositoryRoot $repositoryRoot
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 227
-    productionComponentCount = 120
-    testProjectCount = 43
-    benchmarkProjectCount = 33
-    validationProjectCount = 32
-    apiReferenceCount = 26
+    projectCount = @($inventory.All).Count
+    productionComponentCount = @($inventory.Production).Count
+    testProjectCount = @($inventory.Tests).Count
+    benchmarkProjectCount = @($inventory.Benchmarks).Count
+    validationProjectCount = @($inventory.Validation).Count
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)
     if ($actual -ne $expectedCount.Value) {
-        Add-Failure "The OfficeIMO $($expectedCount.Key) is $actual; expected $($expectedCount.Value) on every operating system."
+        Add-Failure "The OfficeIMO $($expectedCount.Key) is $actual; expected $($expectedCount.Value) from the current repository inventory."
     }
+}
+if (@(Compare-Object @($catalog.components.name | Sort-Object) @($inventory.Production.BaseName | Sort-Object)).Count -gt 0) {
+    Add-Failure 'The documentation catalog does not cover the current production project inventory.'
 }
 if (@($catalog.components | Where-Object { [string]::IsNullOrWhiteSpace($_.description) }).Count -gt 0) {
     Add-Failure 'One or more OfficeIMO catalog components have no description.'
@@ -368,6 +372,16 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
+$apiAssemblies = @($pipeline.steps | Where-Object task -eq 'apidocs' | ForEach-Object {
+    [System.IO.Path]::GetFileNameWithoutExtension([string] $_.assembly)
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$expectedApiReferenceCount = $apiAssemblies.Count
+if (Test-Path -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/command-metadata.json') -PathType Leaf) {
+    $expectedApiReferenceCount++
+}
+if ([int] $catalog.repository.apiReferenceCount -ne $expectedApiReferenceCount) {
+    Add-Failure 'The generated API reference total does not match the configured API sources.'
+}
 $psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
 $psWriteOfficeModule = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')
 $psWriteOfficeVersion = [string] $psWriteOfficeModule.ModuleVersion
@@ -413,16 +427,25 @@ $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 114) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 114."
+$expectedAotClassifications = [ordered]@{
+    fullyRootedLibraryCount = 'native-full-surface'
+    boundedWorkflowLibraryCount = 'native-bounded-workflow'
+    nativeExecutableCount = 'native-executable'
+    nativeBuildAnalyzerCount = 'native-build-analyzer'
+    managedCrossPlatformProjectCount = 'managed-cross-platform'
+    managedWindowsProjectCount = 'managed-windows'
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 111 -or
-    $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
-    $aotMatrix.summary.nativeExecutableCount -ne 1 -or
-    $aotMatrix.summary.nativeBuildAnalyzerCount -ne 1 -or
-    $aotMatrix.summary.managedCrossPlatformProjectCount -ne 5 -or
-    $aotMatrix.summary.managedWindowsProjectCount -ne 1) {
-    Add-Failure 'The NativeAOT classification totals changed without updating the customer-facing contract.'
+foreach ($classification in $expectedAotClassifications.GetEnumerator()) {
+    $expected = @($aotMatrix.components | Where-Object classification -eq $classification.Value).Count
+    if ([int] $aotMatrix.summary.($classification.Key) -ne $expected) {
+        Add-Failure "The NativeAOT $($classification.Key) summary does not match its classified components."
+    }
+}
+if ([int] $aotMatrix.summary.nativeAotValidatedProjectCount -ne @($aotMatrix.components | Where-Object nativeAotValidated -eq $true).Count) {
+    Add-Failure 'The NativeAOT validation total does not match its component evidence.'
+}
+if (@(Compare-Object @($catalog.components.name | Sort-Object) @($aotMatrix.components.name | Sort-Object)).Count -gt 0) {
+    Add-Failure 'The NativeAOT matrix and documentation catalog cover different production components.'
 }
 if (@($aotMatrix.components).Count -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT component list is incomplete.'

@@ -43,6 +43,8 @@ Switch to **PDF tools** for twelve task-oriented workflows backed by `OfficeIMO.
 
 Successful PDF operations return the result and a JSON report containing browser-local execution evidence, input and output SHA-256 fingerprints, and operation details. The built-in sample is the same [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) published with the product examples.
 
+PDF results include a page-image preview rendered by OfficeIMO, with previous/next controls for multipage output. **Protect PDF** returns a download without a preview because its output requires the password you supplied. Other previews report rendering limits and failures while keeping the generated file available to download. Download the PDF for selectable text, interactive forms, and review in another viewer.
+
 ## Limits and input policy
 
 The app includes sample inputs for every route. Files are limited to 25 MiB. Multi-file PDF tools accept up to ten PDFs and 75 MiB combined. PDF parsing is capped at 500 pages, split at 100 outputs and 64 MiB of serialized PDFs, visual comparison at 25 pages, and any generated artifact at 96 MiB. Before a DOCX, XLSX, or PPTX file is parsed, the app also rejects packages with more than 5,000 parts, an individual expanded part over 32 MiB, more than 128 MiB expanded in total, or a part compression ratio over 200:1.
