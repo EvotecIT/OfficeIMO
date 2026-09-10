@@ -120,7 +120,12 @@ public class PdfTextCaseTests {
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains(" cm", raw, System.StringComparison.Ordinal);
         Assert.Contains("] 0 d", raw, System.StringComparison.Ordinal);
-        Assert.Contains(" Ts", raw, System.StringComparison.Ordinal);
+        using var parsed = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var letters = parsed.GetPage(1).Letters;
+        var normal = letters.Single(letter => letter.Value == "S");
+        var subscript = letters.Single(letter => letter.Value == "H");
+        Assert.True(subscript.StartBaseLine.Y < normal.StartBaseLine.Y);
+        Assert.True(subscript.FontSize < normal.FontSize);
         Assert.True(raw.Split(new[] { " RG" }, System.StringSplitOptions.None).Length >= 4,
             "Expected a dashed underline and both lines of a double strikethrough.");
     }

@@ -1,0 +1,61 @@
+name: Conversion consistency
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'OfficeIMO.*/**'
+      - 'Build/ConversionConsistency/**'
+      - '.github/workflows/conversion-consistency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conversion-consistency-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TOOL: Build/ConversionConsistency/bin/Release/net8.0/OfficeIMO.ConversionConsistency.Tool.dll
+      EVIDENCE: .artifacts/conversion-consistency
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.418
+            10.0.103
+      - name: Build the comparison tool
+        run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0
+      - name: Install independent renderers
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          ./Build/ConversionConsistency/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
+      - name: Prepare native source fixtures
+        run: dotnet $env:TOOL prepare --output "$env:EVIDENCE/fixtures"
+      - name: Compare all native formats
+        run: dotnet $env:TOOL run --suite "$env:EVIDENCE/fixtures/suite.json" --output "$env:EVIDENCE/native"
+      - name: Compare report content and geometry
+        run: dotnet $env:TOOL run --suite Build/ConversionConsistency/suite.json --output "$env:EVIDENCE/reports"
+      - name: Check rejection of incomplete or changed evidence
+        run: ./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$env:EVIDENCE/native" -OutputPath "$env:EVIDENCE/negative"
+      - name: Upload comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: conversion-consistency
+          path: .artifacts/conversion-consistency
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

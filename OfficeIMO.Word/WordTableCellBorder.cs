@@ -72,7 +72,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var lb = EnsureLeft();
-                lb.Color = Helpers.NormalizeOpenXmlColor(value);
+                lb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var rb = EnsureRight();
-                rb.Color = Helpers.NormalizeOpenXmlColor(value);
+                rb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -202,7 +202,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var tb = EnsureTop();
-                tb.Color = Helpers.NormalizeOpenXmlColor(value);
+                tb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -271,7 +271,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var bb = EnsureBottom();
-                bb.Color = Helpers.NormalizeOpenXmlColor(value);
+                bb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -342,7 +342,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var hb = EnsureInsideHorizontal();
-                hb.Color = Helpers.NormalizeOpenXmlColor(value);
+                hb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -413,7 +413,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var vb = EnsureInsideVertical();
-                vb.Color = Helpers.NormalizeOpenXmlColor(value);
+                vb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -481,7 +481,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var sb = EnsureStart();
-                sb.Color = Helpers.NormalizeOpenXmlColor(value);
+                sb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -549,7 +549,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var eb = EnsureEnd();
-                eb.Color = Helpers.NormalizeOpenXmlColor(value);
+                eb.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -624,7 +624,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var d = EnsureTLBR();
-                d.Color = Helpers.NormalizeOpenXmlColor(value);
+                d.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 
@@ -690,7 +690,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 var d = EnsureTRBL();
-                d.Color = Helpers.NormalizeOpenXmlColor(value);
+                d.Color = value == null ? null : new StringValue(Helpers.NormalizeOpenXmlColor(value));
             }
         }
 

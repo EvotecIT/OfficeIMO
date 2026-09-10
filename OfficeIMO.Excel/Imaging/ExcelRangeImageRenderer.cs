@@ -169,10 +169,13 @@ namespace OfficeIMO.Excel {
                 .AppendNumberAttribute("height", height)
                 .AppendAttribute("viewBox", "0 0 " + Number(width) + " " + Number(height))
                 .Append('>');
+            OfficeDrawingSvgExporter.AppendEmbeddedFonts(builder, options.Fonts, cancellationToken);
             var backgroundAttributes = new StringBuilder();
             backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
             builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-            OfficeTextMeasurer textMeasurer = OfficeTextMeasurer.Create();
+            var textMeasurer = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null,
+                options.Fonts, options.TextShapingProvider, options.TextShapingLanguage,
+                cancellationToken: cancellationToken);
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
             Dictionary<string, ExcelVisualConditionalIcon> conditionalIcons = BuildConditionalIconMap(snapshot.ConditionalIcons);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);

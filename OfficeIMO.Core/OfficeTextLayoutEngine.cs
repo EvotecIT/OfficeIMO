@@ -579,33 +579,61 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeightFactor,
         double minimumFontSize,
         Func<string?, double, double> measure,
-        OfficeTextParagraphIndent? paragraphIndent = null) {
+        OfficeTextParagraphIndent? paragraphIndent = null) =>
+        FitWrappedTextCore(text, fontSize, maxWidth, maxHeight, lineHeightFactor, minimumFontSize, measure, paragraphIndent, null);
+
+    internal static OfficeTextBlockLayout FitWrappedTextCore(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        double minimumFontSize,
+        Func<string?, double, double> measure,
+        OfficeTextParagraphIndent? paragraphIndent,
+        Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
 
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
-        double minFontSize = Math.Max(1D, NormalizePositive(minimumFontSize, 1D));
+        double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
-        double requiredHeight = Math.Max(layout.Height, layout.Lines.Count * layout.LineHeight);
+        double requiredHeight = OfficeDrawingTextLayout.RequiredFrameHeight(layout, measurePaint);
         double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(requiredHeight, 1D)));
         if (scaleDown < 0.98D) {
             resolvedFontSize = Math.Max(minFontSize, resolvedFontSize * Math.Max(0D, scaleDown));
             layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
         }
 
-        return ClipTextBlockToHeight(
+        bool Fits(OfficeTextBlockLayout candidate) => !candidate.Clipped && candidate.Width <= width + .01D
+            && candidate.Lines.Count * candidate.LineHeight <= height
+            && OfficeDrawingTextLayout.RequiredFrameHeight(candidate, measurePaint) <= height + .01D;
+        if (!Fits(layout) && resolvedFontSize > minFontSize) {
+            double low = minFontSize, high = resolvedFontSize;
+            layout = CreateBlockLayout(text, low, width, lineFactor, measure, indent);
+            if (Fits(layout)) {
+                for (int iteration = 0; iteration < 12; iteration++) {
+                    double size = (low + high) / 2D;
+                    OfficeTextBlockLayout candidate = CreateBlockLayout(text, size, width, lineFactor, measure, indent);
+                    if (Fits(candidate)) { low = size; layout = candidate; }
+                    else high = size;
+                }
+            }
+        }
+
+        return OfficeDrawingTextLayout.IncludePaintedHeight(ClipTextBlockToHeight(
             layout.Lines,
             layout.FontSize,
             layout.LineHeight,
             width,
             height,
             measure,
-            layout.Clipped);
+            layout.Clipped), height, measurePaint);
     }
 
     /// <summary>
@@ -670,7 +698,8 @@ public static partial class OfficeTextLayoutEngine {
         double resolvedLineHeight = NormalizePositive(lineHeight, resolvedFontSize);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
-        int maxLines = Math.Max(1, (int)Math.Floor(height / resolvedLineHeight));
+        // Unbounded measurement may pass double.MaxValue; cap before converting to an integer.
+        int maxLines = Math.Max(1, (int)Math.Min(lines.Count, Math.Floor(height / resolvedLineHeight)));
         bool clipped = alreadyClipped;
         var visible = new List<OfficeTextLine>(Math.Min(lines.Count, maxLines));
         int count = Math.Min(lines.Count, maxLines);
@@ -876,7 +905,7 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeTextLine> lines = WrapLines(text, fontSize, maxWidth, measure, paragraphIndent, out bool clipped);
         double lineHeight = fontSize * lineHeightFactor;
         double width = MeasureMaxLineWidth(lines);
-        double height = Math.Max(fontSize, ((lines.Count - 1) * lineHeight) + fontSize);
+        double height = lines.Count * lineHeight;
         return new OfficeTextBlockLayout(lines, fontSize, lineHeight, width, height, clipped);
     }
 

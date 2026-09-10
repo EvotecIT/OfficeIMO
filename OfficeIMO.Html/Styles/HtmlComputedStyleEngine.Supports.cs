@@ -310,6 +310,11 @@ public static partial class HtmlComputedStyleEngine {
             && length >= 0D;
     }
 
+    private static bool IsSupportedFontLength(string value) =>
+        HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+        && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out double length)
+        && length >= 0D;
+
     private static bool IsSupportedDeclarationValue(string propertyName, string value) {
         if (propertyName.StartsWith("--", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(value)) {
             return true;
@@ -329,6 +334,16 @@ public static partial class HtmlComputedStyleEngine {
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "font":
+                return TryExpandFontShorthand(value, out _);
+            case "font-size":
+                return IsKnownKeyword(normalized, "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "xxx-large", "smaller", "larger")
+                    || IsSupportedFontLength(value);
+            case "line-height":
+                return normalized == "normal"
+                    || double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double lineHeight)
+                        && !double.IsInfinity(lineHeight) && !double.IsNaN(lineHeight) && lineHeight >= 0D
+                    || IsSupportedFontLength(value);
             case "position":
                 return IsKnownKeyword(normalized, "static", "relative", "absolute", "fixed", "sticky")
                     || HtmlCssRunningElementParser.TryParsePosition(value, out _);
@@ -475,6 +490,7 @@ public static partial class HtmlComputedStyleEngine {
         out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
+        var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -493,6 +509,7 @@ public static partial class HtmlComputedStyleEngine {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
+                if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
@@ -522,6 +539,7 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations);
+        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
@@ -529,7 +547,7 @@ public static partial class HtmlComputedStyleEngine {
             ? ResolveCustomPropertyValues(raw, parentProperties)
             : raw;
 
-        ExpandResolvedPhysicalBoxShorthands(resolved, priorities, inherited, reset, specified);
+        ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
 
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;

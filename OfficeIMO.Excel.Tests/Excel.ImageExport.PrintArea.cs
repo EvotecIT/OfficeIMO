@@ -696,16 +696,19 @@ namespace OfficeIMO.Tests {
         }
 
         private static (int X, int Y) FindFirstNonWhitePixel(OfficeRasterImage image) {
+            int left = image.Width, top = image.Height;
             for (int y = 0; y < image.Height; y++) {
                 for (int x = 0; x < image.Width; x++) {
                     OfficeColor pixel = image.GetPixel(x, y);
                     if (pixel.A > 0 && (pixel.R < 245 || pixel.G < 245 || pixel.B < 245)) {
-                        return (x, y);
+                        left = Math.Min(left, x);
+                        top = Math.Min(top, y);
                     }
                 }
             }
 
-            throw new InvalidOperationException("Expected at least one visible non-white pixel.");
+            if (left == image.Width) throw new InvalidOperationException("Expected at least one visible non-white pixel.");
+            return (left, top);
         }
 
         private static void SetFirstWorksheetPaperSizeCode(string filePath, uint paperSizeCode) {

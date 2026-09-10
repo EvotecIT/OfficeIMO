@@ -30,6 +30,12 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
+        PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
+        measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
+        if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        renderOptions.FallbackTextMeasurement = (text, font) => PdfCore.PdfWriter.MeasurePositionedText(
+            new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
+                fontSize: font.Size, font: MapStandardFont(font.FamilyName), fontFamily: font.FamilyName), measurementOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -591,13 +597,16 @@ internal static partial class HtmlPdfRenderedConverter {
         double surfaceWidth,
         bool asSpan,
         bool logicalTextOwned,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        double? baselineFontSize = null) {
         if (visual.Text.Length == 0) return;
+        // Canvas and outline writers must anchor a script to the original line's metrics.
+        baselineFontSize ??= visual.Font.Size;
         visual = visual.ResolveBaselineForPainting();
         if (visual.Y < 0D) {
             HtmlRenderText shifted = (HtmlRenderText)visual.TranslatePaint(0D, -visual.Y, visual.PaintOrder);
             canvas.Effect(OfficeTransform.Translate(0D, visual.Y * PointsPerCssPixel), 1D,
-                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken));
+                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize));
             return;
         }
         string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
@@ -620,11 +629,15 @@ internal static partial class HtmlPdfRenderedConverter {
                 frameWidth,
                 asSpan,
                 logicalTextOwned,
-                cancellationToken)) {
+                cancellationToken,
+                baselineFontSize.Value)) {
             return;
         }
-        var run = new PdfCore.PdfTextRun(
-            visual.Text,
+        OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        var runs = webFonts.Faces.PlanFallbackRuns(visual.Text, visual.Font.FamilyName, requestedStyle)
+            .Select(fallbackRun => new PdfCore.PdfTextRun(
+            fallbackRun.Text,
             bold: visual.Font.IsBold,
             underline: visual.Font.IsUnderline,
             color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
@@ -632,22 +645,21 @@ internal static partial class HtmlPdfRenderedConverter {
             strike: visual.Font.IsStrikethrough,
             fontSize: visual.Font.Size * PointsPerCssPixel,
             font: MapFont(
-                visual.Font.FamilyName,
-                visual.Text,
-                (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
-                | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular),
+                fallbackRun.FamilyName,
+                fallbackRun.Text,
+                requestedStyle,
                 webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
             linkDestinationName: linkDestination,
-            fontFamily: visual.Font.FamilyName,
+            fontFamily: fallbackRun.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),
             underlineStyle: visual.UnderlineStyle,
             strikeStyle: visual.StrikethroughStyle,
             decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
-            .WithFeatureSettings(visual.FeatureSettings);
-        canvas.Text(
-            new[] { run },
+            .WithFeatureSettings(visual.FeatureSettings)).ToArray();
+        canvas.PositionedText(
+            runs,
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,
@@ -655,8 +667,9 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Height * PointsPerCssPixel,
             PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
             MapAlignment(visual.Alignment),
-            visual.Font.Size * PointsPerCssPixel,
-            visual.LineHeight * PointsPerCssPixel);
+            baselineFontSize.Value * PointsPerCssPixel,
+            visual.LineHeight * PointsPerCssPixel,
+            (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel);
     }
 
     private static bool IsFragmentLink(string? link) =>
@@ -894,75 +907,37 @@ internal static partial class HtmlPdfRenderedConverter {
                     }
                     continue;
                 }
-                if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
+                if (element is not OfficeDrawingText text || text.Text.Length == 0) continue;
                 FlushShapes();
-                double textX = visual.X + text.X * scaleX;
                 double textY = visual.Y + text.Y * scaleY;
-                double textWidth = text.Width * scaleX;
-                double textHeight = text.Height * scaleY;
-                double scaledFontSize = text.Font.Size * scaleY;
-                double scaledLineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY;
-                var outlinedVisual = new HtmlRenderText(
+                var projectedText = new HtmlRenderText(
                     text.Text,
-                    textX,
+                    visual.X + text.X * scaleX,
                     textY,
-                    textWidth,
-                    textHeight,
-                    text.Font.WithSize(scaledFontSize),
+                    text.Width * scaleX,
+                    text.Height * scaleY,
+                    text.Font.WithSize(text.Font.Size * scaleY),
                     text.Color ?? OfficeColor.Black,
                     text.Alignment,
-                    scaledLineHeight,
+                    (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY,
                     paintOrder: 0,
                     linkUri: drawingLinkUri,
                     source: visual.Source,
                     semanticRole: "span",
                     layoutY: textY,
                     semanticNodeId: null,
-                    textAdvanceWidth: text.TextAdvanceWidth.HasValue
-                        ? text.TextAdvanceWidth.Value * scaleX
-                        : null);
-                if (TryAddOutlinedText(
-                        target,
-                        outlinedVisual,
-                        webFonts,
-                        conversionReport,
-                        textWidth,
-                        asSpan: true,
-                        logicalTextOwned: false,
-                        cancellationToken)) {
-                    continue;
-                }
-                double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;
-                double lineHeight = scaledLineHeight * PointsPerCssPixel;
-                PdfCore.PdfColor? color = text.Color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(text.Color.Value) : null;
-                IReadOnlyList<OfficeFontFallbackRun> plannedRuns = webFonts.Faces.PlanFallbackRuns(
-                    text.Text,
-                    text.Font.FamilyName,
-                    text.Font.Style);
-                IReadOnlyList<PdfCore.PdfTextRun> runs = plannedRuns.Select(run =>
-                    new PdfCore.PdfTextRun(
-                        run.Text,
-                        bold: text.Font.IsBold,
-                        underline: text.Font.IsUnderline,
-                        color: color,
-                        italic: text.Font.IsItalic,
-                        strike: text.Font.IsStrikethrough,
-                        fontSize: fontSize,
-                        font: MapFont(run.FamilyName, run.Text, text.Font.Style, webFonts),
-                        linkUri: drawingLinkUri,
-                        linkContents: drawingLinkUri == null ? null : run.Text,
-                        fontFamily: run.FamilyName))
-                    .ToList();
-                target.Text(
-                    runs,
-                    (visual.X + text.X * scaleX) * PointsPerCssPixel,
-                    (visual.Y + text.Y * scaleY) * PointsPerCssPixel,
-                    text.Width * scaleX * PointsPerCssPixel,
-                    text.Height * scaleY * PointsPerCssPixel,
-                    color,
-                    MapAlignment(text.Alignment),
-                    fontSize,
-                    lineHeight);
+                    textAdvanceWidth: text.TextAdvanceWidth * scaleX,
+                    underlineStyle: text.UnderlineStyle,
+                    strikethroughStyle: text.StrikethroughStyle,
+                    baseline: text.Baseline,
+                    baselineLevel: text.BaselineLevel,
+                    baselineScale: text.BaselineScale,
+                    baselineOffset: text.BaselineOffset * scaleY,
+                    decorationColor: text.DecorationColor,
+                    featureSettings: text.FeatureSettings,
+                    fontPalette: text.FontPalette);
+                AddText(target, projectedText, webFonts, conversionReport,
+                    visual.X + visual.Width, asSpan: true, logicalTextOwned: false, cancellationToken);
             }
             FlushShapes();
         }

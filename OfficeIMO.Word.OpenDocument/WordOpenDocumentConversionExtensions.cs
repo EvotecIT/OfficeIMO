@@ -32,9 +32,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
-        int imageLayout = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(run => run.InlineImage != null &&
-            (!string.IsNullOrWhiteSpace(run.InlineImage.Description) || !string.IsNullOrWhiteSpace(run.InlineImage.Title) ||
-             (!run.InlineImage.IsInline && !string.IsNullOrWhiteSpace(run.InlineImage.WrapText))));
+        int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
+            .SelectMany(run => run.PositionedImages).Count(positioned =>
+                !string.IsNullOrWhiteSpace(positioned.Image.Description) || !string.IsNullOrWhiteSpace(positioned.Image.Title) ||
+                (!positioned.Image.IsInline && !string.IsNullOrWhiteSpace(positioned.Image.WrapText)));
         if (snapshot.Sections.Count > 0) ApplyWordPageLayout(snapshot.Sections[0], target.PageLayout);
         foreach (WordSectionSnapshot section in snapshot.Sections) {
             OdtList? currentList = null;
@@ -115,6 +116,10 @@ public static partial class WordOpenDocumentConversionExtensions {
             "Table text and merges are retained; widths, borders, shading, styles, and repeated-header behavior are not fully mapped.");
         if (imageLayout > 0) report.Add("image-layout", OdfConversionMappingStatus.Approximated, imageLayout,
             "Image descriptions, titles, and advanced wrapping are not represented by the current ODT adapter.");
+        int columnBreaks = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
+            .Sum(run => run.NonTextBreaks?.Values.Count(kind => kind == WordBreakType.Column) ?? 0);
+        if (columnBreaks > 0) report.Add("column-breaks", OdfConversionMappingStatus.Approximated, columnBreaks,
+            "Word column breaks are retained as line breaks because the ODT paragraph projection does not preserve column flow.");
         if (unsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported, unsupportedFootnotes,
             "Footnote references are omitted from the current ODT adapter.");
         if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
@@ -246,51 +251,6 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, bookmarks, pageLayouts: 1);
         target = Normalize(target);
         return new OdfConversionResult<WordDocument>(target, report).ApplyPolicy(effective.LossPolicy);
-    }
-
-    private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
-        WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
-        ref int hyperlinks, ref int images, ref int unsupportedImages,
-        ref int bookmarks, ref int unsupportedFootnotes) {
-        bool wrote = false;
-        foreach (WordRunSnapshot run in source.Runs) {
-            if (!string.IsNullOrEmpty(run.Text)) {
-                if (run.IsHyperlink && (!string.IsNullOrWhiteSpace(run.HyperlinkUri) || !string.IsNullOrWhiteSpace(run.HyperlinkAnchor))) {
-                    OdtHyperlink link = target.AddHyperlink(run.Text, run.HyperlinkUri ?? "#" + run.HyperlinkAnchor);
-                    ApplyWordRunFormatting(run, link);
-                    hyperlinks++;
-                } else {
-                    OdtSpan span = target.AddSpan(run.Text);
-                    ApplyWordRunFormatting(run, span);
-                }
-                wrote = true;
-            }
-            if (options.IncludeImages && run.InlineImage?.Bytes is { Length: > 0 } bytes) {
-                WordInlineImageSnapshot image = run.InlineImage;
-                try {
-                    string fileName = image.FileName ?? "image.png";
-                    if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
-                        bytes,
-                        fileName,
-                        out string storedFileName,
-                        imageValidationBudget)) {
-                        throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
-                    }
-                    target.AddImage(bytes, storedFileName,
-                        OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
-                        image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
-                    images++;
-                    wrote = true;
-                } catch (NotSupportedException) {
-                    unsupportedImages++;
-                }
-            }
-            if (run.Footnote != null) unsupportedFootnotes++;
-        }
-        if (!wrote && source.Text.Length > 0) target.Text = source.Text;
-        target.PageBreakBefore = source.PageBreakBefore;
-        ApplyWordParagraphFormatting(source, target);
-        if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { target.AddBookmark(source.BookmarkName!); bookmarks++; }
     }
 
     private static void CopyParagraph(OdtParagraph source, WordParagraph target,

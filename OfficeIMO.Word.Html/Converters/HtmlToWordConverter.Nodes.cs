@@ -58,6 +58,7 @@ namespace OfficeIMO.Word.Html {
                             var bodyStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(bodyStyle)) {
                                 ApplySpanStyles(element, ref fmt);
+                                PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
                             WordParagraph? para = currentParagraph;
                             if (para == null && cell != null) {
@@ -888,7 +889,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "table": {
-                            ProcessTable((IHtmlTableElement)element, doc, section, options, listStack, cell, currentParagraph, headerFooter);
+                            ProcessTable((IHtmlTableElement)element, doc, section, options, listStack, cell, currentParagraph, headerFooter, formatting);
                             break;
                         }
                     case "figure": {

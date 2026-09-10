@@ -9,6 +9,7 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (pattern.Opacity <= 0D) return;
+        canvas = canvas.WithDrawingTextProfile(pattern.InnerTile);
         cancellationToken.ThrowIfCancellationRequested();
         _ = OfficeRasterExportPlanner.Resolve(
             pattern.InnerTile.Width,

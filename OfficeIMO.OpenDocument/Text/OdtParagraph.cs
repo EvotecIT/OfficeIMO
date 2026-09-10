@@ -317,6 +317,15 @@ public sealed class OdtParagraph {
         return image;
     }
 
+    internal OdtParagraph InsertParagraphAfter() {
+        var sibling = new XElement(_element.Name,
+            _element.Attributes().Where(attribute => attribute.Name == OdfNamespaces.Text + "style-name"
+                || attribute.Name == OdfNamespaces.Text + "outline-level"));
+        _element.AddAfterSelf(sibling);
+        Dirty();
+        return new OdtParagraph(_document, sibling, _partPath);
+    }
+
     internal XElement Element => _element;
 
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(

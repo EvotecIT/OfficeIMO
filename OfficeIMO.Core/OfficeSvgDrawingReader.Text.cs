@@ -108,7 +108,6 @@ public static partial class OfficeSvgDrawingReader {
             element, inheritedPositioning, viewportWidth, viewportHeight, ref unsupported);
         if (cursor.Chunk < 0) cursor.Chunk = 0;
         int firstRun = runs.Count;
-        double lengthOrigin = cursor.X;
         bool adjustGlyphs = TryReadTextLengthAdjustment(element, out double authoredLength, ref unsupported);
 
         foreach (XNode node in element.Nodes()) {
@@ -144,7 +143,7 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
             }
         }
-        if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
+        if (adjustGlyphs && firstRun < runs.Count) ApplyTextLengthAdjustment(runs, firstRun, runs[firstRun].X, authoredLength, ref cursor, ref unsupported);
     }
 
     private static void AddReferencedTextRuns(
@@ -286,7 +285,7 @@ public static partial class OfficeSvgDrawingReader {
         out IOfficeFontProgram? program) {
         program = fonts.ResolveForText(text, style.FontFamily, style.FontStyle, out _)
             ?? OfficeTrueTypeFont.TryLoadFontFamily(style.FontFamily);
-        if (program != null && RequiresPaintedTextOutline(style)) {
+        if (program != null) {
             double measured = program.Measure(text, fontSize);
             if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {
                 return measured;
@@ -487,10 +486,11 @@ public static partial class OfficeSvgDrawingReader {
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         bool usesEffect = textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        if (usesEffect) target.Fonts.AddRange(drawing.Fonts);
         try {
             double naturalWidth = width / run.GlyphScale;
             if (requiresViewportClip) {
-                target.AddClippedText(
+                target.AddClippedPositionedText(
                     run.Text,
                     x,
                     y,
@@ -499,12 +499,14 @@ public static partial class OfficeSvgDrawingReader {
                     0D,
                     0D,
                     OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
+                    default(OfficeImageFrameTransform),
                     font,
                     color,
                     OfficeTextAlignment.Left,
-                    height);
+                    height,
+                    textAdvanceWidth: run.Width / run.GlyphScale);
             } else {
-                target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+                target.AddPositionedText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height, textAdvanceWidth: run.Width / run.GlyphScale);
             }
             if (!ReferenceEquals(target, drawing)) {
                 OfficeTransform effect = run.GlyphScale.Equals(1D)
