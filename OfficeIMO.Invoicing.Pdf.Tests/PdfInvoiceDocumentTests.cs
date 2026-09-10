@@ -171,6 +171,7 @@ public class PdfInvoiceDocumentTests {
     public void OutsideScopeAdjustmentsPreserveAbsentTaxRate(bool charge) {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Seller.VatIdentifier = null;
+        invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 12345");
         invoice.Lines[0].Tax = new InvoiceTaxCategory { Code = "O", ExemptionReason = "Outside scope" };
         invoice.AllowancesAndCharges.Add(new InvoiceAllowanceCharge {
             IsCharge = charge, Amount = 2m, Reason = "Outside scope adjustment",
