@@ -26,6 +26,7 @@ public sealed partial class MainWindowViewModel {
         !HasUnassignedFormDrafts && FormFields.Where(entry => entry.HasDraft).All(entry => entry.CanApplyValue);
 
     private void NotifyFormDraftState() {
+        _assistant?.CheckSource();
         OnPropertyChanged(nameof(CanEditFormDefinition));
         OnPropertyChanged(nameof(CanSetFormTabOrder));
         OnPropertyChanged(nameof(CanMoveFormWidget));

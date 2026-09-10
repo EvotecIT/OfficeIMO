@@ -103,7 +103,7 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions));
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions, effectivePdfOptions));
         PdfDocumentPreflight preflight = pdf.Preflight();
         PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
@@ -125,7 +125,7 @@ internal static partial class PdfReaderAdapter {
         };
 
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions, effectivePdfOptions);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfDocumentPreflight preflight = pdf.Preflight();
         PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
@@ -259,6 +259,7 @@ internal static partial class PdfReaderAdapter {
             for (int elementIndex = 0; elementIndex < page.Elements.Count; elementIndex++) {
                 IPdfLogicalElement element = page.Elements[elementIndex];
                 if (element is PdfLogicalTextBlock textBlock) {
+                    if (textBlock.IsTableContent) continue;
                     PdfLogicalHeading? heading = FindHeading(page, textBlock);
                     PdfLogicalListItem? listItem = FindListItem(page, textBlock);
                     if (listItem is not null && !ReferenceEquals(listItem.Line, textBlock)) continue;
@@ -293,7 +294,8 @@ internal static partial class PdfReaderAdapter {
                     yield return new OfficeDocumentBlock {
                         Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = "table",
-                        Text = "Detected PDF table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " row(s).",
+                        // The table's text lives in its cells. This block supplies geometry and identity only.
+                        Text = string.Empty,
                         Location = BuildLocation(source, page.PageNumber, pageIndex, "table", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-table-" + tableIndex.ToString(CultureInfo.InvariantCulture)),
                         Region = new OfficeDocumentRegion {
                             X = table.Columns.Count > 0 ? table.Columns[0].From : 0D,

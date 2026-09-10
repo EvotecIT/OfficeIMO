@@ -8,7 +8,7 @@ public sealed record OfficeAiLimits {
     public int MaxDocumentCharacters { get; init; } = 2_000_000;
     /// <summary>Maximum evidence records retained in a snapshot.</summary>
     public int MaxDocumentBlocks { get; init; } = 50_000;
-    /// <summary>Maximum page count in a snapshot.</summary>
+    /// <summary>Maximum number of distinct source pages in a snapshot, independent of their original one-based numbers.</summary>
     public int MaxPages { get; init; } = 500;
     /// <summary>Maximum image count in a snapshot, independent of how many images belong to each page.</summary>
     public int MaxDocumentImages { get; init; } = 500;

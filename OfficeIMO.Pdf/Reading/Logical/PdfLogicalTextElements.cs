@@ -74,7 +74,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// </summary>
     public PdfLogicalVisualBounds? VisualBounds { get; }
 
-    internal bool IsTableContent { get; }
+    /// <summary>True when canonical table reconstruction owns these source spans. Use the table projection to avoid repeating its cells as ordinary text.</summary>
+    public bool IsTableContent { get; }
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount => Spans.Count;

@@ -11,7 +11,8 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
     private readonly IntelligenceXClient? _client;
     private readonly ITreatmentProvider _provider;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private bool _disposed;
+    private int _disposeRequested;
+    private int _clientDisposed;
 
     private IntelligenceXOfficeAiExecutor(IntelligenceXClient client, OfficeAiExecutionProfile profile) {
         _client = client; _provider = new OpenAIChatTreatmentProvider(client); Profile = profile;
@@ -41,6 +42,9 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
                     throw new ArgumentException("ChatGPT uses the IX auth store and cannot be labelled local or redirected.", nameof(connection));
                 options.TransportKind = OpenAITransportKind.Native;
                 options.NativeOptions.PreferCurrentCodexSession = connection.PreferCurrentCodexSession;
+                options.NativeOptions.LoadCodexAuthJson = connection.LoadCodexAuthJson || connection.PreferCurrentCodexSession;
+                if (connection.AuthStore is not null) options.NativeOptions.AuthStore = connection.AuthStore;
+                if (connection.AuthStore is not null || connection.AccountId is not null) options.NativeOptions.AuthAccountId = connection.AccountId;
                 options.NativeOptions.PersistCodexAuthJson = false;
                 options.NativeOptions.EnableModelFallback = false;
                 options.NativeOptions.EnableToolSchemaFallback = false;
@@ -69,13 +73,47 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
         return new IntelligenceXOfficeAiExecutor(client, profile with { });
     }
 
+    /// <summary>Lists models available through this connection without sending document evidence.</summary>
+    public Task<ModelListResult> ListModelsAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.ListModelsAsync(cancellationToken), cancellationToken);
+
+    /// <summary>Reads the selected account without starting an inference request.</summary>
+    public Task<AccountInfo> GetAccountAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.GetAccountAsync(cancellationToken), cancellationToken);
+
+    /// <summary>Signs in through the native ChatGPT browser flow; no agent CLI is launched.</summary>
+    public Task LoginChatGptAsync(Action<string> onUrl, CancellationToken cancellationToken = default) =>
+        WithClientAsync(async client => {
+            await client.LoginChatGptAndWaitAsync(onUrl: onUrl, useLocalListener: true,
+                timeout: TimeSpan.FromMinutes(5), cancellationToken: cancellationToken).ConfigureAwait(false);
+            return true;
+        }, cancellationToken);
+
+    /// <summary>Signs in through the native GitHub device flow using the configured registered app.</summary>
+    public Task<AccountInfo> LoginCopilotAsync(Action<global::IntelligenceX.Authentication.GitHub.GitHubDeviceAuthorization> onCode,
+        CancellationToken cancellationToken = default) =>
+        WithClientAsync(client => client.LoginCopilotAsync(onCode, cancellationToken), cancellationToken);
+
+    /// <summary>Signs out of this connection's selected account.</summary>
+    public Task LogoutAsync(CancellationToken cancellationToken = default) =>
+        WithClientAsync(async client => { await client.LogoutAsync(cancellationToken).ConfigureAwait(false); return true; }, cancellationToken);
+
+    private async Task<T> WithClientAsync<T>(Func<IntelligenceXClient, Task<T>> operation, CancellationToken token) {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
+        await _gate.WaitAsync(token).ConfigureAwait(false);
+        try {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
+            return await operation(_client!).ConfigureAwait(false);
+        } finally { ReleaseOperation(); }
+    }
+
     /// <inheritdoc />
     public async Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeRequested) != 0, this);
             if (request.Images.Count > 0 && !Profile.SupportsImages) throw new NotSupportedException("Profile does not support images.");
             if (request.Images.Sum(image => (long)image.ByteLength) > Profile.MaxImageBytes) throw new ArgumentException("Image payload limit exceeded.", nameof(request));
             TreatmentRequest treatment = BuildTreatment(request, copyImages: true);
@@ -87,7 +125,11 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
             TurnInfo? turn = result.Raw as TurnInfo;
             return new OfficeAiExecutionResponse(result.Text ?? string.Empty, result.Id,
                 turn?.Usage?.InputTokens, turn?.Usage?.OutputTokens, string.Equals(result.Status, "completed", StringComparison.OrdinalIgnoreCase));
-        } finally { _gate.Release(); }
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch (Exception exception) when (exception is not (OutOfMemoryException or InvalidDataException)) {
+            throw new OfficeAiExecutionException(IntelligenceXOfficeAiErrors.Classify(exception));
+        } finally { ReleaseOperation(); }
     }
 
     /// <inheritdoc />
@@ -114,10 +156,23 @@ public sealed class IntelligenceXOfficeAiExecutor : IOfficeAiExecutor, IDisposab
             };
     }
 
-    /// <summary>Disposes the owned SDK connection. Finish or cancel active operations before disposing.</summary>
+    /// <summary>Rejects new operations and disposes the owned SDK connection after any active operation settles.</summary>
     public void Dispose() {
-        if (_disposed) return;
-        _disposed = true;
-        _client?.Dispose();
+        Interlocked.Exchange(ref _disposeRequested, 1);
+        TryDisposeIdleClient();
+    }
+
+    private void ReleaseOperation() {
+        _gate.Release();
+        if (Volatile.Read(ref _disposeRequested) != 0) TryDisposeIdleClient();
+    }
+
+    private void TryDisposeIdleClient() {
+        // Engine cancellation may release its caller before the SDK operation returns.
+        // Keep the connection alive until that operation releases the shared gate.
+        if (!_gate.Wait(0)) return;
+        try {
+            if (Interlocked.Exchange(ref _clientDisposed, 1) == 0) _client?.Dispose();
+        } finally { _gate.Release(); }
     }
 }

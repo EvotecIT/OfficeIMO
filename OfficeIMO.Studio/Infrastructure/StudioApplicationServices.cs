@@ -16,6 +16,7 @@ internal sealed class StudioApplicationServices {
         IStudioLocalizer localizer,
         IStudioDiagnostics diagnostics) {
         Paths = paths;
+        AiConnections = new OfficeIMO.Studio.Features.Assistant.StudioAiConnections(paths.Root, localizer);
         Storage = new StudioStorageAccess(paths.WorkflowRecoveryRoot);
         Preferences = preferences;
         Cultures = cultures;
@@ -28,6 +29,7 @@ internal sealed class StudioApplicationServices {
     }
 
     internal StudioDataPaths Paths { get; }
+    internal OfficeIMO.Studio.Features.Assistant.StudioAiConnections AiConnections { get; }
 
     internal StudioPreferencesService Preferences { get; }
 

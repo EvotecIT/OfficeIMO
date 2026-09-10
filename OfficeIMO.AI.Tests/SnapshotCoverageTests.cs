@@ -6,6 +6,38 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed class SnapshotCoverageTests {
     [Theory]
+    [InlineData("page")]
+    [InlineData("block")]
+    [InlineData("chunk")]
+    [InlineData("table")]
+    [InlineData("image")]
+    public async Task PageBudgetCountsDistinctPagesAcrossEveryEvidenceOwner(string owner) {
+        var source = new OfficeDocumentReadResult();
+        var location = new ReaderLocation { Page = 501 };
+        switch (owner) {
+            case "page": source.Pages = new[] { new OfficeDocumentPage { Number = 501 } }; break;
+            case "block": source.Blocks = new[] { new OfficeDocumentBlock { Text = "selected page", Location = location } }; break;
+            case "chunk": source.Chunks = new[] { new ReaderChunk { Text = "selected page", Location = location } }; break;
+            case "table": source.Tables = new[] { new ReaderTable { Columns = new[] { "Item" }, Rows = new[] { new[] { "selected page" } }, Location = location } }; break;
+        }
+        var images = owner == "image" ? new[] { new OfficeAiImage("scan", 501, "image/png", new byte[] { 1 }, 1, 1) } : Array.Empty<OfficeAiImage>();
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source, images, new() { MaxPages = 1 });
+        Assert.Equal(501, Assert.Single(document.Pages));
+        Assert.All(document.Evidence, item => Assert.Equal(501, item.Page));
+        if (owner != "image") {
+            var executor = new Capture();
+            var result = await new OfficeAiEngine(executor).RunAsync(document,
+                new() { Instruction = "Read selected page", Pages = new[] { 501 }, Limits = new() { MaxPages = 1 } });
+            Assert.Equal(document.Evidence.Select(item => item.Id), result.ProcessedEvidenceIds);
+        }
+        source.Pages = source.Pages.Concat(new[] { new OfficeDocumentPage { Number = 502 } }).ToArray();
+        Assert.Throws<InvalidDataException>(() => OfficeAiDocument.FromReadResult(new byte[] { 1 }, source, images, new() { MaxPages = 1 }));
+        var larger = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source, images, new() { MaxPages = 2 });
+        await Assert.ThrowsAsync<ArgumentException>(() => new OfficeAiEngine(new Capture()).RunAsync(larger,
+            new() { Instruction = "Read", Limits = new() { MaxPages = 1 } }));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void InterleavedTablesStayBetweenTheirSourceParagraphsBeforeIdsAreAssigned(bool roundTrip) {
