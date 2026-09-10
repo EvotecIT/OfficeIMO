@@ -100,8 +100,10 @@ ties towards positive infinity; values that exceed decimal capacity are rejected
 instead of silently losing cents. Caller text must contain valid XML characters.
 The model permits up to 4 MiB of combined UTF-8 text and 8 MiB of embedded bytes.
 Parsing and authoring share a 50,000-item budget across collections, including
-declared or calculated VAT breakdowns. Parsing rejects inputs with more than 1,000 mapping diagnostics;
-serialized XML is limited to 16 MiB while it is written.
+declared or calculated VAT breakdowns. Parsing rejects inputs with more than
+1,000 mapping diagnostics. Diagnostic codes are bounded to 256 characters;
+messages and locations to 4,096, with an explicit truncation marker when needed.
+Serialized XML is limited to 16 MiB while it is written.
 
 ## Convert CII and UBL
 

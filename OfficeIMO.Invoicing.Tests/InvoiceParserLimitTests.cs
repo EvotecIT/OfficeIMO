@@ -4,6 +4,38 @@ using System.Xml.Linq;
 namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceParserLimitTests {
+    [Fact]
+    public void DiagnosticTextIsBoundedWithoutChangingSeverity() {
+        var diagnostic = new InvoiceDiagnostic(new string('c', 10000), new string('m', 10000), new string('l', 10000));
+        Assert.Equal(256, diagnostic.Code.Length);
+        Assert.Equal(4096, diagnostic.Message.Length);
+        Assert.Equal(4096, diagnostic.Location.Length);
+        Assert.EndsWith("[truncated]", diagnostic.Message);
+        Assert.Equal(InvoiceDiagnosticSeverity.Error, diagnostic.Severity);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NamespaceExpansionCannotMultiplyDiagnosticStorage(bool attributes) {
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create())));
+        XNamespace extra = "urn:" + new string('n', 65536);
+        document.Root!.SetAttributeValue(XNamespace.Xmlns + "extra", extra.NamespaceName);
+        for (int index = 0; index < 100; index++) {
+            if (attributes) document.Root.SetAttributeValue(extra + ("field" + index), "value");
+            else document.Root.Add(new XElement(extra + ("field" + index), "value"));
+        }
+        InvoiceReadResult read = InvoiceParser.Read(Encoding.UTF8.GetBytes(document.ToString()));
+        Assert.False(read.HasCompleteMapping);
+        Assert.Equal(100, read.UnmappedData.Count);
+        Assert.All(read.UnmappedData, diagnostic => {
+            Assert.InRange(diagnostic.Location.Length, 1, 4096);
+            Assert.Contains("[truncated]", diagnostic.Location);
+            Assert.Equal(InvoiceDiagnosticSeverity.Error, diagnostic.Severity);
+        });
+        Assert.Throws<InvalidDataException>(() => read.Write());
+    }
+
     [Theory]
     [InlineData(InvoiceSyntax.Cii, false)]
     [InlineData(InvoiceSyntax.Cii, true)]

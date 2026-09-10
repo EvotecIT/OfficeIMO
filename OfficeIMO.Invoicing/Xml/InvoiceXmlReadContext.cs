@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Invoicing;
@@ -106,13 +107,37 @@ internal sealed class InvoiceXmlReadContext {
                 Loss(element, "Element is outside the supported semantic mapping.");
             if (_consumed.Contains(element)) {
                 foreach (XAttribute attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && !_consumed.Contains(a)))
-                    AddDiagnostic(new InvoiceDiagnostic("INV-UNMAPPED", "Attribute is outside the supported semantic mapping.", Path(element) + "/@" + attribute.Name));
+                    AddDiagnostic(new InvoiceDiagnostic("INV-UNMAPPED", "Attribute is outside the supported semantic mapping.", Path(element, attribute)));
                 if (!_scalarValues.Contains(element) && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
                     Loss(element, "Text in an invoice container is outside the supported mapping.");
             }
         }
         return _diagnostics.AsReadOnly();
     }
-    private static string Path(XElement element) => "/" + string.Join("/", element.AncestorsAndSelf().Reverse().Select(e =>
-        "{" + e.Name.NamespaceName + "}" + e.Name.LocalName + "[" + (e.ElementsBeforeSelf(e.Name).Count() + 1) + "]"));
+    private static string Path(XElement element, XAttribute? attribute = null) {
+        var path = new StringBuilder();
+        bool truncated = false;
+        XElement[] ancestors = element.AncestorsAndSelf().Take(65).ToArray();
+        if (ancestors.Length > 64) Append("/... [truncated ancestors]");
+        foreach (XElement ancestor in ancestors.Take(64).Reverse()) {
+            Append("/"); Name(ancestor.Name);
+            if (truncated) break;
+            Append("["); Append((ancestor.ElementsBeforeSelf(ancestor.Name).Count() + 1).ToString(CultureInfo.InvariantCulture)); Append("]");
+        }
+        if (!truncated && attribute != null) { Append("/@"); Name(attribute.Name); }
+        if (truncated) {
+            const string marker = "... [truncated]";
+            path.Length = InvoiceDiagnostic.MaximumLocationLength - marker.Length;
+            if (char.IsHighSurrogate(path[path.Length - 1])) path.Length--;
+            path.Append(marker);
+        }
+        return path.ToString();
+
+        void Name(XName name) { Append("{"); Append(name.NamespaceName); Append("}"); Append(name.LocalName); }
+        void Append(string value) {
+            int count = Math.Min(value.Length, InvoiceDiagnostic.MaximumLocationLength - path.Length);
+            path.Append(value, 0, count);
+            if (count != value.Length) truncated = true;
+        }
+    }
 }
