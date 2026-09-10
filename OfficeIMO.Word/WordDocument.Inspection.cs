@@ -209,6 +209,7 @@ namespace OfficeIMO.Word {
 
                 snapshot.AddRun(new WordRunSnapshot {
                     Text = run.Text,
+                    NonTextBreaks = run.GetNonTextBreakPositions(),
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None,

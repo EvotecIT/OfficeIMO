@@ -1065,7 +1065,7 @@ namespace OfficeIMO.Tests {
                 paragraphAlignment: A.TextAlignmentTypeValues.Left,
                 verticalAlignment: A.TextAnchoringTypeValues.Top,
                 textColorHex: "111827",
-                textFontSize: 8D,
+                textFontSize: 12D,
                 textWrap: true);
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {

@@ -139,6 +139,8 @@ namespace OfficeIMO.Examples {
         }
 
         static void Main(string[] args) {
+            string? reportSource = GetArgumentValue(args, "--report-source");
+            if (reportSource != null) reportSource = Path.GetFullPath(reportSource);
             string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             Directory.SetCurrentDirectory(baseFolder);
             string templatesPath = Path.Combine(baseFolder, "Templates");
@@ -250,7 +252,7 @@ namespace OfficeIMO.Examples {
             }
 
             if (HasArgument(args, "--multi-format-report")) {
-                Html.Html.Example_HtmlMultiFormatReport(folderPath);
+                Html.Html.Example_HtmlMultiFormatReport(folderPath, reportSource);
                 return;
             }
 

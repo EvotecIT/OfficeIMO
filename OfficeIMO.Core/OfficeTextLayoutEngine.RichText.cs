@@ -184,6 +184,25 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent? paragraphIndent,
         CancellationToken cancellationToken) {
+        if (measure == null) throw new ArgumentNullException(nameof(measure));
+        return LayoutStyledRichTextBlock(runs, maxWidth, maxHeight, lineHeightFactor,
+            (text, size, family, _) => measure(text, size, family), wrap, shrinkToFit,
+            minimumFontSize, overflowBehavior, paragraphIndent, cancellationToken);
+    }
+
+    // Renderer adapters use the same wrapping algorithm while measuring the actual styled face.
+    internal static OfficeRichTextBlockLayout LayoutStyledRichTextBlock(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, string?, OfficeFontStyle, double> measure,
+        bool wrap,
+        bool shrinkToFit = false,
+        double minimumFontSize = 1D,
+        OfficeTextOverflowBehavior overflowBehavior = OfficeTextOverflowBehavior.Ellipsis,
+        OfficeTextParagraphIndent? paragraphIndent = null,
+        CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
@@ -227,7 +246,7 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         double maxHeight,
         double lineHeightFactor,
-        Func<string?, double, string?, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, double> measure,
         bool wrap,
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent paragraphIndent,
@@ -266,9 +285,9 @@ public static partial class OfficeTextLayoutEngine {
                 continue;
             }
 
-            double tokenWidth = Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, measure);
+            double tokenWidth = Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, token.Run.FontStyle, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
-            if (wrap && builder.Width + tokenWidth > availableWidth && !builder.IsEmpty) {
+            if (wrap && builder.MeasureWidthAfter(token.Run, token.Text) > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
                     processingStopped = true;
@@ -327,166 +346,12 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
     }
 
-    private static IReadOnlyList<OfficeRichTextRun> NormalizeRichTextRuns(
-        IReadOnlyList<OfficeRichTextRun> runs,
-        out bool truncated,
-        CancellationToken cancellationToken = default) {
-        int runCapacity = Math.Min(runs.Count, MaximumLayoutTextRuns);
-        var normalized = new List<OfficeRichTextRun>(runCapacity);
-        int remainingCharacters = MaximumLayoutTextCharacters;
-        int processedRuns = 0;
-        truncated = runs.Count > MaximumLayoutTextRuns;
-        for (int i = 0; i < runs.Count && i < MaximumLayoutTextRuns && remainingCharacters > 0; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeRichTextRun run = runs[i];
-            string text = run.Text ?? string.Empty;
-            if (text.Length > remainingCharacters) {
-                truncated = true;
-                int length = remainingCharacters;
-                if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
-                text = text.Substring(0, length) + "...";
-            }
-            normalized.Add(new OfficeRichTextRun(
-                text,
-                NormalizePositive(run.FontSize, 1D),
-                run.Color,
-                run.Bold,
-                run.Italic,
-                run.Underline,
-                run.FontFamily,
-                run.Strikethrough,
-                run.BackgroundColor,
-                run.UnderlineStyle,
-                run.StrikethroughStyle,
-                run.Baseline));
-            remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
-            processedRuns = i + 1;
-        }
-
-        truncated |= processedRuns < runs.Count;
-
-        return normalized;
-    }
-
-    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(
-        IReadOnlyList<OfficeRichTextRun> runs,
-        double scale,
-        CancellationToken cancellationToken = default) {
-        double factor = Math.Max(0D, scale);
-        var scaled = new List<OfficeRichTextRun>(runs.Count);
-        for (int i = 0; i < runs.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeRichTextRun run = runs[i];
-            scaled.Add(new OfficeRichTextRun(
-                run.Text,
-                Math.Max(1D, run.FontSize * factor),
-                run.Color,
-                run.Bold,
-                run.Italic,
-                run.Underline,
-                run.FontFamily,
-                run.Strikethrough,
-                run.BackgroundColor,
-                run.UnderlineStyle,
-                run.StrikethroughStyle,
-                run.Baseline));
-        }
-
-        return scaled;
-    }
-
-    private static double MeasureMaxUnwrappedRichTextWidth(
-        IReadOnlyList<OfficeRichTextRun> runs,
-        Func<string?, double, string?, double> measure,
-        CancellationToken cancellationToken) {
-        double current = 0D;
-        double max = 0D;
-        foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (token.HardBreak) {
-                max = Math.Max(max, current);
-                current = 0D;
-                continue;
-            }
-
-            current += Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, measure);
-        }
-
-        return Math.Max(max, current);
-    }
-
-    private static double ResolveMaxRichTextFontSize(IReadOnlyList<OfficeRichTextRun> runs) {
-        double max = 1D;
-        for (int i = 0; i < runs.Count; i++) {
-            max = Math.Max(max, NormalizePositive(runs[i].FontSize, 1D));
-        }
-
-        return max;
-    }
-
-    private static double ResolveMaxEffectiveRichTextFontSize(IReadOnlyList<OfficeRichTextRun> runs) {
-        double max = 1D;
-        for (int i = 0; i < runs.Count; i++) {
-            max = Math.Max(max, NormalizePositive(runs[i].EffectiveFontSize, 1D));
-        }
-
-        return max;
-    }
-
-    private static IEnumerable<RichTextToken> CreateRichTextTokens(
-        IReadOnlyList<OfficeRichTextRun> runs,
-        CancellationToken cancellationToken) {
-        for (int i = 0; i < runs.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeRichTextRun run = runs[i];
-            string normalized = ExpandTabs(run.Text.Replace("\r\n", "\n").Replace('\r', '\n'));
-            cancellationToken.ThrowIfCancellationRequested();
-            var word = new StringBuilder();
-            for (int c = 0; c < normalized.Length; c++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                char value = normalized[c];
-                if (value == '\n') {
-                    foreach (RichTextToken token in FlushRichTextWord(run, word)) {
-                        yield return token;
-                    }
-
-                    yield return RichTextToken.CreateHardBreak(run);
-                    continue;
-                }
-
-                if (char.IsWhiteSpace(value)) {
-                    foreach (RichTextToken token in FlushRichTextWord(run, word)) {
-                        yield return token;
-                    }
-
-                    yield return RichTextToken.CreateText(run, " ", isWhitespace: true);
-                    continue;
-                }
-
-                word.Append(value);
-            }
-
-            foreach (RichTextToken token in FlushRichTextWord(run, word)) {
-                yield return token;
-            }
-        }
-    }
-
-    private static IEnumerable<RichTextToken> FlushRichTextWord(OfficeRichTextRun run, StringBuilder word) {
-        if (word.Length == 0) {
-            yield break;
-        }
-
-        yield return RichTextToken.CreateText(run, word.ToString(), isWhitespace: false);
-        word.Clear();
-    }
-
     private static bool AddBrokenRichTextToken(
         List<OfficeRichTextLine> lines,
         RichTextLineBuilder builder,
         RichTextToken token,
         double maxWidth,
-        Func<string?, double, string?, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, double> measure,
         OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
         foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
@@ -495,9 +360,8 @@ public static partial class OfficeTextLayoutEngine {
                 builder.Clear();
                 return false;
             }
-            double width = Measure(textElement, token.Run.EffectiveFontSize, token.Run.FontFamily, measure);
             double availableWidth = Math.Max(0D, maxWidth - builder.OffsetX);
-            if (builder.Width + width > availableWidth && !builder.IsEmpty) {
+            if (builder.MeasureWidthAfter(token.Run, textElement) > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     return false;
                 }
@@ -525,7 +389,7 @@ public static partial class OfficeTextLayoutEngine {
         return true;
     }
 
-    private static OfficeRichTextLine TrimRichTextLineToWidthWithEllipsis(OfficeRichTextLine line, double maxWidth, Func<string?, double, string?, double> measure) {
+    private static OfficeRichTextLine TrimRichTextLineToWidthWithEllipsis(OfficeRichTextLine line, double maxWidth, Func<string?, double, string?, OfficeFontStyle, double> measure) {
         if (line.Segments.Count == 0) {
             return line;
         }
@@ -549,22 +413,22 @@ public static partial class OfficeTextLayoutEngine {
             if (text.Length == 0) {
                 segments.RemoveAt(last);
             } else {
-                segments[last] = CopyRichTextSegment(segment, text, Measure(text, EffectiveFontSize(segment), segment.FontFamily, measure));
+                segments[last] = CopyRichTextSegment(segment, text, Measure(text, EffectiveFontSize(segment), segment.FontFamily, segment.FontStyle, measure));
             }
         }
 
         const string ellipsis = "...";
-        return Measure(ellipsis, EffectiveFontSize(ellipsisStyle), ellipsisStyle.FontFamily, measure) <= width
+        return Measure(ellipsis, EffectiveFontSize(ellipsisStyle), ellipsisStyle.FontFamily, ellipsisStyle.FontStyle, measure) <= width
             ? new OfficeRichTextLine(new[] { CreateRichTextSegment(ellipsis, ellipsisStyle, measure) }, line.LineHeight, line.OffsetX)
             : new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), line.LineHeight, line.OffsetX);
     }
 
-    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, string?, double> measure, double lineHeight) {
+    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, string?, OfficeFontStyle, double> measure, double lineHeight) {
         var measured = new List<OfficeRichTextSegment>(segments.Count);
         for (int i = 0; i < segments.Count; i++) {
             OfficeRichTextSegment segment = segments[i];
             string text = i == segments.Count - 1 ? segment.Text + "..." : segment.Text;
-            measured.Add(CopyRichTextSegment(segment, text, Measure(text, EffectiveFontSize(segment), segment.FontFamily, measure)));
+            measured.Add(CopyRichTextSegment(segment, text, Measure(text, EffectiveFontSize(segment), segment.FontFamily, segment.FontStyle, measure)));
         }
 
         if (measured.Count == 0) {
@@ -575,27 +439,33 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeRichTextLine(measured, lineHeight);
     }
 
-    private static OfficeRichTextLine CreateRichTextLine(List<OfficeRichTextSegment> segments, Func<string?, double, string?, double> measure) {
+    private static OfficeRichTextLine CreateRichTextLine(List<OfficeRichTextSegment> segments, Func<string?, double, string?, OfficeFontStyle, double> measure) {
         var measured = new List<OfficeRichTextSegment>(segments.Count);
         for (int i = 0; i < segments.Count; i++) {
             OfficeRichTextSegment segment = segments[i];
-            measured.Add(CopyRichTextSegment(segment, segment.Text, Measure(segment.Text, EffectiveFontSize(segment), segment.FontFamily, measure)));
+            measured.Add(CopyRichTextSegment(segment, segment.Text, Measure(segment.Text, EffectiveFontSize(segment), segment.FontFamily, segment.FontStyle, measure)));
         }
 
         return new OfficeRichTextLine(measured);
     }
 
-    private static OfficeRichTextSegment CreateRichTextSegment(string text, OfficeRichTextSegment style, Func<string?, double, string?, double> measure) =>
-        CopyRichTextSegment(style, text, Measure(text, EffectiveFontSize(style), style.FontFamily, measure));
+    private static OfficeRichTextSegment CreateRichTextSegment(string text, OfficeRichTextSegment style, Func<string?, double, string?, OfficeFontStyle, double> measure) =>
+        CopyRichTextSegment(style, text, Measure(text, EffectiveFontSize(style), style.FontFamily, style.FontStyle, measure));
 
     private static OfficeRichTextSegment CopyRichTextSegment(OfficeRichTextSegment style, string text, double width) =>
-        new OfficeRichTextSegment(text, width, style.FontSize, style.Color, style.Bold, style.Italic, style.Underline, style.FontFamily, style.Strikethrough, style.BackgroundColor, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline);
+        new OfficeRichTextSegment(text, width, style.FontSize, style.Color, style.Bold, style.Italic, style.Underline, style.FontFamily, style.Strikethrough, style.BackgroundColor, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline) { LinkUri = style.LinkUri };
 
     private static double EffectiveFontSize(OfficeRichTextSegment segment) =>
         segment.Baseline == OfficeTextBaseline.Normal ? segment.FontSize : segment.FontSize * 0.65D;
 
     private static double Measure(string? text, double fontSize, string? fontFamily, Func<string?, double, string?, double> measure) =>
         string.IsNullOrEmpty(text) ? 0D : Math.Max(0D, measure(text, NormalizePositive(fontSize, 1D), fontFamily));
+
+    private static OfficeRichTextSegment CreateRichTextSegment(string text, OfficeRichTextSegment style, Func<string?, double, string?, double> measure) =>
+        CopyRichTextSegment(style, text, Measure(text, EffectiveFontSize(style), style.FontFamily, measure));
+
+    private static double Measure(string? text, double fontSize, string? fontFamily, OfficeFontStyle fontStyle, Func<string?, double, string?, OfficeFontStyle, double> measure) =>
+        string.IsNullOrEmpty(text) ? 0D : Math.Max(0D, measure(text, NormalizePositive(fontSize, 1D), fontFamily, fontStyle));
 
     private static double MeasureMaxRichTextLineWidth(IReadOnlyList<OfficeRichTextLine> lines) {
         double max = 0D;
@@ -665,7 +535,7 @@ public static partial class OfficeTextLayoutEngine {
         List<OfficeRichTextLine> lines,
         double maxHeight,
         double maxWidth,
-        Func<string?, double, string?, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, double> measure,
         OfficeTextOverflowBehavior overflowBehavior) {
         if (lines.Count == 0) {
             return false;
@@ -707,88 +577,5 @@ public static partial class OfficeTextLayoutEngine {
         return height;
     }
 
-    private readonly struct RichTextToken {
-        private RichTextToken(OfficeRichTextRun run, string text, bool hardBreak, bool isWhitespace) {
-            Run = run;
-            Text = text;
-            HardBreak = hardBreak;
-            IsWhitespace = isWhitespace;
-        }
 
-        internal OfficeRichTextRun Run { get; }
-
-        internal string Text { get; }
-
-        internal bool HardBreak { get; }
-
-        internal bool IsWhitespace { get; }
-
-        internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace) =>
-            new RichTextToken(run, text, hardBreak: false, isWhitespace);
-
-        internal static RichTextToken CreateHardBreak(OfficeRichTextRun run) =>
-            new RichTextToken(run, string.Empty, hardBreak: true, isWhitespace: false);
-    }
-
-    private sealed class RichTextLineBuilder {
-        private readonly Func<string?, double, string?, double> _measure;
-        private readonly List<OfficeRichTextSegment> _segments = new List<OfficeRichTextSegment>();
-
-        internal RichTextLineBuilder(Func<string?, double, string?, double> measure) {
-            _measure = measure;
-        }
-
-        internal bool IsEmpty => _segments.Count == 0;
-
-        internal double Width { get; private set; }
-
-        internal double OffsetX { get; private set; }
-
-        internal void SetOffset(double offsetX) {
-            if (IsEmpty) {
-                OffsetX = offsetX > 0D && !double.IsNaN(offsetX) && !double.IsInfinity(offsetX) ? offsetX : 0D;
-            }
-        }
-
-        internal void Add(OfficeRichTextRun run, string text) {
-            if (string.IsNullOrEmpty(text)) {
-                return;
-            }
-
-            double measured = Measure(text, run.EffectiveFontSize, run.FontFamily, _measure);
-            if (_segments.Count > 0 && CanMerge(_segments[_segments.Count - 1], run)) {
-                OfficeRichTextSegment previous = _segments[_segments.Count - 1];
-                string mergedText = previous.Text + text;
-                _segments[_segments.Count - 1] = CreateSegment(run, mergedText, Measure(mergedText, run.EffectiveFontSize, run.FontFamily, _measure));
-            } else {
-                _segments.Add(CreateSegment(run, text, measured));
-            }
-
-            Width += measured;
-        }
-
-        internal OfficeRichTextLine ToLine() =>
-            new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX);
-
-        internal void Clear() {
-            _segments.Clear();
-            Width = 0D;
-        }
-
-        private static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
-            segment.FontSize == run.FontSize &&
-            segment.Color.Equals(run.Color) &&
-            segment.Bold == run.Bold &&
-            segment.Italic == run.Italic &&
-            segment.Underline == run.Underline &&
-            segment.Strikethrough == run.Strikethrough &&
-            segment.UnderlineStyle == run.UnderlineStyle &&
-            segment.StrikethroughStyle == run.StrikethroughStyle &&
-            segment.Baseline == run.Baseline &&
-            Nullable.Equals(segment.BackgroundColor, run.BackgroundColor) &&
-            string.Equals(segment.FontFamily, run.FontFamily, StringComparison.Ordinal);
-
-        private static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
-            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline);
-    }
 }

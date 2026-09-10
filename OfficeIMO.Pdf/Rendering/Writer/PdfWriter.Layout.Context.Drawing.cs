@@ -197,20 +197,21 @@ internal static partial class PdfWriter {
             return structElementIndex;
         }
 
-        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY) {
+        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double>? textMetrics = null) {
+            textMetrics ??= CreateDrawingTextMeasure(currentOpts);
             for (int i = 0; i < drawing.Elements.Count; i++) {
                 if (drawing.Elements[i] is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
                 } else if (drawing.Elements[i] is OfficeDrawingText text) {
-                    DrawDrawingTextAt(text, originX, originTopY);
+                    DrawDrawingTextAt(text, originX, originTopY, textMetrics);
                 } else if (drawing.Elements[i] is OfficeDrawingRichText richText) {
-                    DrawDrawingRichTextAt(richText, originX, originTopY);
+                    DrawDrawingRichTextAt(richText, originX, originTopY, textMetrics);
                 } else if (drawing.Elements[i] is OfficeDrawingImage image) {
                     DrawDrawingImageAt(image, originX, originTopY);
                 } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
-                    DrawDrawingGroupAt(group, originX, originTopY);
+                    DrawDrawingGroupAt(group, originX, originTopY, textMetrics);
                 } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
                     if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
                         throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
@@ -220,7 +221,7 @@ internal static partial class PdfWriter {
                     RenderEffectGroup(
                         pageTransform,
                         effectGroup.Opacity,
-                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY));
+                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY, textMetrics));
                 } else {
                     throw new NotSupportedException(
                         "OfficeIMO.Pdf does not yet support drawing elements of type " +
@@ -229,7 +230,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY) {
+        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double> textMetrics) {
             void DrawGroupContent() {
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
@@ -238,7 +239,7 @@ internal static partial class PdfWriter {
                 DrawDrawingElements(
                     group.InnerDrawing,
                     clipX + group.ContentOffsetX,
-                    originTopY - group.Y - group.ContentOffsetY);
+                    originTopY - group.Y - group.ContentOffsetY, textMetrics);
                 new ContentStreamBuilder(sb).RestoreState();
             }
 

@@ -59,8 +59,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Consolas", tableRun.FontFamily);
             Assert.Equal(OfficeTextDecorationStyle.Wavy, tableRun.UnderlineStyle);
 
-            Assert.Contains("TEXT FIELD", svgText, StringComparison.Ordinal);
-            Assert.Contains("TABLE FIELD", svgText, StringComparison.Ordinal);
+            Assert.Contains("TEXT FIELD", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
+            Assert.Contains("TABLE FIELD", ReadVisibleSvgText(svgText), StringComparison.Ordinal);
             Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
             Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));

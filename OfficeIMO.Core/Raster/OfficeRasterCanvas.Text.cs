@@ -382,9 +382,10 @@ public sealed partial class OfficeRasterCanvas {
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         if (font != null) {
+            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
             double bottom = top + fontHeight;
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                GetResolvedTextContours(value, font, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
                 bottom,
                 simulateItalic,
                 rotationRadians,
@@ -395,7 +396,7 @@ public sealed partial class OfficeRasterCanvas {
             FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
+                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), outlineTop, fontHeight),
                     bottom,
                     simulateItalic,
                     rotationRadians,
@@ -471,15 +472,16 @@ public sealed partial class OfficeRasterCanvas {
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
+            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                GetResolvedTextContours(value, font, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
                 top + fontHeight,
                 simulateItalic,
                 transform);
             FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
+                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), outlineTop, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);

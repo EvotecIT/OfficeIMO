@@ -253,6 +253,8 @@ See the owning packages for [PDF export](../OfficeIMO.Html.Pdf/README.md#html-to
 
 Run the complete [service review example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) with `--multi-format-report`. Its [HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/service-review.html) includes grouped rows, totals, leading-zero references, dates, approval values, links, and a second table. Report content stays in ordinary HTML; the adapters own conversion behavior.
 
+Use `--report-source <path.html>` to run another source through the same example. The output index links all exported files and every preview page, and records conversion notes. Saved PDF previews are labelled separately from editable Word and Excel layouts. The [conversion consistency tool](../Build/ConversionConsistency/README.md) checks native exports with an independent PDF rasterizer, required content, and page geometry.
+
 ## Semantic IR and target preflight
 
 ```csharp

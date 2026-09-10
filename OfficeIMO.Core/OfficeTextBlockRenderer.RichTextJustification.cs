@@ -89,7 +89,7 @@ public static partial class OfficeTextBlockRenderer {
         return builder;
     }
 
-    private static bool ShouldJustifyRichTextLine(OfficeRichTextLine line, int lineIndex, int lineCount, double availableWidth, OfficeTextAlignment alignment) {
+    internal static bool ShouldJustifyRichTextLine(OfficeRichTextLine line, int lineIndex, int lineCount, double availableWidth, OfficeTextAlignment alignment) {
         return alignment == OfficeTextAlignment.Justify &&
             lineIndex < lineCount - 1 &&
             availableWidth > line.Width + 0.01D &&
@@ -199,7 +199,10 @@ public static partial class OfficeTextBlockRenderer {
         }
     }
 
-    private static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRasterCanvas canvas) {
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRasterCanvas canvas) =>
+        CreateRichTextRenderTokens(line, canvas.MeasureText);
+
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, Func<string?, double, string?, OfficeFontStyle, double> measure) {
         var tokens = new List<RichTextRenderToken>();
         for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
             OfficeRichTextSegment segment = line.Segments[segmentIndex];
@@ -209,7 +212,7 @@ public static partial class OfficeTextBlockRenderer {
             for (int i = 0; i < text.Length; i++) {
                 bool currentWhitespace = char.IsWhiteSpace(text[i]);
                 if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
-                    AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart, i - tokenStart), whitespace.Value, canvas);
+                    AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart, i - tokenStart), whitespace.Value, measure);
                     tokenStart = i;
                 }
 
@@ -217,22 +220,22 @@ public static partial class OfficeTextBlockRenderer {
             }
 
             if (whitespace.HasValue) {
-                AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart), whitespace.Value, canvas);
+                AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart), whitespace.Value, measure);
             }
         }
 
         return tokens;
     }
 
-    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment, string text, bool whitespace, OfficeRasterCanvas canvas) {
+    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment, string text, bool whitespace, Func<string?, double, string?, OfficeFontStyle, double> measure) {
         if (text.Length == 0) {
             return;
         }
 
-        tokens.Add(new RichTextRenderToken(segment, text, canvas.MeasureText(text, ResolveRichTextRenderedFontSize(segment), segment.FontFamily), whitespace));
+        tokens.Add(new RichTextRenderToken(segment, text, measure(text, ResolveRichTextRenderedFontSize(segment), segment.FontFamily, segment.FontStyle), whitespace));
     }
 
-    private static int CountJustifiableRichTextGaps(List<RichTextRenderToken> tokens) {
+    internal static int CountJustifiableRichTextGaps(List<RichTextRenderToken> tokens) {
         int gaps = 0;
         bool hasWordBefore = false;
         for (int i = 0; i < tokens.Count; i++) {
@@ -248,7 +251,7 @@ public static partial class OfficeTextBlockRenderer {
         return gaps;
     }
 
-    private static bool HasWordAfter(List<RichTextRenderToken> tokens, int startIndex) {
+    internal static bool HasWordAfter(List<RichTextRenderToken> tokens, int startIndex) {
         for (int i = startIndex; i < tokens.Count; i++) {
             if (!tokens[i].IsWhitespace) {
                 return true;
@@ -268,7 +271,7 @@ public static partial class OfficeTextBlockRenderer {
         return false;
     }
 
-    private readonly struct RichTextRenderToken {
+    internal readonly struct RichTextRenderToken {
         internal RichTextRenderToken(OfficeRichTextSegment segment, string text, double width, bool isWhitespace) {
             Segment = segment;
             Text = text;

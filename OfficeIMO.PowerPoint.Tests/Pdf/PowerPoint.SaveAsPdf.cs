@@ -418,7 +418,7 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsWhenListIndentIsSimplified() {
+    public void ToPdfDocument_PowerPointPresentation_PreservesListHangingIndent() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(260, 150);
@@ -428,20 +428,22 @@ public class PowerPointSaveAsPdfTests {
         textBox.SetBullets(
             new[] { "Indented bullet with explicit margin" },
             configure: paragraph => {
-                paragraph.SetLeftMarginPoints(48);
                 paragraph.SetHangingPoints(18);
+                paragraph.SetLeftMarginPoints(48);
             });
         var options = new PowerPointToPdfOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
 
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "list-indent-simplified");
-        Assert.Equal("Slide 1", warning.Source);
-        Assert.NotNull(warning.LayoutDiagnostic);
-        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
-        Assert.Equal("PowerPointList", warning.LayoutDiagnostic.Source);
-        Assert.True(warning.LayoutDiagnostic.HasBounds);
+        using var parsed = PdfPigDocument.Open(new MemoryStream(result.ToBytes()));
+        var lines = parsed.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1)).OrderByDescending(line => line.Key).ToArray();
+        Assert.True(lines.Length >= 2);
+        double firstX = lines[0].Min(letter => letter.StartBaseLine.X);
+        double continuationX = lines[1].Min(letter => letter.StartBaseLine.X);
+        Assert.InRange(firstX, 28D + 7.2D + 30D - 0.2D, 28D + 7.2D + 30D + 0.2D);
+        Assert.InRange(continuationX - firstX, 17.8D, 18.2D);
     }
 
     [Fact]
@@ -1341,12 +1343,12 @@ public class PowerPointSaveAsPdfTests {
         PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument();
 
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
-        PdfCore.PdfCanvasTextBoxItem textItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>());
-        Assert.Equal(18D, textItem.Style.FontSize);
+        OfficeRichTextRun textRun = Assert.Single(PowerPointPdfTextFormattingTests.GetDrawingTextRuns(canvas));
+        Assert.Equal(18D, textRun.FontSize);
 
         string expectedThemeFont = presentation.GetThemeLatinFonts().MinorLatin!;
         Assert.False(string.IsNullOrWhiteSpace(expectedThemeFont));
-        Assert.All(textItem.Runs, run => Assert.Equal(expectedThemeFont, run.FontFamily));
+        Assert.Equal(expectedThemeFont, textRun.FontFamily);
 
         byte[] bytes = pdfDocument.ToBytes();
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

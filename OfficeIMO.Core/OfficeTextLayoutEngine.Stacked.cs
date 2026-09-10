@@ -301,7 +301,7 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             clipped = true;
-            lines[i] = TrimRichTextLineToWidthWithEllipsis(lines[i], maxWidth, measure);
+            lines[i] = TrimRichTextLineToWidthWithEllipsis(lines[i], maxWidth, (value, size, family, _) => measure(value, size, family));
         }
 
         double blockWidth = MeasureMaxRichTextLineWidth(lines);

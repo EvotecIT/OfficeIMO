@@ -1,0 +1,36 @@
+using System;
+using System.Linq;
+using OfficeIMO.Drawing;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed class DrawingNativeTextLayoutTests {
+    [Theory]
+    [InlineData("a b", 25D)]
+    [InlineData("a b c", 45D)]
+    public void WrappingUsesTheMeasuredJoinedTextAdvance(string text, double availableWidth) {
+        // A font-measurement boundary with a pair adjustment across a token boundary.
+        double Measure(string? value, double size) => (value?.Length ?? 0) * 10D - (value?.Contains("a b") == true ? 5D : 0D);
+        var layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            new[] { new OfficeRichTextRun(text, 12D, OfficeColor.Black) }, availableWidth, 50D, 1.2D, Measure, true);
+        OfficeRichTextLine line = Assert.Single(layout.Lines);
+        Assert.Equal(text, string.Concat(line.Segments.Select(segment => segment.Text)));
+        Assert.Equal(availableWidth, line.Width);
+    }
+
+    [Fact]
+    public void StyledWrappingPreservesDistinctLinkTargetsAcrossCloningAndLineBreaks() {
+        var drawing = new OfficeDrawing(150, 70).AddRichText(new[] {
+            new OfficeRichTextRun("first link ", 12, OfficeColor.Black, bold: true) { LinkUri = "https://officeimo.net/first" },
+            new OfficeRichTextRun("second link", 12, OfficeColor.Black, bold: true) { LinkUri = "https://officeimo.net/second" }
+        }, 0, 0, 150, 70, wrapText: true);
+        OfficeDrawingRichText text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Clone().Elements));
+        var layout = OfficeDrawingTextLayout.Create(text, 150, 70,
+            (value, size, family, style) => (value?.Length ?? 0) * (style.HasFlag(OfficeFontStyle.Bold) ? 10D : 5D));
+        Assert.Equal(2, layout.Lines.Count);
+        Assert.Equal("https://officeimo.net/first", Assert.Single(layout.Lines[0].Segments).LinkUri);
+        Assert.Equal("https://officeimo.net/second", Assert.Single(layout.Lines[1].Segments).LinkUri);
+        Assert.Equal("second link", Assert.Single(layout.Lines[1].Segments).Text);
+    }
+}

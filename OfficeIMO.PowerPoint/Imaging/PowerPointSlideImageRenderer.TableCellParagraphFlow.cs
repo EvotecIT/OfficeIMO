@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var numberingState = new Dictionary<int, int>();
-            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme);
+            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme, OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = cellTop + marginTop + ResolveTextBoxVerticalOffset(cell.VerticalAlignment, textHeight, flowHeight);
             double contentBottom = cellTop + marginTop + textHeight;
@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
             Dictionary<int, int> numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
                 double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
                 double height;
                 if (ShouldRenderParagraphRichText(richRuns, marker)) {
-                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent);
+                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         string.Empty,
                         richRuns,

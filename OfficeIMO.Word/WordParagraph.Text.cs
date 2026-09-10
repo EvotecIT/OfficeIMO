@@ -384,7 +384,7 @@ namespace OfficeIMO.Word {
             return builder.ToString();
         }
 
-        private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element) {
+        private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element, IDictionary<int, WordBreakType>? nonTextBreaks = null) {
             switch (element) {
                 case Run run when IsHiddenCommentReferenceRun(run):
                     return;
@@ -407,6 +407,8 @@ namespace OfficeIMO.Word {
                     builder.Append('\u00ad');
                     return;
                 case Break breakNode:
+                    if (!IsTextWrappingBreak(breakNode) && nonTextBreaks != null)
+                        nonTextBreaks[builder.Length] = breakNode.Type?.Value == BreakValues.Page ? WordBreakType.Page : WordBreakType.Column;
                     builder.Append(IsTextWrappingBreak(breakNode) ? NormalizedLineFeed : NonTextBreakPlaceholder);
                     return;
                 case CommentReference:
@@ -424,7 +426,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleText(builder, child);
+                AppendVisibleText(builder, child, nonTextBreaks);
             }
         }
 
@@ -435,7 +437,7 @@ namespace OfficeIMO.Word {
                    run.Elements<CommentReference>().Any();
         }
 
-        private static string ReadComplexFieldResultText(IReadOnlyList<Run> runs) {
+        private static string ReadComplexFieldResultText(IReadOnlyList<Run> runs, IDictionary<int, WordBreakType>? nonTextBreaks = null) {
             var builder = new StringBuilder();
             bool sawSeparator = false;
             int fieldDepth = 0;
@@ -465,7 +467,7 @@ namespace OfficeIMO.Word {
                     }
 
                     if (sawSeparator && fieldDepth > 0) {
-                        AppendVisibleText(builder, child);
+                        AppendVisibleText(builder, child, nonTextBreaks);
                     }
                 }
             }

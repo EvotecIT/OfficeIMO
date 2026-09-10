@@ -958,10 +958,10 @@ public static partial class OfficeTextBlockRenderer {
         return builder;
     }
 
-    private static double ResolveRichTextRenderedFontSize(OfficeRichTextSegment segment) =>
+    internal static double ResolveRichTextRenderedFontSize(OfficeRichTextSegment segment) =>
         segment.Baseline == OfficeTextBaseline.Normal ? segment.FontSize : segment.FontSize * 0.65D;
 
-    private static double ResolveRichTextRenderedBaseline(OfficeRichTextSegment segment, double baseline) =>
+    internal static double ResolveRichTextRenderedBaseline(OfficeRichTextSegment segment, double baseline) =>
         segment.Baseline == OfficeTextBaseline.Superscript
             ? baseline - (segment.FontSize * 0.30D)
             : segment.Baseline == OfficeTextBaseline.Subscript ? baseline + (segment.FontSize * 0.15D) : baseline;
@@ -1343,10 +1343,10 @@ public static partial class OfficeTextBlockRenderer {
         return text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
-    private static double ResolveRichTextRenderLineHeight(OfficeRichTextLine line, double fallbackLineHeight) =>
+    internal static double ResolveRichTextRenderLineHeight(OfficeRichTextLine line, double fallbackLineHeight) =>
         line.LineHeight > 0D ? line.LineHeight : fallbackLineHeight;
 
-    private static double ResolveRichTextRenderBaseline(
+    internal static double ResolveRichTextRenderBaseline(
         OfficeRichTextLine line,
         double lineTop,
         double lineHeight,

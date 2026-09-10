@@ -113,6 +113,7 @@ namespace OfficeIMO.Word {
     }
 
     public sealed class WordRunSnapshot {
+        internal IReadOnlyDictionary<int, WordBreakType>? NonTextBreaks { get; set; }
         public string Text { get; internal set; } = string.Empty;
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }

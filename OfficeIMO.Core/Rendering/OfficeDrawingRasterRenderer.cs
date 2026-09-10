@@ -48,8 +48,8 @@ public static partial class OfficeDrawingRasterRenderer {
             image,
             font: null,
             fonts: drawing.Fonts,
-            textShapingProvider: options.TextShapingProvider,
-            textShapingLanguage: options.TextShapingLanguage,
+            textShapingProvider: options.TextShapingProvider ?? drawing.TextShapingProvider,
+            textShapingLanguage: options.TextShapingLanguage ?? drawing.TextShapingLanguage,
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
@@ -271,28 +271,8 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        IReadOnlyList<OfficeRichTextRun> scaledRuns = ScaleRichTextRuns(text.Runs, scale);
-        OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
-        double maxFontSize = 10D * scale;
-        for (int i = 0; i < scaledRuns.Count; i++) {
-            maxFontSize = Math.Max(maxFontSize, scaledRuns[i].FontSize);
-        }
-
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, (text.LineHeight.Value * scale) / maxFontSize)
-            : 1.2D;
-        double minimumFontSize = Math.Min(6D * scale, maxFontSize);
-        Func<string?, double, string?, double> measure = (value, size, family) => canvas.MeasureText(value, size, family);
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
-            scaledRuns,
-            contentWidth,
-            contentHeight,
-            lineHeightFactor,
-            measure,
-            text.WrapText,
-            text.ShrinkToFit,
-            minimumFontSize,
-            paragraphIndent);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(
+            text, contentWidth, contentHeight, canvas.MeasureText, scale);
         OfficeTextBlockRenderer.DrawRasterRichTextBlock(
             canvas,
             layout,
@@ -307,28 +287,6 @@ public static partial class OfficeDrawingRasterRenderer {
             text.RotationCenterY * scale,
             flipHorizontal: text.FlipHorizontal,
             flipVertical: text.FlipVertical);
-    }
-
-    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(IReadOnlyList<OfficeRichTextRun> runs, double scale) {
-        var scaled = new List<OfficeRichTextRun>(runs.Count);
-        for (int i = 0; i < runs.Count; i++) {
-            OfficeRichTextRun run = runs[i];
-            scaled.Add(new OfficeRichTextRun(
-                run.Text,
-                run.FontSize * scale,
-                run.Color,
-                run.Bold,
-                run.Italic,
-                run.Underline,
-                run.FontFamily,
-                run.Strikethrough,
-                run.BackgroundColor,
-                run.UnderlineStyle,
-                run.StrikethroughStyle,
-                run.Baseline));
-        }
-
-        return scaled;
     }
 
     private static void RenderImage(

@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
             return GetOpenXmlShapeProperties(shape)?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText;
         }
 
-        private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null) {
             string text = ResolvePowerPointDisplayText(textBox);
             bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
             if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
@@ -349,7 +349,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeShape frame = CreateTextBoxFrame(textBox, width, height, diagnostics);
             ApplyShapeStyle(frame, textBox, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(frame, textBox, width, height);
-            if (hasVisibleFrame) {
+            if (hasVisibleFrame && !suppressFrame) {
                 drawing.AddShape(frame, left, top);
             }
 
@@ -361,10 +361,21 @@ namespace OfficeIMO.PowerPoint {
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
-            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? 0D);
-            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? 0D);
-            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRightPoints ?? 0D);
-            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottomPoints ?? 0D);
+            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            if (width > 0.5D && height > 0.5D && (marginLeft + marginRight >= width || marginTop + marginBottom >= height)) {
+                double horizontalScale = Math.Min(1D, (width - 0.5D) / Math.Max(0.5D, marginLeft + marginRight));
+                double verticalScale = Math.Min(1D, (height - 0.5D) / Math.Max(0.5D, marginTop + marginBottom));
+                marginLeft *= horizontalScale;
+                marginRight *= horizontalScale;
+                marginTop *= verticalScale;
+                marginBottom *= verticalScale;
+                diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                    "POWERPOINT_TEXT_PADDING", "Reduced PowerPoint text box margins because they leave no renderable text area.",
+                    DescribeShape(textBox), OfficeConversionLossKind.Approximation));
+            }
             double textWidth = width - marginLeft - marginRight;
             double textHeight = height - marginTop - marginBottom;
             if (textWidth <= 0D || textHeight <= 0D) {
@@ -399,7 +410,7 @@ namespace OfficeIMO.PowerPoint {
                 flipVertical,
                 mapping,
                 colorScheme,
-                diagnostics)) {
+                diagnostics, measure ?? OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText)) {
                 return;
             }
 
@@ -430,8 +441,8 @@ namespace OfficeIMO.PowerPoint {
                 top,
                 width,
                 height,
-                CreateFont(textBox, mapping),
-                ResolveTextBoxColor(textBox, colorScheme),
+                richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : CreateFont(textBox, mapping),
+                richRuns.Count == 1 ? richRuns[0].Color : ResolveTextBoxColor(textBox, colorScheme),
                 alignment,
                 rotationDegrees: rotation,
                 rotationCenterX: rotationCenterX,
@@ -811,7 +822,7 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, inline.Run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.AddRange(CreateEffectiveTextRuns(runText, inline.Run, textBox, paragraph, colorScheme, mapping));
                 }
             }
 
@@ -1069,7 +1080,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryGetBounds(PowerPointShape shape, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, out double left, out double top, out double width, out double height) {
-            if (!shape.TryGetBoundsPoints(out left, out top, out width, out height)) {
+            if (!shape.TryGetExportBoundsPoints(out left, out top, out width, out height)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because its bounds are outside the slide drawing canvas.");
                 return false;
             }

@@ -24,14 +24,14 @@ namespace OfficeIMO.PowerPoint {
             bool flipVertical,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             List<PowerPointParagraph> paragraphs = GetVisibleTextBoxParagraphs(textBox);
             if (!ShouldRenderTextBoxParagraphFlow(paragraphs)) {
                 return false;
             }
 
             var numberingState = new Dictionary<int, int>();
-            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme);
+            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme, measure);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = top + marginTop + ResolveTextBoxVerticalOffset(textBox.TextVerticalAlignment, textHeight, flowHeight);
             double contentBottom = top + marginTop + textHeight;
@@ -40,7 +40,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
                 if (currentY + paragraph.Height > contentBottom) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, textBox, "Skipped PowerPoint text box paragraph content because it does not fit within the text frame.");
+                    diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                        "POWERPOINT_TEXT_OVERFLOW", "Skipped PowerPoint text box paragraph content because it does not fit within the text frame.", DescribeShape(textBox), OfficeConversionLossKind.Omission));
                     return true;
                 }
 
@@ -95,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
             paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) ||
             (paragraphs.Count > 1 &&
                 paragraphs.Any(paragraph =>
-                    paragraph.SpaceBeforePoints.HasValue ||
+                    paragraph.Alignment != paragraphs[0].Alignment || paragraph.SpaceBeforePoints.HasValue ||
                     paragraph.SpaceAfterPoints.HasValue ||
                     paragraph.LineSpacingPoints.HasValue ||
                     paragraph.LineSpacingMultiplier.HasValue));
@@ -106,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
             Dictionary<int, int> numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
@@ -120,12 +121,12 @@ namespace OfficeIMO.PowerPoint {
                 double lineHeight = ResolveParagraphLineHeight(paragraph, maxFontSize, mapping);
                 double height;
                 if (ShouldRenderParagraphRichText(richRuns, marker)) {
-                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent);
+                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, measure);
                     results.Add(PowerPointParagraphDrawing.FromRichText(paragraph, richRuns, alignment, indent, lineHeight, height, mapping));
                 } else {
                     string text = CreateParagraphPlainText(paragraph, marker);
-                    OfficeFontInfo font = ResolveParagraphFont(textBox, paragraph, mapping);
-                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent);
+                    OfficeFontInfo font = richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : ResolveParagraphFont(textBox, paragraph, mapping);
+                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, measure);
                     results.Add(PowerPointParagraphDrawing.FromText(paragraph, text, font, ResolveParagraphTextColor(textBox, paragraph, colorScheme), alignment, indent, lineHeight, height, mapping));
                 }
             }
@@ -152,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < inlineNodes.Count; i++) {
                 PowerPointParagraphInline inline = inlineNodes[i];
                 if (!string.IsNullOrEmpty(inline.Text)) {
-                    richRuns.Add(CreateRichTextRun(inline.Text, inline.Run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.AddRange(CreateEffectiveTextRuns(inline.Text, inline.Run, textBox, paragraph, colorScheme, mapping));
                 }
             }
 
@@ -206,12 +207,9 @@ namespace OfficeIMO.PowerPoint {
             return Math.Max(1D, fontSize * 1.2D);
         }
 
-        private static double EstimateParagraphTextHeight(string text, OfficeFontInfo font, double lineHeight, double textWidth, OfficeTextParagraphIndent indent) {
-            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
-            Func<string?, double, double> measure = (value, size) => {
-                OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(font.FamilyName, size, font.Style));
-                return measurer.MeasureWidth(value, measuredStyle);
-            };
+        private static double EstimateParagraphTextHeight(string text, OfficeFontInfo font, double lineHeight, double textWidth, OfficeTextParagraphIndent indent, Func<string?, double, string?, OfficeFontStyle, double>? styledMeasure = null) {
+            styledMeasure ??= OfficeDrawingTextLayout.CreateMetrics(null).MeasureText;
+            Func<string?, double, double> measure = (value, size) => styledMeasure(value, size, font.FamilyName, font.Style);
             OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
                 text,
                 font.Size,
@@ -225,22 +223,11 @@ namespace OfficeIMO.PowerPoint {
             return Math.Max(lineHeight, layout.Height);
         }
 
-        private static double EstimateParagraphRichTextHeight(IReadOnlyList<OfficeRichTextRun> runs, double maxFontSize, double lineHeight, double textWidth, OfficeTextParagraphIndent indent) {
-            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create();
-            Func<string?, double, string?, double> measure = (value, size, family) => {
-                OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(family, size));
-                return measurer.MeasureWidth(value, measuredStyle);
-            };
-            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
-                runs,
-                textWidth,
-                double.MaxValue,
-                Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                measure,
-                wrap: true,
-                shrinkToFit: false,
-                minimumFontSize: Math.Min(6D, maxFontSize),
-                paragraphIndent: indent);
+        private static double EstimateParagraphRichTextHeight(IReadOnlyList<OfficeRichTextRun> runs, double maxFontSize, double lineHeight, double textWidth, OfficeTextParagraphIndent indent,
+            Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
+                runs, textWidth, double.MaxValue, Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
+                measure, wrap: true, minimumFontSize: Math.Min(6D, maxFontSize), paragraphIndent: indent);
             return Math.Max(lineHeight, layout.Height);
         }
 
