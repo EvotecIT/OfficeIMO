@@ -197,8 +197,8 @@ internal static partial class PdfWriter {
             return structElementIndex;
         }
 
-        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double>? textMetrics = null) {
-            textMetrics ??= CreateDrawingTextMeasure(currentOpts);
+        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
+            textMetrics ??= CreateDrawingTextMetrics(currentOpts);
             for (int i = 0; i < drawing.Elements.Count; i++) {
                 if (drawing.Elements[i] is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
@@ -230,7 +230,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double> textMetrics) {
+        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             void DrawGroupContent() {
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;

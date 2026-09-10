@@ -272,7 +272,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(
-            text, contentWidth, contentHeight, canvas.MeasureText, scale);
+            text, contentWidth, contentHeight, canvas.MeasureText, scale, canvas.MeasureTextPaintBounds);
         OfficeTextBlockRenderer.DrawRasterRichTextBlock(
             canvas,
             layout,

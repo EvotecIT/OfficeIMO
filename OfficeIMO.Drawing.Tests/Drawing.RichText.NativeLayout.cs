@@ -7,6 +7,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
     [Theory]
+    [InlineData(false, "gypsy", OfficeTextVerticalAlignment.Top)]
+    [InlineData(true, "gypsy", OfficeTextVerticalAlignment.Bottom)]
+    [InlineData(false, "\u00C1gj", OfficeTextVerticalAlignment.Center)]
+    [InlineData(true, "\u00C1gj", OfficeTextVerticalAlignment.Bottom)]
+    public void FittedGlyphPixelsStayInsideTheActualFrame(bool rich, string value, OfficeTextVerticalAlignment alignment) {
+        var drawing = new OfficeDrawing(100, 50);
+        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        if (rich) drawing.AddRichText(new[] { new OfficeRichTextRun(value, 20, OfficeColor.Black, fontFamily: "Proof Sans") },
+            10, 10, 80, 15, lineHeight: 10, verticalAlignment: alignment, shrinkToFit: true);
+        else drawing.AddText(value, 10, 10, 80, 15, new OfficeFontInfo("Proof Sans", 20),
+            lineHeight: 10, verticalAlignment: alignment, wrapText: true, shrinkToFit: true);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 3, OfficeColor.White);
+        int ink = 0;
+        for (int y = 0; y < image.Height; y++)
+            for (int x = 0; x < image.Width; x++)
+                if (image.GetPixel(x, y).R < 160) {
+                    ink++;
+                    Assert.InRange(y, 30, 74);
+                }
+        Assert.True(ink > 20);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void RasterExportScalePreservesMinimumFontSize(bool stacked) {

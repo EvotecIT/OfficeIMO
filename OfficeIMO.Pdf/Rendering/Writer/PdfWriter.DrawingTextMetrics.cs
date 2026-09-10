@@ -5,16 +5,20 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
     internal static Func<string?, double, string?, OfficeFontStyle, double> CreateDrawingTextMeasure(PdfOptions options) {
-        var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
-        return Measure;
+        return CreateDrawingTextMetrics(options).MeasureText;
+    }
 
-        double Measure(string? text, double size, string? family, OfficeFontStyle style) {
-            if (string.IsNullOrEmpty(text)) return 0D;
+    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options) {
+        var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
+        return new OfficeDrawingTextMetrics(Measure, MeasurePaint);
+
+        IEnumerable<(PdfTextRun Run, OfficeRasterCanvas? Canvas, string Family, PdfStandardFont Font)> Resolve(
+            string? text, double size, string? family, OfficeFontStyle style) {
+            if (string.IsNullOrEmpty(text)) yield break;
             PdfStandardFont font = PdfStandardFontMapper.TryMapFontFamily(family, out PdfStandardFont mapped)
                 ? mapped : string.IsNullOrWhiteSpace(family) ? options.DefaultFont : PdfStandardFont.Helvetica;
             var run = new PdfTextRun(text!, bold: (style & OfficeFontStyle.Bold) != 0,
                 italic: (style & OfficeFontStyle.Italic) != 0, fontSize: size, font: font, fontFamily: family);
-            double width = 0D;
             foreach (PdfTextRun part in NormalizeFallbackRuns(new[] { run }, ChooseNormal(options.DefaultFont), options)) {
                 byte[]? data = null;
                 string measuredFamily = part.FontFamily ?? family ?? "PDF default";
@@ -38,11 +42,28 @@ internal static partial class PdfWriter {
                         metrics[key] = canvas;
                     }
                 }
-                width += canvas != null
-                    ? canvas.MeasureText(part.Text, part.FontSize ?? size, measuredFamily, style)
-                    : MeasureRichSegment(CreatePositionedTextSegment(part, size, options), options);
+                yield return (part, canvas, measuredFamily, selectedFont);
             }
+        }
+
+        double Measure(string? text, double size, string? family, OfficeFontStyle style) {
+            double width = 0D;
+            foreach (var part in Resolve(text, size, family, style))
+                width += part.Canvas != null
+                    ? part.Canvas.MeasureText(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
+                    : MeasureRichSegment(CreatePositionedTextSegment(part.Run, size, options), options);
             return width;
+        }
+
+        OfficeTextPaintBounds MeasurePaint(string? text, double size, string? family, OfficeFontStyle style) {
+            double top = -size * .84D, bottom = size * .16D;
+            foreach (var part in Resolve(text, size, family, style)) {
+                OfficeTextPaintBounds bounds = part.Canvas != null
+                    ? part.Canvas.MeasureTextPaintBounds(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
+                    : GetStandardFontPaintBounds(part.Font, part.Run.FontSize ?? size);
+                top = Math.Min(top, bounds.Top); bottom = Math.Max(bottom, bounds.Bottom);
+            }
+            return new OfficeTextPaintBounds(top, bottom);
         }
     }
 }

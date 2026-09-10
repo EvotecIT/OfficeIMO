@@ -24,7 +24,18 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeightFactor,
         double minimumFontSize,
         Func<string?, double, double> measure,
-        bool shrinkToFit = true) {
+        bool shrinkToFit = true) =>
+        LayoutStackedTextBlockCore(text, fontSize, maxWidth, maxHeight, lineHeightFactor, minimumFontSize, measure, shrinkToFit, null);
+
+    internal static OfficeTextBlockLayout LayoutStackedTextBlockCore(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        double minimumFontSize,
+        Func<string?, double, double> measure,
+        bool shrinkToFit, Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
@@ -41,13 +52,13 @@ public static partial class OfficeTextLayoutEngine {
 
         IReadOnlyList<string> elements = SplitTextElements(value, out bool elementLimitTruncated);
         if (shrinkToFit) {
-            resolvedFontSize = FitStackedFontSize(elements, resolvedFontSize, minFontSize, width, height, lineFactor, measure);
+            resolvedFontSize = FitStackedFontSize(elements, resolvedFontSize, minFontSize, width, height, lineFactor, measure, measurePaint);
         }
 
         double lineHeight = Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor));
         List<OfficeTextLine> lines = CreateStackedLines(elements, resolvedFontSize, measure);
         OfficeTextBlockLayout layout = ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
-        return shrinkToFit ? OfficeDrawingTextLayout.IncludePaintedHeight(layout, height) : layout;
+        return shrinkToFit ? OfficeDrawingTextLayout.IncludePaintedHeight(layout, height, measurePaint) : layout;
     }
 
     /// <summary>
@@ -138,12 +149,12 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         double maxHeight,
         double lineHeightFactor,
-        Func<string?, double, double> measure) {
-        if (StackedFits(elements, fontSize, maxWidth, maxHeight, lineHeightFactor, measure)) {
+        Func<string?, double, double> measure, Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
+        if (StackedFits(elements, fontSize, maxWidth, maxHeight, lineHeightFactor, measure, measurePaint)) {
             return fontSize;
         }
 
-        if (!StackedFits(elements, minimumFontSize, maxWidth, maxHeight, lineHeightFactor, measure)) {
+        if (!StackedFits(elements, minimumFontSize, maxWidth, maxHeight, lineHeightFactor, measure, measurePaint)) {
             return minimumFontSize;
         }
 
@@ -151,7 +162,7 @@ public static partial class OfficeTextLayoutEngine {
         double high = fontSize;
         for (int i = 0; i < 10; i++) {
             double candidate = (low + high) / 2D;
-            if (StackedFits(elements, candidate, maxWidth, maxHeight, lineHeightFactor, measure)) {
+            if (StackedFits(elements, candidate, maxWidth, maxHeight, lineHeightFactor, measure, measurePaint)) {
                 low = candidate;
             } else {
                 high = candidate;
@@ -167,12 +178,12 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         double maxHeight,
         double lineHeightFactor,
-        Func<string?, double, double> measure) {
+        Func<string?, double, double> measure, Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
         double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
         var layout = new OfficeTextBlockLayout(CreateStackedLines(elements, fontSize, measure), fontSize,
             lineHeight, 0D, elements.Count * lineHeight);
-        double height = Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout));
-        if (height > maxHeight) {
+        double height = OfficeDrawingTextLayout.RequiredFrameHeight(layout, measurePaint);
+        if (height > maxHeight + 1e-9D) {
             return false;
         }
 
@@ -239,7 +250,7 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
         var layout = new OfficeRichTextBlockLayout(CreateStackedRichTextLines(elements, measure, lineHeight),
             lineHeight, 0D, elements.Count * lineHeight);
-        if (Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout)) > maxHeight) {
+        if (OfficeDrawingTextLayout.RequiredFrameHeight(layout) > maxHeight + 1e-9D) {
             return false;
         }
 

@@ -203,7 +203,8 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextOverflowBehavior overflowBehavior = OfficeTextOverflowBehavior.Ellipsis,
         OfficeTextParagraphIndent? paragraphIndent = null,
         CancellationToken cancellationToken = default,
-        bool shrinkToHeight = false) {
+        bool shrinkToHeight = false,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
@@ -219,7 +220,7 @@ public static partial class OfficeTextLayoutEngine {
         if (shrinkToFit && shrinkToHeight) {
             normalizedRuns = FitRichTextRunsToFrame(normalizedRuns, width, maxHeight,
                 lineHeightFactor, measure, wrap, minimumFontSize,
-                paragraphIndent ?? OfficeTextParagraphIndent.Empty, cancellationToken);
+                paragraphIndent ?? OfficeTextParagraphIndent.Empty, cancellationToken, measurePaint);
         } else if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
                 normalizedRuns,

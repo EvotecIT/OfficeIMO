@@ -9,11 +9,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double> textMetrics) {
+        private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
             if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
                 && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
-                DrawDrawingPositionedText(text, originX, originTopY, textMetrics);
+                DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasureText);
                 return;
             }
 
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, Func<string?, double, string?, OfficeFontStyle, double> textMetrics, OfficeColor? decorationColor = null) {
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
             void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
@@ -102,15 +102,15 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingRichTextCore(OfficeDrawingRichText text, double frameX, double frameTopY,
-            Func<string?, double, string?, OfficeFontStyle, double> textMetrics, OfficeColor? decorationColor) {
+            OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor) {
             double contentX = frameX + text.Padding.Left;
             double contentTopY = frameTopY - text.Padding.Top;
             double width = text.Width - text.Padding.Horizontal;
             double height = text.Height - text.Padding.Vertical;
             if (width <= 0D || height <= 0D) return;
 
-            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, width, height, textMetrics);
-            double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment);
+            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, width, height, textMetrics.MeasureText, measurePaint: textMetrics.MeasurePaintBounds);
+            double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment) + layout.ContentOffsetY;
             for (int index = 0; index < layout.Lines.Count; index++) {
                 OfficeRichTextLine line = layout.Lines[index];
                 double lineHeight = OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
@@ -120,7 +120,7 @@ internal static partial class PdfWriter {
                 bool justify = OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index, layout.Lines.Count, lineWidth, text.Alignment);
                 double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, text.Alignment);
                 if (justify) {
-                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics);
+                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.MeasureText);
                     int gaps = OfficeTextBlockRenderer.CountJustifiableRichTextGaps(tokens);
                     double gapWidth = gaps == 0 ? 0D : Math.Max(0D, lineWidth - line.Width) / gaps;
                     bool hasWord = false;

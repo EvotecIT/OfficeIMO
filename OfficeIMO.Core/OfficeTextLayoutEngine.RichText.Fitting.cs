@@ -10,14 +10,15 @@ public static partial class OfficeTextLayoutEngine {
     private static IReadOnlyList<OfficeRichTextRun> FitRichTextRunsToFrame(
         IReadOnlyList<OfficeRichTextRun> runs, double width, double height, double lineHeightFactor,
         Func<string?, double, string?, OfficeFontStyle, double> measure, bool wrap,
-        double minimumFontSize, OfficeTextParagraphIndent paragraphIndent, CancellationToken cancellationToken) {
+        double minimumFontSize, OfficeTextParagraphIndent paragraphIndent, CancellationToken cancellationToken,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint) {
         double availableHeight = NormalizeNonNegative(height);
         bool Fits(IReadOnlyList<OfficeRichTextRun> candidate) {
             OfficeRichTextBlockLayout measured = LayoutRichTextBlockCore(candidate, width,
                 double.MaxValue, lineHeightFactor, measure, wrap, OfficeTextOverflowBehavior.Clip,
                 paragraphIndent, inputTruncated: false, cancellationToken);
             return !measured.Clipped && measured.Width <= width + 0.01D
-                && Math.Max(measured.Height, OfficeDrawingTextLayout.PaintedHeight(measured)) <= availableHeight + 0.01D;
+                && OfficeDrawingTextLayout.RequiredFrameHeight(measured, measurePaint) <= availableHeight + 0.01D;
         }
 
         if (Fits(runs)) return runs;

@@ -42,4 +42,7 @@ public sealed class OfficeRichTextBlockLayout {
     /// Gets whether the block was ellipsized or clipped.
     /// </summary>
     public bool Clipped { get; }
+
+    // Keeps ink above the nominal baseline box inside a fitted frame.
+    internal double ContentOffsetY { get; set; }
 }

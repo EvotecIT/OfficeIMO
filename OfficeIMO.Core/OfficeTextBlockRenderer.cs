@@ -102,7 +102,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment) + layout.ContentOffsetY;
         for (int i = 0; i < layout.Lines.Count; i++) {
             OfficeTextLine line = layout.Lines[i];
             double lineLeft = left + line.OffsetX;
@@ -302,7 +302,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment) + layout.ContentOffsetY;
         double lineTop = textTop;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             OfficeRichTextLine line = layout.Lines[lineIndex];
@@ -405,7 +405,7 @@ public static partial class OfficeTextBlockRenderer {
             return builder;
         }
 
-        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment) + layout.ContentOffsetY;
         double lineTop = textTop;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             OfficeRichTextLine line = layout.Lines[lineIndex];
@@ -544,7 +544,7 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
             ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
         bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
-        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment) + layout.ContentOffsetY;
         for (int i = 0; i < layout.Lines.Count; i++) {
             OfficeTextLine line = layout.Lines[i];
             double lineLeft = left + line.OffsetX;
@@ -1093,7 +1093,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment) + layout.ContentOffsetY;
         OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
             ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
         OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None

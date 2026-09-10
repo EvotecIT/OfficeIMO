@@ -646,7 +646,7 @@ public static partial class OfficeDrawingSvgExporter {
         }
 
         OfficeTextBlockLayout layout = text.StackedText
-            ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -654,9 +654,10 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ShrinkToFit)
+                text.ShrinkToFit,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
-            ? OfficeTextLayoutEngine.FitWrappedText(
+            ? OfficeTextLayoutEngine.FitWrappedTextCore(
                 text.Text,
                 fontSize,
                 contentWidth,
@@ -664,7 +665,8 @@ public static partial class OfficeDrawingSvgExporter {
                 lineHeightFactor,
                 minimumFontSize,
                 measure,
-                text.ParagraphIndent)
+                text.ParagraphIndent,
+                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
                 text.Text,
                 fontSize,
@@ -718,7 +720,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, contentWidth, contentHeight, textMetrics.MeasureText);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, contentWidth, contentHeight, textMetrics.MeasureText, measurePaint: textMetrics.MeasureTextPaintBounds);
         sb.AppendSvgRichTextBlock(
             layout,
             contentX,
