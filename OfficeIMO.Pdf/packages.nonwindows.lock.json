@@ -18,6 +18,9 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
       }
     },
     ".NETStandard,Version=v2.0/linux-arm64": {},
@@ -29,6 +32,9 @@
     "net10.0": {
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
       }
     },
     "net10.0/linux-arm64": {},
@@ -39,6 +45,9 @@
     "net10.0/win-x64": {},
     "net8.0": {
       "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.invoicing": {
         "type": "Project"
       }
     },

@@ -514,6 +514,7 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF XMP metadata must contain Factur-X/ZUGFeRD extension properties.");
 
         requirements.Add(BuildReadbackInvoiceAttachmentRequirement(extractedAttachments, cancellationToken));
+        requirements.Add(BuildReadbackInvoiceProfileConsistencyRequirement(xmp, extractedAttachments, cancellationToken));
 
         requirements.Add(new PdfComplianceRequirement(
             "mustang-validation",

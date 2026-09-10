@@ -504,7 +504,7 @@ public sealed partial class PdfDocument {
     /// <summary>Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.</summary>
     internal PdfDocument AttachFacturXInvoiceXml(
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -515,7 +515,7 @@ public sealed partial class PdfDocument {
     /// <summary>Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML file and matching XMP extension metadata.</summary>
     internal PdfDocument AttachFacturXInvoiceXmlFile(
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -526,7 +526,7 @@ public sealed partial class PdfDocument {
     /// <summary>Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.</summary>
     internal PdfDocument ConfigureFacturXGroundwork(
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -537,7 +537,7 @@ public sealed partial class PdfDocument {
     /// <summary>Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork from a CrossIndustryInvoice XML file.</summary>
     internal PdfDocument ConfigureFacturXGroundworkFile(
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -549,7 +549,7 @@ public sealed partial class PdfDocument {
     internal PdfDocument ConfigureElectronicInvoiceGroundwork(
         PdfComplianceProfile profile,
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -561,7 +561,7 @@ public sealed partial class PdfDocument {
     internal PdfDocument ConfigureElectronicInvoiceGroundworkFile(
         PdfComplianceProfile profile,
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {

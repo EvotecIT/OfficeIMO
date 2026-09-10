@@ -1085,7 +1085,7 @@ public class PdfITextInspiredCoverageTests {
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(
                 new PdfOptions()
-                    .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:invoice\"/>"))
+                    .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\"><rsm:ExchangedDocumentContext><ram:GuidelineSpecifiedDocumentContextParameter><ram:ID>urn:cen.eu:en16931:2017</ram:ID></ram:GuidelineSpecifiedDocumentContextParameter></rsm:ExchangedDocumentContext></rsm:CrossIndustryInvoice>"))
                     .SetEncryption("open"))
             .Paragraph(p => p.Text("Factur-X and encryption should not mix."))
             .ToBytes());

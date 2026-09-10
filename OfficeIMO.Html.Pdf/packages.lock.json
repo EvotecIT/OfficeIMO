@@ -65,10 +65,14 @@
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Invoicing": "[3.4.2, )"
         }
       }
     },
@@ -150,10 +154,14 @@
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Invoicing": "[3.4.2, )"
         }
       }
     },
@@ -182,10 +190,14 @@
           "OfficeIMO.Core": "[3.4.2, )"
         }
       },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Invoicing": "[3.4.2, )"
         }
       }
     },
@@ -214,10 +226,14 @@
           "OfficeIMO.Core": "[3.4.2, )"
         }
       },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Invoicing": "[3.4.2, )"
         }
       }
     }

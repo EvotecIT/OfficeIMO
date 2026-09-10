@@ -74,6 +74,9 @@ jobs:
       - name: Test optional C2PA process adapter
         run: dotnet test OfficeIMO.Provenance.C2pa.Tests/OfficeIMO.Provenance.C2pa.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
 
+      - name: Test electronic invoice contracts
+        run: dotnet test OfficeIMO.Invoicing.Tests/OfficeIMO.Invoicing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+
       - name: Build public examples
         shell: pwsh
         run: |
@@ -332,6 +335,7 @@ jobs:
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
             'OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj',
             'OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj',
+            'OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj',
             'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
             'OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj',
             'OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj',
@@ -358,6 +362,7 @@ jobs:
             'OfficeIMO.OneNote',
             'OfficeIMO.OneNote.Markdown',
             'OfficeIMO.OneNote.Html',
+            'OfficeIMO.Invoicing',
             'OfficeIMO.Pdf',
             'OfficeIMO.Markdown.Pdf',
             'OfficeIMO.OneNote.Pdf',

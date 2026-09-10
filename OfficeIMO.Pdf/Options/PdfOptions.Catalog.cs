@@ -727,12 +727,12 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions AddFacturXInvoiceXml(
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
-        PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
         PdfEmbeddedFile attachment = CreateFacturXInvoiceAttachment(ciiXml, relationship, description);
+        PdfElectronicInvoiceMetadata metadata = PdfElectronicInvoiceProfile.CreateMetadata(attachment, conformanceLevel, version);
         AddEmbeddedFile(attachment);
         return SetElectronicInvoiceMetadata(metadata);
     }
@@ -742,7 +742,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions AddFacturXInvoiceXmlFile(
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
@@ -755,7 +755,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions ConfigureFacturXGroundwork(
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -775,14 +775,14 @@ public sealed partial class PdfOptions {
     public PdfOptions ConfigureFacturXGroundwork(
         byte[] ciiXml,
         PdfTextFallbackFeatures textFallbacks,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
         PdfAIdentification pdfAIdentification = new PdfAIdentification(3, "B");
         PdfOutputIntent outputIntent = PdfOutputIntent.CreateSrgbIec6196621();
-        PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
         PdfEmbeddedFile attachment = CreateFacturXInvoiceAttachment(ciiXml, relationship, description);
+        PdfElectronicInvoiceMetadata metadata = PdfElectronicInvoiceProfile.CreateMetadata(attachment, conformanceLevel, version);
 
         AddEmbeddedFile(attachment);
         FileVersion = PdfFileVersion.Pdf17;
@@ -801,7 +801,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions UseFacturX(
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -814,7 +814,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions ConfigureFacturXGroundworkFile(
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -828,7 +828,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfOptions UseFacturXFile(
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -843,7 +843,7 @@ public sealed partial class PdfOptions {
     public PdfOptions ConfigureElectronicInvoiceGroundwork(
         PdfComplianceProfile profile,
         byte[] ciiXml,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -858,7 +858,7 @@ public sealed partial class PdfOptions {
     public PdfOptions ConfigureElectronicInvoiceGroundworkFile(
         PdfComplianceProfile profile,
         string ciiXmlPath,
-        string conformanceLevel = "EN 16931",
+        string? conformanceLevel = null,
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
@@ -1041,10 +1041,6 @@ public sealed partial class PdfOptions {
         fontData[1] == 0x54 &&
         fontData[2] == 0x54 &&
         fontData[3] == 0x4F;
-
-    private static PdfElectronicInvoiceMetadata CreateFacturXInvoiceMetadata(string conformanceLevel, string version) {
-        return PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version);
-    }
 
     private static PdfAIdentification CreatePdfAIdentification(PdfComplianceProfile profile) {
         switch (profile) {

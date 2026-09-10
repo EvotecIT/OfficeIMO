@@ -39,6 +39,12 @@ public sealed partial class PdfOptions {
         Guard.StandardFont(FooterFont, nameof(FooterFont), "PDF footer font must be one of the supported standard PDF fonts.");
         Guard.PageNumberStyle(PageNumberStyle, nameof(PageNumberStyle));
         Guard.ComplianceProfile(ComplianceProfile, nameof(ComplianceProfile));
+        // Metadata-only groundwork remains inspectable. Once an attachment is present,
+        // generic attachment and metadata setters must not bypass profile consistency.
+        if (ElectronicInvoiceMetadataSnapshot != null && EmbeddedFiles.Count != 0) {
+            string? invoiceDiagnostic = PdfElectronicInvoiceProfile.GetDiagnostic(ElectronicInvoiceMetadataSnapshot, EmbeddedFiles);
+            if (invoiceDiagnostic != null) throw new ArgumentException(invoiceDiagnostic);
+        }
         PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
         if (_encryption != null && HasComplianceGroundworkThatProhibitsEncryption()) {
             throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, PDF/X, Factur-X, or ZUGFeRD groundwork.");

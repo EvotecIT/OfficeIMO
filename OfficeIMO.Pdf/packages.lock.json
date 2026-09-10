@@ -4,6 +4,9 @@
     ".NETFramework,Version=v4.7.2": {
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
       }
     },
     ".NETStandard,Version=v2.0": {
@@ -23,15 +26,24 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
       }
     },
     "net10.0": {
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
       }
     },
     "net8.0": {
       "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.invoicing": {
         "type": "Project"
       }
     }
