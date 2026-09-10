@@ -25,6 +25,10 @@ public static partial class InvoiceModelValidator {
         check.Code(invoice.TypeCode, "TypeCode", "^[0-9]{3}\\z");
         check.Code(invoice.Currency, "Currency", "^[A-Z]{3}\\z");
         check.Party(invoice.Seller, "Seller");
+        if (invoice.Seller != null && string.IsNullOrWhiteSpace(invoice.Seller.VatIdentifier) &&
+            string.IsNullOrWhiteSpace(invoice.Seller.LegalRegistration?.Value) &&
+            !invoice.Seller.Identifiers.Any(id => !string.IsNullOrWhiteSpace(id?.Value)))
+            check.Error("INV-SELLER-ID", "Supply a seller business identifier, legal registration identifier or VAT identifier.", "Seller");
         check.Party(invoice.Buyer, "Buyer");
         if (invoice.Payee != null) { check.Required(invoice.Payee.Name, "Payee.Name"); check.PartyIdentifiers(invoice.Payee, "Payee"); }
         if (invoice.ObjectIdentifier != null) check.Identifier(invoice.ObjectIdentifier, "ObjectIdentifier", false);
@@ -131,6 +135,7 @@ public static partial class InvoiceModelValidator {
             if (invoice.DeclaredTaxes.Count == 0 && modelItems + calculation.Taxes.Count > InvoiceModelLimits.MaximumCollectionItems)
                 check.Error("INV-MODEL-LIMIT", "Invoice model and calculated VAT breakdowns exceed 50,000 collection items.", "Invoice");
             check.DeclaredAmounts(invoice, calculation);
+            check.TaxRequirements(invoice, calculation);
         } catch (Exception exception) when (exception is ArgumentException || exception is OverflowException) {
             check.Error("INV-CALCULATION", exception.Message, "Invoice");
         }
@@ -171,6 +176,8 @@ public static partial class InvoiceModelValidator {
             PartyIdentifiers(party, path);
         }
         internal void PartyIdentifiers(InvoiceParty party, string path) {
+            if (party.VatIdentifier != null) Required(party.VatIdentifier, path + ".VatIdentifier");
+            if (party.TaxRegistration != null) Required(party.TaxRegistration, path + ".TaxRegistration");
             foreach (InvoiceIdentifier identifier in party.Identifiers) Identifier(identifier, path + ".Identifiers", false);
             if (party.LegalRegistration != null) Identifier(party.LegalRegistration, path + ".LegalRegistration", false);
             if (party.ElectronicAddress != null) Identifier(party.ElectronicAddress, path + ".ElectronicAddress", true);
@@ -182,6 +189,8 @@ public static partial class InvoiceModelValidator {
         }
         internal void Tax(InvoiceTaxCategory? tax, string path, bool breakdown = false) {
             if (tax == null) { Error("INV-REQUIRED", "VAT category is required.", path); return; }
+            if (tax.ExemptionReason != null) Required(tax.ExemptionReason, path + ".ExemptionReason");
+            if (tax.ExemptionReasonCode != null) Required(tax.ExemptionReasonCode, path + ".ExemptionReasonCode");
             if (!new[] { "S", "Z", "E", "AE", "K", "G", "O", "L", "M" }.Contains(tax.Code))
                 Error("INV-VAT-CATEGORY", "Unsupported VAT category.", path + ".Code");
             if (tax.Code == "O") {
@@ -211,6 +220,9 @@ public static partial class InvoiceModelValidator {
         internal void Payment(InvoicePayment? payment) {
             if (payment == null) return;
             Code(payment.MeansCode, "Payment.MeansCode", "^[0-9]{1,3}\\z");
+            if ((payment.MeansCode == "30" || payment.MeansCode == "58") &&
+                !payment.Accounts.Any(account => !string.IsNullOrWhiteSpace(account?.Identifier)))
+                Error("INV-PAYMENT-ACCOUNT", "Credit transfer requires a payment account identifier.", "Payment.Accounts");
             foreach (InvoiceBankAccount account in payment.Accounts) {
                 if (account == null) Error("INV-NULL", "Bank account is null.", "Payment.Accounts");
                 else Required(account.Identifier, "Payment.Accounts.Identifier");

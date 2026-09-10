@@ -1,6 +1,23 @@
 namespace OfficeIMO.Invoicing.Tests;
 
 internal static class InvoiceFixture {
+    internal static Invoice WithTaxCategory(string code) {
+        Invoice invoice = Create();
+        invoice.Lines[0].Tax = new InvoiceTaxCategory {
+            Code = code, Rate = code == "O" ? null : code == "S" ? 19m : code == "L" ? 7m : 0m,
+            ExemptionReason = new[] { "E", "AE", "G", "K", "O" }.Contains(code) ? "Exemption applies" : null
+        };
+        if (code == "O") {
+            invoice.Seller.VatIdentifier = null;
+            invoice.Seller.LegalRegistration = new InvoiceIdentifier("HRB 12345");
+        }
+        if (code == "AE" || code == "K") invoice.Buyer.VatIdentifier = "DE987654321";
+        if (code == "K") invoice.Delivery = new InvoiceDelivery {
+            Date = invoice.IssueDate, Address = new InvoiceAddress { CountryCode = "FR" }
+        };
+        return invoice;
+    }
+
     internal static Invoice Create() {
         var invoice = new Invoice {
             Number = "INV-2026-001", IssueDate = new DateTime(2026, 9, 10), DueDate = new DateTime(2026, 10, 10),

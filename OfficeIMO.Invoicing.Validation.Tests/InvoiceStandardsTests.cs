@@ -9,7 +9,7 @@ public sealed class InvoiceStandardsTheoryAttribute : TheoryAttribute {
         if (Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_STANDARDS_TESTS") != "1") Skip = "Opt-in authority artifact validation; run Build/Test-InvoicingStandards.ps1.";
     }
 }
-public class InvoiceStandardsTests {
+public partial class InvoiceStandardsTests {
     [InvoiceStandardsTheory]
     [InlineData(InvoiceSyntax.Cii)]
     [InlineData(InvoiceSyntax.Ubl)]
@@ -120,6 +120,7 @@ public class InvoiceStandardsTests {
         InvoiceValidationReport report = await validator.ValidateAsync(xml, release);
         Assert.Equal(InvoiceValidationStatus.Passed, report.SchemaStatus);
         Assert.Equal(InvoiceValidationStatus.Failed, report.BusinessRulesStatus);
+        Assert.Null(report.Runner);
         Assert.False(report.IsValid);
         Assert.Contains(report.Diagnostics, d => d.Code == "INV-RULES-ENGINE");
         using var cancelled = new CancellationTokenSource();
@@ -143,6 +144,7 @@ public class InvoiceStandardsTests {
         InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, release);
         Assert.True(report.IsValid, Report(report));
         Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(xml)), report.Sha256);
+        Assert.Equal(Runner().Identity, report.Runner);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_EVIDENCE");
         if (output != null) {
             Directory.CreateDirectory(output);

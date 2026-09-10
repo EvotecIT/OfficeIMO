@@ -58,8 +58,16 @@ The Peppol download names an immutable official source commit; a changed artifac
 business rules are `NotRun`. Engine failures are `Failed`, and content failures
 are `Invalid`. Reports include exact input length, SHA-256, release, authority
 artifact hashes and runner identity. Revalidate after any edit to the XML.
+Runner identity is recorded after an invoice-rule process starts, including when
+that process fails. Startup failures and compiler-only executions leave it empty.
 Excess diagnostics are summarized with their highest severity, preserving the
 distinction between invalid invoice content and a failed validator.
+
+The pinned EN 16931 artifacts differ for zero-rated IGIC (category `L`): CII
+rules BR-AF-05/06/07 require a positive rate, while the UBL rules permit zero.
+The semantic model accepts a non-negative IGIC rate; the standards report exposes
+the selected syntax's rule result. A zero-rate CII invoice therefore cannot receive
+a passing report from this pinned release.
 
 This validates XML. Factur-X/ZUGFeRD PDF/A, XMP, attachment relationships and visible
 invoice content require the separate PDF artifact checks. This package does not

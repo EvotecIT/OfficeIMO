@@ -28,7 +28,7 @@ public sealed class SaxonInvoiceRulesRunner {
     public string Identity => "SaxonJ-HE 12.10; SHA256=" + JarSha256;
 
     internal async Task<IReadOnlyList<InvoiceDiagnostic>> RunAsync(byte[] xml, byte[] source, bool compile,
-        IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken) {
+        IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
         cancellationToken.ThrowIfCancellationRequested();
         InvoiceRuleBundle.ReadPinned(_jar, JarSha256, 8 * 1024 * 1024);
         string directory = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceRules-").FullName;
@@ -46,7 +46,7 @@ public sealed class SaxonInvoiceRulesRunner {
                 }
                 await TransformAsync(schema, Path.Combine(directory, "iso_svrl_for_xslt2.xsl"), stylesheet, directory, true, cancellationToken).ConfigureAwait(false);
             } else await File.WriteAllBytesAsync(stylesheet, source, cancellationToken).ConfigureAwait(false);
-            await TransformAsync(input, stylesheet, report, directory, false, cancellationToken).ConfigureAwait(false);
+            await TransformAsync(input, stylesheet, report, directory, false, cancellationToken, ruleProcessStarted).ConfigureAwait(false);
             if (new FileInfo(report).Length > 16 * 1024 * 1024) throw new InvalidDataException("Schematron report exceeds 16 MiB.");
             using Stream result = File.OpenRead(report);
             return ReadSvrl(result, overrides);
@@ -55,13 +55,14 @@ public sealed class SaxonInvoiceRulesRunner {
         }
     }
 
-    private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, bool compiler, CancellationToken cancellationToken) {
+    private async Task TransformAsync(string input, string stylesheet, string output, string workingDirectory, bool compiler, CancellationToken cancellationToken, Action? ruleProcessStarted = null) {
         var start = new ProcessStartInfo(_java) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = workingDirectory };
         foreach (string argument in new[] { "-Xmx256m", "-Djavax.xml.accessExternalDTD=", "-Djavax.xml.accessExternalSchema=", "-Djavax.xml.accessExternalStylesheet=file",
             "-jar", _jar, "-s:" + input, "-xsl:" + stylesheet, "-o:" + output, "-dtd:off", "-xi:off", "-ext:off" }) start.ArgumentList.Add(argument);
         if (compiler) start.ArgumentList.Add("allow-foreign=true");
         using var process = new Process { StartInfo = start };
         if (!process.Start()) throw new InvalidOperationException("Saxon process could not start.");
+        ruleProcessStarted?.Invoke();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken); timeout.CancelAfter(_timeout);
         Task<string> standardOutput = DrainAsync(process.StandardOutput, timeout.Token), standardError = DrainAsync(process.StandardError, timeout.Token);
         string[] messages;

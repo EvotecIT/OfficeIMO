@@ -90,9 +90,18 @@ even after model edits.
 
 Declared source line and VAT amounts are preserved. Model checks permit up to
 0.02 difference from the unrounded line formula and a conservative 0.01 VAT
-rounding difference; totals must match the resulting amounts exactly. These
+rounding difference for taxable categories; zero-tax categories require exactly
+zero VAT. Totals must match the resulting amounts exactly. These
 checks do not replace release-specific rules. `UpdateDeclaredAmounts` explicitly
 recalculates lines, VAT and totals after financial edits.
+
+Model validation requires a seller business, legal or VAT identifier, and an
+account for credit-transfer payment codes 30 and 58. VAT checks cover category-specific
+registration requirements, exemption reasons on the resulting breakdown, and
+intra-community delivery details. Imported header-only exemption reasons remain
+valid through recalculation. Outside-scope VAT cannot mix with other categories
+or carry party VAT identifiers. Official code lists and release-specific rules
+remain the responsibility of the optional standards validator.
 
 Quantity, price, base-quantity and percentage calculations retain intermediate
 precision until monetary rounding. Monetary results use two decimal places with

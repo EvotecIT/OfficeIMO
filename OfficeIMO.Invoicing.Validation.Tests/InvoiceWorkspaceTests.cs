@@ -14,6 +14,23 @@ public sealed class UnixInvoiceStandardsTheoryAttribute : TheoryAttribute {
 
 public class InvoiceWorkspaceTests {
     [UnixInvoiceStandardsTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedRuleProcessReportsIdentityButCompilerOnlyExecutionDoesNot(bool compile) {
+        string probe = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceProbe-").FullName;
+        string executable = Path.Combine(probe, "runner");
+        try {
+            await File.WriteAllTextAsync(executable, "#!/bin/sh\nexit 7\n", new UTF8Encoding(false));
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            var runner = new SaxonInvoiceRulesRunner(Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_SAXON_JAR")!, executable);
+            bool started = false;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => runner.RunAsync(Encoding.UTF8.GetBytes("invoice"), Encoding.UTF8.GetBytes("rules"), compile,
+                new Dictionary<string, InvoiceDiagnosticSeverity>(), CancellationToken.None, () => started = true));
+            Assert.Equal(!compile, started);
+        } finally { Directory.Delete(probe, recursive: true); }
+    }
+
+    [UnixInvoiceStandardsTheory]
     [InlineData("success")]
     [InlineData("failure")]
     [InlineData("cancellation")]

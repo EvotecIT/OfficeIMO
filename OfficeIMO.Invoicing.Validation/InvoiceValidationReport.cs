@@ -16,7 +16,7 @@ public sealed class InvoiceValidationReport {
     public InvoiceValidationStatus SchemaStatus { get; }
     /// <summary>Schematron validation outcome.</summary>
     public InvoiceValidationStatus BusinessRulesStatus { get; }
-    /// <summary>Engine identity when business rules were executed.</summary>
+    /// <summary>Engine identity after an invoice-rule process started, including failed executions. Null for startup failure or compiler-only execution.</summary>
     public string? Runner { get; }
     /// <summary>All schema, engine and rule diagnostics.</summary>
     public IReadOnlyList<InvoiceDiagnostic> Diagnostics { get; }
