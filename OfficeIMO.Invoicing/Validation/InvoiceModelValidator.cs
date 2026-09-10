@@ -58,6 +58,12 @@ public static partial class InvoiceModelValidator {
             check.Period(line.Period, path + ".Period");
             if (line.StandardItemIdentifier != null) check.Identifier(line.StandardItemIdentifier, path + ".StandardItemIdentifier", true);
             if (line.ObjectIdentifier != null) check.Identifier(line.ObjectIdentifier, path + ".ObjectIdentifier", false);
+            foreach (InvoiceItemClassification classification in line.Classifications) {
+                if (classification == null) { check.Error("INV-NULL", "Item classification is null.", path + ".Classifications"); continue; }
+                check.Required(classification.Value, path + ".Classifications.Value");
+                check.Required(classification.ListId, path + ".Classifications.ListId");
+                if (classification.ListVersion != null) check.Required(classification.ListVersion, path + ".Classifications.ListVersion");
+            }
             if (line.PriceBaseQuantity <= 0m) check.Error("INV-BASE-QUANTITY", "Price base quantity must be positive.", path + ".PriceBaseQuantity");
             if (line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m)
                 check.Error("INV-PRICE", "Item prices and price discounts cannot be negative.", path + ".UnitPrice");
