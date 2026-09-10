@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 226,
-    "productionComponentCount": 121,
-    "testProjectCount": 43,
+    "projectCount": 228,
+    "productionComponentCount": 122,
+    "testProjectCount": 44,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 30,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42833
+    "conceptualWordCount": 42864
   },
   "categories": [
     {
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 19
+      "componentCount": 20
     },
     {
       "name": "Rendering surfaces",
@@ -541,6 +541,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf"
     },
     {
+      "name": "OfficeIMO.Invoicing",
+      "packageId": "OfficeIMO.Invoicing",
+      "category": "Publishing and conversion",
+      "description": "Typed electronic invoice contracts, XML authoring, reading, and validation for .NET.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
       "name": "OfficeIMO.IWork",
       "packageId": "OfficeIMO.IWork",
       "category": "Formats and interoperability",
@@ -911,7 +924,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1165,
+      "sourceFileCount": 1167,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
