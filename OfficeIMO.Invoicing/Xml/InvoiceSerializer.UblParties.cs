@@ -27,14 +27,16 @@ public static partial class InvoiceSerializer {
     private static IEnumerable<XElement> UblPayment(InvoicePayment? payment) {
         if (payment == null) yield break;
         IEnumerable<InvoiceBankAccount?> accounts = payment.Accounts.Count == 0 ? new InvoiceBankAccount?[] { null } : payment.Accounts.Select(account => (InvoiceBankAccount?)account);
+        bool first = true;
         foreach (InvoiceBankAccount? account in accounts) {
             yield return new XElement(Cac + "PaymentMeans", new XElement(Cbc + "PaymentMeansCode", payment.MeansText == null ? null : new XAttribute("name", payment.MeansText), payment.MeansCode),
                 Text(Cbc + "PaymentID", payment.Reference),
-                payment.CardNumber == null ? null : new XElement(Cac + "CardAccount", Text(Cbc + "PrimaryAccountNumberID", payment.CardNumber), new XElement(Cbc + "NetworkID", "NA"), Text(Cbc + "HolderName", payment.CardHolder)),
+                !first || payment.CardNumber == null ? null : new XElement(Cac + "CardAccount", Text(Cbc + "PrimaryAccountNumberID", payment.CardNumber), new XElement(Cbc + "NetworkID", "NA"), Text(Cbc + "HolderName", payment.CardHolder)),
                 account == null ? null : new XElement(Cac + "PayeeFinancialAccount", Text(Cbc + "ID", account.Identifier), Text(Cbc + "Name", account.Name),
                     account.ProviderIdentifier == null ? null : new XElement(Cac + "FinancialInstitutionBranch", Text(Cbc + "ID", account.ProviderIdentifier))),
-                payment.MandateReference == null && payment.DebitedAccount == null ? null : new XElement(Cac + "PaymentMandate", Text(Cbc + "ID", payment.MandateReference),
+                !first || payment.MandateReference == null && payment.DebitedAccount == null ? null : new XElement(Cac + "PaymentMandate", Text(Cbc + "ID", payment.MandateReference),
                     payment.DebitedAccount == null ? null : new XElement(Cac + "PayerFinancialAccount", Text(Cbc + "ID", payment.DebitedAccount))));
+            first = false;
         }
     }
 }

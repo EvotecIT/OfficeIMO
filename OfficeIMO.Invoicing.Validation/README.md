@@ -52,12 +52,14 @@ For Peppol, also supply the official
 [3.0.21 Schematron source](https://docs.peppol.eu/poacc/billing/3.0/files/PEPPOL-EN16931-UBL.sch)
 as the second argument to `InvoiceRuleBundle.Load`. The source is verified by
 SHA-256 and compiled locally with the included MIT-licensed Schematron compiler.
-If the upstream download changes to a newer release, the pinned hash rejects it.
+The Peppol download names an immutable official source commit; a changed artifact is rejected by its pinned hash.
 
 `IsValid` is true only when both XSD and business rules passed. Without a runner,
 business rules are `NotRun`. Engine failures are `Failed`, and content failures
 are `Invalid`. Reports include exact input length, SHA-256, release, authority
 artifact hashes and runner identity. Revalidate after any edit to the XML.
+Excess diagnostics are summarized with their highest severity, preserving the
+distinction between invalid invoice content and a failed validator.
 
 This validates XML. Factur-X/ZUGFeRD PDF/A, XMP, attachment relationships and visible
 invoice content require the separate PDF artifact checks. This package does not

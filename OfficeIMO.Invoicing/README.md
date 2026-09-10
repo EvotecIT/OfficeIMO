@@ -57,7 +57,7 @@ Successful serialization alone does not establish standards compliance.
 | Area | Supported data |
 | --- | --- |
 | Syntax and profiles | CII D16B and UBL 2.1; EN 16931 and XRechnung 3.0; Peppol BIS on UBL |
-| Documents | Invoice and credit note; document currency and accounting-currency VAT |
+| Documents | Invoice and credit note; document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. |
 | Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |

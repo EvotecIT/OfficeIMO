@@ -10,6 +10,47 @@ public sealed class InvoiceStandardsTheoryAttribute : TheoryAttribute {
     }
 }
 public class InvoiceStandardsTests {
+    [InvoiceStandardsTheory]
+    [InlineData(InvoiceSyntax.Cii, true)]
+    [InlineData(InvoiceSyntax.Ubl, true)]
+    [InlineData(InvoiceSyntax.Cii, false)]
+    [InlineData(InvoiceSyntax.Ubl, false)]
+    public async Task MultipleAccountsWithSingletonPaymentDetailsPassAuthorityRules(InvoiceSyntax syntax, bool card) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE89370400440532013000", Name = "Second account" });
+        invoice.Payment.MeansCode = card ? "48" : "59";
+        if (card) { invoice.Payment.CardNumber = "1234"; invoice.Payment.CardHolder = "Card Holder"; }
+        else { invoice.Payment.MandateReference = "mandate-1"; invoice.Payment.DebitedAccount = "DE89370400440532013000"; invoice.Payment.CreditorIdentifier = "DE98ZZZ09999999999"; }
+        byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.True(report.IsValid, Report(report));
+    }
+
+    [InvoiceStandardsTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ExcessiveContentFailuresRemainInvalidInsteadOfEngineFailure(bool schemaErrors) {
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Create(), new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        XNamespace cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
+        XNamespace cbc = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2";
+        XElement template = document.Root!.Element(cac + "InvoiceLine")!;
+        template.Remove();
+        for (int index = 0; index < 1100; index++) {
+            var line = new XElement(template);
+            line.Element(cbc + "ID")!.Value = (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (schemaErrors) line.SetAttributeValue("invalid-attribute", "invalid");
+            else line.Element(cac + "Item")!.Element(cbc + "Name")!.Remove();
+            document.Root.Add(line);
+        }
+        byte[] xml = Encoding.UTF8.GetBytes(document.ToString());
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.Equal(schemaErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed, report.SchemaStatus);
+        Assert.Equal(schemaErrors ? InvoiceValidationStatus.NotRun : InvoiceValidationStatus.Invalid, report.BusinessRulesStatus);
+        Assert.Contains(report.Diagnostics, d => d.Code == "INV-DIAGNOSTICS-TRUNCATED" && d.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.DoesNotContain(report.Diagnostics, d => d.Code == "INV-SCHEMA-ENGINE" || d.Code == "INV-RULES-ENGINE");
+        Assert.InRange(report.Diagnostics.Count, 1, 1000);
+    }
+
     private static InvoiceRuleBundle Bundle() => InvoiceRuleBundle.Load(
         Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_RULE_BUNDLE") ?? throw new InvalidOperationException("Rule bundle path is required."),
         Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PEPPOL_RULES"));
