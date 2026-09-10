@@ -10,9 +10,10 @@ public class InvoicePaymentIdentifierTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
         XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
-        XElement[] references = source.Descendants().Where(e => e.Name.LocalName == "PaymentID").ToArray();
-        Assert.Equal(2, references.Length);
-        references[1 - referenceIndex].Remove();
+        XElement reference = source.Descendants().Single(e => e.Name.LocalName == "PaymentID");
+        reference.Remove();
+        source.Descendants().Where(e => e.Name.LocalName == "PaymentMeans").ElementAt(referenceIndex)
+            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
         byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
         InvoiceReadResult read = InvoiceParser.Read(xml);
         Assert.True(read.HasCompleteMapping);
@@ -29,7 +30,9 @@ public class InvoicePaymentIdentifierTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
         XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
-        source.Descendants().Last(e => e.Name.LocalName == "PaymentID").Value = "conflicting-reference";
+        XElement reference = new XElement(source.Descendants().Single(e => e.Name.LocalName == "PaymentID")) { Value = "conflicting-reference" };
+        source.Descendants().Last(e => e.Name.LocalName == "PaymentMeans")
+            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
         byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
         Assert.False(InvoiceParser.Read(xml).HasCompleteMapping);
         Assert.False(InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii)).Succeeded);

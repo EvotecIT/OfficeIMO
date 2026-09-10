@@ -21,7 +21,7 @@ public static class InvoiceCalculator {
     public static decimal RoundAmount(decimal value) {
         decimal rounded = decimal.Round(value, 2, MidpointRounding.AwayFromZero);
         // EN 16931 Schematron uses fn:round, including for negative invoice amounts.
-        if (value < 0m && value - decimal.Truncate(value * 100m) / 100m == -0.005m) rounded += 0.01m;
+        if (value < 0m && (value - decimal.Truncate(value)) % 0.01m == -0.005m) rounded += 0.01m;
         return rounded;
     }
 
@@ -39,17 +39,17 @@ public static class InvoiceCalculator {
             decimal adjustments = 0m;
             foreach (InvoiceAllowanceCharge item in line.AllowancesAndCharges) {
                 CheckAmount(item);
-                adjustments += item.IsCharge ? item.Amount : -item.Amount;
+                adjustments = InvoiceArithmetic.Add(adjustments, item.IsCharge ? item.Amount : -item.Amount);
             }
-            decimal net = line.Quantity * line.UnitPrice / line.PriceBaseQuantity + adjustments;
-            var calculated = new InvoiceCalculatedLine(line.Id, net, preserveDeclaredAmounts ? line.DeclaredNetAmount : null);
+            decimal net = InvoiceArithmetic.LineAmount(line.Quantity, line.UnitPrice, line.PriceBaseQuantity, adjustments, out decimal rounded);
+            var calculated = new InvoiceCalculatedLine(line.Id, net, rounded, preserveDeclaredAmounts ? line.DeclaredNetAmount : null);
             lines.Add(calculated);
             AddTax(groups, line.Tax, calculated.NetAmount);
         }
         decimal allowances = 0m, charges = 0m;
         foreach (InvoiceAllowanceCharge item in invoice.AllowancesAndCharges) {
             CheckAmount(item);
-            if (item.IsCharge) charges += item.Amount; else allowances += item.Amount;
+            if (item.IsCharge) charges = InvoiceArithmetic.Add(charges, item.Amount); else allowances = InvoiceArithmetic.Add(allowances, item.Amount);
             AddTax(groups, item.Tax, item.IsCharge ? item.Amount : -item.Amount);
         }
         // Source exemption information is normally held on the header breakdown, not each line.
@@ -79,7 +79,7 @@ public static class InvoiceCalculator {
         TaxGroup? group = groups.SingleOrDefault(g => g.Code == category.Code && g.Rate == NormalizeRate(category));
         if (group == null) { group = new TaxGroup(category); groups.Add(group); }
         else group.MergeReason(category);
-        group.Basis += basis;
+        group.Basis = InvoiceArithmetic.Add(group.Basis, basis);
     }
 
     internal static decimal? NormalizeRate(InvoiceTaxCategory category) => category.Code == "O" && category.Rate == 0m ? null : category.Rate;

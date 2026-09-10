@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace OfficeIMO.Invoicing;
 
@@ -12,6 +13,10 @@ public static partial class InvoiceModelValidator {
         try { new InvoiceModelLimits().Check(invoice); }
         catch (InvalidDataException exception) {
             check.Error("INV-MODEL-LIMIT", exception.Message, "Invoice");
+            return new InvoiceModelValidationResult(diagnostics, null);
+        }
+        catch (XmlException) {
+            check.Error("INV-MODEL-XML", "Invoice text contains a character that XML cannot represent.", "Invoice");
             return new InvoiceModelValidationResult(diagnostics, null);
         }
         check.Required(invoice.Number, "Number");
@@ -75,8 +80,12 @@ public static partial class InvoiceModelValidator {
                 check.Error("INV-PRICE", "Item prices and price discounts cannot be negative.", path + ".UnitPrice");
             if (line.PriceDiscount.HasValue && !line.GrossPrice.HasValue)
                 check.Error("INV-PRICE", "A price discount requires its gross price.", path + ".PriceDiscount");
-            if (!invalidPrice && line.GrossPrice.HasValue && line.GrossPrice.Value - (line.PriceDiscount ?? 0m) != line.UnitPrice)
-                check.Error("INV-PRICE", "Net price must equal gross price minus price discount.", path + ".UnitPrice");
+            if (!invalidPrice && line.GrossPrice.HasValue) {
+                try {
+                    if (InvoiceArithmetic.Add(line.GrossPrice.Value, -(line.PriceDiscount ?? 0m)) != line.UnitPrice)
+                        check.Error("INV-PRICE", "Net price must equal gross price minus price discount.", path + ".UnitPrice");
+                } catch (OverflowException) { check.Error("INV-OVERFLOW", "Gross price minus discount exceeds decimal precision.", path + ".UnitPrice"); }
+            }
             foreach (InvoiceAllowanceCharge adjustment in line.AllowancesAndCharges) {
                 check.Adjustment(adjustment, path + ".AllowancesAndCharges", false);
                 if (adjustment?.Tax != null) check.Error("INV-LINE-TAX", "Line adjustments inherit the line VAT category; do not supply a separate category.", path);
@@ -186,7 +195,7 @@ public static partial class InvoiceModelValidator {
             if (item.BaseAmount.HasValue) Money(item.BaseAmount.Value, path + ".BaseAmount");
             if (item.BaseAmount.HasValue && item.Percentage.HasValue) {
                 try {
-                    if (InvoiceCalculator.RoundAmount(item.BaseAmount.Value * item.Percentage.Value / 100m) != item.Amount)
+                    if (InvoiceArithmetic.RoundedProduct(item.BaseAmount.Value, item.Percentage.Value, 100m) != item.Amount)
                         Error("INV-ADJUSTMENT-AMOUNT", "Amount differs from the rounded base multiplied by percentage.", path + ".Amount");
                 } catch (OverflowException) { Error("INV-OVERFLOW", "Adjustment calculation exceeds decimal capacity.", path); }
             }

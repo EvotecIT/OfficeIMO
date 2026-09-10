@@ -94,6 +94,13 @@ rounding difference; totals must match the resulting amounts exactly. These
 checks do not replace release-specific rules. `UpdateDeclaredAmounts` explicitly
 recalculates lines, VAT and totals after financial edits.
 
+Quantity, price, base-quantity and percentage calculations retain intermediate
+precision until monetary rounding. Monetary results use two decimal places with
+ties towards positive infinity; values that exceed decimal capacity are rejected
+instead of silently losing cents. Caller text must contain valid XML characters.
+The model permits up to 4 MiB of combined UTF-8 text and 8 MiB of embedded bytes;
+serialized XML is limited to 16 MiB while it is written.
+
 ## Convert CII and UBL
 
 ```csharp

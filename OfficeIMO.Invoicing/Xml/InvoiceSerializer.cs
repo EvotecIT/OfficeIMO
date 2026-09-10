@@ -25,14 +25,12 @@ public static partial class InvoiceSerializer {
         XDocument document = options.Syntax == InvoiceSyntax.Cii
             ? WriteCii(invoice, validation.Calculation!, options)
             : WriteUbl(invoice, validation.Calculation!, options);
-        using var output = new MemoryStream();
+        using var output = new InvoiceXmlOutputStream();
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new UTF8Encoding(false), Indent = true, IndentChars = "  ", NewLineChars = "\n",
             NewLineHandling = NewLineHandling.Entitize, CloseOutput = false
         })) document.Save(writer);
-        byte[] bytes = output.ToArray();
-        if (bytes.Length > InvoiceProfileDeclaration.MaximumXmlBytes) throw new InvalidDataException("Serialized invoice exceeds 16 MiB.");
-        return bytes;
+        return output.ToArray();
     }
 
     /// <summary>Returns unsupported target mappings without writing or silently discarding information.</summary>

@@ -30,8 +30,10 @@ public class InvoiceStandardsTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE89370400440532013000" });
         XDocument source = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
-        XElement[] references = source.Descendants().Where(e => e.Name.LocalName == "PaymentID").ToArray();
-        references[1 - referenceIndex].Remove();
+        XElement reference = source.Descendants().Single(e => e.Name.LocalName == "PaymentID");
+        reference.Remove();
+        source.Descendants().Where(e => e.Name.LocalName == "PaymentMeans").ElementAt(referenceIndex)
+            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
         byte[] xml = Encoding.UTF8.GetBytes(source.ToString());
         var validator = new InvoiceValidator(Bundle(), Runner());
         InvoiceValidationReport original = await validator.ValidateAsync(xml, InvoiceRulesRelease.En16931_1_3_16);

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml;
 
 namespace OfficeIMO.Invoicing;
 
@@ -51,6 +52,7 @@ internal sealed class InvoiceModelLimits {
         foreach (string? value in values) {
             if (value == null) continue;
             if (value.Length > 1024 * 1024) throw new InvalidDataException("An invoice text value exceeds one million characters.");
+            XmlConvert.VerifyXmlChars(value);
             _textBytes += Encoding.UTF8.GetByteCount(value);
             if (_textBytes > 4 * 1024 * 1024) throw new InvalidDataException("Combined invoice text exceeds 4 MiB of UTF-8 data.");
         }
