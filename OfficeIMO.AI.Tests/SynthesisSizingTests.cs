@@ -5,6 +5,22 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class SynthesisSizingTests {
+    [Fact]
+    public async Task TypedSynthesisFailurePreservesDraftsAndRecoveryCategory() {
+        var executor = new SizedExecutor { SynthesisFailure = OfficeAiExecutionFailure.RateLimited };
+        var document = OfficeAiDocument.FromReadResult([1], new OfficeDocumentReadResult {
+            Blocks = [new() { Text = "Alpha" }, new() { Text = "Beta" }]
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() {
+            Operation = OfficeAiOperation.Summarize, Instruction = "Summarize", Limits = new() { MaxRequestCharacters = 4096 }
+        });
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
+        Assert.Equal(2, result.Claims.Count);
+        Assert.Equal(3, result.RequestCount);
+        Assert.Contains("provider-rate-limited", result.Diagnostics);
+    }
+
     [Theory]
     [InlineData(false, "exception")]
     [InlineData(true, "exception")]
@@ -63,6 +79,7 @@ public sealed class SynthesisSizingTests {
     }
 
     private sealed class SizedExecutor : IOfficeAiExecutor {
+        public OfficeAiExecutionFailure? SynthesisFailure { get; init; }
         public string? FailMeasurementAt { get; init; }
         public string MeasurementFailure { get; init; } = "exception";
         public CancellationTokenSource? Cancellation { get; init; }
@@ -85,6 +102,8 @@ public sealed class SynthesisSizingTests {
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
             Requests.Add(request);
             using var json = JsonDocument.Parse(request.InputJson);
+            if (SynthesisFailure.HasValue && json.RootElement.TryGetProperty("drafts", out _))
+                throw new OfficeAiExecutionException(SynthesisFailure.Value);
             if (json.RootElement.TryGetProperty("drafts", out var drafts))
                 return Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new { claims = new[] {
                     new { text = "Combined facts", sourceClaimIds = drafts.EnumerateArray().Select(draft => draft.GetProperty("id").GetString()).ToArray() }

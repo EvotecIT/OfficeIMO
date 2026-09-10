@@ -4,17 +4,16 @@ This optional .NET 10 adapter connects `OfficeIMO.AI` to IntelligenceX Treatment
 
 ## Add the adapter from source
 
-With `OfficeIMO` and `IntelligenceX` source checkouts beside your application directory, pack the SDK into a local feed and reference the adapter project:
+With an `OfficeIMO` source checkout beside your application directory, reference the adapter project. Restore obtains IntelligenceX from NuGet:
 
 ```shell
-dotnet pack IntelligenceX/IntelligenceX/IntelligenceX.csproj --configuration Release --output local-feed
 dotnet new console --framework net10.0 --name DocumentAssistant
 dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj
-dotnet restore DocumentAssistant/DocumentAssistant.csproj --source local-feed --source https://api.nuget.org/v3/index.json
+dotnet restore DocumentAssistant/DocumentAssistant.csproj --source https://api.nuget.org/v3/index.json
 dotnet build DocumentAssistant/DocumentAssistant.csproj --no-restore
 ```
 
-The local feed must contain the required `IntelligenceX` 0.1.1 package built from the matching SDK source. The project reference brings in the AI engine and Reader Core; add format readers in your host as needed.
+The project reference brings in the AI engine and Reader Core; add format readers in your host as needed.
 
 ## ChatGPT
 
@@ -39,6 +38,8 @@ var engine = new OfficeAiEngine(executor);
 The native route uses IX's authentication support. `PreferCurrentCodexSession` explicitly chooses the existing local Codex login over an older IX credential when available. The adapter does not redirect the native endpoint or overwrite Codex's authentication file. A hosted operation still requires `OfficeAiRequest.AllowRemoteProcessing = true`.
 
 The example model is an explicit profile setting. If it is unavailable for an account, select an available model and qualify it; the adapter does not silently choose a replacement.
+
+For application-specific accounts, set `AuthStore` to a host-owned IX store, set `AccountId` when selecting an existing account, and disable `LoadCodexAuthJson`. Leave `PreferCurrentCodexSession` disabled unless the user explicitly selects the local Codex login. The executor exposes `LoginChatGptAsync`, `LoginCopilotAsync`, `GetAccountAsync`, `ListModelsAsync` and `LogoutAsync` through the same restricted connection. Await authentication and document operations before disposing the executor. Studio demonstrates an isolated account boundary in its [connection setup](../OfficeIMO.Studio/README.md#document-assistant).
 
 ## Compatible HTTP
 

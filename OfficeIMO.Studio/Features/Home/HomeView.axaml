@@ -45,6 +45,7 @@
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Split}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Commands[Pages].UnavailableReason}" IsVisible="{Binding Commands[Pages].HasUnavailableReason}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" />
             </StackPanel>
           </Button>
           <Button Classes="cardAction" Command="{Binding Commands[Convert]}" AutomationProperties.Name="{loc:Loc Home.Convert}">
@@ -69,6 +70,7 @@
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" />
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Commands[Protect].UnavailableReason}" IsVisible="{Binding Commands[Protect].HasUnavailableReason}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" />
             </StackPanel>
           </Button>
         </infra:AdaptiveCardPanel>

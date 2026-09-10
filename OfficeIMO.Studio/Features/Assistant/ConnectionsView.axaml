@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ai="using:OfficeIMO.Studio.Features.Assistant" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Assistant.ConnectionsView" x:DataType="ai:StudioAiConnections">
+  <StackPanel Spacing="9">
+    <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="9">
+      <TextBlock Text="{loc:Loc Assistant.Provider}" FontWeight="SemiBold" />
+      <ComboBox ItemsSource="{Binding Providers}" SelectedIndex="{Binding ProviderIndex}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Assistant.Provider}" />
+      <TextBlock Text="{loc:Loc Assistant.NativeLogin}" TextWrapping="Wrap" Classes="muted" IsVisible="{Binding IsChatGpt}" />
+      <TextBlock Text="{loc:Loc Assistant.LocalOnly}" TextWrapping="Wrap" Classes="muted" IsVisible="{Binding IsLocal}" />
+      <TextBox IsVisible="{Binding UsesEndpoint}" Text="{Binding Endpoint}" PlaceholderText="{loc:Loc Assistant.Endpoint}" AutomationProperties.Name="{loc:Loc Assistant.Endpoint}" />
+      <TextBox IsVisible="{Binding UsesCredential}" Text="{Binding ApiKey}" PasswordChar="●" PlaceholderText="{loc:Loc Assistant.Credential}" AutomationProperties.Name="{loc:Loc Assistant.Credential}" />
+      <TextBlock IsVisible="{Binding UsesCredential}" Text="{loc:Loc Assistant.SessionCredential}" TextWrapping="Wrap" Classes="muted" />
+      <TextBox IsVisible="{Binding IsCopilot}" Text="{Binding GitHubClientId}" PlaceholderText="{loc:Loc Assistant.GitHubClient}" AutomationProperties.Name="{loc:Loc Assistant.GitHubClient}" />
+      <TextBlock IsVisible="{Binding IsCopilot}" Text="{loc:Loc Assistant.CopilotLogin}" TextWrapping="Wrap" Classes="muted" />
+      <TextBox Text="{Binding AccountId}" IsVisible="{Binding !UsesEndpoint}" PlaceholderText="{loc:Loc Assistant.Account}" AutomationProperties.Name="{loc:Loc Assistant.Account}" />
+      <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding AccountId}" IsVisible="{Binding HasSavedAccounts}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Assistant.Account}" />
+      <WrapPanel Orientation="Horizontal">
+        <Button Content="{loc:Loc Assistant.Connect}" Command="{Binding ConnectCommand}" Margin="0,0,6,6" />
+        <Button Content="{loc:Loc Assistant.SignIn}" Command="{Binding SignInCommand}" IsVisible="{Binding CanSignIn}" Margin="0,0,6,6" />
+        <Button Content="{loc:Loc Assistant.ImportCodex}" Command="{Binding ImportCodexLoginCommand}" IsVisible="{Binding IsChatGpt}" Margin="0,0,6,6" />
+        <Button Content="{loc:Loc Assistant.SignOut}" Command="{Binding SignOutCommand}" IsVisible="{Binding !UsesEndpoint}" Margin="0,0,6,6" />
+      </WrapPanel>
+      <TextBlock Text="{loc:Loc Assistant.Model}" FontWeight="SemiBold" />
+      <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Model}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Assistant.AvailableModels}" />
+      <TextBox Text="{Binding Model}" PlaceholderText="{loc:Loc Assistant.Model}" AutomationProperties.Name="{loc:Loc Assistant.Model}" />
+    </StackPanel>
+    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <Button Content="{loc:Loc MainWindow.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" />
+  </StackPanel>
+</UserControl>

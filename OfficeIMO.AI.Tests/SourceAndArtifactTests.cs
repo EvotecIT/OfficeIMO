@@ -10,6 +10,22 @@ using Xunit;
 namespace OfficeIMO.AI.Tests;
 
 public sealed class SourceAndArtifactTests {
+    [Fact]
+    public async Task PdfTableEvidenceContainsSourceCellsWithoutGeneratedDetectionNotice() {
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Table(new[] {
+            new[] { "Code", "Name", "Qty" },
+            new[] { "A-100", "Alpha", "2" },
+            new[] { "B-200", "Beta", "14" }
+        }, style: new PdfTableStyle { HeaderRowCount = 1 }))).ToBytes();
+        var document = await DocumentInputs.ReadAsync(source, "table.pdf", false, Array.Empty<int>(), new(), CancellationToken.None);
+        Assert.Contains(document.Evidence, item => item.Kind == "table-row" && item.Text.Contains("A-100") && item.Text.Contains("Alpha"));
+        Assert.DoesNotContain(document.Evidence, item => item.Text.Contains("Detected PDF table"));
+        Assert.All(document.Evidence.Where(item => item.Kind == "table-row"), item => {
+            Assert.Equal(1, item.Page);
+            Assert.False(string.IsNullOrWhiteSpace(item.SourceAnchor));
+        });
+    }
+
     [Theory]
     [InlineData("A\u0001B", false)]
     [InlineData("A\u000BB", false)]

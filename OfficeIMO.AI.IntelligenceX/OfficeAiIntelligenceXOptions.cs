@@ -24,4 +24,13 @@ public sealed class OfficeAiIntelligenceXOptions {
     public bool Streaming { get; init; }
     /// <summary>Explicitly prefer the current local Codex login over IX's saved ChatGPT credential.</summary>
     public bool PreferCurrentCodexSession { get; init; }
+
+    /// <summary>Host-owned authentication store. Use a distinct store for each application account boundary.</summary>
+    public global::IntelligenceX.OpenAI.Auth.IAuthBundleStore? AuthStore { get; init; }
+
+    /// <summary>Explicit ChatGPT account to select within the authentication store.</summary>
+    public string? AccountId { get; init; }
+
+    /// <summary>Allows importing the local Codex login. Hosts with isolated accounts should leave this disabled.</summary>
+    public bool LoadCodexAuthJson { get; init; } = true;
 }

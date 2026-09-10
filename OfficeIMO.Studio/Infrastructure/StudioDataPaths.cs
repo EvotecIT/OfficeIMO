@@ -23,6 +23,8 @@ internal sealed class StudioDataPaths {
     internal string DiagnosticsRoot => Path.Combine(Root, "Diagnostics");
 
     internal static StudioDataPaths CreateDefault() {
+        string? dataRoot = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_DATA_ROOT");
+        if (!string.IsNullOrWhiteSpace(dataRoot)) return new StudioDataPaths(dataRoot);
         string localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return new StudioDataPaths(Path.Combine(localApplicationData, "OfficeIMO", "Studio"));
     }
