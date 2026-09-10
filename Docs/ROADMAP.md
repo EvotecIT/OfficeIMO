@@ -244,7 +244,7 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 ## Microsoft Project document library
 
-Deliver `OfficeIMO.Project` as a managed project-document library with normal and fluent APIs over one model: create, read, edit, preserve, write, calculate, inspect, and convert. The baseline includes MSPDI XML, modern and legacy MPP families, MPT, and MPX. These are planned capabilities, not a statement of current support. Completing XML or a bounded MPP reader does not complete this product.
+Extend the [current typed XML library](../OfficeIMO.Project/README.md) with scheduling, modern and legacy MPP lifecycle, MPT, MPX, analysis, and conversion. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and native feasibility evidence. Completing XML or a bounded MPP reader does not complete the native product.
 
 The milestones below are ordered product outcomes. Each remains open until its acceptance evidence exists. Implemented contracts move into the package README and operation-level support matrix; delivered history belongs in GitHub Releases. Execution and scope-change rules live in [the repository instructions](../AGENTS.md#project-implementation-discipline).
 
@@ -268,48 +268,16 @@ Read, create, field edit, structural edit, same-generation save, generation conv
 
 | ID | Outcome | Prerequisites |
 | --- | --- | --- |
-| P00 | Interoperability corpus and native-format feasibility | None; begin before a large public API surface is built |
-| P01 | Stable model and normal/fluent lifecycle | P00's representative files and initial findings; may overlap the remaining P00 experiments |
-| P02 | Usable MSPDI XML authoring and editing | P01 |
-| P03 | Calendar and scheduling foundation | P02 |
-| P04 | Modern MPP read and preservation | P00, P02 |
+| P03 | Calendar and scheduling foundation | [P01/P02 model and XML contract](../OfficeIMO.Project/README.md) |
+| P04 | Modern MPP read and preservation | [P00 feasibility evidence](../OfficeIMO.Project/SUPPORT.md#native-format-feasibility), current XML model |
 | P05 | Modern MPP editing, new-file writing, and templates | P03, P04 |
 | P06 | Legacy MPP and MPX lifecycle and conversion | P05 |
 | P07 | Advanced scheduling and project semantics | P03, P05; follow P06 in the default delivery order |
 | P08 | Project views, reports, and data exchange | P05, P07 |
 | P09 | Explainable analysis, scenarios, comparison, and merge | P07, P08 |
-| P10 | Qualified package and integrated delivery | P00-P09 plus all cross-cutting acceptance criteria |
+| P10 | Qualified package and integrated delivery | Current baseline, P03-P09, and all cross-cutting acceptance criteria |
 
 P02 is the first useful XML product, P05 the first native modern-MPP product, and P06 the legacy-format milestone. Each may ship independently with accurate coverage. P10 is the completion gate for this adopted baseline. No fixed completion date is promised before P00 establishes the writer and fixture risks.
-
-### P00 — Interoperability corpus and native-format feasibility
-
-- [ ] Establish provenance-bound pairs of MPP and Microsoft Project XML exports: empty project; task hierarchy; dependencies; calendars; resources and assignments; actuals and baselines; custom fields; presentation; and external references. Record producer/build, format family, locale, license/redistribution permission, hash, and expected semantics. Include synthetic fixtures and sanitized realistic files; never commit confidential schedules.
-- [ ] Establish an available Microsoft Project validation path for modern files and a viable validation path for each adopted legacy generation. Keep application automation in opt-in fixture/verification tooling, outside the runtime library. Record unavailable versions as evidence gaps rather than silently substituting modern versions.
-- [ ] Prove bounded MPP family detection and representative task/calendar/assignment extraction through Core's compound reader. Assess Core writer limits, directory metadata, stream retention, and record reference requirements before extending it.
-- [ ] Demonstrate an unchanged native save, a controlled field edit, and a minimal native new-file creation experiment. Reopen each result in Microsoft Project, record repair warnings and semantic differences, and retain minimized reproducible evidence. A template-based write does not prove template-free creation.
-- [ ] Fix the initial field/operation matrix and workload budgets from these findings: 1,000/10,000/100,000-task workloads where practical, deep hierarchies, dense dependencies, and long timephased series. Record input-size, allocation/peak-memory, runtime, and cancellation budgets before optimization work.
-
-Acceptance: each experiment has a reproducible result and an explicit supported, unsupported, or unresolved outcome. Failure to establish native writing is a material scope decision before P05, not permission to redefine MPP support as XML output. XML work may continue while native feasibility remains unresolved.
-
-### P01 — Stable model and normal/fluent lifecycle
-
-- [ ] Implement the document and typed entities with stable UID/GUID identity, separate display IDs/WBS, task hierarchy, project settings, calendar references, resources, assignments, dependencies, baseline slots, and custom-field definitions. Preserve absent, explicit, source, and calculated values where their meanings differ.
-- [ ] Define working versus elapsed duration, work, dependency lag including percentage lag, allocation units, currency/rounding, local project dates, missing dates, and calendar timezone semantics. Avoid host-timezone or culture-dependent normalization.
-- [ ] Implement create/load/save path and stream contracts, disposal/ownership, format detection, cancellation, input limits, safe file replacement, and typed diagnostics using shared owners. Non-seekable stream buffering must be bounded and documented.
-- [ ] Provide equivalent normal/fluent authoring and editing, including nested summaries, stable builder aliases, forward-reference validation, calendar configuration, resource assignment, and mixed normal/fluent calls. Keep builders thin; do not expose a generic property bag as the primary API.
-- [ ] Implement mutation integrity for add/remove/reparent/clone, dangling references, cross-document references, dirty state, and batched edits. Distinguish validation from calculation and source preservation from semantic understanding.
-
-Acceptance: executable examples author the same semantic project through both APIs and edit it through either API. Contract tests cover invalid relationships and lifecycle failures. Public naming and core type choices are settled before later codecs spread them.
-
-### P02 — Usable MSPDI XML authoring and editing
-
-- [ ] Implement bounded XML reading/writing for project settings, task hierarchy, all dependency types, calendars/exceptions, resources, assignments, work/cost/progress, baselines, custom fields, and timephased data. Track XML dialect/producer differences explicitly.
-- [ ] Preserve unknown safe elements/attributes and source identities where valid, with location-aware diagnostics for content that cannot survive edits or export. Disable DTD/external entity resolution and implicit external-resource fetching.
-- [ ] Support read/edit/save, new-file creation, validation, and strict/allow-loss export. Loading and saving must not recalculate or renumber stable identities implicitly; diagnose stale calculated values after schedule-affecting edits.
-- [ ] Document and execute short normal/fluent examples for authoring, inspection, editing, stream use, and loss assessment. Report presentation features that XML cannot represent instead of claiming native MPP fidelity.
-
-Acceptance: schema validation for the declared dialect plus Microsoft Project import, save, and semantic re-export comparisons pass. Unknown-content and malformed-input fixtures exercise preservation and safe rejection. Reopening only with our own reader is insufficient.
 
 ### P03 — Calendar and scheduling foundation
 
@@ -376,10 +344,12 @@ Acceptance: scenario isolation, explanation accuracy, repeatable diffs, and conf
 
 ### P10 — Qualified package and integrated delivery
 
+- [ ] Extend the Project 2024 corpus with sanitized realistic schedules, presentation, enterprise lookup/formula data, and external-project references; add independently produced fixtures and application oracles for the other declared producer generations.
+
 - [ ] Integrate `OfficeIMO.Reader.Project` and existing capability/conversion discovery with truthful operation/version/profile claims. Wire inspect/convert/report operations into the existing CLI/MCP surfaces without duplicating the engine.
 - [ ] Add Project opening, inspection, supported editing, conversion, and diagnostics to existing Studio/browser workflows where the host supports them. Clearly distinguish .NET engine support from host availability and qualify each UI interaction with runtime evidence.
 - [ ] Validate packed consumers on supported frameworks and operating systems, trimming/NativeAOT smoke consumers, and a browser smoke workflow where supported. Check the full dependency graph and package contents; use the shared build/release owner.
-- [ ] Publish reproducible correctness, deterministic-output, throughput, memory, output-size, and cancellation evidence for the P00 workloads. Keep equivalent-work comparison dependencies in opt-in verification projects and retain failed or slower cases.
+- [ ] Extend the [Project workload evidence](../Build/Project/README.md) with reproducible correctness, deterministic-output, throughput, memory, output-size, and cancellation results for native and scheduling operations. Keep equivalent-work comparison dependencies in opt-in verification projects and retain failed or slower cases.
 - [ ] Complete package examples, operation-level matrices, generated discovery, security limits, and conversion diagnostics. Validate install examples against actually published versions when release is authorized; keep source, packed, published, and installed proof distinct.
 
 Acceptance: every adopted baseline milestone and operation claim has traceable evidence, no validated in-scope correctness issue remains, and package/host documentation matches delivered behavior. Source readiness does not itself authorize package publication or deployment.
@@ -396,6 +366,8 @@ Acceptance: every adopted baseline milestone and operation claim has traceable e
 These are outside P10 and must not displace unfinished baseline milestones: Primavera XER/P6 XML, MPD/MDB archival import, pre-Project-98 formats, online/server connectors, and new standalone applications. Password-protected native read/write and signature creation remain separate qualification work unless a named profile is explicitly adopted. Detection and safe rejection of unsupported protection remain baseline requirements. New candidates enter this roadmap with a named owner, user outcome, dependencies, and acceptance evidence before implementation.
 
 ## Additional formats and product boundaries
+
+- [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
 
 Treat a format as a full OfficeIMO product only when a stable public model can support create, read, edit, deterministic write, reopen, preservation, and conversion without pretending to reconstruct a proprietary application. Reader-only products still require bounded parsing, structured diagnostics, provenance-aware fixtures, and an explicit structured-versus-salvage result. Conversion hosts and `OfficeIMO.Reader.*` adapters remain thin over the owning format package.
 

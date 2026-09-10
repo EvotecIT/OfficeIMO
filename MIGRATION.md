@@ -11,6 +11,13 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Project XML dependency
+
+`OfficeIMO.Project` requires `OfficeIMO.Core` 3.4.3 or later. Core supplies the shared
+document I/O, atomic file replacement, and bounded XML primitives used by the Project
+assembly. Keep this minimum when resolving or explicitly pinning the transitive Core
+dependency; Core 3.4.2 does not contain the required assembly access declaration.
+
 ### Rendering loss and gallery evidence
 
 Scanned PDF rendering no longer returns a blank successful page when a CCITT or

@@ -410,6 +410,16 @@ _Dependency footprint:_ `System.Text.Json` and `System.Text.Encoding.CodePages` 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no external parser or runtime dependency.
 
+#### [OfficeIMO.Project](OfficeIMO.Project/README.md)
+
+- [x] Microsoft Project XML create, read, edit, validate, and source-preserving save
+- [x] Typed tasks, calendars, resources, assignments, baselines, custom fields, and thin fluent builders
+- [x] Explicit input limits, cancellation, stable identities, and loss assessment
+
+Native MPP/MPT/MPX, scheduling, and rendering have separate [operation boundaries](OfficeIMO.Project/SUPPORT.md).
+
+_Dependency footprint:_ only `OfficeIMO.Core` 3.4.3 or later; no COM, external parser, or network dependency in file operations.
+
 #### [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md)
 
 - [x] DocBook 4.5 and 5.2 article/book creation, bounded reading, editing, validation, conversion, and writing

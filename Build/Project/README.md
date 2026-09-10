@@ -27,6 +27,7 @@ Other console operations:
 | `corpus` | fixture directory, new output directory | Validate and edit every XML fixture |
 | `edit-cases` | fixture directory, new output directory | Produce calendar date/removal and resource authoring cases with expected readback subsets |
 | `schema` | input XML, local XSD | Validate offline; report whether the documented application namespace alias was applied |
+| `cancellation` | 100,000-task input XML, new output directory | Request cancellation during load/save, check the five-second response budget and unchanged file destination |
 | `native-probe` | paired MPP path, new output directory | Bounded compound/record inspection, stream-preserving rewrite, fixed-width name edit, and minimal new-container experiment |
 | `scale-create` | output XML, task count, shape | Generate one deterministic scale input |
 | `scale-read-edit-save` | input XML, task count, shape | Exercise lifecycle and independently verify output records |

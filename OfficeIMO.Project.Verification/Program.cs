@@ -2,6 +2,7 @@ using OfficeIMO.Project;
 
 if (args.Length == 3 && args[0] == "schema") return SchemaValidation.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "edit-cases") return EditCases.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "cancellation") return CancellationProof.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "native-probe") return NativeProbe.Run(args[1], args[2]);
 if (args.Length == 4 && (args[0] == "scale-create" || args[0] == "scale-read-edit-save"))
     return ScaleWorkload.Run(args[0], args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3]);
