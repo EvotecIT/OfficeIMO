@@ -48,13 +48,9 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             MapGroupChildBox(groupShape, groupX, groupY, groupWidth, groupHeight, ref x, ref y, ref width, ref height);
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
-            if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
-                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
-                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
-            } else {
-                render(canvas);
-            }
+            // The root group owns the page-space clip. A local clip here would rotate with
+            // the ancestors and discard children that transform back onto the slide.
+            RenderShapeContent(canvas, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
         }
     }
 

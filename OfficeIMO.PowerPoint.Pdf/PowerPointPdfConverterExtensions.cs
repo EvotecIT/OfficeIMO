@@ -362,7 +362,10 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
+            if (shape is PptCore.PowerPointGroupShape) {
+                // Establish the page clip before any nested group transforms change coordinates.
+                canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
+            } else if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
                 NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
                 canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
             } else {
@@ -751,14 +754,15 @@ public static partial class PowerPointPdfConverterExtensions {
         target.StrokeDashStyle = MapDash(source.OutlineDash.ToOpenXml());
     }
 
-    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, out double x, out double y, out double width, out double height) {
+    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, out double x, out double y, out double width, out double height, bool applyPageCulling = true) {
         shape.TryGetExportBoundsPoints(out x, out y, out width, out height);
 
         bool isLineShape = IsLineShape(shape);
         bool hasRenderableSize = isLineShape
             ? width >= 0D && height >= 0D && (width > 0D || height > 0D)
             : width > 0D && height > 0D;
-        if (hasRenderableSize && IntersectsPage(x, y, width, height, pageWidth, pageHeight)) {
+        // A group's final visible bounds depend on all descendant transforms, not its raw box.
+        if (hasRenderableSize && (!applyPageCulling || shape is PptCore.PowerPointGroupShape || IntersectsPage(x, y, width, height, pageWidth, pageHeight))) {
             return true;
         }
 

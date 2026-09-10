@@ -13,6 +13,57 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointGroupedTextLayoutTests {
     [Theory]
+    [InlineData(-20D, 60D, 100D, 40D, false)]
+    [InlineData(-50D, 20D, 40D, 160D, false)]
+    [InlineData(-20D, 60D, 100D, 40D, true)]
+    [InlineData(-50D, 20D, 40D, 160D, true)]
+    public void RotatedGroupsAtSlideEdgeRetainTextAndPageSpaceClip(double x, double y, double width, double height, bool nested) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(320, 220);
+        var slide = presentation.AddSlide();
+        var box = slide.AddTextBoxPoints("EDGE", x, y, width, height);
+        box.FontName = "Helvetica";
+        box.FontSize = 8;
+        var bar = slide.AddRectanglePoints(x, y, width, height);
+        var group = slide.GroupShapes(new PowerPointShape[] { bar, box });
+        if (nested) {
+            group.HorizontalFlip = true;
+            group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(x, y, width, height) });
+        }
+        group.Rotation = 90;
+        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Equal("EDGE", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
+        string operators = PdfOperatorSearchText.From(bytes);
+        Assert.Contains("0 0 320 220 re W", operators, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GroupLocalFontDiscoveryReportsMappedVisibleText(bool nested) {
+        const string family = "OfficeIMO Missing Group Font 81C2";
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(320, 220);
+        var slide = presentation.AddSlide();
+        var box = slide.AddTextBoxPoints("MAPPED", 1000, 1000, 160, 50);
+        box.FontName = family;
+        var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(1000, 1060, 160, 10) });
+        if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(1000, 1080, 160, 10) });
+        group.LeftPoints = 40;
+        group.TopPoints = 40;
+        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
+        Assert.Equal("MAPPED", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
+        Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
+            && warning.Details.TryGetValue("fontFamily", out string? value) && value == family);
+    }
+
+    [Theory]
     [InlineData(0.5D, 0.5D, false)]
     [InlineData(2D, 2D, false)]
     [InlineData(2D, 0.5D, false)]

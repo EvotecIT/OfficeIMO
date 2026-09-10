@@ -301,7 +301,9 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
-        if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, out _, out _, out _, out _)) {
+        // Group children use local coordinates. Conservatively discover their fonts before
+        // mapping and rotation; raw child bounds cannot establish page visibility.
+        if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, out _, out _, out _, out _, applyPageCulling: groupDepth == 0)) {
             return;
         }
 
