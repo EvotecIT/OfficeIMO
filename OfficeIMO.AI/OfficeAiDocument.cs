@@ -106,8 +106,14 @@ public sealed class OfficeAiDocument {
         foreach (OfficeDocumentPage page in document.Pages) {
             if ((page.GetResolvedLocation().Page) is int number) AddPage(number);
         }
+        var content = document.EnumerateContent().ToArray();
+        var tableScopes = content.Where(item => item.Table is not null).Select(item => item.Location).ToArray();
+        var pageTableCounts = tableScopes.GroupBy(location => (location?.Path ?? "", location?.Page, location?.SourceBlockIndex))
+            .ToDictionary(group => group.Key, group => group.Count());
+        var documentTableCounts = tableScopes.GroupBy(location => location?.Path ?? "")
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         int tableIndex = 0;
-        foreach (OfficeDocumentContentItem item in document.EnumerateContent()) {
+        foreach (OfficeDocumentContentItem item in content) {
             if (item.Block is { } block) {
                 Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor);
                 continue;
@@ -116,6 +122,15 @@ public sealed class OfficeAiDocument {
                 // The PDF adapter reserves these kinds for generated notices/placeholders.
                 // Other adapters use the same words for real semantic source content.
                 if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
+                // Only the source adapter can establish that a chunk contains table text alone.
+                // Retain its fallback if the matching structured table scope is incomplete.
+                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location is { SourceBlockKind: "table" } location
+                    && chunk.Diagnostics is { TableCount: > 0 } diagnostics) {
+                    int captured = location.Page.HasValue
+                        ? pageTableCounts.GetValueOrDefault((location.Path ?? "", location.Page, location.SourceBlockIndex))
+                        : documentTableCounts.GetValueOrDefault(location.Path ?? "");
+                    if (captured == diagnostics.TableCount) continue;
+                }
                 Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor);
                 continue;
             }

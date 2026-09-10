@@ -21,6 +21,9 @@ public sealed class ReaderPdfGeneratedContentTests {
         Assert.NotNull(block.Region);
         Assert.True(block.Region!.Width > 0 && block.Region.Height > 0);
         Assert.Contains(document.Pages.SelectMany(page => page.Tables).SelectMany(table => table.Rows), row => row.Contains("A-100") && row.Contains("Alpha"));
+        Assert.DoesNotContain(document.EnumerateBlocks(), item => item.Text.Contains("A-100") || item.Text.Contains("B-200"));
+        var logical = PdfDocument.Load(pdf).Read();
+        Assert.Contains(logical.Pages.SelectMany(page => page.TextBlocks), item => item.IsTableContent && item.Text.Contains("A-100"));
     }
 
     [Theory]

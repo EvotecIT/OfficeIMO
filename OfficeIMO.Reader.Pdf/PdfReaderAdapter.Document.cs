@@ -259,6 +259,7 @@ internal static partial class PdfReaderAdapter {
             for (int elementIndex = 0; elementIndex < page.Elements.Count; elementIndex++) {
                 IPdfLogicalElement element = page.Elements[elementIndex];
                 if (element is PdfLogicalTextBlock textBlock) {
+                    if (textBlock.IsTableContent) continue;
                     PdfLogicalHeading? heading = FindHeading(page, textBlock);
                     PdfLogicalListItem? listItem = FindListItem(page, textBlock);
                     if (listItem is not null && !ReferenceEquals(listItem.Line, textBlock)) continue;

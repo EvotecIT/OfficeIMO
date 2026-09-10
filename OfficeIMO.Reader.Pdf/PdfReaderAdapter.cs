@@ -104,8 +104,7 @@ internal static partial class PdfReaderAdapter {
                 readerOptions,
                 page: null,
                 sourceBlockIndex: 0,
-                blockKind: pages.Any(item => item.Elements.OfType<PdfLogicalTextBlock>().Any(block => !string.IsNullOrWhiteSpace(block.Text))
-                    || item.Elements.OfType<PdfLogicalTable>().Any()) ? "document" : "visual",
+                blockKind: GetChunkSourceKind(pages, "document"),
                 blockAnchor: "document",
                 tables: documentTables,
                 visuals: documentVisuals,
@@ -142,8 +141,7 @@ internal static partial class PdfReaderAdapter {
                 readerOptions,
                 page.PageNumber,
                 pageIndex,
-                page.Elements.OfType<PdfLogicalTextBlock>().Any(block => !string.IsNullOrWhiteSpace(block.Text))
-                    || page.Elements.OfType<PdfLogicalTable>().Any() ? "page" : "visual",
+                GetChunkSourceKind(new[] { page }, "page"),
                 pageAnchor,
                 pageTables,
                 pageVisuals,

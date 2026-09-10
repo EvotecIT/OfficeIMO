@@ -65,6 +65,17 @@ associating a table with its placeholder. Applications displaying a row-count
 label should generate it from `ReaderTable.Rows.Count` and report truncation when
 `Truncated` is true or `TotalRowCount` exceeds the retained row count.
 
+Reader no longer repeats table-owned source lines as ordinary text blocks beside
+those tables. Consumers that previously read table cells from `Blocks` must use
+`EnumerateTables()` or the page's `Tables` collection. The PDF core still exposes
+the original lines in `PdfLogicalPage.TextBlocks`; `IsTableContent` identifies
+lines represented by the canonical table projection.
+PDF chunks containing only table text use `Location.SourceBlockKind == "table"`;
+their diagnostics identify the structured table count in that source scope.
+Page and document chunks that also contain independent text keep their existing
+source kinds. AI retains partial chunk text unless the adapter identifies a
+table-only projection and the matching structured table scope is present.
+
 ### Rendering loss and gallery evidence
 
 Scanned PDF rendering no longer returns a blank successful page when a CCITT or
