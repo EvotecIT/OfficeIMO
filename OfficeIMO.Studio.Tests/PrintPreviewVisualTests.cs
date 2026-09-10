@@ -34,6 +34,8 @@ public sealed class PrintPreviewVisualTests {
                 Assert.Equal(3, model.Pages.Count);
                 model.ShowPrintPreviewCommand.Execute(null);
                 var print = model.OutputWorkbench.PrintPreview;
+                print.SelectedPaper = print.PaperChoices.Single(choice => choice.Name == "A3");
+                print.PrintDpi = 300;
                 print.SelectedOrientation = print.OrientationChoices.Single(choice => choice.Value == PdfPrintOrientation.Landscape);
                 print.SelectedPagesPerSheet = print.PagesPerSheetChoices.Single(choice => choice.Value == 2);
                 await print.BuildPreviewCommand.ExecuteAsync(null);

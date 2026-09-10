@@ -16,6 +16,8 @@ public static class PdfPrintRenderer {
         long maximumPixels = options.MaximumPixelsPerImage, maximumOutputBytes = options.MaximumOutputBytes;
         if (!double.IsFinite(dpi) || dpi < 72 || dpi > 600) throw new ArgumentOutOfRangeException(nameof(options.Dpi));
         if (maximumPages <= 0 || maximumPixels <= 0 || maximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
+        // Preparation must stay within the shared decoder's delivery bounds.
+        _ = new OfficeRasterDecodeOptions { MaximumDecodedPixels = maximumPixels };
         PdfPrintPlan plan = PdfPrintPlanner.Create(document, request, cancellationToken);
         if (plan.SelectedPages.Count > maximumPages) throw new InvalidOperationException($"Print preparation is limited to {maximumPages} selected pages.");
         var sheets = new List<PdfRenderedPrintSheet>();
@@ -34,12 +36,18 @@ public static class PdfPrintRenderer {
                     placement.SlotX, placement.SlotY, OfficeClipPath.Rectangle(placement.SlotWidth, placement.SlotHeight));
             }
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
-                Scale = dpi / 72, Background = OfficeColor.White, MaximumRasterPixels = maximumPixels, CancellationToken = cancellationToken
+                Scale = dpi / 72, Background = OfficeColor.White, MaximumRasterPixels = maximumPixels,
+                ThrowOnImageDecodeFailure = true, CancellationToken = cancellationToken
             });
             byte[] encoded = OfficePngWriter.Encode(raster, cancellationToken);
+            _ = new OfficeRasterDecodeOptions { MaximumEncodedBytes = encoded.Length };
             retainedBytes = checked(retainedBytes + encoded.LongLength);
             if (retainedBytes > maximumOutputBytes) throw new InvalidOperationException("Prepared print sheets exceed the configured output-byte limit.");
-            sheets.Add(new PdfRenderedPrintSheet(sheet, encoded));
+            var renderedSheet = new PdfRenderedPrintSheet(sheet, encoded, raster.Width, raster.Height);
+            // Decoding also enforces the PNG aggregate working-set budget, which depends on
+            // encoded content and scanline buffers rather than pixel count alone.
+            _ = renderedSheet.Decode(cancellationToken);
+            sheets.Add(renderedSheet);
         }
         return new PdfPreparedPrintDocument(request.InputPath, plan, sheets, diagnostics);
     }

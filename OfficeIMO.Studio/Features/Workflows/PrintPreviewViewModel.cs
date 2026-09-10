@@ -183,7 +183,8 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             PdfDocument document = await _readSnapshot(request.InputPath, operation.Token).ConfigureAwait(true);
             ProgressFraction = 0.2D;
             Status = T("Status.Rendering", "Rendering page previews");
-            var options = new PdfPrintRenderOptions { MaximumPages = MaximumPreviewPages, Dpi = PrintDpi };
+            // A3 at 300 DPI needs about 17.4 million pixels in either orientation.
+            var options = new PdfPrintRenderOptions { MaximumPages = MaximumPreviewPages, Dpi = PrintDpi, MaximumPixelsPerImage = 20_000_000 };
             using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
             PdfPreparedPrintDocument prepared = await Task.Run(() => PdfPrintRenderer.Prepare(document, request, options, operation.Token), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();

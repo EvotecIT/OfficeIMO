@@ -129,6 +129,28 @@ public sealed class PrintDeliveryTests {
         }, CancellationToken.None);
     }
 
+    [Theory]
+    [InlineData(PdfPrintOrientation.Portrait)]
+    [InlineData(PdfPrintOrientation.Landscape)]
+    public async Task LargestPaperAtHighestOfferedResolutionPreparesAndDelivers(PdfPrintOrientation orientation) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter();
+            using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            model.Pages = "1";
+            model.SelectedPaper = model.PaperChoices.Single(choice => choice.Name == "A3");
+            model.SelectedOrientation = model.OrientationChoices.Single(choice => choice.Value == orientation);
+            model.PrintDpi = model.PrintDpiChoices.Max();
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            Assert.True(model.CanPrint, model.Status);
+            await model.PrintCommand.ExecuteAsync(null);
+            Assert.NotNull(printer.Document);
+            Assert.Single(printer.Document.Sheets);
+            return true;
+        }, CancellationToken.None);
+    }
+
     private static PrintPreviewViewModel Create(RecordingPrinter printer, StudioJobHistory history, Action? read = null) =>
         new(_ => Task.FromResult<string?>(null), null, readSnapshot: (_, _) => {
             read?.Invoke();

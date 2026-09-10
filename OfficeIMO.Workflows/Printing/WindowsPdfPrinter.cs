@@ -88,9 +88,7 @@ internal static partial class WindowsPdfPrinter {
                     dc = reset;
                     if (Native.SetAbortProc(dc, abort) <= 0) throw new Win32Exception();
                     ValidatePaper(dc, sheet.Plan.PaperSize);
-                    if (!OfficeRasterImageDecoder.TryDecode(sheet.Png, new OfficeRasterDecodeOptions {
-                        MaximumDecodedPixels = 16_000_000, MaximumEncodedBytes = 128 * 1024 * 1024, CancellationToken = token
-                    }, out OfficeRasterImage? raster, out _) || raster is null) throw new InvalidOperationException("A prepared sheet could not be decoded.");
+                    OfficeRasterImage raster = sheet.Decode(token);
                     byte[] pixels = raster.GetPixels();
                     for (int index = 0; index < pixels.Length; index += 4) (pixels[index], pixels[index + 2]) = (pixels[index + 2], pixels[index]);
                     var bitmap = new Native.BitmapInfo {
