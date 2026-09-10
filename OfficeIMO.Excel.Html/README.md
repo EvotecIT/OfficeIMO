@@ -52,7 +52,7 @@ Set `ImportTypedCellValues = true` with `Mode = HtmlImportMode.Generic` (or `Aut
 <td>00127</td>
 ```
 
-The first three cells become a number, boolean, and date in Excel. The reference remains text, including its leading zeros. Supported kinds are `text`, `number`, `boolean`, and `date-time`; use invariant numeric values and ISO date/time values. Invalid or oversized metadata falls back to bounded visible text with a diagnostic. The option defaults to `false`, so existing generic imports keep their text behavior.
+The first three cells become a number, boolean, and date in Excel. The reference remains text, including its leading zeros. Supported kinds are `text`, `number`, `boolean`, and `date-time`; use invariant numeric values. Dates require `yyyy-MM-dd`, optionally followed by `THH:mm`, seconds, and up to seven fractional second digits. A timestamp may end in `Z` or an offset such as `+02:00`; explicit zones normalize to UTC, while unzoned values retain their wall-clock time. Incomplete dates, non-ISO values, and other invalid or oversized metadata fall back to bounded visible text with a diagnostic. The option defaults to `false`, so existing generic imports keep their text behavior.
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");

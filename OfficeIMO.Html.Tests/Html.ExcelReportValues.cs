@@ -9,6 +9,68 @@ public class HtmlExcelReportValues {
     [Theory]
     [InlineData(HtmlImportMode.Generic)]
     [InlineData(HtmlImportMode.Semantic)]
+    public void IsoDatesRetainTheirValuesThroughWorkbookAndSemanticHtmlRoundTrips(HtmlImportMode mode) {
+        var cases = new[] {
+            (Value: "2024-02-29", Expected: new DateTime(2024, 2, 29)),
+            (Value: "2026-09-08T12:34", Expected: new DateTime(2026, 9, 8, 12, 34, 0)),
+            (Value: "2026-09-08T12:34Z", Expected: new DateTime(2026, 9, 8, 12, 34, 0)),
+            (Value: "2026-09-08T14:34+02:00", Expected: new DateTime(2026, 9, 8, 12, 34, 0)),
+            (Value: "2026-09-08T12:34:56.1", Expected: new DateTime(2026, 9, 8, 12, 34, 56, 100)),
+            (Value: "2026-09-08T12:34:56.1234567Z", Expected: new DateTime(2026, 9, 8, 12, 34, 56, 123)),
+            (Value: "2026-09-08T19:04:56.1234567+06:30", Expected: new DateTime(2026, 9, 8, 12, 34, 56, 123))
+        };
+        string cells = string.Concat(cases.Select(item =>
+            $"<td data-officeimo-value-kind='date-time' data-officeimo-value='{item.Value}'>Recorded</td>"));
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(
+            "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+        using ExcelDocument workbook = result.RequireValue();
+        using MemoryStream artifact = workbook.ToStream();
+        using ExcelDocument reopened = ExcelDocument.Load(artifact);
+        string html = reopened.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
+        HtmlToExcelResult roundTrip = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument reimported = roundTrip.RequireValue();
+        foreach (ExcelDocument document in new[] { reopened, reimported }) {
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            for (int column = 1; column <= cases.Length; column++) {
+                ExcelCellValueSnapshot snapshot = Snapshot(sheet, 1, column);
+                Assert.Equal(ExcelCellValueKind.DateTime, snapshot.Kind);
+                Assert.InRange(Math.Abs((snapshot.DateTimeValue!.Value - cases[column - 1].Expected).TotalMilliseconds), 0D, 1D);
+            }
+        }
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
+        Assert.DoesNotContain(roundTrip.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
+    }
+
+    [Theory]
+    [InlineData(HtmlImportMode.Generic)]
+    [InlineData(HtmlImportMode.Auto)]
+    [InlineData(HtmlImportMode.Semantic)]
+    public void IncompleteOrNonIsoDateMetadataFallsBackAfterSaveAndReopen(HtmlImportMode mode) {
+        string[] values = { "12:00", "Sep 8", "2026-09", "09/08/2026", "2026-9-8",
+            "2026-09-08 12:00:00", "2026-09-08T12:00:00.", "2026-09-08T12:00:00+02",
+            "2026-09-08T12:00:00+14:01", "2026-02-29", "0100-01-01T00:00:00+01:00" };
+        string cells = string.Concat(values.Select(value =>
+            $"<td data-officeimo-value-kind='date-time' data-officeimo-value='{value}'><strong>Unavailable</strong></td>"));
+        string table = "<table><tr>" + cells + "</tr></table>";
+        if (mode == HtmlImportMode.Semantic)
+            table = "<section class='officeimo-sheet' data-officeimo-sheet='Dates'>" + table + "</section>";
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(table).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+        using ExcelDocument workbook = result.RequireValue();
+        using MemoryStream artifact = workbook.ToStream();
+        using ExcelDocument reopened = ExcelDocument.Load(artifact);
+        ExcelSheet sheet = Assert.Single(reopened.Sheets);
+        for (int column = 1; column <= values.Length; column++) {
+            Assert.Equal(ExcelCellValueKind.Text, Snapshot(sheet, 1, column).Kind);
+            Assert.Equal("Unavailable", Snapshot(sheet, 1, column).Text);
+        }
+        Assert.Equal(values.Length, result.Report.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid));
+    }
+
+    [Theory]
+    [InlineData(HtmlImportMode.Generic)]
+    [InlineData(HtmlImportMode.Semantic)]
     public void DateMetadataUsesUtcForOffsetsAndPreservesUnzonedWallClock(HtmlImportMode mode) {
         string[] values = { "2026-09-01T00:30:00+02:00", "2026-08-31T22:30:00Z",
             "2026-08-31T15:30:00-07:00", "2026-09-01T00:30:00" };

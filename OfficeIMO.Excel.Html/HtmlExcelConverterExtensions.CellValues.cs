@@ -4,6 +4,14 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Excel.Html;
 
 public static partial class HtmlExcelConverterExtensions {
+    private static readonly string[] CellDateTimeFormats = {
+        "yyyy-MM-dd", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm:ss.f", "yyyy-MM-dd'T'HH:mm:ss.ff", "yyyy-MM-dd'T'HH:mm:ss.fff",
+        "yyyy-MM-dd'T'HH:mm:ss.ffff", "yyyy-MM-dd'T'HH:mm:ss.fffff",
+        "yyyy-MM-dd'T'HH:mm:ss.ffffff", "yyyy-MM-dd'T'HH:mm:ss.fffffff"
+    };
+    private static readonly string[] OffsetCellDateTimeFormats = CellDateTimeFormats.Skip(1).Select(format => format + "zzz").ToArray();
+
     /// <summary>Imports one bounded value and tells formatting whether it must preserve that value.</summary>
     private static bool SetCellValue(
         ExcelSheet sheet,
@@ -72,7 +80,7 @@ public static partial class HtmlExcelConverterExtensions {
         } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
             // Excel stores no time zone. Normalize explicit offsets to UTC, while
             // retaining the authored wall clock when metadata has no zone.
-            if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime dateTime)
+            if (TryParseCellDateTime(rawValue!, out DateTime dateTime)
                 && dateTime.Year >= 100) {
                 sheet.CellValue(row, column, dateTime);
                 preserveValue = true;
@@ -105,6 +113,27 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
+    }
+
+    // Require a complete invariant date. General-purpose parsing supplies omitted
+    // components from today's date and makes saved workbook values time-dependent.
+    private static bool TryParseCellDateTime(string value, out DateTime dateTime) {
+        dateTime = default;
+        if (value.Length >= 22 && (value[value.Length - 6] == '+' || value[value.Length - 6] == '-') && value[value.Length - 3] == ':') {
+            if (!DateTimeOffset.TryParseExact(value, OffsetCellDateTimeFormats, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out DateTimeOffset offset)) return false;
+            dateTime = offset.UtcDateTime;
+            return true;
+        }
+        bool utc = value.EndsWith("Z", StringComparison.Ordinal);
+        if (utc) {
+            if (value.Length < 17) return false;
+            value = value.Substring(0, value.Length - 1);
+        }
+        if (!DateTime.TryParseExact(value, CellDateTimeFormats, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out dateTime)) return false;
+        if (utc) dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        return true;
     }
 
     private static bool IsScalarCellValueKind(string? kind) =>
