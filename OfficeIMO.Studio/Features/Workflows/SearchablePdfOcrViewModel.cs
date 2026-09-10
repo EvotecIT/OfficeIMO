@@ -114,6 +114,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
     private string? _automaticOutputPath;
+    private bool _disposed;
 
     internal SearchablePdfOcrViewModel(
         Func<CancellationToken, Task<string?>> pickPdf,
@@ -127,11 +128,13 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         StudioStorageAccess? storage = null,
         Func<CancellationToken, Task<string?>>? pickOutputPdf = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
-        Func<string, Task<bool>>? confirmProviderWrite = null) {
+        Func<string, Task<bool>>? confirmProviderWrite = null,
+        IScanTextRecognitionService? textRecognition = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService();
+        _textRecognition = textRecognition ?? new ScanTextRecognitionService();
         _canPublishPath = canPublishPath ?? (_ => true);
         _publicationGuard = publicationGuard ?? new OfficeIMO.Studio.Features.Shell.StudioWorkflowPublicationGuard((path, _) => _canPublishPath(path));
         _localizer = localizer ?? StudioLocalization.Current;
@@ -154,6 +157,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
     [NotifyPropertyChangedFor(nameof(InputName))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
     private string _inputPath = string.Empty;
 
     [ObservableProperty]
@@ -186,6 +190,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanCancel))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractTextCommand))]
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
     private bool _isBusy;
 
@@ -233,6 +238,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     }
 
     partial void OnInputPathChanged(string value) {
+        if (_isExtractingText) _cancellation?.Cancel();
+        ExtractedText = string.Empty;
         Scan.Invalidate(clearSource: true);
         string? suggestion = TryCreateOutputPath(value);
         if (suggestion is null) {
@@ -389,6 +396,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private void OnLanguagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName != nameof(OcrLanguageChoice.IsSelected)) return;
         OnPropertyChanged(nameof(LanguageSummary));
+        ExtractTextCommand.NotifyCanExecuteChanged();
         RunCommand.NotifyCanExecuteChanged();
     }
 
@@ -420,6 +428,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     }
 
     public void Dispose() {
+        _disposed = true;
+        ExtractTextCommand.NotifyCanExecuteChanged();
         _cancellation?.Cancel();
         Review?.Dispose();
         Scan.PropertyChanged -= ScanChanged; Scan.Dispose();

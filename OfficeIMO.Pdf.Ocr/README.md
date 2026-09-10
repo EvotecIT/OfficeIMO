@@ -165,6 +165,8 @@ PdfSearchableOcrReview review = await pdf.PrepareSearchableOcrAsync(engine);
 // Replace this confidence selection with the eligible word instances chosen in a review interface.
 var selected = review.Ocr.Pages.SelectMany(page => page.Words)
     .Where(word => word.Confidence >= 0.90).ToArray();
+// Text extraction uses logical reading order and does not create or modify a PDF.
+string recognizedText = review.ExtractText(selected);
 PdfSearchableOcrResult reviewed = review.Apply(selected);
 await reviewed.Document.SaveAsync("reviewed-searchable.pdf");
 ```

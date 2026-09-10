@@ -8,7 +8,10 @@ namespace OfficeIMO.Studio.Features.Workflows;
 public sealed partial class SearchablePdfOcrViewModel {
     private void ScanChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(ScanPreparationViewModel.Dpi)) RenderDpi = Scan.Dpi;
-        if (e.PropertyName == nameof(ScanPreparationViewModel.IsBusy)) RunCommand.NotifyCanExecuteChanged();
+        if (e.PropertyName == nameof(ScanPreparationViewModel.IsBusy)) {
+            RunCommand.NotifyCanExecuteChanged(); ExtractTextCommand.NotifyCanExecuteChanged();
+        }
+        if (e.PropertyName == nameof(ScanPreparationViewModel.PageNumber)) ExtractedText = string.Empty;
     }
     partial void OnRenderDpiChanged(double value) { if (Scan != null) Scan.Dpi = value; }
     private async Task<byte[]> ReadScanSourceAsync(CancellationToken token) {

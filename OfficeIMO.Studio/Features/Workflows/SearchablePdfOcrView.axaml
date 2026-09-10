@@ -87,7 +87,18 @@
 
       <Border x:Name="InformationPanel" Grid.Column="1" VerticalAlignment="Top">
         <StackPanel Margin="30,26" Spacing="22" MaxWidth="820" HorizontalAlignment="Stretch">
-          <Border Classes="card" Padding="16"><workflow:ScanPreparationView DataContext="{Binding OcrWorkbench.Scan}" /></Border>
+          <Border Classes="card" Padding="16">
+            <StackPanel Spacing="12">
+              <workflow:ScanPreparationView DataContext="{Binding OcrWorkbench.Scan}" />
+              <TextBlock Text="{loc:Loc Ocr.Text.Hint}" TextWrapping="Wrap" Classes="muted" />
+              <Button Classes="primary" Content="{loc:Loc Ocr.Text.Recognize}" Command="{Binding OcrWorkbench.ExtractTextCommand}" />
+              <StackPanel IsVisible="{Binding OcrWorkbench.HasExtractedText}" Spacing="8">
+                <TextBox x:Name="ExtractedTextBox" Text="{Binding OcrWorkbench.ExtractedText, Mode=OneWay}" IsReadOnly="True"
+                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" MaxHeight="220" />
+                <Button x:Name="CopyExtractedTextButton" Classes="tool" Content="{loc:Loc Ocr.Text.Copy}" Click="CopyExtractedText" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
           <Border Classes="card" Padding="20">
             <Grid ColumnDefinitions="48,*" ColumnSpacing="14">
               <Border Width="44" Height="44" CornerRadius="10" Background="{DynamicResource StudioAccentSoftBrush}">

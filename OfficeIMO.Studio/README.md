@@ -55,6 +55,8 @@ Studio does not contain a second document engine:
 
 In the single-PDF OCR workspace, **Scan preparation** previews the source and prepared page before recognition. Draw one region for the selected page, adjust perspective corners, or enable cleanup for straightening, black and white levels, gamma, and color mode. Arrow keys move the focused region; Shift+arrow keys resize it. In corner mode, keys 1–4 select a corner clockwise from top left and arrow keys move it. Changed settings invalidate the reviewed preview. OCR uses the prepared pixels and maps recognized text back to the original visible PDF. **Save reviewed page as raster PDF** instead exports a separate pixel-only copy and omits native text and interactive content. The source digest is checked before saving.
 
+For quick extraction, choose **Recognize text to copy**, review the selected page or region, exclude unwanted words, and choose **Use selected text**. The result remains selectable in the workspace; **Copy reviewed text** sends it to the clipboard without choosing an output file or creating a PDF. Confidence and native-text overlap rules still apply.
+
 Tesseract is an explicit OCR runtime prerequisite. OfficeIMO discovers an installed executable and can provision checksum-pinned language data, but the application does not silently install or bundle a native OCR executable. Scan preparation and raster-copy export do not require it.
 
 ## Language, accessibility, and local data

@@ -117,7 +117,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<PdfSigningPreviewViewModel, Task<bool>>? reviewSigning = null,
         Func<PdfSigningPreviewViewModel, Task>? showSigningResult = null,
         Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null,
-        Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null) {
+        Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null,
+        IScanTextRecognitionService? scanTextRecognition = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -185,7 +186,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
             _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
             pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
-            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition);
         Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
         OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
             _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,

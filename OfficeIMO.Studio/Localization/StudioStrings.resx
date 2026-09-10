@@ -1804,4 +1804,15 @@
   <data name="Scan.Color.Gray" xml:space="preserve"><value>Grayscale</value></data>
   <data name="Scan.Color.BlackWhite" xml:space="preserve"><value>Black and white</value></data>
   <data name="Scan.KeyboardHint" xml:space="preserve"><value>With the source page focused, use arrow keys to move the region and Shift+arrow keys to resize it. In corner mode, choose corner 1–4 clockwise from top left, then use arrow keys.</value></data>
+  <data name="Ocr.Text.Hint" xml:space="preserve"><value>Recognize the selected scan page or region, review its words, and copy the text.</value></data>
+  <data name="Ocr.Text.Recognize" xml:space="preserve"><value>Recognize text to copy</value></data>
+  <data name="Ocr.Text.Copy" xml:space="preserve"><value>Copy reviewed text</value></data>
+  <data name="Ocr.Text.UseSelected" xml:space="preserve"><value>Use selected text</value></data>
+  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words without creating a PDF.</value></data>
+  <data name="Ocr.Text.NoClipboard" xml:space="preserve"><value>Clipboard is unavailable. Select the text to copy it manually.</value></data>
+  <data name="Ocr.Text.Copied" xml:space="preserve"><value>Reviewed text copied.</value></data>
+  <data name="Ocr.Text.Preparing" xml:space="preserve"><value>Recognizing text on the selected scan page…</value></data>
+  <data name="Ocr.Text.Ready" xml:space="preserve"><value>Reviewed text is ready to copy.</value></data>
+  <data name="Ocr.Text.Empty" xml:space="preserve"><value>No eligible words were selected.</value></data>
+  <data name="Ocr.Text.Review" xml:space="preserve"><value>Review the recognized words to extract.</value></data>
 </root>
