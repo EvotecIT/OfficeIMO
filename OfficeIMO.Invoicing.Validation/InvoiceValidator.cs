@@ -19,6 +19,7 @@ public sealed class InvoiceValidator {
         string hash = Convert.ToHexString(SHA256.HashData(snapshot));
         var diagnostics = new List<InvoiceDiagnostic>();
         InvoiceValidationStatus schema = InvoiceValidationStatus.NotRun, rules = InvoiceValidationStatus.NotRun;
+        string? runnerIdentity = null;
         InvoiceProfileDeclaration declaration;
         try {
             declaration = InvoiceProfileDeclaration.Read(snapshot);
@@ -54,7 +55,8 @@ public sealed class InvoiceValidator {
         try {
             var overrides = _bundle.SeverityOverrides(release, declaration.Syntax, credit);
             foreach (var rule in _bundle.Rules(release, declaration.Syntax)) {
-                IReadOnlyList<InvoiceDiagnostic> result = await _runner.RunAsync(snapshot, rule.Bytes, rule.Compile, overrides, cancellationToken).ConfigureAwait(false);
+                IReadOnlyList<InvoiceDiagnostic> result = await _runner.RunAsync(snapshot, rule.Bytes, rule.Compile, overrides, cancellationToken,
+                    () => runnerIdentity = _runner.Identity).ConfigureAwait(false);
                 diagnostics.AddRange(result);
             }
             rules = diagnostics.Any(d => d.Severity == InvoiceDiagnosticSeverity.Error) ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
@@ -62,6 +64,6 @@ public sealed class InvoiceValidator {
             rules = InvoiceValidationStatus.Failed; diagnostics.Add(new InvoiceDiagnostic("INV-RULES-ENGINE", exception.Message, "BusinessRules"));
         }
         return Report();
-        InvoiceValidationReport Report() => new InvoiceValidationReport(hash, snapshot.Length, release, schema, rules, diagnostics.AsReadOnly(), rules == InvoiceValidationStatus.NotRun ? null : _runner?.Identity);
+        InvoiceValidationReport Report() => new InvoiceValidationReport(hash, snapshot.Length, release, schema, rules, diagnostics.AsReadOnly(), runnerIdentity);
     }
 }
