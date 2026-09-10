@@ -23,6 +23,10 @@ public sealed class ProjectCalendar : ProjectNamedEntity {
     /// <summary>Source base-calendar flag; null preserves absence.</summary>
     public bool? IsBaseCalendar { get => _isBaseCalendar; set => Set(ref _isBaseCalendar, value, true); }
     internal int? SourceBaseCalendarUid { get; set; }
+    internal void BindLoadedBaseCalendar(ProjectCalendar? calendar) {
+        if (!Document.Loading) throw new InvalidOperationException("Bulk calendar binding is only valid during load.");
+        _baseCalendar = calendar;
+    }
     /// <summary>Explicit day-of-week declarations; absent days may be inherited.</summary>
     public ProjectCollection<ProjectWeekDay> WeekDays { get; }
     /// <summary>Date exceptions, including retained unmodeled recurrence data.</summary>

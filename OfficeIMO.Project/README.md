@@ -66,7 +66,7 @@ report.RequireNoLoss();
 project.Save("delivery-edited.xml");
 ```
 
-UIDs remain stable across edits and task moves; display IDs follow document order when a structural edit is saved. `Tasks` contains root tasks, `Children` contains immediate children, and `AllTasks` walks the whole hierarchy. Imported projects can include Microsoft's reserved UID 0 summary row.
+UIDs remain stable across edits and task moves; display IDs follow document order when a structural edit is saved. `Tasks` contains root tasks, `Children` contains immediate children, and `AllTasks` walks the whole hierarchy. Imported projects can include Microsoft's reserved UID 0 summary as a separate root metadata row. That row cannot be moved or used as an outline parent; ordinary root tasks remain parentless.
 
 Use `MoveTo`, collection removal with an explicit `ProjectRemovalMode`, and `Clone` to maintain relationship integrity. `Clone(loadOptions: ...)` accepts explicit input limits for unusually large or deep projects. Objects from another document or removed objects cannot be attached through public setters. `BeginUpdate()` batches revision changes; finish the scope before saving. The document is mutable and is not intended for concurrent mutation.
 

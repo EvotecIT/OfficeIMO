@@ -30,9 +30,7 @@ internal static partial class ProjectXmlCodec {
             document.Calendars.Items.Add(calendar); document.CalendarIndex.Add(calendar.Uid, calendar); Attach(document, calendar, element);
             ReadCalendar(calendar, element, token);
         }
-        foreach (var calendar in document.Calendars) {
-            if (calendar.SourceBaseCalendarUid is int uid && uid > 0 && document.CalendarIndex.TryGetValue(uid, out var parent)) calendar.BaseCalendar = parent;
-        }
+        BindCalendars(document, token);
         if (document.Settings.SourceCalendarUid is int projectCalendar && document.CalendarIndex.TryGetValue(projectCalendar, out var mainCalendar)) document.Calendar = mainCalendar;
         var levels = new Stack<KeyValuePair<int, ProjectTask>>();
         foreach (var element in Children(root, "Tasks", "Task")) {
@@ -46,13 +44,17 @@ internal static partial class ProjectXmlCodec {
             task.SourceOutlineLevel = (int?)element.Element(ns + "OutlineLevel");
             int level = task.SourceOutlineLevel ?? (task.Uid == 0 ? 0 : 1);
             if (level < 0 || level > options.MaxOutlineDepth) throw new InvalidDataException("Task outline exceeds MaxOutlineDepth.");
+            if ((task.Uid == 0 && level != 0) || (task.Uid != 0 && level == 0))
+                throw new InvalidDataException("Only the reserved project summary UID 0 may use outline level zero.");
             while (levels.Count != 0 && levels.Peek().Key >= level) levels.Pop();
             if (levels.Count != 0) {
                 if (level != levels.Peek().Key + 1) throw new InvalidDataException("Task outline skips a parent level.");
                 task.Parent = levels.Peek().Value;
             } else if (level > 1) throw new InvalidDataException("Task outline has no parent.");
             (task.Parent?.Children ?? document.Tasks).Items.Add(task);
-            document.TaskIndex.Add(task.Uid, task); levels.Push(new KeyValuePair<int, ProjectTask>(level, task));
+            document.TaskIndex.Add(task.Uid, task);
+            // The reserved summary is a project metadata row, not an outline parent.
+            if (task.Uid != 0) levels.Push(new KeyValuePair<int, ProjectTask>(level, task));
             task.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (task.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) task.Calendar = calendar;
             ReadRich(task.Baselines, task.CustomFields, task.TimephasedData, element, document, options, ref timephased, token);

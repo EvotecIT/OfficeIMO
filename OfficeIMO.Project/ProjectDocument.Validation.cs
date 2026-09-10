@@ -56,6 +56,7 @@ public sealed partial class ProjectDocument {
             CheckRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, location, Add, cancellationToken);
         }
         var assignmentPairs = new HashSet<long>();
+        bool warnedCostResourceImport = false;
         foreach (var assignment in Assignments) {
             cancellationToken.ThrowIfCancellationRequested();
             string location = "/Assignment[UID=" + assignment.Uid + "]";
@@ -66,8 +67,10 @@ public sealed partial class ProjectDocument {
             if (assignment.Resource == null && assignment.SourceResourceUid >= 0)
                 Add("PROJECT_RESOURCE_REFERENCE", "The assignment references a missing resource.", location);
             CheckPercent(assignment.PercentWorkComplete, location, Add);
-            if (assignment.Resource?.Type == ProjectResourceType.Cost && (assignment.Cost != null || assignment.ActualCost != null || assignment.RemainingCost != null))
+            if (!warnedCostResourceImport && assignment.Resource?.Type == ProjectResourceType.Cost && (assignment.Cost != null || assignment.ActualCost != null || assignment.RemainingCost != null)) {
                 Add("PROJECT_COST_RESOURCE_IMPORT", "Stored cost-resource amounts are retained in XML, but Microsoft Project 2024 can discard them when importing even its own XML exports. Native application amount fidelity is not qualified.", location, ProjectDiagnosticSeverity.Warning);
+                warnedCostResourceImport = true;
+            }
             CheckDateRange(assignment.Start, assignment.Finish, location, Add);
             CheckDateRange(assignment.ActualStart, assignment.ActualFinish, location + "/Actual", Add);
             CheckRich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, location, Add, cancellationToken);

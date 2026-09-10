@@ -5,6 +5,11 @@ internal static class EditCases {
     internal static int Run(string fixtures, string output) {
         if (Directory.Exists(output)) throw new IOException("Choose a new output directory.");
         Directory.CreateDirectory(output);
+        using (var project = ProjectDocument.Load(Path.Combine(fixtures, "delivery.xml"))) {
+            var task = project.Tasks.Add("New root"); task.IsManual = false; task.Duration = ProjectDuration.WorkingDays(2);
+            project.Save(Path.Combine(output, "root-task-added.xml"), new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            File.WriteAllText(Path.Combine(output, "root-task-added.expected.json"), "{\"tasks\":[{\"uid\":" + task.Uid + ",\"name\":\"New root\",\"outlineLevel\":1,\"durationMinutes\":960}]}");
+        }
         using (var project = ProjectDocument.Load(Path.Combine(fixtures, "calendars.xml"))) {
             var calendar = project.Calendars.Single(c => c.Name == "Workshop");
             var exception = calendar.Exceptions.Single();

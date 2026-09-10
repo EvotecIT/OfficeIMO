@@ -4,12 +4,14 @@ public sealed partial class ProjectDocument {
     internal ProjectTask AddTask(ProjectTaskCollection collection, string name, bool summary) {
         if (name == null) throw new ArgumentNullException(nameof(name));
         EnsureMutable(); CheckMember(collection.Parent);
+        if (collection.Parent?.Uid == 0) throw new InvalidOperationException("The reserved project summary cannot own outline tasks. Add tasks to the document root collection.");
         var task = new ProjectTask(this, NextTaskUid()) { Name = name, Parent = collection.Parent, SourceSummary = summary };
         collection.Items.Add(task); TaskIndex.Add(task.Uid, task); Touch(true, true); return task;
     }
 
     internal void MoveTask(ProjectTask task, ProjectTask? parent, int? index) {
         EnsureMutable(); CheckMember(task); CheckMember(parent);
+        if (task.Uid == 0 || parent?.Uid == 0) throw new InvalidOperationException("The reserved project summary cannot be moved or used as an outline parent.");
         for (var ancestor = parent; ancestor != null; ancestor = ancestor.Parent)
             if (ancestor == task) throw new ArgumentException("A task cannot be moved into its own subtree.");
         var source = task.Parent?.Children ?? Tasks;

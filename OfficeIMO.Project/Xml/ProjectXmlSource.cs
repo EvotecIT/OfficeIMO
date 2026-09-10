@@ -15,6 +15,7 @@ internal sealed class ProjectXmlSource {
     internal bool HasOpaqueStructures { get; set; }
     internal bool Capturing { get; set; }
     internal readonly Dictionary<ProjectCalendarException, XElement> LegacyCalendarMirrors = new Dictionary<ProjectCalendarException, XElement>();
+    internal readonly Dictionary<ProjectWorkingInterval, XElement> LegacyWorkingIntervals = new Dictionary<ProjectWorkingInterval, XElement>();
     internal IEnumerable<KeyValuePair<object, XElement>> Elements => _elements;
     internal void Attach(object model, XElement element) => _elements.Add(model, element);
     internal XElement? Element(object model) => _elements.TryGetValue(model, out var element) ? element : null;

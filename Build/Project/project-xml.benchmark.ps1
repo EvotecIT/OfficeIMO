@@ -16,6 +16,8 @@ New-BenchmarkSuite 'project-xml-lifecycle' -OutputRoot (Join-Path $repository 'a
         [pscustomobject]@{ Name = 'Deep10k'; Count = 10000; Shape = 'deep' }
         [pscustomobject]@{ Name = 'Dense10k'; Count = 10000; Shape = 'dense' }
         [pscustomobject]@{ Name = 'Timephased10k'; Count = 10000; Shape = 'timephased' }
+        [pscustomobject]@{ Name = 'CalendarChain10k'; Count = 10000; Shape = 'calendar-chain' }
+        [pscustomobject]@{ Name = 'CalendarMirrors10k'; Count = 10000; Shape = 'calendar-mirrors' }
     )
     Set-BenchmarkSetup {
         param($case, $run)

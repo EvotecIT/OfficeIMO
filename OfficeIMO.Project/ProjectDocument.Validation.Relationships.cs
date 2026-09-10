@@ -9,9 +9,10 @@ public sealed partial class ProjectDocument {
                 add("PROJECT_CALENDAR_REFERENCE", "The calendar references a missing base calendar.", location);
             var days = new HashSet<DayOfWeek>();
             foreach (var day in calendar.WeekDays) {
+                token.ThrowIfCancellationRequested();
                 if (day.Day.HasValue && (!Enum.IsDefined(typeof(DayOfWeek), day.Day.Value) || !days.Add(day.Day.Value)))
                     add("PROJECT_CALENDAR_DAY", "Explicit weekdays must be valid and unique.", location);
-                CheckIntervals(day.WorkingTimes, location, add);
+                CheckIntervals(day.WorkingTimes, location, add, token);
                 CheckDateRange(day.FromDate, day.ToDate, location + "/WeekDay/TimePeriod", add);
                 if (day.Day == null && (!day.FromDate.HasValue || !day.ToDate.HasValue))
                     add("PROJECT_CALENDAR_PERIOD", "A legacy exception day needs a complete date range.", location);
@@ -19,12 +20,13 @@ public sealed partial class ProjectDocument {
             foreach (var exception in calendar.Exceptions) {
                 token.ThrowIfCancellationRequested();
                 CheckDateRange(exception.FromDate, exception.ToDate, location + "/Exception", add);
-                CheckIntervals(exception.WorkingTimes, location + "/Exception", add);
+                CheckIntervals(exception.WorkingTimes, location + "/Exception", add, token);
             }
         }
     }
-    private static void CheckIntervals(ProjectCollection<ProjectWorkingInterval> intervals, string location, Finding add) {
+    private static void CheckIntervals(ProjectCollection<ProjectWorkingInterval> intervals, string location, Finding add, CancellationToken token) {
         foreach (var interval in intervals) {
+            token.ThrowIfCancellationRequested();
             if (!interval.From.HasValue || !interval.To.HasValue || interval.From < TimeSpan.Zero || interval.From >= TimeSpan.FromDays(1) ||
                 interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1) || interval.From == interval.To)
                 add("PROJECT_WORKING_INTERVAL", "Working intervals need distinct clock times within a day.", location);

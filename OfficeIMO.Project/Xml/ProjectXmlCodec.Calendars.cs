@@ -22,6 +22,14 @@ internal static partial class ProjectXmlCodec {
             item.ToDate = legacyPeriod?.Element(ns + "ToDate") is XElement legacyTo ? ProjectXmlValue.ParseDate(legacyTo.Value) : (DateTime?)null;
             ReadWorkingTimes(item.WorkingTimes, day, calendar.Document, token);
         }
+        var legacyByPattern = new Dictionary<string, Queue<ProjectWeekDay>>(StringComparer.Ordinal);
+        foreach (var day in calendar.WeekDays.Where(day => day.Day == null)) {
+            token.ThrowIfCancellationRequested();
+            string key = CalendarPattern(day.FromDate, day.ToDate, day.IsWorking, day.WorkingTimes, token);
+            if (!legacyByPattern.TryGetValue(key, out var queue)) { queue = new Queue<ProjectWeekDay>(); legacyByPattern.Add(key, queue); }
+            queue.Enqueue(day);
+        }
+        var mirrored = new HashSet<ProjectWeekDay>();
         foreach (var exception in Children(element, "Exceptions", "Exception")) {
             token.ThrowIfCancellationRequested();
             var item = calendar.Exceptions.Add(); Attach(calendar.Document, item, exception);
@@ -31,13 +39,18 @@ internal static partial class ProjectXmlCodec {
             item.FromDate = period?.Element(ns + "FromDate") is XElement from ? ProjectXmlValue.ParseDate(from.Value) : (DateTime?)null;
             item.ToDate = period?.Element(ns + "ToDate") is XElement to ? ProjectXmlValue.ParseDate(to.Value) : (DateTime?)null;
             ReadWorkingTimes(item.WorkingTimes, exception, calendar.Document, token);
-            var mirror = calendar.WeekDays.FirstOrDefault(day => day.Day == null && day.FromDate == item.FromDate && day.ToDate == item.ToDate &&
-                day.IsWorking == item.IsWorking && day.WorkingTimes.Select(t => (t.From, t.To)).SequenceEqual(item.WorkingTimes.Select(t => (t.From, t.To))));
-            if (mirror != null) {
+            string key = CalendarPattern(item.FromDate, item.ToDate, item.IsWorking, item.WorkingTimes, token);
+            if (legacyByPattern.TryGetValue(key, out var queue) && queue.Count != 0) {
+                var mirror = queue.Dequeue();
                 calendar.Document.Source!.LegacyCalendarMirrors.Add(item, calendar.Document.Source.Element(mirror)!);
-                calendar.WeekDays.Items.Remove(mirror);
+                for (int i = 0; i < item.WorkingTimes.Count; i++) {
+                    token.ThrowIfCancellationRequested();
+                    calendar.Document.Source.LegacyWorkingIntervals.Add(item.WorkingTimes[i], calendar.Document.Source.Element(mirror.WorkingTimes[i])!);
+                }
+                mirrored.Add(mirror);
             }
         }
+        calendar.WeekDays.Items.RemoveAll(day => mirrored.Contains(day));
     }
     private static void ReadWorkingTimes(ProjectCollection<ProjectWorkingInterval> intervals, XElement element, ProjectDocument document, CancellationToken token) {
         foreach (var time in Children(element, "WorkingTimes", "WorkingTime")) {
@@ -68,7 +81,7 @@ internal static partial class ProjectXmlCodec {
             var result = new XElement(document.Source!.LegacyCalendarMirrors[exception]);
             ProjectXmlFields.Apply(document, exception, result, "DayWorking", ProjectXmlValue.Boolean(exception.IsWorking), DayOrder);
             WritePeriod(document, exception, result, exception.FromDate, exception.ToDate, DayOrder);
-            ReplaceContainer(result, "WorkingTimes", "WorkingTime", exception.WorkingTimes.Select(t => WriteWorkingTime(t, document, token)), DayOrder);
+            ReplaceContainer(result, "WorkingTimes", "WorkingTime", exception.WorkingTimes.Select(t => WriteWorkingTime(t, document, token, legacy: true)), DayOrder);
             return result;
         })), CalendarOrder);
         ReplaceContainer(node, "Exceptions", "Exception", calendar.Exceptions.Select(exception => {
@@ -96,9 +109,10 @@ internal static partial class ProjectXmlCodec {
             ProjectXmlFields.Apply(document, model, period, "ToDate", ProjectXmlValue.Date(to), new[] { "FromDate", "ToDate" });
         }
     }
-    private static XElement WriteWorkingTime(ProjectWorkingInterval interval, ProjectDocument document, CancellationToken token) {
+    private static XElement WriteWorkingTime(ProjectWorkingInterval interval, ProjectDocument document, CancellationToken token, bool legacy = false) {
         token.ThrowIfCancellationRequested();
-        var result = NewNode(document, interval, "WorkingTime");
+        var result = legacy && document.Source != null && document.Source.LegacyWorkingIntervals.TryGetValue(interval, out var original)
+            ? new XElement(original) : NewNode(document, interval, "WorkingTime");
         var order = new[] { "FromTime", "ToTime" };
         ProjectXmlFields.Apply(document, interval, result, "FromTime", ProjectXmlValue.Clock(interval.From), order);
         ProjectXmlFields.Apply(document, interval, result, "ToTime", ProjectXmlValue.Clock(interval.To), order);

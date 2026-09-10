@@ -7,7 +7,7 @@ using System.Xml.Linq;
 internal static class ScaleWorkload {
     internal static int Run(string operation, string path, int count, string shape) {
         if (count < 1 || count > 100_000) throw new ArgumentOutOfRangeException(nameof(count));
-        if (shape != "flat" && shape != "deep" && shape != "dense" && shape != "timephased") throw new ArgumentException("Unknown workload shape.");
+        if (shape != "flat" && shape != "deep" && shape != "dense" && shape != "timephased" && shape != "calendar-chain" && shape != "calendar-mirrors") throw new ArgumentException("Unknown workload shape.");
         if (operation == "scale-create") {
             using var document = ProjectDocument.Create();
             document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
@@ -30,6 +30,19 @@ internal static class ScaleWorkload {
                 }
                 tasks.Add(task);
             }
+            if (shape == "calendar-chain") {
+                var calendars = Enumerable.Range(0, count).Select(i => document.Calendars.Add("Calendar " + i)).ToArray();
+                calendars[0].IsBaseCalendar = true;
+                for (int i = count - 1; i > 0; i--) { calendars[i].IsBaseCalendar = false; calendars[i].BaseCalendar = calendars[i - 1]; }
+            }
+            if (shape == "calendar-mirrors") {
+                for (int i = 0; i < count; i++) {
+                    var day = document.Calendar!.WeekDays.Add(); day.FromDate = new DateTime(2026, 10, 5).AddDays(i); day.ToDate = day.FromDate; day.IsWorking = true;
+                    var legacy = day.WorkingTimes.Add(); legacy.From = TimeSpan.FromHours(8); legacy.To = TimeSpan.FromHours(12);
+                    var exception = document.Calendar.Exceptions.Add(); exception.FromDate = day.FromDate; exception.ToDate = day.ToDate; exception.IsWorking = true;
+                    var modern = exception.WorkingTimes.Add(); modern.From = legacy.From; modern.To = legacy.To;
+                }
+            }
             document.Save(path, new ProjectSaveOptions { Indent = false });
             Console.WriteLine(new FileInfo(path).Length);
             return 0;
@@ -38,6 +51,10 @@ internal static class ScaleWorkload {
         using var output = new MemoryStream();
         using (var loaded = ProjectDocument.Load(path, new ProjectLoadOptions { MaxOutlineDepth = shape == "deep" ? count : 128 })) {
             loaded.Validate().ThrowIfErrors();
+            if (shape == "calendar-chain" && (loaded.Calendars.Count != count + 1 || loaded.Calendars.Last().BaseCalendar?.Uid != count))
+                throw new InvalidDataException("Calendar chain reference binding failed.");
+            if (shape == "calendar-mirrors" && (loaded.Calendar!.Exceptions.Count != count || loaded.Calendar.WeekDays.Count != 7))
+                throw new InvalidDataException("Calendar mirrors were not consolidated.");
             loaded.Tasks.GetByUid(count).Notes = "Measured scalar edit";
             loaded.Save(output, new ProjectSaveOptions { Indent = false });
         }

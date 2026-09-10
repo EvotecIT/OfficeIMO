@@ -115,15 +115,20 @@ internal static partial class ProjectXmlCodec {
             token.ThrowIfCancellationRequested();
             known.Add(pair.Value);
             foreach (string field in source.MappedFields(pair.Key)) {
+                token.ThrowIfCancellationRequested();
                 foreach (var scalar in pair.Value.Elements(pair.Value.Name.Namespace + field)) known.Add(scalar);
                 var period = pair.Value.Element(pair.Value.Name.Namespace + "TimePeriod");
                 if (period?.Element(period.Name.Namespace + field) is XElement date) known.Add(date);
             }
         }
+        var mirrorFields = new HashSet<string>("DayType DayWorking FromDate ToDate FromTime ToTime WorkingTime".Split(' '), StringComparer.Ordinal);
         foreach (var mirror in source.LegacyCalendarMirrors.Values) {
+            token.ThrowIfCancellationRequested();
             known.Add(mirror);
-            foreach (var node in mirror.Descendants().Where(e => e.Name.Namespace == mirror.Name.Namespace &&
-                new[] { "DayType", "DayWorking", "FromDate", "ToDate", "FromTime", "ToTime", "WorkingTime" }.Contains(e.Name.LocalName))) known.Add(node);
+            foreach (var node in mirror.Descendants()) {
+                token.ThrowIfCancellationRequested();
+                if (node.Name.Namespace == mirror.Name.Namespace && mirrorFields.Contains(node.Name.LocalName)) known.Add(node);
+            }
         }
         if (source.Xml.Root!.Element(source.Xml.Root.Name.Namespace + "SaveVersion") is XElement version) known.Add(version);
         var pending = new Stack<XElement>(); pending.Push(source.Xml.Root);
