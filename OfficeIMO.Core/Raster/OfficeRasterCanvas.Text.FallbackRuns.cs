@@ -84,7 +84,7 @@ public sealed partial class OfficeRasterCanvas {
                 Math.Max(0.01D, runAdvance),
                 height,
                 color,
-                fontSize,
+                size,
                 OfficeTextAlignment.Left,
                 style,
                 run.FamilyName,

@@ -10,6 +10,37 @@ public class HtmlTextExportConsistencyTests {
     private readonly ITestOutputHelper _log;
     public HtmlTextExportConsistencyTests(ITestOutputHelper log) => _log = log;
 
+    [Theory]
+    [InlineData("sup")]
+    [InlineData("sub")]
+    public void OutlinedScriptsStyleTheScaledGlyphWithoutMovingItsItalicOrStrikeGeometry(string script) {
+        static OfficeRasterImage Render(string body, double size) {
+            string font = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf")));
+            string html = "<style>@page{size:180px 100px;margin:0}body{margin:0}" +
+                "@font-face{font-family:ScriptProof;src:url(data:font/ttf;base64," + font + ")}p{margin:0;font:" +
+                size.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px/32px ScriptProof}" +
+                "span{font-style:italic;color:blue;text-decoration:line-through;text-decoration-color:red}</style><p>" + body + "</p>";
+            var converted = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+            Assert.Contains(converted.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
+            return OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfDocument.Load(converted.ToBytes()).Render.Drawing(1), 4D, OfficeColor.White);
+        }
+        OfficeRasterImage reference = Render("<span>H</span>", 24D * 0.65D);
+        OfficeRasterImage scripted = Render("<" + script + "><span>H</span></" + script + ">", 24D);
+        static int LeftBlue(OfficeRasterImage image) {
+            for (int x = 0; x < image.Width; x++)
+                for (int y = 0; y < image.Height; y++) {
+                    OfficeColor color = image.GetPixel(x, y);
+                    if (color.B > 160 && color.R < 80 && color.G < 80) return x;
+                }
+            return -1;
+        }
+        Assert.InRange(LeftBlue(scripted) - LeftBlue(reference), -1, 1);
+        var referenceInk = FindInkBottoms(reference);
+        var scriptedInk = FindInkBottoms(scripted);
+        Assert.True(referenceInk.Red >= 0 && scriptedInk.Red >= 0);
+        Assert.InRange((scriptedInk.Red - scriptedInk.Blue) - (referenceInk.Red - referenceInk.Blue), -1, 1);
+    }
+
     [Fact]
     public void RasterLetterSpacingMovesTheNextGlyphWithoutStretchingEitherGlyph() {
         static (int RedWidth, int BlueLeft, int BlueWidth) Render(double spacing) {
@@ -148,4 +179,3 @@ public class HtmlTextExportConsistencyTests {
         Assert.True(script == "sup" ? letters[1].StartBaseLine.Y > letters[0].StartBaseLine.Y : letters[1].StartBaseLine.Y < letters[0].StartBaseLine.Y);
     }
 }
-

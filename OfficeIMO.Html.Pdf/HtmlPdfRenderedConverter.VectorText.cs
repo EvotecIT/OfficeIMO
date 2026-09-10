@@ -102,21 +102,24 @@ internal static partial class HtmlPdfRenderedConverter {
         double textX = ResolveOutlinedTextX(frameWidth, resolvedAdvance, visual.Alignment);
         var lineHeights = new double[runs.Count];
         var baselineOffsets = new double[runs.Count];
+        var sourceLineHeights = new double[runs.Count];
         var sourceBaselineOffsets = new double[runs.Count];
         for (int index = 0; index < runs.Count; index++) {
             IOfficeFontProgram program = runs[index].Face.Program;
-            lineHeights[index] = program.LineHeight(baselineFontSize);
-            sourceBaselineOffsets[index] = ResolveBaselineOffset(program, baselineFontSize, lineHeights[index]);
+            sourceLineHeights[index] = program.LineHeight(baselineFontSize);
+            sourceBaselineOffsets[index] = ResolveBaselineOffset(program, baselineFontSize, sourceLineHeights[index]);
+            lineHeights[index] = program.LineHeight(visual.Font.Size);
             baselineOffsets[index] = ResolveBaselineOffset(
                 program,
                 visual.Font.Size,
-                program.LineHeight(visual.Font.Size));
+                lineHeights[index]);
         }
         // Script glyphs share the unscaled line's baseline before the authored displacement.
-        OutlinedLineMetrics lineMetrics = ResolveOutlinedLineMetrics(
-            visual.Height,
-            lineHeights,
-            sourceBaselineOffsets);
+        OutlinedLineMetrics sourceMetrics = ResolveOutlinedLineMetrics(visual.Height, sourceLineHeights, sourceBaselineOffsets);
+        OutlinedLineMetrics glyphMetrics = ResolveOutlinedLineMetrics(visual.Height, lineHeights, baselineOffsets);
+        var lineMetrics = new OutlinedLineMetrics(
+            glyphMetrics.TextTop + sourceMetrics.Baseline - glyphMetrics.Baseline,
+            sourceMetrics.Baseline, glyphMetrics.LineHeight);
         var allContours = new List<List<OfficePoint>>();
         var paintGroups = new List<OutlinedPaintContours>();
         int retainedPointCount = 0;
