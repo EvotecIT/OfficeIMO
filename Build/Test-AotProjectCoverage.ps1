@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Invoicing.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional typed invoice PDF adapter is qualified through managed .NET artifact tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Invoicing.Validation'
         classification = 'managed-cross-platform'
         evidence = 'Pinned XML schema and Java/Saxon business-rule validation are qualified through managed .NET tests; no NativeAOT contract is claimed.'

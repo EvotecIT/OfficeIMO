@@ -92,6 +92,9 @@ jobs:
       - name: Test electronic invoice contracts
         run: dotnet test OfficeIMO.Invoicing.Tests/OfficeIMO.Invoicing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
 
+      - name: Test optional invoice PDF adapter
+        run: dotnet test OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+
       - name: Build public examples
         shell: pwsh
         run: |

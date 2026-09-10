@@ -1,11 +1,11 @@
-using OfficeIMO.Invoicing;
+using OfficeIMO.Pdf;
 
-namespace OfficeIMO.Pdf;
+namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
     private static void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text)); }
     private static void DetailGroup(PdfContentBuilder content, string title, string text) =>
-        content.Flow(group => { group.H2(title); Paragraph(group, text); }, new PdfFlowOptions { KeepTogether = true });
+        content.Flow(group => { group.H2(title); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void ComposeDetails(PdfContentBuilder content) {
         var references = new List<string[]>();
         void Add(string label, string? value) { if (!string.IsNullOrWhiteSpace(value)) references.Add(new[] { label, value! }); }
@@ -13,13 +13,13 @@ public sealed partial class PdfInvoiceDocument {
         Add("Contract", _invoice.ContractReference); Add("Project", _invoice.ProjectReference);
         Add("Despatch advice", _invoice.DespatchAdviceReference); Add("Receiving advice", _invoice.ReceivingAdviceReference);
         Add("Tender", _invoice.TenderReference); Add("Accounting reference", _invoice.AccountingReference);
-        Add("Period", _invoice.Period == null ? null : Date(_invoice.Period.Start) + " to " + Date(_invoice.Period.End));
+        Add("Period", Period(_invoice.Period));
         Add("Tax point", _invoice.TaxPointDate.HasValue ? Date(_invoice.TaxPointDate) : _invoice.TaxPointDateCode);
         foreach (InvoiceReference preceding in _invoice.PrecedingInvoices) Add("Preceding invoice", preceding.Number + " " + Date(preceding.IssueDate));
         if (_invoice.TaxCurrency != null) Add("VAT in accounting currency", _invoice.TaxAmountInAccountingCurrency?.ToString("0.00", FormatCulture) + " " + _invoice.TaxCurrency);
         if (references.Count != 0) { content.H2("References"); content.Table(references, style: PlainTable()); }
         if (_invoice.Delivery != null) {
-            DetailGroup(content, "Delivery", Join(_invoice.Delivery.Name, Date(_invoice.Delivery.Date), _invoice.Delivery.LocationIdentifier?.Value,
+            DetailGroup(content, "Delivery", Join(_invoice.Delivery.Name, Date(_invoice.Delivery.Date), Identifier("Location", _invoice.Delivery.LocationIdentifier),
                 _invoice.Delivery.Address == null ? null : Address(_invoice.Delivery.Address)));
         }
         if (_invoice.Payee != null) DetailGroup(content, "Payee", Party(_invoice.Payee));

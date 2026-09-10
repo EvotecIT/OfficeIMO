@@ -1,7 +1,7 @@
 using System.Globalization;
-using OfficeIMO.Invoicing;
+using OfficeIMO.Pdf;
 
-namespace OfficeIMO.Pdf;
+namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
     private static readonly string[] PartyHeaders = { "Seller", "Buyer" };
@@ -59,23 +59,33 @@ public sealed partial class PdfInvoiceDocument {
         }, style: new PdfTableStyle {
             HeaderRowCount = 0, FontSize = 10, SpacingAfter = 14,
             Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
-        }), new PdfFlowOptions { KeepTogether = true });
+        }), new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
         ComposeDetails(content);
     }
     private static PdfTableStyle PlainTable() => new PdfTableStyle { HeaderRowCount = 0, FontSize = 9, SpacingAfter = 10, RowStripeFill = null };
     private string Money(decimal value) => value.ToString("0.00", FormatCulture) + " " + _invoice.Currency;
     private static string NumberText(decimal value) => value.ToString("0.############################", FormatCulture);
     private static string Date(DateTime? value) => value?.ToString("yyyy-MM-dd", FormatCulture) ?? string.Empty;
+    private static string? Period(InvoicePeriod? period) => period == null ? null :
+        period.Start.HasValue && period.End.HasValue ? Date(period.Start) + " to " + Date(period.End) :
+        period.Start.HasValue ? "From " + Date(period.Start) : period.End.HasValue ? "Until " + Date(period.End) : null;
+    private static string? Identifier(string label, InvoiceIdentifier? identifier) => identifier == null ? null :
+        label + (identifier.SchemeId == null ? string.Empty : " (" + identifier.SchemeId + ")") + ": " + identifier.Value;
     private static string Join(params string?[] values) => string.Join("\n", values.Where(value => !string.IsNullOrWhiteSpace(value)));
     private static string Address(InvoiceAddress address) => Join(address.Line1, address.Line2, address.Line3,
         Join(address.PostCode, address.City).Replace("\n", " "), address.Subdivision, address.CountryCode);
     private static string Party(InvoiceParty party) => Join(party.Name, party.TradingName, Address(party.Address),
         party.VatIdentifier == null ? null : "VAT: " + party.VatIdentifier,
         party.TaxRegistration == null ? null : "Tax registration: " + party.TaxRegistration,
-        party.LegalRegistration?.Value, party.LegalInformation, party.Contact?.Name, party.Contact?.Email, party.Contact?.Telephone);
+        string.Join("\n", party.Identifiers.Select(identifier => Identifier("Identifier", identifier))),
+        Identifier("Legal registration", party.LegalRegistration), Identifier("Electronic address", party.ElectronicAddress),
+        party.LegalInformation, party.Contact?.Name, party.Contact?.Email, party.Contact?.Telephone);
     private string LineText(InvoiceLine line) => Join(line.Id + ". " + line.Name, line.Description, line.Note,
         line.SellerItemIdentifier == null ? null : "Seller item: " + line.SellerItemIdentifier,
         line.BuyerItemIdentifier == null ? null : "Buyer item: " + line.BuyerItemIdentifier,
+        Period(line.Period) is string period ? "Period: " + period : null,
+        line.GrossPrice.HasValue ? "Gross price: " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
+        line.PriceDiscount.HasValue ? "Price discount: " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
         line.AllowancesAndCharges.Count == 0 ? null : string.Join("\n", line.AllowancesAndCharges.Select(item =>
             (item.IsCharge ? "Charge: " : "Allowance: ") + Money(item.Amount) + " " + (item.Reason ?? item.ReasonCode))));
 }

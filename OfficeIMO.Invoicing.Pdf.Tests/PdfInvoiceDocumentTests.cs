@@ -1,12 +1,102 @@
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Tests;
 using OfficeIMO.Pdf;
-using OfficeIMO.Reader;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
-namespace OfficeIMO.Tests.Pdf;
+namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
+    [Theory]
+    [InlineData(InvoiceProfile.Minimum)]
+    [InlineData(InvoiceProfile.BasicWithoutLines)]
+    [InlineData(InvoiceProfile.Basic)]
+    [InlineData(InvoiceProfile.Extended)]
+    [InlineData(InvoiceProfile.ExtendedCtcFr)]
+    [InlineData(InvoiceProfile.PeppolBis)]
+    [InlineData((InvoiceProfile)999)]
+    public void UnsupportedAuthoringProfilesAreRejected(InvoiceProfile profile) =>
+        Assert.Throws<NotSupportedException>(() => PdfInvoiceDocument.Create(InvoiceFixture.Create(), profile));
+
+    [Theory]
+    [InlineData("Delivery")]
+    [InlineData("Payee")]
+    [InlineData("TaxRepresentative")]
+    public void LongDetailGroupsFlowAcrossPages(string group) {
+        Invoice invoice = InvoiceFixture.Rich();
+        string name = string.Join(" ", Enumerable.Repeat("Long business name for pagination", 250)) + " FINAL-DETAIL-MARKER";
+        if (group == "Delivery") invoice.Delivery!.Name = name;
+        else if (group == "Payee") invoice.Payee!.Name = name;
+        else invoice.TaxRepresentative!.Name = name;
+        byte[] pdf = PdfInvoiceDocument.Create(invoice).ToPdfBytes(Options());
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        Assert.True(document.Pages.Count > 1);
+        Assert.Contains("FINAL-DETAIL-MARKER", document.ExtractText(), StringComparison.Ordinal);
+        WriteEvidence("long-" + group, pdf);
+    }
+
+    [Theory]
+    [InlineData(true, false, "From 2026-09-01")]
+    [InlineData(false, true, "Until 2026-09-10")]
+    [InlineData(true, true, "2026-09-01 to 2026-09-10")]
+    public void PeriodsShowAvailableBoundaries(bool start, bool end, string expected) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Period = new InvoicePeriod { Start = start ? new DateTime(2026, 9, 1) : null, End = end ? new DateTime(2026, 9, 10) : null };
+        invoice.Lines[0].Period = invoice.Period;
+        byte[] pdf = PdfInvoiceDocument.Create(invoice).ToPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains(expected, text, StringComparison.Ordinal);
+        Assert.Contains("Period: " + expected, text, StringComparison.Ordinal);
+        WriteEvidence(start ? end ? "period-range" : "period-start" : "period-end", pdf);
+    }
+
+    [Fact]
+    public void BusinessIdentifiersAndPriceDiscountRemainVisible() {
+        Invoice invoice = InvoiceFixture.Rich();
+        invoice.Seller.Identifiers[0].SchemeId = "0088";
+        invoice.Buyer.Identifiers.Add(new InvoiceIdentifier("buyer-id", "0088"));
+        invoice.Seller.LegalRegistration!.SchemeId = "0002";
+        invoice.Payee!.Identifiers[0].SchemeId = "0088";
+        invoice.Payee.LegalRegistration!.SchemeId = "0002";
+        invoice.Delivery!.LocationIdentifier!.SchemeId = "0088";
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        byte[] xml = snapshot.ToXmlBytes();
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        foreach (string expected in new[] { "Identifier (0088): seller-1", "Identifier (0088): buyer-id",
+            "Identifier (0088): payee-1", "Legal registration (0002): HRB 12345", "Legal registration (0002): payee-register",
+            "Electronic address (EM):", "seller@example.test", "buyer@example.test", "Location (0088): location-1",
+            "Gross price: 110 EUR / 1 C62", "Price discount: 10 EUR / 1 C62" })
+            Assert.Contains(expected, text, StringComparison.Ordinal);
+        Assert.Equal(xml, Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        WriteEvidence("identifiers-and-prices", pdf);
+    }
+
+    private static void WriteEvidence(string name, byte[] pdf) {
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        Directory.CreateDirectory(output!);
+        File.WriteAllBytes(Path.Combine(output!, name + ".pdf"), pdf);
+    }
+
+    [Fact]
+    public void FractionalUnitPricesRetainTheirPrecision() {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoiceLine line = invoice.Lines[0];
+        line.Quantity = 1000m;
+        line.GrossPrice = 0.004m;
+        line.PriceDiscount = 0.001m;
+        line.UnitPrice = 0.003m;
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Gross price: 0.004 EUR / 1 C62", text, StringComparison.Ordinal);
+        Assert.Contains("Price discount: 0.001 EUR / 1 C62", text, StringComparison.Ordinal);
+        Assert.Contains("0.003 / 1 C62", text, StringComparison.Ordinal);
+        Assert.Contains("3.57 EUR", text, StringComparison.Ordinal);
+        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        WriteEvidence("fractional-prices", pdf);
+    }
     [Theory]
     [InlineData("396")]
     [InlineData("384")]
@@ -82,7 +172,11 @@ public class PdfInvoiceDocumentTests {
             File.WriteAllBytes(Path.Combine(output!, name + ".xml"), xml);
         }
         foreach (PdfExternalValidator validator in new[] { PdfExternalValidator.VeraPdf(), PdfExternalValidator.Mustang() }) {
-            if (!validator.IsAvailable) { PdfExternalValidator.SkipUnlessRequired(validator); continue; }
+            if (!validator.IsAvailable) {
+                if (!string.IsNullOrWhiteSpace(output)) File.WriteAllText(Path.Combine(output!, validator.Name + "-" + name + ".txt"), validator.Name + " was not configured.");
+                PdfExternalValidator.SkipUnlessRequired(validator);
+                continue;
+            }
             PdfExternalProcessResult result = validator.Run(pdf, name + ".pdf");
             if (!string.IsNullOrWhiteSpace(output)) File.WriteAllText(Path.Combine(output!, validator.Name + "-" + name + ".txt"), result.GetDiagnosticText());
             Assert.True(result.ExitCode == 0, result.GetDiagnosticText());

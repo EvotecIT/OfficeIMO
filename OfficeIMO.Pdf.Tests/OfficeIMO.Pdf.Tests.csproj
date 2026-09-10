@@ -13,7 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Pdf/Fixtures/InvoiceFixture.cs" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="PdfPig" Version="0.1.14" />

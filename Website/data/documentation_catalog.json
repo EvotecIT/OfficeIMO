@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 230,
-    "productionComponentCount": 123,
-    "testProjectCount": 45,
+    "projectCount": 232,
+    "productionComponentCount": 124,
+    "testProjectCount": 46,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 30,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42906
+    "conceptualWordCount": 42938
   },
   "categories": [
     {
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 21
+      "componentCount": 22
     },
     {
       "name": "Rendering surfaces",
@@ -548,10 +548,23 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
       "sourceFileCount": 33,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.Pdf",
+      "packageId": "OfficeIMO.Invoicing.Pdf",
+      "category": "Publishing and conversion",
+      "description": "Optional PDF presentation and hybrid CII invoice generation for OfficeIMO.Invoicing.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf"
     },
     {
       "name": "OfficeIMO.Invoicing.Validation",
@@ -937,8 +950,8 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1170,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 1167,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"

@@ -1,6 +1,6 @@
-using OfficeIMO.Invoicing;
+using OfficeIMO.Pdf;
 
-namespace OfficeIMO.Pdf;
+namespace OfficeIMO.Invoicing.Pdf;
 
 /// <summary>Captures a typed invoice once for visible PDF content and its embedded CII attachment.</summary>
 public sealed partial class PdfInvoiceDocument {

@@ -267,7 +267,15 @@ Business-rule execution uses an explicitly configured local Java/Saxon runtime.
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ `OfficeIMO.Core` and `OfficeIMO.Invoicing`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ only `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+
+#### [OfficeIMO.Invoicing.Pdf](OfficeIMO.Invoicing.Pdf/README.md)
+
+- [x] Capture a typed invoice once for visible PDF content and its embedded CII XML
+- [x] Render invoices and credit notes with line items, VAT breakdowns, payment details, identifiers, and totals
+- [x] Keep later model edits separate from an existing snapshot
+
+_Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this optional adapter only when combining the XML invoice engine with PDF generation.
 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 

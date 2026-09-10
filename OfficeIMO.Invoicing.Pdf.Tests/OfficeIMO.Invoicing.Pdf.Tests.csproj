@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj" />
+    <ProjectReference Include="../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj" />
+    <ProjectReference Include="../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
+    <Compile Include="../OfficeIMO.Pdf.Tests/Pdf/PdfComplianceTestFonts.cs" Link="Shared/PdfComplianceTestFonts.cs" />
+    <Compile Include="../OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs" Link="Shared/PdfExternalValidator.cs" />
+  </ItemGroup>
+</Project>

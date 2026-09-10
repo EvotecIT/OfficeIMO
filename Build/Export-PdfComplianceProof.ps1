@@ -51,6 +51,11 @@ function Get-ValidatorProfileFromFileName {
         return 'Factur-X'
     }
 
+    if ($FileName -match '^(verapdf|mustang)-(simple-invoice|invoice|credit-note|multipage)\.txt$') {
+        if ($Matches[1] -eq 'verapdf') { return 'PDF/A-3b' }
+        return 'Factur-X EN16931'
+    }
+
     if ($FileName -like '*zugferd*') {
         return 'ZUGFeRD'
     }
@@ -221,6 +226,9 @@ function Get-ArtifactFileFromDiagnosticFileName {
         [string] $DiagnosticFileName
     )
 
+    if ($DiagnosticFileName -match '^(verapdf|mustang)-(simple-invoice|invoice|credit-note|multipage)\.txt$') {
+        return $Matches[2] + '.pdf'
+    }
     switch ($DiagnosticFileName) {
         'verapdf-pdfa2b.txt' { return 'officeimo-pdfa2b.pdf' }
         'verapdf-pdfa3b.txt' { return 'officeimo-pdfa3b.pdf' }
@@ -591,6 +599,8 @@ $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
+$invoiceSnapshotNames = @('simple-invoice', 'invoice', 'credit-note', 'multipage')
+$generatedProofXmlFileNames = @($invoiceSnapshotNames | ForEach-Object { "$_`.xml" })
 $generatedProofPdfFileNames = @(
     'officeimo-pdfa2b.pdf',
     'officeimo-pdfa3b.pdf',
@@ -599,7 +609,7 @@ $generatedProofPdfFileNames = @(
     'officeimo-pdfua1.pdf',
     'officeimo-pdfx1a2003.pdf',
     'officeimo-pdfx4.pdf'
-)
+) + @($invoiceSnapshotNames | ForEach-Object { "$_`.pdf" })
 
 $generatedProofDiagnosticFileNames = @(
     'verapdf-pdfa2b.txt',
@@ -611,7 +621,7 @@ $generatedProofDiagnosticFileNames = @(
     'pdfua-pdfua1.txt',
     'pdfx-pdfx1a2003.txt',
     'pdfx-pdfx4.txt'
-)
+) + @($invoiceSnapshotNames | ForEach-Object { "veraPDF-$_`.txt"; "Mustang-$_`.txt" })
 
 $legacyGeneratedProofFileNames = @(
     'officeimo-pdfa3-groundwork.pdf',
@@ -625,6 +635,7 @@ $legacyGeneratedProofFileNames = @(
 
 $generatedProofFileNames = @(
     $generatedProofPdfFileNames
+    $generatedProofXmlFileNames
     $generatedProofDiagnosticFileNames
     $legacyGeneratedProofFileNames
     'officeimo-profile-proof-contract.json',
@@ -640,6 +651,7 @@ foreach ($fileName in $generatedProofFileNames) {
 }
 
 $previousProofOutput = $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT
+$previousInvoiceOutput = $env:OFFICEIMO_INVOICE_PDF_EVIDENCE
 $previousRequireValidators = $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS
 $previousVeraPdfExecutable = $env:OFFICEIMO_VERAPDF
 $previousVeraPdfPath = $env:OFFICEIMO_VERAPDF_PATH
@@ -678,6 +690,7 @@ $resolvedPdfXValidatorPath = if (-not [string]::IsNullOrWhiteSpace($PdfXValidato
 $testExitCode = 0
 try {
     $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT = $resolvedOutputPath
+    $env:OFFICEIMO_INVOICE_PDF_EVIDENCE = $null
     if ($RequireValidators) {
         $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = '1'
     } else {
@@ -736,7 +749,7 @@ try {
         (Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj'),
         '--configuration', $Configuration,
         '--framework', $Framework,
-        '--filter', 'FullyQualifiedName~PdfComplianceGateTests|FullyQualifiedName~PdfInvoiceDocumentTests',
+        '--filter', 'FullyQualifiedName~PdfComplianceGateTests',
         '--verbosity', 'minimal',
         '-p:WarningLevel=0'
     )
@@ -749,11 +762,17 @@ try {
     try {
         & dotnet @testArgs
         $testExitCode = $LASTEXITCODE
+        # The gate suite temporarily changes process environment variables. Keep adapter artifacts in a separate test process.
+        $testArgs[1] = Join-Path $repoRoot 'OfficeIMO.Invoicing.Pdf.Tests/OfficeIMO.Invoicing.Pdf.Tests.csproj'
+        $testArgs[7] = 'FullyQualifiedName~VisiblePdfAndAttachmentUseTheCapturedInvoice'
+        & dotnet @testArgs
+        if ($LASTEXITCODE -ne 0) { $testExitCode = $LASTEXITCODE }
     } finally {
         Pop-Location
     }
 } finally {
     $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT = $previousProofOutput
+    $env:OFFICEIMO_INVOICE_PDF_EVIDENCE = $previousInvoiceOutput
     $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = $previousRequireValidators
     $env:OFFICEIMO_VERAPDF = $previousVeraPdfExecutable
     $env:OFFICEIMO_VERAPDF_PATH = $previousVeraPdfPath
@@ -939,6 +958,40 @@ if ($diagnosticFiles.Count -eq 0) {
     }
 }
 
+$invoiceSnapshotRows = @(
+    foreach ($name in $invoiceSnapshotNames) {
+        $pdf = @($pdfRows | Where-Object { $_.file -eq "$name.pdf" }) | Select-Object -First 1
+        $xmlPath = Join-Path $resolvedOutputPath "$name.xml"
+        if (-not $pdf -or -not (Test-Path -LiteralPath $xmlPath)) { throw "Missing invoice snapshot pair $name." }
+        $xml = Get-Item -LiteralPath $xmlPath
+        $validators = @($diagnosticRows | Where-Object { $_.artifactFile -eq "$name.pdf" })
+        [ordered]@{
+            name = $name
+            profile = 'Factur-X EN16931'
+            pdfFile = $pdf.file
+            pdfSha256 = $pdf.sha256
+            pdfSizeBytes = $pdf.sizeBytes
+            xmlFile = $xml.Name
+            xmlSha256 = (Get-FileHash -LiteralPath $xml.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            xmlSizeBytes = $xml.Length
+            validatorDiagnosticFiles = @($validators | ForEach-Object { $_.file })
+            canClaimConformance = $validators.Count -eq 2 -and @($validators | Where-Object {
+                $_.status -ne 'Passed' -or $_.artifactSha256 -ne $pdf.sha256 -or $_.artifactSizeBytes -ne $pdf.sizeBytes
+            }).Count -eq 0
+        }
+    }
+)
+$lines.Add('')
+$lines.Add('## Typed Invoice Snapshots')
+$lines.Add('')
+$lines.Add('Each pair is rendered from one captured invoice; the test verifies that the XML file equals the embedded attachment byte for byte.')
+$lines.Add('')
+$lines.Add('| PDF | XML | XML SHA-256 | Claim |')
+$lines.Add('| --- | --- | --- | --- |')
+foreach ($row in $invoiceSnapshotRows) {
+    $lines.Add("| [$($row.pdfFile)]($($row.pdfFile)) | [$($row.xmlFile)]($($row.xmlFile)) | $($row.xmlSha256) | $($row.canClaimConformance) |")
+}
+
 $profileRows = @(Get-ProofProfileRows -PdfRows $pdfRows -DiagnosticRows $diagnosticRows)
 Update-ProductProofContractWithDiagnostics -ProductProofContract $productProofContract -DiagnosticRows $diagnosticRows -PdfRows $pdfRows
 $productProofContract | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $productProofContractPath -Encoding UTF8
@@ -1024,6 +1077,7 @@ $proof = [ordered] @{
         externalValidationBoundToExactArtifact = $true
     }
     pdfFixtures = @($pdfRows)
+    invoiceSnapshots = @($invoiceSnapshotRows)
     validatorDiagnostics = @($diagnosticRows)
     profileProofs = @($profileRows)
     productProofContract = $productProofContract

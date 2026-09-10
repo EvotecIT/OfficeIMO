@@ -131,3 +131,5 @@ Peppol BIS does not define Factur-X XMP metadata.
 
 The French profile identifier follows [AFNOR XP Z12-012](https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/specification_externes_b2b/afnor/norme-afnor-factures.pdf).
 Recognition does not establish French business-rule coverage.
+
+For visible hybrid PDFs, add the optional [OfficeIMO.Invoicing.Pdf adapter](../OfficeIMO.Invoicing.Pdf/README.md). The XML engine remains independent of PDF generation.
