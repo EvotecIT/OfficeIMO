@@ -11,6 +11,25 @@ public sealed class InvoiceStandardsTheoryAttribute : TheoryAttribute {
 }
 public class InvoiceStandardsTests {
     [InvoiceStandardsTheory]
+    [InlineData(InvoiceSyntax.Cii)]
+    [InlineData(InvoiceSyntax.Ubl)]
+    public async Task ExplicitlyLossyAccountingBreakdownRewritePassesAuthorityRules(InvoiceSyntax target) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.TaxCurrency = "USD";
+        invoice.TaxAmountInAccountingCurrency = 25m;
+        XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        XElement[] totals = document.Root!.Elements().Where(e => e.Name.LocalName == "TaxTotal").ToArray();
+        XElement subtotal = new XElement(totals[0].Elements().Single(e => e.Name.LocalName == "TaxSubtotal"));
+        foreach (XAttribute currency in subtotal.Descendants().Attributes("currencyID")) currency.Value = "USD";
+        totals[1].Add(subtotal);
+        InvoiceReadResult read = InvoiceParser.Read(Encoding.UTF8.GetBytes(document.ToString()));
+        Assert.False(read.HasCompleteMapping);
+        byte[] rewritten = read.Write(new InvoiceXmlOptions(target), allowUnmappedDataLoss: true);
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(rewritten, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.True(report.IsValid, Report(report));
+    }
+
+    [InvoiceStandardsTheory]
     [InlineData(InvoiceSyntax.Cii, "ftp://example.test/document.pdf")]
     [InlineData(InvoiceSyntax.Ubl, "ftp://example.test/document.pdf")]
     [InlineData(InvoiceSyntax.Cii, "urn:uuid:00112233-4455-6677-8899-aabbccddeeff")]

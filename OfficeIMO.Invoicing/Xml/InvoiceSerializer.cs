@@ -53,6 +53,7 @@ public static partial class InvoiceSerializer {
             if (invoice.TypeCode == "381" && invoice.ProjectReference != null) Unsupported("ProjectReference", "UBL credit note project reference mapping is not supported.");
             if (string.IsNullOrWhiteSpace(invoice.PurchaseOrderReference) && invoice.SalesOrderReference != null) Unsupported("SalesOrderReference", "UBL requires a purchase order reference alongside a sales order reference.");
             if (invoice.Seller.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Seller.Identifiers", "Use Payment.CreditorIdentifier for the reserved SEPA creditor identifier.");
+            if (invoice.Buyer.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Buyer.Identifiers", "The reserved SEPA creditor identifier belongs to the seller payment details, not the buyer.");
         }
         if (options.Profile != InvoiceProfile.En16931 && string.IsNullOrWhiteSpace(invoice.BusinessProcessId))
             Unsupported("BusinessProcessId", "XRechnung/Peppol output requires an explicit business process identifier.");

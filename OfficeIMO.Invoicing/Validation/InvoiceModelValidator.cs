@@ -27,7 +27,10 @@ public static partial class InvoiceModelValidator {
         check.Party(invoice.Buyer, "Buyer");
         if (invoice.Payee != null) { check.Required(invoice.Payee.Name, "Payee.Name"); check.PartyIdentifiers(invoice.Payee, "Payee"); }
         if (invoice.ObjectIdentifier != null) check.Identifier(invoice.ObjectIdentifier, "ObjectIdentifier", false);
-        if (invoice.TaxRepresentative != null) check.Party(invoice.TaxRepresentative, "TaxRepresentative");
+        if (invoice.TaxRepresentative != null) {
+            check.Party(invoice.TaxRepresentative, "TaxRepresentative");
+            check.Required(invoice.TaxRepresentative.VatIdentifier, "TaxRepresentative.VatIdentifier");
+        }
         check.Period(invoice.Period, "Period");
         check.OptionalDate(invoice.DueDate, "DueDate");
         check.OptionalDate(invoice.TaxPointDate, "TaxPointDate");
