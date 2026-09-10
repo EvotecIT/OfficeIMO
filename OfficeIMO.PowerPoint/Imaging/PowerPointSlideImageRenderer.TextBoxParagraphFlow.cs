@@ -24,14 +24,14 @@ namespace OfficeIMO.PowerPoint {
             bool flipVertical,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme,
-            List<OfficeImageExportDiagnostic> diagnostics, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            List<OfficeImageExportDiagnostic> diagnostics, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily) {
             List<PowerPointParagraph> paragraphs = GetVisibleTextBoxParagraphs(textBox);
             if (!ShouldRenderTextBoxParagraphFlow(paragraphs)) {
                 return false;
             }
 
             var numberingState = new Dictionary<int, int>();
-            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme, measure);
+            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme, measure, defaultFontFamily);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = top + marginTop + ResolveTextBoxVerticalOffset(textBox.TextVerticalAlignment, textHeight, flowHeight);
             double contentBottom = top + marginTop + textHeight;
@@ -39,11 +39,13 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
-                if (currentY + paragraph.Height > contentBottom) {
+                double visibleHeight = Math.Min(paragraph.Height, Math.Max(0D, contentBottom - currentY));
+                bool clipped = visibleHeight < paragraph.Height;
+                if (clipped) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                        "POWERPOINT_TEXT_OVERFLOW", "Skipped PowerPoint text box paragraph content because it does not fit within the text frame.", DescribeShape(textBox), OfficeConversionLossKind.Omission));
-                    return true;
+                        "POWERPOINT_TEXT_OVERFLOW", "Clipped PowerPoint paragraph content at the text frame boundary.", DescribeShape(textBox), OfficeConversionLossKind.Omission));
                 }
+                if (visibleHeight <= 0D) return true;
 
                 if (paragraph.RichRuns.Count > 0) {
                     drawing.AddRichText(
@@ -51,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
                         left + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Alignment,
                         paragraph.LineHeight,
                         rotationDegrees: rotation,
@@ -67,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
                         left + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Font,
                         paragraph.Color,
                         paragraph.Alignment,
@@ -81,6 +83,7 @@ namespace OfficeIMO.PowerPoint {
                         paragraphIndent: paragraph.Indent);
                 }
 
+                if (clipped) return true;
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
 
@@ -107,16 +110,16 @@ namespace OfficeIMO.PowerPoint {
             Dictionary<int, int> numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
                 string? marker = CreateParagraphMarker(paragraph, numberingState);
                 OfficeTextParagraphIndent indent = CreateParagraphIndent(paragraph, mapping);
                 OfficeTextAlignment alignment = MapTextAlignment(paragraph.Alignment);
-                List<OfficeRichTextRun> richRuns = CreateParagraphRichTextRuns(textBox, paragraph, marker, colorScheme, mapping);
+                List<OfficeRichTextRun> richRuns = CreateParagraphRichTextRuns(textBox, paragraph, marker, colorScheme, mapping, defaultFontFamily);
                 double maxFontSize = richRuns.Count == 0
-                    ? ResolveParagraphFont(textBox, paragraph, mapping).Size
+                    ? ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily).Size
                     : richRuns.Max(run => run.FontSize);
                 double lineHeight = ResolveParagraphLineHeight(paragraph, maxFontSize, mapping);
                 double height;
@@ -125,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
                     results.Add(PowerPointParagraphDrawing.FromRichText(paragraph, richRuns, alignment, indent, lineHeight, height, mapping));
                 } else {
                     string text = CreateParagraphPlainText(paragraph, marker);
-                    OfficeFontInfo font = richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : ResolveParagraphFont(textBox, paragraph, mapping);
+                    OfficeFontInfo font = richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily);
                     height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, measure);
                     results.Add(PowerPointParagraphDrawing.FromText(paragraph, text, font, ResolveParagraphTextColor(textBox, paragraph, colorScheme), alignment, indent, lineHeight, height, mapping));
                 }
@@ -142,18 +145,18 @@ namespace OfficeIMO.PowerPoint {
             PowerPointParagraph paragraph,
             string? marker,
             A.ColorScheme? colorScheme,
-            PowerPointShapeBoundsMapping mapping) {
+            PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
             PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             var richRuns = new List<OfficeRichTextRun>();
             if (!string.IsNullOrEmpty(marker)) {
-                richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true));
+                richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true, defaultFontFamily: defaultFontFamily));
             }
 
             for (int i = 0; i < inlineNodes.Count; i++) {
                 PowerPointParagraphInline inline = inlineNodes[i];
                 if (!string.IsNullOrEmpty(inline.Text)) {
-                    richRuns.AddRange(CreateEffectiveTextRuns(inline.Text, inline.Run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.AddRange(CreateEffectiveTextRuns(inline.Text, inline.Run, textBox, paragraph, colorScheme, mapping, defaultFontFamily));
                 }
             }
 
@@ -166,7 +169,7 @@ namespace OfficeIMO.PowerPoint {
             return string.IsNullOrEmpty(marker) ? text : marker + text;
         }
 
-        private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
+        private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
                 ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;
@@ -186,7 +189,7 @@ namespace OfficeIMO.PowerPoint {
                 style |= OfficeFontStyle.Strikethrough;
             }
 
-            return new OfficeFontInfo(firstRun?.FontName ?? textBox.FontName ?? "Calibri", mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18), style);
+            return new OfficeFontInfo(firstRun?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily), mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18), style);
         }
 
         private static OfficeColor ResolveParagraphTextColor(PowerPointTextBox textBox, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {

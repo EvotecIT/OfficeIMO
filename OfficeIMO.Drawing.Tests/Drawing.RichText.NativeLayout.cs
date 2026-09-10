@@ -6,6 +6,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
+    [Fact]
+    public void UnboundedHeightMeasurementPreservesAllWrappedLines() {
+        var layout = OfficeTextLayoutEngine.LayoutTextBlock("first second third", 12, 40,
+            double.MaxValue, 1.2D, 6, (text, size) => (text?.Length ?? 0) * 6D, wrap: true);
+        Assert.Equal(new[] { "first", "second", "third" }, layout.Lines.Select(line => line.Text));
+        Assert.Equal(45D, layout.Height);
+        Assert.False(layout.Clipped);
+    }
+
     [Theory]
     [InlineData("a b", 25D)]
     [InlineData("a b c", 45D)]

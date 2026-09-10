@@ -33,6 +33,8 @@ public static partial class PowerPointPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfOptions pdfOptions = CreatePdfOptions(presentation, options);
         options.NativeTextMeasure = PdfCore.PdfWriter.CreateDrawingTextMeasure(pdfOptions);
+        options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) ? null
+            : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
@@ -555,7 +557,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, width, height);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         OfficeDrawing drawing = PptCore.PowerPointSlideImageRenderer.CreateTextBoxDrawing(
-            textBox, width, height, diagnostics, options.NativeTextMeasure!);
+            textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily);
         foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) {
             string code = diagnostic.Code switch {
                 "POWERPOINT_TEXT_OVERFLOW" => "text-box-overflow",

@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
             return GetOpenXmlShapeProperties(shape)?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText;
         }
 
-        private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null) {
+        private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null, string? defaultFontFamily = null) {
             string text = ResolvePowerPointDisplayText(textBox);
             bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
             if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
@@ -392,6 +392,7 @@ namespace OfficeIMO.PowerPoint {
             double rotationCenterY = top + (height / 2D);
             bool flipHorizontal = textBox.HorizontalFlip == true;
             bool flipVertical = textBox.VerticalFlip == true;
+            measure ??= OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText;
             if (TryAddTextBoxParagraphFlow(
                 drawing,
                 textBox,
@@ -410,11 +411,11 @@ namespace OfficeIMO.PowerPoint {
                 flipVertical,
                 mapping,
                 colorScheme,
-                diagnostics, measure ?? OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText)) {
+                diagnostics, measure, defaultFontFamily)) {
                 return;
             }
 
-            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(textBox, colorScheme, mapping);
+            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(textBox, colorScheme, mapping, defaultFontFamily);
             if (ShouldRenderRichText(richRuns)) {
                 drawing.AddRichText(
                     richRuns,
@@ -441,7 +442,7 @@ namespace OfficeIMO.PowerPoint {
                 top,
                 width,
                 height,
-                richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : CreateFont(textBox, mapping),
+                richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : CreateFont(textBox, mapping, defaultFontFamily),
                 richRuns.Count == 1 ? richRuns[0].Color : ResolveTextBoxColor(textBox, colorScheme),
                 alignment,
                 rotationDegrees: rotation,
@@ -757,7 +758,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static OfficeFontInfo CreateFont(PowerPointTextBox textBox, PowerPointShapeBoundsMapping mapping) {
+        private static OfficeFontInfo CreateFont(PowerPointTextBox textBox, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             PowerPointTextRun? firstRun = textBox.Paragraphs
                 .SelectMany(paragraph => paragraph.InlineNodes)
                 .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
@@ -771,7 +772,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return new OfficeFontInfo(
-                firstRun?.FontName ?? textBox.FontName ?? "Calibri",
+                firstRun?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18),
                 style);
         }
@@ -793,7 +794,7 @@ namespace OfficeIMO.PowerPoint {
                 : OfficeTextParagraphIndent.Empty;
         }
 
-        private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+        private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
             var richRuns = new List<OfficeRichTextRun>();
             var numberingState = new Dictionary<int, int>();
@@ -808,11 +809,11 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(Environment.NewLine, firstRun, textBox, paragraph, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(Environment.NewLine, firstRun, textBox, paragraph, colorScheme, mapping, defaultFontFamily: defaultFontFamily));
                 }
 
                 if (!string.IsNullOrEmpty(marker)) {
-                    richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true));
+                    richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true, defaultFontFamily: defaultFontFamily));
                 }
 
                 for (int inlineIndex = 0; inlineIndex < inlineNodes.Count; inlineIndex++) {
@@ -822,7 +823,7 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    richRuns.AddRange(CreateEffectiveTextRuns(runText, inline.Run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.AddRange(CreateEffectiveTextRuns(runText, inline.Run, textBox, paragraph, colorScheme, mapping, defaultFontFamily));
                 }
             }
 
@@ -847,7 +848,7 @@ namespace OfficeIMO.PowerPoint {
                 numbered.Type?.Value.ToOfficeEnum()) + " ";
         }
 
-        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
+        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
@@ -857,7 +858,7 @@ namespace OfficeIMO.PowerPoint {
                 run?.Bold == true,
                 run?.Italic == true,
                 run?.Underline == true,
-                markerRun ? paragraph?.BulletFontName ?? run?.FontName ?? textBox.FontName ?? "Calibri" : run?.FontName ?? textBox.FontName ?? "Calibri",
+                (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 run?.Strikethrough == true,
                 backgroundColor,
                 MapUnderlineStyle(run?.UnderlineStyle),

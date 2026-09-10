@@ -44,10 +44,12 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
-                if (currentY + paragraph.Height > contentBottom) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, table, "Skipped PowerPoint table cell paragraph content because it does not fit within the cell text frame.");
-                    return true;
+                double visibleHeight = Math.Min(paragraph.Height, Math.Max(0D, contentBottom - currentY));
+                bool clipped = visibleHeight < paragraph.Height;
+                if (clipped) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, table, "Clipped PowerPoint table cell paragraph content at the cell text frame boundary.");
                 }
+                if (visibleHeight <= 0D) return true;
 
                 if (paragraph.RichRuns.Count > 0) {
                     drawing.AddRichText(
@@ -55,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
                         cellLeft + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Alignment,
                         paragraph.LineHeight,
                         rotationDegrees: rotation,
@@ -71,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
                         cellLeft + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Font,
                         paragraph.Color,
                         paragraph.Alignment,
@@ -85,6 +87,7 @@ namespace OfficeIMO.PowerPoint {
                         paragraphIndent: paragraph.Indent);
                 }
 
+                if (clipped) return true;
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
 

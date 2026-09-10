@@ -670,7 +670,8 @@ public static partial class OfficeTextLayoutEngine {
         double resolvedLineHeight = NormalizePositive(lineHeight, resolvedFontSize);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
-        int maxLines = Math.Max(1, (int)Math.Floor(height / resolvedLineHeight));
+        // Unbounded measurement may pass double.MaxValue; cap before converting to an integer.
+        int maxLines = Math.Max(1, (int)Math.Min(lines.Count, Math.Floor(height / resolvedLineHeight)));
         bool clipped = alreadyClipped;
         var visible = new List<OfficeTextLine>(Math.Min(lines.Count, maxLines));
         int count = Math.Min(lines.Count, maxLines);
