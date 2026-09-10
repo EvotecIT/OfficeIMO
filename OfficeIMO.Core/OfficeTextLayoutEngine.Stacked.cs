@@ -46,7 +46,8 @@ public static partial class OfficeTextLayoutEngine {
 
         double lineHeight = Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor));
         List<OfficeTextLine> lines = CreateStackedLines(elements, resolvedFontSize, measure);
-        return ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
+        OfficeTextBlockLayout layout = ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
+        return shrinkToFit ? OfficeDrawingTextLayout.IncludePaintedHeight(layout, height) : layout;
     }
 
     /// <summary>
@@ -126,7 +127,8 @@ public static partial class OfficeTextLayoutEngine {
         double maxFontSize = ResolveMaxRichTextEffectiveFontSize(elements);
         double resolvedLineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure, resolvedLineHeight);
-        return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
+        OfficeRichTextBlockLayout layout = ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
+        return shrinkToFit ? OfficeDrawingTextLayout.IncludePaintedHeight(layout, height) : layout;
     }
 
     private static double FitStackedFontSize(
@@ -167,13 +169,15 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeightFactor,
         Func<string?, double, double> measure) {
         double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
-        double height = elements.Count * lineHeight;
+        var layout = new OfficeTextBlockLayout(CreateStackedLines(elements, fontSize, measure), fontSize,
+            lineHeight, 0D, elements.Count * lineHeight);
+        double height = Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout));
         if (height > maxHeight) {
             return false;
         }
 
         for (int i = 0; i < elements.Count; i++) {
-            if (Measure(elements[i], fontSize, measure) > maxWidth) {
+            if (layout.Lines[i].Width > maxWidth) {
                 return false;
             }
         }
@@ -233,13 +237,14 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, double> measure) {
         double fontSize = ResolveMaxRichTextEffectiveFontSize(elements);
         double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
-        if (elements.Count * lineHeight > maxHeight) {
+        var layout = new OfficeRichTextBlockLayout(CreateStackedRichTextLines(elements, measure, lineHeight),
+            lineHeight, 0D, elements.Count * lineHeight);
+        if (Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout)) > maxHeight) {
             return false;
         }
 
         for (int i = 0; i < elements.Count; i++) {
-            OfficeRichTextRun run = elements[i];
-            if (Measure(run.Text, run.EffectiveFontSize, run.FontFamily, measure) > maxWidth) {
+            if (layout.Lines[i].Width > maxWidth) {
                 return false;
             }
         }

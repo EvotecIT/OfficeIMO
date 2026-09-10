@@ -17,7 +17,7 @@ public static partial class OfficeTextLayoutEngine {
                 double.MaxValue, lineHeightFactor, measure, wrap, OfficeTextOverflowBehavior.Clip,
                 paragraphIndent, inputTruncated: false, cancellationToken);
             return !measured.Clipped && measured.Width <= width + 0.01D
-                && measured.Height <= availableHeight + 0.01D;
+                && Math.Max(measured.Height, OfficeDrawingTextLayout.PaintedHeight(measured)) <= availableHeight + 0.01D;
         }
 
         if (Fits(runs)) return runs;

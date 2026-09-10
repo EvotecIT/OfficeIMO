@@ -585,27 +585,43 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
-        double minFontSize = Math.Max(1D, NormalizePositive(minimumFontSize, 1D));
+        double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
-        double requiredHeight = Math.Max(layout.Height, layout.Lines.Count * layout.LineHeight);
+        double requiredHeight = Math.Max(layout.Lines.Count * layout.LineHeight, Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout)));
         double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(requiredHeight, 1D)));
         if (scaleDown < 0.98D) {
             resolvedFontSize = Math.Max(minFontSize, resolvedFontSize * Math.Max(0D, scaleDown));
             layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
         }
 
-        return ClipTextBlockToHeight(
+        bool Fits(OfficeTextBlockLayout candidate) => !candidate.Clipped && candidate.Width <= width + .01D
+            && candidate.Lines.Count * candidate.LineHeight <= height
+            && Math.Max(candidate.Height, OfficeDrawingTextLayout.PaintedHeight(candidate)) <= height + .01D;
+        if (!Fits(layout) && resolvedFontSize > minFontSize) {
+            double low = minFontSize, high = resolvedFontSize;
+            layout = CreateBlockLayout(text, low, width, lineFactor, measure, indent);
+            if (Fits(layout)) {
+                for (int iteration = 0; iteration < 12; iteration++) {
+                    double size = (low + high) / 2D;
+                    OfficeTextBlockLayout candidate = CreateBlockLayout(text, size, width, lineFactor, measure, indent);
+                    if (Fits(candidate)) { low = size; layout = candidate; }
+                    else high = size;
+                }
+            }
+        }
+
+        return OfficeDrawingTextLayout.IncludePaintedHeight(ClipTextBlockToHeight(
             layout.Lines,
             layout.FontSize,
             layout.LineHeight,
             width,
             height,
             measure,
-            layout.Clipped);
+            layout.Clipped), height);
     }
 
     /// <summary>

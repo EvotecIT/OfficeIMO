@@ -7,6 +7,87 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RasterExportScalePreservesMinimumFontSize(bool stacked) {
+        var drawing = new OfficeDrawing(100, 30).AddText(stacked ? "g" : "gypsy", 10, 10, 80, 4,
+            new OfficeFontInfo("Proof Sans", 20), lineHeight: 10, wrapText: true, stackedText: stacked, shrinkToFit: true);
+        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2")));
+        int InkWidth(double scale) {
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, scale, OfficeColor.White);
+            int first = image.Width, last = -1;
+            for (int y = 0; y < image.Height; y++)
+                for (int x = 0; x < image.Width; x++)
+                    if (image.GetPixel(x, y).R < 160) { first = Math.Min(first, x); last = Math.Max(last, x); }
+            Assert.True(last >= first);
+            return last - first + 1;
+        }
+        Assert.InRange(InkWidth(2), InkWidth(1) * 2 - 1, InkWidth(1) * 2 + 1);
+    }
+
+    [Theory]
+    [InlineData("rich")]
+    [InlineData("wrapped")]
+    [InlineData("stacked")]
+    [InlineData("stacked-rich")]
+    public void MinimumFontStillReportsPaintThatCannotFit(string mode) {
+        double Measure(string? value, double size) => (value?.Length ?? 0) * size / 2;
+        var runs = new[] { new OfficeRichTextRun("g", 20, OfficeColor.Red) };
+        if (mode == "rich" || mode == "stacked-rich") {
+            var layout = mode == "rich"
+                ? OfficeDrawingTextLayout.Create(new OfficeDrawingRichText(runs, 0, 0, 100, 4, lineHeight: 10, shrinkToFit: true),
+                    100, 4, (value, size, family, style) => Measure(value, size))
+                : OfficeTextLayoutEngine.LayoutStackedRichTextBlock(runs, 100, 4, .5D, Measure, minimumFontSize: 6);
+            Assert.True(layout.Clipped);
+            Assert.Equal(6D, Assert.Single(Assert.Single(layout.Lines).Segments).FontSize);
+        } else {
+            var layout = mode == "wrapped"
+                ? OfficeTextLayoutEngine.FitWrappedText("g", 20, 100, 4, .5D, 6, Measure)
+                : OfficeTextLayoutEngine.LayoutStackedTextBlock("g", 20, 100, 4, .5D, 6, Measure);
+            Assert.True(layout.Clipped);
+            Assert.Equal(6D, layout.FontSize);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CondensedPlainFrameFitIncludesGlyphHeight(bool stacked) {
+        double Measure(string? value, double size) => (value?.Length ?? 0) * size / 2;
+        var layout = stacked
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlock("g", 20, 100, 15, .5D, 6, Measure)
+            : OfficeTextLayoutEngine.FitWrappedText("gypsy", 20, 100, 15, .5D, 6, Measure);
+        double top = OfficeTextPlacement.ResolveTop(0, 15, layout.Height, OfficeTextVerticalAlignment.Bottom);
+        Assert.InRange(top + OfficeDrawingTextLayout.PaintedHeight(layout), 0, 15.01D);
+        Assert.False(layout.Clipped);
+    }
+
+    [Fact]
+    public void CondensedStackedRichFrameFitIncludesGlyphHeight() {
+        var layout = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            new[] { new OfficeRichTextRun("g", 20, OfficeColor.Red) }, 100, 15, .5D,
+            (value, size) => (value?.Length ?? 0) * size / 2, minimumFontSize: 6);
+        Assert.InRange(OfficeDrawingTextLayout.PaintedHeight(layout), 0, 15.01D);
+        Assert.False(layout.Clipped);
+    }
+
+    [Theory]
+    [InlineData(OfficeTextVerticalAlignment.Top, 1D)]
+    [InlineData(OfficeTextVerticalAlignment.Center, 1D)]
+    [InlineData(OfficeTextVerticalAlignment.Bottom, 1D)]
+    [InlineData(OfficeTextVerticalAlignment.Top, 2D)]
+    public void CondensedRichTextFitsItsPaintedHeight(OfficeTextVerticalAlignment alignment, double scale) {
+        var text = new OfficeDrawingRichText(new[] { new OfficeRichTextRun("gypsy", 20, OfficeColor.Red) },
+            0, 0, 100, 15, lineHeight: 10, verticalAlignment: alignment, shrinkToFit: true);
+        var layout = OfficeDrawingTextLayout.Create(text, 100 * scale, 15 * scale,
+            (value, size, family, style) => (value?.Length ?? 0) * size / 2, scale);
+        double top = OfficeTextPlacement.ResolveTop(0, 15 * scale, layout.Height, alignment);
+        Assert.InRange(top + OfficeDrawingTextLayout.PaintedHeight(layout), 0, 15 * scale + .01D);
+        Assert.False(layout.Clipped);
+        Assert.Equal("gypsy", string.Concat(layout.Lines.SelectMany(line => line.Segments).Select(segment => segment.Text)));
+    }
+
+    [Theory]
     [InlineData(1D, 9D)]
     [InlineData(2D, 18D)]
     public void DrawingRichTextRetainsCondensedLeading(double scale, double expectedLineHeight) {

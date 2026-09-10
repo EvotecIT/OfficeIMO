@@ -5,6 +5,20 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Shared native drawing text measurement used by SVG, raster and PDF adapters.</summary>
 internal static class OfficeDrawingTextLayout {
+    // Fitted frames align the complete visible block, including condensed-line descenders.
+    // Line advances remain unchanged; only the occupied block height includes the paint.
+    internal static OfficeTextBlockLayout IncludePaintedHeight(OfficeTextBlockLayout layout, double availableHeight) {
+        double height = Math.Max(layout.Height, PaintedHeight(layout));
+        return new OfficeTextBlockLayout(layout.Lines, layout.FontSize, layout.LineHeight, layout.Width,
+            height, layout.Clipped || height > availableHeight + .01D);
+    }
+
+    internal static OfficeRichTextBlockLayout IncludePaintedHeight(OfficeRichTextBlockLayout layout, double availableHeight) {
+        double height = Math.Max(layout.Height, PaintedHeight(layout));
+        return new OfficeRichTextBlockLayout(layout.Lines, layout.LineHeight, layout.Width,
+            height, layout.Clipped || height > availableHeight + .01D);
+    }
+
     // Paragraph advance may be smaller than the final glyph box with condensed leading.
     // Keep these extents separate so consumers can diagnose paint beyond a real frame.
     internal static double PaintedHeight(OfficeTextBlockLayout layout) {
@@ -58,8 +72,9 @@ internal static class OfficeDrawingTextLayout {
         }
         if (maxFontSize <= 0D) maxFontSize = 10D * scale;
         double factor = ResolveLineHeightFactor(text.LineHeight * scale, maxFontSize);
-        return OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs, width, height,
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs, width, height,
             factor, measure, text.WrapText, text.ShrinkToFit, Math.Min(6D * scale, maxFontSize),
             paragraphIndent: text.ParagraphIndent.Scale(scale), shrinkToHeight: true);
+        return text.ShrinkToFit ? IncludePaintedHeight(layout, height) : layout;
     }
 }
