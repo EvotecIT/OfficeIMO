@@ -13,10 +13,12 @@ internal static partial class PdfPageImageRenderer {
         PdfReadDocument document = PdfReadDocument.Open(getPdf(execution.Token), readOptions, execution.Token);
         ValidatePageNumber(document, pageNumber);
         PdfPermissionAuthorization.DemandPrinting(document.Security, readOptions.PermissionPolicy);
-        if (effective.Dpi > 150 && document.Security.HasEncryption && !document.Security.HasOwnerAuthorization &&
+        if (document.Security.HasEncryption && !document.Security.HasOwnerAuthorization &&
             readOptions.PermissionPolicy != PdfPermissionPolicy.IgnoreRestrictions && document.Security.AllowsHighQualityPrinting != true) {
-            throw new PdfPermissionDeniedException(PdfStandardPermissions.HighQualityPrint,
+            if (effective.Dpi > 150) throw new PdfPermissionDeniedException(PdfStandardPermissions.HighQualityPrint,
                 document.Security.PasswordAuthenticationRole, "This document permits raster printing only at 150 DPI or below.");
+            // Enlarging a low-quality print must not recover higher-resolution source detail.
+            rendering.Scale = Math.Min(rendering.Scale, 150D / 72);
         }
         PdfPageRenderResult result = RenderPage(document, pageNumber, rendering, execution.Token, forDisplay: true);
         execution.ThrowIfCancellationRequested();

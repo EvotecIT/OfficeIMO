@@ -55,7 +55,10 @@ public sealed class PdfPrintDeliveryOptions {
 
 /// <summary>Receipt proving that a job was accepted by an operating-system print queue.</summary>
 /// <remarks>Acceptance does not prove that paper or a virtual-printer file has finished printing.</remarks>
-public sealed record PdfPrintSubmission(string PrinterName, string JobId, int SheetCount, int Copies, string? OutputFilePath);
+public sealed record PdfPrintSubmission(string PrinterName, string JobId, int SheetCount, int Copies, string? OutputFilePath) {
+    /// <summary>Local staging cleanup problem after acceptance; the receipt remains valid and the job must not be resubmitted.</summary>
+    public string? CleanupWarning { get; init; }
+}
 
 /// <summary>A delivery failure after submission began; retrying may print duplicate pages.</summary>
 public sealed class PdfPrintDeliveryException : IOException {

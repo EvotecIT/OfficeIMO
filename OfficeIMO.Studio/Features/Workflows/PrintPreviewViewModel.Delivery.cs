@@ -14,6 +14,9 @@ public sealed partial class PrintPreviewViewModel {
     [ObservableProperty] private IReadOnlyList<PdfPrinterInfo> _printerChoices = [];
     [ObservableProperty] private PdfPrinterInfo? _selectedPrinter;
     [ObservableProperty] private bool _isDiscoveringPrinters;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPrinterDiscoveryError))]
+    private string _printerDiscoveryError = string.Empty;
     [ObservableProperty] private int _copies = 1;
     [ObservableProperty] private int _printDpi = 150;
     [ObservableProperty] private PrintDuplexChoice? _selectedDuplex;
@@ -27,15 +30,16 @@ public sealed partial class PrintPreviewViewModel {
         new(PdfPrintDuplex.ShortEdge, T("Duplex.Short", "Double-sided, short edge"))
     ];
     public bool RequiresPrintOutput => SelectedPrinter?.RequiresOutputFile == true;
+    public bool HasPrinterDiscoveryError => !string.IsNullOrWhiteSpace(PrinterDiscoveryError);
     public bool CanChangePrintSettings => !_disposed && !IsBusy;
-    public bool CanPrint => CanChangePrintSettings && !IsDiscoveringPaperSources && _preparedPrint is not null && SelectedPrinter is not null &&
+    public bool CanPrint => CanChangePrintSettings && !IsDiscoveringPrinters && !IsDiscoveringPaperSources && _preparedPrint is not null && SelectedPrinter is not null &&
         (!RequiresPrintOutput || !string.IsNullOrWhiteSpace(PrintOutputPath));
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(InputPath) or nameof(Pages) or nameof(SelectedPaper) or nameof(SelectedOrientation)
             or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)) InvalidatePreparedSheets();
-        if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources)) {
+        if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources) or nameof(IsDiscoveringPrinters)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));
             PrintCommand.NotifyCanExecuteChanged();
@@ -57,10 +61,11 @@ public sealed partial class PrintPreviewViewModel {
 
     [RelayCommand]
     private async Task RefreshPrintersAsync(CancellationToken token) {
-        if (_disposed || IsDiscoveringPrinters) return;
+        if (_disposed || IsBusy || IsDiscoveringPrinters) return;
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token);
         _discoveryCancellation = operation;
         IsDiscoveringPrinters = true;
+        PrinterDiscoveryError = string.Empty;
         try {
             var printers = await _printers.GetPrintersAsync(operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
@@ -71,9 +76,9 @@ public sealed partial class PrintPreviewViewModel {
             if (Equals(selected, SelectedPrinter)) PaperSourceDiscovery = RefreshPaperSourcesAsync(selected);
             else SelectedPrinter = selected;
             await PaperSourceDiscovery.ConfigureAwait(true);
-            if (printers.Count == 0) Status = T("NoPrinters", "No printer queues are installed.");
+            if (printers.Count == 0) PrinterDiscoveryError = T("NoPrinters", "No printer queues are installed.");
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
-        catch (Exception error) { if (!_disposed) Status = error.Message; }
+        catch (Exception error) { if (!_disposed) PrinterDiscoveryError = error.Message; }
         finally {
             if (ReferenceEquals(_discoveryCancellation, operation)) _discoveryCancellation = null;
             IsDiscoveringPrinters = false;
@@ -108,6 +113,7 @@ public sealed partial class PrintPreviewViewModel {
             PdfPrintSubmission receipt = await _printers.SubmitAsync(prepared, options, operation.Token).ConfigureAwait(true);
             Status = _localizer.FormatOrDefault("PrintPreview.Accepted", "Printer accepted job {0}: {1} sheet(s), {2} copy/copies. Check the printer for completion.",
                 receipt.JobId, receipt.SheetCount, receipt.Copies);
+            if (!string.IsNullOrWhiteSpace(receipt.CleanupWarning)) Status += " " + receipt.CleanupWarning;
             job?.Complete(OfficeWorkflowStatus.Completed, null, Status);
         } catch (PdfPrintDeliveryException error) {
             Status = error.Message;

@@ -28,7 +28,7 @@ public static class PdfPrintRenderer {
             var drawing = new OfficeDrawing(sheet.PaperSize.Width, sheet.PaperSize.Height);
             foreach (PdfPrintPlacement placement in sheet.Placements) {
                 PdfPageRenderResult page = document.Render.PrintPage(placement.PageNumber,
-                    new PdfPagePrintOptions { Dpi = dpi, MaximumPixels = maximumPixels, MaximumOutputBytes = maximumOutputBytes }, cancellationToken);
+                    new PdfPagePrintOptions { Dpi = dpi, PageScale = placement.Scale, MaximumPixels = maximumPixels, MaximumOutputBytes = maximumOutputBytes }, cancellationToken);
                 byte[] png = page.Bytes ?? throw new InvalidOperationException("The source page did not produce printable pixels.");
                 diagnostics.AddRange(page.Diagnostics);
                 drawing.AddClippedImage(png, "image/png",

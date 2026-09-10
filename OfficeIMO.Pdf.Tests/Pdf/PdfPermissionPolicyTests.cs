@@ -4,6 +4,17 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPermissionPolicyTests {
+    [Fact]
+    public void EnlargingLowQualityPrintDoesNotIncreaseSourceResolution() {
+        byte[] bytes = CreateEncryptedPdf("print-user", "print-owner", PdfStandardPermissions.Print, "Low quality print");
+        var document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "print-user" });
+        PdfPageRenderResult original = document.Render.PrintPage(1, new PdfPagePrintOptions { Dpi = 150 });
+        PdfPageRenderResult enlarged = document.Render.PrintPage(1, new PdfPagePrintOptions { Dpi = 150, PageScale = 2 });
+        Assert.Equal(original.Width, enlarged.Width);
+        Assert.Equal(original.Height, enlarged.Height);
+        Assert.Equal(original.Bytes, enlarged.Bytes);
+    }
+
     [Theory]
     [InlineData(PdfStandardPermissions.None, 150, false)]
     [InlineData(PdfStandardPermissions.HighQualityPrint, 150, false)]

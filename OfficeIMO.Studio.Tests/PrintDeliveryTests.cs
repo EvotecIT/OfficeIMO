@@ -151,6 +151,53 @@ public sealed class PrintDeliveryTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task AcceptedPrintWithCleanupWarningRemainsCompleted() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter { CleanupWarning = "Could not remove private print staging." };
+            var history = new StudioJobHistory(StudioLocalization.Current);
+            using var model = Create(printer, history);
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            await model.PrintCommand.ExecuteAsync(null);
+            Assert.StartsWith("Printer accepted job test-7", model.Status);
+            Assert.Contains(printer.CleanupWarning, model.Status);
+            Assert.Equal("Completed", history.Entries[0].Status);
+            return true;
+        }, default);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PrinterDiscoveryPreservesAcceptedStatusAndPreventsConcurrentSubmission(bool empty) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter();
+            using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            await model.PrintCommand.ExecuteAsync(null);
+            string accepted = model.Status;
+            printer.PrinterDiscovery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task refresh = model.RefreshPrintersCommand.ExecuteAsync(null);
+            Assert.False(model.CanPrint);
+            Assert.False(model.PrintCommand.CanExecute(null));
+            if (empty) printer.PrinterDiscovery.SetResult([]);
+            else printer.PrinterDiscovery.SetException(new IOException("Driver offline"));
+            await refresh;
+            Assert.True(model.HasPrinterDiscoveryError);
+            Assert.Equal(accepted, model.Status);
+            printer.PrinterDiscovery = null;
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            Assert.False(model.HasPrinterDiscoveryError);
+            Assert.True(model.CanPrint);
+            Assert.Equal(accepted, model.Status);
+            return true;
+        }, default);
+    }
+
     private static PrintPreviewViewModel Create(RecordingPrinter printer, StudioJobHistory history, Action? read = null) =>
         new(_ => Task.FromResult<string?>(null), null, readSnapshot: (_, _) => {
             read?.Invoke();
@@ -167,11 +214,13 @@ public sealed class PrintDeliveryTests {
         public PdfPreparedPrintDocument? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }
         public bool WaitForCancellation { get; init; }
+        public string? CleanupWarning { get; init; }
+        public TaskCompletionSource<IReadOnlyList<PdfPrinterInfo>>? PrinterDiscovery { get; set; }
         public bool DelayPaperSources { get; init; }
         public Dictionary<string, TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>> Sources { get; } = new();
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<PdfPrinterInfo>>([new("Test queue", true, false)]);
+            PrinterDiscovery?.Task ?? Task.FromResult<IReadOnlyList<PdfPrinterInfo>>([new("Test queue", true, false)]);
         public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
             if (!DelayPaperSources) return Task.FromResult<IReadOnlyList<PdfPaperSourceInfo>>([new("tray-2", "Lower tray")]);
             var completion = new TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -186,7 +235,7 @@ public sealed class PrintDeliveryTests {
                 try { await Task.Delay(Timeout.Infinite, cancellationToken); }
                 catch (OperationCanceledException error) { throw new PdfPrintDeliveryException("test-7", error); }
             }
-            return new(options.PrinterName, "test-7", document.Sheets.Count, options.Copies, null);
+            return new(options.PrinterName, "test-7", document.Sheets.Count, options.Copies, null) { CleanupWarning = CleanupWarning };
         }
     }
 }

@@ -81,6 +81,11 @@ public sealed class PrintPreviewVisualTests {
                     Capture(window, "print-accepted-" + width);
                 }
                 Assert.Equal(original, File.ReadAllBytes(source));
+                print.Status = "Printer accepted job queue-42: 2 sheet(s), 1 copy/copies. Check the printer for completion. " +
+                    "Could not remove print staging at '/tmp/officeimo-print-private-staging': Access denied.";
+                print.PrinterDiscoveryError = "Printer discovery failed: driver offline. The accepted job receipt remains available.";
+                window.UpdateLayout();
+                Capture(window, "print-accepted-cleanup-warning-" + width);
                 model.SetOrganizerSelection([model.OrganizerPages[0]]);
                 await model.RotateRightCommand.ExecuteAsync(null);
                 Assert.False(print.HasPreview);

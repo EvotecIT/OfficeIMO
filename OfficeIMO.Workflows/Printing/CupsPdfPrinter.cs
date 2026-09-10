@@ -68,6 +68,7 @@ internal static class CupsPdfPrinter {
         bool started = false;
         string? jobId = null;
         Exception? failure = null;
+        PdfPrintSubmission? submission = null;
         try {
             string path = Path.Combine(directory, "sheets.pdf");
             await using (FileStream spool = OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(path, 81920, FileOptions.Asynchronous)) {
@@ -95,20 +96,29 @@ internal static class CupsPdfPrinter {
             Match receipt = Regex.Match(result.Output, @"request id is (\S+-\d+)", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
             if (!receipt.Success) throw new IOException("The print command returned no recognizable job acknowledgement.");
             jobId = receipt.Groups[1].Value;
-            return new(options.PrinterName, jobId, document.Sheets.Count, options.Copies, null);
+            submission = new(options.PrinterName, jobId, document.Sheets.Count, options.Copies, null);
         } catch (Exception error) {
             failure = error;
             if (started) throw new PdfPrintDeliveryException(jobId, error);
             throw;
         } finally {
-            try { Directory.Delete(directory, recursive: true); }
-            catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException) {
-                Exception detail = new IOException($"Could not remove print staging at '{directory}'.", cleanup);
-                if (failure is not null) detail = new AggregateException(failure, detail);
-                if (started) throw new PdfPrintDeliveryException(jobId, detail);
-                throw detail;
-            }
+            submission = CleanupStaging(directory, submission, failure, started, jobId, path => Directory.Delete(path, recursive: true));
         }
+        return submission!;
+    }
+
+    internal static PdfPrintSubmission? CleanupStaging(string directory, PdfPrintSubmission? receipt, Exception? failure,
+        bool started, string? jobId, Action<string> delete) {
+        try { delete(directory); }
+        catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException) {
+            string message = $"Could not remove print staging at '{directory}': {cleanup.Message}";
+            if (receipt is not null) return receipt with { CleanupWarning = message };
+            Exception detail = new IOException(message, cleanup);
+            if (failure is not null) detail = new AggregateException(failure, detail);
+            if (started) throw new PdfPrintDeliveryException(jobId, detail);
+            throw detail;
+        }
+        return receipt;
     }
 
     private static string Media(double width, double height) {

@@ -13,12 +13,34 @@ public sealed class PdfPrintRendererTests {
     }
 
     [Fact]
-    public void PreparationRejectsUndecodableSourceInsteadOfPrintingAnEmptySheet() {
+    public void LargeSourceFittedToSmallPaperUsesTheBoundedPlacementResolution() {
         PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(PageSizes.A4).Content(content =>
             content.Item(item => item.Paragraph(text => text.Text("This source must not disappear"))))));
-        Assert.Throws<NotSupportedException>(() => PdfPrintRenderer.Prepare(document,
+        PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
             new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PageSize(200, 300) },
-            new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 40_000_000 }));
+            new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 5_000_000 });
+        OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
+        Assert.InRange((long)raster.Width * raster.Height, 1, 5_000_000);
+        Assert.Contains(raster.GetPixels(), channel => channel < 128);
+    }
+
+    [Theory]
+    [InlineData(PdfPrintScaleMode.Fit)]
+    [InlineData(PdfPrintScaleMode.Fill)]
+    public void EnlargedVectorDetailIsRasterizedAtTheSheetResolution(PdfPrintScaleMode mode) {
+        OfficeShape stripe = OfficeShape.Rectangle(0.2, 72);
+        stripe.FillColor = OfficeColor.Black;
+        stripe.StrokeWidth = 0;
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 72, PageHeight = 72, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+        })
+            .Canvas(canvas => canvas.Shape(stripe, 30, 0));
+        PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PageSize(720, 720), Margin = 0, ScaleMode = mode },
+            new PdfPrintRenderOptions { Dpi = 72, MaximumPixelsPerImage = 1_000_000 });
+        OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
+        int darkPixels = Enumerable.Range(0, raster.Width).Count(x => raster.GetPixel(x, raster.Height / 2).R < 128);
+        Assert.InRange(darkPixels, 1, 3); // The 0.2-point vector becomes two pixels, not an enlarged source pixel.
     }
 
     [Fact]
