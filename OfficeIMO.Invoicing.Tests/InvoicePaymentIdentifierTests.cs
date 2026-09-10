@@ -58,4 +58,19 @@ public class InvoicePaymentIdentifierTests {
         foreach (string path in new[] { "ObjectIdentifier.Value", "Lines[0].ObjectIdentifier.SchemeId", "Delivery.LocationIdentifier.Value", "Payee.LegalRegistration.Value" })
             Assert.Contains(result.Diagnostics, d => d.Location == path && d.Severity == InvoiceDiagnosticSeverity.Error);
     }
+
+    [Theory]
+    [InlineData(null, "IB", "Value")]
+    [InlineData("", "IB", "Value")]
+    [InlineData(" ", "IB", "Value")]
+    [InlineData("0721-880X", null, "ListId")]
+    [InlineData("0721-880X", "", "ListId")]
+    [InlineData("0721-880X", " ", "ListId")]
+    public void ClassificationsRequireBothValueAndListIdentifier(string? value, string? list, string missing) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Lines[0].Classifications.Add(new InvoiceItemClassification { Value = value!, ListId = list! });
+        Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Location == "Lines[0].Classifications." + missing);
+        foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+    }
 }
