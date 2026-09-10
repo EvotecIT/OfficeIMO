@@ -109,29 +109,8 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeShape(pdf, paragraph.Shape);
             }
 
-            foreach (WordImage image in paragraph.EnumerateImages()) {
-                RenderNativeImage(pdf, image, objectAlign, options, "body paragraph image", style);
-            }
-
-            WordImage? pictureControlImage = paragraph.PictureControl?.Image;
-            if (pictureControlImage != null) {
-                RenderNativeImage(pdf, pictureControlImage, objectAlign, options, "body picture control image", style);
-            }
-
-            foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
-                if (ReferenceEquals(pictureControl, paragraph._stdRun)) {
-                    continue;
-                }
-
-                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
-                WordImage? inlinePictureControlImage = pictureParagraph.PictureControl?.Image;
-                if (inlinePictureControlImage != null) {
-                    RenderNativeImage(pdf, inlinePictureControlImage, objectAlign, options, "body picture control image", style);
-                }
-            }
-
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            RenderNativeRunImages(pdf, runs, objectAlign, options, style, paragraph._run);
+            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
 
             RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
 
@@ -535,13 +514,30 @@ namespace OfficeIMO.Word.Pdf {
             AddNativeFootnoteReferences(builder, paragraphFootnoteNumbers);
         }
 
-        private static void RenderNativeRunImages(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle, W.Run? primaryRun) {
-            foreach (WordParagraph run in runs) {
-                if (ReferenceEquals(run._run, primaryRun)) continue;
-                foreach (WordImage image in run.EnumerateImages()) {
-                    RenderNativeImage(pdf, image, align, options, "body paragraph image run", anchorStyle);
-                }
+        private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
+            var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
+                .ToDictionary(pair => pair.element, pair => pair.index);
+            var images = new List<(WordImage Image, int Position)>();
+            void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
+                if (image == null) return;
+                // DrawingML images retain their exact position; VML wrappers use their containing run.
+                int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition
+                    : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
+                images.Add((image, position));
             }
+            foreach (WordImage image in paragraph.EnumerateImages()) Add(image, paragraph._run);
+            Add(paragraph.PictureControl?.Image, paragraph._stdRun);
+            foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
+                if (ReferenceEquals(control, paragraph._stdRun)) continue;
+                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
+                Add(pictureParagraph.PictureControl?.Image, control);
+            }
+            foreach (WordParagraph run in runs) {
+                if (ReferenceEquals(run._run, paragraph._run)) continue;
+                foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
+            }
+            foreach (var image in images.OrderBy(item => item.Position))
+                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle);
         }
 
         private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {
