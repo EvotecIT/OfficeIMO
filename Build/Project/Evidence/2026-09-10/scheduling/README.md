@@ -1,0 +1,12 @@
+# Native reading and scheduling qualification — 2026-09-10
+
+These results qualify the bounded native-reader and scheduling contracts at the source revision in `validation.json`. The paired fixtures were produced by Microsoft Project 2024 build 16.0.20326.20144. See the [verification commands](../../../README.md) and [support matrix](../../../../../OfficeIMO.Project/SUPPORT.md) for reproduction and limits.
+
+- `native-*.json` records comparisons across 12 unprotected MPP/XML pairs. There are no unexplained differences. The reports retain explicit-zero omissions, resource caches that disagree with assignment sums, inapplicable fields, and unqualified enterprise values as classified observations. Whole-file unchanged saves are byte-identical.
+- `schedule-*.json` records 16 calculations across eight paired scenarios, using both MPP and XML inputs. Calculated start/finish, early/late dates, float, and critical flags agree with the producer references for the selected cases.
+- `authored-expected.json` and `authored-readback.json` record a newly authored dependency/resource schedule with a calendar closure and a short-Friday work week. Project reopened and re-exported the XML with all three expected task date ranges. This does not qualify arbitrary imported assignment curves or native editing.
+- `validation.json` records 112 passing tests on each of Windows .NET 8/10/.NET Framework 4.7.2 and Ubuntu WSL .NET 8/10, five shared compound-reader tests, isolated local-package consumption, and a Linux x64 .NET 8 NativeAOT consumer. Package hashes identify the artifacts used; packages were not published.
+- `scale-summary.json` and `scale-context.json` retain the shared benchmark runner's one-warmup/three-iteration measurements for 1,000/10,000/100,000 tasks with up to four predecessors per task. All correctness, memory, and 30-second median-runtime budgets passed. CPU affinity was inherited, so these workstation measurements are not a controlled hardware comparison.
+- `cancellation.json` records a separate 100,000-task cancellation check. Calculation returned without changing stored dates or the document revision. Its timing is a response check, not a benchmark distribution.
+
+Malformed metadata regression cases exercise the public MPP loader as well as its shared Core property-set reader. Native curves, formulas, rate tables, recurring calendar rules, other producer generations, native edits, and native-to-XML conversion remain outside this qualified profile.
