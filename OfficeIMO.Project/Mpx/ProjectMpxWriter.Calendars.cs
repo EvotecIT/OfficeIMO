@@ -4,11 +4,14 @@ internal sealed partial class ProjectMpxWriter {
     private readonly Dictionary<ProjectCalendar, ProjectResource> _resourceCalendarOwners = new Dictionary<ProjectCalendar, ProjectResource>();
     private int _nextCalendarUid;
     private void Calendars() {
+        var parents = new HashSet<ProjectCalendar>(_document.Calendars.Where(c => c.BaseCalendar != null).Select(c => c.BaseCalendar!));
         foreach (var group in _document.Resources.Where(r => r.Calendar != null).GroupBy(r => r.Calendar!)) {
             var calendar = group.Key;
-            if (calendar.BaseCalendar != null && calendar != _document.Calendar && group.Count() == 1 && !_document.Calendars.Any(c => c.BaseCalendar == calendar))
+            if (calendar.BaseCalendar != null && calendar != _document.Calendar && group.Count() == 1 && !parents.Contains(calendar))
                 _resourceCalendarOwners.Add(calendar, group.Single());
         }
+        if (_document.Calendars.Count - _resourceCalendarOwners.Count > 250)
+            throw new NotSupportedException("MPX supports at most 250 emitted base calendars.");
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var calendar in _document.Calendars.Where(c => !_resourceCalendarOwners.ContainsKey(c))) {
             string name = calendar.Name ?? "Calendar " + calendar.Uid;

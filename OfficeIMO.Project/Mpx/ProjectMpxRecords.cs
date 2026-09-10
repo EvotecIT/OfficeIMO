@@ -11,6 +11,8 @@ internal sealed class ProjectMpxRecords {
 
     internal static bool IsMpx(byte[] bytes) => bytes.Length >= 4 && bytes[0] == 'M' && bytes[1] == 'P' && bytes[2] == 'X';
 
+    internal static bool HasAmbiguousDependencySeparator(char separator) => separator == '+' || separator == '-' || separator == '.' || separator == '%';
+
     internal static ProjectMpxRecords Read(byte[] bytes, ProjectLoadOptions options, CancellationToken token) {
         if (!IsMpx(bytes)) throw new InvalidDataException("The MPX file creation record is missing.");
         char separator = (char)bytes[3];

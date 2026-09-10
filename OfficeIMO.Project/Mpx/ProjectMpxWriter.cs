@@ -64,8 +64,10 @@ internal sealed partial class ProjectMpxWriter {
         _output?.Write(bytes, 0, bytes.Length);
     }
     private void Build() {
-        if (_document.TaskIndex.Count > 9999 || _document.Resources.Count > 9999 || _document.Calendars.Count > 250)
-            throw new NotSupportedException("MPX supports at most 9999 tasks, 9999 resources, and 250 base calendars.");
+        if (ProjectMpxRecords.HasAmbiguousDependencySeparator(_separator))
+            throw new NotSupportedException("MPX output separators cannot be +, -, . or % because they conflict with dependency lag syntax.");
+        if (_document.TaskIndex.Count > 9999 || _document.Resources.Count > 9999)
+            throw new NotSupportedException("MPX supports at most 9999 tasks and 9999 resources.");
         Record("MPX", "OfficeIMO", "4.0", _codePage switch { 1252 => "ANSI", 437 => "437", 850 => "850", _ => "MAC" });
         foreach (var comment in _document.MpxSource?.Comments ?? Array.Empty<string[]>()) Record(comment);
         Settings(); Calendars(); Header(); Resources(); Tasks();

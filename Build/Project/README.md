@@ -34,6 +34,7 @@ Other console operations:
 | `native-lifecycle-proof` | source MPP path, new output directory | Exercise field growth, add/delete/reparent, calendar edits, templates, and template instantiation while retaining the source generation |
 | `mpx-lifecycle-proof` | `new` or source MPX path, new output directory | Exercise unchanged save, field growth, structural/calendar edits, notes, and clearing values |
 | `mpx-encoding-proof` | new output directory | Write representative Windows-1252, DOS 437/850, and Macintosh Roman fixtures |
+| `mpx-scale` | task count (1–9000), `load` or `cancel` | Load 30 assignments and up to eight predecessor links per task; verify entity/link/work totals and report timing, allocation, or cancellation |
 | `conversion-matrix` | new output directory | Assess, save, and reopen all 100 format pairs; verify core identities and mapped assignment values; record losses |
 | `native-schema` | producer MPP path, new output directory | Reproduce generation-specific storage definitions without copying document records, strings, process pointers, or template payloads |
 | `native-edit-proof` | producer `delivery.mpp` path, new output directory | Exercise field growth, structural changes, identities, calendar bindings, custom scalars, all baseline slots, templates, and XML conversion through the public API |

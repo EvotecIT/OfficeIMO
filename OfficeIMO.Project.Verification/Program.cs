@@ -1,4 +1,5 @@
 using OfficeIMO.Project;
+if (args.Length == 3 && args[0] == "mpx-scale") return MpxScale.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), args[2]);
 if (args.Length == 3 && args[0] == "mpx-lifecycle-proof") return MpxLifecycleProof.Run(args[1], args[2]);
 if (args.Length == 2 && args[0] == "mpx-encoding-proof") return MpxLifecycleProof.Encodings(args[1]);
 if (args.Length == 2 && args[0] == "conversion-matrix") return ProjectConversionProof.Run(args[1]);

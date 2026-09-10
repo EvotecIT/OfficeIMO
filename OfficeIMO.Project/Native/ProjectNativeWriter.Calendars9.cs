@@ -1,6 +1,14 @@
 namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
+    private bool CalendarProjectionChanged(ProjectCalendar calendar) {
+        // A removed work week or replaced ancestor must invalidate exceptions generated on a previous save.
+        for (var current = calendar; current != null; current = current.BaseCalendar) {
+            string path = Path(current, "Calendar");
+            if (ChangedTree(path + "/Week") || Changed(path + "/BaseCalendar")) return true;
+        }
+        return false;
+    }
     private static bool HasWorkWeeks(ProjectCalendar calendar) {
         for (var current = calendar; current != null; current = current.BaseCalendar)
             if (current.WorkWeeks.Count != 0) return true;

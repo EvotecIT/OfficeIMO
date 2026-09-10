@@ -39,6 +39,7 @@ internal static partial class ProjectMpxCodec {
         private readonly List<(ProjectTask Task, string Text, bool Uids, bool Successors)> _links = new List<(ProjectTask, string, bool, bool)>();
         private readonly Stack<ProjectTask> _parents = new Stack<ProjectTask>();
         private ProjectTask? _task;
+        private int _taskAssignmentCount;
         private ProjectResource? _resource;
         private ProjectCalendar? _calendar;
         private int[]? _taskFields, _resourceFields;

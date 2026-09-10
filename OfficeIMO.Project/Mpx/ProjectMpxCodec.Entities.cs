@@ -65,7 +65,7 @@ internal static partial class ProjectMpxCodec {
             var parent = _parents.Count != 0 && _parents.Peek().SourceOutlineLevel > 0 ? _parents.Peek() : null;
             if (level > 1 && parent?.SourceOutlineLevel != level - 1) throw new InvalidDataException("MPX outline skips a parent level.");
             task.Parent = parent; (parent?.Children ?? Document.Tasks).Items.Add(task); _parents.Push(task);
-            Document.TaskIndex.Add(uid, task); _taskRows.Add(row, task); _task = task;
+            Document.TaskIndex.Add(uid, task); _taskRows.Add(row, task); _task = task; _taskAssignmentCount = 0;
         }
         private void Baseline(ProjectCollection<ProjectBaseline> baselines, Dictionary<int, string> values, bool task) {
             if (!values.Keys.Any(k => k == 21 || k == 31 || task && (k == 41 || k == 56 || k == 57))) return;
@@ -87,13 +87,14 @@ internal static partial class ProjectMpxCodec {
         }
         private void Assignment(string[] r) {
             Budget();
-            if (Document.Assignments.Count(a => a.Task == _task) >= 100) throw new InvalidDataException("MPX exceeds 100 assignments per task.");
+            if (_taskAssignmentCount >= 100) throw new InvalidDataException("MPX exceeds 100 assignments per task.");
             ProjectResource? resource;
             if (Has(r, 13)) { int uid = ProjectMpxValues.Integer(r[13]); Document.ResourceIndex.TryGetValue(uid, out resource); }
             else { int row = ProjectMpxValues.Integer(Get(r, 1)); _resourceRows.TryGetValue(row, out resource); }
             if (resource == null) throw new InvalidDataException("MPX assignment refers to an undefined resource.");
             if (Document.AssignmentPairs.Contains((_task!.Uid, resource.Uid))) throw new InvalidDataException("Duplicate MPX task-resource assignment.");
             var item = Document.Assignments.Add(_task!, resource, Has(r, 2) ? _values.Units(r[2]) : ProjectUnits.Fraction(1));
+            _taskAssignmentCount++;
             if (Has(r, 3)) item.Work = _values.Work(r[3]);
             if (Has(r, 5)) item.ActualWork = _values.Work(r[5]);
             if (item.Work.HasValue && (item.ActualWork?.Minutes ?? 0) <= item.Work.Value.Minutes)
@@ -108,6 +109,14 @@ internal static partial class ProjectMpxCodec {
             Tail(r, 14);
         }
         private void ResolveLinks() {
+            if (ProjectMpxRecords.HasAmbiguousDependencySeparator(_listSeparator) || _values.DecimalSeparator == _listSeparator.ToString()) {
+                foreach (var link in _links) {
+                    _token.ThrowIfCancellationRequested();
+                    Opaque("Dependency syntax with this list separator is ambiguous and remains in the original bytes.", "/Task[UID=" + link.Task.Uid + "]/Dependencies");
+                }
+                return;
+            }
+            var resolved = new Dictionary<(int, int), ProjectDependency>();
             foreach (var link in _links) foreach (string piece in link.Text.Split(new[] { _listSeparator }, StringSplitOptions.RemoveEmptyEntries)) {
                 _token.ThrowIfCancellationRequested();
                 var match = Regex.Match(piece, @"^\s*(\d+)\s*(FS|FF|SS|SF)?\s*([+-].*)?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
@@ -121,9 +130,11 @@ internal static partial class ProjectMpxCodec {
                 ProjectDuration? lag = null; decimal? percent = null; string lagText = match.Groups[3].Value;
                 if (lagText.Length != 0) { if (lagText.EndsWith("%", StringComparison.Ordinal)) percent = _values.Number(lagText.TrimEnd('%')); else lag = _values.Duration(lagText); }
                 else lag = new ProjectDuration(0, (ProjectDurationUnit)_values.DefaultDurationUnit);
-                var existing = Document.Dependencies.FirstOrDefault(d => d.Predecessor == predecessor && d.Successor == successor);
+                var key = (predecessor.Uid, successor.Uid);
+                resolved.TryGetValue(key, out var existing);
                 if (existing != null) { if (existing.Type != type || !Equals(existing.Lag, lag) || existing.LagPercent != percent) throw new InvalidDataException("Conflicting MPX dependency declarations."); continue; }
                 var dependency = Document.Dependencies.Add(predecessor, successor, type); dependency.Lag = lag; dependency.LagPercent = percent;
+                resolved.Add(key, dependency);
             }
         }
     }

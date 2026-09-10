@@ -31,7 +31,7 @@ internal sealed partial class ProjectNativeWriter {
             if (added || Changed(path + "/BaseCalendar") || _calendarGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001d, calendar.BaseCalendar == null ? Guid.Empty : EntityGuid(calendar.BaseCalendar, 5));
             if (added || _calendarBindingsChanged || _resourceGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001c, owner == null ? Guid.Empty : EntityGuid(owner, 2));
             bool patternChanged = ChangedTree(path + "/Day") || ChangedTree(path + "/Exception") || ChangedTree(path + "/Week");
-            if (!added && !patternChanged && !(_profile.Version <= 9 && HasWorkWeeks(calendar))) continue;
+            if (!added && !patternChanged && !(_profile.Version <= 9 && (HasWorkWeeks(calendar) || CalendarProjectionChanged(calendar)))) continue;
             if (calendar.HasUnqualifiedNativeRecurrence) {
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_CALENDAR_RECURRENCE", ProjectDiagnosticSeverity.Error,
                     "This calendar contains unmodeled recurring exceptions. Its working pattern cannot be replaced safely.", path)); continue;

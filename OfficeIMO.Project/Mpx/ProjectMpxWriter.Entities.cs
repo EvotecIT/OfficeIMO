@@ -71,7 +71,7 @@ internal sealed partial class ProjectMpxWriter {
                     if (lag.Length != 0 && lag[0] != '-') lag = "+" + lag;
                     expressions.Add(ProjectMpxValues.Text(d.Predecessor.Uid) + type + lag);
                 }
-                values[74] = string.Join(_separator == ';' ? ";" : ",", expressions);
+                values[74] = string.Join(_separator.ToString(), expressions);
             }
             Record(new[] { "70" }.Concat(fields.Select(f => values.TryGetValue(f, out var v) ? v : "")).ToArray());
             if (task.Notes != null) Record("71", ProjectMpxFields.Notes(task.Notes));
