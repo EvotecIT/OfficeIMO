@@ -3,7 +3,7 @@ name: PDF Compliance Proof
 on:
   pull_request:
     paths:
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
+      - 'OfficeIMO.Pdf.Tests/**'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.SharedSource/**'
       - 'OfficeIMO.TestAssets/**'
@@ -14,7 +14,6 @@ on:
       - 'OfficeIMO.Invoicing.Tests/**'
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Pdf/**'
@@ -25,9 +24,6 @@ on:
       - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
       - 'Website/Apps/OfficeIMO.Web.Converter/**'
       - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests*.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
@@ -39,7 +35,7 @@ on:
     branches:
       - master
     paths:
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
+      - 'OfficeIMO.Pdf.Tests/**'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.SharedSource/**'
       - 'OfficeIMO.TestAssets/**'
@@ -50,7 +46,6 @@ on:
       - 'OfficeIMO.Invoicing.Tests/**'
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Pdf/**'
@@ -61,9 +56,6 @@ on:
       - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
       - 'Website/Apps/OfficeIMO.Web.Converter/**'
       - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
-      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests*.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'

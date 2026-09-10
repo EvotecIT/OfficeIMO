@@ -165,6 +165,9 @@ Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof
 Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have uncommitted changes.'
 & git -C $repositoryRoot diff --cached --quiet -- @measuredPaths
 Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have staged changes.'
+$untrackedMeasuredSources = @(& git -C $repositoryRoot ls-files --others --exclude-standard -- @measuredPaths)
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'Could not classify untracked PDF compliance proof sources.'
+Assert-Condition -Condition ($untrackedMeasuredSources.Count -eq 0) -Message 'PDF compliance proof measured sources have untracked files.'
 
 Assert-Condition -Condition ($proof.testExitCode -eq 0) -Message "Expected testExitCode 0, got $($proof.testExitCode)."
 Assert-Condition -Condition ($null -ne $proof.strictValidatorMode) -Message 'Missing strictValidatorMode in proof.json.'
