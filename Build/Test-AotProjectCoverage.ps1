@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Invoicing.Validation'
+        classification = 'managed-cross-platform'
+        evidence = 'Pinned XML schema and Java/Saxon business-rule validation are qualified through managed .NET tests; no NativeAOT contract is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Invoicing'
         classification = 'managed-cross-platform'
         evidence = 'Electronic invoice contracts are validated by managed .NET suites; no dedicated NativeAOT qualification host is claimed.'

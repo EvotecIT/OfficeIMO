@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 228,
-    "productionComponentCount": 122,
-    "testProjectCount": 44,
+    "projectCount": 230,
+    "productionComponentCount": 123,
+    "testProjectCount": 45,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 30,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42864
+    "conceptualWordCount": 42893
   },
   "categories": [
     {
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 20
+      "componentCount": 21
     },
     {
       "name": "Rendering surfaces",
@@ -547,11 +547,24 @@
       "description": "Typed electronic invoice contracts, XML authoring, reading, and validation for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 34,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.Validation",
+      "packageId": "OfficeIMO.Invoicing.Validation",
+      "category": "Publishing and conversion",
+      "description": "Pinned schema and Schematron validation for OfficeIMO electronic invoices.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation"
     },
     {
       "name": "OfficeIMO.IWork",
