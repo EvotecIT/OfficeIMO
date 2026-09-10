@@ -13,7 +13,11 @@ internal static partial class WindowsPdfPrinter {
     internal static Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken token) =>
         Task.Run(() => Submit(document, options, token), CancellationToken.None);
 
-    internal static IReadOnlyList<PdfPrinterInfo> GetPrinters(CancellationToken token) {
+    internal static IReadOnlyList<PdfPrinterInfo> GetPrinters(CancellationToken token) => GetPrinterDetails(token).Select(printer => printer.Info).ToArray();
+
+    private sealed record PrinterDetails(PdfPrinterInfo Info, string PortName);
+
+    private static IReadOnlyList<PrinterDetails> GetPrinterDetails(CancellationToken token) {
         token.ThrowIfCancellationRequested();
         uint needed = 0;
         _ = Native.EnumPrinters(6, null, 2, IntPtr.Zero, 0, out needed, out _);
@@ -33,7 +37,7 @@ internal static partial class WindowsPdfPrinter {
                 var name = new System.Text.StringBuilder((int)characters);
                 if (Native.GetDefaultPrinter(name, ref characters)) defaultName = name.ToString();
             }
-            var printers = new List<PdfPrinterInfo>();
+            var printers = new List<PrinterDetails>();
             int size = Marshal.SizeOf<Native.PrinterInfo2>();
             if (returned > needed / size) throw new InvalidOperationException("The printer list has invalid bounds.");
             for (int index = 0; index < returned; index++) {
@@ -43,9 +47,9 @@ internal static partial class WindowsPdfPrinter {
                 string port = Marshal.PtrToStringUni(info.PortName) ?? string.Empty;
                 if (name.Length == 0) continue;
                 bool file = port.Split(',').Any(value => value.Equals("PORTPROMPT:", StringComparison.OrdinalIgnoreCase) || value.Equals("FILE:", StringComparison.OrdinalIgnoreCase));
-                printers.Add(new(name, string.Equals(name, defaultName, StringComparison.OrdinalIgnoreCase), file));
+                printers.Add(new(new(name, string.Equals(name, defaultName, StringComparison.OrdinalIgnoreCase), file), port));
             }
-            return printers.OrderByDescending(printer => printer.IsDefault).ThenBy(printer => printer.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+            return printers.OrderByDescending(printer => printer.Info.IsDefault).ThenBy(printer => printer.Info.Name, StringComparer.OrdinalIgnoreCase).ToArray();
         } finally { Marshal.FreeHGlobal(buffer); }
     }
 
@@ -53,6 +57,8 @@ internal static partial class WindowsPdfPrinter {
         PdfPrinterInfo printer = GetPrinters(token).FirstOrDefault(item => string.Equals(item.Name, options.PrinterName, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException("The selected printer is not installed.", nameof(options));
         string? output = ValidateOutput(document.SourcePath, printer, options.OutputFilePath);
+        if (options.PaperSourceId is not null && !GetPaperSources(printer.Name, token).Any(source => source.Id == options.PaperSourceId))
+            throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         if (!Native.OpenPrinter(printer.Name, out IntPtr printerHandle, IntPtr.Zero)) throw new Win32Exception();
         IntPtr mode = IntPtr.Zero, dc = IntPtr.Zero;
         int jobId = 0;
@@ -153,6 +159,10 @@ internal static partial class WindowsPdfPrinter {
         } else fields &= ~(4 | 8);
         Marshal.WriteInt16(mode, 84, 100);
         Marshal.WriteInt16(mode, 86, 1); // Software supplies collated copies exactly once.
+        if (options.PaperSourceId is not null) {
+            fields |= 0x200;
+            Marshal.WriteInt16(mode, 88, unchecked((short)ushort.Parse(options.PaperSourceId, CultureInfo.InvariantCulture)));
+        }
         if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
             fields |= 0x1000;
             Marshal.WriteInt16(mode, 94, (short)options.Duplex);
@@ -161,6 +171,9 @@ internal static partial class WindowsPdfPrinter {
         if (Native.DocumentProperties(IntPtr.Zero, printer, name, mode, mode, 10) != 1) throw new Win32Exception();
         if (Marshal.ReadInt16(mode, 86) != 1 || (options.Duplex != PdfPrintDuplex.PrinterDefault && Marshal.ReadInt16(mode, 94) != (short)options.Duplex))
             throw new InvalidOperationException("The printer did not accept the requested copy or duplex settings.");
+        if (options.PaperSourceId is not null && ((Marshal.ReadInt32(mode, 72) & 0x200) == 0 ||
+            unchecked((ushort)Marshal.ReadInt16(mode, 88)).ToString(CultureInfo.InvariantCulture) != options.PaperSourceId))
+            throw new InvalidOperationException("The printer did not accept the selected paper source.");
     }
 
     private static short PaperCode(double width, double height) {

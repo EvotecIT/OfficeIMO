@@ -232,6 +232,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     public void Dispose() {
         _disposed = true;
         _discoveryCancellation?.Cancel();
+        _paperSourceCancellation?.Cancel();
         _cancellation?.Cancel();
         ClearPreview();
     }

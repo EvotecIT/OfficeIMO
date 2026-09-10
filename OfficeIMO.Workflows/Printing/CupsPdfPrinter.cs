@@ -8,6 +8,31 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows;
 
 internal static class CupsPdfPrinter {
+    internal static async Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken token) {
+        if (!(await GetPrintersAsync(token).ConfigureAwait(false)).Any(printer => printer.Name == printerName))
+            throw new ArgumentException("The selected printer queue is not available.", nameof(printerName));
+        var result = await RunAsync("lpoptions", ["-p", printerName, "-l"], token).ConfigureAwait(false);
+        if (result.ExitCode != 0) throw new IOException(result.Error.Trim());
+        return ParsePaperSources(result.Output);
+    }
+
+    internal static IReadOnlyList<PdfPaperSourceInfo> ParsePaperSources(string output) {
+        foreach (string line in output.Split('\n')) {
+            int separator = line.IndexOf(':');
+            if (separator <= 0) continue;
+            string key = line[..separator].Split('/')[0];
+            if (key is not ("InputSlot" or "media-source")) continue;
+            var sources = new List<PdfPaperSourceInfo>();
+            foreach (string item in line[(separator + 1)..].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
+                string choice = item.TrimStart('*');
+                if (choice.Length is 0 or > 128 || !choice.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.')) continue;
+                sources.Add(new(key + "=" + choice, choice));
+            }
+            return sources.DistinctBy(source => source.Id).ToArray();
+        }
+        return [];
+    }
+
     internal static async Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken token) {
         var queues = await RunAsync("lpstat", ["-e"], token).ConfigureAwait(false);
         if (queues.ExitCode != 0) throw new IOException(queues.Error.Trim());
@@ -24,6 +49,8 @@ internal static class CupsPdfPrinter {
         if (!string.IsNullOrWhiteSpace(options.OutputFilePath)) throw new NotSupportedException("CUPS file output is controlled by the selected printer queue.");
         if (!(await GetPrintersAsync(token).ConfigureAwait(false)).Any(printer => printer.Name == options.PrinterName))
             throw new ArgumentException("The selected printer queue is not available.", nameof(options));
+        if (options.PaperSourceId is not null && !(await GetPaperSourcesAsync(options.PrinterName, token).ConfigureAwait(false)).Any(source => source.Id == options.PaperSourceId))
+            throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         PageSize paper = document.Sheets[0].Plan.PaperSize;
         double width = Math.Min(paper.Width, paper.Height), height = Math.Max(paper.Width, paper.Height);
         if (document.Sheets.Any(sheet => Math.Abs(Math.Min(sheet.Plan.PaperSize.Width, sheet.Plan.PaperSize.Height) - width) > 1 ||
@@ -58,6 +85,9 @@ internal static class CupsPdfPrinter {
             if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
                 arguments.Add("-o");
                 arguments.Add("sides=" + (options.Duplex == PdfPrintDuplex.SingleSided ? "one-sided" : options.Duplex == PdfPrintDuplex.LongEdge ? "two-sided-long-edge" : "two-sided-short-edge"));
+            }
+            if (options.PaperSourceId is not null) {
+                arguments.Add("-o"); arguments.Add(options.PaperSourceId);
             }
             arguments.Add("--"); arguments.Add(path);
             var result = await RunAsync("lp", arguments, token, () => started = true).ConfigureAwait(false);

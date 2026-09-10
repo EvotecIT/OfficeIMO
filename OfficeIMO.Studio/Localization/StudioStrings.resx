@@ -1852,4 +1852,7 @@
   <data name="PrintPreview.DeliveryCancelled" xml:space="preserve"><value>Printing cancelled before submission.</value></data>
   <data name="PrintPreview.FormDrafts" xml:space="preserve"><value>Apply pending form values before preparing print sheets.</value></data>
   <data name="Comparison.FormDrafts" xml:space="preserve"><value>Apply pending form values before comparing page appearance.</value></data>
+  <data name="PrintPreview.PaperSource" xml:space="preserve"><value>Paper source / tray</value></data>
+  <data name="PrintPreview.PaperSource.Default" xml:space="preserve"><value>Printer default</value></data>
+  <data name="PrintPreview.PaperSource.Unavailable" xml:space="preserve"><value>Paper-source discovery failed. Printing will use the printer default.</value></data>
 </root>

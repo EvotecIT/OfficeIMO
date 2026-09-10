@@ -6,6 +6,14 @@ public sealed record PdfPrinterInfo(string Name, bool IsDefault, bool RequiresOu
     public override string ToString() => Name;
 }
 
+/// <summary>A paper source reported by a specific printer queue.</summary>
+/// <param name="Id">Provider identifier, valid only for the queried queue.</param>
+/// <param name="Name">Driver-supplied display name.</param>
+public sealed record PdfPaperSourceInfo(string Id, string Name) {
+    /// <inheritdoc />
+    public override string ToString() => Name;
+}
+
 /// <summary>Driver duplex request.</summary>
 public enum PdfPrintDuplex {
     /// <summary>Keep the printer's configured duplex default.</summary>
@@ -28,6 +36,8 @@ public sealed class PdfPrintDeliveryOptions {
     public int Copies { get; set; } = 1;
     /// <summary>Duplex request, or the driver default.</summary>
     public PdfPrintDuplex Duplex { get; set; }
+    /// <summary>Identifier returned by paper-source discovery, or null to retain the queue default.</summary>
+    public string? PaperSourceId { get; set; }
     /// <summary>New local output path for a Windows file printer. Existing paths are rejected before submission.</summary>
     public string? OutputFilePath { get; set; }
 
@@ -37,7 +47,9 @@ public sealed class PdfPrintDeliveryOptions {
         if (PrinterName.IndexOf('\0') >= 0 || DocumentName.IndexOf('\0') >= 0) throw new ArgumentException("Printer and document names cannot contain null characters.");
         if (Copies is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(Copies));
         if (!Enum.IsDefined(Duplex)) throw new ArgumentOutOfRangeException(nameof(Duplex));
-        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, OutputFilePath = OutputFilePath };
+        if (PaperSourceId is not null && (string.IsNullOrWhiteSpace(PaperSourceId) || PaperSourceId.Length > 256 || PaperSourceId.Any(char.IsControl)))
+            throw new ArgumentException("The paper-source identifier is invalid.", nameof(PaperSourceId));
+        return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath };
     }
 }
 
@@ -58,12 +70,24 @@ public sealed class PdfPrintDeliveryException : IOException {
 public interface IPdfPrinterService {
     /// <summary>Lists installed queues without changing printer settings.</summary>
     Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default);
+    /// <summary>Lists the selected queue's paper sources without changing printer settings.</summary>
+    Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default);
     /// <summary>Submits reviewed sheets and returns an acceptance receipt.</summary>
     Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Windows GDI and macOS/Linux CUPS printer delivery.</summary>
 public sealed class PdfPrinterService : IPdfPrinterService {
+    /// <inheritdoc />
+    public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(printerName);
+        if (printerName.Contains('\0')) throw new ArgumentException("The printer name is invalid.", nameof(printerName));
+        cancellationToken.ThrowIfCancellationRequested();
+        return OperatingSystem.IsWindows()
+            ? WindowsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken)
+            : CupsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken);
+    }
+
     /// <inheritdoc />
     public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
         OperatingSystem.IsWindows()

@@ -5,6 +5,8 @@ namespace OfficeIMO.Workflows;
 
 internal static partial class WindowsPdfPrinter {
     private static class Native {
+        [DllImport("winspool.drv", EntryPoint = "DeviceCapabilitiesW", CharSet = CharSet.Unicode, SetLastError = true)]
+        internal static extern int DeviceCapabilities(string device, string? port, ushort capability, IntPtr output, IntPtr mode);
         [StructLayout(LayoutKind.Sequential)]
         internal struct PrinterInfo2 {
             internal IntPtr ServerName, PrinterName, ShareName, PortName, DriverName, Comment, Location, DevMode;

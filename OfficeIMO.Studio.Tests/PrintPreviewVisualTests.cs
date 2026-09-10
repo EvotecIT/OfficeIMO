@@ -44,10 +44,23 @@ public sealed class PrintPreviewVisualTests {
                 if (string.IsNullOrWhiteSpace(nativePrinter)) print.PrinterChoices = [new("Review file printer", true, true)];
                 else await print.RefreshPrintersCommand.ExecuteAsync(null);
                 print.SelectedPrinter = print.PrinterChoices.Single(printer => printer.Name == (nativePrinter ?? "Review file printer"));
+                await print.PaperSourceDiscovery;
                 Assert.False(print.CanPrint);
                 print.PrintOutputPath = Path.Combine(services.Paths.Root, "reviewed-output.pdf");
                 Assert.True(print.CanPrint);
                 window.UpdateLayout();
+                var sourceChoice = window.GetVisualDescendants().OfType<ComboBox>().Single(control => ReferenceEquals(control.ItemsSource, print.PaperSourceChoices));
+                sourceChoice.BringIntoView();
+                window.UpdateLayout();
+                Assert.True(sourceChoice.IsEffectivelyEnabled);
+                if (string.IsNullOrWhiteSpace(nativePrinter)) {
+                    print.PaperSourceChoices = [new(null, "Printer default"), new("tray-2", "Lower tray")];
+                }
+                if (print.PaperSourceChoices.Count > 1) {
+                    sourceChoice.SelectedItem = print.PaperSourceChoices[1];
+                    Assert.NotNull(print.SelectedPaperSource?.Id);
+                } else Assert.Null(print.SelectedPaperSource?.Id);
+                Capture(window, "print-paper-source-" + width);
                 Capture(window, "print-sheets-" + width);
                 var printButton = window.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, print.PrintCommand));
                 printButton.BringIntoView();

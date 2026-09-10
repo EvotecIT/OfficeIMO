@@ -28,14 +28,14 @@ public sealed partial class PrintPreviewViewModel {
     ];
     public bool RequiresPrintOutput => SelectedPrinter?.RequiresOutputFile == true;
     public bool CanChangePrintSettings => !_disposed && !IsBusy;
-    public bool CanPrint => CanChangePrintSettings && _preparedPrint is not null && SelectedPrinter is not null &&
+    public bool CanPrint => CanChangePrintSettings && !IsDiscoveringPaperSources && _preparedPrint is not null && SelectedPrinter is not null &&
         (!RequiresPrintOutput || !string.IsNullOrWhiteSpace(PrintOutputPath));
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(InputPath) or nameof(Pages) or nameof(SelectedPaper) or nameof(SelectedOrientation)
             or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)) InvalidatePreparedSheets();
-        if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview)) {
+        if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));
             PrintCommand.NotifyCanExecuteChanged();
@@ -67,7 +67,10 @@ public sealed partial class PrintPreviewViewModel {
             if (_disposed) return;
             string? previous = SelectedPrinter?.Name;
             PrinterChoices = printers;
-            SelectedPrinter = printers.FirstOrDefault(printer => printer.Name == previous) ?? printers.FirstOrDefault();
+            var selected = printers.FirstOrDefault(printer => printer.Name == previous) ?? printers.FirstOrDefault();
+            if (Equals(selected, SelectedPrinter)) PaperSourceDiscovery = RefreshPaperSourcesAsync(selected);
+            else SelectedPrinter = selected;
+            await PaperSourceDiscovery.ConfigureAwait(true);
             if (printers.Count == 0) Status = T("NoPrinters", "No printer queues are installed.");
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception error) { if (!_disposed) Status = error.Message; }
@@ -96,6 +99,7 @@ public sealed partial class PrintPreviewViewModel {
             var options = new PdfPrintDeliveryOptions {
                 PrinterName = printer.Name, DocumentName = InputName, Copies = Copies,
                 Duplex = SelectedDuplex?.Value ?? PdfPrintDuplex.PrinterDefault,
+                PaperSourceId = SelectedPaperSource?.Id,
                 OutputFilePath = printer.RequiresOutputFile ? PrintOutputPath : null
             };
             job = _jobHistory?.Start(T("JobTitle", "Print reviewed sheets"), InputName, printer.Name, operation.Cancel);

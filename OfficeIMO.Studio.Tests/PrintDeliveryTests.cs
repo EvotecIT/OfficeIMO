@@ -7,6 +7,37 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class PrintDeliveryTests {
     [Fact]
+    public async Task SwitchingPrintersDiscardsLateTrayDiscoveryAndClearsSelection() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter { DelayPaperSources = true };
+            using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
+            model.SelectedPrinter = new("First", false, false);
+            Task first = model.PaperSourceDiscovery;
+            Assert.True(model.IsDiscoveringPaperSources);
+            model.SelectedPrinter = new("Second", false, false);
+            Task second = model.PaperSourceDiscovery;
+            printer.Sources["Second"].SetResult([new("second-tray", "Second tray")]);
+            await second;
+            model.SelectedPaperSource = model.PaperSourceChoices.Single(choice => choice.Id == "second-tray");
+            printer.Sources["First"].SetResult([new("first-tray", "First tray")]);
+            await first;
+            Assert.Equal("second-tray", model.SelectedPaperSource.Id);
+            Assert.DoesNotContain(model.PaperSourceChoices, choice => choice.Id == "first-tray");
+            Assert.False(model.IsDiscoveringPaperSources);
+            model.SelectedPrinter = new("Third", false, false);
+            Task third = model.PaperSourceDiscovery;
+            Assert.Null(model.SelectedPaperSource.Id);
+            model.Dispose();
+            printer.Sources["Third"].SetResult([new("third-tray", "Third tray")]);
+            await third;
+            Assert.DoesNotContain(model.PaperSourceChoices, choice => choice.Id == "third-tray");
+            Assert.False(model.CanPrint);
+            return true;
+        }, default);
+    }
+
+    [Fact]
     public async Task DeliversReviewedSnapshotAndInvalidatesChangedSettings() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -22,12 +53,14 @@ public sealed class PrintDeliveryTests {
             Assert.Single(model.Sheets);
             Assert.Equal(new[] { 3, 1 }, model.Sheets[0].Placements.Select(placement => placement.PageNumber));
             model.Copies = 2;
+            model.SelectedPaperSource = model.PaperSourceChoices.Single(choice => choice.Id == "tray-2");
             model.SelectedDuplex = model.DuplexChoices.Single(choice => choice.Value == PdfPrintDuplex.LongEdge);
             await model.PrintCommand.ExecuteAsync(null);
             Assert.Equal(1, reads);
             Assert.NotNull(printer.Document);
             Assert.Equal(new[] { 3, 1 }, printer.Document.Plan.SelectedPages);
             Assert.Equal(2, printer.Options!.Copies);
+            Assert.Equal("tray-2", printer.Options.PaperSourceId);
             Assert.Equal(PdfPrintDuplex.LongEdge, printer.Options.Duplex);
             Assert.Contains("Printer accepted job test-7", model.Status);
             Assert.False(history.Entries[0].HasOutput);
@@ -87,9 +120,17 @@ public sealed class PrintDeliveryTests {
         public PdfPreparedPrintDocument? Document { get; private set; }
         public PdfPrintDeliveryOptions? Options { get; private set; }
         public bool WaitForCancellation { get; init; }
+        public bool DelayPaperSources { get; init; }
+        public Dictionary<string, TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>> Sources { get; } = new();
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<PdfPrinterInfo>>([new("Test queue", true, false)]);
+        public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
+            if (!DelayPaperSources) return Task.FromResult<IReadOnlyList<PdfPaperSourceInfo>>([new("tray-2", "Lower tray")]);
+            var completion = new TaskCompletionSource<IReadOnlyList<PdfPaperSourceInfo>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Sources.Add(printerName, completion);
+            return completion.Task; // Deliberately model a driver that ignores cancellation.
+        }
         public async Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
             Document = document;
             Options = options;
