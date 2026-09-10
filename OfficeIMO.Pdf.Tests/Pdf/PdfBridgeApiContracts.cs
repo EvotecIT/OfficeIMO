@@ -190,7 +190,12 @@ public sealed class PdfBridgeApiContracts {
 
         Assert.Contains("Second page marker", text, StringComparison.Ordinal);
         Assert.DoesNotContain("First page marker", text, StringComparison.Ordinal);
-        Assert.Same(options.ReadOptions, options.Clone().ReadOptions);
+        PdfReadOptions cloned = options.Clone().ReadOptions!;
+        Assert.NotSame(options.ReadOptions, cloned);
+        Assert.Equal(options.ReadOptions.PageSelection, cloned.PageSelection);
+        Assert.Equal(1, cloned.Pipeline.MaxPages);
+        cloned.Pipeline.MaxPages = 2;
+        Assert.Equal(1, options.ReadOptions.Pipeline.MaxPages);
     }
 
     [Fact]

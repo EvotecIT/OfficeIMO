@@ -202,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return request.Operation switch {
+            OfficeWorkflowOperation.ScanCleanup => CleanScan(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.SignPdf => SignPdf(request, cancellationToken),
             OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
             OfficeWorkflowOperation.ExtractPages => ExtractPages(request, cancellationToken),
@@ -523,13 +524,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
             case ".pdf": {
-                PdfDocument document = await PdfDocument
-                    .LoadAsync(stagingPath, loadOptions, cancellationToken)
-                    .ConfigureAwait(false);
-                PdfDocumentInfo info = document.Inspect(loadOptions, cancellationToken);
-                if (info.PageCount == 0) throw new InvalidOperationException("Generated PDF has no pages.");
-                break;
-            }
+                    PdfDocument document = await PdfDocument
+                        .LoadAsync(stagingPath, loadOptions, cancellationToken)
+                        .ConfigureAwait(false);
+                    PdfDocumentInfo info = document.Inspect(loadOptions, cancellationToken);
+                    if (info.PageCount == 0) throw new InvalidOperationException("Generated PDF has no pages.");
+                    break;
+                }
             case ".docx":
                 await using (FileStream stream = OpenStagedArtifact(stagingPath))
                 using (WordDocument document = await WordDocument.LoadAsync(
@@ -694,6 +695,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
+        OfficeWorkflowOperation.ScanCleanup => "Preparing reviewed scan page appearances",
         OfficeWorkflowOperation.SignPdf => "Signing and verifying a separate PDF copy",
         OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
         OfficeWorkflowOperation.RemovePdfProtection => "Creating and verifying an unencrypted PDF copy",
@@ -752,5 +754,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? PdfOwnerPassword = null,
         IPdfExternalSigner? OutputSigner = null,
         PdfExternalSignatureOptions? OutputSignatureOptions = null,
-        IPdfSignatureCryptographyProvider? OutputSignatureValidator = null);
+        IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
+        OfficeWorkflowConversionOptions? ConversionOptions = null,
+        OfficeScanCleanupOptions? ScanCleanup = null);
 }

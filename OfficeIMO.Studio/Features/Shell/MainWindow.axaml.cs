@@ -91,6 +91,7 @@ public sealed partial class MainWindow : Window {
         document = new(
             pickPdf: token => PickFileSafelyAsync(PickPdfAsync, token),
             pickSavePdf: token => PickFileSafelyAsync(PickSavePdfAsync, token),
+            pickPrintOutput: token => PickFileSafelyAsync(PickPrintOutputAsync, token),
             pickImportPdfs: token => PickFilesSafelyAsync(PickPdfsAsync, token),
             pickOutputFolder: PickOutputFolderAsync,
             openUri: OpenUriAsync,
@@ -112,6 +113,7 @@ public sealed partial class MainWindow : Window {
             reviewPageImport: preview => new PageImportDialog(preview).ShowDialog<bool>(this),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
+            pickSaveRedactionReport: token => PickFileSafelyAsync(PickSaveRedactionReportAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => document is not null && TabHost.CanDocumentOwnPath(document, path),
@@ -508,6 +510,18 @@ public sealed partial class MainWindow : Window {
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
                 }
             ]
+        });
+        string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
+        return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
+    }
+
+    private async Task<string?> PickSaveRedactionReportAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanSave) return null;
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+            Title = _services.Localizer.Get("Redaction.ExportReport"),
+            SuggestedFileName = "redaction-evidence.json", DefaultExtension = "json",
+            FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"], MimeTypes = ["application/json"] }]
         });
         string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
         return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;

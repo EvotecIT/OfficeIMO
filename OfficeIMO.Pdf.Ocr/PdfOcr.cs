@@ -24,12 +24,7 @@ internal static partial class PdfOcr {
         PdfReadDocument overlapReadDocument = readOptions?.IncludeArtifactText == true
             ? readDocument
             : PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
-        int[] selectedPages = semanticOptions.PageSelection?.ToPageNumbers(
-            readDocument.Pages.Count,
-            nameof(semanticOptions.PageSelection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
-        if (selectedPages.Length > effectiveOptions.MaxPages) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
-        }
+        int[] selectedPages = effectiveOptions.GetSelectedPages(readDocument.Pages.Count);
 
         PdfTextLayoutOptions layoutOptions = semanticOptions.LayoutOptions;
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(semanticOptions.Pipeline);
@@ -143,7 +138,7 @@ internal static partial class PdfOcr {
                 diagnostics.Add("ocr-span-geometry: A recognized span did not contain valid page geometry.");
                 continue;
             }
-            PdfLogicalVisualBounds? recognitionBounds = prepared?.Report != null
+            PdfLogicalVisualBounds? recognitionBounds = prepared?.HasGeometryTransform == true
                 ? new PdfLogicalVisualBounds(x, y, x + width, y + height) : null;
             PdfSelectionQuad geometry = MapWordGeometry(x, y, width, height, prepared);
             if (prepared != null && (geometry.Left < -0.01D || geometry.Top < -0.01D ||
@@ -219,7 +214,7 @@ internal static partial class PdfOcr {
         ProjectedOcrResult result,
         PdfOcrMergeOptions options,
         CancellationToken cancellationToken,
-        OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null) {
+        PreparedPage? prepared = null) {
         if (nativePage.TextBlocks.Count > options.MaxNativeTextBlocksPerPage) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxNativeTextBlocksPerPage, nativePage.TextBlocks.Count);
         }
@@ -276,7 +271,7 @@ internal static partial class PdfOcr {
             result.Provider,
             result.Model,
             result.Language,
-            evidence.AsReadOnly(), scanProcessing);
+            evidence.AsReadOnly(), prepared?.Report, prepared?.RecognitionWidth, prepared?.RecognitionHeight);
     }
 
     private static bool TryConvertRegion(

@@ -27,8 +27,8 @@ public sealed class WorkflowViewModelTests {
             Assert.Equal(2, viewModel.Sheets.Count);
             Assert.Equal(2, viewModel.Sheets[0].Placements.Count);
             Assert.Single(viewModel.Sheets[1].Placements);
-            Assert.All(viewModel.Sheets.SelectMany(sheet => sheet.Placements), placement => Assert.NotNull(placement.Image));
-            Assert.Equal("Print preview ready", viewModel.Status);
+            Assert.All(viewModel.Sheets, sheet => Assert.NotNull(sheet.Image));
+            Assert.StartsWith("Print preview ready", viewModel.Status, StringComparison.Ordinal);
             return true;
         }, CancellationToken.None);
     }

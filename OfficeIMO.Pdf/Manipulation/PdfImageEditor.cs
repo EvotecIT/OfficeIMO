@@ -92,9 +92,14 @@ internal static partial class PdfImageEditor {
         return new ImageMutationResult(output, 1);
     }
 
-    internal static ImageMutationResult Move(byte[] pdf, PdfImagePlacement placement, double deltaX, double deltaY, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
+    internal static ImageMutationResult Move(byte[] pdf, PdfImagePlacement placement, double deltaX, double deltaY, PdfImageEditOptions? options, PdfLoadOptions? readOptions) =>
+        Transform(pdf, placement, deltaX, deltaY, 1D, options, readOptions);
+
+    internal static ImageMutationResult Transform(byte[] pdf, PdfImagePlacement placement, double deltaX, double deltaY, double scale, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
+        ValidateFinite(scale, nameof(scale));
+        if (scale <= 0D) throw new ArgumentOutOfRangeException(nameof(scale), "Image scale must be greater than zero.");
         Guard.NotNull(pdf, nameof(pdf));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
         EnsureRemovablePlacement(current);
@@ -108,7 +113,10 @@ internal static partial class PdfImageEditor {
         byte[] output = PdfStamper.StampImage(
             removed,
             image.Bytes,
-            CreateStampOptions(current.PageNumber, current.E + deltaX, current.F + deltaY, transform.Width, transform.Height, transform.RotationDegrees, snapshot),
+            CreateStampOptions(current.PageNumber,
+                current.E + deltaX + (current.A + current.C) * (1D - scale) / 2D,
+                current.F + deltaY + (current.B + current.D) * (1D - scale) / 2D,
+                transform.Width * scale, transform.Height * scale, transform.RotationDegrees, snapshot),
             afterRemovalOptions);
         return new ImageMutationResult(output, 1);
     }

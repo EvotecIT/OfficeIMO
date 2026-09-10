@@ -8,12 +8,12 @@
   <Grid RowDefinitions="Auto,*" Background="{DynamicResource StudioWindowBrush}">
     <Border Grid.Row="0" Padding="22,15" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
         <StackPanel Spacing="3">
           <TextBlock Text="{loc:Loc OutputIntakeWorkbench.OutputIntake}" Classes="pageTitle" />
-          <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PreviewPrintSheetsExportPagesOrCombineMixedDocumentSources}" Classes="muted" />
+          <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PreviewPrintSheetsExportPagesOrCombineMixedDocumentSources}" Classes="muted" TextWrapping="Wrap" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <ToggleButton Classes="segment" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.PrintPreview}" Content="{loc:Loc OutputIntakeWorkbench.PrintPreview}"
                         IsChecked="{Binding OutputWorkbench.IsPrintPreview, Mode=OneWay}"
                         Command="{Binding OutputWorkbench.ShowPrintPreviewCommand}" />
@@ -33,6 +33,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel Margin="20" Spacing="12">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PRINTSETUP}" Classes="eyebrow" />
+            <StackPanel Spacing="12" IsEnabled="{Binding OutputWorkbench.PrintPreview.CanChangePrintSettings}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Document}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OutputWorkbench.PrintPreview.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.ChooseAPDF}" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.InputName}" Classes="muted" TextWrapping="Wrap" />
@@ -72,22 +73,46 @@
             </ComboBox>
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.SelectedScale.Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
 
+            <TextBlock Text="{loc:Loc PrintPreview.Resolution}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PrintDpiChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.PrintDpi}" />
+            </StackPanel>
+
             <Button Classes="primary" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.BuildPreview}" Content="{loc:Loc OutputIntakeWorkbench.BuildPreview}" Command="{Binding OutputWorkbench.PrintPreview.BuildPreviewCommand}" Margin="0,8,0,0" />
             <ProgressBar IsVisible="{Binding OutputWorkbench.PrintPreview.IsBusy}" Minimum="0" Maximum="1"
                          Value="{Binding OutputWorkbench.PrintPreview.ProgressFraction}" />
-            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Status}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <StackPanel Spacing="12" IsEnabled="{Binding OutputWorkbench.PrintPreview.CanChangePrintSettings}">
+            <TextBlock Text="{loc:Loc PrintPreview.Printer}" FontWeight="SemiBold" Margin="0,10,0,0" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PrinterChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPrinter}" HorizontalAlignment="Stretch" />
+            <Button Content="{loc:Loc PrintPreview.RefreshPrinters}" Command="{Binding OutputWorkbench.PrintPreview.RefreshPrintersCommand}" IsEnabled="{Binding !OutputWorkbench.PrintPreview.IsDiscoveringPrinters}" />
+            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.PrinterDiscoveryError}" IsVisible="{Binding OutputWorkbench.PrintPreview.HasPrinterDiscoveryError}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc PrintPreview.PaperSource}" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PaperSourceChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPaperSource}" IsEnabled="{Binding !OutputWorkbench.PrintPreview.IsDiscoveringPaperSources}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.PaperSource}" />
+            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.PaperSourceError}" IsVisible="{Binding OutputWorkbench.PrintPreview.HasPaperSourceError}" TextWrapping="Wrap" Classes="muted" />
+            <TextBlock Text="{loc:Loc PrintPreview.Copies}" />
+            <NumericUpDown Minimum="1" Maximum="100" Value="{Binding OutputWorkbench.PrintPreview.Copies}" />
+            <TextBlock Text="{loc:Loc PrintPreview.Duplex}" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.DuplexChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedDuplex}" HorizontalAlignment="Stretch" />
+            <StackPanel IsVisible="{Binding OutputWorkbench.PrintPreview.RequiresPrintOutput}" Spacing="6">
+              <TextBlock Text="{loc:Loc PrintPreview.OutputFile}" TextWrapping="Wrap" />
+              <TextBox Text="{Binding OutputWorkbench.PrintPreview.PrintOutputPath}" />
+              <TextBlock Text="{loc:Loc PrintPreview.FileTypeHint}" TextWrapping="Wrap" Classes="muted" />
+              <Button Content="{loc:Loc PrintPreview.ChooseOutput}" Command="{Binding OutputWorkbench.PrintPreview.ChoosePrintOutputCommand}" />
+            </StackPanel>
+            </StackPanel>
+            <Button Classes="primary" Content="{loc:Loc PrintPreview.Print}" Command="{Binding OutputWorkbench.PrintPreview.PrintCommand}" />
+            <Button Content="{loc:Loc PrintPreview.Cancel}" Command="{Binding OutputWorkbench.PrintPreview.CancelCommand}" IsVisible="{Binding OutputWorkbench.PrintPreview.IsBusy}" />
+            <TextBlock Text="{loc:Loc PrintPreview.DeliveryHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
         </ScrollViewer>
       </Border>
 
-      <Grid Grid.Column="1" RowDefinitions="58,*">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="22,0">
-          <StackPanel VerticalAlignment="Center">
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" Margin="22,10">
+          <StackPanel VerticalAlignment="Center" Spacing="5">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.SheetPreview}" Classes="sectionTitle" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Summary}" Classes="muted" FontSize="12" />
+            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Status}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
-          <TextBlock Grid.Column="1" Text="{loc:Loc OutputIntakeWorkbench.ReviewPaperPlacementBeforeContinuingToYourPrinter}"
-                     Classes="muted" FontSize="12" VerticalAlignment="Center" />
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
           <ItemsControl ItemsSource="{Binding OutputWorkbench.PrintPreview.Sheets}" Margin="24,4,24,24"
@@ -100,27 +125,7 @@
                   <Border Width="{Binding Width}" Height="{Binding Height}" Background="White"
                           BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
                           BoxShadow="0 5 18 0 #26000000">
-                    <ItemsControl ItemsSource="{Binding Placements}" Width="{Binding Width}" Height="{Binding Height}">
-                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                      <ItemsControl.Styles>
-                        <Style Selector="ContentPresenter" x:DataType="workflow:PrintPreviewPlacementViewModel">
-                          <Setter Property="Canvas.Left" Value="{Binding Left}" />
-                          <Setter Property="Canvas.Top" Value="{Binding Top}" />
-                        </Style>
-                      </ItemsControl.Styles>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="workflow:PrintPreviewPlacementViewModel">
-                          <Border Width="{Binding Width}" Height="{Binding Height}" ClipToBounds="True"
-                                  Background="#FFF" BorderBrush="#D7DCE5" BorderThickness="1">
-                            <Canvas>
-                              <Image Canvas.Left="{Binding ImageLeft}" Canvas.Top="{Binding ImageTop}"
-                                     Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"
-                                     Source="{Binding Image}" Stretch="Fill" />
-                            </Canvas>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <Image Source="{Binding Image}" Stretch="Fill" />
                   </Border>
                 </StackPanel>
               </DataTemplate>

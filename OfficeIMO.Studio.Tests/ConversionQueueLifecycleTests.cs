@@ -8,60 +8,68 @@ namespace OfficeIMO.Studio.Tests;
 public sealed class ConversionQueueLifecycleTests {
     [Fact]
     public async Task RetryAndNewPendingJobsNeverRepeatCompletedOutputs() {
-        using var scope = new Scope();
-        string first = scope.Write("first");
-        string second = Path.Combine(scope.Root, "second.html");
-        IReadOnlyList<string> selection = [first, second];
-        using var model = Create(() => selection, scope.Root);
-        await model.AddFilesCommand.ExecuteAsync(null);
-        await model.RunQueueCommand.ExecuteAsync(null);
-        Assert.True(model.Jobs[0].State == ConversionJobState.Completed, model.Jobs[0].Summary + " " + string.Join("; ", model.Jobs[0].Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal(ConversionJobState.Failed, model.Jobs[1].State);
-        byte[] original = File.ReadAllBytes(model.Jobs[0].OutputPath!);
-        var firstDiagnostics = model.Jobs[0].Diagnostics;
-        Assert.False(model.CanRun);
-        Assert.True(model.CanRetryFailed);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var scope = new Scope();
+            string first = scope.Write("first");
+            string second = Path.Combine(scope.Root, "second.html");
+            IReadOnlyList<string> selection = [first, second];
+            using var model = Create(() => selection, scope.Root);
+            await model.AddFilesCommand.ExecuteAsync(null);
+            await model.RunQueueCommand.ExecuteAsync(null);
+            Assert.True(model.Jobs[0].State == ConversionJobState.Completed, model.Jobs[0].Summary + " " + string.Join("; ", model.Jobs[0].Diagnostics.Select(diagnostic => diagnostic.Message)));
+            Assert.Equal(ConversionJobState.Failed, model.Jobs[1].State);
+            byte[] original = File.ReadAllBytes(model.Jobs[0].OutputPath!);
+            var firstDiagnostics = model.Jobs[0].Diagnostics;
+            Assert.False(model.CanRun);
+            Assert.True(model.CanRetryFailed);
 
-        scope.Write("second");
-        await model.RetryFailedCommand.ExecuteAsync(null);
-        Assert.All(model.Jobs, job => Assert.Equal(ConversionJobState.Completed, job.State));
-        Assert.Equal(original, File.ReadAllBytes(model.Jobs[0].OutputPath!));
-        Assert.Same(firstDiagnostics, model.Jobs[0].Diagnostics);
-        await model.RunQueueCommand.ExecuteAsync(null);
-        await model.RetryFailedCommand.ExecuteAsync(null);
-        Assert.Equal(2, Directory.GetFiles(scope.Root, "*.pdf").Length);
+            scope.Write("second");
+            await model.RetryFailedCommand.ExecuteAsync(null);
+            Assert.All(model.Jobs, job => Assert.Equal(ConversionJobState.Completed, job.State));
+            Assert.Equal(original, File.ReadAllBytes(model.Jobs[0].OutputPath!));
+            Assert.Same(firstDiagnostics, model.Jobs[0].Diagnostics);
+            await model.RunQueueCommand.ExecuteAsync(null);
+            await model.RetryFailedCommand.ExecuteAsync(null);
+            Assert.Equal(2, Directory.GetFiles(scope.Root, "*.pdf").Length);
 
-        selection = [scope.Write("third")];
-        await model.AddFilesCommand.ExecuteAsync(null);
-        Assert.True(model.CanRun);
-        await model.RunQueueCommand.ExecuteAsync(null);
-        Assert.Equal(3, Directory.GetFiles(scope.Root, "*.pdf").Length);
-        Assert.Same(firstDiagnostics, model.Jobs[0].Diagnostics);
+            selection = [scope.Write("third")];
+            await model.AddFilesCommand.ExecuteAsync(null);
+            Assert.True(model.CanRun);
+            await model.RunQueueCommand.ExecuteAsync(null);
+            Assert.Equal(3, Directory.GetFiles(scope.Root, "*.pdf").Length);
+            Assert.Same(firstDiagnostics, model.Jobs[0].Diagnostics);
+            return true;
+        }, CancellationToken.None);
     }
 
     [Fact]
     public async Task CancelledBatchRetainsCompletedOutputAndRetriesOnlyUncommittedJobs() {
-        using var scope = new Scope();
-        string[] sources = [scope.Write("first"), scope.Write("second"), scope.Write("third")];
-        ConversionWorkbenchViewModel? model = null;
-        bool cancelSecond = true;
-        var guard = new PublicationGuard((path, _) => {
-            if (cancelSecond && Path.GetFileName(path) == "second.pdf") model!.CancelCommand.Execute(null);
-            return ValueTask.FromResult(true);
-        });
-        model = Create(() => sources, scope.Root, guard: guard);
-        using (model) {
-            await model.AddFilesCommand.ExecuteAsync(null);
-            await model.RunQueueCommand.ExecuteAsync(null);
-            Assert.Equal(ConversionJobState.Completed, model.Jobs[0].State);
-            Assert.All(model.Jobs.Skip(1), job => Assert.Equal(ConversionJobState.Cancelled, job.State));
-            Assert.Single(Directory.GetFiles(scope.Root, "*.pdf"));
-            cancelSecond = false;
-            await model.RetryFailedCommand.ExecuteAsync(null);
-            Assert.All(model.Jobs, job => Assert.Equal(ConversionJobState.Completed, job.State));
-            Assert.Equal(3, Directory.GetFiles(scope.Root, "*.pdf").Length);
-            Assert.False(File.Exists(Path.Combine(scope.Root, "first (1).pdf")));
-        }
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var scope = new Scope();
+            string[] sources = [scope.Write("first"), scope.Write("second"), scope.Write("third")];
+            ConversionWorkbenchViewModel? model = null;
+            bool cancelSecond = true;
+            var guard = new PublicationGuard((path, _) => {
+                if (cancelSecond && Path.GetFileName(path) == "second.pdf") model!.CancelCommand.Execute(null);
+                return ValueTask.FromResult(true);
+            });
+            model = Create(() => sources, scope.Root, guard: guard);
+            using (model) {
+                await model.AddFilesCommand.ExecuteAsync(null);
+                await model.RunQueueCommand.ExecuteAsync(null);
+                Assert.Equal(ConversionJobState.Completed, model.Jobs[0].State);
+                Assert.All(model.Jobs.Skip(1), job => Assert.Equal(ConversionJobState.Cancelled, job.State));
+                Assert.Single(Directory.GetFiles(scope.Root, "*.pdf"));
+                cancelSecond = false;
+                await model.RetryFailedCommand.ExecuteAsync(null);
+                Assert.All(model.Jobs, job => Assert.Equal(ConversionJobState.Completed, job.State));
+                Assert.Equal(3, Directory.GetFiles(scope.Root, "*.pdf").Length);
+                Assert.False(File.Exists(Path.Combine(scope.Root, "first (1).pdf")));
+            }
+            return true;
+        }, CancellationToken.None);
     }
 
     [Fact]
@@ -87,17 +95,21 @@ public sealed class ConversionQueueLifecycleTests {
 
     [Fact]
     public async Task LostResultRequiresCheckingOutputBeforeAnotherAttempt() {
-        using var scope = new Scope();
-        string source = scope.Write("first");
-        using var model = Create(() => [source], scope.Root, new ObservingRunner { LoseResult = true });
-        await model.AddFilesCommand.ExecuteAsync(null);
-        await model.RunQueueCommand.ExecuteAsync(null);
-        Assert.True(File.Exists(Path.Combine(scope.Root, "first.pdf")));
-        Assert.Equal(ConversionJobState.Unconfirmed, Assert.Single(model.Jobs).State);
-        Assert.False(model.CanRun);
-        Assert.False(model.CanRetryFailed);
-        await model.RetryFailedCommand.ExecuteAsync(null);
-        Assert.Single(Directory.GetFiles(scope.Root, "*.pdf"));
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            using var scope = new Scope();
+            string source = scope.Write("first");
+            using var model = Create(() => [source], scope.Root, new ObservingRunner { LoseResult = true });
+            await model.AddFilesCommand.ExecuteAsync(null);
+            await model.RunQueueCommand.ExecuteAsync(null);
+            Assert.True(File.Exists(Path.Combine(scope.Root, "first.pdf")));
+            Assert.Equal(ConversionJobState.Unconfirmed, Assert.Single(model.Jobs).State);
+            Assert.False(model.CanRun);
+            Assert.False(model.CanRetryFailed);
+            await model.RetryFailedCommand.ExecuteAsync(null);
+            Assert.Single(Directory.GetFiles(scope.Root, "*.pdf"));
+            return true;
+        }, CancellationToken.None);
     }
 
     [Fact]

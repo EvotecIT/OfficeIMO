@@ -47,37 +47,16 @@ public sealed partial class MainWindowViewModel {
     public bool CanResizeSelectedAnnotation => HasSelectedAnnotation && CanEditAnnotations;
 
     [RelayCommand]
-    private async Task ReplaceSelectedTextAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || SelectedObject is not { Kind: PdfEditorSelectionKind.Text } selection) return;
-        string replacement = SelectedObjectText;
-        ClearObjectSelection();
-        bool succeeded = await RunMutationAsync(
-            token => _workspace.ReplaceSelectedTextAsync(selection, replacement, options: null, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Selected text replaced. Save when ready.";
-    }
-
-    [RelayCommand]
-    private async Task ReplaceAllDocumentTextAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
-        string find = ReplaceAllFindText;
-        string replacement = ReplaceAllReplacementText;
-        bool succeeded = await RunMutationAsync(
-            token => _workspace.ReplaceAllTextAsync(find, replacement, ReplaceAllMatchCase, ReplaceAllWholeWords, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
-        if (succeeded) OperationStatus = "Document-wide text replacement complete. Save when ready.";
-    }
-
-    [RelayCommand]
     private async Task MoveSelectedObjectAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedObject is not PdfEditorSelection selection) return;
         double deltaX = ObjectMoveX;
         double deltaY = ObjectMoveY;
+        var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
         ClearObjectSelection();
         bool succeeded = await RunMutationAsync(
             token => selection.Kind switch {
                 PdfEditorSelectionKind.Text => _workspace.MoveSelectedTextAsync(selection, deltaX, deltaY, token, CreateProgress()),
-                PdfEditorSelectionKind.Image => _workspace.MoveSelectedImageAsync(selection, deltaX, deltaY, token, CreateProgress()),
+                PdfEditorSelectionKind.Image => _workspace.MoveSelectedImageAsync(selection, deltaX, deltaY, token, CreateProgress(), imageOptions),
                 PdfEditorSelectionKind.Annotation when selection.ObjectNumber is int objectNumber =>
                     _workspace.MoveAnnotationAsync(objectNumber, selection.PageNumber, deltaX, deltaY, token, CreateProgress()),
                 _ => throw new InvalidOperationException("The selected object cannot be moved.")
@@ -109,8 +88,9 @@ public sealed partial class MainWindowViewModel {
             return;
         }
         ClearObjectSelection();
+        var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
         bool succeeded = await RunMutationAsync(
-            token => workspace.ReplaceSelectedImageAsync(selection, bytes, token, CreateProgress()),
+            token => workspace.ReplaceSelectedImageAsync(selection, bytes, token, CreateProgress(), imageOptions),
             cancellationToken).ConfigureAwait(true);
         if (succeeded) OperationStatus = "Selected image replaced. Save when ready.";
     }

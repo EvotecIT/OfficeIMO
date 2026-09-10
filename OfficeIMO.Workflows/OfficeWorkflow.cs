@@ -103,6 +103,13 @@ public sealed class OfficeWorkflowBuilder {
         return this;
     }
 
+    /// <summary>Sets independently copied route-specific conversion settings.</summary>
+    public OfficeWorkflowBuilder WithConversionOptions(OfficeWorkflowConversionOptions options) {
+        ArgumentNullException.ThrowIfNull(options);
+        _request.ConversionOptions = options.Clone();
+        return this;
+    }
+
     /// <summary>Sets destination conflict behavior.</summary>
     public OfficeWorkflowBuilder OnConflict(OfficeWorkflowConflictPolicy policy) {
         _request.ConflictPolicy = policy;
@@ -174,6 +181,7 @@ public sealed class OfficeWorkflowBuilder {
             InputPath = _request.InputPath,
             ComparisonPath = _request.ComparisonPath,
             ConversionRouteId = routeId,
+            ConversionOptions = _request.ConversionOptions?.Clone(),
             OutputPath = _request.OutputPath,
             ConflictPolicy = _request.ConflictPolicy,
             OutputProfile = _request.OutputProfile,

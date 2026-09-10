@@ -69,7 +69,7 @@ public static class PdfVisualComparer {
             pages.Add(page);
         }
 
-        return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly());
+        return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expected.Pages.Count, actual.Pages.Count);
     }
 
     private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
@@ -87,7 +87,8 @@ public static class PdfVisualComparer {
         OfficeRasterImage expectedImage = OfficeDrawingRasterRenderer.Render(expectedDrawing, rasterOptions);
         OfficeRasterImage actualImage = OfficeDrawingRasterRenderer.Render(actualDrawing, rasterOptions);
 
-        if (expectedImage.Width != actualImage.Width || expectedImage.Height != actualImage.Height) {
+        bool hasSizeDifference = expectedImage.Width != actualImage.Width || expectedImage.Height != actualImage.Height;
+        if (hasSizeDifference) {
             structural.Add("Page " + pageNumber + " dimensions: expected " + expectedImage.Width + "x" + expectedImage.Height + ", actual " + actualImage.Width + "x" + actualImage.Height + ".");
         }
 
@@ -101,6 +102,7 @@ public static class PdfVisualComparer {
         long different = 0;
         long channelDifferenceTotal = 0;
         int maximumDifference = 0;
+        int left = width, top = height, right = -1, bottom = -1;
         for (int y = 0; y < height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
@@ -122,6 +124,8 @@ public static class PdfVisualComparer {
                 maximumDifference = Math.Max(maximumDifference, pixelMax);
                 if (pixelMax > options.ChannelTolerance) {
                     different++;
+                    left = Math.Min(left, x); top = Math.Min(top, y);
+                    right = Math.Max(right, x); bottom = Math.Max(bottom, y);
                     diff.SetPixel(x, y, OfficeColor.FromRgb(255, (byte)Math.Max(0, 160 - pixelMax / 2), (byte)Math.Max(0, 160 - pixelMax / 2)));
                 } else {
                     byte gray = (byte)Math.Round((expected.R + expected.G + expected.B) / 3D);
@@ -146,7 +150,9 @@ public static class PdfVisualComparer {
             mean,
             expectedPng,
             actualPng,
-            diffPng);
+            diffPng,
+            hasSizeDifference,
+            different == 0 ? null : new PdfPixelRegion(left, top, right - left + 1, bottom - top + 1));
     }
 
     private static void AddPixelBudget(double width, double height, double scale, PdfVisualComparisonOptions options, ref long totalPixels) {

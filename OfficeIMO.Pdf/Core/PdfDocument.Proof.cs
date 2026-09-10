@@ -14,9 +14,17 @@ public sealed partial class PdfDocument {
     internal PdfVisualComparisonReport CompareVisual(
         PdfDocument actualDocument,
         PdfPageSelection? selection = null,
+        PdfVisualComparisonOptions? options = null) =>
+        CompareVisual(actualDocument, System.Threading.CancellationToken.None, selection, options);
+
+    internal PdfVisualComparisonReport CompareVisual(
+        PdfDocument actualDocument,
+        System.Threading.CancellationToken cancellationToken,
+        PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null) {
         Guard.NotNull(actualDocument, nameof(actualDocument));
-        return PdfVisualComparer.Compare(GetBytesForOperation(), actualDocument.GetBytesForOperation(), selection, options, ReadOptions, actualDocument.ReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        return PdfVisualComparer.Compare(GetBytesForOperation(), actualDocument.GetBytesForOperation(), cancellationToken, selection, options, ReadOptions, actualDocument.ReadOptions);
     }
     /// <summary>
     /// Compares this PDF with a rewritten PDF and reports whether important document signals were preserved.
