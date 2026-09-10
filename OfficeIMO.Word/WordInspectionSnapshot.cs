@@ -113,6 +113,8 @@ namespace OfficeIMO.Word {
     }
 
     public sealed class WordRunSnapshot {
+        internal IReadOnlyDictionary<int, WordBreakType>? NonTextBreaks { get; set; }
+        internal IReadOnlyList<WordPositionedImageSnapshot> PositionedImages { get; set; } = Array.Empty<WordPositionedImageSnapshot>();
         public string Text { get; internal set; } = string.Empty;
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
@@ -138,6 +140,15 @@ namespace OfficeIMO.Word {
         public WordFootnoteSnapshot? Footnote { get; internal set; }
         public WordEndnoteSnapshot? Endnote { get; internal set; }
         public WordInlineImageSnapshot? InlineImage { get; internal set; }
+    }
+
+    internal sealed class WordPositionedImageSnapshot {
+        internal WordPositionedImageSnapshot(int offset, WordInlineImageSnapshot image) {
+            Offset = offset;
+            Image = image;
+        }
+        internal int Offset { get; }
+        internal WordInlineImageSnapshot Image { get; }
     }
 
     public sealed class WordFootnoteSnapshot {

@@ -88,6 +88,7 @@ public static partial class OfficeSvgDrawingReader {
                 root,
                 scene.Width,
                 scene.Height,
+                scene.Fonts,
                 context,
                 paintServers,
                 references,

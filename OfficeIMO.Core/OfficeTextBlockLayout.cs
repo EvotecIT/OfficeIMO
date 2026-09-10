@@ -41,4 +41,7 @@ public sealed class OfficeTextBlockLayout {
 
     /// <summary>Whether the block was clipped or ellipsized to fit a requested bound.</summary>
     public bool Clipped { get; }
+
+    // Keeps ink above the nominal baseline box inside a fitted frame.
+    internal double ContentOffsetY { get; set; }
 }

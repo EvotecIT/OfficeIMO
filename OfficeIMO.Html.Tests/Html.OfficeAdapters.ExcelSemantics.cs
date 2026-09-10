@@ -60,7 +60,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
     }
 
     [Fact]
-    public void ExcelHtml_SemanticFormattingClampsHostileColumnSpanToNativeBounds() {
+    public void ExcelHtml_GenericFormattingUsesBoundedGridPlacement() {
         const string html = """
             <table><tr><td colspan="2147483647"><strong>First</strong></td><td>Second</td></tr></table>
             """;
@@ -72,8 +72,11 @@ public class HtmlOfficeAdaptersExcelSemantics {
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? first));
         Assert.Equal("First", first!.Text);
+        Assert.Equal("Second", sheet.CellAt(1, 2).GetValue<string>());
+        Assert.Equal(2, result.Cells);
+        Assert.Empty(sheet.GetMergedRanges());
         Assert.Contains(result.Report.Diagnostics,
-            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
     }
 
     [Fact]

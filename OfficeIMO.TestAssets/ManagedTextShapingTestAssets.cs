@@ -69,13 +69,14 @@ internal static class ManagedTextShapingTestAssets {
             glyphCount: 4,
             gsub: CreateContextualGsub(nestedLookupType: 8));
 
-    internal static byte[] CreateColorFont(int scalar) {
+    internal static byte[] CreateColorFont(int scalar, int baseGlyphHeight = 700) {
         return CreateFontFromCmap(
             CreateFormat12Cmap(new[] { scalar }),
             glyphCount: 4,
             distinctSecondGlyph: true,
             colr: CreateColrV0(),
-            cpal: CreateCpalV1());
+            cpal: CreateCpalV1(),
+            baseGlyphHeight: baseGlyphHeight);
     }
 
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
@@ -159,7 +160,8 @@ internal static class ManagedTextShapingTestAssets {
         byte[]? gpos = null,
         bool distinctSecondGlyph = false,
         byte[]? colr = null,
-        byte[]? cpal = null) {
+        byte[]? cpal = null,
+        int baseGlyphHeight = 700) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -167,6 +169,7 @@ internal static class ManagedTextShapingTestAssets {
         Array.Copy(new byte[] { 0x01, 0xF4, 0x00, 0x00 }, hmtx, 4);
         for (int glyphIndex = 1; glyphIndex < glyphCount; glyphIndex++) {
             byte[] currentGlyph = distinctSecondGlyph && glyphIndex == 2 ? CreateVisibleGlyph(600) : glyph;
+            if (glyphIndex == 1 && baseGlyphHeight != 700) currentGlyph = CreateVisibleGlyph(400, baseGlyphHeight);
             Array.Copy(currentGlyph, 0, glyf, (glyphIndex - 1) * glyph.Length, glyph.Length);
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)(glyphIndex * glyph.Length / 2)));
         }
@@ -752,11 +755,11 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, offset + 26, 1);
     }
 
-    private static byte[] CreateVisibleGlyph(int width) {
+    private static byte[] CreateVisibleGlyph(int width, int height = 700) {
         var glyph = new byte[34];
         WriteUInt16(glyph, 0, 1);
         WriteUInt16(glyph, 6, checked((ushort)width));
-        WriteUInt16(glyph, 8, 700);
+        WriteUInt16(glyph, 8, checked((ushort)height));
         WriteUInt16(glyph, 10, 3);
         glyph[14] = 0x01;
         glyph[15] = 0x01;
@@ -764,7 +767,7 @@ internal static class ManagedTextShapingTestAssets {
         glyph[17] = 0x01;
         WriteUInt16(glyph, 20, checked((ushort)width));
         WriteUInt16(glyph, 24, unchecked((ushort)-width));
-        WriteUInt16(glyph, 30, 700);
+        WriteUInt16(glyph, 30, checked((ushort)height));
         return glyph;
     }
 

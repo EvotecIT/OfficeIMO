@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="Northwind Operations">
+  <title>Monthly service review</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    body { margin: 0; color: #24364b; background: #f2f5f7; font: 14px/1.45 Arial, sans-serif; }
+    main { max-width: 850px; margin: 24px auto; padding: 32px; background: #ffffff; border-top: 6px solid #147d78; }
+    .eyebrow { margin: 0; color: #147d78; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+    h1 { margin: 8px 0; color: #16324f; font-size: 32px; line-height: 1.15; }
+    h2 { margin: 22px 0 8px; color: #16324f; font-size: 20px; }
+    .period { margin: 0 0 18px; color: #52667a; }
+    .summary { padding: 12px 16px; background: #eaf5f2; border-left: 4px solid #147d78; }
+    table { width: 100%; margin: 10px 0 16px; border-collapse: collapse; }
+    caption { text-align: left; font-size: 16px; font-weight: bold; color: #16324f; padding: 0 0 8px; }
+    th, td { padding: 9px 8px; border: 1px solid #cbd5df; text-align: left; vertical-align: top; }
+    thead th { background: #16324f; color: #ffffff; font-weight: bold; }
+    tbody th { background: #eef3f7; color: #16324f; }
+    .amount { text-align: right; }
+    .pending { color: #934612; font-weight: bold; }
+    tfoot th, tfoot td { background: #eaf5f2; font-weight: bold; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    a { color: #147d78; text-decoration: underline; }
+    footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #cbd5df; color: #52667a; font-size: 11px; }
+    @media screen and (max-width: 600px) {
+      main { margin: 0; padding: 18px 12px; }
+      h1 { font-size: 27px; }
+      th, td { padding: 7px 5px; font-size: 12px; }
+    }
+    @media print {
+      body { background: #ffffff; }
+      main { margin: 0; padding: 0; border-top: none; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      h2, caption { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">NORTHWIND / SERVICE OPERATIONS</p>
+    <h1>Monthly service review</h1>
+    <p class="period">September 2026 · Prepared for the service owner</p>
+  </header>
+  <p class="summary"><strong>46.75 hours recorded.</strong> Three entries are approved. One project entry needs an owner review before the monthly close.</p>
+  <table>
+    <caption>Service usage</caption>
+    <colgroup><col style="width:24%"><col style="width:17%"><col style="width:12%"><col style="width:20%"><col style="width:27%"></colgroup>
+    <thead><tr><th scope="col">Workstream</th><th scope="col">Reference</th><th scope="col" class="amount">Hours</th><th scope="col">Approved</th><th scope="col">Recorded</th></tr></thead>
+    <tbody>
+      <tr><th scope="rowgroup" rowspan="2">Operations</th><td>00127</td><td class="amount" data-officeimo-value-kind="number" data-officeimo-value="12.5">12.50</td><td data-officeimo-value-kind="boolean" data-officeimo-value="true">Yes</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-01T00:00:00">1 Sep 2026</td></tr>
+      <tr><td>00128</td><td class="amount" data-officeimo-value-kind="number" data-officeimo-value="8.25">8.25</td><td data-officeimo-value-kind="boolean" data-officeimo-value="true">Yes</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-02T00:00:00">2 Sep 2026</td></tr>
+      <tr><th scope="rowgroup" rowspan="2">Projects</th><td>00129</td><td class="amount" data-officeimo-value-kind="number" data-officeimo-value="16">16.00</td><td data-officeimo-value-kind="boolean" data-officeimo-value="true">Yes</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-03T00:00:00">3 Sep 2026</td></tr>
+      <tr><td>00130</td><td class="amount" data-officeimo-value-kind="number" data-officeimo-value="10"><strong>10.00</strong></td><td class="pending" data-officeimo-value-kind="boolean" data-officeimo-value="false">Pending</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-04T00:00:00">4 Sep 2026</td></tr>
+    </tbody>
+    <tfoot><tr><th scope="row" colspan="2">Total recorded hours</th><td class="amount" data-officeimo-value-kind="number" data-officeimo-value="46.75">46.75</td><td colspan="2">4 entries</td></tr></tfoot>
+  </table>
+  <h2>Decisions and follow-up</h2>
+  <ul>
+    <li>Confirm the project work recorded against reference <strong>00130</strong>.</li>
+    <li>Keep the original references when reconciling this report with the source records.</li>
+    <li>Use the <a href="https://example.com/service-review">service review checklist</a> for the monthly close.</li>
+  </ul>
+  <table>
+    <caption>Next actions</caption>
+    <colgroup><col style="width:52%"><col style="width:26%"><col style="width:22%"></colgroup>
+    <thead><tr><th scope="col">Action</th><th scope="col">Owner</th><th scope="col">Due</th></tr></thead>
+    <tbody>
+      <tr><td>Review the pending project entry</td><td>Project lead</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-08T00:00:00">8 Sep 2026</td></tr>
+      <tr><td>Complete the monthly reconciliation</td><td>Service owner</td><td data-officeimo-value-kind="date-time" data-officeimo-value="2026-09-10T00:00:00">10 Sep 2026</td></tr>
+    </tbody>
+  </table>
+  <footer>Illustrative data. Approval and recorded hours come from the source records; generating this report does not independently verify them.</footer>
+</main>
+</body>
+</html>

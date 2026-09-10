@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
-    public void NativeRunFormattingProjectsToTypedPdfRuns() {
+    public void NativeRunFormattingProjectsToSharedDrawingRuns() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun authored = presentation.AddSlide()
@@ -30,17 +30,17 @@ public sealed class PowerPointPdfTextFormattingTests {
 
         PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(conversion.Value.Blocks));
-        PdfCore.PdfTextRun run = Assert.Single(
-            canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>().SelectMany(item => item.Runs),
+        OfficeRichTextRun run = Assert.Single(
+            GetDrawingTextRuns(canvas),
             item => item.Text == "STYLED");
 
         Assert.Equal("STYLED", run.Text);
         Assert.True(run.Bold);
         Assert.True(run.Italic);
         Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
-        Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
-        Assert.Equal(PdfCore.PdfTextBaseline.Subscript, run.Baseline);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(51, 102, 153), run.Color);
+        Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikethroughStyle);
+        Assert.Equal(OfficeTextBaseline.Subscript, run.Baseline);
+        Assert.Equal(OfficeColor.FromRgb(51, 102, 153), run.Color);
         Assert.Equal("Aptos", run.FontFamily);
         Assert.Equal(14D, run.FontSize);
         Assert.Contains(conversion.Warnings, warning => warning.Code == "small-caps-approximation");
@@ -58,8 +58,8 @@ public sealed class PowerPointPdfTextFormattingTests {
 
         PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(conversion.Value.Blocks));
-        PdfCore.PdfTextRun run = Assert.Single(
-            canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>().SelectMany(item => item.Runs),
+        OfficeRichTextRun run = Assert.Single(
+            GetDrawingTextRuns(canvas),
             item => item.Text == "İ");
 
         Assert.Equal("İ", run.Text);
@@ -179,8 +179,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
         PdfCore.PdfDocument document = presentation.ToPdfDocument();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(document.Blocks));
-        PdfCore.PdfTextRun[] runs = canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>()
-            .SelectMany(item => item.Runs)
+        OfficeRichTextRun[] runs = GetDrawingTextRuns(canvas)
             .Where(run => run.Text == "İ")
             .ToArray();
 
@@ -189,8 +188,8 @@ public sealed class PowerPointPdfTextFormattingTests {
             Assert.True(run.Bold);
             Assert.True(run.Italic);
             Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
-            Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
-            Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
+            Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikethroughStyle);
+            Assert.Equal(OfficeTextBaseline.Superscript, run.Baseline);
             Assert.Equal(18D, run.FontSize);
             Assert.Equal("Aptos", run.FontFamily);
         });
@@ -235,4 +234,15 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == fieldFamily);
     }
+    internal static System.Collections.Generic.IEnumerable<OfficeRichTextRun> GetDrawingTextRuns(PdfCore.PdfCanvasBlock canvas) {
+        foreach (OfficeDrawingElement element in canvas.Items.OfType<PdfCore.PdfCanvasDrawingItem>().SelectMany(item => item.Block.Drawing.Elements)) {
+            if (element is OfficeDrawingRichText rich) {
+                foreach (OfficeRichTextRun run in rich.Runs) yield return run;
+            } else if (element is OfficeDrawingText text) {
+                yield return new OfficeRichTextRun(text.Text, text.Font.Size, text.Color ?? OfficeColor.Black,
+                    text.Font.IsBold, text.Font.IsItalic, text.Font.IsUnderline, text.Font.FamilyName);
+            }
+        }
+    }
+
 }

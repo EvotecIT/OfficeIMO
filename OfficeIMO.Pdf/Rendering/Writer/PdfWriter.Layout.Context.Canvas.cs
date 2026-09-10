@@ -365,11 +365,29 @@ internal static partial class PdfWriter {
             double size = item.FontSize ?? currentOpts.DefaultFontSize;
             double leading = item.LineHeight ?? size * 1.2D;
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
-            var wrap = WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var wrap = item.PreservePositionedText
+                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts)
+                : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
             }
 
+            double scaleX = 1D;
+            if (item.PreservePositionedText && item.PositionedAdvanceWidth is double advance && advance > 0D && !double.IsInfinity(advance)) {
+                double writtenWidth = MeasureRichLineWidth(wrap.Lines[0], currentOpts);
+                if (writtenWidth > 0D && !double.IsInfinity(writtenWidth)) scaleX = advance / writtenWidth;
+            }
+            // Keep the adapter's line geometry when final fallback-font selection changes its metrics.
+            if (Math.Abs(scaleX - 1D) > 0.000001D) {
+                RenderOpaqueEffectGroupInline(new OfficeTransform(scaleX, 0D, 0D, 1D, item.X * (1D - scaleX), 0D),
+                    () => WriteCanvasText(item, size, leading, block, wrap.Lines, wrap.LineHeights, item.Width / scaleX));
+            } else {
+                WriteCanvasText(item, size, leading, block, wrap.Lines, wrap.LineHeights, item.Width);
+            }
+        }
+
+        private void WriteCanvasText(PdfCanvasTextItem item, double size, double leading, RichParagraphBlock block,
+            List<List<RichSeg>> lines, List<double> lineHeights, double width) {
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
@@ -377,24 +395,24 @@ internal static partial class PdfWriter {
             WriteClippedRichParagraph(
                 sb,
                 block,
-                wrap.Lines,
-                wrap.LineHeights,
+                lines,
+                lineHeights,
                 currentOpts,
-                FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
+                item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
                 size,
                 leading,
                 currentPage!.Annotations,
                 item.X,
                 bottomY,
-                item.Width,
+                width,
                 item.Height,
                 item.X,
-                item.Width,
+                width,
                 structureType: structureType,
                 markedContentId: markedContentId,
                 structurePage: currentPage, suppressActualText: _suppressCanvasActualTextChildren);
             MarkRichFonts(item.Runs);
-            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
+            DrawDebugCanvasItemBox(item.X, bottomY, width, item.Height);
             pageDirty = true;
         }
 

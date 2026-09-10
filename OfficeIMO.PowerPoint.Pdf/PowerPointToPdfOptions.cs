@@ -19,6 +19,8 @@ public enum PowerPointPdfPageLayout {
 /// </summary>
 public sealed class PowerPointToPdfOptions {
     internal CancellationToken CancellationToken { get; set; }
+    internal Func<string?, double, string?, DrawingCore.OfficeFontStyle, double>? NativeTextMeasure { get; set; }
+    internal string? NativeTextDefaultFontFamily { get; set; }
 
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;

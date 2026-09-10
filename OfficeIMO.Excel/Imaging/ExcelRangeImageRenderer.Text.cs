@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
             ExcelVisualCell cell,
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
-            OfficeTextMeasurer textMeasurer,
+            OfficeRasterCanvas textMeasurer,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
             IReadOnlyDictionary<string, ExcelVisualConditionalDataBar> dataBars,
             IReadOnlyDictionary<string, ExcelVisualConditionalIcon> conditionalIcons,
@@ -581,10 +581,8 @@ namespace OfficeIMO.Excel {
             return layout.Lines.Count > 0;
         }
 
-        private static double MeasureSvgText(OfficeTextMeasurer measurer, string? text, double fontSize, string? fontFamily) {
-            OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(fontFamily, fontSize));
-            return measurer.MeasureWidth(text, style);
-        }
+        private static double MeasureSvgText(OfficeRasterCanvas measurer, string? text, double fontSize, string? fontFamily) =>
+            measurer.MeasureText(text, fontSize, fontFamily);
 
         private static OfficeTextBlockRenderPlan CreateCenteredRotatedCellTextPlan(
             OfficeTextBlockLayout layout,

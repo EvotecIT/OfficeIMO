@@ -146,12 +146,12 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f) {
-        _sb.Append(F(a)).Append(' ')
-            .Append(F(b)).Append(' ')
-            .Append(F(c)).Append(' ')
-            .Append(F(d)).Append(' ')
-            .Append(F(e)).Append(' ')
-            .Append(F(f)).Append(" cm\n");
+        _sb.Append(MatrixNumber(a)).Append(' ')
+            .Append(MatrixNumber(b)).Append(' ')
+            .Append(MatrixNumber(c)).Append(' ')
+            .Append(MatrixNumber(d)).Append(' ')
+            .Append(MatrixNumber(e)).Append(' ')
+            .Append(MatrixNumber(f)).Append(" cm\n");
         return this;
     }
 
@@ -316,6 +316,10 @@ internal sealed class ContentStreamBuilder {
             _sb.Append(F(baseTextRise)).Append(" Ts\n");
         }
     }
+
+    // Matrix coefficients multiply page coordinates; three decimals can move glyphs by tenths of a point.
+    private static string MatrixNumber(double value) =>
+        (Math.Abs(value) < 0.0000005D ? 0D : value).ToString("0.######", CultureInfo.InvariantCulture);
 
     private static string F(double value) {
         if (Math.Abs(value) < 0.0005D) {
