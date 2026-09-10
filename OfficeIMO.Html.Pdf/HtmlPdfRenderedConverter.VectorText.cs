@@ -17,7 +17,8 @@ internal static partial class HtmlPdfRenderedConverter {
         double frameWidth,
         bool asSpan,
         bool logicalTextOwned,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        double baselineFontSize) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -101,17 +102,21 @@ internal static partial class HtmlPdfRenderedConverter {
         double textX = ResolveOutlinedTextX(frameWidth, resolvedAdvance, visual.Alignment);
         var lineHeights = new double[runs.Count];
         var baselineOffsets = new double[runs.Count];
+        var sourceBaselineOffsets = new double[runs.Count];
         for (int index = 0; index < runs.Count; index++) {
-            lineHeights[index] = runs[index].Face.Program.LineHeight(visual.Font.Size);
+            IOfficeFontProgram program = runs[index].Face.Program;
+            lineHeights[index] = program.LineHeight(baselineFontSize);
+            sourceBaselineOffsets[index] = ResolveBaselineOffset(program, baselineFontSize, lineHeights[index]);
             baselineOffsets[index] = ResolveBaselineOffset(
-                runs[index].Face.Program,
+                program,
                 visual.Font.Size,
-                lineHeights[index]);
+                program.LineHeight(visual.Font.Size));
         }
+        // Script glyphs share the unscaled line's baseline before the authored displacement.
         OutlinedLineMetrics lineMetrics = ResolveOutlinedLineMetrics(
             visual.Height,
             lineHeights,
-            baselineOffsets);
+            sourceBaselineOffsets);
         var allContours = new List<List<OfficePoint>>();
         var paintGroups = new List<OutlinedPaintContours>();
         int retainedPointCount = 0;

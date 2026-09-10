@@ -14,7 +14,8 @@ public static partial class OfficeDrawingRasterRenderer {
         local.DrawPositionedText(text.Text, 0D, text.BaselineOffset * scale, text.Width * scale, text.Height * scale,
             text.Color ?? OfficeColor.Black, Math.Max(1D, text.Font.Size * scale) * text.BaselineScale,
             text.Alignment, text.Font.Style, text.Font.FamilyName, text.TextAdvanceWidth!.Value * scale,
-            text.UnderlineStyle, text.StrikethroughStyle, text.DecorationColor, text.FeatureSettings, text.FontPalette);
+            text.UnderlineStyle, text.StrikethroughStyle, text.DecorationColor, text.FeatureSettings, text.FontPalette,
+            baselineFontSize: Math.Max(1D, text.Font.Size * scale));
         var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
             text.FlipHorizontal, text.FlipVertical);
         OfficeTransform transform = OfficeTransform.Translate(text.X * scale, text.Y * scale).Then(frame.CreateDestinationTransform());
@@ -42,6 +43,7 @@ public static partial class OfficeDrawingRasterRenderer {
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
         if ((text.TextAdvanceWidth.HasValue ||
+             text.BaselineScale != 1D || text.BaselineOffset != 0D ||
              !text.FeatureSettings.IsDefault ||
              !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase)) && supportsPositionedPath) {
             double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
@@ -63,7 +65,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 text.StrikethroughStyle,
                 text.DecorationColor,
                 text.FeatureSettings,
-                text.FontPalette);
+                text.FontPalette,
+                baselineFontSize: positionedSourceFontSize);
             return;
         }
 

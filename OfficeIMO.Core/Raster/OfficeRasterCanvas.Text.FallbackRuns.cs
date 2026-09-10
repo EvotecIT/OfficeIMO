@@ -21,14 +21,15 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeColor? decorationColor,
         OfficeTextFeatureSettings? featureSettings,
-        string? fontPalette) {
+        string? fontPalette,
+        double? baselineFontSize) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
 
         string value = text;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
-        double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
+        double size = ResolveRasterTextSize(fontSize, height, textAdvanceWidth.HasValue);
         double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
         double measured = MeasureText(value, size, fontFamily, style);
         if (!retainOverflow) {
@@ -60,7 +61,8 @@ public sealed partial class OfficeRasterCanvas {
                         strikethroughStyle,
                         decorationColor,
                         featureSettings,
-                        fontPalette);
+                        fontPalette,
+                        baselineFontSize);
                     return true;
                 }
             }
@@ -92,7 +94,8 @@ public sealed partial class OfficeRasterCanvas {
                 strikethroughStyle,
                 decorationColor,
                 featureSettings,
-                fontPalette);
+                fontPalette,
+                baselineFontSize);
             cursor += runAdvance;
         }
         return true;
