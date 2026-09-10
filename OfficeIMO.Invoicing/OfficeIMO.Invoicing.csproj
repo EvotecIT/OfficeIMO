@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Typed electronic invoice contracts, XML authoring, reading, and validation for .NET.</Description>
+    <Description>Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.</Description>
     <VersionPrefix>3.4.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
@@ -20,6 +20,8 @@
     <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../OfficeIMO.SharedSource/Invoicing/*.cs" Link="Shared/Invoicing/%(Filename)%(Extension)" />
+    <Using Include="OfficeIMO.Internal.Invoicing" />
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <Using Include="System" />

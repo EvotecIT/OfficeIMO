@@ -1,7 +1,11 @@
-namespace OfficeIMO.Invoicing;
+using System;
+using System.IO;
+using System.Linq;
+
+namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Declared electronic invoice profiles. Recognition alone does not establish compliance.</summary>
-public enum InvoiceProfile {
+internal enum InvoiceProfile {
     /// <summary>Factur-X header subset.</summary>
     Minimum,
     /// <summary>Factur-X basic profile without invoice lines.</summary>

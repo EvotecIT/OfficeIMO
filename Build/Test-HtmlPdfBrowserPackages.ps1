@@ -119,7 +119,6 @@ try {
 
     foreach ($project in @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
-            'OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj',
             'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj')) {
         Invoke-DotNet restore $project --artifacts-path $artifactsPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
         Invoke-DotNet pack $project --configuration Release --artifacts-path $artifactsPath --no-restore --output $feedPath --property:PackageVersion=$OfficeIMOVersion

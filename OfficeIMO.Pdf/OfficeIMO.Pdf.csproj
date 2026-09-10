@@ -43,7 +43,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
+    <Compile Include="../OfficeIMO.SharedSource/Invoicing/*.cs" Link="Shared/Invoicing/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

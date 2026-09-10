@@ -90,12 +90,12 @@ internal static partial class PdfComplianceAnalyzer {
     }
 
     private static bool IsKnownElectronicInvoiceConformanceLevel(string conformanceLevel) =>
-        OfficeIMO.Invoicing.InvoiceProfiles.TryFromXmpConformanceLevel(conformanceLevel, out var profile) &&
-        conformanceLevel == OfficeIMO.Invoicing.InvoiceProfiles.GetXmpConformanceLevel(profile);
+        OfficeIMO.Internal.Invoicing.InvoiceProfiles.TryFromXmpConformanceLevel(conformanceLevel, out var profile) &&
+        conformanceLevel == OfficeIMO.Internal.Invoicing.InvoiceProfiles.GetXmpConformanceLevel(profile);
 
     private static bool IsKnownElectronicInvoiceProfileContext(string contextId) =>
-        OfficeIMO.Invoicing.InvoiceProfiles.TryFromGuidelineId(contextId, out var profile) &&
-        profile != OfficeIMO.Invoicing.InvoiceProfile.PeppolBis;
+        OfficeIMO.Internal.Invoicing.InvoiceProfiles.TryFromGuidelineId(contextId, out var profile) &&
+        profile != OfficeIMO.Internal.Invoicing.InvoiceProfile.PeppolBis;
     private static bool IsFacturXCiiAttachment(
         PdfEmbeddedFile file,
         List<string> diagnostics,
@@ -184,8 +184,8 @@ internal static partial class PdfComplianceAnalyzer {
     private static bool TryReadCiiProfileContext(PdfEmbeddedFile file, out string? contextId, out string? diagnostic) {
         contextId = null;
         try {
-            var declaration = OfficeIMO.Invoicing.InvoiceProfileDeclaration.Read(file.DataSnapshot);
-            if (declaration.Syntax != OfficeIMO.Invoicing.InvoiceSyntax.Cii) {
+            var declaration = OfficeIMO.Internal.Invoicing.InvoiceProfileDeclaration.Read(file.DataSnapshot);
+            if (declaration.Syntax != OfficeIMO.Internal.Invoicing.InvoiceSyntax.Cii) {
                 diagnostic = "Attach namespace-100 CrossIndustryInvoice XML in factur-x.xml.";
                 return false;
             }

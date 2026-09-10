@@ -25,6 +25,7 @@ internal static partial class PdfComplianceAnalyzer {
         if (rawDiagnostic != null) diagnostics.Add(rawDiagnostic);
         foreach (PdfExtractedAttachment attachment in attachments) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!string.Equals(attachment.UnicodeFileName ?? attachment.FileName, "factur-x.xml", StringComparison.Ordinal)) continue;
             if (TryCreateReadbackEmbeddedFile(attachment, diagnostics, cancellationToken, out PdfEmbeddedFile? file)) files.Add(file!);
         }
         PdfElectronicInvoiceMetadata? metadata = null;

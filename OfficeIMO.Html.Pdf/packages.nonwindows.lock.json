@@ -75,18 +75,14 @@
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
           "AngleSharp.Css": "[1.0.1, )",
-          "OfficeIMO.Core": "[3.4.2, )",
+          "OfficeIMO.Core": "[3.4.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
-      },
-      "officeimo.invoicing": {
-        "type": "Project"
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
@@ -118,17 +114,13 @@
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
           "AngleSharp.Css": "[1.0.1, )",
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
-      },
-      "officeimo.invoicing": {
-        "type": "Project"
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
@@ -160,17 +152,13 @@
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
           "AngleSharp.Css": "[1.0.1, )",
-          "OfficeIMO.Core": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
-      },
-      "officeimo.invoicing": {
-        "type": "Project"
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.0, )"
         }
       }
     },
