@@ -6,6 +6,14 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     internal bool IsEncrypted => _documentInfo.Security.HasEncryption;
 
+    internal OfficeIMO.Reader.Pdf.ReaderPdfOptions CreateReaderOptions(int? page = null) {
+        ThrowIfDisposed();
+        return new() {
+            Password = _readOptions.Password,
+            ReadOptions = page.HasValue ? new PdfReadOptions { PageSelection = PdfPageSelection.From(page.Value) } : null
+        };
+    }
+
     internal bool CanChangeEncryption(string? ownerPassword) {
         try {
             PdfLoadOptions readOptions = IsEncrypted && !_documentInfo.Security.HasOwnerAuthorization

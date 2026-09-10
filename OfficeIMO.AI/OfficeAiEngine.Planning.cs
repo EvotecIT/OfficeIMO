@@ -36,6 +36,7 @@ public sealed partial class OfficeAiEngine {
         string Serialize() => JsonSerializer.Serialize(new {
             schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, snapshotHash = document.SnapshotHash, pageProvenance = document.PageProvenance,
             operation = request.Operation.ToString(), instruction = request.Instruction,
+            conversationContext = request.ConversationContext,
             resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells,
                 maxTableColumns = request.Limits.MaxTableColumns },
             fields = request.Fields.Select((field, index) => new { key = FieldKey(index), name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),

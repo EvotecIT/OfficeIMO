@@ -1698,6 +1698,61 @@
   <data name="Search.Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Search.Prompt" xml:space="preserve"><value>Enter text and choose Find.</value></data>
   <data name="Search.MatchCount" xml:space="preserve"><value>{0} match(es)</value></data>
+  <data name="Assistant.Title" xml:space="preserve"><value>Assistant</value></data>
+  <data name="Assistant.ReadOnly" xml:space="preserve"><value>Read-only help with the current PDF. Review answers against the source.</value></data>
+  <data name="Assistant.Connections" xml:space="preserve"><value>Connections and model</value></data>
+  <data name="Assistant.CurrentPage" xml:space="preserve"><value>Use the current page only</value></data>
+  <data name="Assistant.RemoteConsent" xml:space="preserve"><value>Allow selected document text to be sent to this hosted connection.</value></data>
+  <data name="Assistant.Question" xml:space="preserve"><value>Ask about this document…</value></data>
+  <data name="Assistant.Ask" xml:space="preserve"><value>Ask</value></data>
+  <data name="Assistant.NewChat" xml:space="preserve"><value>New chat</value></data>
+  <data name="Assistant.Provider" xml:space="preserve"><value>Connection</value></data>
+  <data name="Assistant.NativeLogin" xml:space="preserve"><value>Use your ChatGPT account through the native Codex engine. No Codex CLI is required.</value></data>
+  <data name="Assistant.LocalOnly" xml:space="preserve"><value>Only a loopback endpoint is accepted. No hosted fallback is used.</value></data>
+  <data name="Assistant.Endpoint" xml:space="preserve"><value>API base URL</value></data>
+  <data name="Assistant.Credential" xml:space="preserve"><value>API key or GitHub token</value></data>
+  <data name="Assistant.SessionCredential" xml:space="preserve"><value>Supplied API keys and tokens stay in memory for this Studio session.</value></data>
+  <data name="Assistant.GitHubClient" xml:space="preserve"><value>Registered GitHub app client ID</value></data>
+  <data name="Assistant.CopilotLogin" xml:space="preserve"><value>Sign-in uses your registered GitHub app. You can also supply a Copilot-authorized GitHub token.</value></data>
+  <data name="Assistant.Account" xml:space="preserve"><value>Account ID (optional for a single stored account)</value></data>
+  <data name="Assistant.Connect" xml:space="preserve"><value>Connect / refresh models</value></data>
+  <data name="Assistant.SignIn" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Assistant.ImportCodex" xml:space="preserve"><value>Use existing Codex login</value></data>
+  <data name="Assistant.SignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Assistant.Model" xml:space="preserve"><value>Model ID</value></data>
+  <data name="Assistant.AvailableModels" xml:space="preserve"><value>Available models</value></data>
+  <data name="Assistant.PrepareEvidence" xml:space="preserve"><value>Prepare evidence</value></data>
+  <data name="Assistant.OpenOcr" xml:space="preserve"><value>Review with OCR</value></data>
+  <data name="Assistant.OcrBusy" xml:space="preserve"><value>Finish or cancel the current OCR operation before opening another source.</value></data>
+  <data name="Assistant.RequestCancelled" xml:space="preserve"><value>Request cancelled. Late answers are discarded.</value></data>
+  <data name="Assistant.CopyAnswer" xml:space="preserve"><value>Copy last answer</value></data>
+  <data name="Assistant.ExportAnswer" xml:space="preserve"><value>Export last answer</value></data>
+  <data name="Assistant.TextFile" xml:space="preserve"><value>Text document</value></data>
+  <data name="Assistant.EvidenceReady" xml:space="preserve"><value>Pages: {0} · Text items: {1} · Characters: {2:N0}. Pages without extractable text: {3}. Prepared locally in {4:N0} ms.</value></data>
+  <data name="Assistant.EvidenceWarnings" xml:space="preserve"><value>The document reader reported limitations. Review source coverage.</value></data>
+  <data name="Assistant.EvidenceAvailable" xml:space="preserve"><value>Evidence is ready. It will be reused until the document or page scope changes. Nothing has been sent to a provider.</value></data>
+  <data name="Assistant.NeedsOcr" xml:space="preserve"><value>No extractable text is available in this scope. Run OCR on scanned pages, review its output, then prepare evidence again.</value></data>
+  <data name="Assistant.PreparationCancelled" xml:space="preserve"><value>Evidence preparation cancelled. Nothing was sent to a provider.</value></data>
+  <data name="Assistant.PreparationFailed" xml:space="preserve"><value>This document could not be prepared within the reader limits. Check its protection, page count and text size, or use a smaller PDF.</value></data>
+  <data name="Assistant.OcrUnavailable" xml:space="preserve"><value>OCR could not be opened. Save a local copy and open it in the OCR workspace.</value></data>
+  <data name="Assistant.OcrSaveFirst" xml:space="preserve"><value>Save your current changes and apply form drafts before opening OCR. OCR reads the saved source and creates a separate output.</value></data>
+  <data name="Assistant.AnswerCopied" xml:space="preserve"><value>Answer, source quotes and limitations copied to the clipboard.</value></data>
+  <data name="Assistant.CopyFailed" xml:space="preserve"><value>The clipboard is unavailable. Export the answer instead.</value></data>
+  <data name="Assistant.AnswerExported" xml:space="preserve"><value>Answer, source quotes and limitations exported.</value></data>
+  <data name="Assistant.ExportCancelled" xml:space="preserve"><value>Answer export cancelled.</value></data>
+  <data name="Assistant.ExportFailed" xml:space="preserve"><value>The answer could not be saved. Check the destination and try again.</value></data>
+  <data name="Assistant.InvalidEndpoint" xml:space="preserve"><value>Enter an HTTP(S) base URL without credentials or query parameters. Local models require a loopback address; remote endpoints require HTTPS.</value></data>
+  <data name="Assistant.NoSavedAccount" xml:space="preserve"><value>No Studio login is saved. Use Sign in, import an existing Codex login for ChatGPT, or supply a Copilot credential.</value></data>
+  <data name="Assistant.Failure.AuthenticationRequired" xml:space="preserve"><value>Your login or credential was rejected. Open Connections and sign in again, or update the API key.</value></data>
+  <data name="Assistant.Failure.AccessDenied" xml:space="preserve"><value>This account cannot access the requested service or model. Check its permissions or choose another account/model.</value></data>
+  <data name="Assistant.Failure.NotFound" xml:space="preserve"><value>The endpoint or model was not found. Check the base URL, reconnect to refresh the model list, and select an available model.</value></data>
+  <data name="Assistant.Failure.RateLimited" xml:space="preserve"><value>The provider reported a usage or rate limit. Wait before retrying or check the account's available usage. No automatic retry was made.</value></data>
+  <data name="Assistant.Failure.Unavailable" xml:space="preserve"><value>The service could not be reached. Check the network, or start your local model server and verify its address, then reconnect.</value></data>
+  <data name="Assistant.Failure.TimedOut" xml:space="preserve"><value>The service did not finish in time. Check its availability or try a smaller page scope.</value></data>
+  <data name="Assistant.Failure.InvalidRequest" xml:space="preserve"><value>The provider rejected this request. Verify the endpoint and model's document-response support before retrying.</value></data>
+  <data name="Assistant.Failure.Unknown" xml:space="preserve"><value>The provider could not complete the operation. Reconnect and check account and model support. No provider response or credentials are shown.</value></data>
+  <data name="Assistant.OcrProtected" xml:space="preserve"><value>OCR cannot preserve this PDF's encryption. Use a separately authorized unprotected copy in the OCR workspace.</value></data>
+  <data name="Assistant.OcrSourceChanged" xml:space="preserve"><value>The saved source changed after evidence preparation. Reopen the current file before using OCR.</value></data>
   <data name="ObjectEdit.DragHelp" xml:space="preserve"><value>Drag the selected image to move it. Drag its handles to resize proportionally; blue guides show alignment.</value></data>
   <data name="ObjectEdit.Behind" xml:space="preserve"><value>Place edited image behind existing content</value></data>
   <data name="ObjectEdit.LayerHelp" xml:space="preserve"><value>Image edits place the rewritten image above existing content unless the background option is selected. Original paint order cannot be preserved.</value></data>
