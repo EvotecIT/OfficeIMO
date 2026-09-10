@@ -86,6 +86,7 @@
             <Button Content="{loc:Loc PrintPreview.RefreshPrinters}" Command="{Binding OutputWorkbench.PrintPreview.RefreshPrintersCommand}" IsEnabled="{Binding !OutputWorkbench.PrintPreview.IsDiscoveringPrinters}" />
             <TextBlock Text="{loc:Loc PrintPreview.PaperSource}" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PaperSourceChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPaperSource}" IsEnabled="{Binding !OutputWorkbench.PrintPreview.IsDiscoveringPaperSources}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.PaperSource}" />
+            <TextBlock Text="{Binding OutputWorkbench.PrintPreview.PaperSourceError}" IsVisible="{Binding OutputWorkbench.PrintPreview.HasPaperSourceError}" TextWrapping="Wrap" Classes="muted" />
             <TextBlock Text="{loc:Loc PrintPreview.Copies}" />
             <NumericUpDown Minimum="1" Maximum="100" Value="{Binding OutputWorkbench.PrintPreview.Copies}" />
             <TextBlock Text="{loc:Loc PrintPreview.Duplex}" />

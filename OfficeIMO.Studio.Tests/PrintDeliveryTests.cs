@@ -7,6 +7,29 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class PrintDeliveryTests {
     [Fact]
+    public async Task TrayDiscoveryRecoveryClearsOnlyItsOwnError() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter { DelayPaperSources = true };
+            using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
+            model.Status = "Reviewed sheets ready";
+            model.SelectedPrinter = new("Unavailable", false, false);
+            printer.Sources["Unavailable"].SetException(new IOException("Driver offline"));
+            await model.PaperSourceDiscovery;
+            Assert.True(model.HasPaperSourceError);
+            Assert.Contains("Driver offline", model.PaperSourceError);
+            Assert.Equal("Reviewed sheets ready", model.Status);
+            model.SelectedPrinter = new("Available", false, false);
+            printer.Sources["Available"].SetResult([new("tray-2", "Lower tray")]);
+            await model.PaperSourceDiscovery;
+            Assert.False(model.HasPaperSourceError);
+            Assert.Equal("Reviewed sheets ready", model.Status);
+            Assert.Contains(model.PaperSourceChoices, choice => choice.Id == "tray-2");
+            return true;
+        }, default);
+    }
+
+    [Fact]
     public async Task SwitchingPrintersDiscardsLateTrayDiscoveryAndClearsSelection() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

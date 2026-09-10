@@ -12,6 +12,10 @@ public sealed partial class PrintPreviewViewModel {
     [ObservableProperty] private IReadOnlyList<PrintPaperSourceChoice> _paperSourceChoices = [];
     [ObservableProperty] private PrintPaperSourceChoice? _selectedPaperSource;
     [ObservableProperty] private bool _isDiscoveringPaperSources;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPaperSourceError))]
+    private string _paperSourceError = string.Empty;
+    public bool HasPaperSourceError => !string.IsNullOrEmpty(PaperSourceError);
     internal Task PaperSourceDiscovery { get; private set; } = Task.CompletedTask;
 
     partial void OnSelectedPrinterChanged(PdfPrinterInfo? value) => PaperSourceDiscovery = RefreshPaperSourcesAsync(value);
@@ -20,6 +24,7 @@ public sealed partial class PrintPreviewViewModel {
         _paperSourceCancellation?.Cancel();
         using var operation = new CancellationTokenSource();
         _paperSourceCancellation = operation;
+        PaperSourceError = string.Empty;
         var defaultChoice = new PrintPaperSourceChoice(null, T("PaperSource.Default", "Printer default"));
         PaperSourceChoices = [defaultChoice];
         SelectedPaperSource = defaultChoice;
@@ -33,7 +38,7 @@ public sealed partial class PrintPreviewViewModel {
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception error) {
             if (!_disposed && ReferenceEquals(_paperSourceCancellation, operation))
-                Status = T("PaperSource.Unavailable", "Paper-source discovery failed. Printing will use the printer default.") + " " + error.Message;
+                PaperSourceError = T("PaperSource.Unavailable", "Paper-source discovery failed. Printing will use the printer default.") + " " + error.Message;
         } finally {
             if (ReferenceEquals(_paperSourceCancellation, operation)) {
                 _paperSourceCancellation = null;
