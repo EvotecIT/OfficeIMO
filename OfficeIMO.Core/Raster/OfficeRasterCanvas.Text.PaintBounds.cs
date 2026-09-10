@@ -29,9 +29,12 @@ public sealed partial class OfficeRasterCanvas {
         IOfficeFontProgram? font = ResolveTextFont(text, family, style);
         if (font != null) {
             double origin = -ResolveRasterBaseline(font, size);
+            // Fitted raster text paints base outlines, while positioned/SVG paths
+            // may use color layers. Bound both representations of the same font.
+            Include(GetResolvedTextContours(text!, font, 0D, origin, size));
             if (TryGetResolvedColorTextContours(text!, font, 0D, origin, size, null, null, OfficeColor.Black, out List<OfficeColorGlyphContours> layers)) {
                 foreach (OfficeColorGlyphContours layer in layers) Include(layer.Contours);
-            } else Include(GetResolvedTextContours(text!, font, 0D, origin, size));
+            }
         }
         return Store();
 

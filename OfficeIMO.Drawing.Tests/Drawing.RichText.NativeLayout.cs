@@ -7,6 +7,27 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ColorFontFitIncludesThePaintedMonochromeOutline(bool rich) {
+        var drawing = new OfficeDrawing(100, 50);
+        drawing.Fonts.Add("Color Fit", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateColorFont('A', baseGlyphHeight: 1000));
+        if (rich) drawing.AddRichText(new[] { new OfficeRichTextRun("A", 20, OfficeColor.Black, fontFamily: "Color Fit") },
+            10, 10, 80, 15, lineHeight: 10, shrinkToFit: true);
+        else drawing.AddText("A", 10, 10, 80, 15, new OfficeFontInfo("Color Fit", 20),
+            lineHeight: 10, wrapText: true, shrinkToFit: true);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 3, OfficeColor.White);
+        int ink = 0;
+        for (int y = 0; y < image.Height; y++)
+            for (int x = 0; x < image.Width; x++)
+                if (image.GetPixel(x, y).R < 160) {
+                    ink++;
+                    Assert.InRange(y, 30, 74);
+                }
+        Assert.True(ink > 20);
+    }
+
+    [Theory]
     [InlineData(false, "gypsy", OfficeTextVerticalAlignment.Top)]
     [InlineData(true, "gypsy", OfficeTextVerticalAlignment.Bottom)]
     [InlineData(false, "\u00C1gj", OfficeTextVerticalAlignment.Center)]
