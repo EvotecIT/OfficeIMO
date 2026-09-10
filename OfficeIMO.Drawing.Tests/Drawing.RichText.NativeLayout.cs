@@ -12,7 +12,7 @@ public sealed class DrawingNativeTextLayoutTests {
     public void RasterExportScalePreservesMinimumFontSize(bool stacked) {
         var drawing = new OfficeDrawing(100, 30).AddText(stacked ? "g" : "gypsy", 10, 10, 80, 4,
             new OfficeFontInfo("Proof Sans", 20), lineHeight: 10, wrapText: true, stackedText: stacked, shrinkToFit: true);
-        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2")));
+        drawing.Fonts.Add("Proof Sans", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
         int InkWidth(double scale) {
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, scale, OfficeColor.White);
             int first = image.Width, last = -1;
