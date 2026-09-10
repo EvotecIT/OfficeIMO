@@ -736,7 +736,7 @@ try {
         (Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj'),
         '--configuration', $Configuration,
         '--framework', $Framework,
-        '--filter', 'FullyQualifiedName~PdfComplianceGateTests',
+        '--filter', 'FullyQualifiedName~PdfComplianceGateTests|FullyQualifiedName~PdfInvoiceDocumentTests',
         '--verbosity', 'minimal',
         '-p:WarningLevel=0'
     )

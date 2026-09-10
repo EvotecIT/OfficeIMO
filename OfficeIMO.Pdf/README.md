@@ -1515,6 +1515,40 @@ The XMP `version` is `1.0`, not a Factur-X release number.
 The application must keep visible invoice content and
 XML consistent and validate the resulting invoice/PDF pair for its declared profile.
 
+### Generate a visible invoice and its XML from one snapshot
+
+`PdfInvoiceDocument` uses the typed [OfficeIMO.Invoicing](../OfficeIMO.Invoicing/README.md)
+model for both the visible document and its embedded CII attachment. It captures
+prices, quantities, VAT breakdowns, adjustments, payments and totals once.
+
+```csharp
+using OfficeIMO.Invoicing;
+using OfficeIMO.Pdf;
+
+// invoice is a populated OfficeIMO.Invoicing.Invoice.
+var snapshot = PdfInvoiceDocument.Create(invoice);
+byte[] font = File.ReadAllBytes("invoice-font.ttf");
+var options = new PdfOptions()
+    .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
+    .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
+File.WriteAllBytes("invoice.xml", snapshot.ToXmlBytes());
+File.WriteAllBytes("invoice.pdf", snapshot.ToPdfBytes(options));
+```
+
+Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
+independent editable model; create a new snapshot after edits. The PDF uses the
+same declared amounts and calculation as its XML, includes `factur-x.xml` as an
+alternative representation, and derives its XMP profile from that attachment.
+The layout includes invoice and credit-note headings, repeated line-table headers,
+VAT and payable totals, party details, payment instructions and references.
+Totals stay together when page space permits.
+
+Use [pinned XML validation](../OfficeIMO.Invoicing.Validation/README.md) and run
+veraPDF plus an invoice validator against the exact generated PDF. Font coverage,
+page layout and external validation remain necessary for the selected content and
+profile. This API generates English labels and ISO dates; localized templates and
+additional national profiles are separate capabilities.
+
 ### Page setup, watermarks, and metadata
 
 ```csharp
