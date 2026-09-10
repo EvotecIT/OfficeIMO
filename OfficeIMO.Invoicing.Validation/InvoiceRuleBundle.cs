@@ -11,8 +11,8 @@ public sealed class InvoiceRuleBundle {
     public const string XRechnungDownloadUrl = "https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v2026-08-31/xrechnung-3.0.2-validator-configuration-2026-08-31.zip";
     /// <summary>SHA-256 of the pinned KoSIT archive.</summary>
     public const string XRechnungSha256 = "2530CD107C414511C5D0462EC10F886910395ABFCA820DB82E83D70BF01221A8";
-    /// <summary>Official Peppol Schematron source; its exact content is verified against the pinned release hash.</summary>
-    public const string PeppolDownloadUrl = "https://docs.peppol.eu/poacc/billing/3.0/files/PEPPOL-EN16931-UBL.sch";
+    /// <summary>Immutable official Peppol source matching the published 3.0.21 artifact and pinned release hash.</summary>
+    public const string PeppolDownloadUrl = "https://raw.githubusercontent.com/OpenPEPPOL/peppol-bis-invoice-3/806866bd2bd91d7e9623b68f08164e8fbe9e67a0/rules/sch/PEPPOL-EN16931-UBL.sch";
     /// <summary>SHA-256 of Peppol BIS Billing 3.0.21 Schematron.</summary>
     public const string PeppolSha256 = "62E5B67892F12755352D78B06F63229A02CC2ECCC748677C56EFBC8DBCB336E3";
     private readonly Dictionary<string, byte[]> _files;

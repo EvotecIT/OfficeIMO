@@ -4,6 +4,30 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceParsingTests {
     [Theory]
+    [InlineData("#ADU#Contract terms apply", "ADU", "Contract terms apply")]
+    [InlineData("Contract #ADU# terms apply", null, "Contract #ADU# terms apply")]
+    [InlineData("Contract terms apply", null, "Contract terms apply")]
+    public void IndependentUblNotesUseTheEn16931SubjectCodeBinding(string sourceNote, string? code, string text) {
+        XDocument source = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "KoSIT", "01.01a-INVOICE_ubl.xml"));
+        XNamespace cbc = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2";
+        source.Root!.Elements(cbc + "Note").Remove();
+        source.Root.Element(cbc + "InvoiceTypeCode")!.AddAfterSelf(new XElement(cbc + "Note", sourceNote));
+        byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
+        InvoiceReadResult read = InvoiceParser.Read(xml);
+        Assert.True(read.HasCompleteMapping);
+        InvoiceNote note = Assert.Single(read.Invoice.Notes);
+        Assert.Equal(code, note.SubjectCode);
+        Assert.Equal(text, note.Text);
+        XDocument written = XDocument.Parse(System.Text.Encoding.UTF8.GetString(read.Write()));
+        Assert.Equal(sourceNote, written.Root!.Element(cbc + "Note")!.Value);
+        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        Assert.True(converted.Succeeded);
+        InvoiceNote convertedNote = Assert.Single(InvoiceParser.Read(converted.Xml!).Invoice.Notes);
+        Assert.Equal(code, convertedNote.SubjectCode);
+        Assert.Equal(text, convertedNote.Text);
+    }
+
+    [Theory]
     [InlineData(InvoiceSyntax.Cii)]
     [InlineData(InvoiceSyntax.Ubl)]
     public void WrittenInvoicesCanBeEditedAndConvertedWithoutLosingBusinessFields(InvoiceSyntax syntax) {

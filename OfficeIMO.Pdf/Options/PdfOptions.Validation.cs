@@ -41,8 +41,10 @@ public sealed partial class PdfOptions {
         Guard.ComplianceProfile(ComplianceProfile, nameof(ComplianceProfile));
         // Metadata-only groundwork remains inspectable. Once an attachment is present,
         // generic attachment and metadata setters must not bypass profile consistency.
-        if (ElectronicInvoiceMetadataSnapshot != null && EmbeddedFiles.Count != 0) {
-            string? invoiceDiagnostic = PdfElectronicInvoiceProfile.GetDiagnostic(ElectronicInvoiceMetadataSnapshot, EmbeddedFiles);
+        PdfElectronicInvoiceMetadata? invoiceMetadata = ElectronicInvoiceMetadataSnapshot;
+        // This read-only check can inspect owned attachments without cloning unrelated payloads through the public getter.
+        if (invoiceMetadata != null && _embeddedFiles != null && _embeddedFiles.Count != 0) {
+            string? invoiceDiagnostic = PdfElectronicInvoiceProfile.GetDiagnostic(invoiceMetadata, _embeddedFiles);
             if (invoiceDiagnostic != null) throw new ArgumentException(invoiceDiagnostic);
         }
         PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
