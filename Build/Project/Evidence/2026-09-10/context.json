@@ -1,0 +1,80 @@
+{
+  "sourceRevision": "deaab7c31d35c195b9328d0736006d93cd1a3aa7",
+  "run": "20260910-090122-058fbe8c",
+  "operatingSystem": "Windows 11 x64 build 26200",
+  "processor": "AMD Ryzen 9 9950X3D2",
+  "physicalCores": 16,
+  "logicalProcessors": 32,
+  "processAffinity": "4294967295",
+  "processPriority": "Normal",
+  "powerPlan": "High performance",
+  "sdk": "10.0.112",
+  "targetRuntime": "net8.0",
+  "warmups": 1,
+  "iterations": 3,
+  "order": "Rotated",
+  "discardedOutliers": 0,
+  "budgets": {
+    "peakWorkingSetBytes": 2147483648,
+    "allocatedBytes": 4294967296,
+    "medianMilliseconds": 30000
+  },
+  "inputs": [
+    {
+      "file": "CalendarChain10k.xml",
+      "bytes": 5063234,
+      "sha256": "627016f1636f912a7eeb6af74fa681b3ace86391bc4b2f267c4b8c80da4f625d"
+    },
+    {
+      "file": "CalendarMirrors10k.xml",
+      "bytes": 9676576,
+      "sha256": "5c8c0956678a6bddc6d95b6429cf3bf397f363cb125c5d56533f9410e439e0e3"
+    },
+    {
+      "file": "Deep10k.xml",
+      "bytes": 3745379,
+      "sha256": "9db0dc83bf2db7180ef010ffa7510b5c9f243228155fe0ae4e8d7c713220de70"
+    },
+    {
+      "file": "Dense10k.xml",
+      "bytes": 7151197,
+      "sha256": "6595a002aec22a34aae37fb08639ed23bbe88684f26e23141d584f8295e6434c"
+    },
+    {
+      "file": "Flat100k.xml",
+      "bytes": 37646490,
+      "sha256": "06fa132a859fc10137a096ab8ccadc07f97b68e4006028aed35c7457e7039951"
+    },
+    {
+      "file": "Flat10k.xml",
+      "bytes": 3716485,
+      "sha256": "1ed38bdb8a6845332c13e3c317574d429d0388b2a48a32849629bb5101b4846a"
+    },
+    {
+      "file": "Flat1k.xml",
+      "bytes": 368480,
+      "sha256": "2b07cb688b284307b1bc7a9193efe322c46e68ce48b3bb44b35502f33690b1ba"
+    },
+    {
+      "file": "Timephased10k.xml",
+      "bytes": 20605425,
+      "sha256": "857a6508da45be723f7f0a822c6f5060eee022b0d4b2210b0571705e0d1d5519"
+    }
+  ],
+  "contractTests": {
+    "ubuntuWsl": [
+      "net8.0",
+      "net10.0"
+    ],
+    "perRuntime": 43,
+    "windows": [
+      "net8.0",
+      "net10.0",
+      "net472"
+    ]
+  },
+  "packageConsumer": "Local OfficeIMO.Core and OfficeIMO.Project 3.4.3; isolated feed and cache",
+  "nativeAot": "Linux x64 .NET 8 fluent/XML/stream smoke test",
+  "schema": "Microsoft Project 2013 SDK mspdi_pj15.xsd; authored and resource-authored XML; explicit namespace alias",
+  "independentReview": "One full read-only pass and one targeted confirmation; valid findings fixed"
+}
