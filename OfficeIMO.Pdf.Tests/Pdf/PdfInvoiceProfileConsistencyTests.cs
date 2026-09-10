@@ -5,6 +5,19 @@ using Xunit;
 namespace OfficeIMO.Pdf.Tests;
 
 public class PdfInvoiceProfileConsistencyTests {
+#if NET6_0_OR_GREATER
+    [Fact]
+    public void ProfileValidationDoesNotCopySupportingAttachmentPayloads() {
+        var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
+            .AddEmbeddedFile("support.bin", new byte[4 * 1024 * 1024], "application/octet-stream", PdfAssociatedFileRelationship.Supplement);
+        options.Validate();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        options.Validate();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 512 * 1024, "Invoice profile validation copied supporting attachment data: " + allocated + " bytes allocated.");
+        Assert.Equal(2, options.EmbeddedFiles.Count);
+    }
+#endif
     [Theory]
     [InlineData((int)InvoiceProfile.Basic, "BASIC")]
     [InlineData((int)InvoiceProfile.BasicWithoutLines, "BASIC WL")]
