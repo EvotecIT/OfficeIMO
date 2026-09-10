@@ -665,7 +665,8 @@ internal static partial class PdfWriter {
             var foregroundImages = new StringBuilder();
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
-                foreach (var img in page.Images) {
+                // OrderBy is stable: equal foreground layers retain document traversal order.
+                foreach (var img in page.Images.OrderBy(static image => image.ForegroundZOrder)) {
                     if (img.IsBackgroundDecoration || !string.IsNullOrEmpty(img.InlineDrawToken)) {
                         continue;
                     }

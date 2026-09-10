@@ -264,7 +264,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (anchorStyle.AnchoredCanvas != null) canvas.AddItems(anchorStyle.AnchoredCanvas.Items);
                 canvas.ForegroundImage(preparedBytes, x / 12700D, y / 12700D, width, height,
                     horizontalFlip: image.HorizontalFlip ?? false,
-                    verticalFlip: image.VerticalFlip ?? false);
+                    verticalFlip: image.VerticalFlip ?? false,
+                    zOrder: image.ZOrder);
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);
                 return;
             }

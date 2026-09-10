@@ -135,7 +135,7 @@ pdf.SaveAsWord(
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
-- Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow.
+- Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow. Overlapping foreground images follow `WordImage.ZOrder`; images with equal values retain document order.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## What it imports
