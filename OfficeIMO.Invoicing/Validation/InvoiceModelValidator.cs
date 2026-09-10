@@ -64,12 +64,18 @@ public static partial class InvoiceModelValidator {
                 check.Required(classification.ListId, path + ".Classifications.ListId");
                 if (classification.ListVersion != null) check.Required(classification.ListVersion, path + ".Classifications.ListVersion");
             }
+            foreach (InvoiceItemAttribute attribute in line.Attributes) {
+                if (attribute == null) { check.Error("INV-NULL", "Item attribute is null.", path + ".Attributes"); continue; }
+                check.Required(attribute.Name, path + ".Attributes.Name");
+                check.Required(attribute.Value, path + ".Attributes.Value");
+            }
             if (line.PriceBaseQuantity <= 0m) check.Error("INV-BASE-QUANTITY", "Price base quantity must be positive.", path + ".PriceBaseQuantity");
-            if (line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m)
+            bool invalidPrice = line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m;
+            if (invalidPrice)
                 check.Error("INV-PRICE", "Item prices and price discounts cannot be negative.", path + ".UnitPrice");
             if (line.PriceDiscount.HasValue && !line.GrossPrice.HasValue)
                 check.Error("INV-PRICE", "A price discount requires its gross price.", path + ".PriceDiscount");
-            if (line.GrossPrice.HasValue && line.GrossPrice.Value - (line.PriceDiscount ?? 0m) != line.UnitPrice)
+            if (!invalidPrice && line.GrossPrice.HasValue && line.GrossPrice.Value - (line.PriceDiscount ?? 0m) != line.UnitPrice)
                 check.Error("INV-PRICE", "Net price must equal gross price minus price discount.", path + ".UnitPrice");
             foreach (InvoiceAllowanceCharge adjustment in line.AllowancesAndCharges) {
                 check.Adjustment(adjustment, path + ".AllowancesAndCharges", false);
@@ -101,8 +107,8 @@ public static partial class InvoiceModelValidator {
             } else if (document.FileName != null || document.MimeType != null) {
                 check.Error("INV-ATTACHMENT", "File name and media type require embedded bytes.", "SupportingDocuments");
             }
-            if (document.ExternalUri != null && (!Uri.TryCreate(document.ExternalUri, UriKind.Absolute, out Uri? uri) || uri.Scheme != "https" && uri.Scheme != "http"))
-                check.Error("INV-ATTACHMENT-URI", "Supporting document locations must be absolute HTTP(S) URIs.", "SupportingDocuments.ExternalUri");
+            if (document.ExternalUri != null && (!Uri.TryCreate(document.ExternalUri, UriKind.Absolute, out Uri? uri) || !uri.IsWellFormedOriginalString()))
+                check.Error("INV-ATTACHMENT-URI", "Supporting document locations must be well-formed absolute URIs.", "SupportingDocuments.ExternalUri");
         }
         check.Payment(invoice.Payment);
         InvoiceCalculation? calculation = null;

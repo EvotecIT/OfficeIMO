@@ -4,6 +4,38 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoicePaymentIdentifierTests {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void SingletonUblPaymentReferenceMergesAcrossAccounts(int referenceIndex) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
+        XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        XElement[] references = source.Descendants().Where(e => e.Name.LocalName == "PaymentID").ToArray();
+        Assert.Equal(2, references.Length);
+        references[1 - referenceIndex].Remove();
+        byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
+        InvoiceReadResult read = InvoiceParser.Read(xml);
+        Assert.True(read.HasCompleteMapping);
+        Assert.Equal(invoice.Payment.Reference, read.Invoice.Payment!.Reference);
+        Assert.Equal(2, read.Invoice.Payment.Accounts.Count);
+        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        Assert.True(converted.Succeeded, string.Join("; ", converted.Diagnostics.Select(d => d.Message)));
+        Assert.Equal(invoice.Payment.Reference, InvoiceParser.Read(converted.Xml!).Invoice.Payment!.Reference);
+        Assert.Equal(invoice.Payment.Reference, InvoiceParser.Read(read.Write()).Invoice.Payment!.Reference);
+    }
+
+    [Fact]
+    public void ConflictingUblPaymentReferencesRemainUnmapped() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE79000000001234567890" });
+        XDocument source = XDocument.Parse(System.Text.Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        source.Descendants().Last(e => e.Name.LocalName == "PaymentID").Value = "conflicting-reference";
+        byte[] xml = System.Text.Encoding.UTF8.GetBytes(source.ToString());
+        Assert.False(InvoiceParser.Read(xml).HasCompleteMapping);
+        Assert.False(InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii)).Succeeded);
+    }
+
+    [Theory]
     [InlineData(InvoiceSyntax.Cii, true, 0)]
     [InlineData(InvoiceSyntax.Cii, true, 2)]
     [InlineData(InvoiceSyntax.Ubl, true, 0)]

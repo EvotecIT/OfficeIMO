@@ -53,7 +53,7 @@ public static partial class InvoiceSerializer {
                     Unsupported("Notes", "An unclassified note begins with a reserved UBL subject prefix and cannot be represented without changing its meaning.");
             if (invoice.TypeCode == "381" && invoice.DueDate.HasValue) Unsupported("DueDate", "UBL credit note due-date mapping is not supported.");
             if (invoice.TypeCode == "381" && invoice.ProjectReference != null) Unsupported("ProjectReference", "UBL credit note project reference mapping is not supported.");
-            if (invoice.PurchaseOrderReference == null && invoice.SalesOrderReference != null) Unsupported("SalesOrderReference", "UBL requires a purchase order reference alongside a sales order reference.");
+            if (string.IsNullOrWhiteSpace(invoice.PurchaseOrderReference) && invoice.SalesOrderReference != null) Unsupported("SalesOrderReference", "UBL requires a purchase order reference alongside a sales order reference.");
             if (invoice.Seller.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Seller.Identifiers", "Use Payment.CreditorIdentifier for the reserved SEPA creditor identifier.");
         }
         if (options.Profile != InvoiceProfile.En16931 && string.IsNullOrWhiteSpace(invoice.BusinessProcessId))

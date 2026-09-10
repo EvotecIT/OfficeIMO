@@ -62,7 +62,7 @@ Successful serialization alone does not establish standards compliance.
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
 | Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details |
-| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents |
+| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents; external locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them |
 
 Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC, EXTENDED and EXTENDED-CTC-FR.
 Authoring those profiles is not supported by this engine. National CIUS rules
