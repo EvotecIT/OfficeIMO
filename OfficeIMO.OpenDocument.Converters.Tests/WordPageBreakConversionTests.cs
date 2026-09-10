@@ -7,6 +7,30 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordPageBreakConversionTests {
     [Theory]
+    [InlineData("body")]
+    [InlineData("table")]
+    [InlineData("header")]
+    [InlineData("footer")]
+    public void ColumnBreakApproximationIsReportedAndRejectedByStrictPolicy(string location) {
+        using var source = WordDocument.Create();
+        source.AddHeadersAndFooters();
+        var paragraph = location switch {
+            "table" => source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
+            "header" => source.Sections[0].Header.Default!.AddParagraph(),
+            "footer" => source.Sections[0].Footer.Default!.AddParagraph(),
+            _ => source.AddParagraph()
+        };
+        paragraph.AddText("BEFORE").AddBreak(WordBreakType.Column).AddText("AFTER");
+        var result = source.ToOpenDocumentResult();
+        var mapping = Assert.Single(result.Report.Mappings, item => item.Feature == "column-breaks");
+        Assert.Equal(OdfConversionMappingStatus.Approximated, mapping.Status);
+        Assert.Equal(1, mapping.Count);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+            LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
+        }));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void LaterImageMetadataLossIsReportedAndRejectedInStrictMode(bool header) {

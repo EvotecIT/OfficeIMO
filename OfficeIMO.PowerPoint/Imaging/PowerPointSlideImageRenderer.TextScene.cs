@@ -31,17 +31,19 @@ namespace OfficeIMO.PowerPoint {
                 double availableHeight = Math.Max(0D, rich.Height - rich.Padding.Vertical);
                 var layout = OfficeDrawingTextLayout.Create(rich, rich.Width - rich.Padding.Horizontal,
                     availableHeight, measure);
-                clipped = layout.Clipped || layout.Height > availableHeight + 0.001D;
+                clipped = layout.Clipped || OfficeTextPlacement.ResolveTop(0D, availableHeight, layout.Height, rich.VerticalAlignment) +
+                    Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout)) > availableHeight + 0.001D;
             } else if (element is OfficeDrawingText plain) {
                 double size = plain.Font.Size;
-                double lineHeightFactor = plain.LineHeight.HasValue ? Math.Max(1D, plain.LineHeight.Value / size) : 1.2D;
+                double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(plain.LineHeight, size);
                 double availableHeight = Math.Max(0D, plain.Height - plain.Padding.Vertical);
                 var layout = OfficeTextLayoutEngine.LayoutTextBlock(plain.Text, size,
                     plain.Width - plain.Padding.Horizontal, plain.Height - plain.Padding.Vertical,
                     lineHeightFactor, Math.Min(6D, size),
                     (value, fontSize) => measure(value, fontSize, plain.Font.FamilyName, plain.Font.Style),
                     plain.WrapText, shrinkToFit: plain.ShrinkToFit, paragraphIndent: plain.ParagraphIndent);
-                clipped = layout.Clipped || layout.Height > availableHeight + 0.001D;
+                clipped = layout.Clipped || OfficeTextPlacement.ResolveTop(0D, availableHeight, layout.Height, plain.VerticalAlignment) +
+                    Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout)) > availableHeight + 0.001D;
             }
             if (clipped) diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning, "POWERPOINT_TEXT_OVERFLOW",

@@ -44,8 +44,9 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
-                double visibleHeight = Math.Min(paragraph.Height, Math.Max(0D, contentBottom - currentY));
-                bool clipped = visibleHeight < paragraph.Height;
+                // Keep the cell as the clipping boundary while paragraph leading controls flow.
+                double visibleHeight = Math.Max(0D, contentBottom - currentY);
+                bool clipped = visibleHeight + 0.001D < Math.Max(paragraph.Height, paragraph.PaintedHeight);
                 if (clipped) {
                     AddUnsupportedShapeDiagnostic(diagnostics, table, "Clipped PowerPoint table cell paragraph content at the cell text frame boundary.");
                 }
@@ -87,7 +88,7 @@ namespace OfficeIMO.PowerPoint {
                         paragraphIndent: paragraph.Indent);
                 }
 
-                if (clipped) return true;
+                if (visibleHeight < paragraph.Height) return true;
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
 
@@ -95,7 +96,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool ShouldRenderTableCellParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
-            paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) ||
+            paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered ||
+                paragraph.SpaceBeforePoints.HasValue || paragraph.SpaceAfterPoints.HasValue ||
+                paragraph.LineSpacingPoints.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
             paragraphs.Count > 1;
 
         private static List<PowerPointParagraphDrawing> CreateTableCellParagraphDrawings(
@@ -116,9 +119,9 @@ namespace OfficeIMO.PowerPoint {
                     ? ResolveTableCellParagraphFont(cell, paragraph, mapping).Size
                     : richRuns.Max(run => run.FontSize);
                 double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
-                double height;
+                double height, paintedHeight;
                 if (ShouldRenderParagraphRichText(richRuns, marker)) {
-                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, measure);
+                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, out paintedHeight, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         string.Empty,
                         richRuns,
@@ -128,12 +131,13 @@ namespace OfficeIMO.PowerPoint {
                         indent,
                         lineHeight,
                         height,
+                        paintedHeight,
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
                 } else {
                     string text = CreateParagraphPlainText(paragraph, marker);
                     OfficeFontInfo font = ResolveTableCellParagraphFont(cell, paragraph, mapping);
-                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent);
+                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, out paintedHeight, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         text,
                         Array.Empty<OfficeRichTextRun>(),
@@ -143,6 +147,7 @@ namespace OfficeIMO.PowerPoint {
                         indent,
                         lineHeight,
                         height,
+                        paintedHeight,
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
                 }

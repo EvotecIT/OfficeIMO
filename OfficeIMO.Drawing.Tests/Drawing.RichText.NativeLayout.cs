@@ -7,6 +7,23 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingNativeTextLayoutTests {
     [Theory]
+    [InlineData(1D, 9D)]
+    [InlineData(2D, 18D)]
+    public void DrawingRichTextRetainsCondensedLeading(double scale, double expectedLineHeight) {
+        var drawing = new OfficeDrawing(100, 40).AddRichText(new[] {
+            new OfficeRichTextRun("first\nsecond\nthird", 12D, OfficeColor.Black)
+        }, 0, 0, 100, 40, lineHeight: 9D);
+        var text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Elements));
+        var layout = OfficeDrawingTextLayout.Create(text, 100 * scale, 40 * scale,
+            (value, size, family, style) => (value?.Length ?? 0) * size / 2, scale);
+        Assert.Equal(3, layout.Lines.Count);
+        Assert.Equal(expectedLineHeight, layout.LineHeight);
+        Assert.All(layout.Lines, line => Assert.Equal(expectedLineHeight, line.LineHeight));
+        Assert.Equal(3 * expectedLineHeight, layout.Height);
+        Assert.False(layout.Clipped);
+    }
+
+    [Theory]
     [InlineData("alpha beta gamma delta", true, 60D, 25D)]
     [InlineData("first\nsecond\nthird", false, 100D, 27D)]
     [InlineData("x\na considerably longer line", false, 80D, 25D)]

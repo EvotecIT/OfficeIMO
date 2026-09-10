@@ -24,6 +24,15 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 
 Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
 
+To save a source HTML copy in another directory while retaining its relative resource paths:
+
+```csharp
+HtmlConversionDocument report = HtmlConversionDocument.Load("reports/service-review.html");
+File.WriteAllText("exports/service-review.html", report.ExportSourceHtml());
+```
+
+`ExportSourceHtml()` records the original effective base URI in the document. It preserves source markup; referenced files remain at their original locations. Use `SourceHtml` for the exact original text or `HtmlForConversion` for policy-normalized conversion HTML.
+
 ## Shared Office HTML document shell
 
 Office adapters use `OfficeHtmlDocumentShell` and `OfficeVisualThemeKind` for consistent semantic, editable round-trip, positioned-review, and print-review output. The embedded stylesheet supplies explicit palettes, readable typography, responsive page regions, tables, forms, figures, code, adapter panels, and print rules without making each adapter maintain a separate CSS implementation.

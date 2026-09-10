@@ -633,9 +633,7 @@ public static partial class OfficeDrawingSvgExporter {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset;
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, text.LineHeight.Value / fontSize)
-            : 1.2D;
+        double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(text.LineHeight, fontSize);
         double minimumFontSize = Math.Min(6D, fontSize);
         Func<string?, double, double> measure = (value, size) =>
             textMetrics.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);

@@ -13,6 +13,45 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointNativeTextBoundaryTests {
     [Theory]
+    [InlineData(false, 18, true)]
+    [InlineData(true, 18, true)]
+    [InlineData(false, 24, false)]
+    [InlineData(true, 24, false)]
+    public void CondensedTableTextChecksPaintAgainstCellFrame(bool rich, double height, bool overflow) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var slide = presentation.AddSlide();
+        var table = slide.AddTablePoints(1, 1, 20, 20, 200, height);
+        table.SetRowHeightsPoints(height);
+        var cell = table.GetCell(0, 0);
+        cell.Text = "gypsy"; cell.FontSize = 24;
+        cell.PaddingTopPoints = cell.PaddingBottomPoints = 0;
+        cell.Paragraphs[0].LineSpacingMultiplier = .75D;
+        cell.Paragraphs[0].Runs[0].Bold = rich;
+        var warnings = slide.ExportImage(OfficeImageExportFormat.Svg).Diagnostics;
+        Assert.Equal(overflow, warnings.Any(warning => warning.Message.Contains("cell text frame boundary")));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CondensedTextReportsPaintBeyondItsFrame(bool rich, bool precedingParagraph) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var slide = presentation.AddSlide();
+        var box = slide.AddTextBoxPoints(precedingParagraph ? "FIRST" : "gypsy", 20, 20, 200, precedingParagraph ? 36 : 18);
+        box.FontSize = 24; box.FontName = "Helvetica";
+        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        if (precedingParagraph) box.AddParagraph("gypsy");
+        foreach (var paragraph in box.Paragraphs) {
+            paragraph.LineSpacingMultiplier = .75D;
+            paragraph.Runs[0].Bold = rich;
+        }
+        Assert.Contains(slide.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, warning => warning.Code == "POWERPOINT_TEXT_OVERFLOW");
+        Assert.Contains(presentation.ToPdfDocumentResult().Warnings, warning => warning.Code == "text-box-overflow");
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void FirstLineTallerThanItsTextFrameReportsBoundedLoss(bool rich) {

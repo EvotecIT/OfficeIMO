@@ -220,7 +220,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1190, raster.Height);
         // This snapshot pins both Base14 positioned text and the source PDF's exact dash array and phase.
         Assert.Equal(
-            "6d588750480c3012d1865eab1108bf97fd347ad982f46b9dc5f72863a123a214",
+            "867def1dc67031c97e118650f9a41d81d317646cc0a3597ea1e5728f737a2c4a",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 
@@ -298,7 +298,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1000, raster!.Width);
         Assert.Equal(1200, raster.Height);
         Assert.Equal(
-            "6d71b8b098c1562607f05a7500d0db1032b04950efa56b10d70397bcda63cb40",
+            "27a76b68f405c3ef41f9f9f98992e36bd88df725a9b95f7a3ad059c16a0b4deb",
             Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
     }
 

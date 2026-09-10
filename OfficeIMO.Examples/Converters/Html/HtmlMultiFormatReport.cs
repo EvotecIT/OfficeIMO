@@ -20,7 +20,7 @@ internal static partial class Html {
 
         // Parsing, resource policy, and semantic analysis are shared by the format adapters.
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
-        File.WriteAllText(stem + ".html", report.SourceHtml);
+        File.WriteAllText(stem + ".html", report.ExportSourceHtml());
 
         var pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,

@@ -89,9 +89,7 @@ public static partial class OfficeDrawingRasterRenderer {
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset * scale;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
-        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
-            ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
-            : 1.2D;
+        double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(text.LineHeight * scale, fontSize);
         double minimumFontSize = Math.Min(6D, fontSize);
         Func<string?, double, double> measure = (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName);
         OfficeTextBlockLayout layout = text.StackedText

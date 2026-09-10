@@ -15,6 +15,59 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointParagraphFlowContractTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CondensedDescendersAreClippedOnlyAtTheTextBoxBoundary(bool rich) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(300, 220);
+        var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 150);
+        box.FontSize = 24; box.FontName = "Helvetica";
+        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
+        box.Paragraphs[0].Runs[0].Bold = rich;
+        byte[] bytes = presentation.ToPdfBytes();
+        Assert.Contains("20 50 240 150 re W", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void CondensedParagraphLeadingSurvivesNativeRendering(bool table, bool rich, bool trailingParagraph) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(300, 220);
+        var slide = presentation.AddSlide();
+        PowerPointParagraph paragraph;
+        if (table) {
+            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
+            cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = 12;
+            paragraph = cell.Paragraphs[0];
+            if (trailingParagraph) cell.AddParagraph("END");
+        } else {
+            var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTHIRD", 20, 20, 240, 160);
+            box.FontName = "Helvetica"; box.FontSize = 12;
+            paragraph = box.Paragraphs[0];
+            if (trailingParagraph) box.AddParagraph("END").Alignment = PowerPointTextAlignment.Right;
+        }
+        paragraph.LineSpacingMultiplier = 0.75D;
+        if (rich) paragraph.Runs[0].Bold = true;
+        if (!table) {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
+            Assert.InRange(BaselineFromTop(pdf, 1, "SECOND") - BaselineFromTop(pdf, 1, "FIRST"), 8.9D, 9.1D);
+            Assert.InRange(BaselineFromTop(pdf, 1, "THIRD") - BaselineFromTop(pdf, 1, "SECOND"), 8.9D, 9.1D);
+        }
+        var svg = XDocument.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg).Bytes));
+        double Y(string value) => double.Parse(Assert.Single(svg.Descendants(), element => element.Name.LocalName == "text" && element.Value == value).Attribute("y")!.Value, CultureInfo.InvariantCulture);
+        Assert.InRange(Y("SECOND") - Y("FIRST"), 8.9D, 9.1D);
+        Assert.InRange(Y("THIRD") - Y("SECOND"), 8.9D, 9.1D);
+    }
+
+    [Theory]
     [InlineData("paragraph", false)]
     [InlineData("paragraph", true)]
     [InlineData("list", false)]
