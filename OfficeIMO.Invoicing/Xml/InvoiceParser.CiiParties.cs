@@ -51,9 +51,9 @@ public static partial class InvoiceParser {
             XElement? card = c.Child(element, Ram + "ApplicableTradeSettlementFinancialCard");
             string? cardNumber = c.Text(card, Ram + "ID"), cardHolder = c.Text(card, Ram + "CardholderName");
             string? debit = c.Text(c.Child(element, Ram + "PayerPartyDebtorFinancialAccount"), Ram + "IBANID");
-            if (result.CardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
-            if (result.CardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
-            if (result.DebitedAccount != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
+            if (result.CardNumber != null && cardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
+            if (result.CardHolder != null && cardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
+            if (result.DebitedAccount != null && debit != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
             result.CardNumber = result.CardNumber ?? cardNumber; result.CardHolder = result.CardHolder ?? cardHolder; result.DebitedAccount = result.DebitedAccount ?? debit;
         }
         return result ?? (reference == null && creditor == null ? null : new InvoicePayment { Reference = reference, CreditorIdentifier = creditor });

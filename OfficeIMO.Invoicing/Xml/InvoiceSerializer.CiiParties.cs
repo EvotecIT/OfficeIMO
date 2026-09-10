@@ -23,12 +23,14 @@ public static partial class InvoiceSerializer {
     private static IEnumerable<XElement> CiiPayment(InvoicePayment? payment) {
         if (payment == null) yield break;
         IEnumerable<InvoiceBankAccount?> accounts = payment.Accounts.Count == 0 ? new InvoiceBankAccount?[] { null } : payment.Accounts.Select(account => (InvoiceBankAccount?)account);
+        bool first = true;
         foreach (InvoiceBankAccount? account in accounts) {
             yield return new XElement(Ram + "SpecifiedTradeSettlementPaymentMeans", Text(Ram + "TypeCode", payment.MeansCode), Text(Ram + "Information", payment.MeansText),
-                payment.CardNumber == null ? null : new XElement(Ram + "ApplicableTradeSettlementFinancialCard", Text(Ram + "ID", payment.CardNumber), Text(Ram + "CardholderName", payment.CardHolder)),
-                payment.DebitedAccount == null ? null : new XElement(Ram + "PayerPartyDebtorFinancialAccount", Text(Ram + "IBANID", payment.DebitedAccount)),
+                !first || payment.CardNumber == null ? null : new XElement(Ram + "ApplicableTradeSettlementFinancialCard", Text(Ram + "ID", payment.CardNumber), Text(Ram + "CardholderName", payment.CardHolder)),
+                !first || payment.DebitedAccount == null ? null : new XElement(Ram + "PayerPartyDebtorFinancialAccount", Text(Ram + "IBANID", payment.DebitedAccount)),
                 account == null ? null : new XElement(Ram + "PayeePartyCreditorFinancialAccount", Text(Ram + (account.IsIban ? "IBANID" : "ProprietaryID"), account.Identifier), Text(Ram + "AccountName", account.Name)),
                 account?.ProviderIdentifier == null ? null : new XElement(Ram + "PayeeSpecifiedCreditorFinancialInstitution", Text(Ram + "BICID", account.ProviderIdentifier)));
+            first = false;
         }
     }
 }

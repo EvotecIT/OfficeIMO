@@ -57,10 +57,10 @@ public static partial class InvoiceParser {
             c.Expected(c.Child(card, Cbc + "NetworkID"), "NA");
             string? cardNumber = c.Text(card, Cbc + "PrimaryAccountNumberID"), cardHolder = c.Text(card, Cbc + "HolderName");
             string? mandateReference = c.Text(mandate, Cbc + "ID"), debit = c.Text(c.Child(mandate, Cac + "PayerFinancialAccount"), Cbc + "ID");
-            if (result.CardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
-            if (result.CardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
-            if (result.MandateReference != null) Agree(c, element, result.MandateReference, mandateReference, "mandates");
-            if (result.DebitedAccount != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
+            if (result.CardNumber != null && cardNumber != null) Agree(c, element, result.CardNumber, cardNumber, "card numbers");
+            if (result.CardHolder != null && cardHolder != null) Agree(c, element, result.CardHolder, cardHolder, "card holders");
+            if (result.MandateReference != null && mandateReference != null) Agree(c, element, result.MandateReference, mandateReference, "mandates");
+            if (result.DebitedAccount != null && debit != null) Agree(c, element, result.DebitedAccount, debit, "debited accounts");
             result.CardNumber = result.CardNumber ?? cardNumber; result.CardHolder = result.CardHolder ?? cardHolder;
             result.MandateReference = result.MandateReference ?? mandateReference; result.DebitedAccount = result.DebitedAccount ?? debit;
         }

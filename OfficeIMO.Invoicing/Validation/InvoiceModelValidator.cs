@@ -20,7 +20,8 @@ public static partial class InvoiceModelValidator {
         check.Code(invoice.Currency, "Currency", "^[A-Z]{3}\\z");
         check.Party(invoice.Seller, "Seller");
         check.Party(invoice.Buyer, "Buyer");
-        if (invoice.Payee != null) check.Required(invoice.Payee.Name, "Payee.Name");
+        if (invoice.Payee != null) { check.Required(invoice.Payee.Name, "Payee.Name"); check.PartyIdentifiers(invoice.Payee, "Payee"); }
+        if (invoice.ObjectIdentifier != null) check.Identifier(invoice.ObjectIdentifier, "ObjectIdentifier", false);
         if (invoice.TaxRepresentative != null) check.Party(invoice.TaxRepresentative, "TaxRepresentative");
         check.Period(invoice.Period, "Period");
         check.OptionalDate(invoice.DueDate, "DueDate");
@@ -30,6 +31,7 @@ public static partial class InvoiceModelValidator {
         if (invoice.Delivery != null) {
             check.OptionalDate(invoice.Delivery.Date, "Delivery.Date");
             if (invoice.Delivery.Address != null) check.Address(invoice.Delivery.Address, "Delivery.Address");
+            if (invoice.Delivery.LocationIdentifier != null) check.Identifier(invoice.Delivery.LocationIdentifier, "Delivery.LocationIdentifier", false);
         }
         check.Money(invoice.PrepaidAmount, "PrepaidAmount");
         check.Money(invoice.RoundingAmount, "RoundingAmount");
@@ -54,6 +56,8 @@ public static partial class InvoiceModelValidator {
             check.Required(line.UnitCode, path + ".UnitCode");
             check.Tax(line.Tax, path + ".Tax");
             check.Period(line.Period, path + ".Period");
+            if (line.StandardItemIdentifier != null) check.Identifier(line.StandardItemIdentifier, path + ".StandardItemIdentifier", true);
+            if (line.ObjectIdentifier != null) check.Identifier(line.ObjectIdentifier, path + ".ObjectIdentifier", false);
             if (line.PriceBaseQuantity <= 0m) check.Error("INV-BASE-QUANTITY", "Price base quantity must be positive.", path + ".PriceBaseQuantity");
             if (line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m)
                 check.Error("INV-PRICE", "Item prices and price discounts cannot be negative.", path + ".UnitPrice");
@@ -136,14 +140,17 @@ public static partial class InvoiceModelValidator {
         internal void Party(InvoiceParty? party, string path) {
             if (party == null) { Error("INV-REQUIRED", "Party is required.", path); return; }
             Required(party.Name, path + ".Name"); Address(party.Address, path + ".Address");
+            PartyIdentifiers(party, path);
+        }
+        internal void PartyIdentifiers(InvoiceParty party, string path) {
             foreach (InvoiceIdentifier identifier in party.Identifiers) Identifier(identifier, path + ".Identifiers", false);
             if (party.LegalRegistration != null) Identifier(party.LegalRegistration, path + ".LegalRegistration", false);
             if (party.ElectronicAddress != null) Identifier(party.ElectronicAddress, path + ".ElectronicAddress", true);
         }
-        private void Identifier(InvoiceIdentifier? identifier, string path, bool requireScheme) {
+        internal void Identifier(InvoiceIdentifier? identifier, string path, bool requireScheme) {
             if (identifier == null) { Error("INV-NULL", "Identifier is null.", path); return; }
             Required(identifier.Value, path + ".Value");
-            if (requireScheme) Required(identifier.SchemeId, path + ".SchemeId");
+            if (requireScheme || identifier.SchemeId != null) Required(identifier.SchemeId, path + ".SchemeId");
         }
         internal void Tax(InvoiceTaxCategory? tax, string path, bool breakdown = false) {
             if (tax == null) { Error("INV-REQUIRED", "VAT category is required.", path); return; }

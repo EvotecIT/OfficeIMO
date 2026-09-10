@@ -13,19 +13,18 @@ internal static class InvoiceSchemaValidation {
         using var schemaInput = new MemoryStream(bundle.File(schemaPath), false);
         using (XmlReader schemaReader = XmlReader.Create(schemaInput, InvoiceRuleBundle.XmlSettings(), "invoice-bundle:///" + schemaPath)) schemas.Add(null, schemaReader);
         schemas.Compile();
-        var diagnostics = new List<InvoiceDiagnostic>();
+        var diagnostics = new InvoiceDiagnosticBuffer();
         XmlReaderSettings settings = InvoiceRuleBundle.XmlSettings();
         settings.Schemas = schemas; settings.ValidationType = ValidationType.Schema;
         settings.ValidationFlags = XmlSchemaValidationFlags.ReportValidationWarnings | XmlSchemaValidationFlags.ProcessIdentityConstraints;
         settings.ValidationEventHandler += (_, args) => {
             diagnostics.Add(new InvoiceDiagnostic("XSD", args.Message, "line " + args.Exception.LineNumber + ":" + args.Exception.LinePosition,
                 args.Severity == XmlSeverityType.Warning ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error));
-            if (diagnostics.Count > 1000) throw new InvalidDataException("Schema validation exceeded 1,000 diagnostics.");
         };
         using var input = new MemoryStream(xml, false);
         using XmlReader reader = XmlReader.Create(input, settings);
         while (reader.Read()) cancellationToken.ThrowIfCancellationRequested();
-        return diagnostics;
+        return diagnostics.ToList();
     }
     private sealed class BundleResolver(InvoiceRuleBundle bundle) : XmlResolver {
         public override ICredentials? Credentials { set { } }

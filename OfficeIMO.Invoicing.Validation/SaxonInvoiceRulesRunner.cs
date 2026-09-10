@@ -93,15 +93,14 @@ public sealed class SaxonInvoiceRulesRunner {
         XNamespace svrl = "http://purl.oclc.org/dsdl/svrl";
         if (document.Root?.Name != svrl + "schematron-output" || !document.Descendants(svrl + "fired-rule").Any())
             throw new InvalidDataException("The rule engine did not return an executed SVRL report.");
-        var diagnostics = new List<InvoiceDiagnostic>();
+        var diagnostics = new InvoiceDiagnosticBuffer();
         foreach (XElement element in document.Descendants().Where(e => e.Name == svrl + "failed-assert" || e.Name == svrl + "successful-report")) {
             string code = (string?)element.Attribute("id") ?? "SCHEMATRON";
             string text = string.Join(" ", element.Elements(svrl + "text").Select(e => e.Value.Trim()));
             string? flag = (string?)element.Attribute("flag") ?? (string?)element.Attribute("role");
             InvoiceDiagnosticSeverity severity = overrides.TryGetValue(code, out InvoiceDiagnosticSeverity value) ? value : InvoiceRuleBundle.ParseSeverity(flag);
             diagnostics.Add(new InvoiceDiagnostic(code, text, (string?)element.Attribute("location") ?? "Invoice", severity));
-            if (diagnostics.Count > 1000) throw new InvalidDataException("Schematron exceeded 1,000 diagnostics.");
         }
-        return diagnostics.AsReadOnly();
+        return diagnostics.ToList().AsReadOnly();
     }
 }
