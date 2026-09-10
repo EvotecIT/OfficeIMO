@@ -8,6 +8,41 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfInvoiceDocumentTests {
     [Theory]
+    [InlineData("396")]
+    [InlineData("384")]
+    [InlineData("999")]
+    public void UnsupportedPresentationTypesAreRejected(string typeCode) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.TypeCode = typeCode;
+        Assert.Throws<NotSupportedException>(() => PdfInvoiceDocument.Create(invoice));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OutsideScopeAdjustmentsPreserveAbsentTaxRate(bool charge) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Seller.VatIdentifier = null;
+        invoice.Lines[0].Tax = new InvoiceTaxCategory { Code = "O", ExemptionReason = "Outside scope" };
+        invoice.AllowancesAndCharges.Add(new InvoiceAllowanceCharge {
+            IsCharge = charge, Amount = 2m, Reason = "Outside scope adjustment",
+            Tax = new InvoiceTaxCategory { Code = "O", ExemptionReason = "Outside scope" }
+        });
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice);
+        Assert.Null(snapshot.ToInvoice().AllowancesAndCharges[0].Tax!.Rate);
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Outside scope adjustment", text, StringComparison.Ordinal);
+        Assert.Contains(charge ? "Charge" : "Allowance", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("0%", text, StringComparison.Ordinal);
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            Directory.CreateDirectory(output!);
+            File.WriteAllBytes(Path.Combine(output!, charge ? "outside-scope-charge.pdf" : "outside-scope-allowance.pdf"), pdf);
+        }
+    }
+
+    [Theory]
     [InlineData(false, false, true)]
     [InlineData(false, false, false)]
     [InlineData(true, false, true)]
@@ -33,6 +68,7 @@ public class PdfInvoiceDocumentTests {
         Assert.Equal(xml, attachment.Bytes);
         string text = PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("INV-2026-001", text, StringComparison.Ordinal);
+        Assert.Contains((credit ? "Credit note " : "Invoice ") + "INV-2026-001", text, StringComparison.Ordinal);
         Assert.DoesNotContain("MUTATED", text, StringComparison.Ordinal);
         Assert.Contains(due.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " EUR", text, StringComparison.Ordinal);
         Assert.Contains("Consulting", text, StringComparison.Ordinal);

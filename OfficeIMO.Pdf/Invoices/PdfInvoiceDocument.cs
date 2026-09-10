@@ -7,18 +7,21 @@ public sealed partial class PdfInvoiceDocument {
     private readonly byte[] _xml;
     private readonly Invoice _invoice;
     private readonly InvoiceCalculation _amounts;
+    private string DocumentTitle => (_invoice.TypeCode == "381" ? "Credit note " : "Invoice ") + _invoice.Number;
 
     private PdfInvoiceDocument(byte[] xml) {
         _xml = xml;
         InvoiceReadResult parsed = InvoiceParser.Read(xml);
         if (!parsed.HasCompleteMapping) throw new InvalidDataException("Generated invoice cannot be represented completely for PDF presentation.");
         _invoice = parsed.Invoice;
+        if (_invoice.TypeCode != "380" && _invoice.TypeCode != "381")
+            throw new NotSupportedException("PDF invoice presentation supports document type 380 (invoice) and 381 (credit note) only.");
         InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(_invoice);
         validation.ThrowIfInvalid();
         _amounts = validation.Calculation!;
     }
 
-    /// <summary>Creates an independent snapshot. Later edits to the supplied invoice cannot change its PDF or XML.</summary>
+    /// <summary>Creates an independent snapshot for type 380 (invoice) or 381 (credit note). Later edits to the supplied invoice cannot change its PDF or XML.</summary>
     public static PdfInvoiceDocument Create(Invoice invoice, InvoiceProfile profile = InvoiceProfile.En16931) =>
         new PdfInvoiceDocument(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Cii, profile)));
 
@@ -39,7 +42,7 @@ public sealed partial class PdfInvoiceDocument {
         PdfOptions configured = options?.Clone() ?? new PdfOptions();
         configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
         PdfDocument document = PdfDocument.Create(configured);
-        document.Meta(title: (_invoice.TypeCode == "381" ? "Credit note " : "Invoice ") + _invoice.Number, author: _invoice.Seller.Name);
+        document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
         Compose(document.Content);
         return document.ToBytes();
     }

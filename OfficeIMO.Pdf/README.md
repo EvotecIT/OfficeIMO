@@ -1539,7 +1539,9 @@ Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
 independent editable model; create a new snapshot after edits. The PDF uses the
 same declared amounts and calculation as its XML, includes `factur-x.xml` as an
 alternative representation, and derives its XMP profile from that attachment.
-The layout includes invoice and credit-note headings, repeated line-table headers,
+PDF presentation accepts document type 380 (invoice) and 381 (credit note), and
+rejects other document types before creating the snapshot. The layout includes
+invoice and credit-note headings, repeated line-table headers,
 VAT and payable totals, party details, payment instructions and references.
 Totals stay together when page space permits.
 

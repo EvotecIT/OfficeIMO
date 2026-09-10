@@ -9,7 +9,7 @@ public sealed partial class PdfInvoiceDocument {
     private static readonly string[] TaxHeaders = { "VAT category", "Taxable amount", "VAT amount", "Exemption" };
     private static readonly CultureInfo FormatCulture = CultureInfo.InvariantCulture;
     private void Compose(PdfContentBuilder content) {
-        content.H1((_invoice.TypeCode == "381" ? "Credit note " : "Invoice ") + _invoice.Number);
+        content.H1(DocumentTitle);
         content.Table(new[] { PartyHeaders, new[] { Party(_invoice.Seller), Party(_invoice.Buyer) } },
             style: new PdfTableStyle { HeaderRowCount = 1, RowStripeFill = null, SpacingAfter = 8, FontSize = 9 });
         var identity = new List<string[]> {
@@ -37,7 +37,7 @@ public sealed partial class PdfInvoiceDocument {
             content.H2("Document adjustments");
             content.Table(_invoice.AllowancesAndCharges.Select(item => new[] {
                 item.IsCharge ? "Charge" : "Allowance", item.Reason ?? item.ReasonCode ?? string.Empty,
-                item.Tax!.Code + " " + NumberText(item.Tax.Rate ?? 0m) + "%", Money(item.Amount)
+                item.Tax!.Code + (item.Tax.Rate.HasValue ? " " + NumberText(item.Tax.Rate.Value) + "%" : string.Empty), Money(item.Amount)
             }), style: PlainTable());
         }
         var taxes = new List<string[]> { TaxHeaders };
