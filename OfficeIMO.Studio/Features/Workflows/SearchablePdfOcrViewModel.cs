@@ -114,6 +114,8 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, Task<bool>> _confirmProviderWrite;
     private CancellationTokenSource? _cancellation;
     private string? _automaticOutputPath;
+    internal Func<string, CancellationToken, Task>? OpenAssistantOutput { get; set; }
+    internal bool ReturnToAssistant { get; private set; }
     private bool _disposed;
 
     internal SearchablePdfOcrViewModel(
@@ -232,12 +234,14 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         !string.IsNullOrWhiteSpace(OutputPath) &&
         Languages.Any(static choice => choice.IsSelected);
 
-    internal void UseDocument(string? path) {
+    internal void UseDocument(string? path, bool returnToAssistant = false) {
         if (IsBusy) return;
         if (!string.IsNullOrWhiteSpace(path)) InputPath = path;
+        ReturnToAssistant = returnToAssistant;
     }
 
     partial void OnInputPathChanged(string value) {
+        ReturnToAssistant = false;
         if (_isExtractingText) _cancellation?.Cancel();
         ExtractedText = string.Empty;
         Scan.Invalidate(clearSource: true);
@@ -389,7 +393,9 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
 
     [RelayCommand(CanExecute = nameof(HasOutput))]
     private Task OpenOutputAsync(CancellationToken cancellationToken) =>
-        _openDocument is not null && PublishedPath is not null
+        ReturnToAssistant && OpenAssistantOutput is not null && PublishedPath is not null
+            ? OpenAssistantOutput(PublishedPath, cancellationToken)
+            : _openDocument is not null && PublishedPath is not null
             ? _openDocument(PublishedPath, cancellationToken)
             : Task.CompletedTask;
 

@@ -11,7 +11,7 @@ public sealed partial class OfficeAiEngine {
     private const string SynthesisSchema = """
         {"type":"object","additionalProperties":false,"required":["claims"],"properties":{"claims":{"type":"array","minItems":1,"maxItems":200,"items":{"type":"object","additionalProperties":false,"required":["text","sourceClaimIds"],"properties":{"text":{"type":"string","minLength":1,"maxLength":32000},"sourceClaimIds":{"type":"array","minItems":1,"maxItems":200,"items":{"type":"string"}}}}}}}
         """;
-    private sealed record Synthesis(IReadOnlyList<OfficeAiClaim> Claims, bool Completed, int RequestCount, long? InputTokens, long? OutputTokens);
+    private sealed record Synthesis(IReadOnlyList<OfficeAiClaim> Claims, bool Completed, int RequestCount, long? InputTokens, long? OutputTokens, string? FailureCode);
 
     private async Task<Synthesis> SynthesizeAsync(IReadOnlyList<OfficeAiClaim> drafts, OfficeAiRequest request,
         OfficeAiExecutionProfile profile, string requestId, int previousRequests, CancellationToken token) {
@@ -20,7 +20,7 @@ public sealed partial class OfficeAiEngine {
         long? inputTokens = 0, outputTokens = 0;
         int maximum = Math.Min(profile.MaxRequestCharacters, request.Limits.MaxRequestCharacters);
         string outputSchema = CreateSynthesisSchema(request.Limits);
-        Synthesis Finish(bool completed) => new(current, completed, calls, inputTokens, outputTokens);
+        Synthesis Finish(bool completed, string? failureCode = null) => new(current, completed, calls, inputTokens, outputTokens, failureCode);
         for (int pass = 0; pass < request.Limits.MaxSynthesisPasses; pass++) {
             token.ThrowIfCancellationRequested();
             int previousCount = current.Count;
@@ -65,6 +65,10 @@ public sealed partial class OfficeAiEngine {
                     usageRecorded = true;
                     next.AddRange(ParseSynthesis(response, items, request.Limits));
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                  catch (OfficeAiExecutionException exception) {
+                    inputTokens = null; outputTokens = null;
+                    return Finish(false, exception.DiagnosticCode);
+                }
                   catch (InvalidDataException) {
                     if (!usageRecorded) { inputTokens = null; outputTokens = null; }
                     return Finish(false);

@@ -28,6 +28,8 @@ IReadOnlyList<ReaderChunk> chunks = reader
 
 ## Examples
 
+For an encrypted PDF, register `AddPdfHandler(new ReaderPdfOptions { Password = password })` with a password supplied by the caller. The password is used locally to open the PDF and is not included in extracted content or metadata. PDF content-extraction permissions still apply.
+
 ### Read page-aware Markdown chunks
 
 ```csharp

@@ -6,6 +6,7 @@
         xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
         xmlns:home="using:OfficeIMO.Studio.Features.Home"
         xmlns:settings="using:OfficeIMO.Studio.Features.Settings"
+        xmlns:ai="using:OfficeIMO.Studio.Features.Assistant"
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
@@ -70,6 +71,7 @@
         </Grid>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <ToggleButton Classes="tool" Content="{loc:Loc Assistant.Title}" IsChecked="{Binding IsAssistantVisible, Mode=OneWay}" Command="{Binding ToggleAssistantCommand}" />
           <Button Classes="tool" Click="OnCommandsClick" Content="{loc:Loc Commands.PaletteTitle}" />
           <Button Classes="tool" Click="OnFindClick" IsVisible="{Binding HasDocument}"
                   Content="{loc:Loc MainWindow.Find}" AutomationProperties.Name="{loc:Loc MainWindow.Find}" />
@@ -126,7 +128,10 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,*">
+    <SplitView x:Name="AssistantHost" Grid.Row="1" Grid.Column="1" PanePlacement="Right" OpenPaneLength="400"
+               IsPaneOpen="{Binding IsAssistantVisible, Mode=TwoWay}" DisplayMode="Overlay">
+      <SplitView.Pane><ai:AssistantView DataContext="{Binding Assistant}" /></SplitView.Pane>
+    <Grid RowDefinitions="Auto,*">
       <StackPanel Grid.Row="0">
         <Border IsVisible="{Binding HasError}" Background="{DynamicResource StudioErrorSoftBrush}"
                 BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="12,8">
@@ -173,5 +178,6 @@
         <settings:SettingsView DataContext="{Binding Settings}" />
       </Grid>
     </Grid>
+    </SplitView>
   </Grid>
 </Window>

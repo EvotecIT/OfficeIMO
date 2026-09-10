@@ -67,7 +67,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 ## Architecture
 
-- [Document assistant design](officeimo.document-assistant-design.md) — current headless AI operations, IntelligenceX integration, evidence contracts, support limits, and later Studio integration. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
+- [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
 
 ## Generated evidence
 

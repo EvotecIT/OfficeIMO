@@ -5,7 +5,7 @@ using OfficeIMO.Reader;
 namespace OfficeIMO.AI;
 
 /// <summary>Portable review artifacts. Saving or reopening an artifact does not approve model-authored content.</summary>
-public static class OfficeAiArtifacts {
+public static partial class OfficeAiArtifacts {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true,
         Converters = { new JsonStringEnumConverter() }
