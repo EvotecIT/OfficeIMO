@@ -2,8 +2,6 @@ name: PDF Compliance Proof
 
 on:
   pull_request:
-    branches:
-      - master
     paths:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'

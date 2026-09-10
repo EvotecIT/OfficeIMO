@@ -13,8 +13,6 @@ on:
       - '.github/workflows/deploy-website.yml'
       - '.gitignore'
   pull_request:
-    branches:
-      - master
     paths-ignore:
       - '*.md'
       - 'Docs/**'
