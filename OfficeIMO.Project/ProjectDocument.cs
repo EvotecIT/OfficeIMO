@@ -9,12 +9,14 @@ public sealed partial class ProjectDocument : IDisposable {
     private long _savedRevision;
     private int _batchDepth;
     private bool _batchChanged;
+    internal bool HasPendingBatchChanges => _batchChanged;
     private DocumentAccessMode _accessMode = DocumentAccessMode.ReadWrite;
     private DocumentPersistenceMode _persistenceMode;
     private string? _path;
     private Stream? _associatedStream;
     internal ProjectXmlSource? Source;
     internal ProjectNativeSource? NativeSource;
+    internal ProjectMpxSource? MpxSource;
     internal readonly Guid NativeIdentity = System.Guid.NewGuid();
     /// <summary>Native source generation and inert container inventory; null for XML/new documents.</summary>
     public ProjectNativeInfo? NativeInfo => NativeSource?.Info;

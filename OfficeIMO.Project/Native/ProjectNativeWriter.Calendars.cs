@@ -16,22 +16,22 @@ internal sealed partial class ProjectNativeWriter {
                     "Each native derived calendar must belong to exactly one resource.", path)); continue;
             }
             if (added) { editor.Add(calendar.Uid); editor.Integer(calendar.Uid, 0x0d400009, calendar.Uid);
-                editor.Set(calendar.Uid, 0x0d40001b, EntityGuid(calendar, 5).ToByteArray());
+                Identity(editor, calendar.Uid, 0x0d40001b, EntityGuid(calendar, 5));
             }
-            if (added || Changed("/Settings/Calendar")) editor.Set(calendar.Uid, 0x0d400022, new byte[] { calendar == _document.Calendar ? (byte)1 : (byte)0 });
+            if (_profile.HasExtendedRecords && (added || Changed("/Settings/Calendar"))) editor.Set(calendar.Uid, 0x0d400022, new byte[] { calendar == _document.Calendar ? (byte)1 : (byte)0 });
             Handle(path + "/Uid");
             Field(editor, calendar.Uid, path, "Name", 0x0d400001, Kind.Text);
             Field(editor, calendar.Uid, path, "Guid", 0x0d40001b, Kind.Guid);
             Handle(path + "/BaseCalendar"); Handle(path + "/IsBaseCalendar");
-            if (added || Changed(path + "/BaseCalendar")) editor.Integer(calendar.Uid, 0x0d400006, calendar.BaseCalendar?.Uid ?? 0);
+            if (added || Changed(path + "/BaseCalendar")) editor.Integer(calendar.Uid, 0x0d400006, calendar.BaseCalendar?.Uid ?? (_profile.Version <= 9 ? -1 : 0));
             if (added || Changed(path + "/IsBaseCalendar") || _calendarBindingsChanged) {
                 editor.Integer(calendar.Uid, 0x0d400007, calendar.IsBaseCalendar == false ? owner!.Uid : -1);
                 editor.Set(calendar.Uid, 0x0d400000, new byte[] { calendar.IsBaseCalendar == false ? (byte)0 : (byte)1 });
             }
-            if (added || Changed(path + "/BaseCalendar") || _calendarGuidsChanged) editor.Set(calendar.Uid, 0x0d40001d, (calendar.BaseCalendar == null ? Guid.Empty : EntityGuid(calendar.BaseCalendar, 5)).ToByteArray());
-            if (added || _calendarBindingsChanged || _resourceGuidsChanged) editor.Set(calendar.Uid, 0x0d40001c, (owner == null ? Guid.Empty : EntityGuid(owner, 2)).ToByteArray());
+            if (added || Changed(path + "/BaseCalendar") || _calendarGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001d, calendar.BaseCalendar == null ? Guid.Empty : EntityGuid(calendar.BaseCalendar, 5));
+            if (added || _calendarBindingsChanged || _resourceGuidsChanged) Identity(editor, calendar.Uid, 0x0d40001c, owner == null ? Guid.Empty : EntityGuid(owner, 2));
             bool patternChanged = ChangedTree(path + "/Day") || ChangedTree(path + "/Exception") || ChangedTree(path + "/Week");
-            if (!added && !patternChanged) continue;
+            if (!added && !patternChanged && !(_profile.Version <= 9 && HasWorkWeeks(calendar))) continue;
             if (calendar.HasUnqualifiedNativeRecurrence) {
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_CALENDAR_RECURRENCE", ProjectDiagnosticSeverity.Error,
                     "This calendar contains unmodeled recurring exceptions. Its working pattern cannot be replaced safely.", path)); continue;
@@ -46,6 +46,7 @@ internal sealed partial class ProjectNativeWriter {
         editor.Export(_replacements);
     }
     private byte[] CalendarPattern(ProjectCalendar calendar) {
+        if (_profile.Version <= 9) return CalendarPattern9(calendar);
         using var buffer = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(_options.MaxOutputBytes);
         using var writer = new BinaryWriter(buffer);
         writer.Write(CalendarWeek(calendar.WeekDays)); writer.Write(calendar.Exceptions.Count);
@@ -66,29 +67,33 @@ internal sealed partial class ProjectNativeWriter {
         return buffer.ToArray();
     }
     private byte[] CalendarWeek(IEnumerable<ProjectWeekDay> days) {
-        var result = new byte[420]; var listed = days.ToArray();
+        int width = _profile == ProjectNativeProfile.Mpp8 ? 40 : 60;
+        var result = new byte[7 * width]; var listed = days.ToArray();
         if (listed.Any(d => !d.Day.HasValue || d.FromDate.HasValue || d.ToDate.HasValue))
             throw new NotSupportedException("Native ordinary weeks require weekday declarations; express date exceptions in Exceptions.");
         for (int day = 0; day < 7; day++) {
             var item = listed.SingleOrDefault(d => (int?)d.Day == day);
-            if (item == null) result[day * 60] = 1;
-            else Buffer.BlockCopy(CalendarDayPattern(item.IsWorking, item.WorkingTimes), 0, result, day * 60, 60);
+            if (item == null) result[day * width] = 1;
+            else Buffer.BlockCopy(CalendarDayPattern(item.IsWorking, item.WorkingTimes), 0, result, day * width, width);
         }
         return result;
     }
-    private static byte[] CalendarDayPattern(bool? working, IEnumerable<ProjectWorkingInterval> intervals) {
-        var result = new byte[60]; var times = intervals.ToArray();
+    private byte[] CalendarDayPattern(bool? working, IEnumerable<ProjectWorkingInterval> intervals) {
+        bool legacy8 = _profile == ProjectNativeProfile.Mpp8;
+        int capacity = legacy8 ? 3 : 5, durationOffset = legacy8 ? 16 : 20, totalOffset = legacy8 ? 28 : 40;
+        var result = new byte[legacy8 ? 40 : 60]; var times = intervals.ToArray();
         if (!working.HasValue) throw new ArgumentException("Native weekday working status must be explicit.");
         if (!working.Value && times.Length != 0) throw new ArgumentException("A non-working day cannot contain working intervals.");
-        if (times.Length > 5) throw new NotSupportedException("Native working days support at most five intervals.");
+        if (times.Length > capacity) throw new NotSupportedException("This native generation supports at most " + capacity + " working intervals per day.");
         Put(result, 2, checked((ushort)times.Length)); int total = 0;
         for (int i = 0; i < times.Length; i++) {
             if (!times[i].From.HasValue || !times[i].To.HasValue) throw new ArgumentException("Working interval endpoints are required.");
             int from = Exact(times[i].From!.Value.Ticks / (decimal)(TimeSpan.TicksPerMinute / 10));
             int to = Exact(times[i].To!.Value.Ticks / (decimal)(TimeSpan.TicksPerMinute / 10));
-            int duration = (to - from + 14400) % 14400;
-            Put(result, 8 + i * 2, checked((ushort)from)); Put(result, 20 + i * 4, duration); total += duration;
-            Put(result, 40 + i * 4, total);
+            int duration = to - from;
+            if (duration <= 0) duration += 14400;
+            Put(result, 8 + i * 2, checked((ushort)from)); Put(result, durationOffset + i * 4, duration); total += duration;
+            Put(result, totalOffset + i * 4, total);
         }
         Put(result, 4, total); return result;
     }

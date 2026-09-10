@@ -68,6 +68,20 @@ internal sealed class ProjectCalendarMath {
         if (_cache.Count < _maxDays) _cache.Add(date, result);
         return result;
     }
+    internal IReadOnlyList<ProjectWorkingInterval> OwnerDayPattern(DateTime date) {
+        _token.ThrowIfCancellationRequested(); Local(date);
+        if (_calendars.Length != 1) throw new InvalidOperationException("An owned day pattern requires exactly one calendar.");
+        return Resolve(_calendars[0], date.Date).ToArray();
+    }
+    internal IReadOnlyList<ProjectWorkingInterval> OrdinaryDayPattern(DayOfWeek day) {
+        _token.ThrowIfCancellationRequested();
+        if (_calendars.Length != 1) throw new InvalidOperationException("An ordinary day pattern requires exactly one calendar.");
+        for (var calendar = _calendars[0]; calendar != null; calendar = calendar.BaseCalendar) {
+            var definition = calendar.WeekDays.FirstOrDefault(d => d.Day == day);
+            if (definition != null) return Times(definition.IsWorking, definition.WorkingTimes).ToArray();
+        }
+        return Array.Empty<ProjectWorkingInterval>();
+    }
     private List<ProjectWorkingRange> EffectiveDay(ProjectCalendar calendar, DateTime date) {
         if (date == DateTime.MaxValue.Date) throw new ArgumentOutOfRangeException(nameof(date), "The final DateTime date cannot contain a bounded full day.");
         var result = new List<ProjectWorkingRange>();
@@ -80,8 +94,8 @@ internal sealed class ProjectCalendarMath {
         foreach (var interval in pattern) {
             _token.ThrowIfCancellationRequested();
             if (!interval.From.HasValue || !interval.To.HasValue || interval.From < TimeSpan.Zero || interval.From >= TimeSpan.FromDays(1) ||
-                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1) || interval.From == interval.To)
-                throw new InvalidDataException("A working interval must have distinct, valid local start and finish times.");
+                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1))
+                throw new InvalidDataException("A working interval must have valid local start and finish times.");
             DateTime start = ownerDate.Add(interval.From.Value), finish = ownerDate.Add(interval.To.Value);
             if (finish <= start) finish = finish.AddDays(1);
             if (start < from) start = from; if (finish > to) finish = to;

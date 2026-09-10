@@ -23,12 +23,14 @@ internal static partial class ProjectNativeCodec {
                 ActualStart = record.Date(0x0b400029), ActualFinish = record.Date(0x0b40002a),
                 Deadline = record.Date(0x0b4001b5), ConstraintDate = record.Date(0x0b400012),
                 ConstraintType = (ProjectConstraintType?)record.Integer(0x0b400011), Type = (ProjectTaskType?)record.Integer(0x0b400080),
-                IsManual = record.Boolean(0x0b400500), IsActive = record.Boolean(0x0b4004ff), IsMilestone = record.Boolean(0x0b400018),
+                IsManual = document.NativeInfo!.Profile != ProjectNativeProfile.Mpp14 ? false : record.Boolean(0x0b400500),
+                IsActive = document.NativeInfo.Profile != ProjectNativeProfile.Mpp14 ? true : record.Boolean(0x0b4004ff), IsMilestone = record.Boolean(0x0b400018),
                 IsCritical = record.Boolean(0x0b400013), EffortDriven = record.Boolean(0x0b400084),
                 Work = Work(record, 0x0b400000), ActualWork = Work(record, 0x0b400002), RemainingWork = Work(record, 0x0b400004),
                 Cost = record.Number(0x0b400005) / 100m, ActualCost = record.Number(0x0b400007) / 100m,
                 RemainingCost = record.Number(0x0b40000a) / 100m, FixedCost = record.Number(0x0b400008) / 100m,
-                PercentComplete = record.Integer(0x0b400020), PercentWorkComplete = record.Integer(0x0b400021), Priority = record.Integer(0x0b400019)
+                PercentComplete = record.Integer(0x0b400020), PercentWorkComplete = record.Integer(0x0b400021),
+                Priority = table.IsLegacy8 ? ProjectNativeLegacy8Values.Priority(record.Integer(0x0b400019)) : record.Integer(0x0b400019)
             };
             if (record.Value(0x0b400477) is ProjectNativeValue guid) task.Guid = new Guid(guid.Copy());
             int calendarId = record.Integer(0x0b400191) ?? -1;

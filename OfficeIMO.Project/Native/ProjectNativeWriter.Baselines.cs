@@ -2,7 +2,7 @@ namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
     private static readonly uint[] TaskBaselineStarts = { 0x1e2, 0x1ed, 0x1f8, 0x203, 0x20e, 0x220, 0x22b, 0x236, 0x241, 0x24c };
-    private void WriteBaselines(ProjectNativeTableEditor editor, int uid, string parent, ProjectCollection<ProjectBaseline> baselines, int owner) {
+    private void WriteBaselines(IProjectNativeTableEditor editor, int uid, string parent, ProjectCollection<ProjectBaseline> baselines, int owner) {
         string prefix = parent + "/Baseline";
         if (!ChangedTree(prefix)) return;
         Handle(prefix + "/Count");

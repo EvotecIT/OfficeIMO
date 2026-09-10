@@ -7,20 +7,24 @@ internal sealed class ProjectNativeField {
     internal uint Id, Mask;
     internal int Offset, Source, Type, Size, Position;
     internal bool Secondary;
+    internal bool LegacyIndirect;
 }
 
 /// <summary>Bounded fixed/variable table access for a qualified MPP14 container.</summary>
-internal sealed class ProjectNativeTable {
+internal sealed partial class ProjectNativeTable {
     internal readonly Dictionary<uint, ProjectNativeField> Fields = new Dictionary<uint, ProjectNativeField>();
     internal readonly List<ProjectNativeRecord> Records = new List<ProjectNativeRecord>();
     internal readonly Dictionary<int, Dictionary<uint, ProjectNativeValue>> Variable = new Dictionary<int, Dictionary<uint, ProjectNativeValue>>();
     private readonly Dictionary<string, byte[]> _streams;
     private readonly string _prefix;
+    private readonly ProjectNativeProfile _profile;
+    internal readonly int MetadataWidth, SecondaryMetadataWidth;
 
     internal ProjectNativeTable(OfficeCompoundFile file, string table, ProjectNativeValue primaryMap, ProjectNativeValue? extendedMap,
-        int maxRecords, CancellationToken token) {
+        int maxRecords, CancellationToken token, ProjectNativeProfile? profile = null) {
         _streams = file.Streams.ToDictionary(s => s.Key, s => s.Value, StringComparer.Ordinal);
-        _prefix = "   114/" + table + "/";
+        _profile = profile ?? ProjectNativeProfile.Mpp14;
+        _prefix = _profile.DataRoot + "/" + table + "/";
         ReadMap(primaryMap, false, token);
         if (extendedMap.HasValue) ReadMap(extendedMap.Value, true, token);
         ReadVariable(maxRecords, token);
@@ -28,13 +32,15 @@ internal sealed class ProjectNativeTable {
         var meta = new ProjectNativeValue(metaBytes, 0, metaBytes.Length);
         if (meta.Length < 16 || meta.UInt32() != 0xfadfadba) throw new InvalidDataException("Unrecognized native fixed metadata header.");
         int count = meta.Int32(8);
-        if (count < 0 || count > maxRecords || (count == 0 ? meta.Length != 16 : (meta.Length - 16) % count != 0))
+        if (count < 0 || count > maxRecords)
             throw new InvalidDataException("Invalid native fixed record count.");
-        int stride = count == 0 ? 0 : (meta.Length - 16) / count;
+        int stride = MetadataStride(meta, count, 9 + primaryMap.Length / 28 / 8);
+        MetadataWidth = stride;
         if (count > 0 && (stride < 8 || stride > 4096)) throw new InvalidDataException("Native fixed metadata width is outside the qualified bounds.");
         byte[]? secondMetaBytes = OptionalStream("Fixed2Meta"), secondBytes = OptionalStream("Fixed2Data");
         var secondMeta = new ProjectNativeValue(secondMetaBytes ?? Array.Empty<byte>(), 0, secondMetaBytes?.Length ?? 0);
-        int secondStride = count > 0 && secondMeta.Length >= 16 && (secondMeta.Length - 16) % count == 0 ? (secondMeta.Length - 16) / count : 0;
+        int secondStride = secondMetaBytes == null ? 9 + Fields.Values.Count(f => f.Secondary) / 8 : MetadataStride(secondMeta, count, 9 + Fields.Values.Count(f => f.Secondary) / 8);
+        SecondaryMetadataWidth = secondStride;
         if (secondMetaBytes != null && (secondMeta.Length < 16 || secondMeta.UInt32() != 0xfadfadba || secondMeta.Int32(8) != count || secondBytes == null ||
             (count == 0 ? secondMeta.Length != 16 : secondStride < 8 || secondStride > 4096)))
             throw new InvalidDataException("Secondary record metadata does not match the primary table.");
@@ -55,6 +61,23 @@ internal sealed class ProjectNativeTable {
             }
             Records.Add(new ProjectNativeRecord(this, index, data, recordMeta, second, secondFlags));
         }
+    }
+
+    private int MetadataStride(ProjectNativeValue metadata, int count, int schemaWidth) {
+        int payload = metadata.Length - 16;
+        if (payload < 0 || count == 0 && payload != 0) throw new InvalidDataException("Invalid native fixed record count.");
+        if (count == 0) return schemaWidth;
+        // Some Project 2000/2003 files append copies of the last metadata row
+        // without increasing the header count. Those copies do not add entities.
+        if (_profile == ProjectNativeProfile.Mpp9 && payload > (long)count * schemaWidth && payload % schemaWidth == 0) {
+            var last = metadata.Slice(16 + (count - 1) * schemaWidth, schemaWidth);
+            bool duplicate = true;
+            for (int offset = 16 + count * schemaWidth; offset < metadata.Length && duplicate; offset += schemaWidth)
+                for (int i = 0; i < schemaWidth; i++) if (metadata.Byte(offset + i) != last.Byte(i)) { duplicate = false; break; }
+            if (duplicate) return schemaWidth;
+        }
+        if (payload % count != 0) throw new InvalidDataException("Invalid native fixed record count.");
+        return payload / count;
     }
 
     private void ReadMap(ProjectNativeValue map, bool secondary, CancellationToken token) {
@@ -82,17 +105,24 @@ internal sealed class ProjectNativeTable {
         }
     }
 
-    private void ReadVariable(int maxRecords, CancellationToken token) {
+    private void ReadVariable(int maxRecords, CancellationToken token, ProjectNativeProfile? profile = null) {
         var bytes = Stream("VarMeta");
         var meta = new ProjectNativeValue(bytes, 0, bytes.Length);
         var dataBytes = OptionalStream("Var2Data") ?? Array.Empty<byte>();
         var data = new ProjectNativeValue(dataBytes, 0, dataBytes.Length);
-        if (meta.Length < 24 || meta.UInt32() != 0xfadfadba || (meta.Length - 24) % 12 != 0 || meta.Int32(8) != (meta.Length - 24) / 12)
+        int stride = _profile == ProjectNativeProfile.Mpp9 ? 8 : 12;
+        if (meta.Length < 24 || meta.UInt32() != 0xfadfadba || (meta.Length - 24) % stride != 0 || meta.Int32(8) != (meta.Length - 24) / stride)
             throw new InvalidDataException("Unrecognized native variable metadata header.");
-        for (int i = 24; i < meta.Length; i += 12) {
+        var legacyFields = _profile == ProjectNativeProfile.Mpp9 ? Fields.Values.Where(f => f.Source == 4 || f.Source == 6)
+            .ToDictionary(f => (uint)(f.Offset >> 16) & 255, f => f.Id) : null;
+        for (int i = 24; i < meta.Length; i += stride) {
             token.ThrowIfCancellationRequested();
             int uid = meta.Int32(i), offset = meta.Int32(i + 4);
-            uint fieldId = meta.UInt32(i + 8);
+            uint fieldId;
+            if (legacyFields != null) {
+                uint packed = unchecked((uint)uid); uid = (int)(packed & 0x00ffffff);
+                if (!legacyFields.TryGetValue(packed >> 24, out fieldId)) throw new NotSupportedException("The legacy variable field has no storage mapping.");
+            } else fieldId = meta.UInt32(i + 8);
             int length = data.Int32(offset);
             var value = data.Slice(checked(offset + 4), length);
             if (!Variable.TryGetValue(uid, out var fields)) {
@@ -130,13 +160,18 @@ internal sealed class ProjectNativeRecord {
         return metadata.HasValue && (metadata.Value.Byte(8 + field.Position / 8) & (1 << (field.Position % 8))) != 0;
     }
     internal bool? Boolean(uint id) => _table.Fields.TryGetValue(id, out var field) && (field.Source == 18 || field.Source == 19 || field.Source == 22)
-        ? Present(field) : (bool?)null;
+        ? _table.IsLegacy8 ? Present(field) ? (_data.UInt32(field.Offset) & field.Mask) != 0 : (bool?)null : Present(field) : (bool?)null;
     internal int? Integer(uint id) { var value = Value(id); return value.HasValue ? value.Value.Length == 2 ? value.Value.Int16() : value.Value.Int32() : (int?)null; }
     internal string? Text(uint id) => Value(id)?.Unicode();
     internal DateTime? Date(uint id) => Value(id)?.Date();
     internal decimal? Number(uint id) {
         var value = Value(id);
         if (!value.HasValue) return null;
+        if (_table.IsLegacy8 && value.Value.Length == 4 && (_table.Fields[id].Type == 3 || _table.Fields[id].Type == 102)) return value.Value.Int32();
+        if (_table.IsLegacy8 && value.Value.Length == 6) {
+            long integer = value.Value.UInt32() | ((long)value.Value.Int16(4) << 32);
+            return integer;
+        }
         double number = value.Value.Double();
         if (double.IsNaN(number) || double.IsInfinity(number) || number > (double)decimal.MaxValue || number < (double)decimal.MinValue)
             throw new InvalidDataException("Non-finite or out-of-range native numeric value.");

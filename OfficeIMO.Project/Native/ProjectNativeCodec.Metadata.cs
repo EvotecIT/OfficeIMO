@@ -17,9 +17,9 @@ internal static partial class ProjectNativeCodec {
             }
         }
     }
-    private static void ReadCustomAliases(ProjectDocument document, OfficeCompoundFile file, CancellationToken token) {
+    private static void ReadCustomAliases(ProjectDocument document, OfficeCompoundFile file, ProjectNativeProfile profile, CancellationToken token) {
         foreach (var name in new[] { "Task", "Rsc", "Assn" }) {
-            if (!file.Streams.TryGetValue("   114/TBknd" + name + "/Props", out var bytes)) continue;
+            if (!file.Streams.TryGetValue(profile.DataRoot + "/TBknd" + name + "/Props", out var bytes)) continue;
             var properties = ProjectNativeProperties.Read(bytes, token);
             if (!properties.TryGetValue(0x04400001, out var values)) continue;
             int length = checked(values.Int32() + 4), count = values.Int32(8);

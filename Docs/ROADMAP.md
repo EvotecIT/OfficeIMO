@@ -306,10 +306,9 @@ Acceptance: Microsoft Project opens edited and newly created files without repai
 
 ### P06 — Legacy MPP and MPX lifecycle and conversion
 
-- [ ] Add separate MPP12, MPP9, and MPP8 codecs in that order, reusing proved primitives. Qualify read, create, field/structural edit, and native save independently for each adopted profile, including MPT where applicable.
-- [ ] Implement legacy encoding, field/default differences, hidden/summary records, identifiers, and generation-specific calendar/assignment/timephased behavior from producer fixtures.
-- [ ] Implement MPX read/create/edit/write with explicit dialect, locale, quoting, encoding, date, duration, currency, and field mapping. Diagnose features it cannot carry.
-- [ ] Implement modern/legacy/XML/MPX upgrade and downgrade routes through one model, with explicit target generation and pre-write loss assessment. Keep missing legacy-writer evidence visible; reader-only delivery is an interim release, not completion of the native lifecycle.
+- [ ] Broaden the qualified native profiles with additional producer builds, Project 98 external variable-storage layouts, and generation-specific timephased records.
+- [ ] Add legacy-application readback for MPP8/MPT8 and MPX; expand localized MPX field-value vocabularies and additional dialects through named fixtures.
+- [ ] Extend conversion fidelity as native notes, rates, formulas, lookups, and curves gain typed ownership. Preserve explicit pre-write loss reports until independent reopen evidence proves each target mapping.
 
 Acceptance: every claimed generation/operation has independent-producer and reopen evidence. Unsupported profiles remain visible in the matrix. Narrowing native legacy writing requires an explicit scope decision; it cannot disappear during implementation.
 

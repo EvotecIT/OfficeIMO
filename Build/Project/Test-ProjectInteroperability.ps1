@@ -35,6 +35,11 @@ try {
             uid = $task.UniqueID; id = $task.ID; name = $task.Name
             outlineLevel = $task.OutlineLevel; summary = $task.Summary
             durationMinutes = $task.Duration; workMinutes = $task.Work; cost = $task.Cost
+            actualDurationMinutes = $task.ActualDuration; remainingDurationMinutes = $task.RemainingDuration
+            critical = $task.Critical; totalSlackMinutes = $task.TotalSlack
+            percentComplete = $task.PercentComplete; percentWorkComplete = $task.PercentWorkComplete
+            constraintType = [int]$task.ConstraintType; taskType = [int]$task.Type; priority = $task.Priority
+            wbs = [string]$task.WBS
             start = [string]$task.Start; finish = [string]$task.Finish
             predecessors = [string]$task.Predecessors; notes = [string]$task.Notes
             text1 = [string]$task.Text1; baselineCost = $task.BaselineCost

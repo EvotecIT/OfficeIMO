@@ -17,12 +17,14 @@ internal sealed partial class ProjectNativeWriter {
     private readonly Dictionary<string, List<string>> _keys = new Dictionary<string, List<string>>(StringComparer.Ordinal);
     private readonly List<ProjectDiagnostic> _diagnostics = new List<ProjectDiagnostic>();
     private readonly bool _new;
+    private readonly ProjectNativeProfile _profile;
     private readonly bool _structureChanged, _scheduleChanged, _taskGuidsChanged, _resourceGuidsChanged, _calendarGuidsChanged, _calendarBindingsChanged;
 
     private ProjectNativeWriter(ProjectDocument document, ProjectSaveOptions options, CancellationToken token) {
-        _document = document; _options = options; _token = token; _new = document.NativeSource == null;
+        _document = document; _options = options; _token = token; _profile = ProjectNativeProfile.ForFormat(options.Format);
+        _new = document.NativeSource == null || document.NativeInfo!.Profile != _profile;
         _current = ProjectModelSnapshot.Capture(document, token);
-        _original = document.NativeSource?.Snapshot ?? new Dictionary<string, object?>();
+        _original = _new ? new Dictionary<string, object?>() : document.NativeSource!.Snapshot;
         foreach (string key in _current.Keys.Concat(_original.Keys.Where(k => !_current.ContainsKey(k)))) {
             token.ThrowIfCancellationRequested(); string group = Group(key);
             if (!_keys.TryGetValue(group, out var keys)) _keys.Add(group, keys = new List<string>());
@@ -48,7 +50,7 @@ internal sealed partial class ProjectNativeWriter {
                 try { _ = ProjectNativeCreation.Date(document.Settings.StartDate.Value); stagingStart = document.Settings.StartDate.Value; }
                 catch (ArgumentException) { /* WriteProperties reports the unrepresentable model value before output. */ }
             }
-            _file = ProjectNativeCreation.Empty(stagingStart, options.MaxOutputBytes, token);
+            _file = ProjectNativeCreation.Empty(stagingStart, options.MaxOutputBytes, token, _profile);
         }
         else {
             var limits = new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, options.MaxOutputBytes, options.MaxOutputBytes);
@@ -56,7 +58,7 @@ internal sealed partial class ProjectNativeWriter {
                 throw new InvalidDataException("Native source could not be staged: " + error);
             _file = file;
         }
-        _properties = ProjectNativeProperties.Read(_file.Streams["   114/Props"], token);
+        _properties = ProjectNativeProperties.Read(_file.Streams[_profile.Properties], token, _profile == ProjectNativeProfile.Mpp8);
     }
 
     internal static (ProjectReport Report, byte[]? Bytes) Plan(ProjectDocument document, ProjectSaveOptions options, bool serialize, CancellationToken token) {
@@ -75,8 +77,10 @@ internal sealed partial class ProjectNativeWriter {
         ValidateIdentities();
         WriteTasks(); WriteResources(); WriteAssignments(); WriteCalendars(); WriteDependencies(); WriteDefinitions(); WriteProperties();
         foreach (var prior in _document.NativeSource?.UnrepresentedValues ?? Array.Empty<ProjectDiagnostic>()) {
-            if (!_current.ContainsKey(prior.Location)) Handle(prior.Location);
-            else if (!Changed(prior.Location)) AddDiagnostic(prior);
+            bool present = _current.ContainsKey(prior.Location) || _keys.TryGetValue(Group(prior.Location), out var keys) &&
+                keys.Any(k => _current.ContainsKey(k) && (k.StartsWith(prior.Location + "/", StringComparison.Ordinal) || k.StartsWith(prior.Location + "[", StringComparison.Ordinal)));
+            if (!present) Handle(prior.Location);
+            else if (!Changed(prior.Location) && !ChangedTree(prior.Location)) AddDiagnostic(prior);
         }
         foreach (string key in _changes) {
             _token.ThrowIfCancellationRequested();
@@ -88,6 +92,8 @@ internal sealed partial class ProjectNativeWriter {
         if (!_new && StructureChanged) Loss("PROJECT_NATIVE_STRUCTURAL_OPAQUE", "Structural edits retain opaque presentation, calculation, and auxiliary records. References inside those records are not remapped.", "/");
         if (!_new && ScheduleChanged) Loss("PROJECT_NATIVE_STORED_TOTALS", "Mapped schedule edits retain producer work/cost curves and calculated totals. Recalculate and verify them in Project.", "/");
         if (!_new && _document.NativeInfo!.HasSignatureStorage) Loss("PROJECT_NATIVE_SIGNATURE_INVALIDATED", "Changing signed native content invalidates its existing signature; the signature is not renewed.", "/");
+        if (_new && _document.NativeSource != null)
+            Loss("PROJECT_NATIVE_GENERATION_LOSS", "Conversion creates the selected native generation from modeled values. Unmodeled source records, presentation, macros, signatures, and embedded content are omitted.", "/");
         if (_new && _document.Source != null && _document.ReadDiagnostics.Any(d => d.RepresentsLoss || d.Code.Contains("PRESERVED")))
             Loss("PROJECT_XML_EXTENSION_LOSS", "XML extension content has no native representation and is omitted.", "/");
     }
@@ -127,13 +133,26 @@ internal sealed partial class ProjectNativeWriter {
         foreach (string key in Keys(prefix)) if (_original.TryGetValue(key, out var value)) yield return new KeyValuePair<string, object?>(key, value);
     }
     private static string Path(ProjectEntity entity, string kind) => "/" + kind + "[UID=" + entity.Uid + "]";
-    private ProjectNativeTableEditor Editor(string name, uint id, uint uid) => new ProjectNativeTableEditor(_file, _properties, name, id, uid, _options.MaxOutputBytes, _token);
-    private void Removed(ProjectNativeTableEditor editor, string kind, IEnumerable<int> retained) {
+    private IProjectNativeTableEditor Editor(string name, uint id, uint uid) => _profile == ProjectNativeProfile.Mpp8
+        ? new ProjectNativeLegacy8Editor(_file, _properties, name, id, uid, _options.MaxOutputBytes, _token)
+        : new ProjectNativeTableEditor(_file, _properties, name, id, uid, _options.MaxOutputBytes, _token, _profile);
+    private void Identity(IProjectNativeTableEditor editor, int uid, uint id, Guid value) {
+        if (_profile.HasExtendedRecords) editor.Set(uid, id, value.ToByteArray());
+    }
+    private void SortPosition(IProjectNativeTableEditor editor, int uid, uint id, int position) {
+        if (_profile.HasExtendedRecords) editor.Set(uid, id, BitConverter.GetBytes((double)position));
+    }
+    private void Removed(IProjectNativeTableEditor editor, string kind, IEnumerable<int> retained) {
         var keep = new HashSet<int>(retained);
         foreach (int uid in editor.Uids.ToArray()) if (!keep.Contains(uid) && uid != 0) { editor.Delete(uid); HandleTree("/" + kind + "[UID=" + uid + "]"); }
     }
-    private void Field(ProjectNativeTableEditor editor, int uid, string path, string name, uint id, Kind kind = Kind.Integer, decimal scale = 1, uint format = 0, bool force = false) {
-        string key = path + "/" + name; Handle(key);
+    private void Field(IProjectNativeTableEditor editor, int uid, string path, string name, uint id, Kind kind = Kind.Integer, decimal scale = 1, uint format = 0, bool force = false) {
+        string key = path + "/" + name;
+        if (!editor.HasField(id)) {
+            if (!_current.TryGetValue(key, out var absent) || absent == null) Handle(key);
+            return; // The inventory reports non-null values absent from this generation's map.
+        }
+        Handle(key);
         if (!force && !Changed(key)) return;
         _current.TryGetValue(key, out var value);
         if (value == null) {

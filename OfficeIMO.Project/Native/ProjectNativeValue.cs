@@ -43,25 +43,29 @@ internal readonly struct ProjectNativeValue {
 
 /// <summary>Length-prefixed MPP property entries; separate from OLE property sets.</summary>
 internal static class ProjectNativeProperties {
-    internal static Dictionary<uint, ProjectNativeValue> Read(byte[] bytes, CancellationToken token) {
+    internal static Dictionary<uint, ProjectNativeValue> Read(byte[] bytes, CancellationToken token, bool legacyExternal = false) {
         var input = new ProjectNativeValue(bytes, 0, bytes.Length);
         if (bytes.Length < 16) throw new InvalidDataException("Truncated MPP property header.");
         int declaredLength = checked(input.Int32() + 4);
         if (declaredLength < 16 || declaredLength > bytes.Length || input.Int32() != input.Int32(4))
             throw new InvalidDataException("MPP property envelope length is invalid.");
         input = input.Slice(0, declaredLength);
-        int count = input.Int32(12);
+        // The count is a WORD. Older Project producers populate the following
+        // WORD with envelope flags; it is not the high half of a DWORD count.
+        int count = input.UInt16(12);
         if (count < 0 || count > (bytes.Length - 16) / 12) throw new InvalidDataException("Invalid MPP property count.");
         var result = new Dictionary<uint, ProjectNativeValue>();
-        int offset = 16;
+        int offset = 16, externalOffset = declaredLength;
         for (int i = 0; i < count; i++) {
             token.ThrowIfCancellationRequested();
             int length = input.Int32(offset);
             uint key = input.UInt32(offset + 4);
-            var value = input.Slice(checked(offset + 12), length);
+            bool external = legacyExternal && input.Int32(offset + 8) == 0x10000;
+            var value = external ? new ProjectNativeValue(bytes, externalOffset, checked(length + 4)) : input.Slice(checked(offset + 12), length);
             if (result.ContainsKey(key)) throw new InvalidDataException("Duplicate MPP property identifier.");
             result.Add(key, value);
-            offset = checked(offset + 12 + length + (length & 1));
+            if (external) { externalOffset = checked(externalOffset + length + 4); offset = checked(offset + 16); }
+            else offset = checked(offset + 12 + length + (length & 1));
         }
         if (offset != declaredLength) throw new InvalidDataException("MPP property count does not match its envelope.");
         return result;

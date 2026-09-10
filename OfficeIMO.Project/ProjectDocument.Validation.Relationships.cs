@@ -40,8 +40,8 @@ public sealed partial class ProjectDocument {
         foreach (var interval in intervals) {
             token.ThrowIfCancellationRequested();
             if (!interval.From.HasValue || !interval.To.HasValue || interval.From < TimeSpan.Zero || interval.From >= TimeSpan.FromDays(1) ||
-                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1) || interval.From == interval.To)
-                add("PROJECT_WORKING_INTERVAL", "Working intervals need distinct clock times within a day.", location);
+                interval.To < TimeSpan.Zero || interval.To >= TimeSpan.FromDays(1))
+                add("PROJECT_WORKING_INTERVAL", "Working intervals need clock times within a day.", location);
         }
     }
     private void ValidateDependencies(Finding add, CancellationToken token) {

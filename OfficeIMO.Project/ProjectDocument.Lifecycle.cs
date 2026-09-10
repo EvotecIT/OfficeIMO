@@ -167,8 +167,21 @@ public sealed partial class ProjectDocument {
         long revision = Revision; var format = ResolveFormat(options);
         var assessment = AssessFormat(options, format, token, includeNativePlan: false); assessment.ThrowIfErrors();
         if (options.LossPolicy == OfficeConversionLossPolicy.Block) assessment.RequireNoLoss();
-        byte[] bytes; ProjectNativeSource? native = null;
-        if (format != ProjectFileFormat.Xml) {
+        byte[] bytes; ProjectNativeSource? native = null; ProjectMpxSource? mpx = null;
+        if (format == ProjectFileFormat.Mpx4) {
+            var plan = ProjectMpxWriter.Plan(this, WithFormat(options, format), true, token);
+            plan.Report.ThrowIfErrors(); if (options.LossPolicy == OfficeConversionLossPolicy.Block) plan.Report.RequireNoLoss();
+            bytes = plan.Bytes!;
+            if (ProjectMpxWriter.CanRetain(this, options)) mpx = MpxSource;
+            else {
+                var snapshot = ProjectModelSnapshot.Capture(this, token);
+                mpx = new ProjectMpxSource { Bytes = bytes, ModelRevision = revision,
+                    CodePage = (int?)options.MpxEncoding ?? MpxSource?.CodePage ?? 1252, Separator = options.MpxSeparator ?? MpxSource?.Separator ?? ',',
+                    CurrencyPosition = MpxSource?.CurrencyPosition ?? "1", DateFormat = MpxSource?.DateFormat ?? "0", BarDateFormat = MpxSource?.BarDateFormat ?? "0", Comments = MpxSource?.Comments ?? Array.Empty<string[]>(),
+                    Unrepresented = RetainedModelLosses(plan.Report, snapshot)
+                };
+            }
+        } else if (IsNativeFormat(format)) {
             token.ThrowIfCancellationRequested();
             if (CanRetainNative(options, format)) {
                 if (NativeSource!.Bytes.Length > options.MaxOutputBytes) throw new InvalidDataException("Native output exceeds the configured byte limit.");
@@ -179,31 +192,40 @@ public sealed partial class ProjectDocument {
                 bytes = plan.Bytes!;
                 if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, bytes.Length, bytes.Length), token, out var file, out var error) || file == null)
                     throw new InvalidDataException("Prepared native output could not be read: " + error);
-                native = new ProjectNativeSource(bytes, new ProjectNativeInfo(NativeInfo?.ProducerVersion ?? "16,0,0,0", file)) {
-                    Snapshot = ProjectModelSnapshot.Capture(this, token), ModelRevision = revision,
-                    UnrepresentedValues = plan.Report.Diagnostics.Where(d => d.Code == "PROJECT_NATIVE_FIELD_LOSS").ToArray()
+                var preparedProfile = ProjectNativeProfile.Detect(file);
+                var preparedHeader = ProjectNativeProperties.Read(file.Streams[preparedProfile.Header], token);
+                var snapshot = ProjectModelSnapshot.Capture(this, token);
+                native = new ProjectNativeSource(bytes, new ProjectNativeInfo(preparedHeader.TryGetValue(0x35400010, out var producer) ? producer.Unicode() : null, file)) {
+                    Snapshot = snapshot, ModelRevision = revision,
+                    UnrepresentedValues = RetainedModelLosses(plan.Report, snapshot)
                 };
             }
-        } else bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null ? false : (bool?)null), token);
+        } else bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null || MpxSource != null ? false : (bool?)null), token);
         token.ThrowIfCancellationRequested();
         if (Revision != revision) throw new InvalidOperationException("The project changed while serialization was in progress.");
-        return new ProjectSerialization(bytes, format, revision, native);
+        return new ProjectSerialization(bytes, format, revision, native, mpx);
     }
+    private static IReadOnlyList<ProjectDiagnostic> RetainedModelLosses(ProjectReport report, Dictionary<string, object?> snapshot) =>
+        report.Diagnostics.Where(d => d.RepresentsLoss && d.Location != "/" &&
+            (snapshot.ContainsKey(d.Location) || snapshot.Keys.Any(k => k.StartsWith(d.Location + "/", StringComparison.Ordinal) || k.StartsWith(d.Location + "[", StringComparison.Ordinal)))).ToArray();
     private void AcceptSaved(ProjectSerialization prepared) {
         LastSavedBytes = prepared.Bytes; _savedRevision = prepared.Revision; _associatedFormat = prepared.Format;
         if (prepared.Native != null) NativeSource = prepared.Native;
+        if (prepared.Mpx != null) MpxSource = prepared.Mpx;
     }
     private sealed class ProjectSerialization {
         internal readonly byte[] Bytes;
         internal readonly ProjectFileFormat Format;
         internal readonly long Revision;
         internal readonly ProjectNativeSource? Native;
-        internal ProjectSerialization(byte[] bytes, ProjectFileFormat format, long revision, ProjectNativeSource? native) {
-            Bytes = bytes; Format = format; Revision = revision; Native = native;
+        internal readonly ProjectMpxSource? Mpx;
+        internal ProjectSerialization(byte[] bytes, ProjectFileFormat format, long revision, ProjectNativeSource? native, ProjectMpxSource? mpx) {
+            Bytes = bytes; Format = format; Revision = revision; Native = native; Mpx = mpx;
         }
     }
     private static ProjectDocument ReadBytes(byte[] bytes, ProjectLoadOptions options, CancellationToken token) =>
-        ProjectNativeCodec.IsCompound(bytes) ? ProjectNativeCodec.Read(bytes, options, token) : ProjectXmlCodec.Read(bytes, options, token);
+        ProjectNativeCodec.IsCompound(bytes) ? ProjectNativeCodec.Read(bytes, options, token) :
+        ProjectMpxRecords.IsMpx(bytes) ? ProjectMpxCodec.Read(bytes, options, token) : ProjectXmlCodec.Read(bytes, options, token);
     internal static ProjectDocument CreateForRead() => new ProjectDocument { Loading = true };
     internal void FinishRead(ProjectLoadOptions options) {
         OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "Project document");
@@ -215,7 +237,7 @@ public sealed partial class ProjectDocument {
     public void Dispose() {
         if (_disposed) return;
         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && IsModified) Save();
-        Source = null; NativeSource = null; LastSavedBytes = null;
+        Source = null; NativeSource = null; MpxSource = null; LastSavedBytes = null;
         _disposed = true;
     }
 }

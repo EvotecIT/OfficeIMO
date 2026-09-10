@@ -4,7 +4,7 @@ using System.Xml;
 namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectNativeWriter {
-    private void WriteCustomFields(ProjectNativeTableEditor editor, int uid, string parent, ProjectCollection<ProjectCustomFieldValue> values, bool task) {
+    private void WriteCustomFields(IProjectNativeTableEditor editor, int uid, string parent, ProjectCollection<ProjectCustomFieldValue> values, bool task) {
         string prefix = parent + "/Custom";
         if (!ChangedTree(prefix)) return;
         Handle(prefix + "/Count");

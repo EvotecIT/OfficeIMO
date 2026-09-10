@@ -8,10 +8,14 @@ internal static class NativeMappedRecords {
         var bytes = File.ReadAllBytes(input);
         if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(4096, 2048, 32 * 1024 * 1024, 64 * 1024 * 1024), out var file, out var error) || file == null)
             throw new InvalidDataException(error);
-        var properties = ProjectNativeProperties.Read(file.Streams["   114/Props"], default);
+        var profile = ProjectNativeProfile.Detect(file);
+        var properties = ProjectNativeProperties.Read(file.Streams[profile.Properties], default, profile == ProjectNativeProfile.Mpp8);
         var result = new Dictionary<string, object>();
         foreach (var spec in new[] { ("Task", 0x14u, 0x0b400056u), ("Rsc", 0x15u, 0x0c40001bu), ("Cal", 0x16u, 0x0d400009u), ("Assn", 0x17u, 0x0f400000u), ("Cons", 0x18u, 0x0e400000u) }) {
-            var table = new ProjectNativeTable(file, "TBknd" + spec.Item1, properties[0x03000000u | spec.Item2], properties[0x00020000u | spec.Item2], 300000, default);
+            var table = profile == ProjectNativeProfile.Mpp8
+                ? new ProjectNativeTable(file, "TBknd" + spec.Item1, properties[0x02000000u | (spec.Item2 - 0x13)], 300000, default)
+                : new ProjectNativeTable(file, "TBknd" + spec.Item1, properties[0x03000000u | spec.Item2],
+                properties.TryGetValue(0x00020000u | spec.Item2, out var second) ? second : (ProjectNativeValue?)null, 300000, default, profile);
             var records = new List<object>();
             foreach (var record in table.Records) {
                 record.Uid = record.Integer(spec.Item3) ?? throw new InvalidDataException("Missing UID field: " + spec.Item1);

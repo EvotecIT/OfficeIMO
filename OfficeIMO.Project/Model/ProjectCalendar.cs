@@ -54,11 +54,10 @@ public sealed partial class ProjectCalendar : ProjectNamedEntity {
 
 /// <summary>A working interval in a day's local clock, without host-timezone conversion.</summary>
 public readonly struct ProjectWorkingTime {
-    /// <summary>Creates an interval. An end earlier than the start denotes an overnight interval.</summary>
+    /// <summary>Creates an interval. An end earlier than the start denotes an overnight interval; equal clocks denote a full 24 hours.</summary>
     public ProjectWorkingTime(TimeSpan from, TimeSpan to) {
         if (from < TimeSpan.Zero || from >= TimeSpan.FromDays(1)) throw new ArgumentOutOfRangeException(nameof(from));
         if (to < TimeSpan.Zero || to >= TimeSpan.FromDays(1)) throw new ArgumentOutOfRangeException(nameof(to));
-        if (from == to) throw new ArgumentException("A working interval must have nonzero duration.");
         From = from; To = to;
     }
     /// <summary>Start on the local clock.</summary>

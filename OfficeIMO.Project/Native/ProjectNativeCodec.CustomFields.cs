@@ -5,7 +5,7 @@ namespace OfficeIMO.Project;
 internal static partial class ProjectNativeCodec {
     private static void ReadCustomValues(ProjectDocument document, ProjectNativeRecord record, ProjectCollection<ProjectCustomFieldValue> values, bool task, CancellationToken token) {
         uint prefix = task ? 0x0b400000u : 0x0c400000u;
-        void Field(uint relative, string kind, int number) {
+        void Field(uint relative, string kind, int number, string name) {
             token.ThrowIfCancellationRequested();
             uint id = prefix | relative;
             string fieldId = id.ToString(CultureInfo.InvariantCulture);
@@ -27,8 +27,8 @@ internal static partial class ProjectNativeCodec {
             if (text == null) return;
             var value = values.Add(); value.FieldId = fieldId; value.Value = text; value.DurationFormat = durationFormat;
             var definition = document.CustomFields.FirstOrDefault(f => f.FieldId == fieldId);
-            if (definition != null) definition.FieldName = kind + number.ToString(CultureInfo.InvariantCulture);
+            if (definition != null) definition.FieldName = name;
         }
-        foreach (var field in task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields) Field(field.Relative, field.Kind, field.Number);
+        foreach (var field in task ? ProjectNativeCustomField.TaskFields : ProjectNativeCustomField.ResourceFields) Field(field.Relative, field.Kind, field.Number, field.Name);
     }
 }

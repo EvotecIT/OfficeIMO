@@ -12,6 +12,7 @@ powershell.exe -NoProfile -File Build/Project/New-ProjectFixtures.ps1 -OutputPat
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string] $OutputPath,
+    [ValidateSet('MPP14', 'MPP12')][string] $NativeFormat = 'MPP14',
     [ValidateSet('empty', 'delivery', 'calendars', 'actuals', 'relationships', 'resources', 'custom-fields', 'constraints', 'backward', 'work-cost', 'rich-fields', 'working-weeks', 'read-protected', 'write-reserved')]
     [string[]] $ScenarioNames = @('empty', 'delivery', 'calendars', 'actuals', 'relationships', 'resources', 'custom-fields')
 )
@@ -23,6 +24,8 @@ if (Test-Path -LiteralPath $destination) {
 }
 [void][IO.Directory]::CreateDirectory($destination)
 $missing = [Type]::Missing
+$nativeType = if ($NativeFormat -eq 'MPP12') { 23 } else { 0 }
+$nativeIdentifier = if ($NativeFormat -eq 'MPP12') { 'MSProject.mpp.12' } else { 'MSProject.mpp' }
 $app = New-Object -ComObject MSProject.Application
 try {
     $app.Visible = $false
@@ -193,9 +196,9 @@ try {
             # Public synthetic test credential, not a user/project secret.
             $readPassword = if ($scenario -eq 'read-protected') { 'ProjectTest1' } else { '' }
             $writePassword = if ($scenario -eq 'write-reserved') { 'ProjectTest1' } else { '' }
-            [void]$app.FileSaveAs($native, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.mpp', $missing, $readPassword, $writePassword)
+            [void]$app.FileSaveAs($native, $nativeType, $missing, $missing, $missing, $missing, $missing, $missing, $missing, $nativeIdentifier, $missing, $readPassword, $writePassword)
         } else {
-            [void]$app.FileSaveAs($native, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.mpp')
+            [void]$app.FileSaveAs($native, $nativeType, $missing, $missing, $missing, $missing, $missing, $missing, $missing, $nativeIdentifier)
             [void]$app.FileSaveAs($xml, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.xml')
         }
         [void]$app.FileCloseEx(0)
@@ -208,7 +211,7 @@ try {
         locale = [Globalization.CultureInfo]::CurrentCulture.Name
         provenance = 'Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.'
         redistribution = 'OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.'
-        formatFamily = 'MPP14 and Project XML SaveVersion 14'
+        formatFamily = "$NativeFormat and Project XML SaveVersion 14"
         files = $files
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $destination 'manifest.json') -Encoding UTF8
     $files

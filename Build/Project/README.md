@@ -29,8 +29,13 @@ Other console operations:
 | `schema` | input XML, local XSD | Validate offline; report whether the documented application namespace alias was applied |
 | `cancellation` | 100,000-task input XML, new output directory | Request cancellation during load/save, check the five-second response budget and unchanged file destination |
 | `native-probe` | paired MPP path, new output directory | Bounded compound/record inspection, stream-preserving rewrite, fixed-width name edit, and minimal new-container experiment |
-| `native-corpus` | paired fixture directory, new output directory | Compare decoded native values with XML; retain source omissions, cache differences, and unqualified fields as separate observations |
-| `native-author-proof` | output MPP path | Author a native project without a seed, with hierarchy, dependency, resource assignment, calendars, baseline, and custom alias/value |
+| `native-corpus` | paired fixture path/directory, new output directory, optional file pattern | Compare native/MPX fields and effective calendars with independent XML; retain defaults, calculated values, cache differences, and unqualified fields as separate observations |
+| `native-author-proof` | output MPP path, optional `Mpp8`, `Mpp9`, `Mpp12`, or `Mpp14` | Author a native project without a seed, with hierarchy, dependency, resource assignment, calendars, baseline, and custom alias/value |
+| `native-lifecycle-proof` | source MPP path, new output directory | Exercise field growth, add/delete/reparent, calendar edits, templates, and template instantiation while retaining the source generation |
+| `mpx-lifecycle-proof` | `new` or source MPX path, new output directory | Exercise unchanged save, field growth, structural/calendar edits, notes, and clearing values |
+| `mpx-encoding-proof` | new output directory | Write representative Windows-1252, DOS 437/850, and Macintosh Roman fixtures |
+| `conversion-matrix` | new output directory | Assess, save, and reopen all 100 format pairs; verify core identities and mapped assignment values; record losses |
+| `native-schema` | producer MPP path, new output directory | Reproduce generation-specific storage definitions without copying document records, strings, process pointers, or template payloads |
 | `native-edit-proof` | producer `delivery.mpp` path, new output directory | Exercise field growth, structural changes, identities, calendar bindings, custom scalars, all baseline slots, templates, and XML conversion through the public API |
 | `schedule-corpus` | paired fixture directory, new output directory | Compare native/XML calculations with producer dates, float, and critical flags |
 | `schedule-scale` | task count, `dense` or `cancel` | Build a graph with up to four predecessors per task; verify its finish independently or exercise cooperative cancellation |
@@ -41,6 +46,12 @@ Other console operations:
 | `scale-read-edit-save` | input XML, task count, shape | Exercise lifecycle and independently verify output records |
 
 The native probe requires the paired XML beside the MPP for record comparison. Its minimal-container experiment is intentionally incomplete: conventional stream names alone are not a valid MPP document. Use `native-author-proof` and `native-edit-proof` for the public writer, then run their outputs through the application oracle with `-NativeRoundTrip`. The oracle's re-export XML exposes additional values for independent checks of baselines, custom fields, and calendar references. `New-ProjectFixtures.ps1 -ScenarioNames` also supports constraints, backward schedules, work/cost rules, local custom fields/all baseline slots, dated work weeks, and protected-file scenarios.
+
+Use `New-ProjectFixtures.ps1 -NativeFormat MPP12` to create the tested Project 2007 export from a modern installed application. The normal output uses MPP14. `-NativeRoundTrip` saves in the installed application's default native format; use the recorded input/output generation when interpreting a legacy import check.
+
+The optional [independent verifier](../../OfficeIMO.Project.IndependentVerification/README.md) uses MPXJ only as an external reader/writer oracle. It is outside the normal solution and runtime package. [Historical fixture provenance](historical-fixtures.json) records immutable source URLs, hashes, and the upstream repository license. Those third-party binaries are not redistributed here. Download only fixtures needed for a selected check into a separate verification directory and verify their SHA-256 values.
+
+Independent-reader acceptance, mapped-field comparison, and Microsoft Project readback are separate checks. The matrix's core identity checks alone do not establish calendar, custom-field, or application fidelity. Run the independent export and `native-corpus` comparison, then the application oracle on formats that the installed application supports. Calendar comparisons include ordinary weeks and dated exceptions; observations distinguish stored values from independently derived defaults, WBS, remaining duration, and critical flags.
 
 ## Offline schema
 

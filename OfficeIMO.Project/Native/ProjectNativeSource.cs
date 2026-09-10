@@ -7,8 +7,9 @@ namespace OfficeIMO.Project;
 public sealed class ProjectNativeInfo {
     internal ProjectNativeInfo(string? producer, OfficeCompoundFile compound) {
         ProducerVersion = producer;
+        Profile = ProjectNativeProfile.Detect(compound);
         IsTemplate = compound.Streams.TryGetValue("\u0001CompObj", out var identifier)
-            && OfficeOleCompoundObjectReader.ClipboardFormat(identifier) == "MSProject.MPT14";
+            && OfficeOleCompoundObjectReader.ClipboardFormat(identifier) == "MSProject.MPT" + Profile.Version;
         Streams = new ReadOnlyCollection<ProjectNativeStreamInfo>(compound.Streams.OrderBy(s => s.Key, StringComparer.Ordinal)
             .Select(s => new ProjectNativeStreamInfo(s.Key, s.Value.Length)).ToArray());
         HasMacroStorage = compound.Entries.Any(e => e.Name.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.Equals("_VBA_PROJECT", StringComparison.OrdinalIgnoreCase));
@@ -18,7 +19,8 @@ public sealed class ProjectNativeInfo {
     /// <summary>The producer version recorded in Props14, when available.</summary>
     public string? ProducerVersion { get; }
     /// <summary>Detected native generation.</summary>
-    public string Generation => "MPP14";
+    public string Generation => Profile.Generation;
+    internal ProjectNativeProfile Profile { get; }
     /// <summary>True when the native clipboard-format identifier declares an MPT14 document template.</summary>
     public bool IsTemplate { get; }
     /// <summary>Original stream paths and lengths, without exposing mutable bytes.</summary>

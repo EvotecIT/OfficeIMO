@@ -4,10 +4,11 @@ namespace OfficeIMO.Project;
 internal sealed class ProjectNativeCustomField {
     internal readonly uint Id, Relative, DurationFormat;
     internal readonly string Kind;
+    private readonly string _nameKind;
     internal readonly int Number;
-    internal string Name => Kind + Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    private ProjectNativeCustomField(bool task, uint relative, string kind, int number) {
-        Relative = relative; Id = (task ? 0x0b400000u : 0x0c400000u) | relative; Kind = kind; Number = number;
+    internal string Name => _nameKind + Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private ProjectNativeCustomField(bool task, uint relative, string kind, int number, string? nameKind = null) {
+        Relative = relative; Id = (task ? 0x0b400000u : 0x0c400000u) | relative; Kind = kind; Number = number; _nameKind = nameKind ?? kind;
         DurationFormat = task && kind == "Duration" ? 0x0b400000u | (number <= 3 ? 0xb7u + (uint)number - 1 : 0x151u + (uint)number - 4) : 0;
     }
     internal static readonly IReadOnlyList<ProjectNativeCustomField> TaskFields = Build(true), ResourceFields = Build(false);
@@ -26,6 +27,10 @@ internal sealed class ProjectNativeCustomField {
             Field((task ? 0x109u : 0xadu) + (uint)number - 1, "Date", number);
             Field(number <= 3 ? (task ? 0x6au : 0x7bu) + (uint)number - 1 : (task ? 0x102u : 0xa6u) + (uint)number - 4, "Cost", number);
             Field(number <= 3 ? (task ? 0x67u : 0x75u) + (uint)number - 1 : (task ? 0x113u : 0xb7u) + (uint)number - 4, "Duration", number);
+        }
+        if (task) for (int number = 1; number <= 5; number++) {
+            fields.Add(new ProjectNativeCustomField(true, 0x34u + (uint)(number - 1) * 3, "Date", number, "Start"));
+            fields.Add(new ProjectNativeCustomField(true, 0x35u + (uint)(number - 1) * 3, "Date", number, "Finish"));
         }
         return fields;
     }

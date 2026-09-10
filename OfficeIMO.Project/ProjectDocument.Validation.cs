@@ -21,7 +21,7 @@ public sealed partial class ProjectDocument {
             Add("PROJECT_CURRENCY_DIGITS", "Currency precision must be between zero and ten.", "/Project/CurrencyDigits");
         if (Settings.CurrencyCode != null && Settings.CurrencyCode.Length != 3)
             Add("PROJECT_CURRENCY_CODE", "A currency code must contain three characters.", "/Project/CurrencyCode");
-        if (Source == null && Settings.CurrencyCode == null)
+        if (Source == null && NativeSource == null && MpxSource == null && Settings.CurrencyCode == null)
             Add("PROJECT_CURRENCY_CODE", "New MSPDI documents require a currency code.", "/Project/CurrencyCode");
         CheckDate(Settings.StartDate, "/Project/StartDate", Add);
         CheckDate(Settings.FinishDate, "/Project/FinishDate", Add);

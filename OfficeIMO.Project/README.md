@@ -1,6 +1,6 @@
 # OfficeIMO.Project
 
-OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI) and a qualified modern MPP14/MPT14 profile, and calculates task schedules through a typed document model. The normal and fluent APIs use the same objects. File operations and calculations run without Microsoft Project, COM, a proprietary seed file, or a network connection.
+OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI), MPP/MPT generations 8, 9, 12, and 14, and MPX 4 through the [qualified profiles](SUPPORT.md). It calculates task schedules through the same typed document model used by the normal and fluent APIs. File operations and calculations run without Microsoft Project, COM, a proprietary seed file, or a network connection.
 
 Load and save retain stored schedule values. Call `CalculateSchedule` to inspect calculated dates and float, and `ApplySchedule` or `Recalculate` to update task dates explicitly. Work, cost, actuals, and timephased values remain independently stored. Microsoft Project may calculate those values when it opens an authored file.
 
@@ -111,7 +111,7 @@ Calculation is non-mutating and its result belongs to one document revision. App
 
 Calendar methods `AddWorkingMinutes`, `WorkingMinutesBetween`, and `GetWorkingIntervals` also work independently of the scheduler. Calendar searches have explicit day limits and cancellation support. `ProjectWorkEquation` exposes uniform work/duration/units and rate equations. `AnalyzeAssignments` reports stored assignment aggregates, actual/remaining inconsistencies, cached resource-total differences, and estimates where uniform rates apply. It never overwrites stored costs or actuals, applies dated rate tables, or levels resources.
 
-## Create and edit modern native files
+## Create and edit native files
 
 ```csharp
 using var native = ProjectDocument.Load("delivery.mpp");
@@ -121,7 +121,7 @@ foreach (var task in native.AllTasks)
 native.Save("delivery-copy.mpp");
 ```
 
-The native codec supports the tested MPP14 records produced by Microsoft Project 2024. Unchanged saves retain the entire input file exactly. Mapped field edits update source records and retain other streams. Structural changes and schedule edits carry explicit warnings about opaque references, curves, and stored totals; review `AssessSave` and select an allow-loss policy only when those limitations are acceptable. Editing an unsupported native field remains an error even with allow-loss selected.
+The native codecs use separate generation profiles for Project 98 (MPP8), Project 2000–2003 (MPP9), Project 2007 (MPP12), and modern MPP14. Unchanged saves retain the entire input file exactly. Mapped field edits update source records and retain other streams. Structural changes and schedule edits carry explicit warnings about opaque references, curves, and stored totals; review `AssessSave` and select an allow-loss policy only when those limitations are acceptable. Editing an unsupported native field remains an error even with allow-loss selected.
 
 New native documents use the same model. Set a project start and base calendar, and give each assigned work resource its own derived calendar. Save to `.mpp`, or select `ProjectFileFormat.Mpp14` for a stream:
 
@@ -147,12 +147,45 @@ Native authoring covers the scalar and structural profile in [the support matrix
 
 Use `Save("delivery.mpt")` to write a document template and `ProjectDocument.CreateFromTemplate("delivery.mpt")` to create an editable, unassociated document. The template's objects, identities, and stored schedule remain intact. An explicit destination is required for the new project. `Global.mpt` is an application-wide store and is rejected by path-based operations.
 
-File extensions select XML, MPP14, or MPT14 output. `ProjectSaveOptions.Format` selects stream output and must agree with a file destination's extension. XML-to-native conversion uses the new-document writer. Native-to-XML conversion, including `ToXml`, reports omitted presentation records, curves/rates, custom metadata, and detected notes, calendar metadata, macros, embedded content, or signatures. It requires explicit loss permission. Review the report for the intended format with `AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml })` before converting.
+File extensions select XML, MPX, project, or template output. A loaded native document retains its generation when saved to `.mpp` or `.mpt`; a new document uses generation 14. Set `ProjectSaveOptions.Format` to choose another generation or a stream format. Project formats require `.mpp`, template formats require `.mpt`, and the text formats require their matching extensions.
+
+```csharp
+var downgrade = new ProjectSaveOptions {
+    Format = ProjectFileFormat.Mpp9,
+    LossPolicy = OfficeConversionLossPolicy.Allow
+};
+var assessment = project.AssessSave("delivery-2003.mpp", downgrade);
+assessment.ThrowIfErrors();
+foreach (var diagnostic in assessment.Diagnostics)
+    Console.WriteLine(diagnostic.Message);
+project.Save("delivery-2003.mpp", downgrade);
+```
+
+Changing generations creates target records from the model and reports omitted source content. Older generations cannot represent every modern field, calendar structure, or resource type. XML-to-native conversion uses the same new-document writer. Native-to-XML conversion, including `ToXml`, reports omitted presentation records, curves/rates, custom metadata, and detected notes, calendar metadata, macros, embedded content, or signatures. It requires explicit loss permission. Review the report for the intended format with `AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml })` before converting.
 
 Native curves, enterprise fields, formulas, lookups, and presentation records remain opaque. A native schedule calculation is a projection of decoded model values and reports that limitation. Read-password and write-reservation fixtures are rejected explicitly. Macro, signature, and embedded-content inventory reports conventional names without executing or verifying their content.
 
+## Read and write MPX
+
+```csharp
+using var exchange = ProjectDocument.Load("delivery.mpx");
+exchange.AllTasks.First(task => task.Uid > 0).Notes = "First line\nSecond line";
+var options = new ProjectSaveOptions {
+    Format = ProjectFileFormat.Mpx4,
+    MpxEncoding = ProjectMpxEncoding.Windows1252,
+    MpxSeparator = ';',
+    LossPolicy = OfficeConversionLossPolicy.Allow
+};
+exchange.AssessSave("delivery-edited.mpx", options).ThrowIfErrors();
+exchange.Save("delivery-edited.mpx", options);
+```
+
+MPX 4.0/4.1 input supports English field values, numeric field tables, declared numeric/date conventions, quoted fields, multiline notes, and ANSI Windows-1252, DOS 437/850, or Macintosh Roman. New output uses MPX 4.0 and writes explicit date/time values. Unchanged output retains the original bytes; edited output uses a canonical record layout. Unsupported fields and records remain in the original bytes and require explicit loss permission before a rewrite omits them. Encodings never silently replace unsupported characters.
+
+MPX carries currency formatting rather than a currency identity. Set `Settings.CurrencyCode` explicitly before converting an MPX input without that identity to XML. Conversion does not infer a currency from `$` or another display symbol. Calendar labels, additional baseline slots, unsupported custom fields, and features outside the MPX profile appear in the pre-write report. See [the MPX matrix](SUPPORT.md#mpx-exchange) for limits.
+
 ## Coverage and limits
 
-See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Legacy MPP, MPX, rendering, and online service integration are unsupported.
+See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Rendering and online service integration are unsupported.
 
 Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.

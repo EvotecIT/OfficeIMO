@@ -46,16 +46,7 @@ internal static class ProjectXmlValue {
     internal static ProjectUnits ParseUnits(string value) => ProjectUnits.Fraction(ParseNumber(value));
     internal static TimeSpan MinutesToSpan(decimal minutes) => TimeSpan.FromTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero)));
 
-    internal static decimal MinutesPerUnit(ProjectDurationUnit unit, bool elapsed, ProjectDocument document) {
-        switch (unit) {
-            case ProjectDurationUnit.Minute: return 1;
-            case ProjectDurationUnit.Hour: return 60;
-            case ProjectDurationUnit.Day: return elapsed ? 1440 : document.Settings.MinutesPerDay ?? 480;
-            case ProjectDurationUnit.Week: return elapsed ? 10080 : document.Settings.MinutesPerWeek ?? 2400;
-            case ProjectDurationUnit.Month: return elapsed ? 43200 : checked((document.Settings.MinutesPerDay ?? 480) * (document.Settings.DaysPerMonth ?? 20));
-            default: throw new InvalidDataException("Unknown duration unit.");
-        }
-    }
+    internal static decimal MinutesPerUnit(ProjectDurationUnit unit, bool elapsed, ProjectDocument document) => ProjectTimeUnits.MinutesPerUnit(unit, elapsed, document.Settings);
     internal static string? Duration(ProjectDuration? duration, ProjectDocument document) => duration.HasValue
         ? Span(MinutesToSpan(checked(duration.Value.Value * MinutesPerUnit(duration.Value.Unit, duration.Value.IsElapsed, document)))) : null;
     internal static int DurationFormat(ProjectDuration duration) => 3 + (int)duration.Unit * 2 + (duration.IsElapsed ? 1 : 0) + (duration.IsEstimated ? 32 : 0);

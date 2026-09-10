@@ -15,8 +15,19 @@ internal static partial class ProjectNativeCodec {
             if (document.CalendarIndex.ContainsKey(calendar.Uid)) throw new InvalidDataException("Duplicate native calendar UID.");
             document.CalendarIndex.Add(calendar.Uid, calendar); document.Calendars.Items.Add(calendar); bases.Add(calendar.Uid, parent);
             var pattern = record.Value(0x0d400008);
-            if (parent == 0 && properties.TryGetValue(0x02401388, out var defaults)) ReadCalendarPattern(calendar, defaults, token);
+            if (parent <= 0 && properties.TryGetValue(0x02401388, out var defaults)) {
+                if (table.IsLegacy8) ReadCalendarPattern9(calendar, defaults, token);
+                else ReadCalendarPattern(calendar, defaults, token);
+            }
             if (pattern.HasValue) ReadCalendarPattern(calendar, pattern.Value, token);
+            else if (table.IsLegacy8 && parent <= 0 && !properties.ContainsKey(0x02401388)) {
+                if (calendar.Name != "Standard") throw new NotSupportedException("The Project 98 base calendar depends on an unavailable global calendar: " + calendar.Name);
+                for (int day = 0; day < 7; day++) calendar.SetWorkingDay((DayOfWeek)day,
+                    day == 0 || day == 6 ? Array.Empty<ProjectWorkingTime>() : new[] {
+                        new ProjectWorkingTime(TimeSpan.FromHours(8), TimeSpan.FromHours(12)),
+                        new ProjectWorkingTime(TimeSpan.FromHours(13), TimeSpan.FromHours(17)) });
+                Warn(document, "PROJECT_NATIVE_IMPLICIT_STANDARD_CALENDAR", "The Project 98 Standard calendar omits its built-in weekly pattern. The qualified Monday-Friday 08:00-12:00 and 13:00-17:00 default is applied.", "/Calendar[UID=" + calendar.Uid + "]");
+            }
         }
         foreach (var calendar in document.Calendars) {
             token.ThrowIfCancellationRequested();
@@ -34,6 +45,7 @@ internal static partial class ProjectNativeCodec {
         }
     }
     private static void ReadCalendarPattern(ProjectCalendar calendar, ProjectNativeValue pattern, CancellationToken token) {
+        if (calendar.Document.NativeInfo!.Profile.Version <= 9) { ReadCalendarPattern9(calendar, pattern, token, calendar.Document.NativeInfo.Profile.Version == 8); return; }
         if (pattern.Length < 420) throw new InvalidDataException("Truncated native calendar week.");
         for (int day = 0; day < 7; day++) {
             token.ThrowIfCancellationRequested();
@@ -84,14 +96,36 @@ internal static partial class ProjectNativeCodec {
     }
     private static ProjectWorkingTime[] ReadWorkingTimes(ProjectNativeValue day) {
         int count = day.UInt16(2);
-        if (count > 5) throw new InvalidDataException("Native calendar shift count exceeds five.");
+        int maximum = day.Length == 40 ? 3 : 5, durationOffset = day.Length == 40 ? 16 : 20;
+        if (count > maximum) throw new InvalidDataException("Native calendar shift count exceeds the generation's capacity.");
         var times = new ProjectWorkingTime[count];
         for (int i = 0; i < count; i++) {
-            int from = day.UInt16(8 + i * 2), duration = day.Int32(20 + i * 4);
+            int from = day.UInt16(8 + i * 2), duration = day.Int32(durationOffset + i * 4);
             if (from >= 14400 || duration <= 0 || duration > 14400) throw new InvalidDataException("Native working interval is outside the clock range.");
             int finish = (from + duration) % 14400;
             times[i] = new ProjectWorkingTime(TimeSpan.FromTicks(from * (TimeSpan.TicksPerMinute / 10)), TimeSpan.FromTicks(finish * (TimeSpan.TicksPerMinute / 10)));
         }
         return times;
+    }
+
+    private static void ReadCalendarPattern9(ProjectCalendar calendar, ProjectNativeValue pattern, CancellationToken token, bool legacy8 = false) {
+        int dayWidth = legacy8 ? 40 : 60, weekWidth = 4 + 7 * dayWidth, exceptionWidth = dayWidth + 4;
+        if (pattern.Length < weekWidth) throw new InvalidDataException("Truncated legacy calendar week.");
+        int count = pattern.UInt16();
+        if (pattern.Length != weekWidth + count * exceptionWidth) throw new InvalidDataException("Legacy calendar exception records do not match their count.");
+        for (int day = 0; day < 7; day++) {
+            token.ThrowIfCancellationRequested(); var data = pattern.Slice(4 + day * dayWidth, dayWidth);
+            if (data.UInt16() == 1) continue;
+            if (data.UInt16() != 0) throw new NotSupportedException("Unqualified MPP9 working-day flags.");
+            calendar.SetWorkingDay((DayOfWeek)day, ReadWorkingTimes(data));
+        }
+        for (int index = 0; index < count; index++) {
+            token.ThrowIfCancellationRequested(); int offset = weekWidth + index * exceptionWidth;
+            var item = calendar.Exceptions.Add();
+            item.FromDate = new DateTime(1983, 12, 31).AddDays(pattern.UInt16(offset));
+            item.ToDate = new DateTime(1983, 12, 31).AddDays(pattern.UInt16(offset + 2) + 1).AddMinutes(-1);
+            var times = ReadWorkingTimes(pattern.Slice(offset + 4, dayWidth)); item.IsWorking = times.Length != 0;
+            foreach (var time in times) { var interval = item.WorkingTimes.Add(); interval.From = time.From; interval.To = time.To; }
+        }
     }
 }

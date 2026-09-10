@@ -1,6 +1,13 @@
 using OfficeIMO.Project;
+if (args.Length == 3 && args[0] == "mpx-lifecycle-proof") return MpxLifecycleProof.Run(args[1], args[2]);
+if (args.Length == 2 && args[0] == "mpx-encoding-proof") return MpxLifecycleProof.Encodings(args[1]);
+if (args.Length == 2 && args[0] == "conversion-matrix") return ProjectConversionProof.Run(args[1]);
+if (args.Length == 3 && args[0] == "native-lifecycle-proof") return NativeLifecycleProof.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "native-schema") return NativeSchemaExport.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "native-edit-proof") return NativeEditProof.Run(args[1], args[2]);
 if (args.Length == 2 && args[0] == "native-author-proof") return NativeWriterProof.Create(args[1]);
+if (args.Length == 3 && args[0] == "native-author-proof") return NativeWriterProof.Create(args[1], Enum.Parse<ProjectFileFormat>(args[2]));
+if (args.Length == 3 && args[0] == "native-minimal-proof") return NativeWriterProof.Create(args[1], Enum.Parse<ProjectFileFormat>(args[2]), true);
 if (args.Length == 3 && args[0] == "schedule-scale") return ScheduleScale.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), args[2]);
 if (args.Length == 3 && args[0] == "schedule-edit") return ScheduleReadback.Create(args[1], args[2]);
 if (args.Length == 3 && args[0] == "schedule-readback") return ScheduleReadback.Verify(args[1], args[2]);
@@ -8,6 +15,7 @@ if (args.Length == 3 && args[0] == "schedule-corpus") return ScheduleCorpus.Run(
 if (args.Length == 3 && args[0] == "native-layout") return NativeLayoutDump.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "native-records") return NativeMappedRecords.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "native-corpus") return NativeCorpus.Run(args[1], args[2]);
+if (args.Length == 4 && args[0] == "native-corpus") return NativeCorpus.Run(args[1], args[2], args[3]);
 if (args.Length == 3 && args[0] == "schema") return SchemaValidation.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "edit-cases") return EditCases.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "cancellation") return CancellationProof.Run(args[1], args[2]);

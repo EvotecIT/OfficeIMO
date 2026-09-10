@@ -9,8 +9,8 @@ internal sealed partial class ProjectNativeWriter {
             if (!_document.TaskIndex.ContainsKey(0)) {
                 editor.Add(0); editor.Integer(0, 0x0b400056, 0); editor.Integer(0, 0x0b400017, 0); editor.Integer(0, 0x0b4000f9, 0);
                 editor.Set(0, 0x0b40000e, Text(_document.Name ?? "Project")); editor.Set(0, 0x0b40005c, new byte[] { 1 });
-                editor.Set(0, 0x0b400477, NativeGuid(0, 1).ToByteArray());
-                editor.Set(0, 0x0b400479, BitConverter.GetBytes(1d));
+                Identity(editor, 0, 0x0b400477, NativeGuid(0, 1));
+                SortPosition(editor, 0, 0x0b400479, 1);
             }
         }
         Removed(editor, "Task", _document.TaskIndex.Keys);
@@ -19,9 +19,11 @@ internal sealed partial class ProjectNativeWriter {
             _token.ThrowIfCancellationRequested(); string path = Path(task, "Task"); bool added = !editor.Contains(task.Uid);
             if (added) {
                 editor.Add(task.Uid); editor.Integer(task.Uid, 0x0b400056, task.Uid);
-                editor.Set(task.Uid, 0x0b400477, EntityGuid(task, 1).ToByteArray());
-                editor.Integer(task.Uid, 0x0b400019, 500); editor.Integer(task.Uid, 0x0b400080, 0); editor.Integer(task.Uid, 0x0b400011, 0);
-                editor.Set(task.Uid, 0x0b4004ff, new byte[] { 1 }); editor.Set(task.Uid, 0x0b400500, new byte[] { 0 });
+                Identity(editor, task.Uid, 0x0b400477, EntityGuid(task, 1));
+                editor.Integer(task.Uid, 0x0b400019, _profile == ProjectNativeProfile.Mpp8 ? 4 : 500); editor.Integer(task.Uid, 0x0b400080, 0); editor.Integer(task.Uid, 0x0b400011, 0);
+                if (_profile == ProjectNativeProfile.Mpp14) {
+                    editor.Set(task.Uid, 0x0b4004ff, new byte[] { 1 }); editor.Set(task.Uid, 0x0b400500, new byte[] { 0 });
+                }
                 editor.Integer(task.Uid, 0x0b4000b5, task.Duration.HasValue ? DurationFormat(task.Duration.Value) : 7);
                 if (task.Duration.HasValue && !task.RemainingDuration.HasValue && !task.ActualDuration.HasValue && (task.PercentComplete ?? 0) == 0)
                     editor.Integer(task.Uid, 0x0b40001f, Exact(Minutes(task.Duration.Value) * 10));
@@ -34,7 +36,7 @@ internal sealed partial class ProjectNativeWriter {
             CheckDisplayId(task.DisplayId, displayId, path);
             if (_new || StructureChanged || added || Changed(path + "/DisplayId")) {
                 editor.Integer(task.Uid, 0x0b400017, displayId);
-                editor.Set(task.Uid, 0x0b400479, BitConverter.GetBytes((double)displayId + 1));
+                SortPosition(editor, task.Uid, 0x0b400479, displayId + 1);
                 editor.Integer(task.Uid, 0x0b4000f9, level); editor.Integer(task.Uid, 0x0b4000a0, task.Parent?.Uid ?? 0);
                 editor.Set(task.Uid, 0x0b40005c, new byte[] { task.IsSummary ? (byte)1 : (byte)0 });
             }
@@ -42,7 +44,7 @@ internal sealed partial class ProjectNativeWriter {
                 var parent = task.Parent;
                 Guid parentGuid = parent != null ? EntityGuid(parent, 1) : task.Uid == 0 ? Guid.Empty
                     : _document.TaskIndex.TryGetValue(0, out var projectSummary) ? EntityGuid(projectSummary, 1) : NativeGuid(0, 1);
-                editor.Set(task.Uid, 0x0b40047f, parentGuid.ToByteArray());
+                Identity(editor, task.Uid, 0x0b40047f, parentGuid);
             }
             if (new[] { task.Duration, task.ActualDuration, task.RemainingDuration }.Where(d => d.HasValue).Select(d => DurationFormat(d!.Value)).Distinct().Skip(1).Any())
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_DURATION_FORMAT", ProjectDiagnosticSeverity.Error,
@@ -58,7 +60,8 @@ internal sealed partial class ProjectNativeWriter {
         if (_new) {
             for (int i = 0; i < 3; i++) editor.AddReserved(i);
             if (!_document.ResourceIndex.ContainsKey(0)) {
-                editor.Add(0); editor.Integer(0, 0x0c40001b, 0); editor.Integer(0, 0x0c400000, 0); editor.Set(0, 0x0c40012a, new byte[] { 1 });
+                editor.Add(0); editor.Integer(0, 0x0c40001b, 0); editor.Integer(0, 0x0c400000, 0);
+                if (_profile != ProjectNativeProfile.Mpp8) editor.Set(0, 0x0c40012a, new byte[] { 1 });
             }
         }
         Removed(editor, "Resource", _document.ResourceIndex.Keys);
@@ -68,20 +71,24 @@ internal sealed partial class ProjectNativeWriter {
             int displayId = resource.Uid == 0 ? 0 : ++row;
             CheckDisplayId(resource.DisplayId, displayId, path);
             if (added) { editor.Add(resource.Uid); editor.Integer(resource.Uid, 0x0c40001b, resource.Uid);
-                editor.Set(resource.Uid, 0x0c4002d8, EntityGuid(resource, 2).ToByteArray()); }
+                Identity(editor, resource.Uid, 0x0c4002d8, EntityGuid(resource, 2)); }
             if (added || StructureChanged || Changed(path + "/DisplayId")) {
                 editor.Integer(resource.Uid, 0x0c400000, displayId);
-                editor.Set(resource.Uid, 0x0c4002da, BitConverter.GetBytes((double)displayId + 1));
+                SortPosition(editor, resource.Uid, 0x0c4002da, displayId + 1);
             }
             WriteResourceFields(editor, resource.Uid, path); Handle(path + "/Uid"); Handle(path + "/Type");
             if (resource.IsNull != true) Handle(path + "/IsNull");
             if (resource.Calendar?.IsBaseCalendar == true) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_CALENDAR", ProjectDiagnosticSeverity.Error,
                 "Native resources require a resource-specific derived calendar. Create it with Calendars.Add(resourceName, baseCalendar).", path + "/Calendar"));
             if (added || Changed(path + "/Calendar") || _calendarGuidsChanged)
-                editor.Set(resource.Uid, 0x0c4002d9, (resource.Calendar == null ? Guid.Empty : EntityGuid(resource.Calendar, 5)).ToByteArray());
+                Identity(editor, resource.Uid, 0x0c4002d9, resource.Calendar == null ? Guid.Empty : EntityGuid(resource.Calendar, 5));
             if (added || Changed(path + "/Type")) {
-                editor.Set(resource.Uid, 0x0c40012a, new byte[] { resource.Type == null || resource.Type == ProjectResourceType.Work ? (byte)1 : (byte)0 });
-                editor.Set(resource.Uid, 0x0c4002df, new byte[] { resource.Type == ProjectResourceType.Cost ? (byte)1 : (byte)0 });
+                if (_profile != ProjectNativeProfile.Mpp8) editor.Set(resource.Uid, 0x0c40012a, new byte[] { resource.Type == null || resource.Type == ProjectResourceType.Work ? (byte)1 : (byte)0 });
+                else if (resource.Type != null && resource.Type != ProjectResourceType.Work) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
+                    "Project 98 output supports work resources only.", path + "/Type"));
+                if (_profile.HasExtendedRecords) editor.Set(resource.Uid, 0x0c4002df, new byte[] { resource.Type == ProjectResourceType.Cost ? (byte)1 : (byte)0 });
+                else if (resource.Type == ProjectResourceType.Cost) AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_RESOURCE_TYPE", ProjectDiagnosticSeverity.Error,
+                    "Cost resources require MPP12 or later.", path + "/Type"));
             }
             WriteBaselines(editor, resource.Uid, path, resource.Baselines, 1);
             WriteCustomFields(editor, resource.Uid, path, resource.CustomFields, false);
@@ -101,11 +108,11 @@ internal sealed partial class ProjectNativeWriter {
             _token.ThrowIfCancellationRequested(); string path = Path(assignment, "Assignment");
             if (!editor.Contains(assignment.Uid)) {
                 editor.Add(assignment.Uid); editor.Integer(assignment.Uid, 0x0f400000, assignment.Uid);
-                editor.Set(assignment.Uid, 0x0f40027c, EntityGuid(assignment, 3).ToByteArray());
-                if (assignment.Task != null) editor.Set(assignment.Uid, 0x0f40027d, EntityGuid(assignment.Task, 1).ToByteArray());
-                if (assignment.Resource != null) editor.Set(assignment.Uid, 0x0f40027e, EntityGuid(assignment.Resource, 2).ToByteArray());
-                editor.Set(assignment.Uid, 0x0f400283, new byte[] { 1 });
-                editor.Set(assignment.Uid, 0x0f400118, new byte[] { 1 }); editor.Set(assignment.Uid, 0x0f40010d, new byte[] { 1 });
+                Identity(editor, assignment.Uid, 0x0f40027c, EntityGuid(assignment, 3));
+                if (assignment.Task != null) Identity(editor, assignment.Uid, 0x0f40027d, EntityGuid(assignment.Task, 1));
+                if (assignment.Resource != null) Identity(editor, assignment.Uid, 0x0f40027e, EntityGuid(assignment.Resource, 2));
+                if (_profile.HasExtendedRecords) editor.Set(assignment.Uid, 0x0f400283, new byte[] { 1 });
+                if (_profile != ProjectNativeProfile.Mpp8) { editor.Set(assignment.Uid, 0x0f400118, new byte[] { 1 }); editor.Set(assignment.Uid, 0x0f40010d, new byte[] { 1 }); }
                 editor.Integer(assignment.Uid, 0x0f400037, 7);
                 if (assignment.Work.HasValue && !assignment.RemainingWork.HasValue && !assignment.ActualWork.HasValue) {
                     editor.Set(assignment.Uid, 0x0f40000c, BitConverter.GetBytes((double)(assignment.Work.Value.Minutes * 1000)));
@@ -113,8 +120,8 @@ internal sealed partial class ProjectNativeWriter {
                 }
             }
             Handle(path + "/Uid"); WriteAssignmentFields(editor, assignment.Uid, path);
-            if ((_taskGuidsChanged || Changed(path + "/Task")) && assignment.Task != null) editor.Set(assignment.Uid, 0x0f40027d, EntityGuid(assignment.Task, 1).ToByteArray());
-            if ((_resourceGuidsChanged || Changed(path + "/Resource")) && assignment.Resource != null) editor.Set(assignment.Uid, 0x0f40027e, EntityGuid(assignment.Resource, 2).ToByteArray());
+            if ((_taskGuidsChanged || Changed(path + "/Task")) && assignment.Task != null) Identity(editor, assignment.Uid, 0x0f40027d, EntityGuid(assignment.Task, 1));
+            if ((_resourceGuidsChanged || Changed(path + "/Resource")) && assignment.Resource != null) Identity(editor, assignment.Uid, 0x0f40027e, EntityGuid(assignment.Resource, 2));
             WriteBaselines(editor, assignment.Uid, path, assignment.Baselines, 2);
         }
         editor.Export(_replacements);
@@ -129,13 +136,14 @@ internal sealed partial class ProjectNativeWriter {
         foreach (var link in _document.Dependencies) {
             _token.ThrowIfCancellationRequested(); int uid = index + 1; string path = "/Dependency[" + index++ + "]";
             editor.Add(uid); editor.Integer(uid, 0x0e400000, uid);
-            editor.Set(uid, 0x0e400015, NativeGuid(uid, 4).ToByteArray());
+            Identity(editor, uid, 0x0e400015, NativeGuid(uid, 4));
             editor.Integer(uid, 0x0e400002, link.Predecessor?.Uid ?? link.SourcePredecessorUid); editor.Integer(uid, 0x0e400005, link.Successor.Uid);
             editor.Integer(uid, 0x0e400007, (int)(link.Type ?? ProjectDependencyType.FinishToStart));
             editor.Integer(uid, 0x0e400009, link.LagPercent.HasValue ? Exact(link.LagPercent.Value) : link.Lag.HasValue ? Exact(Minutes(link.Lag.Value) * 10) : 0);
             editor.Integer(uid, 0x0e40000a, link.LagPercent.HasValue ? 19 : link.Lag.HasValue ? DurationFormat(link.Lag.Value) : 7);
-            if (link.Predecessor != null) editor.Set(uid, 0x0e400016, EntityGuid(link.Predecessor, 1).ToByteArray());
-            editor.Set(uid, 0x0e400017, EntityGuid(link.Successor, 1).ToByteArray()); editor.Set(uid, 0x0e40001c, new byte[] { 1 });
+            if (link.Predecessor != null) Identity(editor, uid, 0x0e400016, EntityGuid(link.Predecessor, 1));
+            Identity(editor, uid, 0x0e400017, EntityGuid(link.Successor, 1));
+            if (_profile == ProjectNativeProfile.Mpp14) editor.Set(uid, 0x0e40001c, new byte[] { 1 });
             foreach (string name in new[] { "Predecessor", "Successor", "Type", "Lag", "LagPercent" }) Handle(path + "/" + name);
         }
         foreach (var old in Original("/Dependency").Where(p => !_current.ContainsKey(p.Key))) Handle(old.Key);

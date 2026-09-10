@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Project;
 
 /// <summary>Stages mapped record changes without altering the source compound streams.</summary>
-internal sealed class ProjectNativeTableEditor : IDisposable {
+internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
     private readonly string _prefix;
     private readonly ProjectNativeTable _table;
     private readonly Dictionary<int, int> _rows = new Dictionary<int, int>();
@@ -15,20 +15,26 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
     private readonly long _budget;
     private readonly CancellationToken _token;
     private bool _dirty;
+    private readonly ProjectNativeProfile _profile;
+    private readonly bool _hasSecondaryStorage;
     private readonly HashSet<int> _deletedRows = new HashSet<int>();
 
     internal ProjectNativeTableEditor(OfficeCompoundFile source, Dictionary<uint, ProjectNativeValue> properties, string name, uint tableId,
-        uint uidField, long budget, CancellationToken token) {
-        _prefix = "   114/TBknd" + name + "/"; _budget = budget; _token = token;
+        uint uidField, long budget, CancellationToken token, ProjectNativeProfile profile) {
+        _prefix = profile.DataRoot + "/TBknd" + name + "/"; _budget = budget; _token = token; _profile = profile;
         _table = new ProjectNativeTable(source, "TBknd" + name, properties[0x03000000 | tableId],
-            properties.TryGetValue(0x00020000 | tableId, out var map) ? map : (ProjectNativeValue?)null, int.MaxValue, token);
-        byte[] first = source.Streams[_prefix + "FixedMeta"], second = source.Streams[_prefix + "Fixed2Meta"];
+            properties.TryGetValue(0x00020000 | tableId, out var map) ? map : (ProjectNativeValue?)null, int.MaxValue, token, profile);
+        byte[] first = source.Streams[_prefix + "FixedMeta"];
+        // Secondary storage is optional in older files. Preserve it when a later
+        // producer supplied it, without adding it to files that never had it.
+        byte[] second = source.Streams.TryGetValue(_prefix + "Fixed2Meta", out var storedSecond) ? storedSecond : first;
+        _hasSecondaryStorage = storedSecond != null;
         _fixedHeader = first.Take(16).ToArray(); _secondaryHeader = second.Take(16).ToArray();
         _variableHeader = source.Streams[_prefix + "VarMeta"].Take(24).ToArray();
         int count = BitConverter.ToInt32(first, 8);
         // The producer reserves a trailing bitmap byte even when the field count is divisible by eight.
-        _metadataWidth = count > 0 ? (first.Length - 16) / count : 9 + _table.Fields.Values.Count(f => !f.Secondary) / 8;
-        _secondaryMetadataWidth = count > 0 ? (second.Length - 16) / count : 9 + _table.Fields.Values.Count(f => f.Secondary) / 8;
+        _metadataWidth = _table.MetadataWidth;
+        _secondaryMetadataWidth = _hasSecondaryStorage ? _table.SecondaryMetadataWidth : _metadataWidth;
         _dataWidth = _table.Fields.Values.Where(f => f.Source == 10 && !f.Secondary).Select(f => checked(f.Offset + f.Size)).DefaultIfEmpty(0).Max();
         _secondaryDataWidth = _table.Fields.Values.Where(f => f.Source == 10 && f.Secondary).Select(f => checked(f.Offset + f.Size)).DefaultIfEmpty(0).Max();
         for (int index = 0; index < count; index++) {
@@ -36,13 +42,15 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
             _metadata.Add(Slice(first, 16 + index * _metadataWidth, _metadataWidth));
             _secondaryMetadata.Add(Slice(second, 16 + index * _secondaryMetadataWidth, _secondaryMetadataWidth));
         }
-        Append(_fixed, source.Streams[_prefix + "FixedData"]); Append(_secondary, source.Streams[_prefix + "Fixed2Data"]);
+        Append(_fixed, source.Streams[_prefix + "FixedData"]);
+        if (source.Streams.TryGetValue(_prefix + "Fixed2Data", out var secondaryData)) Append(_secondary, secondaryData);
         foreach (var record in _table.Records) {
             int uid = record.Integer(uidField) ?? throw new InvalidDataException("Native record UID is absent.");
             if (_rows.ContainsKey(uid)) throw new InvalidDataException("Duplicate native record UID.");
             _rows.Add(uid, record.MetadataIndex);
         }
-        ValidateRecordRanges(_metadata, _dataWidth); ValidateRecordRanges(_secondaryMetadata, _secondaryDataWidth);
+        ValidateRecordRanges(_metadata, _dataWidth);
+        if (_hasSecondaryStorage) ValidateRecordRanges(_secondaryMetadata, _secondaryDataWidth);
         foreach (var row in _table.Variable) _variable.Add(row.Key, row.Value.ToDictionary(pair => pair.Key, pair => pair.Value.Copy()));
     }
 
@@ -55,13 +63,14 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
         }
     }
 
-    internal bool Contains(int uid) => _rows.ContainsKey(uid);
-    internal IEnumerable<int> Uids => _rows.Keys;
-    internal void Integer(int uid, uint id, int value) {
+    public bool Contains(int uid) => _rows.ContainsKey(uid);
+    public bool HasField(uint id) => _table.Fields.ContainsKey(id);
+    public IEnumerable<int> Uids => _rows.Keys;
+    public void Integer(int uid, uint id, int value) {
         if (!_table.Fields.TryGetValue(id, out var field)) throw new NotSupportedException("Missing native field.");
         Set(uid, id, field.Size == 2 ? BitConverter.GetBytes(checked((short)value)) : BitConverter.GetBytes(value));
     }
-    internal void Set(int uid, uint id, byte[]? value) {
+    public void Set(int uid, uint id, byte[]? value) {
         _token.ThrowIfCancellationRequested();
         _dirty = true;
         int row = _rows[uid];
@@ -86,7 +95,7 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
         }
     }
 
-    internal void Add(int uid) {
+    public void Add(int uid) {
         _dirty = true;
         if (_rows.ContainsKey(uid)) throw new InvalidOperationException("Native UID already exists.");
         var first = new byte[_metadataWidth]; var second = new byte[_secondaryMetadataWidth];
@@ -94,22 +103,22 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
         Append(_fixed, new byte[_dataWidth]); Append(_secondary, new byte[_secondaryDataWidth]);
         _rows.Add(uid, _metadata.Count); _metadata.Add(first); _secondaryMetadata.Add(second);
     }
-    internal void AddReserved(int index) {
+    public void AddReserved(int index) {
         _dirty = true;
         var first = new byte[_metadataWidth]; var second = new byte[_secondaryMetadataWidth]; first[0] = 4;
         Put(first, 4, checked((int)_fixed.Length)); Put(second, 4, checked((int)_secondary.Length));
-        var sentinel = new byte[16]; Put(sentinel, 0, unchecked((int)0xffff0000) + index);
+        var sentinel = new byte[_profile.HasExtendedRecords ? 16 : 8]; Put(sentinel, 0, unchecked((int)0xffff0000) + index);
         Append(_fixed, sentinel); Append(_secondary, new byte[_secondaryDataWidth]);
         _metadata.Add(first); _secondaryMetadata.Add(second);
     }
 
-    internal void Delete(int uid) {
+    public void Delete(int uid) {
         _dirty = true;
         int row = _rows[uid]; _deletedRows.Add(row);
         _variable.Remove(uid); _rows.Remove(uid);
     }
 
-    internal void Export(Dictionary<string, byte[]> replacements) {
+    public void Export(Dictionary<string, byte[]> replacements) {
         _token.ThrowIfCancellationRequested();
         if (!_dirty) return;
         using var variable = new MemoryStream(); using var metadata = new MemoryStream();
@@ -118,12 +127,19 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
         foreach (var row in _variable.OrderBy(pair => pair.Key)) {
             _token.ThrowIfCancellationRequested();
             if (_rows.TryGetValue(row.Key, out int index)) {
-                if (row.Value.Count > ushort.MaxValue) throw new InvalidDataException("Too many native variable values in one record.");
-                Put(_metadata[index], 2, (ushort)row.Value.Count);
+                int limit = _profile == ProjectNativeProfile.Mpp9 ? byte.MaxValue : ushort.MaxValue;
+                if (row.Value.Count > limit) throw new InvalidDataException("Too many native variable values in one record.");
+                if (_profile == ProjectNativeProfile.Mpp9) _metadata[index][1] = (byte)row.Value.Count;
+                else Put(_metadata[index], 2, (ushort)row.Value.Count);
             }
             foreach (var field in row.Value.OrderBy(pair => pair.Key)) {
-                Append(metadata, BitConverter.GetBytes(row.Key)); Append(metadata, BitConverter.GetBytes(checked((int)variable.Length)));
-                Append(metadata, BitConverter.GetBytes(field.Key));
+                int key = row.Key;
+                if (_profile == ProjectNativeProfile.Mpp9) {
+                    if (key < 0 || key > 0xffffff) throw new NotSupportedException("MPP9 variable records require a 24-bit nonnegative UID.");
+                    key = unchecked((int)((uint)key | ((uint)(_table.Fields[field.Key].Offset >> 16) & 255) << 24));
+                }
+                Append(metadata, BitConverter.GetBytes(key)); Append(metadata, BitConverter.GetBytes(checked((int)variable.Length)));
+                if (_profile != ProjectNativeProfile.Mpp9) Append(metadata, BitConverter.GetBytes(field.Key));
                 Append(variable, BitConverter.GetBytes(field.Value.Length)); Append(variable, field.Value); count++;
             }
         }
@@ -131,8 +147,11 @@ internal sealed class ProjectNativeTableEditor : IDisposable {
         replacements[_prefix + "VarMeta"] = metaBytes; replacements[_prefix + "Var2Data"] = variable.ToArray();
         var indexes = Enumerable.Range(0, _metadata.Count).Where(i => !_deletedRows.Contains(i)).ToArray();
         replacements[_prefix + "FixedMeta"] = Metadata(_fixedHeader, indexes.Select(i => _metadata[i]).ToArray(), _fixed.Length);
-        replacements[_prefix + "Fixed2Meta"] = Metadata(_secondaryHeader, indexes.Select(i => _secondaryMetadata[i]).ToArray(), _secondary.Length);
-        replacements[_prefix + "FixedData"] = _fixed.ToArray(); replacements[_prefix + "Fixed2Data"] = _secondary.ToArray();
+        replacements[_prefix + "FixedData"] = _fixed.ToArray();
+        if (_hasSecondaryStorage) {
+            replacements[_prefix + "Fixed2Meta"] = Metadata(_secondaryHeader, indexes.Select(i => _secondaryMetadata[i]).ToArray(), _secondary.Length);
+            replacements[_prefix + "Fixed2Data"] = _secondary.ToArray();
+        }
     }
 
     private byte[] Metadata(byte[] header, IReadOnlyList<byte[]> rows, long length) {
