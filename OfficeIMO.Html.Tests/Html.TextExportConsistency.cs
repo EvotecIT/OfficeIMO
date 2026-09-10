@@ -47,7 +47,7 @@ public class HtmlTextExportConsistencyTests {
             string html = "<p style='margin:0;font:24px Arial;letter-spacing:" + spacing + "px'>" +
                 "<span style='color:red'>H</span><span style='color:blue'>H</span></p>";
             HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html,
-                new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 140D, ViewportHeight = 90D });
+                new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 140D, ViewportHeight = 90D, Margins = HtmlRenderMargins.All(0) });
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(scene.Pages[0].CreateDrawing(), 4D, OfficeColor.White);
             int redLeft = image.Width, redRight = -1, blueLeft = image.Width, blueRight = -1;
             for (int y = 0; y < image.Height; y++) {

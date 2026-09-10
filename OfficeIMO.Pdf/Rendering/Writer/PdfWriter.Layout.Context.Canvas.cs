@@ -398,7 +398,7 @@ internal static partial class PdfWriter {
                 lines,
                 lineHeights,
                 currentOpts,
-                FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
+                item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
                 size,
                 leading,
                 currentPage!.Annotations,

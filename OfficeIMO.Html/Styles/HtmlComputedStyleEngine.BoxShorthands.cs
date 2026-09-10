@@ -3,18 +3,19 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] PhysicalBoxShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
+    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
     private static readonly string[] BorderStyleLonghands = { "border-top-style", "border-right-style", "border-bottom-style", "border-left-style" };
     private static readonly string[] BorderColorLonghands = { "border-top-color", "border-right-color", "border-bottom-color", "border-left-color" };
 
-    private static bool TryExpandPhysicalBoxShorthand(
+    private static bool TryExpandCascadeShorthand(
         string propertyName,
         string value,
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
+        if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
         if (normalizedName == "border") {
             string width, style, color;
             if (IsCssWideKeyword(value.Trim())) {
@@ -84,16 +85,16 @@ public static partial class HtmlComputedStyleEngine {
         return true;
     }
 
-    private static void ExpandResolvedPhysicalBoxShorthands(
+    private static void ExpandResolvedCascadeShorthands(
         Dictionary<string, string> properties,
         Dictionary<string, HtmlCssCascadePriority> priorities,
         ISet<string> inherited,
         ISet<string> reset,
         ISet<string> specified) {
 
-        foreach (string shorthand in PhysicalBoxShorthands) {
+        foreach (string shorthand in CascadeShorthands) {
             if (!properties.TryGetValue(shorthand, out string? value)
-                || !TryExpandPhysicalBoxShorthand(shorthand, value, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
+                || !TryExpandCascadeShorthand(shorthand, value, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
                 continue;
             }
 

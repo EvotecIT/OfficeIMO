@@ -114,6 +114,7 @@ public static partial class OfficeSvgDrawingReader {
             element,
             width,
             height,
+            drawing.Fonts,
             style,
             paintServers,
             references,

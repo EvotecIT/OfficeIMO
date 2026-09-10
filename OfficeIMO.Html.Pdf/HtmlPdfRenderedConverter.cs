@@ -633,8 +633,11 @@ internal static partial class HtmlPdfRenderedConverter {
                 baselineFontSize.Value)) {
             return;
         }
-        var run = new PdfCore.PdfTextRun(
-            visual.Text,
+        OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        var runs = webFonts.Faces.PlanFallbackRuns(visual.Text, visual.Font.FamilyName, requestedStyle)
+            .Select(fallbackRun => new PdfCore.PdfTextRun(
+            fallbackRun.Text,
             bold: visual.Font.IsBold,
             underline: visual.Font.IsUnderline,
             color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
@@ -642,22 +645,21 @@ internal static partial class HtmlPdfRenderedConverter {
             strike: visual.Font.IsStrikethrough,
             fontSize: visual.Font.Size * PointsPerCssPixel,
             font: MapFont(
-                visual.Font.FamilyName,
-                visual.Text,
-                (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
-                | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular),
+                fallbackRun.FamilyName,
+                fallbackRun.Text,
+                requestedStyle,
                 webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
             linkDestinationName: linkDestination,
-            fontFamily: visual.Font.FamilyName,
+            fontFamily: fallbackRun.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),
             underlineStyle: visual.UnderlineStyle,
             strikeStyle: visual.StrikethroughStyle,
             decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
-            .WithFeatureSettings(visual.FeatureSettings);
+            .WithFeatureSettings(visual.FeatureSettings)).ToArray();
         canvas.PositionedText(
-            new[] { run },
+            runs,
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,

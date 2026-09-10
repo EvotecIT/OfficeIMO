@@ -7,11 +7,10 @@ public sealed partial class OfficeRasterCanvas {
         positioned ? Math.Max(0.1D, fontSize) : Math.Max(6D, Math.Min(fontSize, height - 2D));
 
     private static double ResolveRasterTextTop(IOfficeFontProgram font, double size, double height, double? baselineFontSize) {
-        double sourceSize = baselineFontSize ?? size;
-        double top = Math.Max(1D, (height - font.LineHeight(sourceSize)) / 2D);
-        if (Math.Abs(sourceSize - size) < 0.000001D) return top;
-        // A smaller script glyph keeps the source line's baseline, then applies its own offset.
-        return top + ResolveRasterBaseline(font, sourceSize) - ResolveRasterBaseline(font, size);
+        // Drawing text uses an alphabetic baseline one source em below its top,
+        // matching the SVG positioned-text contract. Do not recenter it in the frame.
+        if (baselineFontSize.HasValue) return baselineFontSize.Value - ResolveRasterBaseline(font, size);
+        return Math.Max(1D, (height - font.LineHeight(size)) / 2D);
     }
 
     private static double ResolveRasterBaseline(IOfficeFontProgram font, double size) {

@@ -486,6 +486,7 @@ public static partial class OfficeSvgDrawingReader {
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         bool usesEffect = textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        if (usesEffect) target.Fonts.AddRange(drawing.Fonts);
         try {
             double naturalWidth = width / run.GlyphScale;
             if (requiresViewportClip) {
