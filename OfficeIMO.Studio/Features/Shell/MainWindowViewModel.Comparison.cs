@@ -12,6 +12,8 @@ public sealed record ComparisonDifference(int PageNumber, string Label, PdfVisua
 }
 
 public sealed partial class MainWindowViewModel {
+    private const int MaximumComparisonPages = 100;
+    private const long MaximumComparisonRasterPixels = 4_000_000;
     private CancellationTokenSource? _comparisonReportCancellation;
     [ObservableProperty] private bool _isComparingPages;
     [ObservableProperty] private string _comparisonSummary = string.Empty;
@@ -62,13 +64,15 @@ public sealed partial class MainWindowViewModel {
         ComparisonSummary = ComparisonText("Comparing", "Comparing page appearance…");
         try {
             if (HasFormDrafts) throw new InvalidOperationException(ComparisonText("FormDrafts", "Apply pending form values before comparing page appearance."));
-            if (primary.Pages.Count > 100 || actual.Pages.Count > 100) {
+            if (primary.Pages.Count > MaximumComparisonPages || actual.Pages.Count > MaximumComparisonPages) {
                 throw new InvalidOperationException(ComparisonText("PageLimit", "Comparison is limited to 100 pages per document. Extract a smaller range for review."));
             }
             PdfVisualComparisonReport report = await workspace.RunNonDetachableCpuWorkAsync(() => primary.CompareTo(actual,
                 new PdfVisualComparisonOptions {
-                    Scale = 1, MaxPages = 100, MaxPixelsPerImage = 4_000_000,
-                    MaxTotalPixels = 100_000_000, MaxTotalOutputBytes = 64 * 1024 * 1024
+                    Scale = 1, MaxPages = MaximumComparisonPages, MaxPixelsPerImage = MaximumComparisonRasterPixels,
+                    // Each pair charges the two source rasters and the difference raster.
+                    MaxTotalPixels = 3L * MaximumComparisonPages * MaximumComparisonRasterPixels,
+                    MaxTotalOutputBytes = 64 * 1024 * 1024
                 }, operation.Token), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
             if (_disposed || !ReferenceEquals(_session, primary) || !ReferenceEquals(_comparisonSession, actual) ||

@@ -88,6 +88,7 @@ public sealed partial class MainWindow : Window {
         document = new(
             pickPdf: token => PickFileSafelyAsync(PickPdfAsync, token),
             pickSavePdf: token => PickFileSafelyAsync(PickSavePdfAsync, token),
+            pickPrintOutput: token => PickFileSafelyAsync(PickPrintOutputAsync, token),
             pickImportPdfs: token => PickFilesSafelyAsync(PickPdfsAsync, token),
             pickOutputFolder: PickOutputFolderAsync,
             openUri: OpenUriAsync,

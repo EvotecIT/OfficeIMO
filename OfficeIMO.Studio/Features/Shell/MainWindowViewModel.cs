@@ -120,7 +120,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<PdfSigningPreviewViewModel, Task>? showSigningResult = null,
         Func<string, System.Security.Cryptography.X509Certificates.X509Certificate2>? loadSigningCertificate = null,
         Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null,
-        IScanTextRecognitionService? scanTextRecognition = null) {
+        IScanTextRecognitionService? scanTextRecognition = null,
+        Func<CancellationToken, Task<string?>>? pickPrintOutput = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -178,7 +179,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage,
             recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
-            readPrintSnapshot: ReadPrintSnapshotAsync);
+            readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(

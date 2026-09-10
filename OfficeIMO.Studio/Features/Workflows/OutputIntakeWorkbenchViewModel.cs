@@ -19,7 +19,7 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         Func<CancellationToken, Task<IReadOnlyList<string>>> pickAssemblyFiles,
         Func<CancellationToken, Task<string?>> pickAssemblyFolder,
-        Func<CancellationToken, Task<string?>> pickOutputPdf) : this(pickPdf, pickOutputFolder, pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, null) { }
+        Func<CancellationToken, Task<string?>> pickOutputPdf) : this(pickPdf, pickOutputFolder, pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, localizer: null) { }
 
     internal OutputIntakeWorkbenchViewModel(
         Func<CancellationToken, Task<string?>> pickPdf,
@@ -33,9 +33,10 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         OfficeIMO.Studio.Infrastructure.StudioStorageAccess? storage = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
         Func<string, Task<bool>>? confirmProviderWrite = null,
-        Func<string, CancellationToken, Task<OfficeIMO.Pdf.PdfDocument>>? readPrintSnapshot = null) {
+        Func<string, CancellationToken, Task<OfficeIMO.Pdf.PdfDocument>>? readPrintSnapshot = null,
+        Func<CancellationToken, Task<string?>>? pickPrintOutput = null) {
         localizer ??= StudioLocalization.Current;
-        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage, readPrintSnapshot, pickPrintFile: pickOutputPdf, jobHistory: jobHistory);
+        PrintPreview = new PrintPreviewViewModel(pickPdf, localizer, storage, readPrintSnapshot, pickPrintFile: pickPrintOutput, jobHistory: jobHistory);
         PageExport = new PageImageExportViewModel(pickPdf, pickOutputFolder, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage, recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);
         Assembly = new PdfAssemblyViewModel(pickAssemblyFiles, pickAssemblyFolder, pickOutputPdf, runner: null, localizer: localizer, publicationGuard: publicationGuard, jobHistory: jobHistory, storage: storage,
             recoveryStore: recoveryStore, confirmProviderWrite: confirmProviderWrite);

@@ -39,6 +39,7 @@ public sealed class PrintDeliveryTests {
             Task first = model.PaperSourceDiscovery;
             Assert.True(model.IsDiscoveringPaperSources);
             model.SelectedPrinter = new("Second", false, false);
+            model.PrintOutputPath = "previous-driver.pdf";
             Task second = model.PaperSourceDiscovery;
             printer.Sources["Second"].SetResult([new("second-tray", "Second tray")]);
             await second;
@@ -49,6 +50,7 @@ public sealed class PrintDeliveryTests {
             Assert.DoesNotContain(model.PaperSourceChoices, choice => choice.Id == "first-tray");
             Assert.False(model.IsDiscoveringPaperSources);
             model.SelectedPrinter = new("Third", false, false);
+            Assert.Empty(model.PrintOutputPath);
             Task third = model.PaperSourceDiscovery;
             Assert.Null(model.SelectedPaperSource.Id);
             model.Dispose();

@@ -1855,4 +1855,5 @@
   <data name="PrintPreview.PaperSource" xml:space="preserve"><value>Paper source / tray</value></data>
   <data name="PrintPreview.PaperSource.Default" xml:space="preserve"><value>Printer default</value></data>
   <data name="PrintPreview.PaperSource.Unavailable" xml:space="preserve"><value>Paper-source discovery failed. Printing will use the printer default.</value></data>
+  <data name="PrintPreview.FileTypeHint" xml:space="preserve"><value>Use the file extension produced by the selected printer, such as .pdf or .xps.</value></data>
 </root>

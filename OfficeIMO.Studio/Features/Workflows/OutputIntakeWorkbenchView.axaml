@@ -94,6 +94,7 @@
             <StackPanel IsVisible="{Binding OutputWorkbench.PrintPreview.RequiresPrintOutput}" Spacing="6">
               <TextBlock Text="{loc:Loc PrintPreview.OutputFile}" TextWrapping="Wrap" />
               <TextBox Text="{Binding OutputWorkbench.PrintPreview.PrintOutputPath}" />
+              <TextBlock Text="{loc:Loc PrintPreview.FileTypeHint}" TextWrapping="Wrap" Classes="muted" />
               <Button Content="{loc:Loc PrintPreview.ChooseOutput}" Command="{Binding OutputWorkbench.PrintPreview.ChoosePrintOutputCommand}" />
             </StackPanel>
             </StackPanel>

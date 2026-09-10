@@ -10,6 +10,27 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class ComparisonNavigationTests {
+    [Fact]
+    public async Task ComparesOneHundredA4PagesWithoutExhaustingPixelBudget() {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            string primary = Path.Combine(services.Paths.Root, "hundred-pages.pdf");
+            string other = Path.Combine(services.Paths.Root, "hundred-pages-comparison.pdf");
+            PdfDocument.Create(document => {
+                for (int page = 0; page < 100; page++) document.Page(p => p.Size(595, 842));
+            }).Save(primary);
+            File.Copy(primary, other);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(primary);
+            await model.OpenComparisonDocumentAsync(other);
+            await model.ComparePagesCommand.ExecuteAsync(null);
+            Assert.Equal("No rendered differences found.", model.ComparisonSummary);
+            Assert.Empty(model.ComparisonDifferences);
+            return true;
+        }, default);
+    }
+
     [Theory]
     [InlineData(960, 640, false)]
     [InlineData(1280, 800, true)]

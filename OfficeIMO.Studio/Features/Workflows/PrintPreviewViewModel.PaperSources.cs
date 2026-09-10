@@ -18,7 +18,10 @@ public sealed partial class PrintPreviewViewModel {
     public bool HasPaperSourceError => !string.IsNullOrEmpty(PaperSourceError);
     internal Task PaperSourceDiscovery { get; private set; } = Task.CompletedTask;
 
-    partial void OnSelectedPrinterChanged(PdfPrinterInfo? value) => PaperSourceDiscovery = RefreshPaperSourcesAsync(value);
+    partial void OnSelectedPrinterChanged(PdfPrinterInfo? oldValue, PdfPrinterInfo? newValue) {
+        if (oldValue?.Name != newValue?.Name) PrintOutputPath = string.Empty;
+        PaperSourceDiscovery = RefreshPaperSourcesAsync(newValue);
+    }
 
     private async Task RefreshPaperSourcesAsync(PdfPrinterInfo? printer) {
         _paperSourceCancellation?.Cancel();
