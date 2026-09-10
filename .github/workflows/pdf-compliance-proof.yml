@@ -5,8 +5,13 @@ on:
     paths:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.SharedSource/Invoicing/**'
+      - 'OfficeIMO.SharedSource/**'
+      - 'OfficeIMO.TestAssets/**'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
       - 'OfficeIMO.Invoicing/**'
+      - 'OfficeIMO.Invoicing.Tests/**'
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
@@ -36,8 +41,13 @@ on:
     paths:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.SharedSource/Invoicing/**'
+      - 'OfficeIMO.SharedSource/**'
+      - 'OfficeIMO.TestAssets/**'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
       - 'OfficeIMO.Invoicing/**'
+      - 'OfficeIMO.Invoicing.Tests/**'
       - 'OfficeIMO.Invoicing.Pdf/**'
       - 'OfficeIMO.Invoicing.Pdf.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
@@ -400,6 +410,7 @@ jobs:
             ${{ env.PROOF_PATH }}/proof.json
             ${{ env.PROOF_PATH }}/officeimo-profile-proof-contract.json
             ${{ env.PROOF_PATH }}/*.pdf
+            ${{ env.PROOF_PATH }}/*.xml
             ${{ env.PROOF_PATH }}/*.txt
             ${{ env.PROOF_PATH }}/engine/*.pdf
             ${{ env.PROOF_PATH }}/engine/*.png
