@@ -203,9 +203,10 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 ## Electronic invoices
 
-- [ ] Select a canonical invoice-format owner and define a bounded typed read/edit/write model for EN 16931 CII invoices, reusing the existing PDF carrier and invoice inspection capabilities. Cover parties and identifiers, currency, line items, allowances and charges, tax categories, rounding, payment means, credit notes, and references with deterministic XML serialization, reopen evidence, and unknown-extension preservation or explicit loss. Keep XML business semantics outside `PdfInvoiceComponent`, which is a presentation recipe, and keep PDF attachment/compliance mechanics in `OfficeIMO.Pdf`.
-- [ ] Add explicit version/profile selection and pinned schema plus business-rule validation for adopted Factur-X/ZUGFeRD and XRechnung contracts. Assess UBL and Peppol BIS as separately declared syntax/profile scope; do not infer their support from recognizing a CII profile identifier. Validate independent producer fixtures and malformed inputs, retain structured rule identifiers, and benchmark XML read, write, validation, and PDF-carrier generation as separate equivalent workloads. Transport, tax-authority submission, and accounting workflows remain separate product decisions.
-- [ ] Generate the human-readable invoice and electronic payload from one authoritative model, with exact readback of identifiers, currency, line quantities, tax subtotals, payable totals, and attachments. Require PDF/A carrier proof, XML business-rule proof, and visual/XML agreement together. Offer independently reviewed long-description, multi-page, multilingual, and credit-note layouts through the existing document/rendering owners.
+- [ ] Extend `OfficeIMO.Invoicing` authoring and pinned validation to Factur-X MINIMUM, BASIC WL, BASIC and EXTENDED, with explicit specification releases and independent producer fixtures. Add national CIUS contracts only with their own syntax, rules and corpus evidence.
+- [ ] Expand loss-aware CII/UBL mappings for arbitrary tax-registration schemes, sales-order-only references, card network metadata and conflicting exemption or payment descriptions. Preserve source meaning or report the exact unsupported target data.
+- [ ] Generate visible invoices and electronic payloads from one model through a dedicated PDF adapter. Verify exact XML/PDF agreement, PDF/A carrier compliance, and representative long and multilingual layouts.
+- [ ] Benchmark XML read, write, rules validation and PDF generation as separate equivalent workloads; establish cross-platform elapsed and allocation budgets. Transport, tax-authority submission and accounting workflows remain separate product decisions.
 
 ## Google Workspace
 

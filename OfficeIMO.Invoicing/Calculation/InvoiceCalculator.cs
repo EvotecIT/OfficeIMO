@@ -57,8 +57,10 @@ public static class InvoiceCalculator {
             if (declared == null || declared.Category == null) throw new ArgumentException("A declared VAT breakdown is null.", nameof(invoice));
             TaxGroup? group = groups.SingleOrDefault(g => g.Code == declared.Category.Code && g.Rate == NormalizeRate(declared.Category));
             if (group != null) {
-                group.MergeReason(declared.Category);
-                if (preserveDeclaredAmounts) group.DeclaredAmount = declared.TaxAmount;
+                if (preserveDeclaredAmounts) {
+                    group.MergeReason(declared.Category);
+                    group.DeclaredAmount = declared.TaxAmount;
+                } else group.UseSourceReasonWhenMissing(declared.Category);
             }
         }
         var taxes = groups.OrderBy(group => group.Code, StringComparer.Ordinal).ThenBy(group => group.Rate)
@@ -90,6 +92,12 @@ public static class InvoiceCalculator {
         internal decimal? DeclaredAmount { get; set; }
         internal string? Reason { get; private set; }
         internal string? ReasonCode { get; private set; }
+        internal void UseSourceReasonWhenMissing(InvoiceTaxCategory category) {
+            // An edited exemption replaces the source pair; header-only imported details remain valid.
+            if (Reason != null || ReasonCode != null) return;
+            Reason = category.ExemptionReason;
+            ReasonCode = category.ExemptionReasonCode;
+        }
         internal void MergeReason(InvoiceTaxCategory category) {
             if (Reason != null && category.ExemptionReason != null && Reason != category.ExemptionReason ||
                 ReasonCode != null && category.ExemptionReasonCode != null && ReasonCode != category.ExemptionReasonCode)

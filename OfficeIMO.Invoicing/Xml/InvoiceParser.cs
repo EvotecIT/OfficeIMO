@@ -12,6 +12,7 @@ public static partial class InvoiceParser {
     private static readonly XNamespace Cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
 
     /// <summary>Reads an editable model and reports every unmapped element or attribute. Parsing alone does not establish compliance.</summary>
+    /// <remarks>UBL document notes use the EN 16931 syntax binding: a leading #CODE# identifies BT-21 and the remaining text is BT-22.</remarks>
     public static InvoiceReadResult Read(byte[] xml) {
         if (xml == null) throw new ArgumentNullException(nameof(xml));
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes) throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");

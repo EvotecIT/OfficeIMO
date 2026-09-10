@@ -85,5 +85,43 @@ public class InvoiceCalculationTests {
         Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecalculationUsesEditedExemptionInsteadOfStaleDeclaredReason(bool documentAdjustment) {
+        Invoice invoice = Example();
+        var edited = new InvoiceTaxCategory { Code = "E", Rate = 0m, ExemptionReason = "Updated exemption" };
+        if (documentAdjustment) invoice.AllowancesAndCharges.Add(new InvoiceAllowanceCharge {
+            IsCharge = true, Amount = 10m, Reason = "Service", Tax = edited
+        });
+        else invoice.Lines[0].Tax = edited;
+        invoice.DeclaredTaxes.Add(new InvoiceDeclaredTax {
+            Category = new InvoiceTaxCategory { Code = "E", Rate = 0m, ExemptionReason = "Original exemption", ExemptionReasonCode = "VATEX-EU-132" },
+            TaxableAmount = 1m, TaxAmount = 0m
+        });
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceDeclaredTax actual = Assert.Single(invoice.DeclaredTaxes.Where(tax => tax.Category.Code == "E"));
+        Assert.Equal("Updated exemption", actual.Category.ExemptionReason);
+        Assert.Null(actual.Category.ExemptionReasonCode);
+        Assert.True(InvoiceModelValidator.Validate(invoice).IsValid);
+        foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
+            Invoice parsed = InvoiceParser.Read(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax, InvoiceProfile.En16931))).Invoice;
+            Assert.Equal("Updated exemption", Assert.Single(parsed.DeclaredTaxes.Where(tax => tax.Category.Code == "E")).Category.ExemptionReason);
+        }
+    }
+
+    [Fact]
+    public void RecalculationPreservesHeaderOnlyImportedExemption() {
+        Invoice invoice = Example();
+        invoice.Lines[0].Tax = new InvoiceTaxCategory { Code = "E", Rate = 0m };
+        invoice.DeclaredTaxes.Add(new InvoiceDeclaredTax {
+            Category = new InvoiceTaxCategory { Code = "E", Rate = 0m, ExemptionReason = "Imported exemption", ExemptionReasonCode = "VATEX-EU-132" }
+        });
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        InvoiceDeclaredTax actual = Assert.Single(invoice.DeclaredTaxes);
+        Assert.Equal("Imported exemption", actual.Category.ExemptionReason);
+        Assert.Equal("VATEX-EU-132", actual.Category.ExemptionReasonCode);
+    }
+
     internal static Invoice Example() => InvoiceFixture.Create();
 }
