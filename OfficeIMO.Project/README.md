@@ -1,8 +1,8 @@
 # OfficeIMO.Project
 
-OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI) through a typed document model. The normal and fluent APIs use the same objects. File operations run without Microsoft Project, COM, or a network connection.
+OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI), reads a qualified modern MPP profile, and calculates task schedules through a typed document model. The normal and fluent APIs use the same objects. File operations and calculations run without Microsoft Project, COM, or a network connection.
 
-Load and save retain stored schedule values. They do not schedule tasks or calculate dates, work, or costs. Microsoft Project may calculate those values when it opens an authored file.
+Load and save retain stored schedule values. Call `CalculateSchedule` to inspect calculated dates and float, and `ApplySchedule` or `Recalculate` to update task dates explicitly. Work, cost, actuals, and timephased values remain independently stored. Microsoft Project may calculate those values when it opens an authored file.
 
 ## Author a project
 
@@ -91,10 +91,40 @@ An unchanged byte-loaded document saves byte-for-byte by default. For edited doc
 
 Structural edits can invalidate references inside unmodeled structures. `AssessSave()` reports this risk and the default loss policy blocks the save. A caller that has reviewed the findings can explicitly choose `new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }` from `OfficeIMO.Core`. Validation errors still block output. Fractional dependency lag also requires explicit loss permission because MSPDI writes integer tenths of a minute or integer percent.
 
-Schedule-affecting mutations set `IsScheduleStale`; validation reports the stale stored schedule. This package does not offer recalculation. Dates use `DateTimeKind.Unspecified` and represent local project wall time; no host timezone conversion occurs. Working durations use the project's minutes-per-day/week and days-per-month settings. Elapsed durations count continuous time. Costs are public currency amounts; the XML codec handles MSPDI monetary scaling. New documents use USD deterministically; set `Settings.CurrencyCode` to the intended currency. Loaded documents retain their declared currency or its absence.
+Schedule-affecting mutations set `IsScheduleStale`; validation reports the stale stored task dates. `AreWorkCostTotalsStale` remains true after applying a schedule because that operation does not update work or cost totals. These flags describe edits in the current document; they do not certify the consistency of imported caches. Dates use `DateTimeKind.Unspecified` and represent local project wall time; no host timezone conversion occurs. Working durations use the project's minutes-per-day/week and days-per-month settings. Elapsed durations count continuous time. Costs are public currency amounts; the XML codec handles MSPDI monetary scaling. New documents use USD deterministically; set `Settings.CurrencyCode` to the intended currency. Loaded documents retain their declared currency or its absence.
+
+## Calculate dates and inspect assignment totals
+
+```csharp
+var schedule = project.CalculateSchedule();
+schedule.Report.ThrowIfErrors();
+foreach (var task in schedule.Tasks)
+    Console.WriteLine($"{task.TaskUid}: {task.Start}–{task.Finish}, float {task.TotalSlackMinutes} min");
+
+project.ApplySchedule(schedule);
+var analysis = project.AnalyzeAssignments();
+foreach (var resource in analysis.Resources)
+    Console.WriteLine($"{resource.ResourceUid}: assignment costs {resource.Cost}, stored resource cost {resource.StoredResourceCost}");
+```
+
+Calculation is non-mutating and its result belongs to one document revision. Applying an error-free result rejects another document, stale revisions, and unfinished update scopes. It updates task dates, unstarted automatic-task remaining durations, and missing assignment endpoints; it leaves work/cost amounts unchanged. `Recalculate()` combines calculation and application. The scheduling profile covers calendar inheritance, dated work weeks and exceptions, split/overnight shifts, all four dependency kinds, working/elapsed/percentage lag, forward/backward scheduling, constraints, deadlines, summary dates, and float. Unsupported progress rescheduling, assignment delays/contours, external dependencies, and differing resource calendars produce diagnostics. If proposed task dates conflict with stored assignment dates, the result includes the proposed dates plus an error that blocks application: rescheduling those assignments and their curves is outside this profile. Review [the scheduling boundary](SUPPORT.md#scheduling-and-assignment-analysis) before relying on an imported project's calculation.
+
+Calendar methods `AddWorkingMinutes`, `WorkingMinutesBetween`, and `GetWorkingIntervals` also work independently of the scheduler. Calendar searches have explicit day limits and cancellation support. `ProjectWorkEquation` exposes uniform work/duration/units and rate equations. `AnalyzeAssignments` reports stored assignment aggregates, actual/remaining inconsistencies, cached resource-total differences, and estimates where uniform rates apply. It never overwrites stored costs or actuals, applies dated rate tables, or levels resources.
+
+## Read modern native files
+
+```csharp
+using var native = ProjectDocument.Load("delivery.mpp");
+Console.WriteLine(native.NativeInfo?.ProducerVersion);
+foreach (var task in native.AllTasks)
+    Console.WriteLine($"{task.Uid}: {task.Name}, stored start {task.Start}");
+native.Save("delivery-copy.mpp");
+```
+
+The native reader supports the tested MPP14 records produced by Microsoft Project 2024. Unchanged saves retain the entire input file exactly. Task/resource/assignment values, relationships, calendars, baseline scalar values, and local custom scalars have independent producer comparisons. Native curves, enterprise fields, formulas, lookups, and presentation records remain opaque. A native schedule calculation is a projection of decoded model values and reports that limitation. Any native mutation blocks save, even with allow-loss selected; native writing and conversion are separate unsupported operations. Read-password and write-reservation fixtures are rejected explicitly. Macro, signature, and embedded-content inventory reports conventional names without executing or verifying their content.
 
 ## Coverage and limits
 
-See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact timephased intervals. Native MPP/MPT, MPX, schedule calculation, rendering, and online service integration are separate capabilities and are not supported by this file API.
+See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Native creation/editing, MPT, legacy MPP, MPX, rendering, and online service integration are unsupported.
 
 Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.

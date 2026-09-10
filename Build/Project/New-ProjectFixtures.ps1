@@ -12,7 +12,7 @@ powershell.exe -NoProfile -File Build/Project/New-ProjectFixtures.ps1 -OutputPat
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string] $OutputPath,
-    [ValidateSet('empty', 'delivery', 'calendars', 'actuals', 'relationships', 'resources', 'custom-fields')]
+    [ValidateSet('empty', 'delivery', 'calendars', 'actuals', 'relationships', 'resources', 'custom-fields', 'constraints', 'backward', 'work-cost', 'rich-fields', 'working-weeks', 'read-protected', 'write-reserved')]
     [string[]] $ScenarioNames = @('empty', 'delivery', 'calendars', 'actuals', 'relationships', 'resources', 'custom-fields')
 )
 
@@ -116,11 +116,88 @@ try {
                 $design.Text1 = 'UX'
                 [void]$app.CalculateProject()
             }
+            if ($scenario -eq 'constraints') {
+                foreach ($type in 0..7) {
+                    $task = $project.Tasks.Add("Constraint $type")
+                    $task.Manual = $false
+                    $task.Duration = 480
+                    $task.ConstraintType = $type
+                    if ($type -ge 2) { $task.ConstraintDate = [datetime]'2026-10-09T17:00:00' }
+                }
+                $build.Deadline = [datetime]'2026-10-13T17:00:00'
+                [void]$app.CalculateProject()
+            }
+            if ($scenario -eq 'backward') {
+                $project.ScheduleFromStart = $false
+                $project.ProjectFinish = [datetime]'2026-10-30T17:00:00'
+                [void]$app.CalculateProject()
+            }
+            if ($scenario -eq 'work-cost') {
+                foreach ($type in 0..2) {
+                    $task = $project.Tasks.Add("Work equation $type")
+                    $task.Manual = $false
+                    $task.Duration = 960
+                    $task.Type = $type
+                    [void]$task.Assignments.Add($task.ID, $resource.ID, 0.5)
+                    if ($type -eq 2) { $task.Work = 720 }
+                }
+                $resource.OvertimeRate = 187.5
+                $resource.CostPerUse = 25.75
+                [void]$app.CalculateProject()
+            }
+            if ($scenario -eq 'rich-fields') {
+                foreach ($number in 1..10) {
+                    $build.Duration = (5 * 480) + $number * 60
+                    [void]$app.CalculateProject()
+                    [void]$app.BaselineSave($true, 0, 10 + $number)
+                }
+                $build.Text2 = 'Native custom text'
+                $build.Text30 = 'Last text slot'
+                $build.Number1 = 12.5
+                $build.Number20 = -3.25
+                $build.Cost1 = 123.45
+                $build.Cost10 = 67.89
+                $build.Date1 = [datetime]'2026-11-02T09:30:00'
+                $build.Date10 = [datetime]'2026-11-03T16:45:00'
+                $build.Flag1 = $true
+                $build.Flag20 = $true
+                $build.Duration1 = 90
+                $build.Duration10 = 150
+                $resource.Text1 = 'Resource custom text'
+                $resource.Number1 = 9.5
+                $resource.Flag1 = $true
+                $resource.Cost1 = 765.43
+                $resource.Date1 = [datetime]'2026-11-04T10:15:00'
+                $resource.Initials = 'ENG'
+                $resource.Group = 'Engineering'
+                $resource.EmailAddress = 'engineer@example.invalid'
+                [void]$app.CustomFieldRename(188743734, 'Work package')
+                [void]$app.CalculateProject()
+            }
+            if ($scenario -eq 'working-weeks') {
+                [void]$app.BaseCalendarCreate('Workshop', 'Standard')
+                $calendar = $project.BaseCalendars.Item('Workshop')
+                [void]$calendar.Exceptions.Add(1, [datetime]'2026-10-07', [datetime]'2026-10-07', 1, 'Maintenance')
+                [void]$calendar.Exceptions.Add(1, [datetime]'2026-10-08', [datetime]'2026-10-09', 1, 'Shutdown')
+                $week = $calendar.WorkWeeks.Add([datetime]'2026-10-12', [datetime]'2026-10-16', 'Four-day week')
+                $week.WeekDays.Item(6).Working = $false
+                $build.Calendar = 'Workshop'
+                $resource.BaseCalendar = 'Workshop'
+                [void]$app.CalculateProject()
+            }
         }
         $native = Join-Path $destination ($scenario + '.mpp')
         $xml = Join-Path $destination ($scenario + '.xml')
-        [void]$app.FileSaveAs($native, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.mpp')
-        [void]$app.FileSaveAs($xml, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.xml')
+        if ($scenario -eq 'read-protected' -or $scenario -eq 'write-reserved') {
+            [void]$app.FileSaveAs($xml, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.xml')
+            # Public synthetic test credential, not a user/project secret.
+            $readPassword = if ($scenario -eq 'read-protected') { 'ProjectTest1' } else { '' }
+            $writePassword = if ($scenario -eq 'write-reserved') { 'ProjectTest1' } else { '' }
+            [void]$app.FileSaveAs($native, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.mpp', $missing, $readPassword, $writePassword)
+        } else {
+            [void]$app.FileSaveAs($native, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.mpp')
+            [void]$app.FileSaveAs($xml, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.xml')
+        }
         [void]$app.FileCloseEx(0)
     }
     $files = @(Get-ChildItem -LiteralPath $destination -File | ForEach-Object {

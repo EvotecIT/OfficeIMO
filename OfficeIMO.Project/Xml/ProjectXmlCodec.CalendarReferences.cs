@@ -7,6 +7,9 @@ internal static partial class ProjectXmlCodec {
             if (calendar.SourceBaseCalendarUid is int uid && uid > 0 && document.CalendarIndex.TryGetValue(uid, out var parent))
                 calendar.BindLoadedBaseCalendar(parent);
         }
+        ValidateLoadedCalendarGraph(document, token);
+    }
+    internal static void ValidateLoadedCalendarGraph(ProjectDocument document, CancellationToken token) {
         // Each edge is traversed at most once, independent of source record order.
         // The public mutation setter still validates its individual proposed edge.
         var states = new Dictionary<ProjectCalendar, byte>();

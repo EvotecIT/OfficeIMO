@@ -41,9 +41,13 @@ public sealed partial class ProjectDocument {
             CheckPercent(task.PercentComplete, location, Add); CheckPercent(task.PercentWorkComplete, location, Add); CheckPercent(task.PhysicalPercentComplete, location, Add);
             CheckDateRange(task.Start, task.Finish, location, Add);
             CheckDateRange(task.ActualStart, task.ActualFinish, location + "/Actual", Add);
+            CheckDateRange(task.EarlyStart, task.EarlyFinish, location + "/Early", Add);
+            CheckDateRange(task.LateStart, task.LateFinish, location + "/Late", Add);
             CheckDate(task.Deadline, location + "/Deadline", Add); CheckDate(task.ConstraintDate, location + "/ConstraintDate", Add);
             if (task.Calendar == null && task.SourceCalendarUid > 0)
                 Add("PROJECT_CALENDAR_REFERENCE", "The task references a missing calendar.", location);
+            if (task.Calendar?.IsBaseCalendar == false)
+                Add("PROJECT_TASK_CALENDAR_KIND", "An explicit task calendar must be a base calendar. A derived resource calendar belongs on the resource.", location);
             CheckRich(task.Baselines, task.CustomFields, task.TimephasedData, location, Add, cancellationToken);
         }
         foreach (var resource in Resources) {
@@ -55,7 +59,7 @@ public sealed partial class ProjectDocument {
                     resource.Uid == 0 ? ProjectDiagnosticSeverity.Warning : ProjectDiagnosticSeverity.Error);
             CheckRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, location, Add, cancellationToken);
         }
-        var assignmentPairs = new HashSet<long>();
+        var assignmentPairs = new HashSet<(int, int)>();
         bool warnedCostResourceImport = false;
         foreach (var assignment in Assignments) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -89,7 +93,8 @@ public sealed partial class ProjectDocument {
                 if (!value.Id.HasValue || !lookupIds.Add(value.Id.Value))
                     Add("PROJECT_LOOKUP_ID", "Lookup values need unique IDs.", "/Project/ExtendedAttributes/" + field.FieldId);
         }
-        if (IsScheduleStale) Add("PROJECT_SCHEDULE_STALE", "Schedule-affecting edits have been made; stored dates, work, and costs have not been recalculated.", "/Project", ProjectDiagnosticSeverity.Warning);
+        if (IsScheduleStale) Add("PROJECT_SCHEDULE_STALE", "Schedule-affecting edits have been made; stored task dates have not been recalculated.", "/Project", ProjectDiagnosticSeverity.Warning);
+        if (AreWorkCostTotalsStale) Add("PROJECT_WORK_COST_STALE", "Edits can affect stored work and cost totals. Applying task dates does not recalculate those totals.", "/Project", ProjectDiagnosticSeverity.Warning);
         if (StructureChanged && Source?.HasOpaqueStructures == true)
             Add("PROJECT_OPAQUE_REFERENCES", "Structural edits may invalidate references inside preserved, unmodeled XML. Review the source diagnostics and use Allow loss only when this risk is acceptable.", "/Project", ProjectDiagnosticSeverity.Warning, true);
         if (truncated) diagnostics.Add(new ProjectDiagnostic("PROJECT_VALIDATION_TRUNCATED", ProjectDiagnosticSeverity.Error, "Validation exceeded the diagnostic budget; additional findings are omitted.", "/Project"));

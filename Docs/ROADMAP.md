@@ -244,7 +244,7 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 ## Microsoft Project document library
 
-Extend the [current typed XML library](../OfficeIMO.Project/README.md) with scheduling, modern and legacy MPP lifecycle, MPT, MPX, analysis, and conversion. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and native feasibility evidence. Completing XML or a bounded MPP reader does not complete the native product.
+Extend the [typed Project library](../OfficeIMO.Project/README.md) beyond its XML, bounded modern-MPP reading, and date-calculation profiles with native writing, legacy formats, MPT, MPX, advanced analysis, and conversion. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and native feasibility evidence. Completing XML or a bounded MPP reader does not complete the native product.
 
 The milestones below are ordered product outcomes. Each remains open until its acceptance evidence exists. Implemented contracts move into the package README and operation-level support matrix; delivered history belongs in GitHub Releases. Execution and scope-change rules live in [the repository instructions](../AGENTS.md#project-implementation-discipline).
 
@@ -281,18 +281,17 @@ P02 is the first useful XML product, P05 the first native modern-MPP product, an
 
 ### P03 — Calendar and scheduling foundation
 
-- [ ] Implement calendar inheritance, working weeks, date exceptions, split/overnight shifts, working/elapsed arithmetic, and explicit project/task/resource calendar interactions, including daylight-saving boundaries where applicable.
-- [ ] Implement FS/SS/FF/SF dependencies, positive/negative/percentage lag, cycle detection, forward/backward scheduling, supported constraints/deadlines, summary rollups, milestones, critical path, and total/free float.
-- [ ] Provide structural `Validate`, non-mutating schedule calculation, explicit `Recalculate`, revision-bound results, and clear manual/automatic task behavior. Unsupported combinations must diagnose rather than guess.
-- [ ] Preserve source calculations during ordinary load/save and expose whether edits made them stale. Make calculation reproducible with explicit settings and no dependency on the machine's current date or locale.
+- [ ] Extend the implemented calendar profile to recurring exceptions and independent assignment scheduling across differing resource calendars.
+- [ ] Expand interaction evidence beyond the supported FS/SS/FF/SF, forward/backward, constraint/deadline, summary, manual-task, and float fixtures; qualify remaining combinations before removing their diagnostics.
+- [ ] Decode remaining native scheduling inputs so opaque splits, contours, leveling, and external-task records can be rejected or calculated explicitly rather than treated as a supported-model projection.
 
 Acceptance: independently prepared schedule fixtures agree with Microsoft Project for the supported rule combinations. Include adjacent interactions, not just one test per setting; prove non-mutating calculation and rejection of stale results.
 
 ### P04 — Modern MPP read and preservation
 
-- [ ] Implement MPP14 generation detection, bounded fixed/variable record parsing, string/field tables, identities and references, tasks, calendars, resources, assignments, baselines, custom fields, and timephased data.
-- [ ] Retain source streams and unmodeled records alongside the semantic model. Track which modeled mutations affect opaque references; do not treat copying unknown bytes as proof that their meaning is preserved.
-- [ ] Inspect presentation, embedded content, macros, signatures, and password protection without executing content. Qualify protected-file handling separately; reject unsupported protection without guessing from other Office encryption formats.
+- [ ] Decode compact native timephased records, rate tables, enterprise/custom lookup and formula metadata, and remaining fields outside the documented scalar reader profile.
+- [ ] Broaden producer/build and malformed-input fixtures beyond Project 2024, retaining explicit source-versus-export observations and whole-file preservation tests.
+- [ ] Extend the inert stream inventory to typed presentation, embedded-content, macro, and signature metadata. Qualify protection variants beyond the read-password/write-reservation rejection fixtures without executing content.
 - [ ] Add metadata-only/selective inspection where it measurably improves real workloads. Keep timephased series compact and bounded rather than eagerly expanding every interval into daily records.
 
 Acceptance: producer-specific read comparisons and unchanged-save tests pass for the declared operation matrix. Distinguish whole-file identity, stream-content preservation, and semantic fidelity. All unsupported records and protection states have actionable diagnostics.
@@ -317,7 +316,7 @@ Acceptance: every claimed generation/operation has independent-producer and reop
 
 ### P07 — Advanced scheduling and project semantics
 
-- [ ] Add fixed-work/fixed-duration/fixed-units scheduling, effort-driven assignment changes, resource availability, resource/task calendar combinations, and material/cost resources with rate tables and cost accrual.
+- [ ] Extend the fixed-work/fixed-duration/fixed-units date profile and uniform assignment equations with effort-driven assignment changes, resource availability, independent resource/task calendars, variable material usage, dated rate tables, and cost accrual.
 - [ ] Add actual/remaining work and duration, percent complete/work complete/physical completion distinctions, status-date behavior, splits, overtime, contours, timephased actuals/costs, and baseline/earned-value calculations.
 - [ ] Add explicit resource-overallocation analysis and deterministic resource leveling with documented priority, delay, split, and limit options. Keep leveling separate from ordinary calculation.
 - [ ] Add supported custom-field formulas, lookup tables, outline codes, graphical indicators, recurring tasks, and external project/resource-pool semantics. Use a bounded formula evaluator, never arbitrary code execution; resolve external files only through an explicit caller-controlled resolver.

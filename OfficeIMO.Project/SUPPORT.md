@@ -13,7 +13,7 @@ This matrix describes the `OfficeIMO.Project` file API. Microsoft Project 2024 b
 | Unchanged save | Exact input bytes when loaded from bytes/stream/path and no edits were made | Every committed producer XML fixture |
 | Edited save | Preserve unknown elements/attributes and update changed modeled fields | Producer fixture tests, extension-node tests, Microsoft Project semantic readback |
 | Schema validation | New authored subset checked against the Project 2013 client schema | The SDK schema declares `/project/2007`; the verifier explicitly aliases it to the application's `/project` namespace without changing element rules |
-| Calculation | Not implemented | Ordinary load/save never recalculates; schedule-affecting edits report stale stored values |
+| Calculation | Explicit date/float calculation and revision-bound application | See the scheduling profile below; ordinary load/save never recalculates |
 | Rendering and conversion | Not implemented | XML does not establish native views, formatting, printing, or MPP presentation fidelity |
 
 The reader accepts `http://schemas.microsoft.com/project` and `http://schemas.microsoft.com/project/2007`. It retains the source namespace. Acceptance of a namespace does not qualify every producer or schema version. Project 2024 exports include extensions and ordering differences outside the older SDK schema; retained source XML is not automatically rewritten into that older profile.
@@ -23,9 +23,9 @@ The reader accepts `http://schemas.microsoft.com/project` and `http://schemas.mi
 | Area | Typed contract | Preserved or unqualified behavior |
 | --- | --- | --- |
 | Identity and hierarchy | Task/resource/calendar/assignment UIDs and GUIDs; display IDs; task parent/children; WBS and outline fields | External linked-project identities remain unresolved; no implicit external file access |
-| Tasks | Stored dates, duration/work/cost, progress/actual/remaining values, constraints, deadlines, notes, manual flag, and dependency links | No scheduling, leveling, constraint solving, or automatic summary arithmetic |
+| Tasks | Stored dates, early/late dates, float, duration/work/cost, progress/actual/remaining values, constraints, deadlines, notes, manual flag, and dependency links | Explicit date calculation; no automatic work/cost/progress recalculation or leveling |
 | Dependencies | FS, SS, FF, SF; positive/negative working or elapsed lag; percentage lag | Integer MSPDI lag precision; fractional values require explicit rounding permission. External links are retained without local binding |
-| Calendars | Base-calendar references, weekday intervals, date exceptions, and legacy exception periods | Project 2024's duplicate legacy/modern exception representations stay synchronized. Recurrence details and working-week structures outside this model remain opaque; no calendar arithmetic |
+| Calendars | Base references, weekday intervals, dated work weeks, date exceptions, legacy exception periods, working-time arithmetic | Project 2024's duplicate exception representations stay synchronized. Recurring exception rules are retained but block calendar calculation |
 | Resources | Work, material, and cost resource types; rates, units, calendar references, and stored values | Type values differ between COM and XML; the codec handles that mapping. Cost-resource amount fidelity on Project import is not qualified |
 | Assignments | Task/resource identities, units, stored dates/work/cost/actual/remaining values, custom fields, baselines, timephased intervals | Microsoft Project may recalculate incomplete stored-value combinations on import; OfficeIMO does not infer scheduling inputs |
 | Baselines | Slots 0–10; work/cost/BCWS/BCWP; task/assignment dates; task duration/fixed cost; task/assignment intervals | Resource baselines reject dates/intervals; assignment/resource baselines reject task-only fields. Unmodeled source fields remain preserved |
@@ -37,14 +37,36 @@ The reader accepts `http://schemas.microsoft.com/project` and `http://schemas.mi
 
 The tested Project build exports a cost-resource assignment of 300 to XML with a stored cost of 300, then reopens its own untouched XML with a cost of zero. The paired native MPP retains 300. OfficeIMO preserves the XML amount and emits `PROJECT_COST_RESOURCE_IMPORT`; it does not claim application amount fidelity or substitute guessed scheduling/timephased records. Work-resource costs in the delivery and actuals fixtures have separate successful readback evidence.
 
+## Scheduling and assignment analysis
+
+Eight synthetic schedules cover delivery dependencies, task/resource calendar interactions, all link kinds, positive/negative/elapsed/percentage lag, all eight constraint types, deadlines, backward scheduling, fixed-work/fixed-units/fixed-duration tasks, baseline-rich input, and dated work weeks. Native and XML inputs are compared with Project 2024's exported start/finish, early/late dates, total/free float, and critical flags. This corpus qualifies those combinations, not arbitrary Microsoft Project schedules.
+
+Calendar arithmetic uses local wall time, inherited exceptions, dated week overrides, split/overnight shifts, bounded searches, and cancellation. A task without an explicit task calendar follows its single effective resource calendar; an explicit task calendar intersects that resource calendar. Different calendars across assignments require independent assignment scheduling and are rejected. Recurring calendar exceptions remain unqualified.
+
+Automatic tasks use explicit working or elapsed durations. Fixed-work tasks derive duration from stored work and positive assignment units when calendars agree. Manual tasks retain their explicit dates and diagnose conflicting dependencies/constraints. Summary dates roll up children; summaries with dependencies, inactive/placeholder dependency endpoints, and unsupported final bounds are rejected. Progress/status-date rescheduling, effort-driven changes to assignments, splits, leveling, non-flat assignment contours, and external-project scheduling are outside this profile. Retained XML flags for known unsupported inputs block calculation; native opaque scheduling records cannot be checked completely, so native results carry `PROJECT_NATIVE_SCHEDULE_PROJECTION`.
+
+Applying a valid result initializes missing assignment start/finish values and updates remaining duration for unstarted automatic tasks. A newly authored dependency chain with a resource, calendar closures, and a short-Friday work week retains its calculated dates after Project 2024 opens and re-exports it. Changing task dates while retaining conflicting imported assignment dates/curves does not have that guarantee: the producer can reinstate the old schedule. Such conflicts produce `PROJECT_ASSIGNMENT_DATE_RECALCULATION_REQUIRED` and block application while leaving the proposed dates available for inspection. Work/cost amounts and actuals are never implicitly recalculated.
+
+`AnalyzeAssignments` keeps assignment sums separate from resource caches. The producer corpus contains native resource cost caches that differ from both assignment sums and the producer's XML totals; the comparison report retains both observations and verifies the assignment sum before classifying a cache difference. Uniform estimates require explicit inputs. Dated/non-default rate tables and native rate profiles produce diagnostics instead of a rate estimate. Cost resources use entered amounts; material estimates assume fixed consumption units. No estimates are applied to the model. Applying task dates leaves potentially stale work/cost totals flagged.
+
 ## Native format feasibility
 
-Native experiments are opt-in tooling outside the runtime library. They do not make `ProjectDocument.Load` or `Save` support a native format.
+The public reader loads the qualified MPP14 profile below. Twelve paired producer files in `Project2024`, `Project2024Semantics`, and `Project2024WorkWeeks` exercise native and XML observations; `Project2024Protection` adds independently protected inputs. Writer experiments remain opt-in tooling and do not authorize native mutation or conversion.
+
+| Public native operation | Contract | Boundary |
+| --- | --- | --- |
+| Read | Bounded Core compound reader, producer field maps, fixed/variable records, task hierarchy, resources, assignments, links, calendar inheritance/exceptions/work weeks, metadata | MPP14 from Project 2024 build 16.0.20326.20144; other producers/builds are unqualified |
+| Baselines and local custom scalars | Task/resource/assignment baseline slots 0–10; task/resource text 1–30, number/flag 1–20, cost/date/duration 1–10; aliases | Baseline curves, enterprise values, formulas, and lookup tables stay opaque. Source absence differs from explicit native zero/default values; baseline duration estimate flags can be omitted by XML |
+| Unchanged save and clone | Exact whole-file bytes | No native stream rewrite occurs |
+| Edited save and conversion | Rejected before output | Allow-loss cannot enable an unqualified writer; `ToXml` does not silently discard opaque native data |
+| Protected files | Read-password and write-reservation inputs rejected | No password/decryption API or claim about other protection variants |
+| Inert inventory | Stream names/lengths, producer, conventional macro/signature/embedded-content presence | No macro execution, signature validation, embedded-content activation, or semantic presentation decoding |
+| Timephased data | Retained in source bytes | Native curves are not exposed as typed intervals or inferred from scalar totals |
 
 | Experiment | Result | Qualification |
 | --- | --- | --- |
 | MPP14 detection and bounded compound inspection | Successful on the Project 2024 corpus | Container family markers, class identity, stream inventory, and bounded Core reader |
-| Representative record extraction | Successful for task names, calendar names, and assignment identities | Fixture-qualified offsets/field IDs compared with the paired producer XML; not a general record decoder |
+| Representative record extraction | Superseded by the bounded public read profile above | Historical writer experiments below remain separate |
 | Unchanged native bytes | Retained exactly | Byte copy only |
 | Compound rewrite with unchanged streams | Reopened in Project 2024; stream bytes retained | Core directory/stream retention proof, not arbitrary native edit support |
 | Controlled same-width task name edit | Project readback shows `Build` changed to `Craft` | One fixture and one record field; does not prove record growth, relocation, or structural changes |

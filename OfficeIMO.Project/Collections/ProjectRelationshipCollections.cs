@@ -16,7 +16,7 @@ public sealed class ProjectDependencyCollection : IReadOnlyList<ProjectDependenc
         _document.EnsureMutable(); _document.CheckMember(predecessor); _document.CheckMember(successor);
         if (predecessor == successor) throw new ArgumentException("A task cannot depend on itself.");
         if (!Enum.IsDefined(typeof(ProjectDependencyType), type)) throw new ArgumentOutOfRangeException(nameof(type));
-        long key = ProjectDocument.PairKey(predecessor.Uid, successor.Uid);
+        var key = ProjectDocument.PairKey(predecessor.Uid, successor.Uid);
         if (_document.DependencyPairs.Contains(key)) throw new ArgumentException("The dependency already exists.");
         var result = new ProjectDependency(_document) { Predecessor = predecessor, Successor = successor, SourcePredecessorUid = predecessor.Uid, Type = type };
         Items.Add(result); _document.DependencyPairs.Add(key); _document.Touch(true, true); return result;
@@ -48,7 +48,7 @@ public sealed class ProjectAssignmentCollection : IReadOnlyList<ProjectAssignmen
         if (task == null) throw new ArgumentNullException(nameof(task));
         if (resource == null) throw new ArgumentNullException(nameof(resource));
         _document.EnsureMutable(); _document.CheckMember(task); _document.CheckMember(resource);
-        long key = ProjectDocument.PairKey(task.Uid, resource.Uid);
+        var key = ProjectDocument.PairKey(task.Uid, resource.Uid);
         if (_document.AssignmentPairs.Contains(key)) throw new ArgumentException("This resource is already assigned to the task.");
         var result = new ProjectAssignment(_document, _document.NextAssignmentUid()) {
             Task = task, Resource = resource, SourceTaskUid = task.Uid, SourceResourceUid = resource.Uid,

@@ -51,6 +51,7 @@ internal static partial class ProjectXmlCodec {
             }
         }
         calendar.WeekDays.Items.RemoveAll(day => mirrored.Contains(day));
+        ReadWorkWeeks(calendar, element, token);
     }
     private static void ReadWorkingTimes(ProjectCollection<ProjectWorkingInterval> intervals, XElement element, ProjectDocument document, CancellationToken token) {
         foreach (var time in Children(element, "WorkingTimes", "WorkingTime")) {
@@ -97,6 +98,7 @@ internal static partial class ProjectXmlCodec {
             ReplaceContainer(result, "WorkingTimes", "WorkingTime", exception.WorkingTimes.Select(t => WriteWorkingTime(t, document, token)), ExceptionOrder);
             return result;
         }), CalendarOrder);
+        WriteWorkWeeks(calendar, node, token);
         return node;
     }
     private static void WritePeriod(ProjectDocument document, ProjectObject model, XElement result, DateTime? from, DateTime? to, string[] order) {

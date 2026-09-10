@@ -2,6 +2,12 @@ namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlFields {
     internal static readonly ProjectXmlField<ProjectTask>[] Task = {
+        new ProjectXmlField<ProjectTask>("EarlyStart", (m, d) => ProjectXmlValue.Date(m.EarlyStart), (m, v, d, e) => m.EarlyStart = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("EarlyFinish", (m, d) => ProjectXmlValue.Date(m.EarlyFinish), (m, v, d, e) => m.EarlyFinish = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("LateStart", (m, d) => ProjectXmlValue.Date(m.LateStart), (m, v, d, e) => m.LateStart = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("LateFinish", (m, d) => ProjectXmlValue.Date(m.LateFinish), (m, v, d, e) => m.LateFinish = ProjectXmlValue.ParseDate(v)),
+        new ProjectXmlField<ProjectTask>("TotalSlack", (m, d) => ProjectXmlValue.Number(m.TotalSlackMinutes * 10m), (m, v, d, e) => m.TotalSlackMinutes = ProjectXmlValue.ParseNumber(v) / 10m),
+        new ProjectXmlField<ProjectTask>("FreeSlack", (m, d) => ProjectXmlValue.Number(m.FreeSlackMinutes * 10m), (m, v, d, e) => m.FreeSlackMinutes = ProjectXmlValue.ParseNumber(v) / 10m),
         new ProjectXmlField<ProjectTask>("GUID", (m, d) => ProjectXmlValue.Identifier(m.Guid), (m, v, d, e) => m.Guid = ProjectXmlValue.ParseGuid(v)),
         new ProjectXmlField<ProjectTask>("Name", (m, d) => ProjectXmlValue.Text(m.Name), (m, v, d, e) => m.Name = v),
         new ProjectXmlField<ProjectTask>("ID", (m, d) => ProjectXmlValue.Integer(m.DisplayId), (m, v, d, e) => m.DisplayId = ProjectXmlValue.ParseInt(v)),

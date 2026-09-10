@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Managed Microsoft Project XML authoring, inspection, editing, and source-preserving save with typed and fluent APIs.</Description>
+    <Description>Managed Microsoft Project XML authoring, modern MPP inspection, explicit task scheduling, and source-preserving save with typed and fluent APIs.</Description>
     <AssemblyName>OfficeIMO.Project</AssemblyName>
     <PackageId>OfficeIMO.Project</PackageId>
     <VersionPrefix>3.4.3</VersionPrefix>

@@ -75,7 +75,8 @@ namespace OfficeIMO.Core.Internal {
             if (offsets.TryGetValue(CodePagePropertyId, out int codePageOffset)) {
                 OfficeOlePropertyValue codePageValue = ReadPropertyValue(bytes, codePageOffset, codePage);
                 if (codePageValue.Value is short shortCodePage) {
-                    codePage = shortCodePage;
+                    // VT_I2 carries the unsigned Windows code-page identifier (for example UTF-8, 65001).
+                    codePage = unchecked((ushort)shortCodePage);
                 } else if (codePageValue.Value is int intCodePage) {
                     codePage = intCodePage;
                 }
@@ -128,7 +129,9 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 result[propertyId] = name;
-                cursor = AlignToInt32(cursor);
+                // MS-OLEPS 2.16: only UTF-16 dictionary names have DWORD padding.
+                // ANSI/UTF-8 dictionary entries are packed without inter-entry padding.
+                if (codePage == 1200) cursor = AlignToInt32(cursor);
             }
 
             return result;

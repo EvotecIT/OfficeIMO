@@ -4,6 +4,10 @@ namespace OfficeIMO.Project;
 public sealed class ProjectLoadOptions : DocumentLoadOptions {
     /// <summary>Maximum input bytes, including buffering of non-seekable sources.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
+    /// <summary>Maximum compound directory entries for native input.</summary>
+    public int MaxCompoundEntries { get; set; } = 4096;
+    /// <summary>Maximum materialized compound streams for native input.</summary>
+    public int MaxCompoundStreams { get; set; } = 2048;
     /// <summary>Maximum XML characters before materialization.</summary>
     public long MaxCharacters { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum XML nesting depth.</summary>
@@ -26,7 +30,7 @@ public sealed class ProjectLoadOptions : DocumentLoadOptions {
     internal void ValidateLimits() {
         if (PackageSecurity != null)
             throw new NotSupportedException("PackageSecurity applies to packaged document formats. Use the Project XML limits for this codec; XML never resolves external entities or fetches external resources.");
-        if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue || MaxCharacters < 1 || MaxDepth < 1 || MaxOutlineDepth < 1 ||
+        if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue || MaxCompoundEntries < 1 || MaxCompoundStreams < 1 || MaxCharacters < 1 || MaxDepth < 1 || MaxOutlineDepth < 1 ||
             MaxElements < 1 || MaxAttributes < 1 || MaxTasks < 1 || MaxEntities < 1 ||
             MaxTimephasedValues < 1 || MaxDiagnostics < 1) throw new ArgumentOutOfRangeException(nameof(ProjectLoadOptions), "All limits must be positive and in-memory input must fit an Int32 byte array.");
         if (!Enum.IsDefined(typeof(DocumentAccessMode), AccessMode) || !Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode))

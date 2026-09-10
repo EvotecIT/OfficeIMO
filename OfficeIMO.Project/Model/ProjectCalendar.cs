@@ -1,10 +1,11 @@
 namespace OfficeIMO.Project;
 
 /// <summary>A base or derived calendar with stored working days and exceptions; no scheduling runs during editing.</summary>
-public sealed class ProjectCalendar : ProjectNamedEntity {
+public sealed partial class ProjectCalendar : ProjectNamedEntity {
     internal ProjectCalendar(ProjectDocument document, int uid) : base(document, uid) {
         WeekDays = new ProjectCollection<ProjectWeekDay>(document, () => new ProjectWeekDay(document), true, owner: this);
         Exceptions = new ProjectCollection<ProjectCalendarException>(document, () => new ProjectCalendarException(document), true, owner: this);
+        WorkWeeks = new ProjectCollection<ProjectWorkWeek>(document, () => new ProjectWorkWeek(document), true, owner: this);
     }
     private ProjectCalendar? _baseCalendar;
     /// <summary>The inherited calendar, or null for a base calendar.</summary>
@@ -23,6 +24,7 @@ public sealed class ProjectCalendar : ProjectNamedEntity {
     /// <summary>Source base-calendar flag; null preserves absence.</summary>
     public bool? IsBaseCalendar { get => _isBaseCalendar; set => Set(ref _isBaseCalendar, value, true); }
     internal int? SourceBaseCalendarUid { get; set; }
+    internal bool HasUnqualifiedNativeRecurrence { get; set; }
     internal void BindLoadedBaseCalendar(ProjectCalendar? calendar) {
         if (!Document.Loading) throw new InvalidOperationException("Bulk calendar binding is only valid during load.");
         _baseCalendar = calendar;
@@ -31,6 +33,8 @@ public sealed class ProjectCalendar : ProjectNamedEntity {
     public ProjectCollection<ProjectWeekDay> WeekDays { get; }
     /// <summary>Date exceptions, including retained unmodeled recurrence data.</summary>
     public ProjectCollection<ProjectCalendarException> Exceptions { get; }
+    /// <summary>Date-bounded weekday overrides, applied after date exceptions and before the ordinary week.</summary>
+    public ProjectCollection<ProjectWorkWeek> WorkWeeks { get; }
 
     /// <summary>Replaces the working intervals for a day without changing other calendar days.</summary>
     public ProjectWeekDay SetWorkingDay(DayOfWeek day, params ProjectWorkingTime[] times) {

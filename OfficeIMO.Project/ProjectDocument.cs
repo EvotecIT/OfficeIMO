@@ -14,16 +14,21 @@ public sealed partial class ProjectDocument : IDisposable {
     private string? _path;
     private Stream? _associatedStream;
     internal ProjectXmlSource? Source;
+    internal ProjectNativeSource? NativeSource;
+    /// <summary>Native source generation and inert container inventory; null for XML/new documents.</summary>
+    public ProjectNativeInfo? NativeInfo => NativeSource?.Info;
     internal byte[]? LastSavedBytes;
     internal readonly Dictionary<int, ProjectTask> TaskIndex = new Dictionary<int, ProjectTask>();
     internal readonly Dictionary<int, ProjectResource> ResourceIndex = new Dictionary<int, ProjectResource>();
     internal readonly Dictionary<int, ProjectCalendar> CalendarIndex = new Dictionary<int, ProjectCalendar>();
     internal readonly Dictionary<int, ProjectAssignment> AssignmentIndex = new Dictionary<int, ProjectAssignment>();
-    internal readonly HashSet<long> AssignmentPairs = new HashSet<long>();
-    internal readonly HashSet<long> DependencyPairs = new HashSet<long>();
-    internal static long PairKey(int first, int second) => ((long)first << 32) | (uint)second;
+    // A packed Int64 hashes by XORing its halves; adjacent UIDs then collide heavily in dense schedules.
+    internal readonly HashSet<(int First, int Second)> AssignmentPairs = new HashSet<(int, int)>();
+    internal readonly HashSet<(int First, int Second)> DependencyPairs = new HashSet<(int, int)>();
+    internal static (int First, int Second) PairKey(int first, int second) => (first, second);
     private int _taskUid = 1, _resourceUid = 1, _calendarUid = 1, _assignmentUid = 1;
     private readonly List<ProjectDiagnostic> _readDiagnostics = new List<ProjectDiagnostic>();
+    internal int ReadDiagnosticLimit = int.MaxValue;
 
     private ProjectDocument() {
         Settings = new ProjectSettings(this);
@@ -76,6 +81,8 @@ public sealed partial class ProjectDocument : IDisposable {
     public bool IsModified => Revision != _savedRevision || _batchChanged;
     /// <summary>True when schedule-affecting changes have been made without an explicit calculation.</summary>
     public bool IsScheduleStale { get; private set; }
+    /// <summary>True after edits that can affect stored work/cost totals. Applying task dates does not recalculate those totals.</summary>
+    public bool AreWorkCostTotalsStale { get; private set; }
     /// <summary>The input's SaveVersion, if declared. This is not an MPP write capability.</summary>
     public int? SourceSaveVersion => Source?.SaveVersion;
     /// <summary>Source XML namespace, or the native Project XML namespace for a new document.</summary>
@@ -97,9 +104,13 @@ public sealed partial class ProjectDocument : IDisposable {
         if (Loading) return;
         EnsureMutable();
         if (_batchDepth > 0) _batchChanged = true; else Revision++;
-        IsScheduleStale |= schedule; StructureChanged |= structure;
+        IsScheduleStale |= schedule; AreWorkCostTotalsStale |= schedule; StructureChanged |= structure;
     }
-    internal void AddReadDiagnostic(ProjectDiagnostic diagnostic) => _readDiagnostics.Add(diagnostic);
+    internal void AddReadDiagnostic(ProjectDiagnostic diagnostic) {
+        if (_readDiagnostics.Count < ReadDiagnosticLimit) _readDiagnostics.Add(diagnostic);
+        else if (_readDiagnostics.Count == ReadDiagnosticLimit) _readDiagnostics.Add(new ProjectDiagnostic("PROJECT_DIAGNOSTICS_TRUNCATED",
+            ProjectDiagnosticSeverity.Warning, "Additional source diagnostics exceeded MaxDiagnostics.", "/Project"));
+    }
     internal static IEnumerable<ProjectTask> Traverse(IEnumerable<ProjectTask> roots) {
         var stack = new Stack<IEnumerator<ProjectTask>>();
         stack.Push(roots.GetEnumerator());

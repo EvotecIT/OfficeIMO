@@ -1,5 +1,12 @@
 using OfficeIMO.Project;
 
+if (args.Length == 3 && args[0] == "schedule-scale") return ScheduleScale.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), args[2]);
+if (args.Length == 3 && args[0] == "schedule-edit") return ScheduleReadback.Create(args[1], args[2]);
+if (args.Length == 3 && args[0] == "schedule-readback") return ScheduleReadback.Verify(args[1], args[2]);
+if (args.Length == 3 && args[0] == "schedule-corpus") return ScheduleCorpus.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "native-layout") return NativeLayoutDump.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "native-records") return NativeMappedRecords.Run(args[1], args[2]);
+if (args.Length == 3 && args[0] == "native-corpus") return NativeCorpus.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "schema") return SchemaValidation.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "edit-cases") return EditCases.Run(args[1], args[2]);
 if (args.Length == 3 && args[0] == "cancellation") return CancellationProof.Run(args[1], args[2]);

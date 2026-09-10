@@ -5,6 +5,8 @@ public sealed partial class ProjectDocument {
         foreach (var calendar in Calendars) {
             token.ThrowIfCancellationRequested();
             string location = "/Calendar[UID=" + calendar.Uid + "]";
+            if (calendar.IsBaseCalendar == true && calendar.BaseCalendar != null)
+                add("PROJECT_CALENDAR_KIND", "A base calendar cannot also inherit a resource base-calendar reference. Create a derived calendar with Calendars.Add(name, baseCalendar).", location);
             if (calendar.BaseCalendar == null && calendar.SourceBaseCalendarUid > 0)
                 add("PROJECT_CALENDAR_REFERENCE", "The calendar references a missing base calendar.", location);
             var days = new HashSet<DayOfWeek>();
@@ -21,6 +23,16 @@ public sealed partial class ProjectDocument {
                 token.ThrowIfCancellationRequested();
                 CheckDateRange(exception.FromDate, exception.ToDate, location + "/Exception", add);
                 CheckIntervals(exception.WorkingTimes, location + "/Exception", add, token);
+            }
+            foreach (var week in calendar.WorkWeeks) {
+                token.ThrowIfCancellationRequested();
+                CheckDateRange(week.FromDate, week.ToDate, location + "/WorkWeek", add);
+                var weekdays = new HashSet<DayOfWeek>();
+                foreach (var day in week.WeekDays) {
+                    if (!day.Day.HasValue || !Enum.IsDefined(typeof(DayOfWeek), day.Day.Value) || !weekdays.Add(day.Day.Value))
+                        add("PROJECT_CALENDAR_DAY", "Work-week overrides require unique valid weekdays.", location + "/WorkWeek");
+                    CheckIntervals(day.WorkingTimes, location + "/WorkWeek", add, token);
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Project;
 
 /// <summary>A task or summary in a project hierarchy; stored schedule values remain distinct from calculation.</summary>
-public sealed class ProjectTask : ProjectNamedEntity {
+public sealed partial class ProjectTask : ProjectNamedEntity {
     internal ProjectTask(ProjectDocument document, int uid) : base(document, uid) {
         TimephasedData = new ProjectCollection<ProjectTimephasedValue>(document, () => new ProjectTimephasedValue(document), owner: this);
         Baselines = new ProjectCollection<ProjectBaseline>(document, () => new ProjectBaseline(document), owner: this);
