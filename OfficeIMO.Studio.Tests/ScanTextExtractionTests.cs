@@ -36,6 +36,8 @@ public sealed class ScanTextExtractionTests {
             try {
                 window.Show(); model.InputPath = source; model.OutputPath = string.Empty;
                 model.Scan.PageNumber = 2;
+                model.Scan.UseRegion = width == 960;
+                model.Scan.Region = new Rect(.1, .1, .7, .7);
                 Assert.True(model.ExtractTextCommand.CanExecute(null));
                 Assert.False(model.RunCommand.CanExecute(null));
                 var running = model.ExtractTextCommand.ExecuteAsync(null);
@@ -43,7 +45,17 @@ public sealed class ScanTextExtractionTests {
                 Assert.Equal(2, Assert.Single(review.Pages).Number);
                 Assert.Equal("Use selected text", review.CommitLabel);
                 Assert.False(model.ExtractTextCommand.CanExecute(null));
+                if (model.Scan.UseRegion) Assert.Equal(2, Assert.Single(recognition.Options!.Pdf.Regions).PageNumber);
+                else Assert.Empty(recognition.Options!.Pdf.Regions);
                 review.Words.Single(word => word.Text == "Discard").IsIncluded = false;
+                window.UpdateLayout();
+                using (var frame = window.CaptureRenderedFrame()) {
+                    string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+                    if (!string.IsNullOrEmpty(output)) {
+                        Directory.CreateDirectory(output);
+                        frame!.Save(Path.Combine(output, $"quick-text-review-{width}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                    }
+                }
                 review.CommitCommand.Execute(null); await running;
                 Assert.Equal("Copy this", model.ExtractedText);
                 Assert.False(model.HasOutput);
@@ -91,8 +103,10 @@ public sealed class ScanTextExtractionTests {
 
     private sealed class RecognitionService : IScanTextRecognitionService {
         public int Calls { get; private set; }
+        public SearchablePdfOcrOptions? Options { get; private set; }
         public Task<PdfSearchableOcrReview> PrepareAsync(byte[] source, SearchablePdfOcrOptions options, CancellationToken token) {
             Calls++;
+            Options = options;
             var engine = new DelegateOcrEngine("quick-text", (_, _) => Task.FromResult(new OcrResult {
                 Provider = "fixture", Language = "eng", Spans = [Word("Copy this", 20), Word("Discard", 60)]
             }));
