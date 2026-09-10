@@ -12,7 +12,9 @@ powershell.exe -NoProfile -File Build/Project/Test-ProjectInteroperability.ps1 -
 param(
     [Parameter(Mandatory)][string] $InputPath,
     [Parameter(Mandatory)][string] $OutputPath,
-    [string] $ExpectedPath
+    [string] $ExpectedPath,
+    [switch] $NativeRoundTrip,
+    [switch] $ApplicationAlerts
 )
 $ErrorActionPreference = 'Stop'
 $inputFile = [IO.Path]::GetFullPath($InputPath)
@@ -23,10 +25,10 @@ $missing = [Type]::Missing
 $app = New-Object -ComObject MSProject.Application
 try {
     $app.Visible = $false
-    $app.DisplayAlerts = $false
+    $app.DisplayAlerts = [bool]$ApplicationAlerts
     $app.AutomationSecurity = 3
     if (!$app.FileOpenEx($inputFile, $true, 0)) { throw 'Microsoft Project did not open the input.' }
-    $project = $app.ActiveProject
+    function Read-ProjectModel($project) {
     $tasks = @($project.Tasks | Where-Object { $null -ne $_ } | ForEach-Object {
         $task = $_
         [ordered]@{
@@ -49,16 +51,35 @@ try {
     $assignments = @($project.Tasks | Where-Object { $null -ne $_ } | ForEach-Object { $_.Assignments } | Where-Object { $null -ne $_ } | ForEach-Object {
         [ordered]@{ uid = $_.UniqueID; taskUid = $_.TaskUniqueID; resourceUid = $_.ResourceUniqueID; units = $_.Units; cost = $_.Cost; workMinutes = $_.Work }
     })
+        return [ordered]@{ tasks = $tasks; resources = $resources; calendars = $calendars; assignments = $assignments }
+    }
+    $observed = Read-ProjectModel $app.ActiveProject
+    $nativeRoundTripResult = $null
+    if ($NativeRoundTrip) {
+        $nativePath = Join-Path $outputDirectory 'application-save.mpp'
+        [void]$app.FileSaveAs($nativePath, 0)
+        [void]$app.FileCloseEx(0)
+        if (!$app.FileOpenEx($nativePath, $true, 0)) { throw 'Microsoft Project did not reopen its native save.' }
+        $reopened = Read-ProjectModel $app.ActiveProject
+        $same = (ConvertTo-Json -InputObject $observed -Depth 8 -Compress) -ceq (ConvertTo-Json -InputObject $reopened -Depth 8 -Compress)
+        $nativeRoundTripResult = [ordered]@{
+            sha256 = (Get-FileHash -LiteralPath $nativePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            sameObservedSemantics = $same
+            reopened = $reopened
+        }
+    }
     $reexport = Join-Path $outputDirectory 'reexport.xml'
     [void]$app.FileSaveAs($reexport, 0, $missing, $missing, $missing, $missing, $missing, $missing, $missing, 'MSProject.xml')
     $result = [ordered]@{
-        producer = 'Microsoft Project'; version = $app.Version
+        producer = 'Microsoft Project'; version = $app.Version; applicationAlertsEnabled = [bool]$ApplicationAlerts
         build = (Get-Item (Join-Path $app.Path 'WINPROJ.EXE')).VersionInfo.FileVersion
         inputSha256 = (Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash.ToLowerInvariant()
-        tasks = $tasks; resources = $resources; calendars = $calendars; assignments = $assignments
+        tasks = $observed.tasks; resources = $observed.resources; calendars = $observed.calendars; assignments = $observed.assignments
+        nativeRoundTrip = $nativeRoundTripResult
         reexportSha256 = (Get-FileHash -LiteralPath $reexport -Algorithm SHA256).Hash.ToLowerInvariant()
     }
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outputDirectory 'readback.json') -Encoding UTF8
+    if ($NativeRoundTrip -and !$nativeRoundTripResult.sameObservedSemantics) { throw 'Application save/reopen changed the observed semantics; inspect readback.json.' }
     if ($ExpectedPath) {
         # An expected file contains selected records and properties; omitted fields remain observable in readback.json.
         $expected = Get-Content -LiteralPath $ExpectedPath -Raw | ConvertFrom-Json

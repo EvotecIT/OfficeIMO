@@ -40,6 +40,8 @@ internal static partial class ProjectNativeCodec {
             Warn(document, "PROJECT_NATIVE_OPAQUE", "Source streams and unmodeled records are retained. Unchanged native save preserves the whole file; native edits and conversion require a separately qualified writer.", "/");
             Warn(document, "PROJECT_NATIVE_TIMEPHASED_PRESERVED", "Native work/cost curves, rate tables, custom-field formulas/lookups, and presentation records remain in source streams. They are not expanded into typed timephased values or evaluated.", "/");
             document.FinishRead(options);
+            document.NativeSource.Snapshot = ProjectModelSnapshot.Capture(document, token);
+            document.NativeSource.ModelRevision = document.Revision;
             return document;
         } catch { document.DisposeFailedRead(); throw; }
     }
@@ -72,6 +74,7 @@ internal static partial class ProjectNativeCodec {
     private static void ReadSettings(ProjectDocument document, Dictionary<uint, ProjectNativeValue> values) {
         ProjectNativeValue? Get(uint id) => values.TryGetValue(id, out var value) ? value : (ProjectNativeValue?)null;
         document.Name = Get(0x02400008)?.Unicode();
+        if (Get(0x02400029) is ProjectNativeValue identity) document.Guid = new Guid(identity.Copy());
         document.Settings.StartDate = Get(0x02400002)?.Date(); document.Settings.FinishDate = Get(0x02400003)?.Date();
         document.Settings.ScheduleFromStart = Get(0x02400004)?.UInt16() == 1;
         document.Settings.MinutesPerDay = Get(0x0240001d)?.Int32(); document.Settings.MinutesPerWeek = Get(0x0240001e)?.Int32();

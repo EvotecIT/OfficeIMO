@@ -244,7 +244,7 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 ## Microsoft Project document library
 
-Extend the [typed Project library](../OfficeIMO.Project/README.md) beyond its XML, bounded modern-MPP reading, and date-calculation profiles with native writing, legacy formats, MPT, MPX, advanced analysis, and conversion. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and native feasibility evidence. Completing XML or a bounded MPP reader does not complete the native product.
+Extend the [typed Project library](../OfficeIMO.Project/README.md) beyond its qualified XML/MPP14/MPT14 lifecycle and date-calculation profiles with broader native semantics, legacy formats, MPX, advanced analysis, and reporting. The [operation matrix](../OfficeIMO.Project/SUPPORT.md) owns the implemented contract and independent application evidence.
 
 The milestones below are ordered product outcomes. Each remains open until its acceptance evidence exists. Implemented contracts move into the package README and operation-level support matrix; delivered history belongs in GitHub Releases. Execution and scope-change rules live in [the repository instructions](../AGENTS.md#project-implementation-discipline).
 
@@ -298,10 +298,9 @@ Acceptance: producer-specific read comparisons and unchanged-save tests pass for
 
 ### P05 — Modern MPP editing, new-file writing, and templates
 
-- [ ] Implement qualified field edits with all dependent record/index/cache updates, followed by structural task/resource/assignment creation, deletion, hierarchy changes, and reference repair. Validate changes before committing output.
-- [ ] Implement assessed same-generation save with block/allow-loss policies and current-model reassessment at save time. Reject mutations whose effects on unknown records cannot be established under strict policy.
-- [ ] Implement native MPP14 creation without a proprietary seed file or installed Microsoft Project. Separately support deliberate template-based authoring and MPT document templates; classify Global.mpt behavior independently.
-- [ ] Support XML-to-native creation and native-to-XML conversion with feature-level loss reports. Keep signature invalidation, inert embedded content, and unsupported encrypted writing explicit.
+- [ ] Extend the qualified native writer to notes, remaining baseline values, rate profiles, curves, lookup/formula metadata, and other modeled fields currently rejected or reported as omissions.
+- [ ] Decode and update opaque presentation, auxiliary references, and calculation caches so more structural/schedule edits can satisfy strict loss policy. Preserve current conservative diagnostics until independent readback proves those contracts.
+- [ ] Broaden native new-file, template, and XML conversion evidence to additional producer builds and richer documents; qualify application-wide `Global.mpt` separately from document templates.
 
 Acceptance: Microsoft Project opens edited and newly created files without repair; another application save and re-export retains expected semantics. Cover field edits, add/delete/reparent, assignments, calendars, custom fields, baselines, and unknown-content interactions individually. A one-field patch or successful no-op save cannot close this milestone.
 

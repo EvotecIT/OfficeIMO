@@ -9,7 +9,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
-- [Project XML API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent authoring, preservation, native feasibility, and producer-specific limits.
+- [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML and MPP14/MPT14 authoring, editing, preservation, scheduling, and producer-specific limits.
 - [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) — release notes, version history, and downloadable artifacts.
 - [Website guide](officeimo.website.md) — local build and publication workflow.
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.

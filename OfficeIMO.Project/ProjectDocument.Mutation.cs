@@ -61,18 +61,13 @@ public sealed partial class ProjectDocument {
         if (!Enum.IsDefined(typeof(ProjectRemovalMode), mode)) throw new ArgumentOutOfRangeException(nameof(mode));
     }
 
-    /// <summary>Clones the complete document through the same XML preservation contract. The clone has no associated destination.</summary>
+    /// <summary>Clones the current model through the selected format's validation and preservation contract, without an associated destination.</summary>
     public ProjectDocument Clone(ProjectSaveOptions? options = null, CancellationToken cancellationToken = default, ProjectLoadOptions? loadOptions = null) {
-        EnsureNotDisposed();
-        if (NativeSource != null) {
-            options ??= new ProjectSaveOptions(); options.Validate();
-            AssessSave(options, cancellationToken).ThrowIfErrors();
-            loadOptions ??= new ProjectLoadOptions(); loadOptions.ValidateLimits();
-            if (loadOptions.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) throw new ArgumentException("A clone has no associated destination.", nameof(loadOptions));
-            if (NativeSource.Bytes.Length > loadOptions.MaxInputBytes) throw new InvalidDataException("Native clone exceeds its input budget.");
-            if (NativeSource.Bytes.Length > options.MaxOutputBytes) throw new InvalidDataException("Native clone exceeds its output budget.");
-            return ProjectNativeCodec.Read((byte[])NativeSource.Bytes.Clone(), loadOptions, cancellationToken);
-        }
-        return Parse(ToXml(options, cancellationToken), loadOptions, cancellationToken);
+        EnsureNotDisposed(); options ??= new ProjectSaveOptions(); options.Validate();
+        loadOptions ??= new ProjectLoadOptions(); loadOptions.ValidateLimits();
+        if (loadOptions.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) throw new ArgumentException("A clone has no associated destination.", nameof(loadOptions));
+        var prepared = Serialize(options, cancellationToken);
+        if (prepared.Bytes.Length > loadOptions.MaxInputBytes) throw new InvalidDataException("Project clone exceeds its input budget.");
+        return ReadBytes((byte[])prepared.Bytes.Clone(), loadOptions, cancellationToken);
     }
 }

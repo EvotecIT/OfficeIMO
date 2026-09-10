@@ -1,5 +1,6 @@
 using OfficeIMO.Project;
-
+if (args.Length == 3 && args[0] == "native-edit-proof") return NativeEditProof.Run(args[1], args[2]);
+if (args.Length == 2 && args[0] == "native-author-proof") return NativeWriterProof.Create(args[1]);
 if (args.Length == 3 && args[0] == "schedule-scale") return ScheduleScale.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), args[2]);
 if (args.Length == 3 && args[0] == "schedule-edit") return ScheduleReadback.Create(args[1], args[2]);
 if (args.Length == 3 && args[0] == "schedule-readback") return ScheduleReadback.Verify(args[1], args[2]);

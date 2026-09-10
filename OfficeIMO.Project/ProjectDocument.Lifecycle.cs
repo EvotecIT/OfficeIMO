@@ -11,11 +11,12 @@ public sealed partial class ProjectDocument {
         return document;
     }
 
-    /// <summary>Creates a document associated with an XML path; creation does not write a file.</summary>
+    /// <summary>Creates a document associated with an XML, MPP, or MPT path; creation does not write a file.</summary>
     public static ProjectDocument Create(string path, DocumentCreateOptions? options = null) {
-        ValidateXmlPath(path);
+        var format = FormatFromPath(path);
         var document = Create();
         document._path = Path.GetFullPath(path);
+        document._associatedFormat = format;
         document.SetCreateOptions(options);
         return document;
     }
@@ -56,6 +57,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Loads bounded XML or a qualified MPP14 document without calculating its schedule.</summary>
     public static ProjectDocument Load(string path, ProjectLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An input path is required.", nameof(path));
+        RejectGlobalTemplate(path);
         options ??= new ProjectLoadOptions(); options.ValidateLimits();
         using var stream = File.OpenRead(path);
         byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes);
@@ -76,6 +78,7 @@ public sealed partial class ProjectDocument {
 
     /// <summary>Asynchronously reads a file, then parses XML or qualified native input with cancellation and structural limits.</summary>
     public static async Task<ProjectDocument> LoadAsync(string path, ProjectLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        RejectGlobalTemplate(path);
         options ??= new ProjectLoadOptions(); options.ValidateLimits();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
@@ -91,29 +94,25 @@ public sealed partial class ProjectDocument {
         document._associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, options.AccessMode); return document;
     }
 
-    /// <summary>Assesses the current model and XML preservation boundary without writing or calculating.</summary>
+    /// <summary>Assesses the current model for the selected format without committing output or calculating a schedule.</summary>
     public ProjectReport AssessSave(ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureNotDisposed(); options ??= new ProjectSaveOptions(); options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
-        if (NativeSource != null) return new ProjectReport(Revision, IsModified
-            ? new[] { new ProjectDiagnostic("PROJECT_NATIVE_EDIT_UNSUPPORTED", ProjectDiagnosticSeverity.Error,
-                "Native edits cannot be saved until all affected records and indexes have a qualified writer. Unchanged documents retain their original bytes.", "/") }
-            : Array.Empty<ProjectDiagnostic>());
-        return Validate(cancellationToken);
+        return AssessFormat(options, ResolveFormat(options, options.Format == ProjectFileFormat.Automatic ? _path : null), cancellationToken);
     }
 
-    /// <summary>Assesses an XML destination. Changing the extension cannot enable a native MPP writer.</summary>
+    /// <summary>Assesses a destination's format, including conversion loss, against the current model revision.</summary>
     public ProjectReport AssessSave(string path, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        ValidateDestination(path); return AssessSave(options, cancellationToken);
+        EnsureNotDisposed(); options ??= new ProjectSaveOptions(); return AssessFormat(options, ResolveFormat(options, path), cancellationToken);
     }
 
     /// <summary>Serializes to XML text; no destination is rebound and the document remains modified.</summary>
     public string ToXml(ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureNotDisposed();
-        if (NativeSource != null) throw new NotSupportedException("Native-to-XML conversion needs a separately qualified loss assessment. Native input can currently be inspected and saved unchanged.");
         options ??= new ProjectSaveOptions();
-        var textOptions = new ProjectSaveOptions { Indent = options.Indent, LossPolicy = options.LossPolicy, FileConflictPolicy = options.FileConflictPolicy, MaxOutputBytes = options.MaxOutputBytes, PreserveUnchangedBytes = false };
-        return Encoding.UTF8.GetString(Serialize(textOptions, cancellationToken));
+        options.Validate();
+        var textOptions = WithFormat(options, ProjectFileFormat.Xml, false);
+        return Encoding.UTF8.GetString(Serialize(textOptions, cancellationToken).Bytes);
     }
 
     /// <summary>Saves to the associated file or seekable stream.</summary>
@@ -121,69 +120,87 @@ public sealed partial class ProjectDocument {
         EnsureMutable();
         if (_path != null) Save(_path, options, cancellationToken);
         else if (_associatedStream != null) Save(_associatedStream, options, cancellationToken);
-        else throw new InvalidOperationException("No associated destination. Specify an XML path or stream.");
+        else throw new InvalidOperationException("No associated destination. Specify a Project path or stream.");
     }
 
-    /// <summary>Atomically saves to an XML file and associates the document with that path after success.</summary>
+    /// <summary>Atomically saves to the format selected by the extension and associates the document with that path after success.</summary>
     public void Save(string path, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        EnsureMutable(); ValidateDestination(path); options ??= new ProjectSaveOptions();
-        byte[] bytes = Serialize(options, cancellationToken);
+        EnsureMutable(); options ??= new ProjectSaveOptions(); options = WithFormat(options, ResolveFormat(options, path));
+        var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         OfficeFileCommit.Write(path, output => {
             cancellationToken.ThrowIfCancellationRequested(); output.Write(bytes, 0, bytes.Length); cancellationToken.ThrowIfCancellationRequested();
         }, options.FileConflictPolicy == OfficeConversionFileConflictPolicy.Replace ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
-        _path = Path.GetFullPath(path); _associatedStream = null; AcceptSaved(bytes);
+        _path = Path.GetFullPath(path); _associatedStream = null; AcceptSaved(prepared);
     }
 
     /// <summary>Saves to a caller-owned stream. Seekable streams are replaced; non-seekable streams receive bytes at their current position.</summary>
     /// <remarks>Stream writes cannot promise atomic rollback on I/O failure. File saves use atomic replacement.</remarks>
     public void Save(Stream stream, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureMutable(); options ??= new ProjectSaveOptions();
-        byte[] bytes = Serialize(options, cancellationToken);
+        options = WithFormat(options, ResolveFormat(options));
+        var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         cancellationToken.ThrowIfCancellationRequested(); OfficeStreamWriter.WriteAllBytes(stream, bytes);
-        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(bytes);
+        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(prepared);
     }
 
-    /// <summary>Asynchronously commits a complete XML file after validation and serialization.</summary>
+    /// <summary>Asynchronously commits a complete Project file after validation and serialization.</summary>
     public async Task SaveAsync(string path, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        EnsureMutable(); ValidateDestination(path); options ??= new ProjectSaveOptions();
-        byte[] bytes = Serialize(options, cancellationToken);
+        EnsureMutable(); options ??= new ProjectSaveOptions(); options = WithFormat(options, ResolveFormat(options, path));
+        var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         await OfficeFileCommit.WriteAllBytesAsync(path, bytes,
             options.FileConflictPolicy == OfficeConversionFileConflictPolicy.Replace ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists, cancellationToken).ConfigureAwait(false);
-        _path = Path.GetFullPath(path); _associatedStream = null; AcceptSaved(bytes);
+        _path = Path.GetFullPath(path); _associatedStream = null; AcceptSaved(prepared);
     }
 
-    /// <summary>Asynchronously writes XML to a caller-owned stream; failure may leave a partial destination.</summary>
+    /// <summary>Asynchronously writes the selected format to a caller-owned stream; failure may leave a partial destination.</summary>
     public async Task SaveAsync(Stream stream, ProjectSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureMutable(); options ??= new ProjectSaveOptions();
-        byte[] bytes = Serialize(options, cancellationToken);
+        options = WithFormat(options, ResolveFormat(options));
+        var prepared = Serialize(options, cancellationToken); byte[] bytes = prepared.Bytes;
         await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
-        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(bytes);
+        _associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, _accessMode); _path = null; AcceptSaved(prepared);
     }
 
-    private byte[] Serialize(ProjectSaveOptions options, CancellationToken token) {
+    private ProjectSerialization Serialize(ProjectSaveOptions options, CancellationToken token) {
         EnsureNotDisposed(); options.Validate();
         if (_batchDepth != 0) throw new InvalidOperationException("Complete the update scope before saving.");
-        var assessment = AssessSave(options, token); assessment.ThrowIfErrors();
+        long revision = Revision; var format = ResolveFormat(options);
+        var assessment = AssessFormat(options, format, token, includeNativePlan: false); assessment.ThrowIfErrors();
         if (options.LossPolicy == OfficeConversionLossPolicy.Block) assessment.RequireNoLoss();
-        if (NativeSource != null) {
+        byte[] bytes; ProjectNativeSource? native = null;
+        if (format != ProjectFileFormat.Xml) {
             token.ThrowIfCancellationRequested();
-            if (NativeSource.Bytes.Length > options.MaxOutputBytes) throw new InvalidDataException("Native output exceeds the configured byte limit.");
-            return NativeSource.Bytes;
+            if (CanRetainNative(options, format)) {
+                if (NativeSource!.Bytes.Length > options.MaxOutputBytes) throw new InvalidDataException("Native output exceeds the configured byte limit.");
+                bytes = NativeSource.Bytes; native = NativeSource;
+            } else {
+                var plan = ProjectNativeWriter.Plan(this, WithFormat(options, format), true, token);
+                plan.Report.ThrowIfErrors(); if (options.LossPolicy == OfficeConversionLossPolicy.Block) plan.Report.RequireNoLoss();
+                bytes = plan.Bytes!;
+                if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, bytes.Length, bytes.Length), token, out var file, out var error) || file == null)
+                    throw new InvalidDataException("Prepared native output could not be read: " + error);
+                native = new ProjectNativeSource(bytes, new ProjectNativeInfo(NativeInfo?.ProducerVersion ?? "16,0,0,0", file)) {
+                    Snapshot = ProjectModelSnapshot.Capture(this, token), ModelRevision = revision,
+                    UnrepresentedValues = plan.Report.Diagnostics.Where(d => d.Code == "PROJECT_NATIVE_FIELD_LOSS").ToArray()
+                };
+            }
+        } else bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null ? false : (bool?)null), token);
+        token.ThrowIfCancellationRequested();
+        if (Revision != revision) throw new InvalidOperationException("The project changed while serialization was in progress.");
+        return new ProjectSerialization(bytes, format, revision, native);
+    }
+    private void AcceptSaved(ProjectSerialization prepared) {
+        LastSavedBytes = prepared.Bytes; _savedRevision = prepared.Revision; _associatedFormat = prepared.Format;
+        if (prepared.Native != null) NativeSource = prepared.Native;
+    }
+    private sealed class ProjectSerialization {
+        internal readonly byte[] Bytes;
+        internal readonly ProjectFileFormat Format;
+        internal readonly long Revision;
+        internal readonly ProjectNativeSource? Native;
+        internal ProjectSerialization(byte[] bytes, ProjectFileFormat format, long revision, ProjectNativeSource? native) {
+            Bytes = bytes; Format = format; Revision = revision; Native = native;
         }
-        return ProjectXmlCodec.Write(this, options, token);
-    }
-    private void AcceptSaved(byte[] bytes) { LastSavedBytes = bytes; _savedRevision = Revision; }
-    private static void ValidateXmlPath(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An XML path is required.", nameof(path));
-        if (!string.Equals(Path.GetExtension(path), ".xml", StringComparison.OrdinalIgnoreCase))
-            throw new NotSupportedException("Only .xml output is supported. MPP, MPT, and MPX are separate native format capabilities.");
-    }
-    private void ValidateDestination(string path) {
-        EnsureNotDisposed();
-        if (NativeSource == null) { ValidateXmlPath(path); return; }
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A native output path is required.", nameof(path));
-        if (!string.Equals(Path.GetExtension(path), ".mpp", StringComparison.OrdinalIgnoreCase))
-            throw new NotSupportedException("Native source retention requires an .mpp destination; extension changes are not format conversion.");
     }
     private static ProjectDocument ReadBytes(byte[] bytes, ProjectLoadOptions options, CancellationToken token) =>
         ProjectNativeCodec.IsCompound(bytes) ? ProjectNativeCodec.Read(bytes, options, token) : ProjectXmlCodec.Read(bytes, options, token);

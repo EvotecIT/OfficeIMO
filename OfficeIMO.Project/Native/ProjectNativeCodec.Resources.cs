@@ -9,6 +9,7 @@ internal static partial class ProjectNativeCodec {
             CheckEntityBudget(document, options);
             var resource = new ProjectResource(document, record.Uid) {
                 DisplayId = record.Integer(0x0c400000), Name = record.Text(0x0c400001),
+                Initials = record.Text(0x0c400002), Group = record.Text(0x0c400003), EmailAddress = record.Text(0x0c400023), IsNull = false,
                 Type = record.Boolean(0x0c4002df) == true ? ProjectResourceType.Cost : record.Boolean(0x0c40012a) == true ? ProjectResourceType.Work : ProjectResourceType.Material,
                 MaterialLabel = record.Text(0x0c40012b),
                 StandardRate = record.Number(0x0c400006), OvertimeRate = record.Number(0x0c400007), CostPerUse = record.Number(0x0c400012) / 100m,

@@ -38,8 +38,22 @@ public sealed class ProjectLoadOptions : DocumentLoadOptions {
     }
 }
 
-/// <summary>XML serialization, fidelity, output bounds, and file conflict policy.</summary>
+/// <summary>A qualified Project serialization format.</summary>
+public enum ProjectFileFormat {
+    /// <summary>Use the destination extension, or retain the source format for stream saves. New streams use XML.</summary>
+    Automatic,
+    /// <summary>Microsoft Project XML (MSPDI).</summary>
+    Xml,
+    /// <summary>Modern MPP14 project document.</summary>
+    Mpp14,
+    /// <summary>Modern MPT14 document template; Global.mpt is a separate unsupported application store.</summary>
+    Mpt14
+}
+
+/// <summary>Serialization format, fidelity, output bounds, and file conflict policy.</summary>
 public sealed class ProjectSaveOptions {
+    /// <summary>Target format. Explicit values must agree with a path's extension.</summary>
+    public ProjectFileFormat Format { get; set; } = ProjectFileFormat.Automatic;
     /// <summary>Blocks save when modeled edits may invalidate unmodeled source content.</summary>
     public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
     /// <summary>Existing-file behavior. Associated saves replace by default through the shared atomic writer.</summary>
@@ -51,7 +65,7 @@ public sealed class ProjectSaveOptions {
     /// <summary>Maximum serialized output bytes.</summary>
     public long MaxOutputBytes { get; set; } = 128L * 1024 * 1024;
     internal void Validate() {
-        if (!Enum.IsDefined(typeof(OfficeConversionLossPolicy), LossPolicy) ||
+        if (!Enum.IsDefined(typeof(ProjectFileFormat), Format) || !Enum.IsDefined(typeof(OfficeConversionLossPolicy), LossPolicy) ||
             !Enum.IsDefined(typeof(OfficeConversionFileConflictPolicy), FileConflictPolicy) ||
             MaxOutputBytes < 1 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(ProjectSaveOptions));
     }

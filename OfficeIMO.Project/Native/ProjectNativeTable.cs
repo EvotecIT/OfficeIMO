@@ -53,7 +53,7 @@ internal sealed class ProjectNativeTable {
                 secondFlags = part;
                 second = new ProjectNativeValue(secondBytes, part.Int32(4), secondarySize);
             }
-            Records.Add(new ProjectNativeRecord(this, data, recordMeta, second, secondFlags));
+            Records.Add(new ProjectNativeRecord(this, index, data, recordMeta, second, secondFlags));
         }
     }
 
@@ -112,9 +112,10 @@ internal sealed class ProjectNativeRecord {
     private readonly ProjectNativeValue _data, _metadata;
     private readonly ProjectNativeValue? _secondary, _secondaryMetadata;
     internal int Uid { get; set; }
-    internal ProjectNativeRecord(ProjectNativeTable table, ProjectNativeValue data, ProjectNativeValue metadata,
+    internal int MetadataIndex { get; }
+    internal ProjectNativeRecord(ProjectNativeTable table, int metadataIndex, ProjectNativeValue data, ProjectNativeValue metadata,
         ProjectNativeValue? secondary, ProjectNativeValue? secondaryMetadata) {
-        _table = table; _data = data; _metadata = metadata; _secondary = secondary; _secondaryMetadata = secondaryMetadata;
+        _table = table; MetadataIndex = metadataIndex; _data = data; _metadata = metadata; _secondary = secondary; _secondaryMetadata = secondaryMetadata;
     }
     internal ProjectNativeValue? Value(uint id) {
         if (_table.Fields.TryGetValue(id, out var field) && field.Source == 10) {

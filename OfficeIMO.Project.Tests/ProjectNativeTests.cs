@@ -40,14 +40,14 @@ public sealed class ProjectNativeTests {
     [Theory]
     [InlineData(OfficeConversionLossPolicy.Block)]
     [InlineData(OfficeConversionLossPolicy.Allow)]
-    public void NativeEditsNeverProduceAnUnqualifiedRewrite(OfficeConversionLossPolicy policy) {
+    public void UnsupportedNativeNotesEditsNeverProduceAnUnqualifiedRewrite(OfficeConversionLossPolicy policy) {
         using var document = ProjectDocument.Load(Fixture("delivery.mpp"));
-        document.Tasks.GetByUid(3).Name = "Changed";
+        document.Tasks.GetByUid(3).Notes = "Changed";
         using var target = new MemoryStream(new byte[16], true);
         Assert.Throws<InvalidDataException>(() => document.Save(target, new ProjectSaveOptions { LossPolicy = policy }));
         Assert.Equal(new byte[16], target.ToArray());
         Assert.Throws<InvalidDataException>(() => document.Clone(new ProjectSaveOptions { LossPolicy = policy }));
-        Assert.Throws<NotSupportedException>(() => document.ToXml());
+        Assert.Throws<InvalidOperationException>(() => document.ToXml());
     }
     [Fact]
     public void NativeInputAndOutputBudgetsAndCancellationAreEnforced() {

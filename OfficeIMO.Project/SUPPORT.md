@@ -14,7 +14,7 @@ This matrix describes the `OfficeIMO.Project` file API. Microsoft Project 2024 b
 | Edited save | Preserve unknown elements/attributes and update changed modeled fields | Producer fixture tests, extension-node tests, Microsoft Project semantic readback |
 | Schema validation | New authored subset checked against the Project 2013 client schema | The SDK schema declares `/project/2007`; the verifier explicitly aliases it to the application's `/project` namespace without changing element rules |
 | Calculation | Explicit date/float calculation and revision-bound application | See the scheduling profile below; ordinary load/save never recalculates |
-| Rendering and conversion | Not implemented | XML does not establish native views, formatting, printing, or MPP presentation fidelity |
+| Native conversion | MPP14/MPT14 creation through the typed model with pre-write loss assessment | XML extensions and values outside the native writer profile require explicit loss permission; rendering is not implemented |
 
 The reader accepts `http://schemas.microsoft.com/project` and `http://schemas.microsoft.com/project/2007`. It retains the source namespace. Acceptance of a namespace does not qualify every producer or schema version. Project 2024 exports include extensions and ordering differences outside the older SDK schema; retained source XML is not automatically rewritten into that older profile.
 
@@ -51,14 +51,18 @@ Applying a valid result initializes missing assignment start/finish values and u
 
 ## Native format feasibility
 
-The public reader loads the qualified MPP14 profile below. Twelve paired producer files in `Project2024`, `Project2024Semantics`, and `Project2024WorkWeeks` exercise native and XML observations; `Project2024Protection` adds independently protected inputs. Writer experiments remain opt-in tooling and do not authorize native mutation or conversion.
+The public codec loads and writes the qualified MPP14 profile below. Twelve paired producer files in `Project2024`, `Project2024Semantics`, and `Project2024WorkWeeks` exercise native and XML observations; `Project2024Protection` adds independently protected inputs. The opt-in native authoring/edit verifier and Microsoft Project oracle exercise changed output independently of the reader.
 
 | Public native operation | Contract | Boundary |
 | --- | --- | --- |
 | Read | Bounded Core compound reader, producer field maps, fixed/variable records, task hierarchy, resources, assignments, links, calendar inheritance/exceptions/work weeks, metadata | MPP14 from Project 2024 build 16.0.20326.20144; other producers/builds are unqualified |
 | Baselines and local custom scalars | Task/resource/assignment baseline slots 0–10; task/resource text 1–30, number/flag 1–20, cost/date/duration 1–10; aliases | Baseline curves, enterprise values, formulas, and lookup tables stay opaque. Source absence differs from explicit native zero/default values; baseline duration estimate flags can be omitted by XML |
 | Unchanged save and clone | Exact whole-file bytes | No native stream rewrite occurs |
-| Edited save and conversion | Rejected before output | Allow-loss cannot enable an unqualified writer; `ToXml` does not silently discard opaque native data |
+| Field edits | Source-preserving mapped scalar updates, including variable-length Unicode names and metadata | Unsupported native mutations remain errors. Native notes editing, formulas, lookup tables, rate profiles, and curves are unqualified |
+| Structural edits | Add/delete/reparent tasks; add/delete resources, assignments, calendars, and links; update mapped UID/GUID references and ordering | Opaque presentation and auxiliary references are retained without remapping; strict loss policy blocks these changes until the caller explicitly accepts that risk |
+| New native files | MPP14 records and container created without a seed file or Microsoft Project | Requires a start date and named base project calendar. Resource calendars must be individually owned derived calendars. Unsupported model fields require explicit omission permission |
+| Document templates | Read/write MPT14; `CreateFromTemplate` retains model and source content without associating the template as the destination | No identity or schedule reset; path-based `Global.mpt` operations are rejected. Application-wide template semantics are unqualified |
+| Conversion | XML to native through the authoring profile; native to XML through the typed model | Feature-level reports identify omitted opaque content. Neither direction establishes presentation fidelity; validation errors block output even with allow-loss |
 | Protected files | Read-password and write-reservation inputs rejected | No password/decryption API or claim about other protection variants |
 | Inert inventory | Stream names/lengths, producer, conventional macro/signature/embedded-content presence | No macro execution, signature validation, embedded-content activation, or semantic presentation decoding |
 | Timephased data | Retained in source bytes | Native curves are not exposed as typed intervals or inferred from scalar totals |
@@ -66,18 +70,22 @@ The public reader loads the qualified MPP14 profile below. Twelve paired produce
 | Experiment | Result | Qualification |
 | --- | --- | --- |
 | MPP14 detection and bounded compound inspection | Successful on the Project 2024 corpus | Container family markers, class identity, stream inventory, and bounded Core reader |
-| Representative record extraction | Superseded by the bounded public read profile above | Historical writer experiments below remain separate |
+| Representative record extraction | Qualified by the bounded public read profile above | Opaque records remain outside the typed contract |
 | Unchanged native bytes | Retained exactly | Byte copy only |
 | Compound rewrite with unchanged streams | Reopened in Project 2024; stream bytes retained | Core directory/stream retention proof, not arbitrary native edit support |
-| Controlled same-width task name edit | Project readback shows `Build` changed to `Craft` | One fixture and one record field; does not prove record growth, relocation, or structural changes |
-| Seed-free minimal MPP creation | Rejected by Project | Required native record/header/reference layout remains unresolved; no claim of native writing |
-| Legacy MPP8/9/12, MPT, MPX | Unqualified | No installed legacy application oracle or qualified producer corpus in this validation |
+| Native field and structural edits | Project opens, saves again, and reopens the output with expected observed semantics | Name growth, task add/delete/reparent, resource/assignment changes, dependency links, calendar exceptions and bindings, identity changes, local custom scalars, and all eleven baseline slots |
+| New MPP14 and MPT14 creation | Independently opened and saved again by Project 2024 | New hierarchy, resource assignment, dependency, dated calendar overrides, custom alias/value, and baseline; no source document payload is embedded in the writer |
+| Legacy MPP8/9/12 and MPX | Unqualified | No installed legacy application oracle or qualified producer corpus in this validation |
 
-Project application automation disables macros and records semantic readback and re-export hashes. Successful automation with alerts suppressed does not prove that every repair warning was absent. Native writing needs a broader independently verified record contract before it can become a public API.
+Native scalar authoring includes mapped task dates/duration/work/cost/progress, resource types/rates/units, assignment identities/dates/work/cost/units, link kinds and lag, and calendar weekday intervals, date exceptions, and dated work weeks. The calculated `TotalSlackMinutes` cache has no qualified native record and follows the unsupported-field loss policy. Baseline writing covers work/cost in slots 0–10, task/assignment start and finish, and task duration. BCWS/BCWP, fixed-cost baseline values, and baseline curves are outside the writer profile. Local custom writing covers the task/resource text, number, flag, cost, date, and duration families listed above, plus aliases of at most 51 UTF-16 code units. Native date precision is six seconds; integer or floating-point precision changes are rejected.
+
+Mapped edits retain unmodeled source stream content. Assignment actual start/finish and percent-work-complete caches also have no qualified native record and follow the unsupported-field policy. Structural edits warn about unknown references; schedule edits warn about retained curves and totals; edits to signed content report signature invalidation. New documents cannot carry native opaque content from an XML source. Assessments use the current model at each save, including values omitted by a prior allow-loss save. Save/clone does not turn those omissions into a lossless operation.
+
+Project application automation disables macros and records semantic readback and re-export hashes. `-NativeRoundTrip` compares the observed model before and after an additional application save. Representative authoring and edit cases also run with `-ApplicationAlerts` enabled. The oracle checks selected semantic fields; it does not establish visual fidelity of views, printing, or every unmodeled record.
 
 ## Runtime and scale
 
-The package targets `netstandard2.0`, `net8.0`, `net10.0`, and Windows `net472`. Contract tests run on Windows for .NET 8/10/.NET Framework 4.7.2 and on Ubuntu WSL for .NET 8/10. Local packed-package consumption and a Linux x64 .NET 8 NativeAOT executable exercise the fluent/XML/stream lifecycle. The AOT check is a bounded smoke test, not coverage of every field or input. macOS, browser execution, and full application integration on other producer builds remain unqualified.
+The package targets `netstandard2.0`, `net8.0`, `net10.0`, and Windows `net472`. Contract tests run on Windows for .NET 8/10/.NET Framework 4.7.2 and on Ubuntu WSL for .NET 8/10. Local packed-package consumption and Linux x64 .NET 8 NativeAOT executables exercise the fluent/XML/stream lifecycle and native creation, repeated edits, baselines, templates, and XML conversion. The AOT checks are bounded smoke tests, not coverage of every field or input. macOS, browser execution, and full application integration on other producer builds remain unqualified.
 
 The shared PowerForge benchmark runner measures process startup, load, validation, scalar edit, save, and independent streaming XML readback. Cases contain 1,000/10,000/100,000 tasks; a 10,000-level hierarchy; up to four predecessors per task; 100,000 timephased intervals; a 10,000-calendar inheritance chain; and 10,000 mirrored calendar exceptions. Calendar binding, cycle detection, and mirror matching use linear traversals with cancellation checkpoints. Explicit larger outline/element budgets are used where needed. Inputs are synthetic, so these measurements are not guarantees for arbitrary files with large opaque XML payloads.
 

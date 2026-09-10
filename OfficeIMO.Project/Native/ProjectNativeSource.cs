@@ -7,6 +7,8 @@ namespace OfficeIMO.Project;
 public sealed class ProjectNativeInfo {
     internal ProjectNativeInfo(string? producer, OfficeCompoundFile compound) {
         ProducerVersion = producer;
+        IsTemplate = compound.Streams.TryGetValue("\u0001CompObj", out var identifier)
+            && OfficeOleCompoundObjectReader.ClipboardFormat(identifier) == "MSProject.MPT14";
         Streams = new ReadOnlyCollection<ProjectNativeStreamInfo>(compound.Streams.OrderBy(s => s.Key, StringComparer.Ordinal)
             .Select(s => new ProjectNativeStreamInfo(s.Key, s.Value.Length)).ToArray());
         HasMacroStorage = compound.Entries.Any(e => e.Name.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.Equals("_VBA_PROJECT", StringComparison.OrdinalIgnoreCase));
@@ -17,6 +19,8 @@ public sealed class ProjectNativeInfo {
     public string? ProducerVersion { get; }
     /// <summary>Detected native generation.</summary>
     public string Generation => "MPP14";
+    /// <summary>True when the native clipboard-format identifier declares an MPT14 document template.</summary>
+    public bool IsTemplate { get; }
     /// <summary>Original stream paths and lengths, without exposing mutable bytes.</summary>
     public IReadOnlyList<ProjectNativeStreamInfo> Streams { get; }
     /// <summary>Whether conventional VBA storage names were found; macros are never executed.</summary>
@@ -39,5 +43,8 @@ public sealed class ProjectNativeStreamInfo {
 internal sealed class ProjectNativeSource {
     internal readonly byte[] Bytes;
     internal readonly ProjectNativeInfo Info;
+    internal Dictionary<string, object?> Snapshot = new Dictionary<string, object?>();
+    internal long ModelRevision;
+    internal IReadOnlyList<ProjectDiagnostic> UnrepresentedValues = Array.Empty<ProjectDiagnostic>();
     internal ProjectNativeSource(byte[] bytes, ProjectNativeInfo info) { Bytes = bytes; Info = info; }
 }

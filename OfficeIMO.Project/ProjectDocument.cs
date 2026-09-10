@@ -15,6 +15,7 @@ public sealed partial class ProjectDocument : IDisposable {
     private Stream? _associatedStream;
     internal ProjectXmlSource? Source;
     internal ProjectNativeSource? NativeSource;
+    internal readonly Guid NativeIdentity = System.Guid.NewGuid();
     /// <summary>Native source generation and inert container inventory; null for XML/new documents.</summary>
     public ProjectNativeInfo? NativeInfo => NativeSource?.Info;
     internal byte[]? LastSavedBytes;

@@ -11,6 +11,8 @@ internal static partial class ProjectNativeCodec {
             if (ordered.Count >= options.MaxTasks) throw new InvalidDataException("Native task budget exceeded.");
             var task = new ProjectTask(document, record.Uid) {
                 DisplayId = record.Integer(0x0b400017), Name = record.Text(0x0b40000e),
+                Wbs = record.Text(0x0b400010), Contact = record.Text(0x0b400070), IsNull = false,
+                PhysicalPercentComplete = record.Integer(0x0b40045f),
                 SourceOutlineLevel = record.Integer(0x0b4000f9), SourceSummary = record.Boolean(0x0b40005c) == true,
                 Duration = Duration(record, 0x0b40001d, 0x0b4000b5, document),
                 ActualDuration = Duration(record, 0x0b40001c, 0x0b4000b5, document),
@@ -56,9 +58,10 @@ internal static partial class ProjectNativeCodec {
     private static void ReadTaskBaseline(ProjectDocument document, ProjectNativeRecord record, ProjectTask task) {
         var start = record.Date(0x0b40002b); var finish = record.Date(0x0b40002c); var work = Work(record, 0x0b400001);
         var cost = record.Number(0x0b400006) / 100m;
-        if (start != null || finish != null || work != null || cost != null) {
+        var duration = Duration(record, 0x0b40001b, 0x0b4000b3, document);
+        if (start != null || finish != null || work != null || cost != null || duration != null) {
             var baseline = task.Baselines.Add(); baseline.Number = 0; baseline.Start = start; baseline.Finish = finish;
-            baseline.Work = work; baseline.Cost = cost; baseline.Duration = Duration(record, 0x0b40001b, 0x0b4000b3, document);
+            baseline.Work = work; baseline.Cost = cost; baseline.Duration = duration;
         }
         var firstFields = new uint[] { 0x1e2, 0x1ed, 0x1f8, 0x203, 0x20e, 0x220, 0x22b, 0x236, 0x241, 0x24c };
         for (int index = 0; index < firstFields.Length; index++) {
@@ -66,10 +69,11 @@ internal static partial class ProjectNativeCodec {
             uint id = 0x0b400000 | first;
             var extraStart = record.Date(id); var extraFinish = record.Date(id + 1);
             var extraWork = Work(record, id + 3); var extraCost = record.Number(id + 2) / 100m;
-            if (extraStart == null && extraFinish == null && extraWork == null && extraCost == null) continue;
+            var extraDuration = Duration(record, id + 5, id + 6, document);
+            if (extraStart == null && extraFinish == null && extraWork == null && extraCost == null && extraDuration == null) continue;
             var item = task.Baselines.Add(); item.Number = index + 1;
             item.Start = extraStart; item.Finish = extraFinish; item.Work = extraWork; item.Cost = extraCost;
-            item.Duration = Duration(record, id + 5, id + 6, document);
+            item.Duration = extraDuration;
         }
     }
 

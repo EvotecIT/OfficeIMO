@@ -18,7 +18,7 @@ powershell.exe -NoProfile -File Build/Project/Test-ProjectInteroperability.ps1 `
     -InputPath ./artifacts/project/xml-proof/authored.xml -OutputPath ./artifacts/project/readback
 ```
 
-The default console operation verifies unchanged bytes, checks imported work/cost against the delivery fixture, edits its name/notes, and authors a separate project. The application oracle records tasks, resource types, assignments, calendar exceptions, producer build, and hashes. Optional `-ExpectedPath` accepts a JSON subset of expected records, selected by UID or name, and fails when selected values differ.
+The default console operation verifies unchanged bytes, checks imported work/cost against the delivery fixture, edits its name/notes, and authors a separate project. The application oracle records tasks, resource types, assignments, calendar exceptions, producer build, and hashes. Optional `-ExpectedPath` accepts a JSON subset of expected records, selected by UID or name, and fails when selected values differ. `-NativeRoundTrip` saves another MPP through Microsoft Project, reopens it, and fails if the observed model changes. `-ApplicationAlerts` enables application dialogs for an attended run.
 
 Other console operations:
 
@@ -30,6 +30,8 @@ Other console operations:
 | `cancellation` | 100,000-task input XML, new output directory | Request cancellation during load/save, check the five-second response budget and unchanged file destination |
 | `native-probe` | paired MPP path, new output directory | Bounded compound/record inspection, stream-preserving rewrite, fixed-width name edit, and minimal new-container experiment |
 | `native-corpus` | paired fixture directory, new output directory | Compare decoded native values with XML; retain source omissions, cache differences, and unqualified fields as separate observations |
+| `native-author-proof` | output MPP path | Author a native project without a seed, with hierarchy, dependency, resource assignment, calendars, baseline, and custom alias/value |
+| `native-edit-proof` | producer `delivery.mpp` path, new output directory | Exercise field growth, structural changes, identities, calendar bindings, custom scalars, all baseline slots, templates, and XML conversion through the public API |
 | `schedule-corpus` | paired fixture directory, new output directory | Compare native/XML calculations with producer dates, float, and critical flags |
 | `schedule-scale` | task count, `dense` or `cancel` | Build a graph with up to four predecessors per task; verify its finish independently or exercise cooperative cancellation |
 | `schedule-edit` | `authored` or XML path, new output directory | Author a calculated resource/calendar schedule, or exercise guarded recalculation of an imported input |
@@ -38,7 +40,7 @@ Other console operations:
 | `scale-create` | output XML, task count, shape | Generate one deterministic scale input |
 | `scale-read-edit-save` | input XML, task count, shape | Exercise lifecycle and independently verify output records |
 
-The native probe requires the paired XML beside the MPP for record comparison. Run its outputs through the application oracle separately. The minimal native creation experiment is expected to fail: conventional stream names alone are not a valid MPP document. Those writer experiments are separate from the public reader. `New-ProjectFixtures.ps1 -ScenarioNames` also supports constraints, backward schedules, work/cost rules, local custom fields/all baseline slots, dated work weeks, and protected-file scenarios.
+The native probe requires the paired XML beside the MPP for record comparison. Its minimal-container experiment is intentionally incomplete: conventional stream names alone are not a valid MPP document. Use `native-author-proof` and `native-edit-proof` for the public writer, then run their outputs through the application oracle with `-NativeRoundTrip`. The oracle's re-export XML exposes additional values for independent checks of baselines, custom fields, and calendar references. `New-ProjectFixtures.ps1 -ScenarioNames` also supports constraints, backward schedules, work/cost rules, local custom fields/all baseline slots, dated work weeks, and protected-file scenarios.
 
 ## Offline schema
 

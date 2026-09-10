@@ -413,10 +413,11 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no external parser or runtime dep
 #### [OfficeIMO.Project](OfficeIMO.Project/README.md)
 
 - [x] Microsoft Project XML create, read, edit, validate, and source-preserving save
+- [x] Qualified MPP14/MPT14 authoring, field and structural edits, document templates, and assessed XML conversion
 - [x] Typed tasks, calendars, resources, assignments, baselines, custom fields, and thin fluent builders
 - [x] Explicit input limits, cancellation, stable identities, and loss assessment
 
-Native MPP/MPT/MPX, scheduling, and rendering have separate [operation boundaries](OfficeIMO.Project/SUPPORT.md).
+Native producer profiles, opaque-record preservation, scheduling, legacy formats, and rendering have separate [operation boundaries](OfficeIMO.Project/SUPPORT.md).
 
 _Dependency footprint:_ only `OfficeIMO.Core` 3.4.3 or later; no COM, external parser, or network dependency in file operations.
 

@@ -1,6 +1,6 @@
 # OfficeIMO.Project
 
-OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI), reads a qualified modern MPP profile, and calculates task schedules through a typed document model. The normal and fluent APIs use the same objects. File operations and calculations run without Microsoft Project, COM, or a network connection.
+OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI) and a qualified modern MPP14/MPT14 profile, and calculates task schedules through a typed document model. The normal and fluent APIs use the same objects. File operations and calculations run without Microsoft Project, COM, a proprietary seed file, or a network connection.
 
 Load and save retain stored schedule values. Call `CalculateSchedule` to inspect calculated dates and float, and `ApplySchedule` or `Recalculate` to update task dates explicitly. Work, cost, actuals, and timephased values remain independently stored. Microsoft Project may calculate those values when it opens an authored file.
 
@@ -111,7 +111,7 @@ Calculation is non-mutating and its result belongs to one document revision. App
 
 Calendar methods `AddWorkingMinutes`, `WorkingMinutesBetween`, and `GetWorkingIntervals` also work independently of the scheduler. Calendar searches have explicit day limits and cancellation support. `ProjectWorkEquation` exposes uniform work/duration/units and rate equations. `AnalyzeAssignments` reports stored assignment aggregates, actual/remaining inconsistencies, cached resource-total differences, and estimates where uniform rates apply. It never overwrites stored costs or actuals, applies dated rate tables, or levels resources.
 
-## Read modern native files
+## Create and edit modern native files
 
 ```csharp
 using var native = ProjectDocument.Load("delivery.mpp");
@@ -121,10 +121,38 @@ foreach (var task in native.AllTasks)
 native.Save("delivery-copy.mpp");
 ```
 
-The native reader supports the tested MPP14 records produced by Microsoft Project 2024. Unchanged saves retain the entire input file exactly. Task/resource/assignment values, relationships, calendars, baseline scalar values, and local custom scalars have independent producer comparisons. Native curves, enterprise fields, formulas, lookups, and presentation records remain opaque. A native schedule calculation is a projection of decoded model values and reports that limitation. Any native mutation blocks save, even with allow-loss selected; native writing and conversion are separate unsupported operations. Read-password and write-reservation fixtures are rejected explicitly. Macro, signature, and embedded-content inventory reports conventional names without executing or verifying their content.
+The native codec supports the tested MPP14 records produced by Microsoft Project 2024. Unchanged saves retain the entire input file exactly. Mapped field edits update source records and retain other streams. Structural changes and schedule edits carry explicit warnings about opaque references, curves, and stored totals; review `AssessSave` and select an allow-loss policy only when those limitations are acceptable. Editing an unsupported native field remains an error even with allow-loss selected.
+
+New native documents use the same model. Set a project start and base calendar, and give each assigned work resource its own derived calendar. Save to `.mpp`, or select `ProjectFileFormat.Mpp14` for a stream:
+
+```csharp
+using var project = ProjectDocument.Create();
+project.Name = "Delivery";
+project.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
+project.Calendar = project.Calendars.AddStandardWorkingWeek();
+var engineer = project.Resources.AddWork("Engineer");
+engineer.Calendar = project.Calendars.Add("Engineer", project.Calendar);
+var task = project.Tasks.Add("Design");
+task.Duration = ProjectDuration.WorkingDays(1);
+task.Start = project.Settings.StartDate;
+task.Finish = new DateTime(2026, 10, 5, 17, 0, 0);
+var assignment = project.Assignments.Add(task, engineer, ProjectUnits.Percent(100));
+assignment.Work = ProjectWork.Hours(8);
+assignment.Start = task.Start;
+assignment.Finish = task.Finish;
+project.Save("delivery.mpp");
+```
+
+Native authoring covers the scalar and structural profile in [the support matrix](SUPPORT.md#native-format-feasibility). Unsupported values in a new document are reported before output; explicit loss permission can omit them. The calculated `TotalSlackMinutes` cache has no qualified native field, so saving a newly recalculated model requires accepting that omission. Dates must fit the native six-second precision, and numeric values must fit their native representation. Saving never recalculates work or cost totals.
+
+Use `Save("delivery.mpt")` to write a document template and `ProjectDocument.CreateFromTemplate("delivery.mpt")` to create an editable, unassociated document. The template's objects, identities, and stored schedule remain intact. An explicit destination is required for the new project. `Global.mpt` is an application-wide store and is rejected by path-based operations.
+
+File extensions select XML, MPP14, or MPT14 output. `ProjectSaveOptions.Format` selects stream output and must agree with a file destination's extension. XML-to-native conversion uses the new-document writer. Native-to-XML conversion, including `ToXml`, reports omitted presentation records, curves/rates, custom metadata, and detected notes, calendar metadata, macros, embedded content, or signatures. It requires explicit loss permission. Review the report for the intended format with `AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml })` before converting.
+
+Native curves, enterprise fields, formulas, lookups, and presentation records remain opaque. A native schedule calculation is a projection of decoded model values and reports that limitation. Read-password and write-reservation fixtures are rejected explicitly. Macro, signature, and embedded-content inventory reports conventional names without executing or verifying their content.
 
 ## Coverage and limits
 
-See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Native creation/editing, MPT, legacy MPP, MPX, rendering, and online service integration are unsupported.
+See [the operation matrix](SUPPORT.md) for tested features, dialects, native-format boundaries, and platform evidence. The model includes tasks, resources, assignments, dependencies, calendars, baselines, custom fields, and compact XML timephased intervals. Legacy MPP, MPX, rendering, and online service integration are unsupported.
 
 Input limits bound bytes, XML characters/depth/elements/attributes, task outlines, entity counts, timephased intervals, and retained diagnostics. DTDs and external entities are prohibited. No linked project, schema, image, or other external resource is fetched. Set `ProjectLoadOptions` deliberately for unusually large trusted files; output has a separate `MaxOutputBytes` limit.

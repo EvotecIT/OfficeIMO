@@ -1,0 +1,202 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "applicationAlertsEnabled":  true,
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "2804558134b972a032aa1f509852fe90d2995ad1edfe9a3f6537a08a93ffa180",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Delivery",
+                      "outlineLevel":  1,
+                      "summary":  true,
+                      "durationMinutes":  3840,
+                      "workMinutes":  2400,
+                      "cost":  5000.0000000000009,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  5000.0000000000009
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Design",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  1440,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/07/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  3,
+                      "id":  3,
+                      "name":  "Build",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  2400,
+                      "workMinutes":  2400,
+                      "cost":  5000.0000000000009,
+                      "start":  "10/08/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "2",
+                      "notes":  "Synthetic notes: café / Łódź / 日本語",
+                      "text1":  "Platform",
+                      "baselineCost":  5000.0000000000009
+                  },
+                  {
+                      "uid":  4,
+                      "id":  4,
+                      "name":  "Release",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  0,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/14/2026 17:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "3",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "125,00 zł/hr",
+                          "workMinutes":  2400,
+                          "cost":  5000.0000000000009
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097156,
+                            "taskUid":  3,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  5000.0000000000009,
+                            "workMinutes":  2400
+                        }
+                    ],
+    "nativeRoundTrip":  {
+                            "sha256":  "ab3f86d68280ca1d8aecedd0b3030f7c951e2de1605272b98721503b628bc427",
+                            "sameObservedSemantics":  true,
+                            "reopened":  {
+                                             "tasks":  [
+                                                           {
+                                                               "uid":  1,
+                                                               "id":  1,
+                                                               "name":  "Delivery",
+                                                               "outlineLevel":  1,
+                                                               "summary":  true,
+                                                               "durationMinutes":  3840,
+                                                               "workMinutes":  2400,
+                                                               "cost":  5000.0000000000009,
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/14/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  5000.0000000000009
+                                                           },
+                                                           {
+                                                               "uid":  2,
+                                                               "id":  2,
+                                                               "name":  "Design",
+                                                               "outlineLevel":  2,
+                                                               "summary":  false,
+                                                               "durationMinutes":  1440,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "start":  "10/05/2026 08:00:00",
+                                                               "finish":  "10/07/2026 17:00:00",
+                                                               "predecessors":  "",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0
+                                                           },
+                                                           {
+                                                               "uid":  3,
+                                                               "id":  3,
+                                                               "name":  "Build",
+                                                               "outlineLevel":  2,
+                                                               "summary":  false,
+                                                               "durationMinutes":  2400,
+                                                               "workMinutes":  2400,
+                                                               "cost":  5000.0000000000009,
+                                                               "start":  "10/08/2026 08:00:00",
+                                                               "finish":  "10/14/2026 17:00:00",
+                                                               "predecessors":  "2",
+                                                               "notes":  "Synthetic notes: café / Łódź / 日本語",
+                                                               "text1":  "Platform",
+                                                               "baselineCost":  5000.0000000000009
+                                                           },
+                                                           {
+                                                               "uid":  4,
+                                                               "id":  4,
+                                                               "name":  "Release",
+                                                               "outlineLevel":  2,
+                                                               "summary":  false,
+                                                               "durationMinutes":  0,
+                                                               "workMinutes":  0,
+                                                               "cost":  0,
+                                                               "start":  "10/14/2026 17:00:00",
+                                                               "finish":  "10/14/2026 17:00:00",
+                                                               "predecessors":  "3",
+                                                               "notes":  "",
+                                                               "text1":  "",
+                                                               "baselineCost":  0
+                                                           }
+                                                       ],
+                                             "resources":  [
+                                                               {
+                                                                   "uid":  1,
+                                                                   "name":  "Engineer",
+                                                                   "type":  0,
+                                                                   "standardRate":  "125,00 zł/hr",
+                                                                   "workMinutes":  2400,
+                                                                   "cost":  5000.0000000000009
+                                                               }
+                                                           ],
+                                             "calendars":  [
+                                                               {
+                                                                   "name":  "Standard",
+                                                                   "exceptions":  [
+
+                                                                                  ]
+                                                               }
+                                                           ],
+                                             "assignments":  [
+                                                                 {
+                                                                     "uid":  2097156,
+                                                                     "taskUid":  3,
+                                                                     "resourceUid":  1,
+                                                                     "units":  1,
+                                                                     "cost":  5000.0000000000009,
+                                                                     "workMinutes":  2400
+                                                                 }
+                                                             ]
+                                         }
+                        },
+    "reexportSha256":  "54edc44f0e786040ecf1b1a2a74c6695083da24f9a9c955f2df5388416718275"
+}
