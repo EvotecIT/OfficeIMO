@@ -8,6 +8,12 @@ internal sealed class InvoiceXmlReadContext {
     private readonly HashSet<XObject> _consumed = new HashSet<XObject>();
     private readonly HashSet<XElement> _scalarValues = new HashSet<XElement>();
     private readonly List<InvoiceDiagnostic> _diagnostics = new List<InvoiceDiagnostic>();
+    private int _modelItems;
+    internal void AddTo<T>(ICollection<T> collection, T item) {
+        if (++_modelItems > InvoiceModelLimits.MaximumCollectionItems)
+            throw new InvalidDataException("Parsed invoice exceeds 50,000 collection items.");
+        collection.Add(item);
+    }
     internal XElement? Child(XElement? parent, XName name) {
         if (parent == null) return null;
         XElement? child = InvoiceXml.Unique(parent, name);
@@ -89,18 +95,21 @@ internal sealed class InvoiceXmlReadContext {
         string? actual = Value(element);
         if (actual != null && actual != expected) Loss(element!, "Unsupported value '" + actual + "'; expected '" + expected + "'.");
     }
-    internal void Loss(XElement element, string message) => _diagnostics.Add(new InvoiceDiagnostic("INV-UNMAPPED", message, Path(element)));
+    internal void Loss(XElement element, string message) => AddDiagnostic(new InvoiceDiagnostic("INV-UNMAPPED", message, Path(element)));
+    private void AddDiagnostic(InvoiceDiagnostic diagnostic) {
+        if (_diagnostics.Count >= 1000) throw new InvalidDataException("Invoice has more than 1,000 mapping diagnostics.");
+        _diagnostics.Add(diagnostic);
+    }
     internal IReadOnlyList<InvoiceDiagnostic> Finish(XElement root) {
         foreach (XElement element in root.DescendantsAndSelf()) {
             if (!_consumed.Contains(element) && (element.Parent == null || _consumed.Contains(element.Parent)))
                 Loss(element, "Element is outside the supported semantic mapping.");
             if (_consumed.Contains(element)) {
                 foreach (XAttribute attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && !_consumed.Contains(a)))
-                    _diagnostics.Add(new InvoiceDiagnostic("INV-UNMAPPED", "Attribute is outside the supported semantic mapping.", Path(element) + "/@" + attribute.Name));
+                    AddDiagnostic(new InvoiceDiagnostic("INV-UNMAPPED", "Attribute is outside the supported semantic mapping.", Path(element) + "/@" + attribute.Name));
                 if (!_scalarValues.Contains(element) && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
                     Loss(element, "Text in an invoice container is outside the supported mapping.");
             }
-            if (_diagnostics.Count > 1000) throw new InvalidDataException("Invoice has more than 1,000 mapping diagnostics.");
         }
         return _diagnostics.AsReadOnly();
     }

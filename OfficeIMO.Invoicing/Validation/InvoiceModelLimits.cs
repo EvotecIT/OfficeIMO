@@ -5,10 +5,11 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Bounds model expansion before building an XML tree, including repeated references to the same data.</summary>
 internal sealed class InvoiceModelLimits {
+    internal const int MaximumCollectionItems = 50000;
     private long _textBytes;
     private long _binaryBytes;
     private int _items;
-    internal void Check(Invoice invoice) {
+    internal int Check(Invoice invoice) {
         Text(invoice.Number, invoice.TypeCode, invoice.Currency, invoice.BusinessProcessId, invoice.BuyerReference, invoice.TaxPointDateCode,
             invoice.ProjectReference, invoice.ContractReference, invoice.PurchaseOrderReference, invoice.SalesOrderReference, invoice.ReceivingAdviceReference,
             invoice.DespatchAdviceReference, invoice.TenderReference, invoice.AccountingReference, invoice.PaymentTerms, invoice.TaxCurrency);
@@ -35,6 +36,7 @@ internal sealed class InvoiceModelLimits {
                 invoice.Payment.MandateReference, invoice.Payment.CreditorIdentifier, invoice.Payment.DebitedAccount);
             Each(invoice.Payment.Accounts, account => Text(account.Identifier, account.Name, account.ProviderIdentifier));
         }
+        return _items;
     }
     private void Party(InvoiceParty? party) {
         if (party == null) return;
@@ -59,7 +61,7 @@ internal sealed class InvoiceModelLimits {
     }
     private void Each<T>(IEnumerable<T> items, Action<T> visit) where T : class {
         foreach (T item in items) {
-            if (++_items > 50000) throw new InvalidDataException("Invoice model exceeds 50,000 collection items.");
+            if (++_items > MaximumCollectionItems) throw new InvalidDataException("Invoice model exceeds 50,000 collection items.");
             if (item == null) throw new InvalidDataException("Invoice model contains a null collection item.");
             visit(item);
         }

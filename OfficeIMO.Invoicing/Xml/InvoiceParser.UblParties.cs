@@ -14,7 +14,7 @@ public static partial class InvoiceParser {
             if (identifier.SchemeId == "SEPA") {
                 if (creditor != null) c.Loss(identification, "Multiple SEPA creditor identifiers are outside the supported mapping.");
                 creditor = identifier.Value;
-            } else party.Identifiers.Add(identifier);
+            } else c.AddTo(party.Identifiers, identifier);
         }
         XElement? contact = c.Child(element, Cac + "Contact");
         if (contact != null) party.Contact = new InvoiceContact { Name = c.Text(contact, Cbc + "Name"), Telephone = c.Text(contact, Cbc + "Telephone"), Email = c.Text(contact, Cbc + "ElectronicMail") };
@@ -56,7 +56,7 @@ public static partial class InvoiceParser {
             XElement? account = c.Child(element, Cac + "PayeeFinancialAccount");
             if (account != null) {
                 string identifier = c.Required(account, Cbc + "ID");
-                result.Accounts.Add(new InvoiceBankAccount { Identifier = identifier, IsIban = System.Text.RegularExpressions.Regex.IsMatch(identifier, "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\\z"),
+                c.AddTo(result.Accounts, new InvoiceBankAccount { Identifier = identifier, IsIban = System.Text.RegularExpressions.Regex.IsMatch(identifier, "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\\z"),
                     Name = c.Text(account, Cbc + "Name"), ProviderIdentifier = c.Text(c.Child(account, Cac + "FinancialInstitutionBranch"), Cbc + "ID") });
             }
             XElement? card = c.Child(element, Cac + "CardAccount"), mandate = c.Child(element, Cac + "PaymentMandate");

@@ -10,7 +10,8 @@ public static partial class InvoiceModelValidator {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
         var diagnostics = new List<InvoiceDiagnostic>();
         var check = new ModelChecks(diagnostics);
-        try { new InvoiceModelLimits().Check(invoice); }
+        int modelItems;
+        try { modelItems = new InvoiceModelLimits().Check(invoice); }
         catch (InvalidDataException exception) {
             check.Error("INV-MODEL-LIMIT", exception.Message, "Invoice");
             return new InvoiceModelValidationResult(diagnostics, null);
@@ -62,6 +63,7 @@ public static partial class InvoiceModelValidator {
             if (!identifiers.Add(line.Id)) check.Error("INV-LINE-ID", "Line identifier is duplicated.", path + ".Id");
             check.Required(line.Name, path + ".Name");
             check.Required(line.UnitCode, path + ".UnitCode");
+            if (line.OriginCountryCode != null) check.Code(line.OriginCountryCode, path + ".OriginCountryCode", "^[A-Z]{2}\\z");
             check.Tax(line.Tax, path + ".Tax");
             check.Period(line.Period, path + ".Period");
             if (line.StandardItemIdentifier != null) check.Identifier(line.StandardItemIdentifier, path + ".StandardItemIdentifier", true);
@@ -126,6 +128,8 @@ public static partial class InvoiceModelValidator {
         InvoiceCalculation? calculation = null;
         try {
             calculation = InvoiceCalculator.Calculate(invoice);
+            if (invoice.DeclaredTaxes.Count == 0 && modelItems + calculation.Taxes.Count > InvoiceModelLimits.MaximumCollectionItems)
+                check.Error("INV-MODEL-LIMIT", "Invoice model and calculated VAT breakdowns exceed 50,000 collection items.", "Invoice");
             check.DeclaredAmounts(invoice, calculation);
         } catch (Exception exception) when (exception is ArgumentException || exception is OverflowException) {
             check.Error("INV-CALCULATION", exception.Message, "Invoice");

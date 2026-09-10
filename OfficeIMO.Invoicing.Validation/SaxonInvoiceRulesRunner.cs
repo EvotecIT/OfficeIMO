@@ -31,9 +31,7 @@ public sealed class SaxonInvoiceRulesRunner {
         IReadOnlyDictionary<string, InvoiceDiagnosticSeverity> overrides, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         InvoiceRuleBundle.ReadPinned(_jar, JarSha256, 8 * 1024 * 1024);
-        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.InvoiceRules-" + Guid.NewGuid().ToString("N"));
-        if (Directory.Exists(directory)) throw new IOException("Validation workspace already exists.");
-        Directory.CreateDirectory(directory);
+        string directory = Directory.CreateTempSubdirectory("OfficeIMO.InvoiceRules-").FullName;
         try {
             string input = Path.Combine(directory, "invoice.xml"), stylesheet = Path.Combine(directory, "rules.xsl"), report = Path.Combine(directory, "report.xml");
             await File.WriteAllBytesAsync(input, xml, cancellationToken).ConfigureAwait(false);

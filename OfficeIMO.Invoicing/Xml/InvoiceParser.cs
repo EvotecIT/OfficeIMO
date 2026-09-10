@@ -23,6 +23,7 @@ public static partial class InvoiceParser {
         XElement root = document.Root!;
         context.Consume(root);
         Invoice invoice = declaration.Syntax == InvoiceSyntax.Cii ? ReadCii(root, context) : ReadUbl(root, context);
+        new InvoiceModelLimits().Check(invoice);
         if (!declaration.Profile.HasValue) context.Loss(root, "The source guideline is not in the supported profile catalogue.");
         return new InvoiceReadResult(invoice, declaration, snapshot, context.Finish(root));
     }

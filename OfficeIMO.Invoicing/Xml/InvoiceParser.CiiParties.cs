@@ -7,8 +7,8 @@ public static partial class InvoiceParser {
         var party = new InvoiceParty { Name = c.Required(element, Ram + "Name"), LegalInformation = c.Text(element, Ram + "Description"),
             Address = CiiAddress(c, c.Child(element, Ram + "PostalTradeAddress")),
             ElectronicAddress = c.Identifier(c.Child(c.Child(element, Ram + "URIUniversalCommunication"), Ram + "URIID")) };
-        foreach (XElement identifier in c.Children(element, Ram + "ID")) party.Identifiers.Add(c.Identifier(identifier)!);
-        foreach (XElement identifier in c.Children(element, Ram + "GlobalID")) party.Identifiers.Add(c.Identifier(identifier)!);
+        foreach (XElement identifier in c.Children(element, Ram + "ID")) c.AddTo(party.Identifiers, c.Identifier(identifier)!);
+        foreach (XElement identifier in c.Children(element, Ram + "GlobalID")) c.AddTo(party.Identifiers, c.Identifier(identifier)!);
         XElement? legal = c.Child(element, Ram + "SpecifiedLegalOrganization");
         party.LegalRegistration = c.Identifier(c.Child(legal, Ram + "ID")); party.TradingName = c.Text(legal, Ram + "TradingBusinessName");
         XElement? contact = c.Child(element, Ram + "DefinedTradeContact");
@@ -45,7 +45,7 @@ public static partial class InvoiceParser {
             if (account != null) {
                 string? iban = c.Text(account, Ram + "IBANID"), local = c.Text(account, Ram + "ProprietaryID");
                 if (iban != null && local != null) c.Loss(account, "Account declares both IBAN and proprietary identifiers.");
-                result.Accounts.Add(new InvoiceBankAccount { Identifier = iban ?? local ?? string.Empty, IsIban = iban != null,
+                c.AddTo(result.Accounts, new InvoiceBankAccount { Identifier = iban ?? local ?? string.Empty, IsIban = iban != null,
                     Name = c.Text(account, Ram + "AccountName"), ProviderIdentifier = c.Text(institution, Ram + "BICID") });
             } else if (institution != null) c.Loss(institution, "A financial institution without an account is outside the supported mapping.");
             XElement? card = c.Child(element, Ram + "ApplicableTradeSettlementFinancialCard");
