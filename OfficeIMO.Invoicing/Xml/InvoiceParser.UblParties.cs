@@ -50,7 +50,7 @@ public static partial class InvoiceParser {
             XElement? account = c.Child(element, Cac + "PayeeFinancialAccount");
             if (account != null) {
                 string identifier = c.Required(account, Cbc + "ID");
-                result.Accounts.Add(new InvoiceBankAccount { Identifier = identifier, IsIban = System.Text.RegularExpressions.Regex.IsMatch(identifier, "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$"),
+                result.Accounts.Add(new InvoiceBankAccount { Identifier = identifier, IsIban = System.Text.RegularExpressions.Regex.IsMatch(identifier, "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\\z"),
                     Name = c.Text(account, Cbc + "Name"), ProviderIdentifier = c.Text(c.Child(account, Cac + "FinancialInstitutionBranch"), Cbc + "ID") });
             }
             XElement? card = c.Child(element, Cac + "CardAccount"), mandate = c.Child(element, Cac + "PaymentMandate");

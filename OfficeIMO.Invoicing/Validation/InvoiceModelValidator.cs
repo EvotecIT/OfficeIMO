@@ -16,8 +16,8 @@ public static partial class InvoiceModelValidator {
         }
         check.Required(invoice.Number, "Number");
         check.Date(invoice.IssueDate, "IssueDate");
-        check.Code(invoice.TypeCode, "TypeCode", "^[0-9]{3}$");
-        check.Code(invoice.Currency, "Currency", "^[A-Z]{3}$");
+        check.Code(invoice.TypeCode, "TypeCode", "^[0-9]{3}\\z");
+        check.Code(invoice.Currency, "Currency", "^[A-Z]{3}\\z");
         check.Party(invoice.Seller, "Seller");
         check.Party(invoice.Buyer, "Buyer");
         if (invoice.Payee != null) check.Required(invoice.Payee.Name, "Payee.Name");
@@ -37,7 +37,7 @@ public static partial class InvoiceModelValidator {
         if ((invoice.TaxCurrency != null) != invoice.TaxAmountInAccountingCurrency.HasValue)
             check.Error("INV-TAX-CURRENCY", "Supply both the accounting currency and its VAT amount.", "TaxCurrency");
         if (invoice.TaxCurrency != null) {
-            check.Code(invoice.TaxCurrency, "TaxCurrency", "^[A-Z]{3}$");
+            check.Code(invoice.TaxCurrency, "TaxCurrency", "^[A-Z]{3}\\z");
             if (invoice.TaxCurrency == invoice.Currency) check.Error("INV-TAX-CURRENCY", "Accounting currency must differ from invoice currency.", "TaxCurrency");
         }
         if (invoice.TaxAmountInAccountingCurrency.HasValue) check.Money(invoice.TaxAmountInAccountingCurrency.Value, "TaxAmountInAccountingCurrency");
@@ -77,7 +77,7 @@ public static partial class InvoiceModelValidator {
             if (note == null) check.Error("INV-NULL", "Note is null.", "Notes");
             else {
                 check.Required(note.Text, "Notes.Text");
-                if (note.SubjectCode != null) check.Code(note.SubjectCode, "Notes.SubjectCode", "^[A-Z]{3}$");
+                if (note.SubjectCode != null) check.Code(note.SubjectCode, "Notes.SubjectCode", "^[A-Z]{3}\\z");
             }
         }
         foreach (InvoiceSupportingDocument document in invoice.SupportingDocuments) {
@@ -131,7 +131,7 @@ public static partial class InvoiceModelValidator {
         }
         internal void Address(InvoiceAddress? address, string path) {
             if (address == null) Error("INV-REQUIRED", "Postal address is required.", path);
-            else Code(address.CountryCode, path + ".CountryCode", "^[A-Z]{2}$");
+            else Code(address.CountryCode, path + ".CountryCode", "^[A-Z]{2}\\z");
         }
         internal void Party(InvoiceParty? party, string path) {
             if (party == null) { Error("INV-REQUIRED", "Party is required.", path); return; }
@@ -175,12 +175,12 @@ public static partial class InvoiceModelValidator {
         }
         internal void Payment(InvoicePayment? payment) {
             if (payment == null) return;
-            Code(payment.MeansCode, "Payment.MeansCode", "^[0-9]{1,3}$");
+            Code(payment.MeansCode, "Payment.MeansCode", "^[0-9]{1,3}\\z");
             foreach (InvoiceBankAccount account in payment.Accounts) {
                 if (account == null) Error("INV-NULL", "Bank account is null.", "Payment.Accounts");
                 else Required(account.Identifier, "Payment.Accounts.Identifier");
             }
-            if (payment.CardNumber != null && !Regex.IsMatch(payment.CardNumber, "^[0-9]{4,6}$", RegexOptions.CultureInvariant))
+            if (payment.CardNumber != null && !Regex.IsMatch(payment.CardNumber, "^[0-9]{4,6}\\z", RegexOptions.CultureInvariant))
                 Error("INV-CARD", "Supply only the last four to six card digits.", "Payment.CardNumber");
             if (payment.CardHolder != null && payment.CardNumber == null) Error("INV-CARD", "Card holder requires masked card digits.", "Payment.CardHolder");
         }

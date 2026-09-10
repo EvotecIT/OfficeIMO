@@ -37,6 +37,7 @@ public class InvoicePreservationTests {
     [InlineData("ab")]
     [InlineData("ABCD")]
     [InlineData("A#U")]
+    [InlineData("ADU\n")]
     public void InvalidSubjectCodeCannotProduceAmbiguousUbl(string subject) {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Notes.Add(new InvoiceNote("A note", subject));
