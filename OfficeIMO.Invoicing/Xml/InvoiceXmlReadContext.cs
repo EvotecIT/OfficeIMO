@@ -6,6 +6,7 @@ namespace OfficeIMO.Invoicing;
 /// <summary>Tracks every consumed XML element and attribute so unsupported input cannot disappear unnoticed.</summary>
 internal sealed class InvoiceXmlReadContext {
     private readonly HashSet<XObject> _consumed = new HashSet<XObject>();
+    private readonly HashSet<XElement> _scalarValues = new HashSet<XElement>();
     private readonly List<InvoiceDiagnostic> _diagnostics = new List<InvoiceDiagnostic>();
     internal XElement? Child(XElement? parent, XName name) {
         if (parent == null) return null;
@@ -27,6 +28,7 @@ internal sealed class InvoiceXmlReadContext {
         if (element == null) return null;
         _consumed.Add(element);
         if (element.HasElements) throw new InvalidDataException("Invoice scalar contains child elements: " + Path(element));
+        _scalarValues.Add(element);
         return element.Value;
     }
     internal string? Text(XElement? parent, XName name) => Value(Child(parent, name));
@@ -95,8 +97,8 @@ internal sealed class InvoiceXmlReadContext {
             if (_consumed.Contains(element)) {
                 foreach (XAttribute attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && !_consumed.Contains(a)))
                     _diagnostics.Add(new InvoiceDiagnostic("INV-UNMAPPED", "Attribute is outside the supported semantic mapping.", Path(element) + "/@" + attribute.Name));
-                if (element.HasElements && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
-                    Loss(element, "Mixed text in an invoice container is outside the supported mapping.");
+                if (!_scalarValues.Contains(element) && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
+                    Loss(element, "Text in an invoice container is outside the supported mapping.");
             }
             if (_diagnostics.Count > 1000) throw new InvalidDataException("Invoice has more than 1,000 mapping diagnostics.");
         }

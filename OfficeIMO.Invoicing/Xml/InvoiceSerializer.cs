@@ -25,14 +25,12 @@ public static partial class InvoiceSerializer {
         XDocument document = options.Syntax == InvoiceSyntax.Cii
             ? WriteCii(invoice, validation.Calculation!, options)
             : WriteUbl(invoice, validation.Calculation!, options);
-        using var output = new MemoryStream();
+        using var output = new InvoiceXmlOutputStream();
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new UTF8Encoding(false), Indent = true, IndentChars = "  ", NewLineChars = "\n",
             NewLineHandling = NewLineHandling.Entitize, CloseOutput = false
         })) document.Save(writer);
-        byte[] bytes = output.ToArray();
-        if (bytes.Length > InvoiceProfileDeclaration.MaximumXmlBytes) throw new InvalidDataException("Serialized invoice exceeds 16 MiB.");
-        return bytes;
+        return output.ToArray();
     }
 
     /// <summary>Returns unsupported target mappings without writing or silently discarding information.</summary>
@@ -53,7 +51,7 @@ public static partial class InvoiceSerializer {
                     Unsupported("Notes", "An unclassified note begins with a reserved UBL subject prefix and cannot be represented without changing its meaning.");
             if (invoice.TypeCode == "381" && invoice.DueDate.HasValue) Unsupported("DueDate", "UBL credit note due-date mapping is not supported.");
             if (invoice.TypeCode == "381" && invoice.ProjectReference != null) Unsupported("ProjectReference", "UBL credit note project reference mapping is not supported.");
-            if (invoice.PurchaseOrderReference == null && invoice.SalesOrderReference != null) Unsupported("SalesOrderReference", "UBL requires a purchase order reference alongside a sales order reference.");
+            if (string.IsNullOrWhiteSpace(invoice.PurchaseOrderReference) && invoice.SalesOrderReference != null) Unsupported("SalesOrderReference", "UBL requires a purchase order reference alongside a sales order reference.");
             if (invoice.Seller.Identifiers.Any(id => id.SchemeId == "SEPA")) Unsupported("Seller.Identifiers", "Use Payment.CreditorIdentifier for the reserved SEPA creditor identifier.");
         }
         if (options.Profile != InvoiceProfile.En16931 && string.IsNullOrWhiteSpace(invoice.BusinessProcessId))

@@ -11,6 +11,40 @@ public sealed class InvoiceStandardsTheoryAttribute : TheoryAttribute {
 }
 public class InvoiceStandardsTests {
     [InvoiceStandardsTheory]
+    [InlineData(InvoiceSyntax.Cii, "ftp://example.test/document.pdf")]
+    [InlineData(InvoiceSyntax.Ubl, "ftp://example.test/document.pdf")]
+    [InlineData(InvoiceSyntax.Cii, "urn:uuid:00112233-4455-6677-8899-aabbccddeeff")]
+    [InlineData(InvoiceSyntax.Ubl, "urn:uuid:00112233-4455-6677-8899-aabbccddeeff")]
+    public async Task NonHttpSupportingDocumentLocationsPassAuthorityRules(InvoiceSyntax syntax, string uri) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.SupportingDocuments.Add(new InvoiceSupportingDocument { Reference = "support", ExternalUri = uri });
+        byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.True(report.IsValid, Report(report));
+    }
+
+    [InvoiceStandardsTheory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task SingletonUblPaymentReferenceAndItsConversionPassAuthorityRules(int referenceIndex) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payment!.Accounts.Add(new InvoiceBankAccount { Identifier = "DE89370400440532013000" });
+        XDocument source = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl))));
+        XElement reference = source.Descendants().Single(e => e.Name.LocalName == "PaymentID");
+        reference.Remove();
+        source.Descendants().Where(e => e.Name.LocalName == "PaymentMeans").ElementAt(referenceIndex)
+            .Elements().Single(e => e.Name.LocalName == "PaymentMeansCode").AddAfterSelf(reference);
+        byte[] xml = Encoding.UTF8.GetBytes(source.ToString());
+        var validator = new InvoiceValidator(Bundle(), Runner());
+        InvoiceValidationReport original = await validator.ValidateAsync(xml, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.True(original.IsValid, Report(original));
+        InvoiceConversionResult conversion = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        Assert.True(conversion.Succeeded, string.Join("; ", conversion.Diagnostics.Select(d => d.Message)));
+        InvoiceValidationReport converted = await validator.ValidateAsync(conversion.Xml!, InvoiceRulesRelease.En16931_1_3_16);
+        Assert.True(converted.IsValid, Report(converted));
+    }
+
+    [InvoiceStandardsTheory]
     [InlineData(InvoiceSyntax.Cii, true)]
     [InlineData(InvoiceSyntax.Ubl, true)]
     [InlineData(InvoiceSyntax.Cii, false)]

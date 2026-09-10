@@ -62,7 +62,7 @@ Successful serialization alone does not establish standards compliance.
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
 | Payments | Transfer accounts, payment references, direct-debit mandate and creditor details, masked card details |
-| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents |
+| References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents; external locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them |
 
 Profile recognition also covers Factur-X MINIMUM, BASIC WL, BASIC, EXTENDED and EXTENDED-CTC-FR.
 Authoring those profiles is not supported by this engine. National CIUS rules
@@ -93,6 +93,13 @@ Declared source line and VAT amounts are preserved. Model checks permit up to
 rounding difference; totals must match the resulting amounts exactly. These
 checks do not replace release-specific rules. `UpdateDeclaredAmounts` explicitly
 recalculates lines, VAT and totals after financial edits.
+
+Quantity, price, base-quantity and percentage calculations retain intermediate
+precision until monetary rounding. Monetary results use two decimal places with
+ties towards positive infinity; values that exceed decimal capacity are rejected
+instead of silently losing cents. Caller text must contain valid XML characters.
+The model permits up to 4 MiB of combined UTF-8 text and 8 MiB of embedded bytes;
+serialized XML is limited to 16 MiB while it is written.
 
 ## Convert CII and UBL
 

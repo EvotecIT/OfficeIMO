@@ -36,7 +36,7 @@ public sealed class InvoiceSupportingDocument {
     public string Reference { get; set; } = string.Empty;
     /// <summary>Document description (BT-123).</summary>
     public string? Description { get; set; }
-    /// <summary>External document location (BT-124); the engine never fetches it.</summary>
+    /// <summary>Well-formed absolute document URI (BT-124), including non-HTTP schemes; the engine never fetches it.</summary>
     public string? ExternalUri { get; set; }
     /// <summary>Embedded document bytes (BT-125).</summary>
     public byte[]? Data { get; set; }

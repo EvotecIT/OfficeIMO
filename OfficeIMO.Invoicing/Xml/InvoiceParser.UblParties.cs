@@ -46,7 +46,13 @@ public static partial class InvoiceParser {
             string means = c.Value(code) ?? string.Empty;
             string? text = c.Attribute(code, "name"), reference = c.Text(element, Cbc + "PaymentID");
             if (result == null) result = new InvoicePayment { MeansCode = means, MeansText = text, Reference = reference, CreditorIdentifier = creditor };
-            else { Agree(c, element, result.MeansCode, means, "payment means"); if (result.MeansText != null && text != null) Agree(c, element, result.MeansText, text, "payment descriptions"); result.MeansText = result.MeansText ?? text; Agree(c, element, result.Reference, reference, "payment references"); }
+            else {
+                Agree(c, element, result.MeansCode, means, "payment means");
+                if (result.MeansText != null && text != null) Agree(c, element, result.MeansText, text, "payment descriptions");
+                if (result.Reference != null && reference != null) Agree(c, element, result.Reference, reference, "payment references");
+                result.MeansText = result.MeansText ?? text;
+                result.Reference = result.Reference ?? reference;
+            }
             XElement? account = c.Child(element, Cac + "PayeeFinancialAccount");
             if (account != null) {
                 string identifier = c.Required(account, Cbc + "ID");

@@ -6,15 +6,15 @@ public sealed class InvoiceCalculation {
         decimal allowances, decimal charges, decimal prepaid, decimal rounding) {
         Lines = lines;
         Taxes = taxes;
-        LineNetTotal = lines.Sum(line => line.NetAmount);
+        LineNetTotal = InvoiceArithmetic.Sum(lines.Select(line => line.NetAmount));
         AllowanceTotal = allowances;
         ChargeTotal = charges;
-        TaxExclusiveTotal = LineNetTotal - allowances + charges;
-        TaxTotal = taxes.Sum(tax => tax.TaxAmount);
-        TaxInclusiveTotal = TaxExclusiveTotal + TaxTotal;
+        TaxExclusiveTotal = InvoiceArithmetic.Sum(new[] { LineNetTotal, -allowances, charges });
+        TaxTotal = InvoiceArithmetic.Sum(taxes.Select(tax => tax.TaxAmount));
+        TaxInclusiveTotal = InvoiceArithmetic.Add(TaxExclusiveTotal, TaxTotal);
         PrepaidAmount = prepaid;
         RoundingAmount = rounding;
-        PayableAmount = TaxInclusiveTotal - prepaid + rounding;
+        PayableAmount = InvoiceArithmetic.Sum(new[] { TaxInclusiveTotal, -prepaid, rounding });
     }
 
     /// <summary>Calculated lines in source order.</summary>
@@ -43,10 +43,10 @@ public sealed class InvoiceCalculation {
 
 /// <summary>Immutable line calculation, indexed in the same order as the source model.</summary>
 public sealed class InvoiceCalculatedLine {
-    internal InvoiceCalculatedLine(string id, decimal formulaNetAmount, decimal? declared) { Id = id; FormulaNetAmount = formulaNetAmount; NetAmount = declared ?? InvoiceCalculator.RoundAmount(formulaNetAmount); }
+    internal InvoiceCalculatedLine(string id, decimal formulaNetAmount, decimal roundedFormula, decimal? declared) { Id = id; FormulaNetAmount = formulaNetAmount; NetAmount = declared ?? roundedFormula; }
     /// <summary>Source line identifier.</summary>
     public string Id { get; }
-    /// <summary>Unrounded quantity, price and adjustment formula before source declarations.</summary>
+    /// <summary>Quantity, price and adjustment formula before monetary rounding or source declarations, represented at decimal precision.</summary>
     public decimal FormulaNetAmount { get; }
     /// <summary>Source-declared line net amount (BT-131), or the formula amount when absent.</summary>
     public decimal NetAmount { get; }
@@ -57,7 +57,7 @@ public sealed class InvoiceCalculatedTax {
     internal InvoiceCalculatedTax(string code, decimal? rate, decimal basis, string? reason, string? reasonCode, decimal? declaredAmount) {
         CategoryCode = code; Rate = rate; TaxableAmount = basis;
         ExemptionReason = reason; ExemptionReasonCode = reasonCode;
-        FormulaTaxAmount = InvoiceCalculator.RoundAmount(basis * (rate ?? 0m) / 100m);
+        FormulaTaxAmount = InvoiceArithmetic.RoundedProduct(basis, rate ?? 0m, 100m);
         TaxAmount = declaredAmount ?? FormulaTaxAmount;
     }
     /// <summary>VAT category code.</summary>

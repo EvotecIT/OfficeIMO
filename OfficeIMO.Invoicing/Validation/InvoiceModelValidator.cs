@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace OfficeIMO.Invoicing;
 
@@ -12,6 +13,10 @@ public static partial class InvoiceModelValidator {
         try { new InvoiceModelLimits().Check(invoice); }
         catch (InvalidDataException exception) {
             check.Error("INV-MODEL-LIMIT", exception.Message, "Invoice");
+            return new InvoiceModelValidationResult(diagnostics, null);
+        }
+        catch (XmlException) {
+            check.Error("INV-MODEL-XML", "Invoice text contains a character that XML cannot represent.", "Invoice");
             return new InvoiceModelValidationResult(diagnostics, null);
         }
         check.Required(invoice.Number, "Number");
@@ -64,13 +69,23 @@ public static partial class InvoiceModelValidator {
                 check.Required(classification.ListId, path + ".Classifications.ListId");
                 if (classification.ListVersion != null) check.Required(classification.ListVersion, path + ".Classifications.ListVersion");
             }
+            foreach (InvoiceItemAttribute attribute in line.Attributes) {
+                if (attribute == null) { check.Error("INV-NULL", "Item attribute is null.", path + ".Attributes"); continue; }
+                check.Required(attribute.Name, path + ".Attributes.Name");
+                check.Required(attribute.Value, path + ".Attributes.Value");
+            }
             if (line.PriceBaseQuantity <= 0m) check.Error("INV-BASE-QUANTITY", "Price base quantity must be positive.", path + ".PriceBaseQuantity");
-            if (line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m)
+            bool invalidPrice = line.UnitPrice < 0m || line.GrossPrice < 0m || line.PriceDiscount < 0m;
+            if (invalidPrice)
                 check.Error("INV-PRICE", "Item prices and price discounts cannot be negative.", path + ".UnitPrice");
             if (line.PriceDiscount.HasValue && !line.GrossPrice.HasValue)
                 check.Error("INV-PRICE", "A price discount requires its gross price.", path + ".PriceDiscount");
-            if (line.GrossPrice.HasValue && line.GrossPrice.Value - (line.PriceDiscount ?? 0m) != line.UnitPrice)
-                check.Error("INV-PRICE", "Net price must equal gross price minus price discount.", path + ".UnitPrice");
+            if (!invalidPrice && line.GrossPrice.HasValue) {
+                try {
+                    if (InvoiceArithmetic.Add(line.GrossPrice.Value, -(line.PriceDiscount ?? 0m)) != line.UnitPrice)
+                        check.Error("INV-PRICE", "Net price must equal gross price minus price discount.", path + ".UnitPrice");
+                } catch (OverflowException) { check.Error("INV-OVERFLOW", "Gross price minus discount exceeds decimal precision.", path + ".UnitPrice"); }
+            }
             foreach (InvoiceAllowanceCharge adjustment in line.AllowancesAndCharges) {
                 check.Adjustment(adjustment, path + ".AllowancesAndCharges", false);
                 if (adjustment?.Tax != null) check.Error("INV-LINE-TAX", "Line adjustments inherit the line VAT category; do not supply a separate category.", path);
@@ -101,8 +116,8 @@ public static partial class InvoiceModelValidator {
             } else if (document.FileName != null || document.MimeType != null) {
                 check.Error("INV-ATTACHMENT", "File name and media type require embedded bytes.", "SupportingDocuments");
             }
-            if (document.ExternalUri != null && (!Uri.TryCreate(document.ExternalUri, UriKind.Absolute, out Uri? uri) || uri.Scheme != "https" && uri.Scheme != "http"))
-                check.Error("INV-ATTACHMENT-URI", "Supporting document locations must be absolute HTTP(S) URIs.", "SupportingDocuments.ExternalUri");
+            if (document.ExternalUri != null && (!Uri.TryCreate(document.ExternalUri, UriKind.Absolute, out Uri? uri) || !uri.IsWellFormedOriginalString()))
+                check.Error("INV-ATTACHMENT-URI", "Supporting document locations must be well-formed absolute URIs.", "SupportingDocuments.ExternalUri");
         }
         check.Payment(invoice.Payment);
         InvoiceCalculation? calculation = null;
@@ -180,7 +195,7 @@ public static partial class InvoiceModelValidator {
             if (item.BaseAmount.HasValue) Money(item.BaseAmount.Value, path + ".BaseAmount");
             if (item.BaseAmount.HasValue && item.Percentage.HasValue) {
                 try {
-                    if (InvoiceCalculator.RoundAmount(item.BaseAmount.Value * item.Percentage.Value / 100m) != item.Amount)
+                    if (InvoiceArithmetic.RoundedProduct(item.BaseAmount.Value, item.Percentage.Value, 100m) != item.Amount)
                         Error("INV-ADJUSTMENT-AMOUNT", "Amount differs from the rounded base multiplied by percentage.", path + ".Amount");
                 } catch (OverflowException) { Error("INV-OVERFLOW", "Adjustment calculation exceeds decimal capacity.", path); }
             }

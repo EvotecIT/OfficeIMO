@@ -29,8 +29,8 @@ public static partial class InvoiceSerializer {
         IEnumerable<InvoiceBankAccount?> accounts = payment.Accounts.Count == 0 ? new InvoiceBankAccount?[] { null } : payment.Accounts.Select(account => (InvoiceBankAccount?)account);
         bool first = true;
         foreach (InvoiceBankAccount? account in accounts) {
-            yield return new XElement(Cac + "PaymentMeans", new XElement(Cbc + "PaymentMeansCode", payment.MeansText == null ? null : new XAttribute("name", payment.MeansText), payment.MeansCode),
-                Text(Cbc + "PaymentID", payment.Reference),
+            yield return new XElement(Cac + "PaymentMeans", new XElement(Cbc + "PaymentMeansCode", !first || payment.MeansText == null ? null : new XAttribute("name", payment.MeansText), payment.MeansCode),
+                first ? Text(Cbc + "PaymentID", payment.Reference) : null,
                 !first || payment.CardNumber == null ? null : new XElement(Cac + "CardAccount", Text(Cbc + "PrimaryAccountNumberID", payment.CardNumber), new XElement(Cbc + "NetworkID", "NA"), Text(Cbc + "HolderName", payment.CardHolder)),
                 account == null ? null : new XElement(Cac + "PayeeFinancialAccount", Text(Cbc + "ID", account.Identifier), Text(Cbc + "Name", account.Name),
                     account.ProviderIdentifier == null ? null : new XElement(Cac + "FinancialInstitutionBranch", Text(Cbc + "ID", account.ProviderIdentifier))),
