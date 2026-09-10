@@ -1,7 +1,11 @@
+using System;
+using System.IO;
+using System.Linq;
+
 using System.Xml;
 using System.Xml.Linq;
 
-namespace OfficeIMO.Invoicing;
+namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Bounded, namespace-aware XML operations shared by invoice readers and profile inspection.</summary>
 internal static class InvoiceXml {
@@ -12,7 +16,11 @@ internal static class InvoiceXml {
     internal static readonly XNamespace UblCreditNote = "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2";
 
     internal static XDocument Parse(byte[] bytes) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(bytes);
+#else
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
         if (bytes.Length == 0 || bytes.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");
         var settings = new XmlReaderSettings {

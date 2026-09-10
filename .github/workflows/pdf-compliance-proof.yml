@@ -5,6 +5,8 @@ on:
     paths:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.SharedSource/Invoicing/**'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Pdf/**'
@@ -31,6 +33,8 @@ on:
     paths:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCiiInvoiceDocumentTests.cs'
       - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.SharedSource/Invoicing/**'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfInvoiceProfileConsistencyTests.cs'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Html/**'
       - 'OfficeIMO.Html.Pdf/**'

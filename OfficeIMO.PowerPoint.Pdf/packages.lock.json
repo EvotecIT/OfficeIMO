@@ -68,14 +68,10 @@
       "officeimo.core": {
         "type": "Project"
       },
-      "officeimo.invoicing": {
-        "type": "Project"
-      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       },
       "officeimo.powerpoint": {
@@ -88,12 +84,6 @@
         }
       }
     },
-    ".NETFramework,Version=v4.7.2/linux-arm64": {},
-    ".NETFramework,Version=v4.7.2/linux-x64": {},
-    ".NETFramework,Version=v4.7.2/osx-arm64": {},
-    ".NETFramework,Version=v4.7.2/osx-x64": {},
-    ".NETFramework,Version=v4.7.2/win-arm64": {},
-    ".NETFramework,Version=v4.7.2/win-x64": {},
     ".NETStandard,Version=v2.0": {
       "NETStandard.Library": {
         "type": "Direct",
@@ -186,14 +176,10 @@
       "officeimo.core": {
         "type": "Project"
       },
-      "officeimo.invoicing": {
-        "type": "Project"
-      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       },
       "officeimo.powerpoint": {
@@ -206,12 +192,6 @@
         }
       }
     },
-    ".NETStandard,Version=v2.0/linux-arm64": {},
-    ".NETStandard,Version=v2.0/linux-x64": {},
-    ".NETStandard,Version=v2.0/osx-arm64": {},
-    ".NETStandard,Version=v2.0/osx-x64": {},
-    ".NETStandard,Version=v2.0/win-arm64": {},
-    ".NETStandard,Version=v2.0/win-x64": {},
     "net10.0": {
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
@@ -237,14 +217,10 @@
       "officeimo.core": {
         "type": "Project"
       },
-      "officeimo.invoicing": {
-        "type": "Project"
-      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       },
       "officeimo.powerpoint": {
@@ -255,12 +231,6 @@
         }
       }
     },
-    "net10.0/linux-arm64": {},
-    "net10.0/linux-x64": {},
-    "net10.0/osx-arm64": {},
-    "net10.0/osx-x64": {},
-    "net10.0/win-arm64": {},
-    "net10.0/win-x64": {},
     "net8.0": {
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
@@ -286,14 +256,10 @@
       "officeimo.core": {
         "type": "Project"
       },
-      "officeimo.invoicing": {
-        "type": "Project"
-      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.2, )",
-          "OfficeIMO.Invoicing": "[3.4.2, )"
+          "OfficeIMO.Core": "[3.4.2, )"
         }
       },
       "officeimo.powerpoint": {
@@ -303,12 +269,6 @@
           "OfficeIMO.Core": "[3.4.2, )"
         }
       }
-    },
-    "net8.0/linux-arm64": {},
-    "net8.0/linux-x64": {},
-    "net8.0/osx-arm64": {},
-    "net8.0/osx-x64": {},
-    "net8.0/win-arm64": {},
-    "net8.0/win-x64": {}
+    }
   }
 }

@@ -9,7 +9,7 @@
     "validationProjectCount": 30,
     "apiReferenceCount": 26,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42864
+    "conceptualWordCount": 42872
   },
   "categories": [
     {
@@ -544,10 +544,10 @@
       "name": "OfficeIMO.Invoicing",
       "packageId": "OfficeIMO.Invoicing",
       "category": "Publishing and conversion",
-      "description": "Typed electronic invoice contracts, XML authoring, reading, and validation for .NET.",
+      "description": "Electronic invoice profile contracts and bounded XML declaration inspection for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

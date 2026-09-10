@@ -1,4 +1,4 @@
-using OfficeIMO.Invoicing;
+using OfficeIMO.Internal.Invoicing;
 using System.Xml;
 using System.Xml.Linq;
 
