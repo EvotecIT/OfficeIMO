@@ -52,10 +52,11 @@ public sealed class ProjectLegacyLifecycleRegressionTests {
     [InlineData('+')]
     [InlineData('.')]
     [InlineData('%')]
+    [InlineData('?')]
     public void MpxAmbiguousSeparatorsFailBeforeOutput(char separator) {
         using var document = ProjectDocument.Create();
         var first = document.Tasks.Add("First"); var second = document.Tasks.Add("Second");
-        document.Dependencies.Add(first, second).Lag = ProjectDuration.WorkingDays(-0.5m);
+        document.Dependencies.Add(first, second).Lag = ProjectDuration.WorkingDays(-0.5m).Estimated();
         var options = Options(ProjectFileFormat.Mpx4); options.MpxSeparator = separator;
         using var bytes = new MemoryStream(); bytes.WriteByte(123);
         Assert.Throws<InvalidDataException>(() => document.Save(bytes, options));

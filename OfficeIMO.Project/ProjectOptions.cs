@@ -82,7 +82,7 @@ public sealed class ProjectSaveOptions {
     public ProjectFileFormat Format { get; set; } = ProjectFileFormat.Automatic;
     /// <summary>MPX character mapping. Null retains an MPX source declaration; new MPX output uses Windows 1252. Unrepresentable characters are rejected.</summary>
     public ProjectMpxEncoding? MpxEncoding { get; set; }
-    /// <summary>MPX field separator. Null retains the source separator or uses a comma for new output. Rewrites reject +, -, . and % because these conflict with dependency syntax.</summary>
+    /// <summary>MPX field separator. Null retains the source separator or uses a comma for new output. Rewrites reject +, -, ., % and ? because these conflict with dependency syntax.</summary>
     public char? MpxSeparator { get; set; }
     /// <summary>Blocks save when modeled edits may invalidate unmodeled source content.</summary>
     public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
