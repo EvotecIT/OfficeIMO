@@ -9,6 +9,7 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (effectGroup.Opacity <= 0D) return;
+        canvas = canvas.WithDrawingTextProfile(effectGroup.InnerDrawing);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,

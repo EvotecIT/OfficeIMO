@@ -34,7 +34,9 @@ namespace OfficeIMO.Tests {
 
             OfficeDrawingText firstText = SingleText(snapshot, "PowerPoint spaced first");
             OfficeDrawingText secondText = SingleText(snapshot, "PowerPoint spaced second");
-            Assert.InRange(secondText.Y - (firstText.Y + firstText.Height), 23.9D, 24.1D);
+            Assert.InRange(secondText.Y - firstText.Y, 38.9D, 39.1D);
+            Assert.Equal(100D, firstText.Y + firstText.Height);
+            Assert.Equal(100D, secondText.Y + secondText.Height);
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.IndexOf('\n') >= 0);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -68,8 +70,9 @@ namespace OfficeIMO.Tests {
             OfficeDrawingText firstText = SingleText(snapshot, "PowerPoint line spacing");
             OfficeDrawingText secondText = SingleText(snapshot, "PowerPoint next line");
             Assert.Equal(24D, firstText.LineHeight);
-            Assert.InRange(firstText.Height, 23.9D, 24.1D);
-            Assert.InRange(secondText.Y - (firstText.Y + firstText.Height), -0.1D, 0.1D);
+            Assert.InRange(secondText.Y - firstText.Y, 23.9D, 24.1D);
+            Assert.Equal(100D, firstText.Y + firstText.Height);
+            Assert.Equal(100D, secondText.Y + secondText.Height);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("PowerPoint", svgText, StringComparison.Ordinal);

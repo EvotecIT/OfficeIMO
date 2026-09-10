@@ -143,9 +143,9 @@ namespace OfficeIMO.PowerPoint {
             };
 
             double contentWidth = Math.Max(1D, textBox.WidthPoints -
-                (textBox.TextMarginLeftPoints ?? 7.2D) - (textBox.TextMarginRightPoints ?? 7.2D));
+                (textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints) - (textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints));
             double contentHeight = Math.Max(1D, textBox.HeightPoints -
-                (textBox.TextMarginTopPoints ?? 3.6D) - (textBox.TextMarginBottomPoints ?? 3.6D));
+                (textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints) - (textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints));
             double resolvedFontSize = authoredFontSize;
 
             if (textBox.TextAutoFit == PowerPointTextAutoFit.Normal) {

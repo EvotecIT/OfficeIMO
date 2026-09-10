@@ -29,14 +29,27 @@ public static class OfficeImageComposer {
         OfficeColor backgroundColor,
         IEnumerable<OfficeImageLayer> layers,
         Action<OfficeRasterCanvas>? beforeLayers = null,
-        Action<OfficeRasterCanvas>? afterLayers = null) {
+        Action<OfficeRasterCanvas>? afterLayers = null) =>
+        ComposeRaster(width, height, backgroundColor, layers, beforeLayers, afterLayers, fonts: null);
+
+    /// <summary>
+    /// Composes raster layers using scoped fonts for text drawn by the layer callbacks.
+    /// </summary>
+    public static OfficeRasterImage ComposeRaster(
+        int width,
+        int height,
+        OfficeColor backgroundColor,
+        IEnumerable<OfficeImageLayer> layers,
+        Action<OfficeRasterCanvas>? beforeLayers,
+        Action<OfficeRasterCanvas>? afterLayers,
+        OfficeFontFaceCollection? fonts) {
         ValidateOutputSize(width, height);
         if (layers == null) {
             throw new ArgumentNullException(nameof(layers));
         }
 
         OfficeRasterImage image = new OfficeRasterImage(width, height, backgroundColor);
-        var canvas = new OfficeRasterCanvas(image);
+        var canvas = new OfficeRasterCanvas(image, fonts: fonts);
         beforeLayers?.Invoke(canvas);
         foreach (OfficeImageLayer layer in layers) {
             if (layer.RasterImage != null) {

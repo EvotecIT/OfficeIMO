@@ -21,10 +21,10 @@ namespace OfficeIMO.Tests {
                 new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
             Assert.True(sheet.GetCellStyle(1, 1).Bold);
-            Assert.False(run.BoldSpecified);
+            Assert.True(run.Bold);
             Assert.True(run.ItalicSpecified);
             Assert.True(run.Italic);
-            Assert.False(visualRun.BoldSpecified);
+            Assert.True(visualRun.Bold);
             Assert.True(visualRun.Italic);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);

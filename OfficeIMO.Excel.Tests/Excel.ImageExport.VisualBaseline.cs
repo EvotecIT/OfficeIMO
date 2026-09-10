@@ -1554,6 +1554,7 @@ namespace OfficeIMO.Tests {
 
         private static ExcelImageExportOptions CreateBaselineOptions() =>
             new ExcelImageExportOptions {
+                Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Scale = 2,
                 ShowGridlines = false,
                 IncludeImages = true,

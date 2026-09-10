@@ -29,14 +29,23 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
 
+        if (string.Equals(name, "font", StringComparison.OrdinalIgnoreCase)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            foreach (string longhand in FontShorthandLonghands) {
+                ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
+                    valueAlreadyValidated: true, declarationOrder: declarationOrder,
+                    customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true);
+            }
+        }
+
         if (!HtmlCssCustomPropertyResolver.ContainsVarFunction(value)
             && (valueAlreadyValidated || IsSupportedDeclarationValue(name, value))
-            && TryExpandPhysicalBoxShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
+            && TryExpandCascadeShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
             foreach (KeyValuePair<string, string> longhand in boxLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
@@ -99,11 +108,11 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder, declarationOrder)) {
-            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder));
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder, deferredFontShorthand: deferredFontShorthand));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue, declarationOrder);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand);
     }
 
     private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {

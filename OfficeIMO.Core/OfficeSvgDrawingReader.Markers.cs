@@ -40,6 +40,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         var layer = new OfficeDrawing(drawing.Width, drawing.Height);
+        layer.Fonts.AddRange(drawing.Fonts);
         bool rendered = false;
         foreach (SvgMarkerPlacement placement in placements) {
             string? reference = placement.Kind switch {
@@ -125,6 +126,7 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             var scene = new OfficeDrawing(viewBox[2], viewBox[3]);
+            scene.Fonts.AddRange(layer.Fonts);
             SvgPaintContext markerStyle = ResolvePaintContext(marker, inheritedStyle, paintServers, ref unsupported);
             markerStyle.MarkerStart = null;
             markerStyle.MarkerMid = null;

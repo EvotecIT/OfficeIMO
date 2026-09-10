@@ -27,6 +27,7 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 - `--pdf-showcase`: generate richer statement, dashboard, and manipulation PDF samples.
 - `--html-renderer-gallery`: generate matching HTML, searchable interactive PDF, PNG, and SVG renderer proof.
 - `--html-feature-showcase`: render focused HTML examples covering gradients, report layout, fillable fields, MathML, typography, SVG diagrams, table spans, positioning, and page breaks. Each writes HTML, PDF, PNG, and SVG under `Documents/HtmlFeatures`.
+- `--multi-format-report`: export the service review as HTML, searchable PDF, editable Word, and typed Excel under `Documents/MultiFormatReport/service-review`. The generated `index.md` links every saved PDF page and every HTML, Word, and worksheet preview, with conversion notes. Add `--report-source <path.html>` to use another report; relative paths resolve from the calling directory. Try `OfficeIMO.Examples/Converters/Html/Content/Reports/delivery-register.html` for a two-page register with 40 actions.
 - `--showcase-features`: generate focused Word, Excel, PowerPoint, PDF, and Markdown examples under `Documents/DocumentFeatures`. Add `--showcase-group word`, `excel`, `powerpoint`, `pdf`, or `markdown` to run one group.
 - `--powerpoint`: run PowerPoint examples.
 - `--opendocument`: generate native ODT/ODS/ODP, flat XML, formula, tracked-change, animation, and explicit conversion examples.

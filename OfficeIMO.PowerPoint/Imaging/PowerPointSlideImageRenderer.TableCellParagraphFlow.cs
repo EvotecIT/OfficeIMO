@@ -25,13 +25,13 @@ namespace OfficeIMO.PowerPoint {
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            List<PowerPointParagraph> paragraphs = GetVisibleTableCellParagraphs(cell);
+            List<PowerPointParagraph> paragraphs = cell.Paragraphs.ToList();
             if (!ShouldRenderTableCellParagraphFlow(paragraphs)) {
                 return false;
             }
 
             var numberingState = new Dictionary<int, int>();
-            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme);
+            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme, OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = cellTop + marginTop + ResolveTextBoxVerticalOffset(cell.VerticalAlignment, textHeight, flowHeight);
             double contentBottom = cellTop + marginTop + textHeight;
@@ -44,10 +44,13 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
-                if (currentY + paragraph.Height > contentBottom) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, table, "Skipped PowerPoint table cell paragraph content because it does not fit within the cell text frame.");
-                    return true;
+                // Keep the cell as the clipping boundary while paragraph leading controls flow.
+                double visibleHeight = Math.Max(0D, contentBottom - currentY);
+                bool clipped = visibleHeight + 0.001D < Math.Max(paragraph.Height, paragraph.PaintedHeight);
+                if (clipped) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, table, "Clipped PowerPoint table cell paragraph content at the cell text frame boundary.");
                 }
+                if (visibleHeight <= 0D) return true;
 
                 if (paragraph.RichRuns.Count > 0) {
                     drawing.AddRichText(
@@ -55,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
                         cellLeft + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Alignment,
                         paragraph.LineHeight,
                         rotationDegrees: rotation,
@@ -71,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
                         cellLeft + marginLeft,
                         currentY,
                         textWidth,
-                        paragraph.Height,
+                        visibleHeight,
                         paragraph.Font,
                         paragraph.Color,
                         paragraph.Alignment,
@@ -85,19 +88,17 @@ namespace OfficeIMO.PowerPoint {
                         paragraphIndent: paragraph.Indent);
                 }
 
+                if (visibleHeight < paragraph.Height) return true;
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
 
             return true;
         }
 
-        private static List<PowerPointParagraph> GetVisibleTableCellParagraphs(PowerPointTableCell cell) =>
-            cell.Paragraphs
-                .Where(paragraph => paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) || !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered)
-                .ToList();
-
         private static bool ShouldRenderTableCellParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
-            paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) ||
+            paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered ||
+                paragraph.SpaceBeforePoints.HasValue || paragraph.SpaceAfterPoints.HasValue ||
+                paragraph.LineSpacingPoints.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
             paragraphs.Count > 1;
 
         private static List<PowerPointParagraphDrawing> CreateTableCellParagraphDrawings(
@@ -106,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
             Dictionary<int, int> numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
@@ -118,9 +119,9 @@ namespace OfficeIMO.PowerPoint {
                     ? ResolveTableCellParagraphFont(cell, paragraph, mapping).Size
                     : richRuns.Max(run => run.FontSize);
                 double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
-                double height;
+                double height, paintedHeight;
                 if (ShouldRenderParagraphRichText(richRuns, marker)) {
-                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent);
+                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, out paintedHeight, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         string.Empty,
                         richRuns,
@@ -130,12 +131,13 @@ namespace OfficeIMO.PowerPoint {
                         indent,
                         lineHeight,
                         height,
+                        paintedHeight,
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
                 } else {
                     string text = CreateParagraphPlainText(paragraph, marker);
                     OfficeFontInfo font = ResolveTableCellParagraphFont(cell, paragraph, mapping);
-                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent);
+                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, out paintedHeight, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         text,
                         Array.Empty<OfficeRichTextRun>(),
@@ -145,6 +147,7 @@ namespace OfficeIMO.PowerPoint {
                         indent,
                         lineHeight,
                         height,
+                        paintedHeight,
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                         Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
                 }
@@ -172,6 +175,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo ResolveTableCellParagraphFont(PowerPointTableCell cell, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
+            if (!paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text))) {
+                PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
+                    paragraph, cell.Cell.TextBody?.ListStyle,
+                    cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
+                return new OfficeFontInfo(effective.FontName ?? cell.FontName ?? "Calibri",
+                    mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize ?? 10),
+                    ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
+            }
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
                 ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;

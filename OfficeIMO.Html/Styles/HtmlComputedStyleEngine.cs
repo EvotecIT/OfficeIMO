@@ -153,6 +153,7 @@ public static partial class HtmlComputedStyleEngine {
         "cursor",
         "direction",
         "display",
+        "font",
         "font-family",
         "font-size",
         "font-stretch",

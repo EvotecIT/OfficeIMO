@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
-            OfficeTextMeasurer textMeasurer,
+            OfficeRasterCanvas textMeasurer,
             System.Threading.CancellationToken cancellationToken) {
             int imageIndex = 0;
             foreach (ExcelVisualDrawingLayer layer in snapshot.DrawingLayers) {
