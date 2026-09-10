@@ -23,7 +23,7 @@ public static partial class InvoiceParser {
         invoice.Period = UblPeriod(c, root, out string? taxPointCode); invoice.TaxPointDateCode = taxPointCode;
         foreach (XElement note in c.Children(root, Cbc + "Note")) {
             string text = c.Value(note)!;
-            if (text.Length >= 5 && text[0] == '#' && text[4] == '#' && text.Substring(1, 3).All(char.IsUpper))
+            if (InvoiceNote.HasEncodedSubject(text))
                 invoice.Notes.Add(new InvoiceNote(text.Substring(5), text.Substring(1, 3)));
             else invoice.Notes.Add(new InvoiceNote(text));
         }

@@ -2,6 +2,8 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Invoice note and optional UNTDID 4451 subject code.</summary>
 public sealed class InvoiceNote {
+    internal static bool HasEncodedSubject(string text) => text.Length >= 5 && text[0] == '#' && text[4] == '#' &&
+        text.Substring(1, 3).All(character => character >= 'A' && character <= 'Z');
     /// <summary>Creates a note.</summary>
     public InvoiceNote(string text, string? subjectCode = null) { Text = text; SubjectCode = subjectCode; }
     /// <summary>Note text.</summary>

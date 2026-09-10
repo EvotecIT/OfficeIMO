@@ -38,7 +38,20 @@ internal sealed class InvoiceXmlReadContext {
         if (value == null) return null;
         if (!decimal.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture, out decimal result))
             throw new InvalidDataException("Invalid decimal at " + Path(element!) + ".");
+        if (CanonicalDecimal(value) != CanonicalDecimal(result.ToString(CultureInfo.InvariantCulture)))
+            throw new InvalidDataException("Decimal cannot be represented exactly at " + Path(element!) + ".");
         return result;
+    }
+    private static string CanonicalDecimal(string value) {
+        string text = value.Trim();
+        bool negative = text.StartsWith("-", StringComparison.Ordinal);
+        if (text.StartsWith("+", StringComparison.Ordinal) || negative) text = text.Substring(1);
+        int point = text.IndexOf('.');
+        string whole = (point < 0 ? text : text.Substring(0, point)).TrimStart('0');
+        string fraction = point < 0 ? string.Empty : text.Substring(point + 1).TrimEnd('0');
+        if (whole.Length == 0) whole = "0";
+        return (negative && (whole != "0" || fraction.Length != 0) ? "-" : string.Empty) + whole +
+            (fraction.Length == 0 ? string.Empty : "." + fraction);
     }
     internal decimal? Decimal(XElement? parent, XName name) => Decimal(Child(parent, name));
     internal decimal? Money(XElement? parent, XName name, string? currency, bool requireCurrency = false) {

@@ -75,7 +75,10 @@ public static partial class InvoiceModelValidator {
         }
         foreach (InvoiceNote note in invoice.Notes) {
             if (note == null) check.Error("INV-NULL", "Note is null.", "Notes");
-            else check.Required(note.Text, "Notes.Text");
+            else {
+                check.Required(note.Text, "Notes.Text");
+                if (note.SubjectCode != null) check.Code(note.SubjectCode, "Notes.SubjectCode", "^[A-Z]{3}$");
+            }
         }
         foreach (InvoiceSupportingDocument document in invoice.SupportingDocuments) {
             if (document == null) { check.Error("INV-NULL", "Supporting document is null.", "SupportingDocuments"); continue; }
