@@ -170,9 +170,10 @@ public sealed partial class OfficeWorkflowRunner {
 
         if (settings.CompressPdfOutput) {
             PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
+            compression.KeepOriginalWhenNotSmaller = true;
             compression.CancellationToken = cancellationToken;
             compression.MaximumOutputBytes = maximumOutputBytes;
-            PdfOptimizationActionResult optimized = PdfDocument.Load(bytes).Optimization.Apply(compression);
+            PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
             if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
             bytes = optimized.Bytes;
             diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",

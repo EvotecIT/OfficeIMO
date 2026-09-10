@@ -91,6 +91,32 @@ public sealed class ConversionOptionsTests {
         } finally { Directory.Delete(root, true); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PdfCompressionNeverEnlargesAnAlreadyWithinLimitConversion(bool tightLimit) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-compression-size-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string input = Path.Combine(root, "source.docx"), original = Path.Combine(root, "original.pdf"), output = Path.Combine(root, "compressed.pdf");
+            using (var word = OfficeIMO.Word.WordDocument.Create(input)) {
+                word.AddParagraph("x");
+                word.Save();
+            }
+            var runner = new OfficeWorkflowRunner();
+            var baseline = await runner.RunAsync(OfficeWorkflow.Convert(input).To(original).WithProfile(OfficeWorkflowOutputProfile.Lightweight).Build());
+            Assert.Equal(OfficeWorkflowStatus.Completed, baseline.Status);
+            long originalBytes = new FileInfo(original).Length;
+            var result = await runner.RunAsync(OfficeWorkflow.Convert(input).To(output)
+                .WithProfile(OfficeWorkflowOutputProfile.Lightweight)
+                .WithLimits(1024 * 1024, tightLimit ? originalBytes : 1024 * 1024)
+                .WithConversionOptions(new() { CompressPdfOutput = true }).Build());
+            Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary + string.Join(" ", result.Diagnostics.Select(d => d.Message)));
+            Assert.InRange(new FileInfo(output).Length, 1, originalBytes);
+            Assert.Contains("x", PdfDocument.Load(output).Reader.Text());
+        } finally { Directory.Delete(root, true); }
+    }
+
     private static PdfDocument Source(int count = 2) => PdfDocument.Create(compose => {
         for (int index = 0; index < count; index++) {
             string text = index == 0 ? "First page" : "Second page " + index;
