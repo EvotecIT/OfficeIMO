@@ -1,0 +1,194 @@
+[
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Deep10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "deep"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 966.2349,
+    "meanMs": 950.9258666666668,
+    "minMs": 907.0154,
+    "maxMs": 979.5273,
+    "p95Ms": 978.1980599999999,
+    "p99Ms": 979.261452,
+    "stdDevMs": 38.603999619253614,
+    "stdErrMs": 22.288029571972285,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 3745379,
+      "OutputBytes": 3745414,
+      "LoadSaveAllocatedBytes": 381905202.6666667,
+      "PeakWorkingSetBytes": 199974912
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Dense10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "dense"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 1801.8811,
+    "meanMs": 1811.7367333333334,
+    "minMs": 1750.7476,
+    "maxMs": 1882.5815,
+    "p95Ms": 1874.51146,
+    "p99Ms": 1880.967492,
+    "stdDevMs": 66.46724327519036,
+    "stdErrMs": 38.3748807972235,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 7151197,
+      "OutputBytes": 7151232,
+      "LoadSaveAllocatedBytes": 635190069.3333334,
+      "PeakWorkingSetBytes": 292904960
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat100k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "100000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 6301.1433,
+    "meanMs": 6314.167033333334,
+    "minMs": 6220.914,
+    "maxMs": 6420.4438,
+    "p95Ms": 6408.51375,
+    "p99Ms": 6418.05779,
+    "stdDevMs": 100.40044070851164,
+    "stdErrMs": 57.96622146981626,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 37646490,
+      "OutputBytes": 37646525,
+      "LoadSaveAllocatedBytes": 3720974760,
+      "PeakWorkingSetBytes": 1359435093.3333333
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 875.2974,
+    "meanMs": 874.4661,
+    "minMs": 871.1905,
+    "maxMs": 876.9104,
+    "p95Ms": 876.7491,
+    "p99Ms": 876.87814,
+    "stdDevMs": 2.949170861445611,
+    "stdErrMs": 1.7027045907418241,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 3716485,
+      "OutputBytes": 3716520,
+      "LoadSaveAllocatedBytes": 376904530.6666667,
+      "PeakWorkingSetBytes": 199640405.33333334
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Flat1k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "1000",
+      "Shape": "flat"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 203.5814,
+    "meanMs": 204.6192,
+    "minMs": 192.4184,
+    "maxMs": 217.8578,
+    "p95Ms": 216.43016,
+    "p99Ms": 217.572272,
+    "stdDevMs": 12.751413244029074,
+    "stdErrMs": 7.362031868988345,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 368480,
+      "OutputBytes": 368515,
+      "LoadSaveAllocatedBytes": 36655984,
+      "PeakWorkingSetBytes": 75280384
+    }
+  },
+  {
+    "suite": "project-xml-lifecycle",
+    "scenario": "Timephased10k",
+    "operation": "ReadEditSave",
+    "engine": "OfficeIMO",
+    "host": "Core-7.6.5",
+    "os": "Windows",
+    "runMode": "standard",
+    "variables": {
+      "Count": "10000",
+      "Shape": "timephased"
+    },
+    "sampleCount": 3,
+    "failureCount": 0,
+    "status": "Succeeded",
+    "medianMs": 3064.2631,
+    "meanMs": 3035.414533333333,
+    "minMs": 2953.5,
+    "maxMs": 3088.4805,
+    "p95Ms": 3086.05876,
+    "p99Ms": 3087.996152,
+    "stdDevMs": 71.96605932037228,
+    "stdErrMs": 41.549623721133514,
+    "outlierCount": 0,
+    "failureReasons": {},
+    "metrics": {
+      "InputBytes": 20605425,
+      "OutputBytes": 20605460,
+      "LoadSaveAllocatedBytes": 1260657069.3333333,
+      "PeakWorkingSetBytes": 676644181.3333334
+    }
+  }
+]

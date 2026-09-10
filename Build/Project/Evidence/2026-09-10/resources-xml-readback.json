@@ -1,0 +1,133 @@
+﻿{
+    "producer":  "Microsoft Project",
+    "version":  "16.0",
+    "build":  "16.0.20326.20144",
+    "inputSha256":  "d25fa8a6edf7f64ce356a50a5e7470718e26f64b7d28bfbdec409b773535989f",
+    "tasks":  [
+                  {
+                      "uid":  1,
+                      "id":  1,
+                      "name":  "Delivery",
+                      "outlineLevel":  1,
+                      "summary":  true,
+                      "durationMinutes":  3840,
+                      "workMinutes":  2400,
+                      "cost":  5002,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  5000
+                  },
+                  {
+                      "uid":  2,
+                      "id":  2,
+                      "name":  "Design",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  1440,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/05/2026 08:00:00",
+                      "finish":  "10/07/2026 17:00:00",
+                      "predecessors":  "",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  },
+                  {
+                      "uid":  3,
+                      "id":  3,
+                      "name":  "Build",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  2400,
+                      "workMinutes":  2400,
+                      "cost":  5002,
+                      "start":  "10/08/2026 08:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "2",
+                      "notes":  "Synthetic notes: café / Łódź / 日本語",
+                      "text1":  "Platform",
+                      "baselineCost":  5000
+                  },
+                  {
+                      "uid":  4,
+                      "id":  4,
+                      "name":  "Release",
+                      "outlineLevel":  2,
+                      "summary":  false,
+                      "durationMinutes":  0,
+                      "workMinutes":  0,
+                      "cost":  0,
+                      "start":  "10/14/2026 17:00:00",
+                      "finish":  "10/14/2026 17:00:00",
+                      "predecessors":  "3",
+                      "notes":  "",
+                      "text1":  "",
+                      "baselineCost":  0
+                  }
+              ],
+    "resources":  [
+                      {
+                          "uid":  1,
+                          "name":  "Engineer",
+                          "type":  0,
+                          "standardRate":  "125,00 zł/hr",
+                          "workMinutes":  2400,
+                          "cost":  5000
+                      },
+                      {
+                          "uid":  2,
+                          "name":  "Steel",
+                          "type":  1,
+                          "standardRate":  "2,00 zł",
+                          "workMinutes":  1,
+                          "cost":  2
+                      },
+                      {
+                          "uid":  3,
+                          "name":  "Travel",
+                          "type":  2,
+                          "standardRate":  "",
+                          "workMinutes":  "",
+                          "cost":  0
+                      }
+                  ],
+    "calendars":  [
+                      {
+                          "name":  "Standard",
+                          "exceptions":  [
+
+                                         ]
+                      }
+                  ],
+    "assignments":  [
+                        {
+                            "uid":  2097156,
+                            "taskUid":  3,
+                            "resourceUid":  1,
+                            "units":  1,
+                            "cost":  5000,
+                            "workMinutes":  2400
+                        },
+                        {
+                            "uid":  2097158,
+                            "taskUid":  3,
+                            "resourceUid":  2,
+                            "units":  1,
+                            "cost":  2,
+                            "workMinutes":  1
+                        },
+                        {
+                            "uid":  2097159,
+                            "taskUid":  3,
+                            "resourceUid":  3,
+                            "units":  "",
+                            "cost":  0,
+                            "workMinutes":  ""
+                        }
+                    ],
+    "reexportSha256":  "97ebe7c6c8627068332814c5b36e536221c2251a74bbb7b6d3a20cdb030d2a1a"
+}

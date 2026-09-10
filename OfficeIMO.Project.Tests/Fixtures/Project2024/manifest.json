@@ -1,0 +1,81 @@
+{
+  "producer": "Microsoft Project",
+  "version": "16.0",
+  "build": "16.0.20326.20144",
+  "locale": "pl-PL",
+  "provenance": "Synthetic schedules created by Build/Project/New-ProjectFixtures.ps1; no customer data or third-party fixture content.",
+  "redistribution": "OfficeIMO-authored synthetic content; MIT repository license. Microsoft Project is the producer and is not redistributed.",
+  "formatFamily": "MPP14 and Project XML SaveVersion 14",
+  "files": [
+    {
+      "file": "actuals.mpp",
+      "sha256": "ec4b9f3fe3f99a0c9904006b39cede1e05bf848adf4df05e912d0646550c7650",
+      "bytes": 244224
+    },
+    {
+      "file": "actuals.xml",
+      "sha256": "502d50bf32588ab8455e36670166783f800563e84095bb58fc832246f82df679",
+      "bytes": 40451
+    },
+    {
+      "file": "calendars.mpp",
+      "sha256": "797e780158ca37fec7ca148bae62d7116e84758aa0eed911200b6ef8e1cf8e88",
+      "bytes": 244736
+    },
+    {
+      "file": "calendars.xml",
+      "sha256": "ee8f8a943a7de0ef5882ca1c4d45675d0a3a0202afe01ed6214c92bf4d15e599",
+      "bytes": 41342
+    },
+    {
+      "file": "delivery.mpp",
+      "sha256": "c18f06f32a44ce4285db7e7fdb977430f050c4e9c3c3eceadb58e231c087b610",
+      "bytes": 243712
+    },
+    {
+      "file": "delivery.xml",
+      "sha256": "fd18124723f76a5b03422c847cc650c4b94e046084925df3a4484f07e1c36935",
+      "bytes": 38489
+    },
+    {
+      "file": "empty.mpp",
+      "sha256": "cc797a83fbd99b72c19c34f21ab7ab3c91f3071500d3effe99eaed852b59b9f5",
+      "bytes": 233984
+    },
+    {
+      "file": "empty.xml",
+      "sha256": "e42cbc53d80eaf9c9a27323f5335278cebf237666a84e4bd84d133a496903e13",
+      "bytes": 10502
+    },
+    {
+      "file": "relationships.mpp",
+      "sha256": "ea943268eadb65c8386e21fa9cd84dbd46d2b0e3d67dc88a3897fa09fb3c9805",
+      "bytes": 250880
+    },
+    {
+      "file": "relationships.xml",
+      "sha256": "2a33f3fca92b9816cb42d04438fc963947d31c0b298827edea3c5b0380fb0bd9",
+      "bytes": 70356
+    },
+    {
+      "file": "custom-fields.mpp",
+      "sha256": "b5b558793a04f1bd6e29a5c444e11d3edbc452301eb81cdc1398f8c3da6c57d9",
+      "bytes": 244224
+    },
+    {
+      "file": "custom-fields.xml",
+      "sha256": "6d5354b38cfc127d3d32ccb280156c53629665f76f7a34d2f09fa4f6ddcb1862",
+      "bytes": 39811
+    },
+    {
+      "file": "resources.mpp",
+      "sha256": "410066866ab2b8f0d97eee5fb779f435ea151a656b36e1da20976a3533eabc2f",
+      "bytes": 246272
+    },
+    {
+      "file": "resources.xml",
+      "sha256": "d25fa8a6edf7f64ce356a50a5e7470718e26f64b7d28bfbdec409b773535989f",
+      "bytes": 47467
+    }
+  ]
+}
