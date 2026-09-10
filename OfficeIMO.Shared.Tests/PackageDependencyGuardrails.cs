@@ -614,7 +614,7 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void SharedSource_IsLimitedToDependencySpecificAdaptersAndPolyfills() {
+    public void SharedSource_IsLimitedToApprovedInternalInfrastructure() {
         string sharedSourceRoot = GetRepositoryPath("OfficeIMO.SharedSource");
         string[] files = Directory.EnumerateFiles(sharedSourceRoot, "*.cs", SearchOption.AllDirectories)
             .Select(GetRepositoryRelativePath)
@@ -633,6 +633,11 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
+                "OfficeIMO.SharedSource/Invoicing/InvoiceProfile.cs",
+                "OfficeIMO.SharedSource/Invoicing/InvoiceProfileDeclaration.cs",
+                "OfficeIMO.SharedSource/Invoicing/InvoiceProfiles.cs",
+                "OfficeIMO.SharedSource/Invoicing/InvoiceSyntax.cs",
+                "OfficeIMO.SharedSource/Invoicing/InvoiceXml.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
