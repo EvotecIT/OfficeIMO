@@ -62,10 +62,26 @@ internal static class CupsPdfPrinter {
             pages.Add(PdfDocument.CreateFromImages([new PdfImageDocumentSource(sheet.Png)],
                 new PdfImageDocumentOptions { FixedPageSize = sheet.Plan.PaperSize, Margin = 0, Fit = OfficeImageFit.Stretch }, token));
         }
-        byte[] bytes = (pages.Count == 1 ? pages[0] : PdfDocument.Merge(pages, token)).ToBytes();
+        byte[] bytes = SerializeSpool(pages, token);
+        return await SubmitSpoolAsync(document, options, bytes, token, RunAsync).ConfigureAwait(false);
+    }
+
+    internal static byte[] SerializeSpool(IReadOnlyList<PdfDocument> pages, CancellationToken token) {
+        byte[] bytes = (pages.Count == 1 ? pages[0] : PdfDocument.Merge(pages, token)).ToBytes(token);
         if (bytes.LongLength > 256L * 1024 * 1024) throw new InvalidOperationException("The CUPS spool document exceeds its byte limit.");
+        return bytes;
+    }
+
+    internal delegate Task<(int ExitCode, string Output, string Error)> CupsCommandRunner(
+        string command, IReadOnlyList<string> arguments, CancellationToken token, Action? started);
+
+    internal static async Task<PdfPrintSubmission> SubmitSpoolAsync(PdfPreparedPrintDocument document,
+        PdfPrintDeliveryOptions options, byte[] bytes, CancellationToken token, CupsCommandRunner run) {
+        token.ThrowIfCancellationRequested();
+        PageSize paper = document.Sheets[0].Plan.PaperSize;
+        double width = Math.Min(paper.Width, paper.Height), height = Math.Max(paper.Width, paper.Height);
         string directory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-print-");
-        bool started = false;
+        bool submissionUncertain = false;
         string? jobId = null;
         Exception? failure = null;
         PdfPrintSubmission? submission = null;
@@ -91,31 +107,41 @@ internal static class CupsPdfPrinter {
                 arguments.Add("-o"); arguments.Add(options.PaperSourceId);
             }
             arguments.Add("--"); arguments.Add(path);
-            var result = await RunAsync("lp", arguments, token, () => started = true).ConfigureAwait(false);
-            if (result.ExitCode != 0) throw new IOException(result.Error.Trim());
+            var result = await run("lp", arguments, token, () => submissionUncertain = true).ConfigureAwait(false);
+            if (result.ExitCode != 0) {
+                // A missing destination is diagnosed before lp creates a job. Other exit-1
+                // failures can follow an accepted upload and an unsuccessful cancellation,
+                // so the exit code alone must never make retrying appear safe.
+                if (result.ExitCode == 1 && string.IsNullOrWhiteSpace(result.Output) &&
+                    result.Error.Trim() is "lp: Error - The printer or class does not exist." or
+                        "/usr/bin/lp: Error - The printer or class does not exist.")
+                    submissionUncertain = false;
+                throw new IOException(string.IsNullOrWhiteSpace(result.Error)
+                    ? $"The print command failed with exit code {result.ExitCode}." : result.Error.Trim());
+            }
             Match receipt = Regex.Match(result.Output, @"request id is (\S+-\d+)", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
             if (!receipt.Success) throw new IOException("The print command returned no recognizable job acknowledgement.");
             jobId = receipt.Groups[1].Value;
             submission = new(options.PrinterName, jobId, document.Sheets.Count, options.Copies, null);
         } catch (Exception error) {
             failure = error;
-            if (started) throw new PdfPrintDeliveryException(jobId, error);
+            if (submissionUncertain) throw new PdfPrintDeliveryException(jobId, error);
             throw;
         } finally {
-            submission = CleanupStaging(directory, submission, failure, started, jobId, path => Directory.Delete(path, recursive: true));
+            submission = CleanupStaging(directory, submission, failure, submissionUncertain, jobId, path => Directory.Delete(path, recursive: true));
         }
         return submission!;
     }
 
     internal static PdfPrintSubmission? CleanupStaging(string directory, PdfPrintSubmission? receipt, Exception? failure,
-        bool started, string? jobId, Action<string> delete) {
+        bool submissionUncertain, string? jobId, Action<string> delete) {
         try { delete(directory); }
         catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException) {
             string message = $"Could not remove print staging at '{directory}': {cleanup.Message}";
             if (receipt is not null) return receipt with { CleanupWarning = message };
             Exception detail = new IOException(message, cleanup);
             if (failure is not null) detail = new AggregateException(failure, detail);
-            if (started) throw new PdfPrintDeliveryException(jobId, detail);
+            if (submissionUncertain) throw new PdfPrintDeliveryException(jobId, detail);
             throw detail;
         }
         return receipt;
@@ -141,25 +167,26 @@ internal static class CupsPdfPrinter {
         timeout.Token.ThrowIfCancellationRequested();
         if (!process.Start()) throw new IOException("The print command could not start.");
         started?.Invoke();
-        Task<string> output = ReadBoundedAsync(process.StandardOutput);
-        Task<string> error = ReadBoundedAsync(process.StandardError);
+        Task<string> output = ReadBoundedAsync(process.StandardOutput, timeout.Token);
+        Task<string> error = ReadBoundedAsync(process.StandardError, timeout.Token);
         try {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
             return (process.ExitCode, await output.ConfigureAwait(false), await error.ConfigureAwait(false));
         } catch {
             try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
             await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-            try { await Task.WhenAll(output, error).ConfigureAwait(false); } catch (IOException) { }
+            try { await Task.WhenAll(output, error).ConfigureAwait(false); }
+            catch (Exception readError) when (readError is IOException or OperationCanceledException) { }
             throw;
         }
     }
 
-    private static async Task<string> ReadBoundedAsync(StreamReader reader) {
+    private static async Task<string> ReadBoundedAsync(StreamReader reader, CancellationToken token) {
         var text = new StringBuilder();
         char[] buffer = new char[4096];
         bool exceeded = false;
         int read;
-        while ((read = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0) {
+        while ((read = await reader.ReadAsync(buffer.AsMemory(), token).ConfigureAwait(false)) != 0) {
             int keep = Math.Min(read, 32768 - text.Length);
             text.Append(buffer, 0, keep);
             exceeded |= keep < read;
