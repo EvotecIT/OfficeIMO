@@ -102,37 +102,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
+            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
 
             if (paragraph.Shape != null) {
                 RenderNativeShape(pdf, paragraph.Shape);
             }
 
-            if (paragraph.Image != null) {
-                RenderNativeImage(pdf, paragraph.Image, objectAlign, options, "body paragraph image");
-            }
-
-            WordImage? pictureControlImage = paragraph.PictureControl?.Image;
-            if (pictureControlImage != null) {
-                RenderNativeImage(pdf, pictureControlImage, objectAlign, options, "body picture control image");
-            }
-
-            foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
-                if (ReferenceEquals(pictureControl, paragraph._stdRun)) {
-                    continue;
-                }
-
-                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
-                WordImage? inlinePictureControlImage = pictureParagraph.PictureControl?.Image;
-                if (inlinePictureControlImage != null) {
-                    RenderNativeImage(pdf, inlinePictureControlImage, objectAlign, options, "body picture control image");
-                }
-            }
-
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            if (paragraph.Image == null) {
-                RenderNativeRunImages(pdf, runs, objectAlign, options);
-            }
+            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
 
             RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
 
@@ -144,15 +122,13 @@ namespace OfficeIMO.Word.Pdf {
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
             List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, footnoteNumbers, footnoteNumbersById);
-            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(
-                paragraph,
-                nativeDefaults,
-                nativeFontMap);
+            bool needsAnchorLine = style.AnchoredCanvas != null && !hasRenderableRuns &&
+                string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
 
-            if (marker == null &&
+            if (!needsAnchorLine && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 &&
                 IsNativeHorizontalRuleParagraph(paragraph, runs, renderContent) &&
                 CreateNativeHorizontalRuleStyle(paragraph, style) is { } horizontalRuleStyle) {
@@ -160,7 +136,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (!hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
+            if (!needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null &&
+                paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -184,7 +161,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.HR(style: topBorderRuleStyle);
             }
 
-            if (headingLevel > 0 && marker == null) {
+            if (!needsAnchorLine && headingLevel > 0 && marker == null) {
                 if (paragraph._paragraph != null &&
                     string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
                     headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
@@ -206,8 +183,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
                 pdf.PanelParagraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
-                }, panelStyle, align, defaultColor);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
                 RenderNativeRepeatingSections(pdf, repeatingSectionControls, align, defaultColor);
@@ -223,9 +200,9 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphStyle.SpacingAfter = 0;
             }
 
-            if (hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
+            if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -483,7 +460,14 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<int> paragraphFootnoteNumbers,
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
+            NativeFontMap nativeFontMap,
+            bool needsAnchorLine = false) {
+            if (needsAnchorLine) {
+                // An image-only paragraph still participates in pagination and decoration.
+                builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
+                    nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak();
+                return;
+            }
             if (marker != null) {
                 builder.Text(new string(' ', Math.Max(0, marker.Value.Level - 1) * 2));
                 builder.Text(marker.Value.Marker);
@@ -530,12 +514,30 @@ namespace OfficeIMO.Word.Pdf {
             AddNativeFootnoteReferences(builder, paragraphFootnoteNumbers);
         }
 
-        private static void RenderNativeRunImages(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options) {
-            foreach (WordParagraph run in runs) {
-                if (run.IsImage && run.Image != null) {
-                    RenderNativeImage(pdf, run.Image, align, options, "body paragraph image run");
-                }
+        private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
+            var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
+                .ToDictionary(pair => pair.element, pair => pair.index);
+            var images = new List<(WordImage Image, int Position)>();
+            void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
+                if (image == null) return;
+                // DrawingML images retain their exact position; VML wrappers use their containing run.
+                int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition
+                    : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
+                images.Add((image, position));
             }
+            foreach (WordImage image in paragraph.EnumerateImages()) Add(image, paragraph._run);
+            Add(paragraph.PictureControl?.Image, paragraph._stdRun);
+            foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
+                if (ReferenceEquals(control, paragraph._stdRun)) continue;
+                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
+                Add(pictureParagraph.PictureControl?.Image, control);
+            }
+            foreach (WordParagraph run in runs) {
+                if (ReferenceEquals(run._run, paragraph._run)) continue;
+                foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
+            }
+            foreach (var image in images.OrderBy(item => item.Position))
+                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle);
         }
 
         private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {
@@ -794,6 +796,7 @@ namespace OfficeIMO.Word.Pdf {
             };
 
             var style = new PdfCore.PdfHeadingStyle {
+                AnchoredCanvas = paragraphStyle.AnchoredCanvas,
                 FontSize = fontSize,
                 LineHeight = 1.18D,
                 SpacingBefore = level == 1 ? 24D : 10D,

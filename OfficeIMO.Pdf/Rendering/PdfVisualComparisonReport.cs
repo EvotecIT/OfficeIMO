@@ -5,10 +5,17 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Rendered visual and structural comparison report for two PDFs.</summary>
 public sealed class PdfVisualComparisonReport {
-    internal PdfVisualComparisonReport(IReadOnlyList<PdfVisualPageComparison> pages, IReadOnlyList<string> structuralDifferences) {
+    internal PdfVisualComparisonReport(IReadOnlyList<PdfVisualPageComparison> pages, IReadOnlyList<string> structuralDifferences, int expectedPageCount, int actualPageCount) {
         Pages = pages.ToArray();
         StructuralDifferences = structuralDifferences.ToArray();
+        ExpectedPageCount = expectedPageCount;
+        ActualPageCount = actualPageCount;
     }
+
+    /// <summary>Total pages in the expected document, including pages outside a selected comparison.</summary>
+    public int ExpectedPageCount { get; }
+    /// <summary>Total pages in the actual document, including pages outside a selected comparison.</summary>
+    public int ActualPageCount { get; }
 
     /// <summary>Per-page comparisons.</summary>
     public IReadOnlyList<PdfVisualPageComparison> Pages { get; }
@@ -146,15 +153,20 @@ public sealed class PdfVisualPageComparison {
     private readonly byte[] _actualPng;
     private readonly byte[] _diffPng;
 
-    internal PdfVisualPageComparison(int pageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng) {
+    internal PdfVisualPageComparison(int pageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng, bool hasSizeDifference, PdfPixelRegion? changedBounds) {
         PageNumber = pageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
         MaximumChannelDifference = maximumChannelDifference; MeanChannelDifference = meanChannelDifference;
+        HasSizeDifference = hasSizeDifference; ChangedBounds = changedBounds;
         _expectedPng = (byte[])expectedPng.Clone(); _actualPng = (byte[])actualPng.Clone(); _diffPng = (byte[])diffPng.Clone();
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
     /// <summary>Whether this page satisfies the configured threshold.</summary>
     public bool IsMatch { get; }
+    /// <summary>Whether the rendered source dimensions differ, independently of pixel tolerances.</summary>
+    public bool HasSizeDifference { get; }
+    /// <summary>Smallest comparison-canvas rectangle containing pixels above channel tolerance, or null when none differ.</summary>
+    public PdfPixelRegion? ChangedBounds { get; }
     /// <summary>Comparison canvas width.</summary>
     public int Width { get; }
     /// <summary>Comparison canvas height.</summary>

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfSanitizerTests {
+public partial class PdfSanitizerTests {
     [Fact]
     public void InspectAndSanitizeBeforeSharingUsesOneTypedPolicyAndVerifiedRewrite() {
         byte[] source = BuildBeforeSharingPdf();

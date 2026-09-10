@@ -37,6 +37,9 @@ internal sealed class PdfDocumentSession {
 
     internal IReadOnlyList<PdfPageInfo> Pages => ViewInfo.Pages;
 
+    internal PdfVisualComparisonReport CompareTo(PdfDocumentSession actual, PdfVisualComparisonOptions options, CancellationToken token) =>
+        _document.Proof.CompareVisual(actual._document, token, options: options);
+
     internal async Task<IReadOnlyList<PdfSearchHit>> SearchAsync(
         string query,
         CancellationToken cancellationToken,

@@ -32,6 +32,8 @@ public sealed partial class OfficeWorkflowRunner {
         IReadOnlyDictionary<string, byte[]>? htmlResourceSnapshots = null) {
         ArgumentNullException.ThrowIfNull(input);
         OfficeWorkflowRoute route = request.Route!;
+        OfficeWorkflowConversionOptions settings = request.ConversionOptions ?? new();
+        PdfReadOptions? readOptions = settings.CreateReadOptions();
         cancellationToken.ThrowIfCancellationRequested();
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
@@ -57,6 +59,7 @@ public sealed partial class OfficeWorkflowRunner {
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new ExcelToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
+                    if (settings.WorksheetLayout.HasValue) options.WorksheetLayout = settings.WorksheetLayout.Value;
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
@@ -96,7 +99,11 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-docx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfToWordOptions(), cancellationToken);
+                PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfToWordOptions {
+                    Mode = settings.WordMode ?? PdfWordImportMode.EditableContent,
+                    ReadOptions = readOptions, Dpi = settings.RasterDpi ?? 144,
+                    MaxTotalOutputBytes = maximumOutputBytes, MaxOutputBytesPerPage = Math.Min(64L * 1024L * 1024L, maximumOutputBytes)
+                }, cancellationToken);
                 using WordDocument document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -108,7 +115,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-xlsx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
-                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions(), cancellationToken);
+                PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions { ReadOptions = readOptions }, cancellationToken);
                 using ExcelDocument document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -127,7 +134,11 @@ public sealed partial class OfficeWorkflowRunner {
             case "pdf-pptx": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(
-                    PdfToPowerPointOptions.CreateEditableContent(), cancellationToken);
+                    new PdfToPowerPointOptions {
+                        Mode = settings.PowerPointMode ?? PdfPowerPointImportMode.EditableContent,
+                        ReadOptions = readOptions, Dpi = settings.RasterDpi ?? 144,
+                        MaxTotalOutputBytes = maximumOutputBytes, MaxOutputBytesPerPage = Math.Min(64L * 1024L * 1024L, maximumOutputBytes)
+                    }, cancellationToken);
                 using PowerPointPresentation document = conversion.Value;
                 using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
@@ -141,7 +152,8 @@ public sealed partial class OfficeWorkflowRunner {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 int maximumOutputCharacters = (int)Math.Min(int.MaxValue, maximumOutputBytes);
                 PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfToHtmlOptions {
-                    Profile = PdfHtmlProfile.PositionedReview,
+                    Profile = settings.HtmlProfile ?? PdfHtmlProfile.PositionedReview,
+                    ReadOptions = readOptions,
                     IncludeLinkAnnotations = true,
                     IncludeFormWidgets = true,
                     MaximumOutputCharacters = maximumOutputCharacters,
@@ -154,6 +166,18 @@ public sealed partial class OfficeWorkflowRunner {
             }
             default:
                 throw new NotSupportedException("The conversion route '" + route.Id + "' is not implemented by the local runner.");
+        }
+
+        if (settings.CompressPdfOutput) {
+            PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
+            compression.KeepOriginalWhenNotSmaller = true;
+            compression.CancellationToken = cancellationToken;
+            compression.MaximumOutputBytes = maximumOutputBytes;
+            PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
+            if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
+            bytes = optimized.Bytes;
+            diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
+                OfficeWorkflowDiagnosticSeverity.Information, "convert"));
         }
 
         diagnostics.Add(new OfficeWorkflowDiagnostic(

@@ -5,6 +5,44 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPermissionPolicyTests {
     [Fact]
+    public void EnlargingLowQualityPrintDoesNotIncreaseSourceResolution() {
+        byte[] bytes = CreateEncryptedPdf("print-user", "print-owner", PdfStandardPermissions.Print, "Low quality print");
+        var document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "print-user" });
+        PdfPageRenderResult original = document.Render.PrintPage(1, new PdfPagePrintOptions { Dpi = 150 });
+        PdfPageRenderResult enlarged = document.Render.PrintPage(1, new PdfPagePrintOptions { Dpi = 150, PageScale = 2 });
+        Assert.Equal(original.Width, enlarged.Width);
+        Assert.Equal(original.Height, enlarged.Height);
+        Assert.Equal(original.Bytes, enlarged.Bytes);
+    }
+
+    [Theory]
+    [InlineData(PdfStandardPermissions.None, 150, false)]
+    [InlineData(PdfStandardPermissions.HighQualityPrint, 150, false)]
+    [InlineData(PdfStandardPermissions.Print, 150, true)]
+    [InlineData(PdfStandardPermissions.Print, 300, false)]
+    [InlineData(PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, 300, true)]
+    public void PrintRasterHonorsPrintAndHighQualityPermissions(PdfStandardPermissions permissions, int dpi, bool allowed) {
+        byte[] bytes = CreateEncryptedPdf("print-user", "print-owner", permissions, "Print without copy permission");
+        PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "print-user" });
+        var options = new PdfPagePrintOptions { Dpi = dpi };
+        if (allowed) {
+            PdfPageRenderResult rendered = document.Render.PrintPage(1, options);
+            Assert.NotEmpty(rendered.Bytes!);
+            Assert.Throws<PdfPermissionDeniedException>(() => document.Reader.Text());
+        } else {
+            Assert.Throws<PdfPermissionDeniedException>(() => document.Render.PrintPage(1, options));
+        }
+        Assert.Equal(bytes, document.ToBytes());
+    }
+
+    [Fact]
+    public void OwnerCanPrintRestrictedDocumentAtHighQuality() {
+        byte[] bytes = CreateEncryptedPdf("print-user", "print-owner", PdfStandardPermissions.None, "Owner print");
+        var document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "print-owner" });
+        Assert.NotEmpty(document.Render.PrintPage(1, new PdfPagePrintOptions { Dpi = 300 }).Bytes!);
+    }
+
+    [Fact]
     public void RestrictedUserPasswordBlocksTextUntilCallerExplicitlyIgnoresRestrictions() {
         byte[] pdf = CreateRestrictedPdf("open-one", "owner-one", "Restricted text");
         var enforced = new PdfLoadOptions { Password = "open-one" };

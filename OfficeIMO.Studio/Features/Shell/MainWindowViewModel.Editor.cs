@@ -10,7 +10,6 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
-    private PdfEditorGesture? _pendingRedaction;
     private PdfRedactionPlan? _pendingRedactionPlan;
     private PdfWorkspace? _pendingRedactionWorkspace;
     private long _pendingRedactionRevision;
@@ -184,7 +183,6 @@ public sealed partial class MainWindowViewModel {
 
     partial void OnSelectedEditorToolChoiceChanged(PdfEditorToolChoice value) {
         foreach (PdfPageViewModel page in Pages) page.EditorTool = value.Tool;
-        if (value.Tool != PdfEditorTool.Redact) CancelPendingRedaction();
     }
 
     partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? oldValue, PdfFormFieldViewModel? newValue) {
@@ -262,7 +260,8 @@ public sealed partial class MainWindowViewModel {
                 ErrorMessage = UiText("Editor.RedactionUnavailable");
                 return;
             }
-            CancelPendingRedaction();
+            if (_pendingRedactionWorkspace is not null &&
+                (!ReferenceEquals(_pendingRedactionWorkspace, workspace) || _pendingRedactionRevision != revision)) CancelPendingRedaction();
             long generation = _redactionPlanGeneration;
             PdfRedactionPlan? plan = null;
             bool succeeded = await RunStandaloneAsync(async token => {
@@ -278,20 +277,11 @@ public sealed partial class MainWindowViewModel {
                 OperationStatus = UiText("Editor.RedactionPreviewStale");
                 return;
             }
-            int textMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.TextBlock);
-            int imageMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
-            int annotationMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.Annotation);
-            _pendingRedaction = gesture;
-            _pendingRedactionPlan = plan;
             _pendingRedactionWorkspace = workspace;
             _pendingRedactionRevision = revision;
-            SetPendingRedactionArea(gesture);
-            PendingRedactionSummary = UiFormat(
-                "Editor.RedactionSummary",
-                gesture.PageNumber,
-                textMatches,
-                imageMatches,
-                annotationMatches);
+            AddRedactionMark(new PdfRedactionMarkViewModel(plan.Areas[0],
+                new Rect(gesture.Left, gesture.Top, gesture.Right - gesture.Left, gesture.Bottom - gesture.Top),
+                _localizer.GetOrDefault("Redaction.DrawnArea", "Drawn area")));
             return;
         }
 
@@ -366,12 +356,13 @@ public sealed partial class MainWindowViewModel {
         foreach (PdfPageViewModel page in Pages) {
             page.SelectedObject = page.PageNumber == selection.PageNumber ? selection : null;
         }
+        if (selection.Kind == PdfEditorSelectionKind.Text) _ = BeginInlineTextEditAsync(selection);
+        else ClearTextReview();
     }
 
     [RelayCommand]
     private async Task ApplyPendingRedactionAsync(CancellationToken cancellationToken) {
         if (_workspace is null ||
-            _pendingRedaction is null ||
             _pendingRedactionPlan is null ||
             _pendingRedactionWorkspace is null) return;
         PdfWorkspace workspace = _pendingRedactionWorkspace;
@@ -383,15 +374,20 @@ public sealed partial class MainWindowViewModel {
             return;
         }
         PdfVerifiedRedactionResult? proof = null;
+        PdfSanitizationOptions? sanitization = SanitizeAfterRedaction ? new PdfSanitizationOptions {
+            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata | PdfSanitizationContentKind.EmbeddedFiles |
+                PdfSanitizationContentKind.Actions | PdfSanitizationContentKind.CommentsAndMarkup
+        } : null;
         bool succeeded = await RunMutationAsync(async token => {
             proof = await workspace.ApplyVerifiedRedactionAsync(
                 plan,
                 revision,
                 RedactionRemovedMarker,
                 token,
-                CreateProgress()).ConfigureAwait(true);
+                CreateProgress(), sanitization).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || proof is null) return;
+        LastRedactionSummary = proof.Summary;
         OperationStatus = proof.Evidence.IsVerified
             ? UiFormat(
                 "Editor.RedactionVerified",
@@ -406,19 +402,23 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private void CancelPendingRedaction() {
         _redactionPlanGeneration++;
-        _pendingRedaction = null;
+        foreach (PdfRedactionMarkViewModel mark in RedactionMarks) mark.PropertyChanged -= OnRedactionMarkChanged;
+        RedactionMarks.Clear();
+        SelectedRedactionMark = null;
         _pendingRedactionPlan = null;
         _pendingRedactionWorkspace = null;
         _pendingRedactionRevision = 0;
         PendingRedactionSummary = null;
-        SetPendingRedactionArea(null);
+        UpdateRedactionOverlays();
+        OnPropertyChanged(nameof(CanReviewRedactions));
+        OnPropertyChanged(nameof(CanApplyReviewedRedactions));
     }
 
-    private void SetPendingRedactionArea(PdfEditorGesture? gesture) {
+    private void UpdateRedactionOverlays() {
         foreach (PdfPageViewModel page in Pages) {
-            page.PendingRedactionArea = gesture is not null && page.PageNumber == gesture.PageNumber
-                ? new Rect(gesture.Left, gesture.Top, gesture.Right - gesture.Left, gesture.Bottom - gesture.Top)
-                : null;
+            Rect[] bounds = RedactionMarks.Where(mark => mark.IsIncluded && mark.PageNumber == page.PageNumber)
+                .Select(mark => mark.Bounds).ToArray();
+            page.PendingRedactionAreas = bounds;
         }
     }
 
@@ -603,6 +603,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void ClearObjectSelection() {
+        ClearTextReview();
         SelectedObject = null;
         SelectedObjectSummary = null;
         SelectedAnnotationSummary = null;

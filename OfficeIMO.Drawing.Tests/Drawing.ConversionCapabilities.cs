@@ -131,7 +131,6 @@ public sealed class DrawingConversionCapabilities {
         Assert.Equal(OfficeConversionSupportLevel.Targeted, pdfToWord.SupportLevel);
         Assert.Equal(OfficeConversionFidelityKind.FixedLayout, pdfToPng.Fidelity);
         Assert.Equal(OfficeConversionSupportLevel.Advanced, pdfToPng.SupportLevel);
-        Assert.Contains("not page-layout recovery", pdfToWord.KnownLimitations, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

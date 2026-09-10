@@ -6,13 +6,11 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
     private static long ApplyRecognitionFrameOrder(
         PdfUnderstandingPipeline pipeline, PdfReadPage sourcePage, PdfLogicalPage nativePage,
         PdfOcrPageMergeResult merge, OcrArtifacts artifacts, CancellationToken token) {
-        var report = merge.ScanProcessing;
-        if (report == null || artifacts.Lines.Count < 2 ||
+        if (!merge.RecognitionWidth.HasValue || !merge.RecognitionHeight.HasValue || artifacts.Lines.Count < 2 ||
             artifacts.Lines.All(static line => line.SourceSequence.HasValue)) return 0;
 
-        (double sourceWidth, double sourceHeight) = sourcePage.GetVisualPageSize();
-        double width = report.Width * sourceWidth / report.SourceWidth;
-        double height = report.Height * sourceHeight / report.SourceHeight;
+        double width = merge.RecognitionWidth.Value;
+        double height = merge.RecognitionHeight.Value;
         var normalizedBySequence = new Dictionary<int, PdfUnderstandingWord>(merge.Words.Count);
         foreach (PdfRecognizedWord word in merge.Words) {
             token.ThrowIfCancellationRequested();

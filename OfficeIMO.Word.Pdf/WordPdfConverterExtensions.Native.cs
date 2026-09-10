@@ -56,12 +56,13 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private interface INativePdfFlow {
+            PdfCore.PageSize PageSize { get; }
             void PageBreak();
             void Spacer(double height);
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
             void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
-            void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null);
+            void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null);
             void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents);
             void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style);
             void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style);
@@ -78,16 +79,20 @@ namespace OfficeIMO.Word.Pdf {
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
             private readonly PdfCore.PdfDocument _pdf;
 
-            public NativePdfDocumentFlow(PdfCore.PdfDocument pdf) {
+            public NativePdfDocumentFlow(PdfCore.PdfDocument pdf, PdfCore.PageSize pageSize) {
                 _pdf = pdf;
+                PageSize = pageSize;
             }
+
+            public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak() => _pdf.PageBreak();
             public void Spacer(double height) => _pdf.Spacer(height);
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null) => _pdf.PanelParagraph(build, style, align, defaultColor);
+            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
+                _pdf.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
                 if (level == 1) _pdf.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
                 else if (level == 2) _pdf.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
@@ -109,17 +114,21 @@ namespace OfficeIMO.Word.Pdf {
             private readonly PdfCore.PdfPageBuilder _page;
             private readonly PdfCore.PdfContentBuilder _column;
 
-            public NativePdfColumnFlow(PdfCore.PdfPageBuilder page, PdfCore.PdfContentBuilder column) {
+            public NativePdfColumnFlow(PdfCore.PdfPageBuilder page, PdfCore.PdfContentBuilder column, PdfCore.PageSize pageSize) {
                 _page = page;
                 _column = column;
+                PageSize = pageSize;
             }
+
+            public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak() => _column.PageBreak();
             public void Spacer(double height) => _column.Spacer(height);
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null) => _column.PanelParagraph(build, style, align, defaultColor);
+            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
+                _column.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
                 if (level == 1) _column.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
                 else if (level == 2) _column.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
@@ -136,6 +145,9 @@ namespace OfficeIMO.Word.Pdf {
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _column.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
+
+        private static PdfCore.PdfParagraphStyle? NativePanelAnchorStyle(PdfCore.PdfParagraphStyle? style) =>
+            style?.AnchoredCanvas is { } canvas ? new PdfCore.PdfParagraphStyle { AnchoredCanvas = canvas } : null;
 
         private static PdfCore.PdfImageStyle CreateNativeImageStyle() => new() {
             ScaleDownToFit = true
@@ -178,7 +190,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap);
-                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
+                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();

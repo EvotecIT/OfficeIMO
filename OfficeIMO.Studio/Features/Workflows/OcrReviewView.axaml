@@ -71,9 +71,9 @@
         <ScrollViewer MaxHeight="120"><TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" /></ScrollViewer>
       </Expander>
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-        <TextBlock Text="{loc:Loc Ocr.Review.CommitNote}" TextWrapping="Wrap" Classes="muted" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding CommitNote}" TextWrapping="Wrap" Classes="muted" VerticalAlignment="Center" />
         <Button Grid.Column="1" Classes="tool" Content="{loc:Loc SearchablePdfOcr.Cancel}" Command="{Binding CancelCommand}" />
-        <Button Grid.Column="2" Classes="primary" Content="{loc:Loc SearchablePdfOcr.CreateSearchablePDF}" Command="{Binding CommitCommand}" />
+        <Button Grid.Column="2" Classes="primary" Content="{Binding CommitLabel}" Command="{Binding CommitCommand}" />
       </Grid>
     </StackPanel>
   </Grid>

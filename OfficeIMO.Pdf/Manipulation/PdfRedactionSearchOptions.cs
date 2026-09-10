@@ -9,6 +9,7 @@ public sealed class PdfRedactionSearchOptions {
     private readonly List<string> _regularExpressions = new List<string>();
     private readonly List<string> _formFieldNames = new List<string>();
     private readonly HashSet<PdfLogicalElementKind> _logicalElementKinds = new HashSet<PdfLogicalElementKind>();
+    private readonly HashSet<int> _pageNumbers = new HashSet<int>();
 
     /// <summary>Cooperative cancellation checked while deriving candidates.</summary>
     public CancellationToken CancellationToken { get; set; }
@@ -21,6 +22,9 @@ public sealed class PdfRedactionSearchOptions {
 
     /// <summary>Maximum candidate rectangles produced before planning stops fail-closed.</summary>
     public int MaximumCandidates { get; set; } = 100_000;
+
+    /// <summary>One-based pages to search. An empty set searches every page. Candidate limits apply only to these pages.</summary>
+    public ISet<int> PageNumbers => _pageNumbers;
 
     /// <summary>Regular-expression options. CultureInvariant is recommended for reproducible plans.</summary>
     public RegexOptions RegexOptions { get; set; } = RegexOptions.CultureInvariant;
