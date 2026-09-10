@@ -107,6 +107,7 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Empty) return;
+        canvas = canvas.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),

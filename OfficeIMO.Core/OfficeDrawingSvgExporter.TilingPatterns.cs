@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeDrawingSvgExporter {
     private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
         if (pattern.Opacity <= 0D) return;
+        textMetrics = textMetrics.WithDrawingTextProfile(pattern.InnerTile);
         string clipId = idPrefix + "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         string tileClipId = idPrefix + "officeimo-pattern-tile-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         string tileId = idPrefix + "officeimo-pattern-tile-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);

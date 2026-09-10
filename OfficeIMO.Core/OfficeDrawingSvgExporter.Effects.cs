@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeDrawingSvgExporter {
     private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
         if (effectGroup.Opacity <= 0D) return;
+        textMetrics = textMetrics.WithDrawingTextProfile(effectGroup.InnerDrawing);
         string? maskId = null;
         if (effectGroup.SoftMask != null) {
             maskId = idPrefix + "officeimo-mask-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
@@ -23,6 +24,7 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget, OfficeRasterCanvas textMetrics) {
+        textMetrics = textMetrics.WithDrawingTextProfile(mask.InnerDrawing);
         bool pdfLuminosity = mask.Mode == OfficeSoftMaskMode.Luminosity &&
             mask.LuminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb;
         string filterId = id + "-pdf-luminosity";
