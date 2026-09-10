@@ -15,7 +15,9 @@ internal static partial class StudioProcessProbe {
         .Configure(() => new App(StudioApplicationServices.Create(new StudioDataPaths(_profile))))
         .UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 
+    [STAThread]
     public static async Task<int> Main(string[] args) {
+        if (args is ["--studio-visual-probe", var visualRoot]) return StudioVisualProbe.Run(visualRoot);
         if (args is not ["--studio-process-probe", var mode, var root] ||
             mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify" or "storage-full" or "storage-detach")) return 2;
         root = Path.GetFullPath(root);

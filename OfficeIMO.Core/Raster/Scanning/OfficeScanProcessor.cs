@@ -31,7 +31,9 @@ public static partial class OfficeScanProcessor {
         steps.Add(new OfficeScanProcessingStep("deskew", correctSkew,
             !effective.Deskew ? "Deskew was disabled." : correctSkew ? "Applied the confident text-line skew correction." :
             "Retained source orientation: no confident in-range skew correction was found."));
-        OfficeTransform rotation = OfficeTransform.RotateDegrees(quarterRotation + correction);
+        steps.Add(new OfficeScanProcessingStep("straighten", effective.StraightenDegrees != 0D,
+            "Explicit clockwise straightening: " + effective.StraightenDegrees.ToString(CultureInfo.InvariantCulture) + " degrees."));
+        OfficeTransform rotation = OfficeTransform.RotateDegrees(quarterRotation + correction + effective.StraightenDegrees);
         var bounds = rotation.TransformRectangleBounds(0D, 0D, source.Width, source.Height);
         int width = checked((int)Math.Ceiling(bounds.Right - bounds.Left - 0.0000001D));
         int height = checked((int)Math.Ceiling(bounds.Bottom - bounds.Top - 0.0000001D));

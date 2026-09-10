@@ -239,6 +239,7 @@ internal static partial class PdfWriter {
                             var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
                             var sliceHeights = new System.Collections.Generic.List<double>();
                             for (int k = 0; k < take; k++) { sliceLines.Add(lines[start + k]); sliceHeights.Add(heights[start + k]); }
+                            if (start == 0 && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderCanvasBlock(paragraphCanvas);
                             pageDirty = true;
                             var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                             int? markedContentId = RegisterTextStructureElement("P");
@@ -274,6 +275,7 @@ internal static partial class PdfWriter {
                                 consumed += spacingBefore;
                             }
 
+                            if (hb2.Style?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
                             if (currentOpts.CreateOutlineFromHeadings) {
                                 currentPage!.Bookmarks.Add(new PageBookmark { Level = hb2.Level, Title = hb2.Text, Y = yCol });
                             }

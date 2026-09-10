@@ -97,9 +97,32 @@ PdfSearchableOcrResult searchable = review.ApplyAll();
 
 Orientation detection uses the provider's optional orientation capability and the same timeout, cancellation, and concurrency gate as recognition. Missing or low-confidence evidence retains the source orientation and produces a diagnostic. Tesseract needs its `osd` trained data. An explicit `ClockwiseQuarterTurns` value can supply a caller-reviewed correction; it combines with any accepted provider correction.
 
-Deskew searches a bounded range of small angles. Background normalization estimates local paper brightness, and `Bilevel` uses a measured or explicit global threshold. Downsampling never enlarges a scan. Blank-page detection reports a suggestion and keeps the page. These operations do not perform perspective correction, curved-page dewarping, or document cropping.
+Deskew searches a bounded range of small angles; `StraightenDegrees` supplies a manual correction from -15 to 15 degrees. Background normalization estimates local paper brightness. `BlackPoint`, `WhitePoint`, and `Gamma` adjust tonal levels before optional bilevel conversion. Downsampling never enlarges a scan. Blank-page detection reports a suggestion and keeps the page. Curved-page dewarping remains unsupported.
 
 `ScanProcessing` reports applied and skipped operations, buffer estimates, and forward/inverse pixel transforms. Its pixel, buffer, and analysis-work limits reject optional cleanup with an `ocr-scan-limit` diagnostic and retain the original OCR raster; cancellation still propagates. Buffer accounting covers the managed image operation, while encoded PDF/raster and provider-process limits remain separate. `PdfRecognizedWord.Geometry` retains all four corners on the original page, so the invisible text layer follows the original scan's angle after deskew or a quarter-turn. `X`, `Y`, `Width`, and `Height` remain its enclosing visual bounds.
+
+### Review a region and perspective correction
+
+`Regions` accepts one normalized rectangle per page. A nonempty list sends only those pages and pixels to the OCR provider. Region pages must also belong to `ReadOptions.PageSelection` when supplied. `Perspective` specifies four normalized corners relative to the region, or to the full page when no region is selected. Preparation crops first, corrects perspective next, and applies affine scan cleanup last.
+
+```csharp
+var options = new PdfOcrMergeOptions {
+    Regions = new[] { new PdfOcrPageRegion(1, 0.1, 0.1, 0.8, 0.7) },
+    Perspective = new OfficeScanPerspectiveOptions {
+        TopLeft = new(0.02, 0.04), TopRight = new(0.98, 0),
+        BottomRight = new(1, 1), BottomLeft = new(0, 0.96)
+    },
+    ScanProcessing = new OfficeScanProcessingOptions {
+        Deskew = false, StraightenDegrees = 2, Gamma = 1.1
+    }
+};
+PdfScanPreview preview = await document.PreviewScanAsync(1, options);
+byte[] originalPreview = preview.GetSourcePng();
+byte[] preparedPreview = preview.GetPreparedPng();
+PdfSearchableOcrReview review = await document.PrepareSearchableOcrAsync(engine, options);
+```
+
+Preview uses the same preparation code without calling an OCR provider. OCR geometry maps back through all transforms to the original visible page. `preview.CreateImagePdf()` instead creates a separate raster-only PDF of the prepared pixels: native text, forms, links, signatures, and attachments are omitted. Invalid region or perspective settings stop preparation; they do not silently select a different area. `ScanProcessing` describes the affine cleanup relative to the prepared region; its matrix alone does not describe the earlier crop and perspective mapping.
 
 ## Discover scanned redaction candidates
 
@@ -142,6 +165,8 @@ PdfSearchableOcrReview review = await pdf.PrepareSearchableOcrAsync(engine);
 // Replace this confidence selection with the eligible word instances chosen in a review interface.
 var selected = review.Ocr.Pages.SelectMany(page => page.Words)
     .Where(word => word.Confidence >= 0.90).ToArray();
+// Text extraction uses logical reading order and does not create or modify a PDF.
+string recognizedText = review.ExtractText(selected);
 PdfSearchableOcrResult reviewed = review.Apply(selected);
 await reviewed.Document.SaveAsync("reviewed-searchable.pdf");
 ```

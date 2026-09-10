@@ -636,8 +636,13 @@ internal static partial class PdfWriter {
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
-            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
-            sb.Append(pageImage.InlineDrawToken);
+            pageImage.IsForeground = item.Foreground;
+            pageImage.ForegroundZOrder = item.ForegroundZOrder;
+            // Foreground images use a distinct final image layer; ordinary canvas order stays inline.
+            if (!item.Foreground) {
+                pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
+                sb.Append(pageImage.InlineDrawToken);
+            }
 
             int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);

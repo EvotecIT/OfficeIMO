@@ -99,8 +99,8 @@ public sealed class PdfTextEditOptions {
     public bool AllowTextRenderingMode3 { get; set; }
 
     /// <summary>
-    /// Horizontal width policy for <c>Add(region, ...)</c> and <c>Replace(region, ...)</c>.
-    /// Match-based replacement keeps its existing local text-flow reflow behavior.
+    /// Horizontal width policy for added or replaced text. Match-based replacement measures the
+    /// original occurrence bounds and fits only the replacement fragment; unmatched text retains its size.
     /// </summary>
     public PdfTextRegionWidthPolicy RegionWidthPolicy {
         get => _regionWidthPolicy;

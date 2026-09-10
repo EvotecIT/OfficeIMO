@@ -68,7 +68,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorSelectionMode _selectionMode;
 
     [ObservableProperty]
-    private Rect? _pendingRedactionArea;
+    private IReadOnlyList<Rect> _pendingRedactionAreas = Array.Empty<Rect>();
 
     [ObservableProperty]
     private bool _isNightMode;
@@ -89,11 +89,16 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         double zoom,
         PageSceneCoordinator sceneCoordinator,
         PageRenderCoordinator renderCoordinator,
-        IStudioLocalizer? localizer = null) {
+        IStudioLocalizer? localizer = null,
+        OfficeIMO.Pdf.PdfPageGeometry? geometry = null) {
         PageNumber = pageNumber;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
         _pageWidth = Math.Max(1D, swapsAxes ? height : width);
         _pageHeight = Math.Max(1D, swapsAxes ? width : height);
+        double visualWidth = (geometry?.EffectiveBox?.Width ?? width) * (geometry?.UserUnit ?? 1);
+        double visualHeight = (geometry?.EffectiveBox?.Height ?? height) * (geometry?.UserUnit ?? 1);
+        _visualWidth = Math.Max(1, swapsAxes ? visualHeight : visualWidth);
+        _visualHeight = Math.Max(1, swapsAxes ? visualWidth : visualHeight);
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
         _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
@@ -116,6 +121,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
 
     internal event Action<PdfEditorSelection?>? ObjectSelected;
+    internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
 
     internal void AttachToViewport() {
         if (_disposed || _isAttached) return;
@@ -153,6 +159,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal void CompleteEditorGesture(PdfEditorGesture gesture) => EditorGestureCompleted?.Invoke(gesture);
 
     internal void SelectObject(PdfEditorSelection? selection) => ObjectSelected?.Invoke(selection);
+    internal void TransformObject(PdfObjectTransformGesture gesture) => ObjectTransformCompleted?.Invoke(gesture);
 
     internal async Task EnsureRenderedAsync() {
         if (_disposed || !_isAttached) return;

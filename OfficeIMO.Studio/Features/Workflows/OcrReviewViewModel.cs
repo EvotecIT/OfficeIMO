@@ -42,14 +42,20 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
     internal Task PreviewTask { get; private set; } = Task.CompletedTask;
     internal Task<IReadOnlyList<PdfRecognizedWord>> Completion => _completion.Task;
 
-    internal OcrReviewViewModel(PdfSearchableOcrReview review, IStudioLocalizer localizer, Action cancel) {
+    internal OcrReviewViewModel(PdfSearchableOcrReview review, IStudioLocalizer localizer, Action cancel, bool textOnly = false) {
         _review = review; _localizer = localizer; _cancel = cancel;
+        CommitLabel = textOnly ? localizer.GetOrDefault("Ocr.Text.UseSelected", "Use selected text")
+            : localizer.GetOrDefault("SearchablePdfOcr.CreateSearchablePDF", "Create searchable PDF");
+        CommitNote = textOnly ? localizer.GetOrDefault("Ocr.Text.CommitNote", "Extract the selected words without creating a PDF.")
+            : localizer.GetOrDefault("Ocr.Review.CommitNote", "Only selected eligible words will be added to the searchable PDF.");
         Pages = review.Ocr.Pages.Select(page => new OcrReviewPageChoice(page.PageNumber,
             localizer.FormatOrDefault("Ocr.Review.Page", "Page {0}", page.PageNumber))).ToArray();
         SelectedPage = Pages.FirstOrDefault();
     }
 
     public IReadOnlyList<OcrReviewPageChoice> Pages { get; }
+    public string CommitLabel { get; }
+    public string CommitNote { get; }
     [ObservableProperty] private IReadOnlyList<OcrReviewWord> _words = [];
     public string Summary => _localizer.FormatOrDefault("Ocr.Review.Summary", "Selected words: {0:N0} · Reviewed pages: {1:N0}. Rejected words remain excluded.",
         _review.Ocr.AcceptedWordCount - _excluded.Count, Pages.Count);

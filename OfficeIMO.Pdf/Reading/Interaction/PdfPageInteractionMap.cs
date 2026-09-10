@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 /// Dependency-free text-selection and hit-test projection for one rendered PDF page.
 /// Coordinates use the visual page's top-left origin after CropBox and page rotation are applied.
 /// </summary>
-public sealed class PdfPageInteractionMap {
+public sealed partial class PdfPageInteractionMap {
     private PdfPageInteractionMap(
         int pageNumber,
         double width,

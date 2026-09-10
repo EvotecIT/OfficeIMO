@@ -3,15 +3,38 @@ using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+    /// <summary>Chooses editable reconstruction or rendered page appearances in Word.</summary>
+    public enum PdfWordImportMode {
+        /// <summary>Reconstructs supported text, tables, links, and images as editable Word content.</summary>
+        EditableContent,
+        /// <summary>Embeds one rendered image per page; text and interactive objects are not editable.</summary>
+        VisualPages
+    }
     /// <summary>
-    /// Options for importing parser-supported PDF content into an editable Word document.
+    /// Options for importing PDF content as editable Word objects or rendered page images.
     /// </summary>
     /// <remarks>
-    /// PDF import is semantic reconstruction over the first-party logical PDF reader. It preserves
+    /// The default editable mode reconstructs content through the first-party logical PDF reader. It preserves
     /// supported metadata, page breaks, headings, paragraphs, list items, logical tables, and source
-    /// placeholders, but it is not a pixel-perfect fixed-layout PDF to DOCX renderer.
+    /// placeholders. VisualPages instead embeds managed-rendered page appearances at their physical page sizes;
+    /// image quality depends on the rendering resolution and the PDF renderer's supported content.
     /// </remarks>
     public sealed class PdfToWordOptions {
+        /// <summary>Import strategy. Editable reconstruction remains the default.</summary>
+        public PdfWordImportMode Mode { get; set; } = PdfWordImportMode.EditableContent;
+        /// <summary>Resolution of rendered page images in VisualPages mode.</summary>
+        public double Dpi { get; set; } = 144D;
+        /// <summary>Maximum pages rendered in VisualPages mode.</summary>
+        public int MaxPages { get; set; } = 100;
+        /// <summary>Maximum pixels for each rendered page in VisualPages mode.</summary>
+        public long MaxPixelsPerPage { get; set; } = 64L * 1024L * 1024L;
+        /// <summary>Maximum encoded bytes for each rendered page in VisualPages mode.</summary>
+        public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
+        /// <summary>Maximum aggregate encoded page-image bytes in VisualPages mode.</summary>
+        public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+
+        /// <summary>Creates an appearance-preserving profile using rendered page images.</summary>
+        public static PdfToWordOptions CreateVisualPages() => new PdfToWordOptions { Mode = PdfWordImportMode.VisualPages };
         /// <summary>Cancellation observed at page and import-item boundaries.</summary>
         internal CancellationToken CancellationToken { get; set; }
 
@@ -118,8 +141,10 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Creates a reusable copy of this option set.</summary>
         public PdfToWordOptions Clone() => new PdfToWordOptions {
+            Mode = Mode, Dpi = Dpi, MaxPages = MaxPages, MaxPixelsPerPage = MaxPixelsPerPage,
+            MaxOutputBytesPerPage = MaxOutputBytesPerPage, MaxTotalOutputBytes = MaxTotalOutputBytes,
             CancellationToken = CancellationToken,
-            ReadOptions = ReadOptions,
+            ReadOptions = ReadOptions?.Clone(),
             IncludeMetadata = IncludeMetadata,
             PreservePageBreaks = PreservePageBreaks,
             IncludeEmptyPages = IncludeEmptyPages,

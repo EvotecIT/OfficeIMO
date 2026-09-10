@@ -40,8 +40,10 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     public ConversionRouteChoice Route { get; }
     public string RouteLabel => Route.Route.Source + " → " + Route.Route.Target;
     public string Engine => Route.Engine;
-    public string Fidelity => Route.Fidelity;
+    public string Fidelity => UsesRasterPages ? T("VisualFidelity", "Visual page images · review rendering and editability limits") : Route.Fidelity;
     public string KnownLimitations => Route.KnownLimitations;
+
+    public OfficeWorkflowOutputProfile OutputProfile { get; internal set; } = OfficeWorkflowOutputProfile.Faithful;
 
     [ObservableProperty]
     private string _status = string.Empty;
@@ -50,6 +52,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     private double _progressFraction;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutput))]
     private string? _outputPath;
 
     [ObservableProperty]
@@ -61,7 +64,10 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     public bool HasWarnings => Diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning);
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutput))]
     private ConversionJobState _state;
+
+    public bool HasOutput => State == ConversionJobState.Completed && !string.IsNullOrWhiteSpace(OutputPath);
 
     internal bool CanRetry => State is ConversionJobState.Failed or ConversionJobState.Cancelled;
 

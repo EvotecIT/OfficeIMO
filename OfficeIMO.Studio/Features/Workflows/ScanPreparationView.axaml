@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+ x:Class="OfficeIMO.Studio.Features.Workflows.ScanPreparationView" x:DataType="workflow:ScanPreparationViewModel">
+ <StackPanel Spacing="10">
+  <TextBlock Text="{loc:Loc Scan.Title}" Classes="sectionTitle" />
+  <TextBlock Text="{loc:Loc Scan.Hint}" TextWrapping="Wrap" Classes="muted" />
+  <StackPanel Spacing="8" IsEnabled="{Binding CanEdit}">
+   <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+    <StackPanel><TextBlock Text="{loc:Loc Scan.Page}" /><NumericUpDown Minimum="1" Maximum="100000" Value="{Binding PageNumber}" /></StackPanel>
+    <StackPanel Grid.Column="1"><TextBlock Text="{loc:Loc SearchablePdfOcr.RenderDPI}" /><NumericUpDown Minimum="72" Maximum="600" Value="{Binding Dpi}" /></StackPanel>
+   </Grid>
+   <CheckBox Content="{loc:Loc Scan.Cleanup}" IsChecked="{Binding EnableCleanup}" />
+   <Expander Header="{loc:Loc Scan.Adjustments}" IsVisible="{Binding EnableCleanup}">
+    <StackPanel Spacing="8">
+     <WrapPanel><CheckBox Content="{loc:Loc Scan.Deskew}" IsChecked="{Binding Deskew}" Margin="0,0,12,0" /><CheckBox Content="{loc:Loc Scan.Background}" IsChecked="{Binding NormalizeBackground}" /></WrapPanel>
+     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+      <StackPanel><TextBlock Text="{loc:Loc Scan.Turns}" TextWrapping="Wrap" /><NumericUpDown Minimum="0" Maximum="3" Value="{Binding QuarterTurns}" /></StackPanel>
+      <StackPanel Grid.Column="1"><TextBlock Text="{loc:Loc Scan.Straighten}" TextWrapping="Wrap" /><NumericUpDown Minimum="-15" Maximum="15" Increment="0.5" Value="{Binding StraightenDegrees}" /></StackPanel>
+      <StackPanel Grid.Row="1"><TextBlock Text="{loc:Loc Scan.Black}" /><NumericUpDown Minimum="0" Maximum="254" Value="{Binding BlackPoint}" /></StackPanel>
+      <StackPanel Grid.Row="1" Grid.Column="1"><TextBlock Text="{loc:Loc Scan.White}" /><NumericUpDown Minimum="1" Maximum="255" Value="{Binding WhitePoint}" /></StackPanel>
+      <StackPanel Grid.Row="2"><TextBlock Text="{loc:Loc Scan.Gamma}" /><NumericUpDown Minimum="0.1" Maximum="10" Increment="0.1" Value="{Binding Gamma}" /></StackPanel>
+      <StackPanel Grid.Row="2" Grid.Column="1"><TextBlock Text="{loc:Loc Scan.Color}" /><ComboBox ItemsSource="{Binding ColorModes}" SelectedItem="{Binding SelectedColorMode}" HorizontalAlignment="Stretch" /></StackPanel>
+     </Grid>
+    </StackPanel>
+   </Expander>
+   <WrapPanel><CheckBox Content="{loc:Loc Scan.Region}" IsChecked="{Binding UseRegion}" Margin="0,0,12,0" /><CheckBox Content="{loc:Loc Scan.Perspective}" IsChecked="{Binding UsePerspective}" /></WrapPanel>
+   <CheckBox Content="{loc:Loc Scan.MoveCorners}" IsChecked="{Binding EditCorners}" IsVisible="{Binding UsePerspective}" />
+   <Button Classes="tool" Content="{loc:Loc Scan.Reset}" Command="{Binding ResetSelectionCommand}" HorizontalAlignment="Left" />
+  </StackPanel>
+  <Button Classes="primary" Content="{loc:Loc Scan.Preview}" Command="{Binding PreviewCommand}" HorizontalAlignment="Left" />
+  <StackPanel IsVisible="{Binding HasPreview}" Spacing="8">
+   <TextBlock Text="{loc:Loc Scan.Source}" FontWeight="SemiBold" />
+   <TextBlock Text="{loc:Loc Scan.DrawHint}" TextWrapping="Wrap" Classes="muted" />
+   <TextBlock Text="{loc:Loc Scan.KeyboardHint}" TextWrapping="Wrap" Classes="muted" />
+   <Border Background="White" BorderBrush="Gray" BorderThickness="1"><workflow:ScanSelectionCanvas Height="280" AutomationProperties.Name="{loc:Loc Scan.Source}" /></Border>
+   <TextBlock Text="{loc:Loc Scan.Prepared}" FontWeight="SemiBold" />
+   <Border Background="White" BorderBrush="Gray" BorderThickness="1"><Image Source="{Binding PreparedPreview}" MaxHeight="280" Stretch="Uniform" /></Border>
+  </StackPanel>
+  <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+  <TextBlock Text="{loc:Loc Scan.SaveHint}" TextWrapping="Wrap" Classes="muted" />
+  <Button Classes="tool" Content="{loc:Loc Scan.Save}" Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
+ </StackPanel>
+</UserControl>

@@ -104,13 +104,18 @@ public sealed partial class MainWindowViewModel {
         ComparisonReaderPages.Clear();
         if (value is not null) ComparisonReaderPages.Add(value);
         OnPropertyChanged(nameof(ComparisonSelectedPage));
-        if (_synchronizingComparison || value is null || Pages.Count == 0) return;
+        if (_synchronizingComparison) return;
+        if (value is null || Pages.Count == 0) {
+            SynchronizeDifferenceToPage(null);
+            return;
+        }
         _synchronizingComparison = true;
         try {
             SelectedPage = Pages[Math.Clamp(value.PageNumber, 1, Pages.Count) - 1];
         } finally {
             _synchronizingComparison = false;
         }
+        SynchronizeDifferenceToPage(value.PageNumber);
     }
 
     [RelayCommand]
@@ -121,6 +126,11 @@ public sealed partial class MainWindowViewModel {
         if (!HasDocument || IsWorkspaceBusy || IsOpening) return;
         string? path = await _pickPdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
+        await OpenComparisonDocumentAsync(path, cancellationToken).ConfigureAwait(true);
+    }
+
+    internal async Task OpenComparisonDocumentAsync(string path, CancellationToken cancellationToken = default) {
+        if (!HasDocument || IsWorkspaceBusy || IsOpening) return;
         string fullPath = OfficeIMO.Internal.OfficeStorageIdentity.Normalize(path);
         try {
             if (DocumentPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(fullPath, DocumentPath)) {
@@ -158,7 +168,7 @@ public sealed partial class MainWindowViewModel {
                      Zoom,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer) {
+                     _localizer, page.Geometry) {
                     EditorTool = PdfEditorTool.Select,
                     SelectionMode = PdfEditorSelectionMode.None,
                     IsNightMode = IsPageNightMode
@@ -226,6 +236,7 @@ public sealed partial class MainWindowViewModel {
     private void CancelComparisonOpen() => _comparisonCancellation?.Cancel();
 
     private void CloseComparisonSession(bool restoreLayout, bool cancelOpen = true) {
+        ClearComparisonDifferences();
         if (cancelOpen) _comparisonCancellation?.Cancel();
         foreach (PdfPageViewModel page in ComparisonPages) page.Dispose();
         ComparisonPages.Clear();

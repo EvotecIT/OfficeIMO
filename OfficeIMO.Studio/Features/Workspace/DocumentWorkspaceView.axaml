@@ -219,6 +219,7 @@
 
       <Grid Grid.Column="1" IsVisible="{Binding HasDocument}" ColumnDefinitions="*,6,*">
         <ListBox x:Name="PagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding !IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}"
                  Classes.readerSingle="{Binding IsSinglePageReaderLayout}"
@@ -244,6 +245,7 @@
         </ListBox>
 
         <ListBox x:Name="GridPagesList" Focusable="True" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderGridRows}"
                  SelectedItem="{Binding SelectedReaderGridRow, Mode=OneWay}"
@@ -274,7 +276,7 @@
         <Border Grid.Column="2" IsVisible="{Binding IsComparisonOpen}"
                 Background="{DynamicResource StudioCanvasBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
-          <Grid RowDefinitions="38,*">
+          <Grid RowDefinitions="38,Auto,*">
             <Border Background="{DynamicResource StudioPanelBrush}"
                     BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="10,0">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -283,7 +285,24 @@
                 <TextBlock Grid.Column="1" Text="{Binding ComparisonPagePosition}" Classes="muted" VerticalAlignment="Center" />
               </Grid>
             </Border>
-            <ListBox Grid.Row="1" ItemsSource="{Binding ComparisonReaderPages}"
+            <StackPanel Grid.Row="1" Spacing="6" Margin="10,6">
+              <WrapPanel>
+                <Button Content="{loc:Loc Comparison.Compare}" Command="{Binding ComparePagesCommand}" IsEnabled="{Binding !IsComparingPages}" Margin="0,0,6,0" />
+                <Button Content="{loc:Loc Comparison.Cancel}" Command="{Binding CancelPageComparisonCommand}" IsVisible="{Binding IsComparingPages}" />
+              </WrapPanel>
+              <TextBlock Text="{Binding ComparisonSummary}" TextWrapping="Wrap" Classes="muted" />
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="5" IsVisible="{Binding HasComparisonDifferences}">
+                <Button Content="‹" Command="{Binding PreviousComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Previous}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding ComparisonDifferences}" SelectedItem="{Binding SelectedComparisonDifference}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Comparison.Differences}" />
+                <Button Grid.Column="2" Content="›" Command="{Binding NextComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Next}" />
+              </Grid>
+              <CheckBox Content="{loc:Loc Comparison.Highlight}" IsChecked="{Binding ShowComparisonDifferenceImage}" IsVisible="{Binding HasComparisonDifferenceImage}" />
+            </StackPanel>
+            <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowComparisonDifferenceImage}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+              <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            </ScrollViewer>
+            <ListBox Grid.Row="2" ItemsSource="{Binding ComparisonReaderPages}"
+                     IsVisible="{Binding !ShowComparisonDifferenceImage}"
                      SelectedItem="{Binding ComparisonSelectedPage, Mode=OneWay}"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -346,7 +365,8 @@
                   <TextBox Text="{Binding ReplaceAllReplacementText}" PlaceholderText="{loc:Loc DocumentWorkspace.ReplaceWith}" />
                   <CheckBox IsChecked="{Binding ReplaceAllMatchCase}" Content="{loc:Loc DocumentWorkspace.MatchCase}" />
                   <CheckBox IsChecked="{Binding ReplaceAllWholeWords}" Content="{loc:Loc DocumentWorkspace.WholeWords}" />
-                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceAll}" Content="{loc:Loc DocumentWorkspace.ReplaceAll}" Command="{Binding ReplaceAllDocumentTextCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                  <Button Classes="tool" Content="{loc:Loc TextEdit.FindMatches}" Command="{Binding FindTextReplacementsCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                  <editor:TextEditInspectorView />
                 </StackPanel>
               </StackPanel>
 
@@ -355,12 +375,16 @@
                 <TextBlock Text="{Binding SelectedObjectSummary}" Classes="muted" TextWrapping="Wrap" />
 
                 <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="7">
-                  <TextBlock Text="{loc:Loc DocumentWorkspace.Text}" FontSize="12" />
-                  <TextBox Text="{Binding SelectedObjectText}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap" />
-                  <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceText}" Content="{loc:Loc DocumentWorkspace.ReplaceText}" Command="{Binding ReplaceSelectedTextCommand}" IsEnabled="{Binding CanReplaceSelectedText}" />
+                  <editor:TextEditInspectorView />
                 </StackPanel>
 
                 <StackPanel IsVisible="{Binding HasSelectedImage}" Spacing="7">
+                  <TextBlock Text="{loc:Loc ObjectEdit.DragHelp}" Classes="muted" TextWrapping="Wrap" />
+                  <CheckBox Content="{loc:Loc ObjectEdit.Behind}" IsChecked="{Binding PlaceEditedImageBehindContent}" />
+                  <TextBlock Text="{loc:Loc ObjectEdit.LayerHelp}" Classes="muted" TextWrapping="Wrap" />
+                  <TextBlock Text="{loc:Loc ObjectEdit.Scale}" />
+                  <NumericUpDown Value="{Binding ObjectScalePercent}" Minimum="1" Maximum="1000" />
+                  <Button Classes="tool" Content="{loc:Loc ObjectEdit.ApplyScale}" Command="{Binding ScaleSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.TheReplacementKeepsThisPlacementSPositionSizeAndRotation}" Classes="muted" TextWrapping="Wrap" />
                   <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceImage}" Content="{loc:Loc DocumentWorkspace.ReplaceImage}" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
                 </StackPanel>
@@ -403,19 +427,7 @@
               <editor:FormsInspectorView IsVisible="{Binding IsFormsDocumentMode}" />
 
               <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Spacing="8">
-                <TextBlock Text="{loc:Loc DocumentWorkspace.Protect}" FontSize="15" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly}" TextWrapping="Wrap" />
-                <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.UseRedactionTool}" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding Commands[Redact]}" IsEnabled="{Binding CanRedact}" />
-                <Border IsVisible="{Binding HasPendingRedaction}" Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
-                  <StackPanel Spacing="7">
-                    <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" Foreground="{DynamicResource StudioErrorBrush}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" FontSize="12" />
-                    <TextBox Text="{Binding RedactionRemovedMarker}" PlaceholderText="{loc:Loc DocumentWorkspace.TextThatMustBeAbsent}" />
-                    <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Content="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Command="{Binding ApplyPendingRedactionCommand}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Cancel}" Content="{loc:Loc DocumentWorkspace.Cancel}" Command="{Binding CancelPendingRedactionCommand}" />
-                  </StackPanel>
-                </Border>
-
+                <editor:RedactionInspectorView />
                 <Separator Margin="0,5" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PasswordProtection}" FontSize="15" FontWeight="SemiBold" />
                 <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Classes="muted"

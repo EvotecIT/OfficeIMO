@@ -26,7 +26,7 @@ public sealed class StudioResponsiveLayoutTests {
                 Layout(window, width, 620);
                 var workflow = window.GetVisualDescendants().OfType<SearchablePdfOcrView>().Single();
                 var source = workflow.FindControl<Border>("SourcePanel")!;
-                var information = workflow.FindControl<ScrollViewer>("InformationPanel")!;
+                var information = workflow.FindControl<Control>("InformationPanel")!;
                 Assert.False(source.Bounds.Intersects(information.Bounds));
                 Assert.True(information.Bounds.Right <= workflow.Bounds.Width + 1);
                 if (width == 960) {

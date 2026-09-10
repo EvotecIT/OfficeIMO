@@ -497,6 +497,8 @@ internal static partial class PdfWriter {
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }
+        public bool IsForeground { get; set; }
+        public uint ForegroundZOrder { get; set; }
         public bool DebugBox { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
