@@ -5,6 +5,24 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceTaxBoundaryTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReservedSepaIdentifiersCannotChangeRolesInUbl(bool seller) {
+        Invoice invoice = InvoiceFixture.Create();
+        (seller ? invoice.Seller : invoice.Buyer).Identifiers.Add(new InvoiceIdentifier("party-id", "SEPA"));
+        string path = seller ? "Seller.Identifiers" : "Buyer.Identifiers";
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)), d => d.Location == path);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)));
+        byte[] cii = InvoiceSerializer.Write(invoice);
+        InvoiceReadResult read = InvoiceParser.Read(cii);
+        Assert.True(read.HasCompleteMapping);
+        Assert.Equal("party-id", Assert.Single((seller ? read.Invoice.Seller : read.Invoice.Buyer).Identifiers).Value);
+        InvoiceConversionResult converted = InvoiceConverter.Convert(cii, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        Assert.False(converted.Succeeded);
+        Assert.Contains(converted.Diagnostics, d => d.Location == path);
+    }
+
+    [Theory]
     [InlineData(InvoiceSyntax.Cii)]
     [InlineData(InvoiceSyntax.Ubl)]
     public void ImportedRepresentativeWithoutVatIdentifierCannotBeRewrittenOrConverted(InvoiceSyntax syntax) {
